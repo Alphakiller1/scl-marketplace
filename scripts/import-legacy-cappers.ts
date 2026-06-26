@@ -27,24 +27,30 @@ function payout(units: number, odds: number): number {
 }
 
 function resolveProfit(p: LegacyPlayInput): number | null {
+  // Outcome is authoritative: PENDING has no realized profit, LOSS forfeits the
+  // stake, and PUSH/VOID return it. A provided profitUnits only overrides the
+  // (variable) WIN payout, so it can never contradict the recorded outcome.
   if (p.outcome === "PENDING") return null;
-  if (p.profitUnits != null) return round2(p.profitUnits);
-  if (p.outcome === "WIN") return round2(payout(p.units, p.oddsAmerican));
   if (p.outcome === "LOSS") return -p.units;
+  if (p.outcome === "WIN") {
+    return round2(p.profitUnits ?? payout(p.units, p.oddsAmerican));
+  }
   return 0; // PUSH / VOID — stake returned
 }
 
 async function importCapper(c: LegacyCapperInput) {
   const email = (c.email ?? `${c.username}@legacy.scl`).toLowerCase();
+  // Omitted optionals stay `undefined` so Prisma skips them on update (leaving
+  // prior values intact) and applies the schema defaults on create.
   const profileData = {
     isLegacy: true,
     headline: c.headline,
     bio: c.bio,
     avatarUrl: c.avatarUrl,
-    sports: c.sports ?? [],
-    specialties: c.specialties ?? [],
-    betTypes: c.betTypes ?? [],
-    providerType: c.providerType ?? "FREE",
+    sports: c.sports,
+    specialties: c.specialties,
+    betTypes: c.betTypes,
+    providerType: c.providerType,
     instagram: c.instagram,
     twitter: c.twitter,
     facebook: c.facebook,
@@ -52,11 +58,24 @@ async function importCapper(c: LegacyCapperInput) {
     website: c.website,
   };
 
+  // The import only ever (re)writes legacy records. If the email already
+  // belongs to a real, non-legacy user, skip rather than overwrite them.
+  const collision = await prisma.user.findUnique({
+    where: { email },
+    select: { capperProfile: { select: { isLegacy: true } } },
+  });
+  if (collision && !collision.capperProfile?.isLegacy) {
+    throw new Error(
+      `${email} already belongs to a non-legacy user — skipping to avoid overwriting it`,
+    );
+  }
+
   const user = await prisma.user.upsert({
     where: { email },
     update: {
+      username: c.username,
       displayName: c.displayName,
-      emailVerified: c.verified ? new Date() : null,
+      emailVerified: c.verified ? new Date() : undefined,
       capperProfile: { upsert: { create: profileData, update: profileData } },
     },
     create: {
