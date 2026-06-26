@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { TrendingUp } from "lucide-react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SclLogo } from "@/components/scl/scl-logo";
 
 export default function AuthLayout({
   children,
@@ -17,14 +17,8 @@ export default function AuthLayout({
       <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>
-      <Link
-        href="/"
-        className="mb-8 flex items-center gap-2 text-lg font-semibold"
-      >
-        <span className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-lg">
-          <TrendingUp className="size-5" />
-        </span>
-        SCL
+      <Link href="/" aria-label="SCL home" className="mb-8">
+        <SclLogo className="text-lg" />
       </Link>
       <div className="w-full max-w-sm">{children}</div>
     </div>
