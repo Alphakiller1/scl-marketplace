@@ -19,7 +19,7 @@ async function main() {
   });
 
   const capperPassword = await bcrypt.hash("capper1234", 12);
-  await prisma.user.upsert({
+  const capper = await prisma.user.upsert({
     where: { email: "capper@scl.local" },
     update: {},
     create: {
@@ -36,7 +36,52 @@ async function main() {
         },
       },
     },
+    include: { capperProfile: true },
   });
+
+  // Sample plays for the demo capper (idempotent — only if none exist).
+  if (capper.capperProfile) {
+    const existing = await prisma.play.count({
+      where: { capperId: capper.capperProfile.id },
+    });
+    if (existing === 0) {
+      await prisma.play.createMany({
+        data: [
+          {
+            capperId: capper.capperProfile.id,
+            sport: "NBA",
+            market: "Spread",
+            selection: "Celtics -4.5",
+            oddsAmerican: -110,
+            units: 2,
+            outcome: "WIN",
+            profitUnits: 1.82,
+            gradedAt: new Date(),
+          },
+          {
+            capperId: capper.capperProfile.id,
+            sport: "NFL",
+            market: "Total",
+            selection: "Chiefs/Bills Over 48.5",
+            oddsAmerican: -105,
+            units: 1.5,
+            outcome: "LOSS",
+            profitUnits: -1.5,
+            gradedAt: new Date(),
+          },
+          {
+            capperId: capper.capperProfile.id,
+            sport: "MLB",
+            market: "Moneyline",
+            selection: "Dodgers ML",
+            oddsAmerican: 135,
+            units: 1,
+            outcome: "PENDING",
+          },
+        ],
+      });
+    }
+  }
 
   console.log("Seeded:");
   console.log("  admin@scl.local  / admin1234  (ADMIN)");
