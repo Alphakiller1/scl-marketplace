@@ -2,7 +2,18 @@
 
 # Claude Code — repo notes
 
-The shared agent guide above (`AGENTS.md`) is authoritative. A few Claude-specific notes:
+The shared agent guide above (`AGENTS.md`) is authoritative, along with the foundation docs in
+`docs/` — read these before building UI:
+
+- `docs/SCL_PHASE_1_PRODUCT_SPEC.md` — what we're building + IA + pages
+- `docs/SCL_DESIGN_CONTRACT.md` — tokens, typography, motion (the visual law)
+- `docs/SCL_COMPONENT_SYSTEM.md` — the SCL-native components in `src/components/scl/`
+- `docs/SCL_UI_QUALITY_CHECKLIST.md` — the gate every UI PR must pass
+- `docs/SCL_DATA_CONTRACT.md`, `docs/SCL_MOBILE_FIRST_RULES.md`,
+  `docs/SCL_ACCESSIBILITY_AND_PERFORMANCE.md`, `docs/SCL_COMPETITOR_STANDARD.md`,
+  `docs/SCL_AGENT_WORKFLOW.md`
+
+A few Claude-specific notes:
 
 - **Planning lives elsewhere.** Feature prompts, the command center, QA checklists, owner
   decisions, and GitHub-issue mapping are in the separate `SCL` workspace

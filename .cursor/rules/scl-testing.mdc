@@ -1,0 +1,18 @@
+---
+description: SCL testing + QA requirements
+globs: tests/**/*.ts,src/**/*.test.ts,src/**/*.test.tsx,playwright.config.ts
+---
+
+Follow `docs/SCL_UI_QUALITY_CHECKLIST.md` and `docs/SCL_AGENT_WORKFLOW.md`.
+
+- **Playwright e2e** covers the core product flows: homepage / Command Center, leaderboard
+  filtering + sorting, today's picks, capper profile, mobile bottom-nav, and admin grading.
+  Add/adjust a test whenever you touch one of these flows. Tests live in `tests/e2e/`.
+- **Grading & money math** (`src/lib/grading`, odds/units/ROI/parlay) must have unit tests —
+  these are correctness-critical. Cover win/loss/push/void, American odds both signs, and
+  parlay leg removal.
+- Test mobile (375px) and desktop viewports for UI flows; assert no horizontal overflow.
+- Assert presence of loading, empty, and error states where relevant.
+- Keep tests deterministic: seed data, mock time/network; no reliance on live external APIs.
+- A PR touching a core flow is not done without its Playwright check green, plus CI
+  (typecheck/lint/build) and CodeRabbit review.

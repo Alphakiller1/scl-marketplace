@@ -1,0 +1,25 @@
+---
+description: SCL data model, validation, money/odds, grading
+globs: src/lib/**/*.ts,src/app/**/route.ts,src/app/**/*.action.ts,prisma/**/*.prisma
+---
+
+Follow `docs/SCL_DATA_CONTRACT.md`.
+
+- **Prisma is server-only** via `@/lib/prisma`. Mutations through Server Actions
+  (`*.action.ts`); webhooks/callbacks through Route Handlers. Never expose Prisma to the client.
+- **SCL data is isolated in the `scl` Postgres schema** (Supabase). Never read/write `public`
+  (separate analytics DB). Migrations only touch `scl`; after migrating, confirm `public` table
+  count is unchanged.
+- **Validate with Zod** (`*.schema.ts`), reused client + server; re-check on the server before
+  any write. Never trust client input.
+- **Money & odds:** American odds are integers (`-110`/`+150`); units are `Decimal(10,2)`
+  standardized to **0.25–5** (enforce via `src/lib/constants.ts`). All payout/P&L math lives in
+  `src/lib/grading` — never inline in a component. Parlays: lose if any leg loses; push/void
+  legs drop.
+- **Derived stats** (win%, ROI, units, streak, recent form, rank, rank movement, trophies) are
+  computed in `src/lib` (aggregate in the DB where possible), never stored raw or computed in
+  components. Keep `src/lib/mock.ts` shapes in sync with real query output.
+- **Grading** writes an append-only `GradingAudit` row every time (source AUTO/ADMIN_OVERRIDE/
+  MANUAL, reason required for overrides/manual). Audit is never deleted.
+- New env vars: read via `process.env`, document in `.env.example` (placeholder), never commit.
+- Sports taxonomy + leaderboard timeframes/sorts come from `src/lib/constants.ts`.

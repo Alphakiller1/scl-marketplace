@@ -1,0 +1,18 @@
+---
+description: SCL security — auth, authorization, secrets, input safety
+globs: src/lib/**/*.ts,src/app/**/route.ts,src/app/**/*.action.ts,src/middleware.ts,middleware.ts
+---
+
+- **Auth + roles enforced server-side** on every gated route/action — never rely on hidden UI.
+  Roles: `CAPPER` / `ADMIN`. Gated capper actions also require a **verified email**.
+- **Auth.js v5** is the only auth layer. Hash passwords with `bcryptjs`. Never log credentials,
+  tokens, or session secrets.
+- **Secrets** live in `.env` (gitignored). Never commit real values; add placeholders to
+  `.env.example` for any new var. Do not echo secrets into chat, logs, or test output.
+- **Validate & sanitize all external input** (Zod) before use; re-check on the server. Treat
+  all client data as hostile. Rate-limit public mutation endpoints.
+- **Data isolation:** only the `scl` schema; never touch `public` analytics data.
+- **No production scraping** for odds/scores/sportsbook/protected data — official APIs or
+  internal SCL data only. No unverified "sportsbook sync" claims.
+- Webhooks/callbacks (e.g. payments, email): verify signatures, treat payloads as untrusted.
+- Principle of least privilege for any service keys; scope and rotate.

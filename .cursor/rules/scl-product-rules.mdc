@@ -1,0 +1,27 @@
+---
+description: SCL product identity, IA, and non-negotiables (always applied)
+alwaysApply: true
+---
+
+You are building **SCL — the public performance layer for sports handicappers**: the most
+credible place to discover who is actually winning. Preserve the legacy product's business
+value (verified records, win%/ROI/units, sport + time leaderboards, today's picks, trophy
+case, profiles, trust); rebuild the experience to feel premium and mobile-native.
+
+Authoritative docs (read them): `AGENTS.md`, `docs/SCL_PHASE_1_PRODUCT_SPEC.md`,
+`docs/SCL_DESIGN_CONTRACT.md`, `docs/SCL_COMPONENT_SYSTEM.md`, `docs/SCL_UI_QUALITY_CHECKLIST.md`.
+
+Every UI decision must serve the loop: discover → evaluate → follow → view picks → track →
+rank → build reputation → return daily. If it doesn't, deprioritize it.
+
+Non-negotiables:
+- **Stack is fixed:** Next.js 16 (App Router) + React 19 + TS (strict), Tailwind v4, shadcn/ui
+  (**Base UI** primitives — use `render`, never `asChild`), Prisma 6 + Postgres (Supabase),
+  Auth.js v5, TanStack Query/Table, react-hook-form + Zod, Motion, Recharts, lucide.
+- **Build from `src/components/scl/*`**, not raw shadcn. Tokens only. Mobile-first. All states.
+- **Quality bar:** `typecheck`, `lint`, `format`, `build` green; no `any`; no business logic in
+  components (compute in `src/lib`).
+- **Trust:** never claim verification/sportsbook-sync we don't have. Show grade/source honestly.
+- **Git:** `main` is protected — branch + PR. SCL data is isolated in the `scl` schema; never
+  touch `public`.
+- Don't ship a default-shadcn or generic-SaaS look. If it looks generic, it's wrong.
