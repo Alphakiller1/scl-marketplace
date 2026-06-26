@@ -8,19 +8,33 @@ import { BetType, Outcome, ProviderType } from "@prisma/client";
  * script can load it directly under tsx. See docs/LEGACY_MIGRATION.md.
  */
 
-export const legacyPlaySchema = z.object({
-  sport: z.string().min(1),
-  league: z.string().optional(),
-  market: z.string().min(1),
-  selection: z.string().min(1),
-  oddsAmerican: z.number().int(),
-  units: z.number().positive(),
-  outcome: z.nativeEnum(Outcome),
-  /** Optional — computed from odds/units when omitted (except PENDING). */
-  profitUnits: z.number().optional(),
-  gradedAt: z.coerce.date().optional(),
-  createdAt: z.coerce.date().optional(),
-});
+export const legacyPlaySchema = z
+  .object({
+    sport: z.string().min(1),
+    league: z.string().optional(),
+    market: z.string().min(1),
+    selection: z.string().min(1),
+    oddsAmerican: z.number().int(),
+    units: z.number().positive(),
+    outcome: z.nativeEnum(Outcome),
+    /** Optional — computed from odds/units when omitted (except PENDING). */
+    profitUnits: z.number().optional(),
+    gradedAt: z.coerce.date().optional(),
+    createdAt: z.coerce.date().optional(),
+  })
+  .superRefine((p, ctx) => {
+    // Settled plays must carry a real timestamp; otherwise the importer would
+    // fall back to the import run's `now`, collapsing historical chronology and
+    // corrupting leaderboard streaks/recent form (which sort by gradedAt ?? createdAt).
+    if (p.outcome !== Outcome.PENDING && !p.gradedAt && !p.createdAt) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["gradedAt"],
+        message:
+          "Settled plays must include gradedAt or createdAt so historical results sort correctly.",
+      });
+    }
+  });
 
 export const legacyCapperSchema = z.object({
   /** Becomes User.username — the public /cappers/[handle] slug. */
@@ -49,7 +63,27 @@ export const legacyCapperSchema = z.object({
   plays: z.array(legacyPlaySchema).optional(),
 });
 
-export const legacyImportSchema = z.array(legacyCapperSchema);
+export const legacyImportSchema = z
+  .array(legacyCapperSchema)
+  .superRefine((cappers, ctx) => {
+    // Each entry resolves to a unique user key (email, or the username@legacy.scl
+    // placeholder). Duplicates would silently merge two export records into one
+    // identity — overwriting profile data and skipping the second entry's plays.
+    const seen = new Map<string, number>();
+    cappers.forEach((c, i) => {
+      const email = (c.email ?? `${c.username}@legacy.scl`).toLowerCase();
+      const first = seen.get(email);
+      if (first !== undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [i, "email"],
+          message: `Duplicate import email "${email}" (also used by entry ${first}); each capper must resolve to a unique email.`,
+        });
+      } else {
+        seen.set(email, i);
+      }
+    });
+  });
 
 export type LegacyPlayInput = z.infer<typeof legacyPlaySchema>;
 export type LegacyCapperInput = z.infer<typeof legacyCapperSchema>;
