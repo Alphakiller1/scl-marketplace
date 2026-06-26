@@ -140,14 +140,13 @@ const withTrophy = (c: CapperSummary, t: string) => {
   if (!c.trophies.includes(t)) c.trophies.push(t);
 };
 
-export async function getLeaderboard(): Promise<CapperSummary[]> {
-  let profiles: ProfileRow[];
-  try {
-    profiles = await fetchRankableProfiles();
-  } catch (err) {
-    console.error("[getLeaderboard] database unavailable:", err);
-    return [];
-  }
+/**
+ * Build the ranked board, letting database errors propagate. Callers that need
+ * to tell "the board is genuinely empty" apart from "the database failed"
+ * (e.g. profile lookups that must not 404 on outages) should use this.
+ */
+export async function getLeaderboardOrThrow(): Promise<CapperSummary[]> {
+  const profiles = await fetchRankableProfiles();
 
   const cappers = profiles
     .map(summarize)
@@ -170,4 +169,13 @@ export async function getLeaderboard(): Promise<CapperSummary[]> {
   }
 
   return cappers;
+}
+
+export async function getLeaderboard(): Promise<CapperSummary[]> {
+  try {
+    return await getLeaderboardOrThrow();
+  } catch (err) {
+    console.error("[getLeaderboard] database unavailable:", err);
+    return [];
+  }
 }
