@@ -23,21 +23,31 @@ That's it — every push to `main` now auto-deploys and the URL appears in GitHu
 
 ### Required environment variables (Vercel → Project → Settings → Environment Variables)
 
-| Var               | Value                                                                                   | Notes                                     |
-| ----------------- | --------------------------------------------------------------------------------------- | ----------------------------------------- |
-| `DATABASE_URL`    | Supabase **Transaction pooler** URI, port **6543**, ending `?pgbouncer=true&schema=scl` | Serverless-safe pooled connections        |
-| `DIRECT_URL`      | Supabase **direct** URI, port **5432**, ending `?schema=scl`                            | Used only for migrations                  |
-| `AUTH_SECRET`     | a strong secret (`npx auth secret`)                                                     | required                                  |
-| `AUTH_URL`        | the deployed URL, e.g. `https://scl-marketplace.vercel.app`                             | set after first deploy                    |
-| `AUTH_TRUST_HOST` | `true`                                                                                  | required for Auth.js on the deployed host |
-| `EMAIL_FROM`      | a verified sender, e.g. `no-reply@yourdomain`                                           | optional until email is live              |
-| `RESEND_API_KEY`  | your Resend API key                                                                     | optional; dev logs the link if unset      |
-| `ODDS_API_KEY`    | The Odds API key                                                                        | later (odds-assist/grading)               |
+| Var               | Value                                                                                   | Notes                                        |
+| ----------------- | --------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `DATABASE_URL`    | Supabase **Transaction pooler** URI, port **6543**, ending `?pgbouncer=true&schema=scl` | Serverless-safe pooled connections           |
+| `DIRECT_URL`      | Supabase **direct** URI, port **5432**, ending `?schema=scl`                            | Used only for migrations                     |
+| `AUTH_SECRET`     | a strong secret (`npx auth secret`)                                                     | required (all environments)                  |
+| `AUTH_URL`        | the deployed origin, e.g. `https://scl-marketplace.vercel.app`                          | **Production only** — leave unset on Preview |
+| `AUTH_TRUST_HOST` | `true`                                                                                  | required for Auth.js on Vercel               |
+| `EMAIL_FROM`      | a verified sender, e.g. `no-reply@yourdomain`                                           | optional until email is live                 |
+| `RESEND_API_KEY`  | your Resend API key                                                                     | optional; dev logs the link if unset         |
+| `ODDS_API_KEY`    | The Odds API key                                                                        | later (odds-assist/grading)                  |
+
+When adding each var, Vercel shows **Production / Preview / Development** checkboxes — tick
+**Production + Preview** for everything **except `AUTH_URL`** (Production only). This keeps
+branch/PR preview deploys working as testing environments.
+
+> **Environments.** Vercel auto-creates two: **Production** (deploys from `main`) and
+> **Preview** (a fresh URL per branch/PR — your **testing environments**). No separate setup
+> needed; Preview URLs surface on each PR in GitHub.
 
 > **Important — use the pooler for `DATABASE_URL` in production.** The direct connection
 > (`db.<ref>.supabase.co:5432`) can exhaust connections under serverless load. In Supabase →
 > **Connect**, copy the **Transaction** pooler string (port 6543), add
 > `?pgbouncer=true&schema=scl`. Keep `DIRECT_URL` on the direct 5432 connection for migrations.
+> For a quick first test deploy you may reuse your local direct URL for both, then switch
+> `DATABASE_URL` to the pooler before real traffic.
 
 ### Migrations
 
