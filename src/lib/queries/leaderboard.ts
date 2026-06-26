@@ -63,7 +63,7 @@ function deriveForm(settled: Outcome[]): {
   let streak = 0;
   for (let i = forms.length - 1; i >= 0; i--) {
     const f = forms[i];
-    if (f === "P") break; // a push ends the active W/L streak
+    if (f === "P") continue; // a push is neutral — skip it, don't break the streak
     if (streak === 0) streak = f === "W" ? 1 : -1;
     else if (streak > 0 && f === "W") streak++;
     else if (streak < 0 && f === "L") streak--;

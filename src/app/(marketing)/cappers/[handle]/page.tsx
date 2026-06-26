@@ -34,7 +34,7 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
   const data = await getPublicCapperByHandle(handle);
   if (!data) notFound();
 
-  const { capper, plays } = data;
+  const { capper, plays, playsError } = data;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -56,6 +56,13 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
               <PlayListItem key={p.id} play={p} />
             ))}
           </div>
+        ) : playsError ? (
+          <EmptyState
+            className="mt-4"
+            icon={ListChecks}
+            title="Couldn't load recent plays"
+            description="We hit a snag loading this capper's plays. Please try again shortly."
+          />
         ) : (
           <EmptyState
             className="mt-4"

@@ -8,6 +8,9 @@ import type { CapperSummary } from "@/lib/mock";
 export type PublicCapper = {
   capper: CapperSummary;
   plays: PlayView[];
+  /** True when the recent-plays query failed, so the page can show an error
+   * state instead of a misleading "no plays" empty state. */
+  playsError: boolean;
 };
 
 /**
@@ -24,6 +27,7 @@ export async function getPublicCapperByHandle(
   if (!capper) return null;
 
   let plays: PlayView[] = [];
+  let playsError = false;
   try {
     const rows = await prisma.play.findMany({
       where: { capper: { user: { username: handle } } },
@@ -44,7 +48,8 @@ export async function getPublicCapperByHandle(
     }));
   } catch (err) {
     console.error("[getPublicCapperByHandle] plays unavailable:", err);
+    playsError = true;
   }
 
-  return { capper, plays };
+  return { capper, plays, playsError };
 }
