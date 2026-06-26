@@ -31,6 +31,7 @@ export type CapperSummary = {
   sports?: string[]; // full coverage list shown on the profile
   joinedAt?: Date;
   socials?: { twitter?: string; instagram?: string; website?: string };
+  isLegacy?: boolean; // record imported from the previous SCL platform
 };
 
 export type TodayPick = {

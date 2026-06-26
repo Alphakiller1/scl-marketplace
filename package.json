@@ -17,6 +17,7 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "prisma db seed",
+    "db:import-legacy": "tsx scripts/import-legacy-cappers.ts",
     "postinstall": "prisma generate",
     "prepare": "husky"
   },

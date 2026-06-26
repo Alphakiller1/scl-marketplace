@@ -23,6 +23,7 @@ function fetchRankableProfiles() {
       headline: true,
       bio: true,
       specialties: true,
+      isLegacy: true,
       sports: true,
       instagram: true,
       twitter: true,
@@ -139,6 +140,7 @@ function summarize(p: ProfileRow): CapperSummary | null {
     sports: p.sports.length ? p.sports : undefined,
     joinedAt: p.createdAt,
     socials: pruneSocials(p.twitter, p.instagram, p.website),
+    isLegacy: p.isLegacy || undefined,
   };
 }
 

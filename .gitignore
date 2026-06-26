@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Legacy capper import data (real exports — keep out of git; .example.json is tracked)
+prisma/legacy-cappers.json

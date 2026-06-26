@@ -3,6 +3,7 @@ import { Globe } from "lucide-react";
 import type { CapperSummary } from "@/lib/mock";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
 import {
+  LegacyBadge,
   SportTag,
   TrophyBadge,
   VerificationBadge,
@@ -49,6 +50,7 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                 {capper.verified ? (
                   <VerificationBadge size="md" withLabel />
                 ) : null}
+                {capper.isLegacy ? <LegacyBadge /> : null}
               </div>
               <span className="text-muted-foreground text-sm">
                 @{capper.handle}
