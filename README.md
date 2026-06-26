@@ -3,6 +3,7 @@
 Phase 1 marketplace foundation. Planning, prompts, and QA live in the separate `SCL` workspace.
 
 ## Stack
+
 - **Next.js 16** (App Router) + **React 19** + **TypeScript**
 - **Tailwind CSS v4** + **shadcn/ui** (Base UI primitives) + `next-themes` (dark mode default)
 - **Prisma 6** + **PostgreSQL**
@@ -23,17 +24,19 @@ Generate an auth secret with `npx auth secret`. You need a PostgreSQL database
 (local, or hosted on Neon/Supabase) for `db:push` / `db:migrate`.
 
 ## Scripts
-| Script | Purpose |
-|---|---|
-| `npm run dev` | Dev server |
-| `npm run build` | Production build |
-| `npm run typecheck` | `tsc --noEmit` |
-| `npm run lint` | ESLint |
-| `npm run db:push` | Push Prisma schema to DB (no migration files) |
-| `npm run db:migrate` | Create + apply a dev migration |
-| `npm run db:studio` | Prisma Studio |
+
+| Script               | Purpose                                       |
+| -------------------- | --------------------------------------------- |
+| `npm run dev`        | Dev server                                    |
+| `npm run build`      | Production build                              |
+| `npm run typecheck`  | `tsc --noEmit`                                |
+| `npm run lint`       | ESLint                                        |
+| `npm run db:push`    | Push Prisma schema to DB (no migration files) |
+| `npm run db:migrate` | Create + apply a dev migration                |
+| `npm run db:studio`  | Prisma Studio                                 |
 
 ## Structure
+
 ```
 prisma/schema.prisma      # Data model: auth, cappers, plays, parlays, packages, grading
 src/app/                  # App Router pages
@@ -43,5 +46,6 @@ src/lib/prisma.ts          # Prisma client singleton
 ```
 
 ## Phase 1 Scope
+
 Tracked as GitHub issues (labels `phase-1`, `M1-onboarding`, …). See the `SCL`
 planning workspace for the command center, feature prompts, and QA checklists.

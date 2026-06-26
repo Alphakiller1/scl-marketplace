@@ -1,0 +1,10 @@
+.next
+node_modules
+out
+build
+coverage
+pnpm-lock.yaml
+package-lock.json
+prisma/migrations
+next-env.d.ts
+*.mdc

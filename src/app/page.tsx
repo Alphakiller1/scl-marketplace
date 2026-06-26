@@ -52,10 +52,10 @@ export default function Home() {
               <BadgeCheck className="size-3.5" />
               Phase 1 — Marketplace foundation
             </Badge>
-            <h1 className="mx-auto max-w-3xl text-balance text-4xl font-bold tracking-tight sm:text-6xl">
+            <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight text-balance sm:text-6xl">
               Prove your edge. Build your following.
             </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg text-muted-foreground">
+            <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-lg text-pretty">
               SCL is the marketplace where sports cappers log every play, earn a
               verified record, and turn it into a real audience.
             </p>
@@ -84,11 +84,11 @@ export default function Home() {
             {features.map(({ icon: Icon, title, body }) => (
               <Card key={title} className="border-border/60">
                 <CardContent className="pt-6">
-                  <span className="mb-4 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <span className="bg-primary/10 text-primary mb-4 flex size-10 items-center justify-center rounded-lg">
                     <Icon className="size-5" />
                   </span>
                   <h3 className="font-semibold">{title}</h3>
-                  <p className="mt-1.5 text-sm text-muted-foreground">{body}</p>
+                  <p className="text-muted-foreground mt-1.5 text-sm">{body}</p>
                 </CardContent>
               </Card>
             ))}
@@ -96,8 +96,8 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="border-t border-border/60">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:px-6">
+      <footer className="border-border/60 border-t">
+        <div className="text-muted-foreground mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 py-8 text-sm sm:flex-row sm:px-6">
           <p>© {new Date().getFullYear()} Sports Capper League</p>
           <div className="flex gap-4">
             <Link href="/terms" className="hover:text-foreground">
