@@ -21,7 +21,10 @@ jobs:
       - name: Check Vercel config
         id: cfg
         run: |
-          if [ -n "${{ secrets.VERCEL_TOKEN }}" ] && [ -n "${{ secrets.VERCEL_ORG_ID }}" ] && [ -n "${{ secrets.VERCEL_PROJECT_ID }}" ]; then
+          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Production deploys only run on main — skipping deploy for ${{ github.ref }}." >> "$GITHUB_STEP_SUMMARY"
+          elif [ -n "${{ secrets.VERCEL_TOKEN }}" ] && [ -n "${{ secrets.VERCEL_ORG_ID }}" ] && [ -n "${{ secrets.VERCEL_PROJECT_ID }}" ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
