@@ -9,6 +9,9 @@ export const authConfig = {
   // Trust the host behind Vercel's proxy (avoids UntrustedHost 400s on
   // /api/auth/*). Safe here: SCL only runs on known hosts (Vercel + localhost).
   trustHost: true,
+  // Pin the auth base path so a stray path in AUTH_URL (e.g. ".../packages")
+  // can't be used as the basePath and 400 every /api/auth/* request.
+  basePath: "/api/auth",
   pages: {
     signIn: "/login",
   },
