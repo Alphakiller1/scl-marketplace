@@ -31,11 +31,11 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts          Account[]
-  sessions          Session[]
-  capperProfile     CapperProfile?
-  termsAcceptances  TermsAcceptance[]
-  gradingActions    GradingAudit[]    @relation("GradedBy")
+  accounts         Account[]
+  sessions         Session[]
+  capperProfile    CapperProfile?
+  termsAcceptances TermsAcceptance[]
+  gradingActions   GradingAudit[]    @relation("GradedBy")
 }
 
 model Account {
@@ -92,16 +92,45 @@ enum ProviderType {
   HYBRID
 }
 
+enum DailyVolume {
+  LOW
+  MODERATE
+  HIGH
+  VERY_HIGH
+}
+
+enum BetType {
+  STRAIGHT
+  PARLAY
+  PROP
+  TEASER
+  TOTAL
+}
+
 model CapperProfile {
-  id          String        @id @default(cuid())
-  userId      String        @unique
-  bio         String?
-  avatarUrl   String?
-  specialties String[]      @default([])
-  providerType ProviderType @default(FREE)
-  isLegacy    Boolean       @default(false)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id              String       @id @default(cuid())
+  userId          String       @unique
+  headline        String? // short mission/tagline shown on profile
+  bio             String?
+  avatarUrl       String?
+  specialties     String[]     @default([])
+  sports          String[]     @default([]) // canonical sport keys from src/lib/sports.ts
+  betTypes        BetType[]    @default([])
+  dailyVolume     DailyVolume?
+  writtenAnalysis Boolean      @default(false)
+  biggestBetWon   String?
+  providerType    ProviderType @default(FREE)
+  isLegacy        Boolean      @default(false)
+
+  // social handles (store handle/username, not full URL)
+  instagram String?
+  twitter   String? // X / Twitter
+  facebook  String?
+  tiktok    String?
+  website   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   plays    Play[]
@@ -111,18 +140,30 @@ model CapperProfile {
   @@index([providerType])
 }
 
-model Package {
-  id           String       @id @default(cuid())
-  capperId     String
-  title        String
-  description  String?
-  priceCents   Int          @default(0)
-  providerType ProviderType @default(PREMIUM)
-  isActive     Boolean      @default(true)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+enum BillingPeriod {
+  ONE_TIME
+  DAY
+  WEEK
+  MONTH
+  SEASON
+  YEAR
+}
 
-  capper      CapperProfile @relation(fields: [capperId], references: [id], onDelete: Cascade)
+model Package {
+  id            String        @id @default(cuid())
+  capperId      String
+  title         String
+  description   String?
+  priceCents    Int           @default(0)
+  billingPeriod BillingPeriod @default(MONTH)
+  // External checkout (e.g. Winible) for Phase 1; native Stripe checkout in Phase 2.
+  checkoutUrl   String?
+  providerType  ProviderType  @default(PREMIUM)
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  capper       CapperProfile @relation(fields: [capperId], references: [id], onDelete: Cascade)
   trackingUrls TrackingUrl[]
 
   @@index([capperId])
@@ -142,11 +183,11 @@ model TrackingUrl {
 }
 
 model ClickEvent {
-  id           String   @id @default(cuid())
+  id            String   @id @default(cuid())
   trackingUrlId String
-  referrer     String?
-  userAgent    String?
-  createdAt    DateTime @default(now())
+  referrer      String?
+  userAgent     String?
+  createdAt     DateTime @default(now())
 
   trackingUrl TrackingUrl @relation(fields: [trackingUrlId], references: [id], onDelete: Cascade)
 
@@ -170,23 +211,23 @@ enum GradingSource {
 }
 
 model Play {
-  id         String   @id @default(cuid())
-  capperId   String
-  sport      String
-  league     String?
-  market     String
-  selection  String
+  id           String    @id @default(cuid())
+  capperId     String
+  sport        String
+  league       String?
+  market       String
+  selection    String
   oddsAmerican Int
-  units      Decimal  @db.Decimal(10, 2)
-  outcome    Outcome  @default(PENDING)
-  profitUnits Decimal? @db.Decimal(10, 2)
-  notes      String?
-  parlayId   String?
-  createdAt  DateTime @default(now())
-  gradedAt   DateTime?
+  units        Decimal   @db.Decimal(10, 2) // standardized range 0.25–5 (enforced in Zod, see src/lib/constants.ts)
+  outcome      Outcome   @default(PENDING)
+  profitUnits  Decimal?  @db.Decimal(10, 2)
+  notes        String?
+  parlayId     String?
+  createdAt    DateTime  @default(now())
+  gradedAt     DateTime?
 
-  capper CapperProfile @relation(fields: [capperId], references: [id], onDelete: Cascade)
-  parlay Parlay?       @relation(fields: [parlayId], references: [id], onDelete: SetNull)
+  capper CapperProfile  @relation(fields: [capperId], references: [id], onDelete: Cascade)
+  parlay Parlay?        @relation(fields: [parlayId], references: [id], onDelete: SetNull)
   audits GradingAudit[]
 
   @@index([capperId])
@@ -194,14 +235,14 @@ model Play {
 }
 
 model Parlay {
-  id           String   @id @default(cuid())
-  capperId     String
+  id                   String    @id @default(cuid())
+  capperId             String
   combinedOddsAmerican Int?
-  units        Decimal  @db.Decimal(10, 2)
-  outcome      Outcome  @default(PENDING)
-  profitUnits  Decimal? @db.Decimal(10, 2)
-  createdAt    DateTime @default(now())
-  gradedAt     DateTime?
+  units                Decimal   @db.Decimal(10, 2)
+  outcome              Outcome   @default(PENDING)
+  profitUnits          Decimal?  @db.Decimal(10, 2)
+  createdAt            DateTime  @default(now())
+  gradedAt             DateTime?
 
   capper CapperProfile @relation(fields: [capperId], references: [id], onDelete: Cascade)
   legs   Play[]
@@ -210,14 +251,14 @@ model Parlay {
 }
 
 model GradingAudit {
-  id           String        @id @default(cuid())
-  playId       String
+  id              String        @id @default(cuid())
+  playId          String
   previousOutcome Outcome
-  newOutcome   Outcome
-  source       GradingSource
-  gradedById   String?
-  reason       String?
-  createdAt    DateTime      @default(now())
+  newOutcome      Outcome
+  source          GradingSource
+  gradedById      String?
+  reason          String?
+  createdAt       DateTime      @default(now())
 
   play     Play  @relation(fields: [playId], references: [id], onDelete: Cascade)
   gradedBy User? @relation("GradedBy", fields: [gradedById], references: [id], onDelete: SetNull)
