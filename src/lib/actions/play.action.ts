@@ -11,7 +11,12 @@ type PlayResult = { ok: true } | { ok: false; error: string };
 export async function createPlay(input: PlayInput): Promise<PlayResult> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "You must be logged in." };
-  if (!user.emailVerified) {
+
+  const account = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { emailVerified: true },
+  });
+  if (!account?.emailVerified) {
     return { ok: false, error: "Verify your email before submitting plays." };
   }
 
