@@ -23,6 +23,12 @@ export type CapperSummary = {
   streak: number; // + win streak, - loss streak
   recentForm: FormResult[]; // most recent last
   trophies: string[];
+  // Profile-page fields (optional on the lighter list/leaderboard surfaces).
+  headline?: string;
+  bio?: string;
+  sports?: string[]; // full coverage list shown on the profile
+  joinedAt?: Date;
+  socials?: { twitter?: string; instagram?: string; website?: string };
 };
 
 export type TodayPick = {
@@ -57,6 +63,15 @@ export const MOCK_CAPPERS: CapperSummary[] = [
     streak: 6,
     recentForm: ["W", "W", "L", "W", "W", "W"],
     trophies: ["Top ROI", "Hot Streak"],
+    headline: "Data-driven NBA sides, totals & player props.",
+    bio: "Full-time handicapper focused on NBA sides, totals, and player props. Every play is modeled, posted before tip-off, and graded — no deleted losses, no fake records.",
+    sports: ["NBA", "NCAAB"],
+    joinedAt: new Date("2023-02-14"),
+    socials: {
+      twitter: "sharpsignals",
+      instagram: "sharpsignals",
+      website: "https://sharpsignals.example.com",
+    },
   },
   {
     id: "c2",
@@ -73,6 +88,14 @@ export const MOCK_CAPPERS: CapperSummary[] = [
     streak: 3,
     recentForm: ["L", "W", "W", "W", "P", "W"],
     trophies: ["Top Units", "Long-Term Grinder"],
+    headline: "Long-term MLB grinder. Slow money is real money.",
+    bio: "Volume MLB bettor building bankrolls one disciplined unit at a time. Six seasons of tracked plays across sides, totals, and first-five innings.",
+    sports: ["MLB"],
+    joinedAt: new Date("2022-04-03"),
+    socials: {
+      twitter: "bankrollbuilders",
+      website: "https://bankrollbuilders.example.com",
+    },
   },
   {
     id: "c3",
@@ -89,6 +112,11 @@ export const MOCK_CAPPERS: CapperSummary[] = [
     streak: -2,
     recentForm: ["W", "W", "W", "L", "L", "W"],
     trophies: ["Sport Specialist"],
+    headline: "NFL sides & totals with a documented edge.",
+    bio: "Former DFS grinder turned NFL handicapper. Specializing in number-shopping, key-number value, and situational spots most books are slow to adjust.",
+    sports: ["NFL", "NCAAF"],
+    joinedAt: new Date("2023-08-21"),
+    socials: { twitter: "gridironedge", instagram: "gridironedge" },
   },
   {
     id: "c4",
@@ -105,6 +133,11 @@ export const MOCK_CAPPERS: CapperSummary[] = [
     streak: 4,
     recentForm: ["W", "P", "W", "W", "W", "L"],
     trophies: ["Underdog Hunter"],
+    headline: "NHL puck lines and live-dog value.",
+    bio: "Hockey-only capper hunting puck-line value and live underdogs. Verification in progress — record imported from a prior platform.",
+    sports: ["NHL"],
+    joinedAt: new Date("2024-01-09"),
+    socials: { twitter: "pucklinepros" },
   },
   {
     id: "c5",
@@ -121,6 +154,14 @@ export const MOCK_CAPPERS: CapperSummary[] = [
     streak: 2,
     recentForm: ["L", "W", "W", "P", "W", "W"],
     trophies: ["Best Weekly Capper"],
+    headline: "College hoops mismatches before the market moves.",
+    bio: "College basketball specialist focused on conference play, pace mismatches, and early-week line value across the full Division I board.",
+    sports: ["NCAAB", "NBA"],
+    joinedAt: new Date("2023-11-30"),
+    socials: {
+      instagram: "courtvision",
+      website: "https://courtvision.example.com",
+    },
   },
 ];
 
@@ -212,3 +253,15 @@ export const MOCK_PLATFORM_STATS = {
   verifiedCappers: 118,
   picksGradedThisWeek: 2840,
 };
+
+/** Look up a capper by their public handle (the /cappers/[handle] slug). */
+export function getCapperByHandle(handle: string): CapperSummary | undefined {
+  return MOCK_CAPPERS.find((c) => c.handle === handle);
+}
+
+/** A capper's recent picks, newest first. */
+export function getCapperPicks(capperId: string): TodayPick[] {
+  return MOCK_TODAY_PICKS.filter((p) => p.capper.id === capperId).sort(
+    (a, b) => b.postedAt.getTime() - a.postedAt.getTime(),
+  );
+}
