@@ -6,6 +6,9 @@ import type { Role } from "@prisma/client";
  * Providers + DB callbacks are added in the Node runtime in `src/auth.ts`.
  */
 export const authConfig = {
+  // Trust the host behind Vercel's proxy (avoids UntrustedHost 400s on
+  // /api/auth/*). Safe here: SCL only runs on known hosts (Vercel + localhost).
+  trustHost: true,
   pages: {
     signIn: "/login",
   },
