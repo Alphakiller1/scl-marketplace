@@ -4,8 +4,12 @@ export function formatOdds(american: number): string {
   return american > 0 ? `+${american}` : `${american}`;
 }
 
-export function formatUnits(units: number, withSuffix = true): string {
-  const sign = units > 0 ? "+" : units < 0 ? "" : "";
+export function formatUnits(
+  units: number,
+  withSuffix = true,
+  signed = true,
+): string {
+  const sign = signed && units > 0 ? "+" : "";
   const val = `${sign}${units.toFixed(2).replace(/\.00$/, "")}`;
   return withSuffix ? `${val}U` : val;
 }

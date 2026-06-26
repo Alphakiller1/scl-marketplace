@@ -92,7 +92,7 @@ export function LeaderboardMobileCard({ capper }: { capper: CapperSummary }) {
         </div>
       </div>
       <div className="border-border grid grid-cols-4 gap-2 border-t pt-3">
-        <MobileStat label="Win" value={`${capper.winPct.toFixed(0)}%`} />
+        <MobileStat label="Win" value={`${capper.winPct.toFixed(1)}%`} />
         <MobileStat
           label="Units"
           value={formatUnits(capper.units)}

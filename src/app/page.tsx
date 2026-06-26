@@ -18,6 +18,9 @@ import {
 } from "@/lib/mock";
 
 export default function Home() {
+  const leaderboard = MOCK_CAPPERS.filter((c) => c.verified).sort(
+    (a, b) => b.units - a.units,
+  );
   const topRoi = [...MOCK_CAPPERS].sort((a, b) => b.roi - a.roi).slice(0, 3);
 
   return (
@@ -110,14 +113,14 @@ export default function Home() {
                 <span className="text-right">Form</span>
               </div>
               <div className="space-y-0.5">
-                {MOCK_CAPPERS.map((c) => (
+                {leaderboard.map((c) => (
                   <LeaderboardRow key={c.id} capper={c} />
                 ))}
               </div>
             </div>
             {/* Mobile cards */}
             <div className="space-y-2 md:hidden">
-              {MOCK_CAPPERS.map((c) => (
+              {leaderboard.map((c) => (
                 <LeaderboardMobileCard key={c.id} capper={c} />
               ))}
             </div>
@@ -147,8 +150,8 @@ export default function Home() {
               href="/cappers"
             />
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {topRoi.map((c) => (
-                <CapperCard key={c.id} capper={c} />
+              {topRoi.map((c, i) => (
+                <CapperCard key={c.id} capper={c} rank={i + 1} />
               ))}
             </div>
           </section>

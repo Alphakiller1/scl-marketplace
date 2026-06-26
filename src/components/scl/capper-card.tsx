@@ -12,14 +12,21 @@ import { RecentFormStrip, StreakChip } from "@/components/scl/indicators";
 import { RoiStat, UnitStat, WinRateStat } from "@/components/scl/stat";
 
 /** Discovery card — a capper's public résumé at a glance. */
-export function CapperCard({ capper }: { capper: CapperSummary }) {
+export function CapperCard({
+  capper,
+  rank,
+}: {
+  capper: CapperSummary;
+  /** Position within the current list; falls back to the global units rank. */
+  rank?: number;
+}) {
   return (
     <Card className="group hover:border-border-strong relative gap-0 overflow-hidden p-4 transition-colors">
       <div className="flex items-start gap-3">
         <div className="relative">
           <CapperAvatar name={capper.name} src={capper.avatarUrl} size="lg" />
           <span className="nums bg-brand text-brand-foreground absolute -top-1.5 -left-1.5 flex size-6 items-center justify-center rounded-full text-xs font-bold tabular-nums">
-            {capper.rank}
+            {rank ?? capper.rank}
           </span>
         </div>
         <div className="min-w-0 flex-1">

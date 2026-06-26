@@ -37,7 +37,7 @@ export function PickCard({ pick }: { pick: TodayPick }) {
       <div className="bg-surface-2 mt-3 flex items-center gap-2 rounded-lg px-2.5 py-1.5">
         <span className="text-muted-foreground text-xs font-medium">Stake</span>
         <span className="nums text-brand font-semibold tabular-nums">
-          {formatUnits(pick.units)}
+          {formatUnits(pick.units, true, false)}
         </span>
       </div>
 

@@ -140,7 +140,9 @@ export const MOCK_TODAY_PICKS: TodayPick[] = [
     oddsAmerican: -110,
     units: 2,
     status: "live",
-    postedAt: ago(38),
+    get postedAt() {
+      return ago(38);
+    },
     gameTime: "7:30 PM ET",
   },
   {
@@ -158,7 +160,9 @@ export const MOCK_TODAY_PICKS: TodayPick[] = [
     oddsAmerican: -105,
     units: 3,
     status: "pending",
-    postedAt: ago(95),
+    get postedAt() {
+      return ago(95);
+    },
     gameTime: "8:20 PM ET",
   },
   {
@@ -176,7 +180,9 @@ export const MOCK_TODAY_PICKS: TodayPick[] = [
     oddsAmerican: 135,
     units: 1.5,
     status: "win",
-    postedAt: ago(220),
+    get postedAt() {
+      return ago(220);
+    },
     gameTime: "Final",
   },
   {
@@ -194,7 +200,9 @@ export const MOCK_TODAY_PICKS: TodayPick[] = [
     oddsAmerican: -110,
     units: 2,
     status: "pending",
-    postedAt: ago(12),
+    get postedAt() {
+      return ago(12);
+    },
     gameTime: "9:00 PM ET",
   },
 ];
