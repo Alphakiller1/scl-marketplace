@@ -80,13 +80,13 @@ export default function Home() {
                     MOCK_PLATFORM_STATS.picksGradedThisWeek.toLocaleString(),
                 },
               ].map((s) => (
-                <div key={s.label}>
-                  <dd className="nums text-2xl font-bold tracking-tight tabular-nums sm:text-3xl">
-                    {s.value}
-                  </dd>
+                <div key={s.label} className="flex flex-col-reverse">
                   <dt className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                     {s.label}
                   </dt>
+                  <dd className="nums text-2xl font-bold tracking-tight tabular-nums sm:text-3xl">
+                    {s.value}
+                  </dd>
                 </div>
               ))}
             </dl>
@@ -113,15 +113,15 @@ export default function Home() {
                 <span className="text-right">Form</span>
               </div>
               <div className="space-y-0.5">
-                {leaderboard.map((c) => (
-                  <LeaderboardRow key={c.id} capper={c} />
+                {leaderboard.map((c, i) => (
+                  <LeaderboardRow key={c.id} capper={c} rank={i + 1} />
                 ))}
               </div>
             </div>
             {/* Mobile cards */}
             <div className="space-y-2 md:hidden">
-              {leaderboard.map((c) => (
-                <LeaderboardMobileCard key={c.id} capper={c} />
+              {leaderboard.map((c, i) => (
+                <LeaderboardMobileCard key={c.id} capper={c} rank={i + 1} />
               ))}
             </div>
           </section>

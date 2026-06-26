@@ -13,7 +13,14 @@ import {
 const toneText = { pos: "text-pos", neg: "text-neg", muted: "text-foreground" };
 
 /** Desktop leaderboard row — competitive, not administrative. */
-export function LeaderboardRow({ capper }: { capper: CapperSummary }) {
+export function LeaderboardRow({
+  capper,
+  rank,
+}: {
+  capper: CapperSummary;
+  /** Position within the current list; falls back to the global units rank. */
+  rank?: number;
+}) {
   return (
     <Link
       href={`/cappers/${capper.handle}`}
@@ -21,7 +28,7 @@ export function LeaderboardRow({ capper }: { capper: CapperSummary }) {
     >
       <div className="flex items-center gap-1">
         <span className="nums w-5 text-right text-base font-bold tabular-nums">
-          {capper.rank}
+          {rank ?? capper.rank}
         </span>
         <RankMovementIndicator delta={capper.rankDelta} />
       </div>
@@ -69,7 +76,14 @@ export function LeaderboardRow({ capper }: { capper: CapperSummary }) {
 }
 
 /** Mobile leaderboard card — never a compressed table. */
-export function LeaderboardMobileCard({ capper }: { capper: CapperSummary }) {
+export function LeaderboardMobileCard({
+  capper,
+  rank,
+}: {
+  capper: CapperSummary;
+  /** Position within the current list; falls back to the global units rank. */
+  rank?: number;
+}) {
   return (
     <Link
       href={`/cappers/${capper.handle}`}
@@ -78,7 +92,7 @@ export function LeaderboardMobileCard({ capper }: { capper: CapperSummary }) {
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1">
           <span className="nums w-6 text-center text-lg font-bold tabular-nums">
-            {capper.rank}
+            {rank ?? capper.rank}
           </span>
           <RankMovementIndicator delta={capper.rankDelta} />
         </div>
