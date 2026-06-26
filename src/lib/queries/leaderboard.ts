@@ -30,6 +30,7 @@ function fetchRankableProfiles() {
       },
       plays: {
         select: {
+          id: true,
           outcome: true,
           units: true,
           profitUnits: true,
@@ -101,11 +102,17 @@ function summarize(p: ProfileRow): CapperSummary | null {
       (pl) =>
         pl.outcome === "WIN" || pl.outcome === "LOSS" || pl.outcome === "PUSH",
     )
-    .sort(
-      (a, b) =>
-        (a.gradedAt ?? a.createdAt).getTime() -
-        (b.gradedAt ?? b.createdAt).getTime(),
-    )
+    .sort((a, b) => {
+      const at = (a.gradedAt ?? a.createdAt).getTime();
+      const bt = (b.gradedAt ?? b.createdAt).getTime();
+      // Stable tiebreaker so batch-graded plays (identical timestamps) keep a
+      // deterministic win/loss sequence for streak + recent-form derivation.
+      return (
+        at - bt ||
+        a.createdAt.getTime() - b.createdAt.getTime() ||
+        a.id.localeCompare(b.id)
+      );
+    })
     .map((pl) => pl.outcome);
   const { recentForm, streak } = deriveForm(settled);
 
