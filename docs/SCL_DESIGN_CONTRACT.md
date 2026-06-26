@@ -1,0 +1,69 @@
+# SCL Design Contract
+
+The non-negotiable design language. Every screen inherits this. If a change violates the
+contract, it does not ship. This is enforced in `.cursor/rules/scl-design-system.mdc`.
+
+## Identity
+
+SCL is **the public performance layer for sports handicappers** — the most credible place to
+discover who is actually winning. Mood: _Bloomberg Terminal for cappers × Apple Sports clarity
+× Linear polish × DraftKings energy._ Premium, fast, sports-native, trustworthy, status-driven,
+data-rich, mobile-first, dense but never cluttered.
+
+We are **not**: a generic SaaS landing page, a casino, a crypto dashboard, a fantasy template,
+a spreadsheet, a WordPress sports blog, or a default shadcn clone.
+
+## Color system (tokens only — never raw hex/Tailwind palette colors)
+
+Defined in `src/app/globals.css`, dark-mode first. Every color has a job:
+
+| Token                                             | Utility                   | Job                                                |
+| ------------------------------------------------- | ------------------------- | -------------------------------------------------- |
+| `background` / `card` / `surface-2` / `surface-3` | `bg-*`                    | Deep navy/charcoal base + layered surfaces (depth) |
+| `border` / `border-strong`                        | `border-*`                | Premium hairlines; `-strong` on hover/emphasis     |
+| `brand`                                           | `text-brand`, `bg-brand`  | SCL identity (indigo). Primary actions, accents    |
+| `pos`                                             | `text-pos`, `bg-pos/15`   | Positive performance (wins, +units, +ROI) — green  |
+| `neg`                                             | `text-neg`, `bg-neg/15`   | Negative performance (losses, −units) — red        |
+| `gold`                                            | `text-gold`, `bg-gold/10` | Rank, elite status, trophies, badges               |
+| `live`                                            | `text-live`, `bg-live/15` | Live/real-time + verification — cyan               |
+| `push`                                            | —                         | Push/void neutral                                  |
+| `muted-foreground`                                | `text-muted-foreground`   | Secondary metadata, labels                         |
+
+Rules: no random colors, no decorative gradients, no meaningless glow. The only atmosphere is
+`.scl-glow` (restrained brand radial) and `.scl-card-gradient`. The page feels alive through
+**hierarchy, data, and status — not noise.**
+
+## Typography
+
+**Numbers are the product.** Stats use `tabular-nums` (helper class `.nums`) so columns align.
+
+- Rank numbers: large, bold.
+- Capper names: semibold, truncate gracefully.
+- Stats (ROI/units/win%): bold, tabular, color-coded by sign.
+- Labels (sport/time): uppercase, tracked, `text-muted-foreground`, ~0.7rem.
+- Body: `text-muted-foreground` for secondary copy.
+- Never: tiny cramped table text, inconsistent sizes, weak labels.
+
+## Spacing, radius, surfaces
+
+- Radius scale from `--radius` (0.7rem). Cards `rounded-xl`/`rounded-2xl`.
+- Layered depth: `background` → `card` → `surface-2` → `surface-3`. Use elevation to group.
+- Generous row spacing in tables; never spreadsheet-tight.
+- Content max width `max-w-6xl`, page padding `px-4 sm:px-6`.
+
+## Motion (subtle, meaningful — `motion`)
+
+Allowed only for: rank movement, live status, pick status change, filter transitions, card
+expansion, profile stat reveal, trophy moments, loading skeletons. Never decorative, never
+slow hero animations, never readability-harming shaders. Respect `prefers-reduced-motion`.
+
+## Status & verification language
+
+Trust is the product. Always show verification (`VerificationBadge`), grade status
+(`StatusBadge`), and source transparency. Never imply sportsbook sync or verification we don't
+have.
+
+## Required states
+
+Every async surface ships with **loading** (`Skeleton*`), **empty** (`EmptyState`), and
+**error** (inline + `toast`) states. No exceptions.

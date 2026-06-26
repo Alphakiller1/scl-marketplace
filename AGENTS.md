@@ -54,6 +54,14 @@ change makes the app slower, less accessible, or less polished, it's wrong.
 - **Naming:** components `PascalCase`, files `kebab-case.tsx`, hooks `use-*.ts`,
   server actions `*.action.ts`, Zod schemas `*.schema.ts`.
 
+## Design system & product docs (read before building UI)
+
+The visual law and product foundation live in `docs/` — `SCL_DESIGN_CONTRACT.md` (tokens,
+typography, motion), `SCL_COMPONENT_SYSTEM.md` (the SCL-native components in
+`src/components/scl/`), `SCL_PHASE_1_PRODUCT_SPEC.md` (pages + IA), `SCL_UI_QUALITY_CHECKLIST.md`
+(the gate), plus mobile-first, a11y/perf, data-contract, competitor, and agent-workflow docs.
+**Build features from `src/components/scl/*`, not raw shadcn.**
+
 ## UI / UX rules (this is how we compete)
 
 - **shadcn uses Base UI, not Radix.** Polymorphism is the **`render` prop**, NOT `asChild`.
