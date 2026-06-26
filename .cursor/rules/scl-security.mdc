@@ -1,6 +1,6 @@
 ---
 description: SCL security — auth, authorization, secrets, input safety
-globs: src/lib/**/*.ts,src/app/**/route.ts,src/app/**/*.action.ts,src/middleware.ts,middleware.ts
+globs: src/lib/**/*.ts,src/app/**/route.ts,src/app/**/*.action.ts,src/proxy.ts,src/auth.ts,src/auth.config.ts
 ---
 
 - **Auth + roles enforced server-side** on every gated route/action — never rely on hidden UI.
