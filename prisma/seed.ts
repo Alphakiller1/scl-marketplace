@@ -21,7 +21,17 @@ async function main() {
   const capperPassword = await bcrypt.hash("capper1234", 12);
   const capper = await prisma.user.upsert({
     where: { email: "capper@scl.local" },
-    update: {},
+    update: {
+      capperProfile: {
+        upsert: {
+          create: {
+            headline: "Demo capper for local testing",
+            sports: ["NBA", "NFL"],
+          },
+          update: {},
+        },
+      },
+    },
     create: {
       email: "capper@scl.local",
       username: "demo_capper",
