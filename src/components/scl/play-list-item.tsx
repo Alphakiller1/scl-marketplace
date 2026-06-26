@@ -33,7 +33,7 @@ export function PlayListItem({ play }: { play: PlayView }) {
             {formatOdds(play.oddsAmerican)}
           </span>
           <span className="nums tabular-nums">
-            {formatUnits(play.units, true, false)}u
+            {formatUnits(play.units, true, false)}
           </span>
         </div>
       </div>

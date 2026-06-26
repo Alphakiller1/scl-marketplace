@@ -64,7 +64,11 @@ export default async function DashboardPage() {
           />
           <StatBlock
             label="Win %"
-            value={stats.settled > 0 ? `${stats.winPct.toFixed(1)}%` : "—"}
+            value={
+              stats.wins + stats.losses > 0
+                ? `${stats.winPct.toFixed(1)}%`
+                : "—"
+            }
           />
           <StatBlock
             label="Units"
