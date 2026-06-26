@@ -1,0 +1,25 @@
+---
+description: SCL core context and non-negotiables for all work in this repo
+alwaysApply: true
+---
+
+You are building **SCL (Sports Capper League)** — a sports-capper marketplace that must
+compete with established platforms from day one. The full agent guide is `AGENTS.md` at the
+repo root; treat it as authoritative and read it.
+
+Non-negotiables:
+- **Stack is fixed:** Next.js 16 (App Router) + React 19 + TypeScript (strict), Tailwind v4,
+  shadcn/ui (**Base UI** primitives — use the `render` prop, never `asChild`), Prisma 6 +
+  PostgreSQL, Auth.js v5, TanStack Query/Table, react-hook-form + Zod. Do not introduce
+  alternative libraries for these concerns without an explicit owner decision.
+- **Server-first:** Server Components by default; `"use client"` only when truly needed.
+  All DB access is server-side via the `@/lib/prisma` singleton. Never expose Prisma to the client.
+- **Quality bar:** code must pass `npm run typecheck`, `npm run lint`, and `npm run build`.
+  No `any`, no unused code, no hard-coded colors (use design tokens).
+- **Security:** never commit secrets (`.env` is gitignored; update `.env.example`). Enforce
+  auth + role checks server-side. SCL data is isolated in the **`scl`** Postgres schema —
+  never touch `public`.
+- **Git:** `main` is protected. Always branch (`feat/…`, `fix/…`, `chore/…`) and open a PR.
+
+When unsure about a Next 16 or Base UI API, read the source in `node_modules/next/dist/docs/`
+or `src/components/ui/*` instead of guessing.
