@@ -34,14 +34,19 @@ function LoginForm() {
   } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
 
   async function onSubmit(values: LoginInput) {
-    const res = await signIn("credentials", { ...values, redirect: false });
-    if (res?.error) {
-      toast.error("Invalid email or password");
-      return;
+    try {
+      const res = await signIn("credentials", { ...values, redirect: false });
+      if (!res || res.error) {
+        toast.error("Invalid email or password");
+        return;
+      }
+      toast.success("Welcome back");
+      router.push(callbackUrl);
+      router.refresh();
+    } catch {
+      // Network / server error (e.g. DB unreachable) — never fail silently.
+      toast.error("Couldn't sign you in. Please try again in a moment.");
     }
-    toast.success("Welcome back");
-    router.push(callbackUrl);
-    router.refresh();
   }
 
   return (
