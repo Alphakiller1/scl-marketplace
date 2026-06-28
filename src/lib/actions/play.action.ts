@@ -3,21 +3,25 @@
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/session";
+import { getCurrentAccount } from "@/lib/session";
 import { playSchema, type PlayInput } from "@/lib/schemas/play.schema";
 
 type PlayResult = { ok: true } | { ok: false; error: string };
 
 export async function createPlay(input: PlayInput): Promise<PlayResult> {
-  const user = await getCurrentUser();
-  if (!user) return { ok: false, error: "You must be logged in." };
-
-  const account = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { emailVerified: true },
-  });
-  if (!account?.emailVerified) {
+  const account = await getCurrentAccount();
+  if (!account) return { ok: false, error: "You must be logged in." };
+  if (account.accountStatus !== "ACTIVE") {
+    return { ok: false, error: "Your account is not active." };
+  }
+  if (!account.emailVerified) {
     return { ok: false, error: "Verify your email before submitting plays." };
+  }
+  if (!account.legalAcceptance) {
+    return {
+      ok: false,
+      error: "Accept the current terms before submitting plays.",
+    };
   }
 
   const parsed = playSchema.safeParse(input);
@@ -26,7 +30,7 @@ export async function createPlay(input: PlayInput): Promise<PlayResult> {
   }
 
   const profile = await prisma.capperProfile.findUnique({
-    where: { userId: user.id },
+    where: { userId: account.id },
     select: { id: true },
   });
   if (!profile) return { ok: false, error: "No capper profile found." };

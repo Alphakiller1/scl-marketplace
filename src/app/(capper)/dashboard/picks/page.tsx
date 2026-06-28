@@ -36,6 +36,7 @@ export default async function MyPicksPage() {
           action={
             <Button
               render={<Link href="/dashboard/picks/new" />}
+              nativeButton={false}
               className="gap-1.5"
             >
               <Plus className="size-4" /> Submit a play

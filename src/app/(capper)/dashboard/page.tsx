@@ -34,6 +34,7 @@ export default async function DashboardPage() {
         </div>
         <Button
           render={<Link href="/dashboard/picks/new" />}
+          nativeButton={false}
           className="gap-1.5"
         >
           <Plus className="size-4" /> Submit a play
@@ -101,7 +102,10 @@ export default async function DashboardPage() {
             title="No plays yet"
             description="Submit your first play to start building a verified record."
             action={
-              <Button render={<Link href="/dashboard/picks/new" />}>
+              <Button
+                render={<Link href="/dashboard/picks/new" />}
+                nativeButton={false}
+              >
                 Submit a play
               </Button>
             }

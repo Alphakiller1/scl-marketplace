@@ -1,15 +1,23 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Save } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
+import { OnboardingProgress } from "@/components/scl/onboarding-progress";
+import { AccountTrustSummary } from "@/components/scl/account-trust";
+import { ProfileCompletionPanel } from "@/components/scl/profile-completion";
+import { ProfileIdentityPreview } from "@/components/scl/profile-identity-preview";
+import { ProfileMediaEditor } from "@/components/scl/profile-media-editor";
+import { ProfileTagInput } from "@/components/scl/profile-tag-input";
 import { SPORTS } from "@/lib/constants";
+import { calculateProfileCompletion } from "@/lib/profile-completion";
 import {
   profileSchema,
   type ProfileFormInput,
@@ -26,17 +34,26 @@ const inputClass =
 
 export function ProfileForm({ profile }: { profile: CapperProfileView }) {
   const router = useRouter();
+  const [media, setMedia] = useState({
+    avatarUrl: profile.avatarUrl,
+    bannerUrl: profile.bannerUrl,
+  });
   const {
     register,
     handleSubmit,
+    setValue,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<ProfileFormInput, unknown, ProfileInput>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
+      displayName:
+        profile.user.displayName ?? profile.user.username ?? "SCL Capper",
       headline: profile.headline ?? "",
       bio: profile.bio ?? "",
       providerType: profile.providerType,
       sports: profile.sports,
+      specialties: profile.specialties,
       betTypes: profile.betTypes,
       dailyVolume: profile.dailyVolume ?? "",
       writtenAnalysis: profile.writtenAnalysis,
@@ -49,155 +66,356 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
     },
   });
 
-  async function onSubmit(values: ProfileInput) {
-    const res = await updateProfileAction(values);
-    if (!res.ok) {
-      toast.error(res.error);
+  const values = useWatch({ control });
+  const displayName =
+    values.displayName?.trim() ||
+    profile.user.displayName ||
+    profile.user.username ||
+    "SCL Capper";
+  const username = profile.user.username ?? "capper";
+  const completion = calculateProfileCompletion({
+    ...values,
+    displayName,
+    avatarUrl: media.avatarUrl,
+  });
+
+  async function onSubmit(valuesToSave: ProfileInput) {
+    const result = await updateProfileAction(valuesToSave);
+    if (!result.ok) {
+      toast.error(result.error);
       return;
     }
-    toast.success("Profile saved");
+    toast.success("Public profile saved");
     router.refresh();
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
-      {/* About */}
-      <Card className="space-y-4 p-6">
-        <h2 className="font-semibold">About</h2>
-        <Field label="Headline" error={errors.headline?.message}>
-          <Input
-            placeholder="Data-backed NBA & NFL picks"
-            {...register("headline")}
-          />
-        </Field>
-        <Field label="Bio" error={errors.bio?.message}>
-          <textarea
-            rows={4}
-            className={`${inputClass} py-2`}
-            placeholder="Tell bettors how you handicap and what makes your record worth following."
-            {...register("bio")}
-          />
-        </Field>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Provider type" error={errors.providerType?.message}>
-            <select
-              className={`${inputClass} h-9`}
-              {...register("providerType")}
-            >
-              {PROVIDER_TYPES.map((p) => (
-                <option key={p.value} value={p.value}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Daily volume" error={errors.dailyVolume?.message}>
-            <select
-              className={`${inputClass} h-9`}
-              {...register("dailyVolume")}
-            >
-              <option value="">Not set</option>
-              {DAILY_VOLUMES.map((v) => (
-                <option key={v.value} value={v.value}>
-                  {v.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-        </div>
-        <Field
-          label="Biggest bet won (optional)"
-          error={errors.biggestBetWon?.message}
-        >
-          <Input
-            placeholder="e.g. +18.4u on a 4-leg parlay"
-            {...register("biggestBetWon")}
-          />
-        </Field>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            className="accent-brand size-4"
-            {...register("writtenAnalysis")}
-          />
-          I provide written analysis with my picks
-        </label>
-      </Card>
+    <div className="space-y-6">
+      <AccountTrustSummary
+        status={profile.user.accountStatus}
+        emailVerified={Boolean(profile.user.emailVerified)}
+        acceptedAt={profile.user.termsAcceptances[0]?.acceptedAt}
+        policyVersion={profile.user.termsAcceptances[0]?.policyVersion}
+      />
 
-      {/* Sports */}
-      <Card className="space-y-3 p-6">
-        <h2 className="font-semibold">Sports</h2>
-        <p className="text-muted-foreground text-sm">What do you handicap?</p>
-        <div className="flex flex-wrap gap-2">
-          {SPORTS.map((s) => (
-            <Chip
-              key={s.key}
-              value={s.key}
-              label={s.label}
-              {...register("sports")}
-            />
-          ))}
-        </div>
-      </Card>
-
-      {/* Bet types */}
-      <Card className="space-y-3 p-6">
-        <h2 className="font-semibold">Bet types</h2>
-        <div className="flex flex-wrap gap-2">
-          {BET_TYPES.map((b) => (
-            <Chip
-              key={b.value}
-              value={b.value}
-              label={b.label}
-              {...register("betTypes")}
-            />
-          ))}
-        </div>
-      </Card>
-
-      {/* Socials */}
-      <Card className="space-y-4 p-6">
-        <h2 className="font-semibold">Links</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Instagram" error={errors.instagram?.message}>
-            <Input placeholder="@handle" {...register("instagram")} />
-          </Field>
-          <Field label="X (Twitter)" error={errors.twitter?.message}>
-            <Input placeholder="@handle" {...register("twitter")} />
-          </Field>
-          <Field label="Facebook" error={errors.facebook?.message}>
-            <Input placeholder="username" {...register("facebook")} />
-          </Field>
-          <Field label="TikTok" error={errors.tiktok?.message}>
-            <Input placeholder="@handle" {...register("tiktok")} />
-          </Field>
-        </div>
-        <Field label="Website" error={errors.website?.message}>
-          <Input placeholder="https://…" {...register("website")} />
-        </Field>
-      </Card>
-
-      <div className="flex justify-end">
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Saving…" : "Save profile"}
-        </Button>
+      <div className="border-border bg-card rounded-xl border px-5 py-4">
+        <OnboardingProgress
+          emailVerified={Boolean(profile.user.emailVerified)}
+          profileComplete={completion.isComplete}
+        />
       </div>
-    </form>
+
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="min-w-0 space-y-5"
+          noValidate
+        >
+          <ProfileMediaEditor
+            displayName={displayName}
+            avatarUrl={media.avatarUrl}
+            bannerUrl={media.bannerUrl}
+            onChange={(kind, url) =>
+              setMedia((current) => ({
+                ...current,
+                [kind === "avatar" ? "avatarUrl" : "bannerUrl"]: url,
+              }))
+            }
+          />
+
+          <section
+            aria-labelledby="identity-title"
+            className="border-border bg-card space-y-4 rounded-xl border p-5"
+          >
+            <div>
+              <h2 id="identity-title" className="font-semibold">
+                Public identity
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                The name and positioning shown across SCL.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                htmlFor="displayName"
+                label="Display name"
+                error={errors.displayName?.message}
+              >
+                <Input
+                  id="displayName"
+                  autoComplete="name"
+                  {...register("displayName")}
+                />
+              </Field>
+              <Field htmlFor="username" label="SCL handle">
+                <Input id="username" value={`@${username}`} disabled />
+              </Field>
+            </div>
+
+            <Field
+              htmlFor="headline"
+              label="Capper headline"
+              error={errors.headline?.message}
+            >
+              <Input
+                id="headline"
+                placeholder="Data-backed NBA sides and player props"
+                {...register("headline")}
+              />
+            </Field>
+
+            <Field htmlFor="bio" label="About" error={errors.bio?.message}>
+              <textarea
+                id="bio"
+                rows={5}
+                className={`${inputClass} py-2`}
+                placeholder="Describe your process, market focus, and what bettors can expect from your record."
+                {...register("bio")}
+              />
+            </Field>
+          </section>
+
+          <section
+            aria-labelledby="coverage-title"
+            className="border-border bg-card space-y-5 rounded-xl border p-5"
+          >
+            <div>
+              <h2 id="coverage-title" className="font-semibold">
+                Coverage and approach
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                Define the markets behind your public record.
+              </p>
+            </div>
+
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-medium">Sports</legend>
+              <div className="flex flex-wrap gap-2">
+                {SPORTS.map((sport) => (
+                  <Chip
+                    key={sport.key}
+                    value={sport.key}
+                    label={sport.label}
+                    {...register("sports")}
+                  />
+                ))}
+              </div>
+              {errors.sports ? (
+                <p className="text-neg text-xs">{errors.sports.message}</p>
+              ) : null}
+            </fieldset>
+
+            <Field
+              htmlFor="specialty"
+              label="Specialties"
+              error={errors.specialties?.message}
+            >
+              <ProfileTagInput
+                value={values.specialties ?? []}
+                onChange={(next) =>
+                  setValue("specialties", next, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+              />
+            </Field>
+
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-medium">Bet types</legend>
+              <div className="flex flex-wrap gap-2">
+                {BET_TYPES.map((betType) => (
+                  <Chip
+                    key={betType.value}
+                    value={betType.value}
+                    label={betType.label}
+                    {...register("betTypes")}
+                  />
+                ))}
+              </div>
+            </fieldset>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                htmlFor="providerType"
+                label="Provider type"
+                error={errors.providerType?.message}
+              >
+                <select
+                  id="providerType"
+                  className={`${inputClass} h-9`}
+                  {...register("providerType")}
+                >
+                  {PROVIDER_TYPES.map((provider) => (
+                    <option key={provider.value} value={provider.value}>
+                      {provider.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field
+                htmlFor="dailyVolume"
+                label="Daily volume"
+                error={errors.dailyVolume?.message}
+              >
+                <select
+                  id="dailyVolume"
+                  className={`${inputClass} h-9`}
+                  {...register("dailyVolume")}
+                >
+                  <option value="">Not set</option>
+                  {DAILY_VOLUMES.map((volume) => (
+                    <option key={volume.value} value={volume.value}>
+                      {volume.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+
+            <Field
+              htmlFor="biggestBetWon"
+              label="Signature result"
+              error={errors.biggestBetWon?.message}
+            >
+              <Input
+                id="biggestBetWon"
+                placeholder="+18.4u on a four-leg parlay"
+                {...register("biggestBetWon")}
+              />
+            </Field>
+
+            <label className="flex min-h-10 items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="accent-brand size-4"
+                {...register("writtenAnalysis")}
+              />
+              Written analysis accompanies my plays
+            </label>
+          </section>
+
+          <section
+            aria-labelledby="links-title"
+            className="border-border bg-card space-y-4 rounded-xl border p-5"
+          >
+            <div>
+              <h2 id="links-title" className="font-semibold">
+                Public links
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                Connect your SCL record to your established audience.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                htmlFor="instagram"
+                label="Instagram"
+                error={errors.instagram?.message}
+              >
+                <Input
+                  id="instagram"
+                  placeholder="@handle"
+                  {...register("instagram")}
+                />
+              </Field>
+              <Field
+                htmlFor="twitter"
+                label="X"
+                error={errors.twitter?.message}
+              >
+                <Input
+                  id="twitter"
+                  placeholder="@handle"
+                  {...register("twitter")}
+                />
+              </Field>
+              <Field
+                htmlFor="facebook"
+                label="Facebook"
+                error={errors.facebook?.message}
+              >
+                <Input
+                  id="facebook"
+                  placeholder="username"
+                  {...register("facebook")}
+                />
+              </Field>
+              <Field
+                htmlFor="tiktok"
+                label="TikTok"
+                error={errors.tiktok?.message}
+              >
+                <Input
+                  id="tiktok"
+                  placeholder="@handle"
+                  {...register("tiktok")}
+                />
+              </Field>
+            </div>
+            <Field
+              htmlFor="website"
+              label="Website"
+              error={errors.website?.message}
+            >
+              <Input
+                id="website"
+                type="url"
+                placeholder="https://"
+                {...register("website")}
+              />
+            </Field>
+          </section>
+
+          <div className="border-border bg-background/95 sticky bottom-3 z-10 flex items-center justify-between gap-3 rounded-xl border p-3 shadow-lg backdrop-blur">
+            <span className="text-muted-foreground hidden text-sm sm:block">
+              @{username}
+            </span>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full gap-2 sm:w-auto"
+            >
+              <Save className="size-4" />
+              {isSubmitting ? "Saving…" : "Save public profile"}
+            </Button>
+          </div>
+        </form>
+
+        <aside className="space-y-4 lg:sticky lg:top-24">
+          <ProfileCompletionPanel completion={completion} />
+          <ProfileIdentityPreview
+            profile={{
+              displayName,
+              username,
+              headline: values.headline,
+              avatarUrl: media.avatarUrl,
+              bannerUrl: media.bannerUrl,
+              sports: values.sports ?? [],
+              verified: Boolean(profile.user.emailVerified),
+            }}
+          />
+        </aside>
+      </div>
+    </div>
   );
 }
 
 function Field({
+  htmlFor,
   label,
   error,
   children,
 }: {
+  htmlFor: string;
   label: string;
   error?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="space-y-1.5">
-      <Label>{label}</Label>
+      <Label htmlFor={htmlFor}>{label}</Label>
       {children}
       {error ? <p className="text-neg text-xs">{error}</p> : null}
     </div>
@@ -220,7 +438,7 @@ function Chip({
         className="peer sr-only"
         {...register}
       />
-      <span className="border-border text-muted-foreground peer-checked:border-brand peer-checked:bg-brand/10 peer-checked:text-brand inline-flex rounded-full border px-3 py-1 text-sm font-medium transition-colors select-none">
+      <span className="border-border text-muted-foreground peer-checked:border-brand peer-checked:bg-brand/10 peer-checked:text-brand inline-flex min-h-9 items-center rounded-lg border px-3 text-sm font-medium transition-colors select-none">
         {label}
       </span>
     </label>

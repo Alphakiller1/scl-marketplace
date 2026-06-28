@@ -1,5 +1,5 @@
 import type { NextAuthConfig } from "next-auth";
-import type { Role } from "@prisma/client";
+import type { AccountStatus, Role } from "@prisma/client";
 
 /**
  * Edge-safe Auth.js config (no Prisma/bcrypt here) — imported by middleware.
@@ -22,6 +22,7 @@ export const authConfig = {
       if (user) {
         token.id = user.id as string;
         token.role = user.role;
+        token.accountStatus = user.accountStatus;
         token.emailVerified = user.emailVerified ?? null;
       }
       return token;
@@ -30,6 +31,7 @@ export const authConfig = {
       if (token) {
         session.user.id = token.id as string;
         session.user.role = token.role as Role;
+        session.user.accountStatus = token.accountStatus as AccountStatus;
         session.user.emailVerified =
           (token.emailVerified as Date | null) ?? null;
       }

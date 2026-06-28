@@ -23,16 +23,19 @@ That's it — every push to `main` now auto-deploys and the URL appears in GitHu
 
 ### Required environment variables (Vercel → Project → Settings → Environment Variables)
 
-| Var               | Value                                                                                   | Notes                                        |
-| ----------------- | --------------------------------------------------------------------------------------- | -------------------------------------------- |
-| `DATABASE_URL`    | Supabase **Transaction pooler** URI, port **6543**, ending `?pgbouncer=true&schema=scl` | Serverless-safe pooled connections           |
-| `DIRECT_URL`      | Supabase **direct** URI, port **5432**, ending `?schema=scl`                            | Used only for migrations                     |
-| `AUTH_SECRET`     | a strong secret (`npx auth secret`)                                                     | required (all environments)                  |
-| `AUTH_URL`        | the deployed origin, e.g. `https://scl-marketplace.vercel.app`                          | **Production only** — leave unset on Preview |
-| `AUTH_TRUST_HOST` | `true`                                                                                  | required for Auth.js on Vercel               |
-| `EMAIL_FROM`      | a verified sender, e.g. `no-reply@yourdomain`                                           | optional until email is live                 |
-| `RESEND_API_KEY`  | your Resend API key                                                                     | optional; dev logs the link if unset         |
-| `ODDS_API_KEY`    | The Odds API key                                                                        | later (odds-assist/grading)                  |
+| Var                             | Value                                                                                   | Notes                                        |
+| ------------------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `DATABASE_URL`                  | Supabase **Transaction pooler** URI, port **6543**, ending `?pgbouncer=true&schema=scl` | Serverless-safe pooled connections           |
+| `DIRECT_URL`                    | Supabase **direct** URI, port **5432**, ending `?schema=scl`                            | Used only for migrations                     |
+| `AUTH_SECRET`                   | a strong secret (`npx auth secret`)                                                     | required (all environments)                  |
+| `AUTH_URL`                      | the deployed origin, e.g. `https://scl-marketplace.vercel.app`                          | **Production only** — leave unset on Preview |
+| `AUTH_TRUST_HOST`               | `true`                                                                                  | required for Auth.js on Vercel               |
+| `EMAIL_FROM`                    | a verified sender, e.g. `no-reply@yourdomain`                                           | optional until email is live                 |
+| `RESEND_API_KEY`                | your Resend API key                                                                     | optional; dev logs the link if unset         |
+| `SUPABASE_URL`                  | Supabase project API URL                                                                | required for profile media uploads           |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Supabase service-role key                                                               | server only; never expose to the browser     |
+| `SUPABASE_PROFILE_MEDIA_BUCKET` | `scl-profile-media`                                                                     | optional bucket-name override                |
+| `ODDS_API_KEY`                  | The Odds API key                                                                        | later (odds-assist/grading)                  |
 
 When adding each var, Vercel shows **Production / Preview / Development** checkboxes — tick
 **Production + Preview** for everything **except `AUTH_URL`** (Production only). This keeps

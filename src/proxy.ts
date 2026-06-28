@@ -9,6 +9,7 @@ export default auth((req) => {
   const { nextUrl } = req;
   const session = req.auth;
   const role = session?.user?.role;
+  const accountStatus = session?.user?.accountStatus;
 
   const isCapperArea = nextUrl.pathname.startsWith("/dashboard");
   const isAdminArea = nextUrl.pathname.startsWith("/admin");
@@ -18,6 +19,20 @@ export default auth((req) => {
     const url = new URL("/login", nextUrl);
     url.searchParams.set("callbackUrl", nextUrl.pathname);
     return NextResponse.redirect(url);
+  }
+
+  if (
+    (isCapperArea || isAdminArea) &&
+    (accountStatus === "SUSPENDED" || accountStatus === "DISABLED")
+  ) {
+    return NextResponse.redirect(new URL("/account-restricted", nextUrl));
+  }
+
+  if (
+    (isCapperArea || isAdminArea) &&
+    (accountStatus === "PENDING" || !session?.user?.emailVerified)
+  ) {
+    return NextResponse.redirect(new URL("/verify", nextUrl));
   }
 
   // Signed in but not an admin → bounce out of admin.

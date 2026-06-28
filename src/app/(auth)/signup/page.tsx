@@ -4,13 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { useForm, type UseFormRegisterReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { MailCheck, UserRoundPlus } from "lucide-react";
 import { toast } from "sonner";
-import { MailCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
+import { AuthHeader, AuthStatusNotice } from "@/components/scl/auth-header";
+import { PasswordField } from "@/components/scl/password-field";
 import { signupSchema, type SignupInput } from "@/lib/schemas/auth.schema";
 import { signupAction } from "@/lib/actions/signup.action";
 
@@ -23,9 +24,9 @@ export default function SignupPage() {
   } = useForm<SignupInput>({ resolver: zodResolver(signupSchema) });
 
   async function onSubmit(values: SignupInput) {
-    const res = await signupAction(values);
-    if (!res.ok) {
-      toast.error(res.error);
+    const result = await signupAction(values);
+    if (!result.ok) {
+      toast.error(result.error);
       return;
     }
     setDone(true);
@@ -33,38 +34,38 @@ export default function SignupPage() {
 
   if (done) {
     return (
-      <Card className="p-6 text-center">
-        <span className="bg-live/15 text-live mx-auto mb-4 flex size-12 items-center justify-center rounded-xl">
-          <MailCheck className="size-6" />
-        </span>
-        <h1 className="text-xl font-semibold tracking-tight">
-          Check your email
-        </h1>
-        <p className="text-muted-foreground mt-2 text-sm">
-          We sent a verification link to confirm your account. Verify your email
-          to start logging plays and building your record.
-        </p>
+      <div className="space-y-5">
+        <AuthHeader
+          icon={MailCheck}
+          eyebrow="Account created"
+          title="Verify your email"
+          description="Your SCL identity is reserved. Confirm your email to activate capper access."
+        />
+        <AuthStatusNotice
+          tone="info"
+          title="Verification sent"
+          description="The secure link expires in 24 hours."
+        />
         <Button
           render={<Link href="/login" />}
+          nativeButton={false}
           variant="outline"
-          className="mt-6 w-full"
+          className="min-h-10 w-full"
         >
           Back to log in
         </Button>
-      </Card>
+      </div>
     );
   }
 
   return (
-    <Card className="p-6">
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold tracking-tight">
-          Get ranked as a capper
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          Build a public, verified record.
-        </p>
-      </div>
+    <>
+      <AuthHeader
+        icon={UserRoundPlus}
+        eyebrow="Capper onboarding"
+        title="Create your SCL identity"
+        description="Start a secure account and claim the handle attached to your public record."
+      />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <Field
@@ -76,7 +77,7 @@ export default function SignupPage() {
         />
         <Field
           id="username"
-          label="Username"
+          label="SCL handle"
           autoComplete="username"
           register={register("username")}
           error={errors.username?.message}
@@ -89,33 +90,32 @@ export default function SignupPage() {
           register={register("email")}
           error={errors.email?.message}
         />
-        <Field
+        <PasswordField
           id="password"
           label="Password"
-          type="password"
           autoComplete="new-password"
-          register={register("password")}
+          hint="Use at least 12 characters."
           error={errors.password?.message}
+          {...register("password")}
         />
-        <Field
+        <PasswordField
           id="confirmPassword"
           label="Confirm password"
-          type="password"
           autoComplete="new-password"
-          register={register("confirmPassword")}
           error={errors.confirmPassword?.message}
+          {...register("confirmPassword")}
         />
 
-        <label className="flex items-start gap-2 text-sm">
+        <label className="border-border bg-surface-2 flex min-h-12 items-start gap-3 rounded-xl border p-3 text-sm">
           <input
             type="checkbox"
             className="accent-brand mt-0.5 size-4"
             {...register("acceptTerms")}
           />
           <span className="text-muted-foreground">
-            I agree to the{" "}
+            I accept the{" "}
             <Link href="/terms" className="text-brand hover:underline">
-              Terms
+              Terms of Service
             </Link>{" "}
             and{" "}
             <Link href="/privacy" className="text-brand hover:underline">
@@ -128,18 +128,22 @@ export default function SignupPage() {
           <p className="text-neg text-xs">{errors.acceptTerms.message}</p>
         ) : null}
 
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? "Creating account…" : "Create account"}
+        <Button
+          type="submit"
+          className="min-h-10 w-full"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Creating account…" : "Create capper account"}
         </Button>
       </form>
 
       <p className="text-muted-foreground mt-6 text-center text-sm">
-        Already have an account?{" "}
+        Already registered?{" "}
         <Link href="/login" className="text-brand font-medium hover:underline">
           Log in
         </Link>
       </p>
-    </Card>
+    </>
   );
 }
 
@@ -161,7 +165,13 @@ function Field({
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id}>{label}</Label>
-      <Input id={id} type={type} autoComplete={autoComplete} {...register} />
+      <Input
+        id={id}
+        type={type}
+        autoComplete={autoComplete}
+        className="min-h-10"
+        {...register}
+      />
       {error ? <p className="text-neg text-xs">{error}</p> : null}
     </div>
   );

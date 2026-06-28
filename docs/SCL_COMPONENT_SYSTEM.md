@@ -29,6 +29,25 @@ Numbers are the product. These render performance consistently everywhere.
 ## Identity (`capper-avatar.tsx`)
 
 - `CapperAvatar` — rounded-xl avatar with initials fallback. Sizes `sm|md|lg|xl`.
+- `ProfileMediaEditor` — authenticated avatar and cover uploader with validated image states.
+- `ProfileIdentityPreview` — live preview of the identity published across SCL.
+- `ProfileTagInput` — compact, keyboard-friendly specialty editor.
+
+## Onboarding (`onboarding-progress.tsx`, `profile-completion.tsx`)
+
+- `OnboardingProgress` — account, email verification, and public-profile status.
+- `ProfileCompletionPanel` — data-derived identity strength and missing-signal checklist.
+- `AccountTrustSummary` / `AccountStatusBadge` — account lifecycle, verification, policy, and access standing.
+- `AccountStatusControl` — audited admin lifecycle control for capper accounts.
+
+## Authentication (`auth-header.tsx`, `password-field.tsx`)
+
+- `AuthHeader` — consistent icon, state label, title, and supporting copy for account flows.
+- `AuthStatusNotice` — success, error, and informational account states.
+- `AuthFormSkeleton` — loading shell for runtime-dependent auth forms.
+- `PasswordField` — labelled password input with accessible visibility control.
+- Shared `SclLogo` from the brand foundation is composed across account surfaces, never
+  redefined inside the feature component system.
 
 ## Composite
 
@@ -37,6 +56,8 @@ Numbers are the product. These render performance consistently everywhere.
 - `CapperCard` (`capper-card.tsx`) — discovery/résumé card.
 - `PickCard` (`pick-card.tsx`) — today's-pick card (event, selection, odds, stake, capper, status).
 - `SectionHeader` (`section.tsx`) — titled section with optional "view all".
+- `CapperProfileHeader` — cover-led public identity, trust, specialties, socials, and profile actions.
+- `PerformanceSummary` — record, win rate, units, ROI, streak, and recent form.
 
 ## States (`states.tsx`)
 
@@ -45,10 +66,10 @@ Numbers are the product. These render performance consistently everywhere.
 
 ## Still to build (Phase 1 roadmap)
 
-`CapperProfileHeader`, `PerformanceSummary`, `ProfilePerformanceChart` (Recharts),
-`FilterChip` / `TimeWindowFilter` / `SortToggle`, `GameCard`, `MobileBottomNav`,
-`DesktopSidebar`, `AdminGradePanel`, `ShareableProfileCard`, `ShareablePickCard`,
-`Leaderboard` (filtering container), `TrophyCase`.
+`ProfilePerformanceChart` (Recharts), `FilterChip` / `TimeWindowFilter` /
+`SortToggle`, `GameCard`, `MobileBottomNav`, `DesktopSidebar`,
+`AdminGradePanel`, `ShareableProfileCard`, `ShareablePickCard`, `Leaderboard`
+(filtering container), `TrophyCase`.
 
 ## Authoring rules
 

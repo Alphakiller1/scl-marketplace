@@ -6,8 +6,9 @@
 
 /*
   SCL Design System — token registration for Tailwind v4.
-  Every color has a job. Performance is green/red, status/rank is gold,
-  brand energy is indigo, live is cyan. See docs/SCL_DESIGN_CONTRACT.md.
+  Every color has a job. Identity is a deep-purple base with a pink-magenta brand and a
+  blue action color (the original SCL energy, executed clean); live/verification is cyan,
+  performance is green/red, rank is gold. See docs/SCL_DESIGN_CONTRACT.md.
 */
 @theme inline {
   --color-background: var(--background);
@@ -80,26 +81,27 @@
 
 /* ---- Light theme (dark is the hero; light stays clean & trustworthy) ---- */
 :root {
-  --background: oklch(0.985 0.003 260);
-  --foreground: oklch(0.18 0.03 265);
+  --background: oklch(0.985 0.008 305);
+  --foreground: oklch(0.2 0.05 295);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.03 265);
-  --surface-2: oklch(0.97 0.004 260);
-  --surface-3: oklch(0.945 0.006 260);
+  --card-foreground: oklch(0.2 0.05 295);
+  --surface-2: oklch(0.972 0.013 305);
+  --surface-3: oklch(0.948 0.02 305);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.03 265);
+  --popover-foreground: oklch(0.2 0.05 295);
 
-  --primary: oklch(0.55 0.2 277);
+  /* Blue = action, pink-magenta = brand identity (the original SCL energy). */
+  --primary: oklch(0.52 0.2 260);
   --primary-foreground: oklch(0.99 0 0);
-  --brand: oklch(0.55 0.2 277);
+  --brand: oklch(0.58 0.25 342);
   --brand-foreground: oklch(0.99 0 0);
 
-  --secondary: oklch(0.96 0.005 260);
-  --secondary-foreground: oklch(0.22 0.03 265);
-  --muted: oklch(0.96 0.005 260);
-  --muted-foreground: oklch(0.5 0.02 262);
-  --accent: oklch(0.95 0.01 277);
-  --accent-foreground: oklch(0.3 0.1 277);
+  --secondary: oklch(0.96 0.016 305);
+  --secondary-foreground: oklch(0.24 0.05 295);
+  --muted: oklch(0.96 0.016 305);
+  --muted-foreground: oklch(0.5 0.035 300);
+  --accent: oklch(0.95 0.035 330);
+  --accent-foreground: oklch(0.4 0.16 335);
   --destructive: oklch(0.58 0.22 25);
 
   --pos: oklch(0.6 0.16 150);
@@ -108,55 +110,56 @@
   --neg-foreground: oklch(0.99 0 0);
   --gold: oklch(0.74 0.14 80);
   --gold-foreground: oklch(0.22 0.05 80);
-  --live: oklch(0.6 0.13 210);
+  --live: oklch(0.62 0.13 200);
   --live-foreground: oklch(0.99 0 0);
-  --push: oklch(0.6 0.02 262);
+  --push: oklch(0.6 0.025 300);
 
-  --border: oklch(0.9 0.006 260);
-  --border-strong: oklch(0.84 0.01 260);
-  --input: oklch(0.9 0.006 260);
-  --ring: oklch(0.55 0.2 277);
+  --border: oklch(0.9 0.014 305);
+  --border-strong: oklch(0.84 0.024 320);
+  --input: oklch(0.9 0.014 305);
+  --ring: oklch(0.58 0.25 342);
 
-  --chart-1: oklch(0.55 0.2 277);
-  --chart-2: oklch(0.6 0.16 150);
-  --chart-3: oklch(0.74 0.14 80);
-  --chart-4: oklch(0.6 0.13 210);
-  --chart-5: oklch(0.58 0.22 25);
+  --chart-1: oklch(0.58 0.25 342);
+  --chart-2: oklch(0.52 0.2 260);
+  --chart-3: oklch(0.7 0.14 200);
+  --chart-4: oklch(0.55 0.19 300);
+  --chart-5: oklch(0.74 0.14 80);
 
   --radius: 0.7rem;
 
-  --sidebar: oklch(0.99 0.002 260);
-  --sidebar-foreground: oklch(0.2 0.03 265);
-  --sidebar-primary: oklch(0.55 0.2 277);
+  --sidebar: oklch(0.985 0.012 305);
+  --sidebar-foreground: oklch(0.22 0.05 295);
+  --sidebar-primary: oklch(0.52 0.2 260);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.95 0.01 277);
-  --sidebar-accent-foreground: oklch(0.3 0.1 277);
-  --sidebar-border: oklch(0.9 0.006 260);
-  --sidebar-ring: oklch(0.55 0.2 277);
+  --sidebar-accent: oklch(0.95 0.035 330);
+  --sidebar-accent-foreground: oklch(0.4 0.16 335);
+  --sidebar-border: oklch(0.9 0.014 305);
+  --sidebar-ring: oklch(0.58 0.25 342);
 }
 
-/* ---- Dark theme — deep navy / charcoal, the primary SCL experience ---- */
+/* ---- Dark theme — deep purple base, blue action, pink-magenta brand: the
+   original SCL energy, executed clean. This is the primary experience. ---- */
 .dark {
-  --background: oklch(0.17 0.022 265);
-  --foreground: oklch(0.97 0.005 250);
-  --card: oklch(0.215 0.025 265);
-  --card-foreground: oklch(0.97 0.005 250);
-  --surface-2: oklch(0.25 0.028 265);
-  --surface-3: oklch(0.29 0.03 265);
-  --popover: oklch(0.215 0.025 265);
-  --popover-foreground: oklch(0.97 0.005 250);
+  --background: oklch(0.16 0.055 293);
+  --foreground: oklch(0.97 0.012 305);
+  --card: oklch(0.205 0.06 292);
+  --card-foreground: oklch(0.97 0.012 305);
+  --surface-2: oklch(0.25 0.065 291);
+  --surface-3: oklch(0.3 0.07 290);
+  --popover: oklch(0.205 0.06 292);
+  --popover-foreground: oklch(0.97 0.012 305);
 
-  --primary: oklch(0.65 0.19 274);
-  --primary-foreground: oklch(0.15 0.02 265);
-  --brand: oklch(0.65 0.19 274);
-  --brand-foreground: oklch(0.15 0.02 265);
+  --primary: oklch(0.62 0.19 260);
+  --primary-foreground: oklch(0.99 0 0);
+  --brand: oklch(0.66 0.26 342);
+  --brand-foreground: oklch(0.99 0 0);
 
-  --secondary: oklch(0.27 0.028 265);
-  --secondary-foreground: oklch(0.97 0.005 250);
-  --muted: oklch(0.27 0.028 265);
-  --muted-foreground: oklch(0.72 0.02 262);
-  --accent: oklch(0.3 0.04 274);
-  --accent-foreground: oklch(0.92 0.03 274);
+  --secondary: oklch(0.3 0.07 295);
+  --secondary-foreground: oklch(0.97 0.012 305);
+  --muted: oklch(0.29 0.055 293);
+  --muted-foreground: oklch(0.76 0.03 305);
+  --accent: oklch(0.44 0.15 322);
+  --accent-foreground: oklch(0.95 0.05 322);
   --destructive: oklch(0.66 0.2 25);
 
   --pos: oklch(0.74 0.17 152);
@@ -165,29 +168,29 @@
   --neg-foreground: oklch(0.16 0.03 25);
   --gold: oklch(0.83 0.14 84);
   --gold-foreground: oklch(0.2 0.05 84);
-  --live: oklch(0.76 0.15 208);
-  --live-foreground: oklch(0.16 0.03 208);
-  --push: oklch(0.72 0.02 262);
+  --live: oklch(0.8 0.13 200);
+  --live-foreground: oklch(0.16 0.03 200);
+  --push: oklch(0.72 0.03 300);
 
-  --border: oklch(1 0 0 / 9%);
-  --border-strong: oklch(1 0 0 / 16%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.65 0.19 274);
+  --border: oklch(1 0 0 / 10%);
+  --border-strong: oklch(0.72 0.18 342 / 28%);
+  --input: oklch(1 0 0 / 13%);
+  --ring: oklch(0.66 0.26 342);
 
-  --chart-1: oklch(0.65 0.19 274);
-  --chart-2: oklch(0.74 0.17 152);
-  --chart-3: oklch(0.83 0.14 84);
-  --chart-4: oklch(0.76 0.15 208);
-  --chart-5: oklch(0.68 0.2 25);
+  --chart-1: oklch(0.66 0.26 342);
+  --chart-2: oklch(0.62 0.19 260);
+  --chart-3: oklch(0.8 0.13 200);
+  --chart-4: oklch(0.6 0.2 300);
+  --chart-5: oklch(0.83 0.14 84);
 
-  --sidebar: oklch(0.195 0.024 265);
-  --sidebar-foreground: oklch(0.97 0.005 250);
-  --sidebar-primary: oklch(0.65 0.19 274);
-  --sidebar-primary-foreground: oklch(0.15 0.02 265);
-  --sidebar-accent: oklch(0.3 0.04 274);
-  --sidebar-accent-foreground: oklch(0.92 0.03 274);
+  --sidebar: oklch(0.175 0.06 294);
+  --sidebar-foreground: oklch(0.97 0.012 305);
+  --sidebar-primary: oklch(0.62 0.19 260);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.33 0.085 300);
+  --sidebar-accent-foreground: oklch(0.95 0.05 322);
   --sidebar-border: oklch(1 0 0 / 9%);
-  --sidebar-ring: oklch(0.65 0.19 274);
+  --sidebar-ring: oklch(0.66 0.26 342);
 }
 
 @layer base {
@@ -211,11 +214,29 @@
 @layer utilities {
   /* Subtle stadium-light glow behind hero/feature surfaces. Restrained. */
   .scl-glow {
-    background-image: radial-gradient(
-      60% 60% at 50% 0%,
-      color-mix(in oklch, var(--brand) 18%, transparent),
-      transparent 70%
+    background-image:
+      radial-gradient(
+        46% 55% at 22% 0%,
+        color-mix(in oklch, var(--brand) 22%, transparent),
+        transparent 70%
+      ),
+      radial-gradient(
+        46% 55% at 80% 4%,
+        color-mix(in oklch, var(--primary) 20%, transparent),
+        transparent 72%
+      );
+  }
+  /* Pink→blue brand wordmark/heading fill. */
+  .scl-brand-text {
+    background-image: linear-gradient(
+      100deg,
+      var(--brand),
+      var(--accent) 45%,
+      var(--primary)
     );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
   .scl-card-gradient {
     background-image: linear-gradient(
