@@ -9,6 +9,7 @@ import {
 } from "@/components/scl/badges";
 import { RankMovementIndicator } from "@/components/scl/indicators";
 import { Button } from "@/components/ui/button";
+import { socialProfileUrl } from "@/lib/urls";
 
 /**
  * The public capper profile hero — identity, rank, specialties, and the
@@ -18,71 +19,105 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
   const sports = capper.sports?.length ? capper.sports : [capper.topSport];
 
   return (
-    <div className="scl-glow border-border bg-card relative overflow-hidden rounded-2xl border p-5 sm:p-7">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-4">
-          <CapperAvatar name={capper.name} src={capper.avatarUrl} size="xl" />
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight">
-                {capper.name}
-              </h1>
-              {capper.verified ? (
-                <VerificationBadge size="md" withLabel />
-              ) : null}
-            </div>
+    <article className="border-border bg-card overflow-hidden rounded-xl border">
+      <div className="bg-surface-2 relative h-28 overflow-hidden sm:h-36">
+        {capper.bannerUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={capper.bannerUrl}
+            alt=""
+            className="size-full object-cover"
+          />
+        ) : (
+          <div aria-hidden className="scl-glow absolute inset-0" />
+        )}
+      </div>
 
-            <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-              <span>@{capper.handle}</span>
-              <span aria-hidden>·</span>
-              <span className="inline-flex items-center gap-1">
-                <span className="nums text-foreground font-semibold tabular-nums">
-                  Rank #{capper.rank}
-                </span>
-                <RankMovementIndicator delta={capper.rankDelta} />
+      <div className="px-5 pb-5 sm:px-7 sm:pb-7">
+        <div className="-mt-8 flex flex-col gap-4 sm:-mt-10 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex min-w-0 items-end gap-4">
+            <span className="bg-card rounded-xl p-1">
+              <CapperAvatar
+                name={capper.name}
+                src={capper.avatarUrl}
+                size="xl"
+              />
+            </span>
+            <div className="min-w-0 pb-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="truncate text-2xl font-bold">{capper.name}</h1>
+                {capper.verified ? (
+                  <VerificationBadge size="md" withLabel />
+                ) : null}
+              </div>
+              <span className="text-muted-foreground text-sm">
+                @{capper.handle}
               </span>
-              {capper.joinedAt ? (
-                <>
-                  <span aria-hidden>·</span>
-                  <span>Member since {capper.joinedAt.getFullYear()}</span>
-                </>
-              ) : null}
             </div>
+          </div>
 
-            {capper.headline ? (
-              <p className="mt-2 font-medium">{capper.headline}</p>
-            ) : null}
-
-            <div className="mt-3 flex flex-wrap items-center gap-1.5">
-              {sports.map((s) => (
-                <SportTag key={s} sport={s} />
-              ))}
-            </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <SocialLinks socials={capper.socials} />
+            <Button
+              render={<a href="#recent-picks" />}
+              nativeButton={false}
+              className="min-h-10"
+            >
+              View picks
+            </Button>
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
-          <SocialLinks socials={capper.socials} />
-          <Button render={<a href="#recent-picks" />} size="sm">
-            View picks
-          </Button>
+        <div className="text-muted-foreground mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+          <span className="inline-flex items-center gap-1">
+            <span className="nums text-foreground font-semibold tabular-nums">
+              Rank #{capper.rank}
+            </span>
+            <RankMovementIndicator delta={capper.rankDelta} />
+          </span>
+          {capper.joinedAt ? (
+            <>
+              <span aria-hidden>·</span>
+              <span>Member since {capper.joinedAt.getFullYear()}</span>
+            </>
+          ) : null}
         </div>
-      </div>
 
-      {capper.bio ? (
-        <p className="text-muted-foreground mt-5 max-w-2xl text-sm leading-relaxed">
-          {capper.bio}
-        </p>
-      ) : null}
+        {capper.headline ? (
+          <p className="mt-3 max-w-2xl text-base font-semibold">
+            {capper.headline}
+          </p>
+        ) : null}
 
-      {capper.trophies.length ? (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {capper.trophies.map((t) => (
-            <TrophyBadge key={t} label={t} />
+        <div className="mt-4 flex flex-wrap items-center gap-1.5">
+          {sports.map((sport) => (
+            <SportTag key={sport} sport={sport} />
+          ))}
+          {capper.specialties?.map((specialty) => (
+            <span
+              key={specialty}
+              className="border-border bg-surface-2 text-muted-foreground rounded-lg border px-2 py-1 text-xs font-medium"
+            >
+              {specialty}
+            </span>
           ))}
         </div>
-      ) : null}
-    </div>
+
+        {capper.bio ? (
+          <p className="text-muted-foreground mt-5 max-w-2xl text-sm leading-relaxed">
+            {capper.bio}
+          </p>
+        ) : null}
+
+        {capper.trophies.length ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {capper.trophies.map((trophy) => (
+              <TrophyBadge key={trophy} label={trophy} />
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </article>
   );
 }
 
@@ -92,12 +127,12 @@ function SocialLinks({ socials }: { socials?: CapperSummary["socials"] }) {
   const links = [
     socials.twitter && {
       label: "X profile",
-      href: `https://x.com/${socials.twitter}`,
+      href: socialProfileUrl("https://x.com", socials.twitter),
       Icon: XIcon as IconType,
     },
     socials.instagram && {
       label: "Instagram profile",
-      href: `https://instagram.com/${socials.instagram}`,
+      href: socialProfileUrl("https://instagram.com", socials.instagram),
       Icon: InstagramIcon as IconType,
     },
     socials.website && {
@@ -118,7 +153,7 @@ function SocialLinks({ socials }: { socials?: CapperSummary["socials"] }) {
           target="_blank"
           rel="noreferrer"
           aria-label={label}
-          className="text-muted-foreground hover:text-foreground hover:bg-surface-2 border-border flex size-9 items-center justify-center rounded-lg border transition-colors"
+          className="text-muted-foreground hover:text-foreground hover:bg-surface-2 border-border flex size-10 items-center justify-center rounded-lg border transition-colors"
         >
           <Icon className="size-4" />
         </a>

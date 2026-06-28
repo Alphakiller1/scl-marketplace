@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, MailWarning, XCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { AuthHeader, AuthStatusNotice } from "@/components/scl/auth-header";
 import { consumeVerificationToken } from "@/lib/tokens";
 
 export const metadata = { title: "Verify email" };
@@ -13,33 +13,64 @@ export default async function VerifyPage({
   searchParams: Promise<{ token?: string }>;
 }) {
   const { token } = await searchParams;
-  const email = token ? await consumeVerificationToken(token) : null;
-  const ok = Boolean(email);
+
+  if (!token) {
+    return (
+      <>
+        <AuthHeader
+          icon={MailWarning}
+          eyebrow="Email verification"
+          title="Check your inbox"
+          description="Open the verification link sent when your SCL account was created."
+        />
+        <AuthStatusNotice
+          tone="info"
+          title="Verification required"
+          description="Capper play submission unlocks after your email is confirmed."
+        />
+        <Button
+          render={<Link href="/resend-verification" />}
+          nativeButton={false}
+          variant="outline"
+          className="mt-5 min-h-10 w-full"
+        >
+          Send a new verification link
+        </Button>
+      </>
+    );
+  }
+
+  const email = await consumeVerificationToken(token);
+  const verified = Boolean(email);
 
   return (
-    <Card className="p-6 text-center">
-      <span
-        className={`mx-auto mb-4 flex size-12 items-center justify-center rounded-xl ${
-          ok ? "bg-pos/15 text-pos" : "bg-neg/15 text-neg"
-        }`}
+    <>
+      <AuthHeader
+        icon={verified ? CheckCircle2 : XCircle}
+        eyebrow="Email verification"
+        title={verified ? "Account activated" : "Link unavailable"}
+        description={
+          verified
+            ? "Your email is verified and your capper workspace is ready."
+            : "This verification link is invalid, expired, or already used."
+        }
+      />
+      <AuthStatusNotice
+        tone={verified ? "success" : "error"}
+        title={verified ? "Verification complete" : "Verification failed"}
+        description={
+          verified
+            ? "Continue to login, then complete your public identity."
+            : "Create a new account or contact SCL support if this continues."
+        }
+      />
+      <Button
+        render={<Link href={verified ? "/login" : "/signup"} />}
+        nativeButton={false}
+        className="mt-5 min-h-10 w-full"
       >
-        {ok ? (
-          <CheckCircle2 className="size-6" />
-        ) : (
-          <XCircle className="size-6" />
-        )}
-      </span>
-      <h1 className="text-xl font-semibold tracking-tight">
-        {ok ? "Email verified" : "Verification failed"}
-      </h1>
-      <p className="text-muted-foreground mt-2 text-sm">
-        {ok
-          ? "Your email is confirmed. You can now log in and start logging plays."
-          : "This verification link is invalid or has expired. Try signing up again or request a new link."}
-      </p>
-      <Button render={<Link href="/login" />} className="mt-6 w-full">
-        Continue to log in
+        {verified ? "Continue to log in" : "Return to signup"}
       </Button>
-    </Card>
+    </>
   );
 }

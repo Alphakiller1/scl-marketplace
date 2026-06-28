@@ -10,8 +10,9 @@ write it.
 
 ## Core entities
 
-- **User** (auth) — email, username, `passwordHash`, `role` (CAPPER/ADMIN), `emailVerified`.
-- **CapperProfile** — `headline`, `bio`, `avatarUrl`, `specialties[]`, `sports[]`,
+- **User** (auth) — email, username, `passwordHash`, `role` (CAPPER/ADMIN),
+  `accountStatus` (PENDING/ACTIVE/SUSPENDED/DISABLED), `emailVerified`.
+- **CapperProfile** — `headline`, `bio`, `avatarUrl`, `bannerUrl`, `specialties[]`, `sports[]`,
   `betTypes[]`, `dailyVolume`, `writtenAnalysis`, `biggestBetWon`, socials, `providerType`,
   `isLegacy`.
 - **Play** — `sport`, `league`, `market`, `selection`, `oddsAmerican` (int), `units`
@@ -21,6 +22,13 @@ write it.
 - **TrackingUrl** / **ClickEvent** — package tracking + click capture.
 - **GradingAudit** — append-only: `previousOutcome`, `newOutcome`, `source`
   (AUTO/ADMIN_OVERRIDE/MANUAL), `gradedById`, `reason`, timestamp.
+- **PasswordResetToken** — hashed, single-use, one-hour recovery token keyed to a user.
+- **VerificationToken** — hashed, single-use, 24-hour email-verification token with resend
+  cooldown.
+- **AccountStatusAudit** — append-only account lifecycle change with actor, prior/new status,
+  reason, and timestamp.
+- **RequestThrottle** — hashed request/email identity, attempt count, and rolling-window start
+  used to enforce persistent abuse limits across server instances.
 
 ## Computed/derived (not stored raw)
 

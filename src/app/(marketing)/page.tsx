@@ -43,6 +43,7 @@ export default function Home() {
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Button
               render={<Link href="/leaderboard" />}
+              nativeButton={false}
               size="lg"
               className="gap-2"
             >
@@ -50,6 +51,7 @@ export default function Home() {
             </Button>
             <Button
               render={<Link href="/signup" />}
+              nativeButton={false}
               size="lg"
               variant="outline"
             >
@@ -164,6 +166,7 @@ export default function Home() {
             </p>
             <Button
               render={<Link href="/signup" />}
+              nativeButton={false}
               size="lg"
               className="gap-2"
             >

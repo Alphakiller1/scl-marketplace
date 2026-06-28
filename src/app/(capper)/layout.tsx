@@ -1,4 +1,4 @@
-import { requireUser } from "@/lib/session";
+import { requireCapperAccess } from "@/lib/session";
 import { AppHeader } from "@/components/app-header";
 
 const CAPPER_NAV = [
@@ -13,7 +13,7 @@ export default async function CapperLayout({
   children: React.ReactNode;
 }) {
   // Defense in depth (middleware already gates /dashboard).
-  await requireUser();
+  await requireCapperAccess();
 
   return (
     <div className="flex min-h-screen flex-col">

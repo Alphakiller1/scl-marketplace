@@ -5,7 +5,9 @@ const from = process.env.EMAIL_FROM ?? "no-reply@scl.local";
 const resend = apiKey ? new Resend(apiKey) : null;
 
 function appUrl() {
-  return process.env.AUTH_URL ?? "http://localhost:3000";
+  if (process.env.AUTH_URL) return process.env.AUTH_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:3000";
 }
 
 /**
@@ -20,7 +22,7 @@ export async function sendVerificationEmail(email: string, token: string) {
     return { delivered: false as const, link };
   }
 
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from,
     to: email,
     subject: "Verify your SCL account",
@@ -33,5 +35,31 @@ export async function sendVerificationEmail(email: string, token: string) {
       </div>
     `,
   });
+  if (error) throw new Error(error.message);
+  return { delivered: true as const, link };
+}
+
+export async function sendPasswordResetEmail(email: string, token: string) {
+  const link = `${appUrl()}/reset-password?token=${token}`;
+
+  if (!resend) {
+    console.info(`[email:dev] password reset link for ${email}: ${link}`);
+    return { delivered: false as const, link };
+  }
+
+  const { error } = await resend.emails.send({
+    from,
+    to: email,
+    subject: "Reset your SCL password",
+    html: `
+      <div style="font-family:system-ui,sans-serif;max-width:480px;margin:auto">
+        <h2>Reset your password</h2>
+        <p>Use the secure link below to choose a new password for your SCL account.</p>
+        <p><a href="${link}" style="display:inline-block;background:#5b4bdb;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Reset password</a></p>
+        <p style="color:#666;font-size:13px">This link expires in one hour and works once. If you didn't request it, ignore this email.</p>
+      </div>
+    `,
+  });
+  if (error) throw new Error(error.message);
   return { delivered: true as const, link };
 }

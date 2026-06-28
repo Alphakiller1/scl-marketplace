@@ -19,23 +19,34 @@ enum Role {
   ADMIN
 }
 
+enum AccountStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  username      String?   @unique
+  id            String        @id @default(cuid())
+  email         String        @unique
+  username      String?       @unique
   passwordHash  String?
   displayName   String?
-  role          Role      @default(CAPPER)
+  role          Role          @default(CAPPER)
+  accountStatus AccountStatus @default(ACTIVE)
   emailVerified DateTime?
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
-  accounts         Account[]
-  sessions         Session[]
-  capperProfile    CapperProfile?
-  termsAcceptances TermsAcceptance[]
-  gradingActions   GradingAudit[]    @relation("GradedBy")
+  accounts           Account[]
+  sessions           Session[]
+  capperProfile      CapperProfile?
+  termsAcceptances   TermsAcceptance[]
+  gradingActions     GradingAudit[]       @relation("GradedBy")
+  passwordResetToken PasswordResetToken?
+  statusChanges      AccountStatusAudit[] @relation("AccountStatusSubject")
+  statusActions      AccountStatusAudit[] @relation("AccountStatusActor")
 }
 
 model Account {
@@ -69,8 +80,19 @@ model VerificationToken {
   identifier String
   token      String   @unique
   expires    DateTime
+  createdAt  DateTime @default(now())
 
   @@unique([identifier, token])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  tokenHash String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model TermsAcceptance {
@@ -82,6 +104,29 @@ model TermsAcceptance {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model AccountStatusAudit {
+  id             String        @id @default(cuid())
+  userId         String
+  previousStatus AccountStatus
+  newStatus      AccountStatus
+  changedById    String
+  reason         String?
+  createdAt      DateTime      @default(now())
+
+  user      User @relation("AccountStatusSubject", fields: [userId], references: [id], onDelete: Cascade)
+  changedBy User @relation("AccountStatusActor", fields: [changedById], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([changedById])
+}
+
+model RequestThrottle {
+  key             String   @id
+  count           Int
+  windowStartedAt DateTime
+  updatedAt       DateTime @updatedAt
 }
 
 // ---------- Capper profile & packages ----------
@@ -113,6 +158,7 @@ model CapperProfile {
   headline        String? // short mission/tagline shown on profile
   bio             String?
   avatarUrl       String?
+  bannerUrl       String?
   specialties     String[]     @default([])
   sports          String[]     @default([]) // canonical sport keys from src/lib/sports.ts
   betTypes        BetType[]    @default([])

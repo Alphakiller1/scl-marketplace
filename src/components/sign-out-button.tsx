@@ -11,7 +11,7 @@ export function SignOutButton() {
       variant="ghost"
       size="sm"
       onClick={() => signOut({ callbackUrl: "/" })}
-      className="gap-1.5"
+      className="min-h-10 min-w-10 gap-1.5"
     >
       <LogOut className="size-4" />
       <span className="hidden sm:inline">Log out</span>

@@ -5,18 +5,20 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { LogIn } from "lucide-react";
 import { signIn } from "next-auth/react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
+import { AuthFormSkeleton, AuthHeader } from "@/components/scl/auth-header";
+import { PasswordField } from "@/components/scl/password-field";
 import { loginSchema, type LoginInput } from "@/lib/schemas/auth.schema";
 
 export default function LoginPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<AuthFormSkeleton />}>
       <LoginForm />
     </Suspense>
   );
@@ -35,28 +37,30 @@ function LoginForm() {
 
   async function onSubmit(values: LoginInput) {
     try {
-      const res = await signIn("credentials", { ...values, redirect: false });
-      if (!res || res.error) {
-        toast.error("Invalid email or password");
+      const result = await signIn("credentials", {
+        ...values,
+        redirect: false,
+      });
+      if (!result || result.error) {
+        toast.error("Unable to sign in with those credentials");
         return;
       }
       toast.success("Welcome back");
       router.push(callbackUrl);
       router.refresh();
     } catch {
-      // Network / server error (e.g. DB unreachable) — never fail silently.
       toast.error("Couldn't sign you in. Please try again in a moment.");
     }
   }
 
   return (
-    <Card className="p-6">
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold tracking-tight">Welcome back</h1>
-        <p className="text-muted-foreground text-sm">
-          Log in to your SCL account
-        </p>
-      </div>
+    <>
+      <AuthHeader
+        icon={LogIn}
+        eyebrow="Secure access"
+        title="Welcome back"
+        description="Open your capper workspace and verified record."
+      />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <div className="space-y-1.5">
@@ -65,6 +69,7 @@ function LoginForm() {
             id="email"
             type="email"
             autoComplete="email"
+            className="min-h-10"
             {...register("email")}
           />
           {errors.email ? (
@@ -72,20 +77,28 @@ function LoginForm() {
           ) : null}
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            {...register("password")}
-          />
-          {errors.password ? (
-            <p className="text-neg text-xs">{errors.password.message}</p>
-          ) : null}
+        <PasswordField
+          id="password"
+          label="Password"
+          autoComplete="current-password"
+          error={errors.password?.message}
+          {...register("password")}
+        />
+
+        <div className="flex justify-end">
+          <Link
+            href="/forgot-password"
+            className="text-brand min-h-10 py-2 text-sm font-medium hover:underline"
+          >
+            Forgot password?
+          </Link>
         </div>
 
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
+        <Button
+          type="submit"
+          className="min-h-10 w-full"
+          disabled={isSubmitting}
+        >
           {isSubmitting ? "Signing in…" : "Log in"}
         </Button>
       </form>
@@ -96,6 +109,6 @@ function LoginForm() {
           Create an account
         </Link>
       </p>
-    </Card>
+    </>
   );
 }

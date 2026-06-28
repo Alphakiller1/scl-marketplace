@@ -5,6 +5,7 @@ import type { Outcome } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { computeCapperStats, type PlayForStats } from "@/lib/stats";
 import type { CapperSummary, FormResult } from "@/lib/mock";
+import { safeHttpUrl } from "@/lib/urls";
 
 /**
  * Live leaderboard data — computed from real plays, never fabricated. Only
@@ -18,8 +19,10 @@ function fetchRankableProfiles() {
     select: {
       id: true,
       avatarUrl: true,
+      bannerUrl: true,
       headline: true,
       bio: true,
+      specialties: true,
       sports: true,
       instagram: true,
       twitter: true,
@@ -81,7 +84,8 @@ function pruneSocials(
   const out: NonNullable<CapperSummary["socials"]> = {};
   if (twitter) out.twitter = twitter;
   if (instagram) out.instagram = instagram;
-  if (website) out.website = website;
+  const safeWebsite = safeHttpUrl(website);
+  if (safeWebsite) out.website = safeWebsite;
   return Object.keys(out).length ? out : undefined;
 }
 
@@ -114,6 +118,7 @@ function summarize(p: ProfileRow): CapperSummary | null {
     name: p.user.displayName ?? username,
     handle: username,
     avatarUrl: p.avatarUrl ?? undefined,
+    bannerUrl: p.bannerUrl ?? undefined,
     verified: p.user.emailVerified != null,
     topSport: topSport(
       p.plays.map((x) => x.sport),
@@ -130,6 +135,7 @@ function summarize(p: ProfileRow): CapperSummary | null {
     trophies: [],
     headline: p.headline ?? undefined,
     bio: p.bio ?? undefined,
+    specialties: p.specialties.length ? p.specialties : undefined,
     sports: p.sports.length ? p.sports : undefined,
     joinedAt: p.createdAt,
     socials: pruneSocials(p.twitter, p.instagram, p.website),

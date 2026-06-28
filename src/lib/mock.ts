@@ -26,6 +26,8 @@ export type CapperSummary = {
   // Profile-page fields (optional on the lighter list/leaderboard surfaces).
   headline?: string;
   bio?: string;
+  bannerUrl?: string;
+  specialties?: string[];
   sports?: string[]; // full coverage list shown on the profile
   joinedAt?: Date;
   socials?: { twitter?: string; instagram?: string; website?: string };
