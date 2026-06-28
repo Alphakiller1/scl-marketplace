@@ -24,8 +24,12 @@ export async function consumeRateLimit({
 }): Promise<boolean> {
   const key = throttleKey(scope, identity);
   const resetBefore = new Date(Date.now() - windowMs);
+  // SCL lives in the `scl` schema. Prisma's ORM is schema-aware, but a raw query is NOT —
+  // through Supabase's transaction pooler the search_path isn't `scl`, so an unqualified
+  // "RequestThrottle" resolves to `public` and fails (42P01), throwing a 500 out of every
+  // rate-limited action (signup, login, password reset). Qualify the table explicitly.
   const rows = await prisma.$queryRaw<ThrottleRow[]>`
-    INSERT INTO "RequestThrottle" ("key", "count", "windowStartedAt", "updatedAt")
+    INSERT INTO "scl"."RequestThrottle" ("key", "count", "windowStartedAt", "updatedAt")
     VALUES (${key}, 1, NOW(), NOW())
     ON CONFLICT ("key") DO UPDATE SET
       "count" = CASE
