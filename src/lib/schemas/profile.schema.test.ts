@@ -10,6 +10,7 @@ const validProfile = {
   specialties: ["Player props"],
   betTypes: ["PROP"] as const,
   writtenAnalysis: true,
+  storefrontEnabled: true,
 };
 
 test("profile links allow public web URLs and social handles", () => {
@@ -35,6 +36,24 @@ test("profile links reject executable URLs and full social URLs", () => {
     profileSchema.safeParse({
       ...validProfile,
       twitter: "https://x.com/chase",
+    }).success,
+    false,
+  );
+});
+
+test("profile storefront copy follows its length contract", () => {
+  assert.equal(
+    profileSchema.safeParse({
+      ...validProfile,
+      storefrontTitle: "Weekly MLB card",
+      storefrontDescription: "Sides, totals, and props selected by the capper.",
+    }).success,
+    true,
+  );
+  assert.equal(
+    profileSchema.safeParse({
+      ...validProfile,
+      storefrontTitle: "x".repeat(81),
     }).success,
     false,
   );

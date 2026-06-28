@@ -13,8 +13,9 @@ the production deployment under the repo's _Deployments/Environments_, updating 
 
 1. Go to **https://vercel.com/new** and sign in **with GitHub**.
 2. **Import** `Alphakiller1/scl-marketplace`.
-3. Framework preset auto-detects **Next.js**. Leave build/install defaults
-   (install runs `prisma generate` via `postinstall`; build is `next build`).
+3. Framework preset auto-detects **Next.js**. Leave build/install defaults.
+   `vercel.json` runs `prisma migrate deploy` only for Production, then runs
+   the normal `next build`. Preview and CI builds never mutate the shared database.
 4. Add the **Environment Variables** below, then **Deploy**.
 5. After the first deploy, set `AUTH_URL` to the production URL Vercel gives you
    (e.g. `https://scl-marketplace.vercel.app`) and redeploy.
@@ -54,9 +55,15 @@ branch/PR preview deploys working as testing environments.
 
 ### Migrations
 
-The build does **not** run migrations. Apply schema changes from your machine
-(`npm run db:migrate`) or a one-off job before/after deploy. The `scl` schema is isolated;
-migrations never touch `public`.
+Production Vercel builds run `npm run db:deploy` before `next build`. Ordinary
+`npm run build`, CI, and Preview builds do not apply migrations. This prevents
+feature branches from changing the shared production schema while ensuring a
+merged production release cannot silently lag behind its additive migrations.
+
+Use expand/contract migrations: production deployment may apply a migration
+before the new application bundle becomes active, so schema changes must remain
+compatible with the currently running version. SCL migrations operate only in
+the isolated `scl` schema and must never reference `public`.
 
 ---
 

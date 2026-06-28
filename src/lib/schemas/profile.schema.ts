@@ -2,6 +2,10 @@ import { z } from "zod";
 import { BetType, DailyVolume, ProviderType } from "@prisma/client";
 
 import { SPORT_KEYS } from "@/lib/constants";
+import {
+  STOREFRONT_DESCRIPTION_MAX_LENGTH,
+  STOREFRONT_TITLE_MAX_LENGTH,
+} from "@/lib/storefront";
 import { safeHttpUrl } from "@/lib/urls";
 
 const socialHandleSchema = z
@@ -38,6 +42,23 @@ export const profileSchema = z.object({
   dailyVolume: z.union([z.nativeEnum(DailyVolume), z.literal("")]).optional(),
   writtenAnalysis: z.boolean().default(false),
   biggestBetWon: z.string().max(60).optional(),
+  storefrontTitle: z
+    .string()
+    .trim()
+    .max(
+      STOREFRONT_TITLE_MAX_LENGTH,
+      `Keep the storefront title under ${STOREFRONT_TITLE_MAX_LENGTH} characters`,
+    )
+    .optional(),
+  storefrontDescription: z
+    .string()
+    .trim()
+    .max(
+      STOREFRONT_DESCRIPTION_MAX_LENGTH,
+      `Keep the storefront description under ${STOREFRONT_DESCRIPTION_MAX_LENGTH} characters`,
+    )
+    .optional(),
+  storefrontEnabled: z.boolean().default(true),
   instagram: socialHandleSchema,
   twitter: socialHandleSchema,
   facebook: socialHandleSchema,
@@ -55,7 +76,7 @@ export type ProfileFormInput = z.input<typeof profileSchema>;
 export type ProfileInput = z.output<typeof profileSchema>;
 
 // Display metadata for the form's enum selectors.
-export const PROVIDER_TYPES: { value: ProviderType; label: string }[] = [
+export const OFFERING_MODELS: { value: ProviderType; label: string }[] = [
   { value: "FREE", label: "Free" },
   { value: "PREMIUM", label: "Premium" },
   { value: "HYBRID", label: "Hybrid" },

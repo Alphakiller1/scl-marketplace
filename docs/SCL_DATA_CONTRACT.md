@@ -13,12 +13,14 @@ write it.
 - **User** (auth) — email, username, `passwordHash`, `role` (CAPPER/ADMIN),
   `accountStatus` (PENDING/ACTIVE/SUSPENDED/DISABLED), `emailVerified`.
 - **CapperProfile** — `headline`, `bio`, `avatarUrl`, `bannerUrl`, `specialties[]`, `sports[]`,
-  `betTypes[]`, `dailyVolume`, `writtenAnalysis`, `biggestBetWon`, socials, `providerType`,
-  `isLegacy`.
+  `betTypes[]`, `dailyVolume`, `writtenAnalysis`, `biggestBetWon`, socials, offering model
+  (`providerType` in the current schema), editable default storefront title/description/
+  visibility, `isLegacy`.
 - **Play** — `sport`, `league`, `market`, `selection`, `oddsAmerican` (int), `units`
   (Decimal, **0.25–5**), `outcome` (PENDING/WIN/LOSS/PUSH/VOID), `profitUnits`, `parlayId`.
 - **Parlay** — legs (`Play[]`), `combinedOddsAmerican`, `units`, `outcome`, `profitUnits`.
-- **Package** — `title`, `priceCents`, `billingPeriod`, external `checkoutUrl`, `providerType`.
+- **Package** — `title`, `priceCents`, `billingPeriod`, external `checkoutUrl`, offering model
+  (`providerType` in the current schema). Storefront provider is a separate Phase 1 concept.
 - **TrackingUrl** / **ClickEvent** — package tracking + click capture.
 - **GradingAudit** — append-only: `previousOutcome`, `newOutcome`, `source`
   (AUTO/ADMIN_OVERRIDE/MANUAL), `gradedById`, `reason`, timestamp.

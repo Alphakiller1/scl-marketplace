@@ -7,6 +7,13 @@
 export type FormResult = "W" | "L" | "P";
 export type PickStatus = "pending" | "live" | "win" | "loss" | "push" | "void";
 
+export type StorefrontSummary = {
+  title: string;
+  description: string;
+  enabled: boolean;
+  customized: boolean;
+};
+
 export type CapperSummary = {
   id: string;
   name: string;
@@ -31,6 +38,7 @@ export type CapperSummary = {
   sports?: string[]; // full coverage list shown on the profile
   joinedAt?: Date;
   socials?: { twitter?: string; instagram?: string; website?: string };
+  storefront?: StorefrontSummary;
   isLegacy?: boolean; // record imported from the previous SCL platform
 };
 

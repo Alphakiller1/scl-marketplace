@@ -5,6 +5,7 @@ import type { Outcome } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { computeCapperStats, type PlayForStats } from "@/lib/stats";
 import type { CapperSummary, FormResult } from "@/lib/mock";
+import { resolveStorefrontIdentity } from "@/lib/storefront";
 import { safeHttpUrl } from "@/lib/urls";
 
 /**
@@ -23,6 +24,9 @@ function fetchRankableProfiles() {
       headline: true,
       bio: true,
       specialties: true,
+      storefrontTitle: true,
+      storefrontDescription: true,
+      storefrontEnabled: true,
       isLegacy: true,
       sports: true,
       instagram: true,
@@ -138,6 +142,13 @@ function summarize(p: ProfileRow): CapperSummary | null {
     bio: p.bio ?? undefined,
     specialties: p.specialties.length ? p.specialties : undefined,
     sports: p.sports.length ? p.sports : undefined,
+    storefront: resolveStorefrontIdentity({
+      displayName: p.user.displayName,
+      username,
+      title: p.storefrontTitle,
+      description: p.storefrontDescription,
+      enabled: p.storefrontEnabled,
+    }),
     joinedAt: p.createdAt,
     socials: pruneSocials(p.twitter, p.instagram, p.website),
     isLegacy: p.isLegacy || undefined,

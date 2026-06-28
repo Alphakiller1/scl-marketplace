@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Save } from "lucide-react";
+import { Save, Store } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -16,15 +16,21 @@ import { ProfileCompletionPanel } from "@/components/scl/profile-completion";
 import { ProfileIdentityPreview } from "@/components/scl/profile-identity-preview";
 import { ProfileMediaEditor } from "@/components/scl/profile-media-editor";
 import { ProfileTagInput } from "@/components/scl/profile-tag-input";
+import { StorefrontPreview } from "@/components/scl/storefront-preview";
 import { SPORTS } from "@/lib/constants";
 import { calculateProfileCompletion } from "@/lib/profile-completion";
+import {
+  resolveStorefrontIdentity,
+  STOREFRONT_DESCRIPTION_MAX_LENGTH,
+  STOREFRONT_TITLE_MAX_LENGTH,
+} from "@/lib/storefront";
 import {
   profileSchema,
   type ProfileFormInput,
   type ProfileInput,
   BET_TYPES,
   DAILY_VOLUMES,
-  PROVIDER_TYPES,
+  OFFERING_MODELS,
 } from "@/lib/schemas/profile.schema";
 import { updateProfileAction } from "@/lib/actions/profile.action";
 import type { CapperProfileView } from "@/lib/queries/profile";
@@ -58,6 +64,9 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
       dailyVolume: profile.dailyVolume ?? "",
       writtenAnalysis: profile.writtenAnalysis,
       biggestBetWon: profile.biggestBetWon ?? "",
+      storefrontTitle: profile.storefrontTitle ?? "",
+      storefrontDescription: profile.storefrontDescription ?? "",
+      storefrontEnabled: profile.storefrontEnabled,
       instagram: profile.instagram ?? "",
       twitter: profile.twitter ?? "",
       facebook: profile.facebook ?? "",
@@ -77,6 +86,13 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
     ...values,
     displayName,
     avatarUrl: media.avatarUrl,
+  });
+  const storefront = resolveStorefrontIdentity({
+    displayName,
+    username,
+    title: values.storefrontTitle,
+    description: values.storefrontDescription,
+    enabled: values.storefrontEnabled ?? true,
   });
 
   async function onSubmit(valuesToSave: ProfileInput) {
@@ -177,6 +193,69 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
           </section>
 
           <section
+            aria-labelledby="storefront-title"
+            className="border-border bg-card space-y-4 rounded-xl border p-5"
+          >
+            <div className="flex items-start gap-3">
+              <span className="bg-surface-2 text-brand flex size-9 shrink-0 items-center justify-center rounded-lg">
+                <Store className="size-4" aria-hidden />
+              </span>
+              <div>
+                <h2 id="storefront-title" className="font-semibold">
+                  Default storefront
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  The storefront identity shown before packages are connected.
+                </p>
+              </div>
+            </div>
+
+            <label className="border-border bg-surface-2 flex min-h-12 items-center gap-3 rounded-lg border px-3 py-2 text-sm">
+              <input
+                type="checkbox"
+                className="accent-brand size-4"
+                {...register("storefrontEnabled")}
+              />
+              <span>
+                <span className="block font-medium">
+                  Show storefront on my public profile
+                </span>
+                <span className="text-muted-foreground block text-xs">
+                  You can hide it until you are ready to market packages.
+                </span>
+              </span>
+            </label>
+
+            <Field
+              htmlFor="storefrontTitle"
+              label="Storefront title"
+              error={errors.storefrontTitle?.message}
+            >
+              <Input
+                id="storefrontTitle"
+                maxLength={STOREFRONT_TITLE_MAX_LENGTH}
+                placeholder={storefront.title}
+                {...register("storefrontTitle")}
+              />
+            </Field>
+
+            <Field
+              htmlFor="storefrontDescription"
+              label="Storefront description"
+              error={errors.storefrontDescription?.message}
+            >
+              <textarea
+                id="storefrontDescription"
+                rows={3}
+                maxLength={STOREFRONT_DESCRIPTION_MAX_LENGTH}
+                className={`${inputClass} py-2`}
+                placeholder={storefront.description}
+                {...register("storefrontDescription")}
+              />
+            </Field>
+          </section>
+
+          <section
             aria-labelledby="coverage-title"
             className="border-border bg-card space-y-5 rounded-xl border p-5"
           >
@@ -239,7 +318,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
             <div className="grid gap-4 sm:grid-cols-2">
               <Field
                 htmlFor="providerType"
-                label="Provider type"
+                label="Offering model"
                 error={errors.providerType?.message}
               >
                 <select
@@ -247,9 +326,9 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
                   className={`${inputClass} h-9`}
                   {...register("providerType")}
                 >
-                  {PROVIDER_TYPES.map((provider) => (
-                    <option key={provider.value} value={provider.value}>
-                      {provider.label}
+                  {OFFERING_MODELS.map((model) => (
+                    <option key={model.value} value={model.value}>
+                      {model.label}
                     </option>
                   ))}
                 </select>
@@ -396,6 +475,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
               verified: Boolean(profile.user.emailVerified),
             }}
           />
+          <StorefrontPreview storefront={storefront} />
         </aside>
       </div>
     </div>
