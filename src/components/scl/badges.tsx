@@ -1,4 +1,4 @@
-import { BadgeCheck, Trophy } from "lucide-react";
+import { BadgeCheck, History, Trophy } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { SPORTS } from "@/lib/constants";
@@ -43,6 +43,22 @@ export function TrophyBadge({
     >
       <Trophy className="size-3" />
       {label}
+    </span>
+  );
+}
+
+/** Marks a capper whose record was imported from the previous SCL platform. */
+export function LegacyBadge({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        "border-border bg-surface-3 text-muted-foreground inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium",
+        className,
+      )}
+      title="Record imported from the previous SCL platform"
+    >
+      <History className="size-3" />
+      Legacy
     </span>
   );
 }

@@ -7,6 +7,7 @@ import {
   VerificationBadge,
   SportTag,
   TrophyBadge,
+  LegacyBadge,
 } from "@/components/scl/badges";
 import { RecentFormStrip, StreakChip } from "@/components/scl/indicators";
 import { RoiStat, UnitStat, WinRateStat } from "@/components/scl/stat";
@@ -40,6 +41,7 @@ export function CapperCard({
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <SportTag sport={capper.topSport} />
             <StreakChip streak={capper.streak} />
+            {capper.isLegacy ? <LegacyBadge /> : null}
           </div>
         </div>
       </div>
