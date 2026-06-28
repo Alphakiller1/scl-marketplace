@@ -40,7 +40,7 @@ export default function AuthLayout({
 
           <div className="max-w-md">
             <p className="text-brand text-xs font-semibold uppercase">
-              Sports Capper League
+              Sports Capper Leaderboard
             </p>
             <p className="mt-3 text-4xl font-bold">
               The identity behind the record.
@@ -71,7 +71,7 @@ export default function AuthLayout({
               {children}
             </div>
             <p className="text-muted-foreground mt-5 text-center text-xs">
-              Sports Capper League account security
+              Sports Capper Leaderboard account security
             </p>
           </div>
         </main>

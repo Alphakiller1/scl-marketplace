@@ -1,4 +1,4 @@
-# SCL — Sports Capper League (App)
+# SCL — Sports Capper Leaderboard (App)
 
 Phase 1 marketplace foundation. Planning, prompts, and QA live in the separate `SCL` workspace.
 

@@ -153,20 +153,23 @@ enum BetType {
 }
 
 model CapperProfile {
-  id              String       @id @default(cuid())
-  userId          String       @unique
-  headline        String? // short mission/tagline shown on profile
-  bio             String?
-  avatarUrl       String?
-  bannerUrl       String?
-  specialties     String[]     @default([])
-  sports          String[]     @default([]) // canonical sport keys from src/lib/sports.ts
-  betTypes        BetType[]    @default([])
-  dailyVolume     DailyVolume?
-  writtenAnalysis Boolean      @default(false)
-  biggestBetWon   String?
-  providerType    ProviderType @default(FREE)
-  isLegacy        Boolean      @default(false)
+  id                    String       @id @default(cuid())
+  userId                String       @unique
+  headline              String? // short mission/tagline shown on profile
+  bio                   String?
+  avatarUrl             String?
+  bannerUrl             String?
+  specialties           String[]     @default([])
+  sports                String[]     @default([]) // canonical sport keys from src/lib/sports.ts
+  betTypes              BetType[]    @default([])
+  dailyVolume           DailyVolume?
+  writtenAnalysis       Boolean      @default(false)
+  biggestBetWon         String?
+  providerType          ProviderType @default(FREE)
+  isLegacy              Boolean      @default(false)
+  storefrontTitle       String?
+  storefrontDescription String?
+  storefrontEnabled     Boolean      @default(true)
 
   // social handles (store handle/username, not full URL)
   instagram String?

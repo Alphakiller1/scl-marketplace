@@ -14,7 +14,7 @@ This file is the shared source of truth for **every** AI agent working in this r
 
 ## What we're building
 
-**SCL (Sports Capper League)** — a marketplace where sports cappers sign up, log every
+**SCL (Sports Capper Leaderboard)** — a marketplace where sports cappers sign up, log every
 play, earn a **verified, auto-graded track record**, climb a public leaderboard, and sell
 packages to followers. We are building a product that competes with established capper
 platforms from day one: fast, polished, mobile-first, and trustworthy.

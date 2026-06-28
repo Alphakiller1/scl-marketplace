@@ -2,7 +2,7 @@
 
 ## Mission
 
-Rebuild the Sports Cappers Leaderboard **experience** while preserving its proven business
+Rebuild the Sports Capper Leaderboard **experience** while preserving its proven business
 value (verified records, transparent performance, leaderboards, capper reputation). This is a
 **preservation project for the data/business logic, a replacement project for the experience.**
 
@@ -41,7 +41,7 @@ Trophy Case · Betting Tools · Join as Capper · Login / Dashboard.
    status, posted/game time, profile link.
 4. **Capper Profile** — public betting résumé: header, verification, overall record, win%,
    ROI, units, streak, best sport/window, recent form, history, trophy case, sport breakdown,
-   subscribe/share CTAs.
+   editable default storefront identity, subscribe/share CTAs.
 5. **Cappers Directory** — discovery board with inline stats + filters (sport, ROI, units,
    win%, active today, hot streak, rising, verified). _(legacy showed no inline stats — we win here)_
 6. **Trophy Case** — status system (Top ROI, Top Units, Best Weekly/Monthly, Sport Specialist,
@@ -60,7 +60,7 @@ trusted, competitive, organized, premium, mobile-native, and scalable, it succee
 
 ## Phase boundaries
 
-- **Phase 1:** experience rebuild + data foundation; packages link to external checkout
-  (Winible-style).
+- **Phase 1:** experience rebuild + data foundation; every capper receives an editable default
+  storefront, with Winible/Whop packages linking to external checkout after SCL approval.
 - **Phase 2+:** native Stripe checkout, sportsbook integrations (only via official APIs),
   social/following graph, advanced analytics. No production scraping, ever.

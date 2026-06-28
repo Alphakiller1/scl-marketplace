@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "SCL — Sports Capper League",
+    default: "SCL — Sports Capper Leaderboard",
     template: "%s · SCL",
   },
   description:

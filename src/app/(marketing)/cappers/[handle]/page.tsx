@@ -5,6 +5,7 @@ import { ListChecks } from "lucide-react";
 import { formatRoi, formatUnits } from "@/lib/format";
 import { getPublicCapperByHandle } from "@/lib/queries/capper";
 import { CapperProfileHeader } from "@/components/scl/capper-profile-header";
+import { CapperStorefront } from "@/components/scl/capper-storefront";
 import { PerformanceSummary } from "@/components/scl/performance-summary";
 import { PlayListItem } from "@/components/scl/play-list-item";
 import { SectionHeader } from "@/components/scl/section";
@@ -43,6 +44,13 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
       <div className="mt-5">
         <PerformanceSummary capper={capper} />
       </div>
+
+      {capper.storefront ? (
+        <CapperStorefront
+          storefront={capper.storefront}
+          capperName={capper.name}
+        />
+      ) : null}
 
       <section id="recent-picks" className="mt-8 scroll-mt-20">
         <SectionHeader

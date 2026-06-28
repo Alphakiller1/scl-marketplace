@@ -31,6 +31,7 @@ Numbers are the product. These render performance consistently everywhere.
 - `CapperAvatar` — rounded-xl avatar with initials fallback. Sizes `sm|md|lg|xl`.
 - `ProfileMediaEditor` — authenticated avatar and cover uploader with validated image states.
 - `ProfileIdentityPreview` — live preview of the identity published across SCL.
+- `StorefrontPreview` — live preview of the capper-controlled default storefront identity.
 - `ProfileTagInput` — compact, keyboard-friendly specialty editor.
 
 ## Onboarding (`onboarding-progress.tsx`, `profile-completion.tsx`)
@@ -57,6 +58,8 @@ Numbers are the product. These render performance consistently everywhere.
 - `PickCard` (`pick-card.tsx`) — today's-pick card (event, selection, odds, stake, capper, status).
 - `SectionHeader` (`section.tsx`) — titled section with optional "view all".
 - `CapperProfileHeader` — cover-led public identity, trust, specialties, socials, and profile actions.
+- `CapperStorefront` — public storefront identity, third-party commerce disclosure, and honest
+  pre-package empty state.
 - `PerformanceSummary` — record, win rate, units, ROI, streak, and recent form.
 
 ## States (`states.tsx`)
