@@ -17,21 +17,24 @@ a spreadsheet, a WordPress sports blog, or a default shadcn clone.
 
 Defined in `src/app/globals.css`, dark-mode first. Every color has a job:
 
-| Token                                             | Utility                   | Job                                                |
-| ------------------------------------------------- | ------------------------- | -------------------------------------------------- |
-| `background` / `card` / `surface-2` / `surface-3` | `bg-*`                    | Deep navy/charcoal base + layered surfaces (depth) |
-| `border` / `border-strong`                        | `border-*`                | Premium hairlines; `-strong` on hover/emphasis     |
-| `brand`                                           | `text-brand`, `bg-brand`  | SCL identity (indigo). Primary actions, accents    |
-| `pos`                                             | `text-pos`, `bg-pos/15`   | Positive performance (wins, +units, +ROI) — green  |
-| `neg`                                             | `text-neg`, `bg-neg/15`   | Negative performance (losses, −units) — red        |
-| `gold`                                            | `text-gold`, `bg-gold/10` | Rank, elite status, trophies, badges               |
-| `live`                                            | `text-live`, `bg-live/15` | Live/real-time + verification — cyan               |
-| `push`                                            | —                         | Push/void neutral                                  |
-| `muted-foreground`                                | `text-muted-foreground`   | Secondary metadata, labels                         |
+| Token                                             | Utility                      | Job                                                                              |
+| ------------------------------------------------- | ---------------------------- | -------------------------------------------------------------------------------- |
+| `background` / `card` / `surface-2` / `surface-3` | `bg-*`                       | Deep **purple** base + layered surfaces (depth)                                  |
+| `border` / `border-strong`                        | `border-*`                   | Premium hairlines; `-strong` carries a pink tint                                 |
+| `brand`                                           | `text-brand`, `bg-brand`     | SCL identity — **pink-magenta**. Accents, highlights, rank movement, focus rings |
+| `primary`                                         | `bg-primary`, `text-primary` | **Blue** — the action color (CTAs, primary buttons, links)                       |
+| `accent`                                          | `bg-accent`                  | Purple bridge between brand-pink and primary-blue                                |
+| `pos`                                             | `text-pos`, `bg-pos/15`      | Positive performance (wins, +units, +ROI) — green                                |
+| `neg`                                             | `text-neg`, `bg-neg/15`      | Negative performance (losses, −units) — red                                      |
+| `gold`                                            | `text-gold`, `bg-gold/10`    | Rank, elite status, trophies, badges                                             |
+| `live`                                            | `text-live`, `bg-live/15`    | Live/real-time + verification — cyan                                             |
+| `push`                                            | —                            | Push/void neutral                                                                |
+| `muted-foreground`                                | `text-muted-foreground`      | Secondary metadata, labels                                                       |
 
-Rules: no random colors, no decorative gradients, no meaningless glow. The only atmosphere is
-`.scl-glow` (restrained brand radial) and `.scl-card-gradient`. The page feels alive through
-**hierarchy, data, and status — not noise.**
+Rules: no random colors, no meaningless glow. Gradients are reserved for **brand identity
+only** — the pink→blue `.scl-brand-text` wordmark/heading fill and the restrained pink+blue
+`.scl-glow` radial / `.scl-card-gradient`. The trophy mark (`SclLogo`) carries the same
+pink→blue gradient. The page feels alive through **hierarchy, data, and status — not noise.**
 
 ## Typography
 

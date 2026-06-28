@@ -1,18 +1,20 @@
 import Link from "next/link";
-import { TrendingUp } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { SclLogo } from "@/components/scl-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export function SiteHeader() {
   return (
     <header className="border-border/60 bg-background/80 sticky top-0 z-40 w-full border-b backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2 font-semibold">
-          <span className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-lg">
-            <TrendingUp className="size-5" />
+        <Link href="/" className="flex items-center gap-2.5 font-semibold">
+          <span className="from-brand/20 to-primary/20 ring-border-strong flex size-9 items-center justify-center rounded-xl bg-gradient-to-br ring-1">
+            <SclLogo className="size-6" />
           </span>
-          <span className="text-lg tracking-tight">SCL</span>
+          <span className="scl-brand-text text-lg font-extrabold tracking-tight">
+            SCL
+          </span>
         </Link>
 
         <nav className="text-muted-foreground hidden items-center gap-6 text-sm sm:flex">
