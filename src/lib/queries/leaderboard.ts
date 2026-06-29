@@ -5,6 +5,7 @@ import type { Outcome } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   buildPerformanceTrend,
+  hasLeaderboardSample,
   leaderboardWindowStart,
   sortLeaderboard,
   type LeaderboardFilters,
@@ -238,7 +239,7 @@ export async function getLeaderboardResult(
   const cappers = profiles
     .map(summarize)
     .filter((c): c is CapperSummary => c !== null)
-    .filter((c) => (c.settledPicks ?? 0) >= filters.minPicks);
+    .filter((c) => hasLeaderboardSample(c, filters));
 
   const ranked = sortLeaderboard(cappers, filters.sort);
   ranked.forEach((c, i) => {
