@@ -4,13 +4,13 @@ import { ClipboardList, MailWarning, Plus } from "lucide-react";
 import { getCurrentUser } from "@/lib/session";
 import { getCapperPlays } from "@/lib/queries/plays";
 import { computeCapperStats } from "@/lib/stats";
-import { formatRecord, formatRoi, formatUnits, signTone } from "@/lib/format";
+import { buildPerformanceTrend } from "@/lib/leaderboard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { StatBlock } from "@/components/scl/stat";
 import { EmptyState } from "@/components/scl/states";
 import { SectionHeader } from "@/components/scl/section";
 import { PlayListItem } from "@/components/scl/play-list-item";
+import { PerformanceScoreboard } from "@/components/scl/performance-scoreboard";
 
 export const metadata = { title: "Dashboard" };
 
@@ -20,6 +20,12 @@ export default async function DashboardPage() {
   const plays = user ? await getCapperPlays(user.id) : [];
   const stats = computeCapperStats(plays);
   const recent = plays.slice(0, 6);
+  const performanceTrend = buildPerformanceTrend(
+    [...plays].reverse().map((play) => ({
+      outcome: play.outcome,
+      profitUnits: play.profitUnits,
+    })),
+  );
 
   return (
     <div className="space-y-8">
@@ -56,33 +62,19 @@ export default async function DashboardPage() {
         </Card>
       ) : null}
 
-      <Card className="p-4">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <StatBlock
-            label="Record"
-            value={formatRecord(stats.wins, stats.losses, stats.pushes)}
-            sub={`${stats.pending} pending`}
-          />
-          <StatBlock
-            label="Win %"
-            value={
-              stats.wins + stats.losses > 0
-                ? `${stats.winPct.toFixed(1)}%`
-                : "—"
-            }
-          />
-          <StatBlock
-            label="Units"
-            value={stats.settled > 0 ? formatUnits(stats.units) : "0"}
-            tone={signTone(stats.units)}
-          />
-          <StatBlock
-            label="ROI"
-            value={stats.settled > 0 ? formatRoi(stats.roi) : "—"}
-            tone={signTone(stats.roi)}
-          />
-        </div>
-      </Card>
+      <PerformanceScoreboard
+        record={{
+          w: stats.wins,
+          l: stats.losses,
+          p: stats.pushes,
+        }}
+        winPct={stats.winPct}
+        units={stats.units}
+        roi={stats.roi}
+        settled={stats.settled}
+        pending={stats.pending}
+        performanceTrend={performanceTrend}
+      />
 
       <section className="space-y-4">
         <SectionHeader

@@ -12,6 +12,7 @@ export type CapperStats = {
   pushes: number;
   pending: number;
   settled: number;
+  stakedUnits: number;
   winPct: number;
   units: number; // net profit in units
   roi: number; // %
@@ -58,6 +59,7 @@ export function computeCapperStats(plays: PlayForStats[]): CapperStats {
     pushes,
     pending,
     settled: wins + losses + pushes,
+    stakedUnits: staked,
     winPct: decided > 0 ? (wins / decided) * 100 : 0,
     units: profit,
     roi: staked > 0 ? (profit / staked) * 100 : 0,

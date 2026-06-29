@@ -2,18 +2,21 @@ import { PackageOpen, Store } from "lucide-react";
 
 import { EmptyState } from "@/components/scl/states";
 import type { StorefrontSummary } from "@/lib/mock";
+import { cn } from "@/lib/utils";
 
 export function CapperStorefront({
   storefront,
   capperName,
+  className,
 }: {
   storefront: StorefrontSummary;
   capperName: string;
+  className?: string;
 }) {
   if (!storefront.enabled) return null;
 
   return (
-    <section id="storefront" className="mt-8 scroll-mt-20">
+    <section id="storefront" className={cn("mt-8 scroll-mt-20", className)}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <span className="bg-surface-2 text-brand flex size-9 shrink-0 items-center justify-center rounded-lg">

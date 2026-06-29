@@ -32,8 +32,8 @@ Trophy Case · Betting Tools · Join as Capper · Login / Dashboard.
 
 ## Page deliverables (Phase 1)
 
-1. **Home / Command Center** — live dashboard: hero value prop + trust, this week's
-   leaderboard, today's picks, best ROI / top units, sport filters, join CTA. _(built — mock data)_
+1. **Home / Command Center** — live dashboard: trophy-led hero + trust, performance
+   leaderboard, latest tracked picks, ROI leaders, real platform metrics, join CTA.
 2. **Leaderboards** _(centerpiece)_ — filter by sport, time window, min picks, verified-only,
    active; sort by Win%/Units/ROI; rows with rank, movement, avatar, name, verification,
    W-L-P, win%, units, ROI, streak, recent form. Desktop table / mobile cards.

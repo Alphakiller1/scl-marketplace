@@ -5,10 +5,9 @@ import type { CapperSummary } from "@/lib/mock";
 import { formatRecord, formatRoi, formatUnits, signTone } from "@/lib/format";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
 import { VerificationBadge, SportTag } from "@/components/scl/badges";
-import {
-  RankMovementIndicator,
-  RecentFormStrip,
-} from "@/components/scl/indicators";
+import { RecentFormStrip } from "@/components/scl/indicators";
+import { PerformanceSparkline } from "@/components/scl/performance-sparkline";
+import { RankBadge } from "@/components/scl/rank-badge";
 
 const toneText = { pos: "text-pos", neg: "text-neg", muted: "text-foreground" };
 
@@ -24,14 +23,9 @@ export function LeaderboardRow({
   return (
     <Link
       href={`/cappers/${capper.handle}`}
-      className="group hover:border-border hover:bg-surface-2 grid grid-cols-[2.5rem_1fr_5rem_5rem_5rem_8rem] items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 transition-colors"
+      className="group hover:bg-surface-2 focus-visible:bg-surface-2 focus-visible:ring-ring grid min-h-16 grid-cols-[3.25rem_minmax(13rem,1fr)_5.5rem_5.5rem_5.5rem_4.5rem_8rem] items-center gap-3 px-3 py-2.5 transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
     >
-      <div className="flex items-center gap-1">
-        <span className="nums w-5 text-right text-base font-bold tabular-nums">
-          {rank ?? capper.rank}
-        </span>
-        <RankMovementIndicator delta={capper.rankDelta} />
-      </div>
+      <RankBadge rank={rank ?? capper.rank} />
 
       <div className="flex min-w-0 items-center gap-3">
         <CapperAvatar name={capper.name} src={capper.avatarUrl} size="sm" />
@@ -58,7 +52,7 @@ export function LeaderboardRow({
           toneText[signTone(capper.units)],
         )}
       >
-        {formatUnits(capper.units)}
+        {formatRoi(capper.roi)}
       </span>
       <span
         className={cn(
@@ -66,10 +60,13 @@ export function LeaderboardRow({
           toneText[signTone(capper.roi)],
         )}
       >
-        {formatRoi(capper.roi)}
+        {formatUnits(capper.units)}
+      </span>
+      <span className="nums text-muted-foreground text-right text-sm font-semibold tabular-nums">
+        {(capper.settledPicks ?? 0).toLocaleString()}
       </span>
       <div className="flex justify-end">
-        <RecentFormStrip form={capper.recentForm} />
+        <PerformanceSparkline points={capper.performanceTrend} />
       </div>
     </Link>
   );
@@ -87,15 +84,10 @@ export function LeaderboardMobileCard({
   return (
     <Link
       href={`/cappers/${capper.handle}`}
-      className="border-border bg-card active:bg-surface-2 flex flex-col gap-3 rounded-xl border p-3"
+      className="border-border bg-card active:bg-surface-2 focus-visible:ring-ring flex min-h-44 flex-col gap-3 rounded-xl border p-3 focus-visible:ring-2 focus-visible:outline-none"
     >
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1">
-          <span className="nums w-6 text-center text-lg font-bold tabular-nums">
-            {rank ?? capper.rank}
-          </span>
-          <RankMovementIndicator delta={capper.rankDelta} />
-        </div>
+        <RankBadge rank={rank ?? capper.rank} />
         <CapperAvatar name={capper.name} src={capper.avatarUrl} size="md" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1">
@@ -123,6 +115,18 @@ export function LeaderboardMobileCard({
             Form
           </span>
         </div>
+      </div>
+      <div className="bg-surface-2 flex min-h-11 items-center justify-between gap-3 rounded-lg px-3">
+        <span className="text-muted-foreground text-xs">
+          <span className="nums text-foreground font-semibold tabular-nums">
+            {(capper.settledPicks ?? 0).toLocaleString()}
+          </span>{" "}
+          graded picks
+        </span>
+        <PerformanceSparkline
+          points={capper.performanceTrend}
+          className="h-8 w-24"
+        />
       </div>
     </Link>
   );

@@ -26,7 +26,11 @@ export default function PackagesPage() {
         title="No packages live yet"
         description="Approved offers will appear here. Browse capper profiles to review tracked records and storefront details."
         action={
-          <Button render={<Link href="/cappers" />} size="sm">
+          <Button
+            render={<Link href="/cappers" />}
+            nativeButton={false}
+            size="sm"
+          >
             Browse cappers
           </Button>
         }
