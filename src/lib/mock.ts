@@ -30,6 +30,10 @@ export type CapperSummary = {
   streak: number; // + win streak, - loss streak
   recentForm: FormResult[]; // most recent last
   trophies: string[];
+  settledPicks?: number;
+  stakedUnits?: number;
+  performanceTrend?: number[];
+  lastPlayAt?: Date;
   // Profile-page fields (optional on the lighter list/leaderboard surfaces).
   headline?: string;
   bio?: string;
@@ -44,7 +48,10 @@ export type CapperSummary = {
 
 export type TodayPick = {
   id: string;
-  capper: Pick<CapperSummary, "id" | "name" | "handle" | "verified">;
+  capper: Pick<
+    CapperSummary,
+    "id" | "name" | "handle" | "verified" | "avatarUrl"
+  >;
   capperRecord: { w: number; l: number; p: number };
   sport: string;
   event: string;

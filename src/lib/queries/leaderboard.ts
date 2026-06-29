@@ -3,6 +3,12 @@ import "server-only";
 import type { Outcome } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import {
+  buildPerformanceTrend,
+  leaderboardWindowStart,
+  sortLeaderboard,
+  type LeaderboardFilters,
+} from "@/lib/leaderboard";
 import { computeCapperStats, type PlayForStats } from "@/lib/stats";
 import type { CapperSummary, FormResult } from "@/lib/mock";
 import { resolveStorefrontIdentity } from "@/lib/storefront";
@@ -14,9 +20,46 @@ import { safeHttpUrl } from "@/lib/urls";
  * is empty the board is empty (honest); pages render an empty state, not mock.
  */
 
-function fetchRankableProfiles() {
+const DEFAULT_FILTERS: LeaderboardFilters = {
+  sport: "ALL",
+  window: "all",
+  sort: "units",
+  minPicks: 0,
+  verifiedOnly: false,
+  search: "",
+};
+
+function fetchRankableProfiles(filters: LeaderboardFilters) {
+  const windowStart = leaderboardWindowStart(filters.window);
+
   return prisma.capperProfile.findMany({
-    where: { user: { username: { not: null } } },
+    where: {
+      user: {
+        username: { not: null },
+        accountStatus: "ACTIVE",
+        ...(filters.verifiedOnly
+          ? { emailVerified: { not: null } }
+          : undefined),
+        ...(filters.search
+          ? {
+              OR: [
+                {
+                  username: {
+                    contains: filters.search,
+                    mode: "insensitive" as const,
+                  },
+                },
+                {
+                  displayName: {
+                    contains: filters.search,
+                    mode: "insensitive" as const,
+                  },
+                },
+              ],
+            }
+          : undefined),
+      },
+    },
     select: {
       id: true,
       avatarUrl: true,
@@ -37,6 +80,10 @@ function fetchRankableProfiles() {
         select: { displayName: true, username: true, emailVerified: true },
       },
       plays: {
+        where: {
+          ...(filters.sport !== "ALL" ? { sport: filters.sport } : undefined),
+          ...(windowStart ? { createdAt: { gte: windowStart } } : undefined),
+        },
         select: {
           outcome: true,
           units: true,
@@ -45,6 +92,7 @@ function fetchRankableProfiles() {
           createdAt: true,
           gradedAt: true,
         },
+        orderBy: { createdAt: "asc" },
       },
     },
   });
@@ -104,6 +152,12 @@ function summarize(p: ProfileRow): CapperSummary | null {
     profitUnits: pl.profitUnits == null ? null : Number(pl.profitUnits),
   }));
   const stats = computeCapperStats(playsForStats);
+  const performanceTrend = buildPerformanceTrend(
+    p.plays.map((play) => ({
+      outcome: play.outcome,
+      profitUnits: play.profitUnits == null ? null : Number(play.profitUnits),
+    })),
+  );
 
   const settled = [...p.plays]
     .filter(
@@ -138,6 +192,10 @@ function summarize(p: ProfileRow): CapperSummary | null {
     streak,
     recentForm,
     trophies: [],
+    settledPicks: stats.settled,
+    stakedUnits: stats.stakedUnits,
+    performanceTrend,
+    lastPlayAt: p.plays.at(-1)?.createdAt,
     headline: p.headline ?? undefined,
     bio: p.bio ?? undefined,
     specialties: p.specialties.length ? p.specialties : undefined,
@@ -159,34 +217,44 @@ const withTrophy = (c: CapperSummary, t: string) => {
   if (!c.trophies.includes(t)) c.trophies.push(t);
 };
 
-export async function getLeaderboard(): Promise<CapperSummary[]> {
+export async function getLeaderboard(
+  options: Partial<LeaderboardFilters> = {},
+): Promise<CapperSummary[]> {
+  return (await getLeaderboardResult(options)).cappers;
+}
+
+export async function getLeaderboardResult(
+  options: Partial<LeaderboardFilters> = {},
+): Promise<{ cappers: CapperSummary[]; failed: boolean }> {
+  const filters = { ...DEFAULT_FILTERS, ...options };
   let profiles: ProfileRow[];
   try {
-    profiles = await fetchRankableProfiles();
+    profiles = await fetchRankableProfiles(filters);
   } catch (err) {
     console.error("[getLeaderboard] database unavailable:", err);
-    return [];
+    return { cappers: [], failed: true };
   }
 
   const cappers = profiles
     .map(summarize)
-    .filter((c): c is CapperSummary => c !== null);
+    .filter((c): c is CapperSummary => c !== null)
+    .filter((c) => (c.settledPicks ?? 0) >= filters.minPicks);
 
-  // Rank by net units, then ROI as the tiebreak.
-  cappers.sort((a, b) => b.units - a.units || b.roi - a.roi);
-  cappers.forEach((c, i) => {
+  const ranked = sortLeaderboard(cappers, filters.sort);
+  ranked.forEach((c, i) => {
     c.rank = i + 1;
   });
 
   // Modest, data-derived honors (no fabricated awards).
-  if (cappers.length) {
-    if (cappers[0].units > 0) withTrophy(cappers[0], "Top Units");
-    const topRoi = cappers
+  if (ranked.length) {
+    const topUnits = [...ranked].sort((a, b) => b.units - a.units)[0];
+    if (topUnits.units > 0) withTrophy(topUnits, "Top Units");
+    const topRoi = ranked
       .filter((c) => c.units > 0)
       .sort((a, b) => b.roi - a.roi)[0];
     if (topRoi) withTrophy(topRoi, "Top ROI");
-    for (const c of cappers) if (c.streak >= 4) withTrophy(c, "Hot Streak");
+    for (const c of ranked) if (c.streak >= 4) withTrophy(c, "Hot Streak");
   }
 
-  return cappers;
+  return { cappers: ranked, failed: false };
 }

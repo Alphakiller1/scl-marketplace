@@ -9,6 +9,7 @@ import {
   VerificationBadge,
 } from "@/components/scl/badges";
 import { RankMovementIndicator } from "@/components/scl/indicators";
+import { RankBadge } from "@/components/scl/rank-badge";
 import { Button } from "@/components/ui/button";
 import { socialProfileUrl } from "@/lib/urls";
 
@@ -70,16 +71,24 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
           </div>
         </div>
 
-        <div className="text-muted-foreground mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-          <span className="inline-flex items-center gap-1">
-            <span className="nums text-foreground font-semibold tabular-nums">
-              Rank #{capper.rank}
+        <div className="text-muted-foreground mt-5 flex flex-wrap items-center gap-3 text-sm">
+          <span className="inline-flex items-center gap-2">
+            <RankBadge rank={capper.rank} />
+            <span>
+              <span className="text-foreground block font-semibold">
+                Public rank
+              </span>
+              <span className="inline-flex items-center gap-1 text-xs">
+                #{capper.rank}
+                {capper.rankDelta ? (
+                  <RankMovementIndicator delta={capper.rankDelta} />
+                ) : null}
+              </span>
             </span>
-            <RankMovementIndicator delta={capper.rankDelta} />
           </span>
           {capper.joinedAt ? (
             <>
-              <span aria-hidden>·</span>
+              <span className="border-border h-8 border-l" aria-hidden />
               <span>Member since {capper.joinedAt.getFullYear()}</span>
             </>
           ) : null}

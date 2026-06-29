@@ -1,4 +1,10 @@
-import { Minus, TrendingDown, TrendingUp } from "lucide-react";
+import {
+  Flame,
+  Minus,
+  Snowflake,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { FormResult } from "@/lib/mock";
@@ -94,7 +100,12 @@ export function StreakChip({
         className,
       )}
     >
-      {hot ? "🔥" : "❄️"} {Math.abs(streak)}
+      {hot ? (
+        <Flame className="size-3" aria-hidden />
+      ) : (
+        <Snowflake className="size-3" aria-hidden />
+      )}
+      {Math.abs(streak)}
       {hot ? "W" : "L"}
     </span>
   );

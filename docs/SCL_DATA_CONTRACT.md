@@ -34,10 +34,15 @@ write it.
 
 ## Computed/derived (not stored raw)
 
-Win %, ROI, unit profit totals, streaks, recent form, rank, rank movement, and trophy
-eligibility are **derived** from graded plays. Compute these in `src/lib` (e.g.
-`src/lib/grading`, `src/lib/leaderboard`) — aggregate in the DB where possible, never inline
-in components. Mock shapes live in `src/lib/mock.ts` and must mirror the eventual query output.
+Win %, ROI, unit profit totals, staked units, settled sample size, cumulative unit trend,
+streaks, recent form, rank, rank movement, and trophy eligibility are **derived** from graded
+plays. Compute these in `src/lib` (e.g. `src/lib/grading`, `src/lib/leaderboard`) — aggregate in
+the DB where possible, never inline in components. Mock shapes live in `src/lib/mock.ts` and
+must mirror the eventual query output.
+
+Public leaderboard scope is explicit and URL-driven: sport, time window, sort metric, minimum
+settled-pick sample, verification state, and capper search. Public surfaces never substitute
+mock metrics when the database is empty or unavailable.
 
 ## Money & odds rules
 

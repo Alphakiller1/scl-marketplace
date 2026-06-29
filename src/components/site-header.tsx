@@ -42,13 +42,18 @@ export function SiteHeader() {
           <ThemeToggle />
           <Button
             render={<Link href="/login" />}
+            nativeButton={false}
             variant="ghost"
             size="sm"
             className="hidden sm:inline-flex"
           >
             Log in
           </Button>
-          <Button render={<Link href="/signup" />} size="sm">
+          <Button
+            render={<Link href="/signup" />}
+            nativeButton={false}
+            size="sm"
+          >
             Become a capper
           </Button>
         </div>

@@ -25,6 +25,10 @@ Numbers are the product. These render performance consistently everywhere.
 - `RankMovementIndicator` — up/down/flat vs previous period.
 - `RecentFormStrip` — W/L/P pips, most recent on the right.
 - `StreakChip` — hot/cold streak.
+- `RankBadge` (`rank-badge.tsx`) — stable podium treatment for first through third and numeric
+  treatment for the remaining field.
+- `PerformanceSparkline` (`performance-sparkline.tsx`) — real cumulative-unit trend with
+  sign-aware tone and an accessible label.
 
 ## Identity (`capper-avatar.tsx`)
 
@@ -61,6 +65,11 @@ Numbers are the product. These render performance consistently everywhere.
 - `CapperStorefront` — public storefront identity, third-party commerce disclosure, and honest
   pre-package empty state.
 - `PerformanceSummary` — record, win rate, units, ROI, streak, and recent form.
+- `PerformanceScoreboard` — dashboard-grade record, sample, pending count, and cumulative trend.
+- `Leaderboard` — shared desktop row / mobile card renderer with honest empty and error states.
+- `LeaderboardFilters` — URL-driven sport, window, sort, sample, search, and verification scope.
+- `LeaderboardOverview` — data-route title and real aggregate metric band.
+- `CompetitionHero` — responsive artwork-led home hero with live platform metrics.
 
 ## States (`states.tsx`)
 
@@ -69,10 +78,8 @@ Numbers are the product. These render performance consistently everywhere.
 
 ## Still to build (Phase 1 roadmap)
 
-`ProfilePerformanceChart` (Recharts), `FilterChip` / `TimeWindowFilter` /
-`SortToggle`, `GameCard`, `MobileBottomNav`, `DesktopSidebar`,
-`AdminGradePanel`, `ShareableProfileCard`, `ShareablePickCard`, `Leaderboard`
-(filtering container), `TrophyCase`.
+`ProfilePerformanceChart` (Recharts), `GameCard`, `MobileBottomNav`, `DesktopSidebar`,
+`AdminGradePanel`, `ShareableProfileCard`, `ShareablePickCard`, `TrophyCase`.
 
 ## Authoring rules
 

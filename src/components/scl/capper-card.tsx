@@ -11,6 +11,8 @@ import {
 } from "@/components/scl/badges";
 import { RecentFormStrip, StreakChip } from "@/components/scl/indicators";
 import { RoiStat, UnitStat, WinRateStat } from "@/components/scl/stat";
+import { PerformanceSparkline } from "@/components/scl/performance-sparkline";
+import { RankBadge } from "@/components/scl/rank-badge";
 
 /** Discovery card — a capper's public résumé at a glance. */
 export function CapperCard({
@@ -24,12 +26,8 @@ export function CapperCard({
   return (
     <Card className="group hover:border-border-strong relative gap-0 overflow-hidden p-4 transition-colors">
       <div className="flex items-start gap-3">
-        <div className="relative">
-          <CapperAvatar name={capper.name} src={capper.avatarUrl} size="lg" />
-          <span className="nums bg-brand text-brand-foreground absolute -top-1.5 -left-1.5 flex size-6 items-center justify-center rounded-full text-xs font-bold tabular-nums">
-            {rank ?? capper.rank}
-          </span>
-        </div>
+        <RankBadge rank={rank ?? capper.rank} />
+        <CapperAvatar name={capper.name} src={capper.avatarUrl} size="lg" />
         <div className="min-w-0 flex-1">
           <Link
             href={`/cappers/${capper.handle}`}
@@ -55,10 +53,24 @@ export function CapperCard({
         <RoiStat roi={capper.roi} className="items-center text-center" />
       </div>
 
-      <div className="mt-3 flex items-center justify-between">
-        <RecentFormStrip form={capper.recentForm} />
-        {capper.trophies[0] ? <TrophyBadge label={capper.trophies[0]} /> : null}
+      <div className="mt-3 flex min-h-10 items-center justify-between gap-3">
+        <div>
+          <span className="text-muted-foreground block text-[0.7rem] font-semibold uppercase">
+            {(capper.settledPicks ?? 0).toLocaleString()} graded picks
+          </span>
+          <RecentFormStrip form={capper.recentForm} className="mt-1" />
+        </div>
+        <PerformanceSparkline
+          points={capper.performanceTrend}
+          className="w-24"
+        />
       </div>
+
+      {capper.trophies[0] ? (
+        <div className="mt-3">
+          <TrophyBadge label={capper.trophies[0]} />
+        </div>
+      ) : null}
     </Card>
   );
 }

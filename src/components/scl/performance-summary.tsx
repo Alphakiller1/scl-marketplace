@@ -8,6 +8,7 @@ import {
   WinRateStat,
 } from "@/components/scl/stat";
 import { RecentFormStrip, StreakChip } from "@/components/scl/indicators";
+import { PerformanceSparkline } from "@/components/scl/performance-sparkline";
 
 /**
  * The capper's headline performance — the numbers that earn trust. Record,
@@ -36,11 +37,20 @@ export function PerformanceSummary({
         <RoiStat roi={capper.roi} />
       </div>
 
-      <div className="border-border mt-4 flex items-center gap-3 border-t pt-4">
-        <span className="text-muted-foreground text-[0.7rem] font-medium tracking-wide uppercase">
-          Recent form
-        </span>
-        <RecentFormStrip form={capper.recentForm} />
+      <div className="border-border mt-4 flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-muted-foreground text-[0.7rem] font-medium tracking-wide uppercase">
+            Recent form
+          </span>
+          <RecentFormStrip form={capper.recentForm} />
+          <span className="text-muted-foreground text-xs">
+            <span className="nums text-foreground font-semibold tabular-nums">
+              {(capper.settledPicks ?? 0).toLocaleString()}
+            </span>{" "}
+            graded picks
+          </span>
+        </div>
+        <PerformanceSparkline points={capper.performanceTrend} />
       </div>
     </Card>
   );

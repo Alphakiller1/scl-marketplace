@@ -46,7 +46,11 @@ export function PickCard({ pick }: { pick: TodayPick }) {
           href={`/cappers/${pick.capper.handle}`}
           className="flex items-center gap-2 hover:underline"
         >
-          <CapperAvatar name={pick.capper.name} size="sm" />
+          <CapperAvatar
+            name={pick.capper.name}
+            src={pick.capper.avatarUrl}
+            size="sm"
+          />
           <div className="leading-tight">
             <div className="flex items-center gap-1 text-sm font-semibold">
               <span>{pick.capper.name}</span>

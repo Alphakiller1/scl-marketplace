@@ -45,41 +45,46 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
         <PerformanceSummary capper={capper} />
       </div>
 
-      {capper.storefront ? (
-        <CapperStorefront
-          storefront={capper.storefront}
-          capperName={capper.name}
-        />
-      ) : null}
+      <div className="mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <section id="recent-picks" className="scroll-mt-20">
+          <SectionHeader
+            icon={ListChecks}
+            title="Recent plays"
+            subtitle="Latest tracked plays, newest first"
+          />
+          {plays.length ? (
+            <div className="mt-4 space-y-2">
+              {plays.map((play) => (
+                <PlayListItem key={play.id} play={play} />
+              ))}
+            </div>
+          ) : playsError ? (
+            <EmptyState
+              className="mt-4"
+              icon={ListChecks}
+              title="Couldn't load recent plays"
+              description="We hit a snag loading this capper's plays. Please try again shortly."
+            />
+          ) : (
+            <EmptyState
+              className="mt-4"
+              icon={ListChecks}
+              title="No tracked plays yet"
+              description={`${capper.name} hasn't posted any graded plays yet.`}
+            />
+          )}
+        </section>
 
-      <section id="recent-picks" className="mt-8 scroll-mt-20">
-        <SectionHeader
-          icon={ListChecks}
-          title="Recent plays"
-          subtitle="Latest tracked plays, newest first"
-        />
-        {plays.length ? (
-          <div className="mt-4 space-y-2">
-            {plays.map((p) => (
-              <PlayListItem key={p.id} play={p} />
-            ))}
-          </div>
-        ) : playsError ? (
-          <EmptyState
-            className="mt-4"
-            icon={ListChecks}
-            title="Couldn't load recent plays"
-            description="We hit a snag loading this capper's plays. Please try again shortly."
-          />
-        ) : (
-          <EmptyState
-            className="mt-4"
-            icon={ListChecks}
-            title="No tracked plays yet"
-            description={`${capper.name} hasn't posted any graded plays yet.`}
-          />
-        )}
-      </section>
+        {capper.storefront ? (
+          <aside className="border-border border-t pt-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+            <CapperStorefront
+              className="mt-0"
+              storefront={capper.storefront}
+              capperName={capper.name}
+            />
+          </aside>
+        ) : null}
+      </div>
     </div>
   );
 }
