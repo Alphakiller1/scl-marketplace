@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   buildPerformanceTrend,
+  hasLeaderboardSample,
   leaderboardWindowStart,
   parseLeaderboardFilters,
   summarizeLeaderboard,
@@ -49,6 +50,17 @@ test("performance trend is cumulative and excludes unsettled plays", () => {
       { outcome: "PUSH", profitUnits: 0 },
     ]),
     [0, 1.2, 0.2, 0.2],
+  );
+});
+
+test("scoped leaderboards exclude cappers without a settled sample", () => {
+  const filters = parseLeaderboardFilters({ sport: "MLB", minPicks: "0" });
+  const capper = { settledPicks: 0 } as CapperSummary;
+
+  assert.equal(hasLeaderboardSample(capper, filters), false);
+  assert.equal(
+    hasLeaderboardSample({ settledPicks: 1 } as CapperSummary, filters),
+    true,
   );
 });
 

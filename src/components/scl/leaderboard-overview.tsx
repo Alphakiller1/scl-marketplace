@@ -76,12 +76,12 @@ function OverviewMetric({
         <Icon className="size-4" aria-hidden />
       </span>
       <div className="min-w-0">
-        <dd className="nums text-xl font-bold tabular-nums sm:text-2xl">
-          {value}
-        </dd>
         <dt className="text-muted-foreground truncate text-[0.7rem] font-semibold uppercase">
           {label}
         </dt>
+        <dd className="nums text-xl font-bold tabular-nums sm:text-2xl">
+          {value}
+        </dd>
       </div>
     </div>
   );

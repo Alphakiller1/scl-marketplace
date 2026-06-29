@@ -23,7 +23,7 @@ export function CompetitionHero({ summary }: { summary: LeaderboardSummary }) {
           width="852"
           height="1846"
           fetchPriority="high"
-          className="size-full object-cover object-bottom sm:object-center"
+          className="size-full object-contain object-right-bottom sm:object-right"
         />
       </picture>
       <div aria-hidden className="bg-background/45 absolute inset-0" />

@@ -122,6 +122,15 @@ export function sortLeaderboard(
   return ranked;
 }
 
+export function hasLeaderboardSample(
+  capper: CapperSummary,
+  filters: LeaderboardFilters,
+): boolean {
+  const settledPicks = capper.settledPicks ?? 0;
+  const isScoped = filters.sport !== "ALL" || filters.window !== "all";
+  return (!isScoped || settledPicks > 0) && settledPicks >= filters.minPicks;
+}
+
 export type LeaderboardSummary = {
   rankedCappers: number;
   verifiedCappers: number;
