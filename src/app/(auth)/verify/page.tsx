@@ -65,7 +65,13 @@ export default async function VerifyPage({
         }
       />
       <Button
-        render={<Link href={verified ? "/login" : "/signup"} />}
+        render={
+          <Link
+            href={
+              verified ? "/login?callbackUrl=/dashboard/profile" : "/signup"
+            }
+          />
+        }
         nativeButton={false}
         className="mt-5 min-h-10 w-full"
       >
