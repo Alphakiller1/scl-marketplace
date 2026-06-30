@@ -15,6 +15,19 @@ type SignupResult =
   | { ok: true; emailDelivered: boolean; verifyUrl?: string }
   | { ok: false; error: string };
 
+// Email delivery requires a verified Resend sender domain. Until that's configured, gating
+// access on a verification email that can't be delivered locks everyone out, so new accounts
+// are activated immediately. Set REQUIRE_EMAIL_VERIFICATION=true once a real sender domain is
+// live to restore the verify-before-access gate.
+const REQUIRE_EMAIL_VERIFICATION =
+  process.env.REQUIRE_EMAIL_VERIFICATION === "true";
+
+// Account state for a fresh/re-claimed signup: pending until verified when verification is
+// required, otherwise immediately active (and marked verified) so the account is usable now.
+const newAccountState = REQUIRE_EMAIL_VERIFICATION
+  ? { accountStatus: "PENDING" as const }
+  : { accountStatus: "ACTIVE" as const, emailVerified: new Date() };
+
 export async function signupAction(input: SignupInput): Promise<SignupResult> {
   const parsed = signupSchema.safeParse(input);
   if (!parsed.success)
@@ -83,7 +96,7 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
           displayName,
           passwordHash,
           role: "CAPPER",
-          accountStatus: "PENDING",
+          ...newAccountState,
           capperProfile: { upsert: { create: {}, update: {} } },
           termsAcceptances: {
             create: { policyVersion: CURRENT_POLICY_VERSION },
@@ -98,7 +111,7 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
           displayName,
           passwordHash,
           role: "CAPPER",
-          accountStatus: "PENDING",
+          ...newAccountState,
           capperProfile: { create: {} },
           termsAcceptances: {
             create: { policyVersion: CURRENT_POLICY_VERSION },
