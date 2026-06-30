@@ -60,6 +60,8 @@ Numbers are the product. These render performance consistently everywhere.
   with 44px targets, preserved SCL identity, and safe-area-aware actions.
 - `LeaderboardRow` (`leaderboard-row.tsx`) — desktop leaderboard row (grid, hover, links).
 - `LeaderboardMobileCard` — mobile card equivalent (never a compressed table).
+- `CompactCapperRow` — homepage résumé row with one emphasized ranking metric and inline sample
+  context; keeps high-volume home sections scan-efficient without weakening dedicated views.
 - `CapperCard` (`capper-card.tsx`) — discovery/résumé card.
 - `PickCard` (`pick-card.tsx`) — today's-pick card (event, selection, odds, stake, capper, status).
 - `SectionHeader` (`section.tsx`) — titled section with optional "view all".

@@ -38,6 +38,7 @@ export default async function Home() {
             cappers={cappers}
             failed={leaderboardFailed}
             limit={6}
+            compactMobile
             emptyDescription="Verified cappers will rank here after their first graded plays."
           />
         </section>
@@ -50,9 +51,9 @@ export default async function Home() {
             href="/picks"
           />
           {recentPicks.length ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
               {recentPicks.map((pick) => (
-                <PickCard key={pick.id} pick={pick} />
+                <PickCard key={pick.id} pick={pick} compact />
               ))}
             </div>
           ) : (
@@ -80,9 +81,14 @@ export default async function Home() {
             href="/cappers"
           />
           {topRoi.length ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {topRoi.map((capper, index) => (
-                <CapperCard key={capper.id} capper={capper} rank={index + 1} />
+                <CapperCard
+                  key={capper.id}
+                  capper={capper}
+                  rank={index + 1}
+                  compact
+                />
               ))}
             </div>
           ) : (

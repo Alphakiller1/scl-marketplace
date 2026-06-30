@@ -8,6 +8,7 @@ import { VerificationBadge, SportTag } from "@/components/scl/badges";
 import { RecentFormStrip } from "@/components/scl/indicators";
 import { PerformanceSparkline } from "@/components/scl/performance-sparkline";
 import { RankBadge } from "@/components/scl/rank-badge";
+import { CompactCapperRow } from "@/components/scl/compact-capper-row";
 
 const toneText = { pos: "text-pos", neg: "text-neg", muted: "text-foreground" };
 
@@ -76,11 +77,23 @@ export function LeaderboardRow({
 export function LeaderboardMobileCard({
   capper,
   rank,
+  compact = false,
 }: {
   capper: CapperSummary;
   /** Position within the current list; falls back to the global units rank. */
   rank?: number;
+  compact?: boolean;
 }) {
+  if (compact) {
+    return (
+      <CompactCapperRow
+        capper={capper}
+        rank={rank ?? capper.rank}
+        primaryMetric="units"
+      />
+    );
+  }
+
   return (
     <Link
       href={`/cappers/${capper.handle}`}
