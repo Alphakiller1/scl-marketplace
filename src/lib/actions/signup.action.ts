@@ -44,33 +44,68 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
     };
   }
 
-  const existing = await prisma.user.findFirst({
-    where: { OR: [{ email: lowerEmail }, { username }] },
-    select: { id: true },
-  });
-  if (existing) {
-    return {
-      ok: false,
-      error: "An account with that email or username already exists.",
-    };
+  const passwordHash = await bcrypt.hash(password, 12);
+
+  // Look up any account already on this email or this handle (separately, so we know which
+  // one collided).
+  const [byEmail, byUsername] = await Promise.all([
+    prisma.user.findUnique({
+      where: { email: lowerEmail },
+      select: { id: true, emailVerified: true },
+    }),
+    prisma.user.findUnique({
+      where: { username },
+      select: { id: true },
+    }),
+  ]);
+
+  // The handle is taken by a *different* account.
+  if (byUsername && byUsername.id !== byEmail?.id) {
+    return { ok: false, error: "That handle is already taken." };
   }
 
-  const passwordHash = await bcrypt.hash(password, 12);
   try {
-    await prisma.user.create({
-      data: {
-        email: lowerEmail,
-        username,
-        displayName,
-        passwordHash,
-        role: "CAPPER",
-        accountStatus: "PENDING",
-        capperProfile: { create: {} },
-        termsAcceptances: {
-          create: { policyVersion: CURRENT_POLICY_VERSION },
+    if (byEmail) {
+      if (byEmail.emailVerified) {
+        // A real, verified account owns this email — never overwrite it.
+        return {
+          ok: false,
+          error: "An account with that email already exists. Try logging in.",
+        };
+      }
+      // The email only has an UNVERIFIED account — e.g. a first signup whose verification
+      // email never arrived. Let the person re-claim it: refresh their details and re-send
+      // verification, instead of dead-ending on "already exists".
+      await prisma.user.update({
+        where: { id: byEmail.id },
+        data: {
+          username,
+          displayName,
+          passwordHash,
+          role: "CAPPER",
+          accountStatus: "PENDING",
+          capperProfile: { upsert: { create: {}, update: {} } },
+          termsAcceptances: {
+            create: { policyVersion: CURRENT_POLICY_VERSION },
+          },
         },
-      },
-    });
+      });
+    } else {
+      await prisma.user.create({
+        data: {
+          email: lowerEmail,
+          username,
+          displayName,
+          passwordHash,
+          role: "CAPPER",
+          accountStatus: "PENDING",
+          capperProfile: { create: {} },
+          termsAcceptances: {
+            create: { policyVersion: CURRENT_POLICY_VERSION },
+          },
+        },
+      });
+    }
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -78,7 +113,7 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
     ) {
       return {
         ok: false,
-        error: "An account with that email or username already exists.",
+        error: "That email or handle is already taken.",
       };
     }
     console.error("[signup] account creation failed:", error);
@@ -93,7 +128,7 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
   let emailDelivered = false;
   let verifyUrl: string | undefined;
   try {
-    const token = await createVerificationToken(lowerEmail);
+    const token = await createVerificationToken(lowerEmail, { force: true });
     if (token) {
       const delivery = await sendVerificationEmail(lowerEmail, token);
       emailDelivered = delivery.delivered;
