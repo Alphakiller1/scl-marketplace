@@ -20,7 +20,7 @@ export async function generateMetadata({
 }: ProfileParams): Promise<Metadata> {
   const { handle } = await params;
   const data = await getPublicCapperByHandle(handle);
-  if (!data) return { title: "Capper not found" };
+  if (!data) return { title: "Capper Not Found" };
 
   const { capper } = data;
   const description =
@@ -38,7 +38,7 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
   const { capper, plays, playsError } = data;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
       <CapperProfileHeader capper={capper} />
 
       <div className="mt-5">
@@ -49,7 +49,7 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
         <section id="recent-picks" className="scroll-mt-20">
           <SectionHeader
             icon={ListChecks}
-            title="Recent plays"
+            title="Recent Plays"
             subtitle="Latest tracked plays, newest first"
           />
           {plays.length ? (
@@ -62,14 +62,14 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
             <EmptyState
               className="mt-4"
               icon={ListChecks}
-              title="Couldn't load recent plays"
+              title="Couldn't Load Recent Plays"
               description="We hit a snag loading this capper's plays. Please try again shortly."
             />
           ) : (
             <EmptyState
               className="mt-4"
               icon={ListChecks}
-              title="No tracked plays yet"
+              title="No Tracked Plays Yet"
               description={`${capper.name} hasn't posted any graded plays yet.`}
             />
           )}

@@ -19,7 +19,7 @@ export function LeaderboardOverview({
         <div>
           <div className="text-brand flex items-center gap-2 text-xs font-semibold uppercase">
             <Trophy className="size-4" aria-hidden />
-            Public rankings
+            Public Rankings
           </div>
           <h1 className="mt-2 text-3xl font-bold text-balance sm:text-4xl">
             Leaderboard
@@ -38,7 +38,7 @@ export function LeaderboardOverview({
       <dl className="border-border mt-6 grid grid-cols-2 border-y sm:grid-cols-4">
         <OverviewMetric
           icon={Trophy}
-          label="Ranked cappers"
+          label="Ranked Cappers"
           value={summary.rankedCappers.toLocaleString()}
         />
         <OverviewMetric
@@ -48,7 +48,7 @@ export function LeaderboardOverview({
         />
         <OverviewMetric
           icon={ListChecks}
-          label="Graded picks"
+          label="Graded Picks"
           value={summary.trackedPicks.toLocaleString()}
         />
         <OverviewMetric
@@ -71,8 +71,8 @@ function OverviewMetric({
   value: string;
 }) {
   return (
-    <div className="border-border flex min-h-24 items-center gap-3 border-r px-3 py-4 last:border-r-0 sm:px-5">
-      <span className="bg-surface-2 text-brand flex size-9 shrink-0 items-center justify-center rounded-lg">
+    <div className="border-border flex min-h-20 items-center gap-2.5 border-r px-2.5 py-3 last:border-r-0 sm:min-h-24 sm:gap-3 sm:px-5 sm:py-4">
+      <span className="bg-surface-2 text-brand flex size-8 shrink-0 items-center justify-center rounded-lg sm:size-9">
         <Icon className="size-4" aria-hidden />
       </span>
       <div className="min-w-0">

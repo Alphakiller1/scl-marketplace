@@ -24,15 +24,15 @@ export default async function CappersPage({
   const { cappers, failed } = await getLeaderboardResult(filters);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+    <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-10">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="text-brand flex items-center gap-2 text-xs font-semibold uppercase">
             <Users className="size-4" aria-hidden />
-            Capper directory
+            Capper Directory
           </div>
           <h1 className="mt-2 text-3xl font-bold text-balance sm:text-4xl">
-            Find a track record worth following
+            Find A Track Record Worth Following
           </h1>
           <p className="text-muted-foreground mt-2 max-w-2xl">
             Compare performance, sample size, recent form, specialties, and
@@ -43,19 +43,19 @@ export default async function CappersPage({
           <span className="text-foreground text-2xl font-bold">
             {cappers.length}
           </span>{" "}
-          {cappers.length === 1 ? "result" : "results"}
+          {cappers.length === 1 ? "Result" : "Results"}
         </p>
       </header>
       <LeaderboardFilters
         filters={filters}
         action="/cappers"
-        label="Discovery filters"
+        label="Discovery Filters"
       />
       {cappers.length === 0 ? (
         <EmptyState
           className="mt-6"
           icon={Users}
-          title={failed ? "Couldn't load the directory" : "No cappers found"}
+          title={failed ? "Couldn't Load The Directory" : "No Cappers Found"}
           description={
             failed
               ? "Public capper records are temporarily unavailable. Please try again shortly."

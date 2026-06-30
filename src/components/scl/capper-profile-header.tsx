@@ -22,7 +22,7 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
 
   return (
     <article className="border-border bg-card overflow-hidden rounded-xl border">
-      <div className="bg-surface-2 relative h-28 overflow-hidden sm:h-36">
+      <div className="bg-surface-2 relative h-24 overflow-hidden sm:h-36">
         {capper.bannerUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -35,19 +35,22 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
         )}
       </div>
 
-      <div className="px-5 pb-5 sm:px-7 sm:pb-7">
-        <div className="-mt-8 flex flex-col gap-4 sm:-mt-10 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex min-w-0 items-end gap-4">
+      <div className="px-4 pb-4 sm:px-7 sm:pb-7">
+        <div className="-mt-7 flex flex-col gap-4 sm:-mt-10 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex min-w-0 items-end gap-3 sm:gap-4">
             <span className="bg-card rounded-xl p-1">
               <CapperAvatar
                 name={capper.name}
                 src={capper.avatarUrl}
                 size="xl"
+                className="size-16 text-base sm:size-20 sm:text-xl"
               />
             </span>
             <div className="min-w-0 pb-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="truncate text-2xl font-bold">{capper.name}</h1>
+                <h1 className="max-w-full truncate text-xl font-bold sm:text-2xl">
+                  {capper.name}
+                </h1>
                 {capper.verified ? (
                   <VerificationBadge size="md" withLabel />
                 ) : null}
@@ -59,14 +62,14 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex w-full items-center gap-2 sm:w-auto sm:shrink-0">
             <SocialLinks socials={capper.socials} />
             <Button
               render={<a href="#recent-picks" />}
               nativeButton={false}
-              className="min-h-10"
+              className="min-h-11 flex-1 sm:min-h-10 sm:flex-none"
             >
-              View picks
+              View Picks
             </Button>
           </div>
         </div>
@@ -76,7 +79,7 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
             <RankBadge rank={capper.rank} />
             <span>
               <span className="text-foreground block font-semibold">
-                Public rank
+                Public Rank
               </span>
               <span className="inline-flex items-center gap-1 text-xs">
                 #{capper.rank}
@@ -89,7 +92,7 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
           {capper.joinedAt ? (
             <>
               <span className="border-border h-8 border-l" aria-hidden />
-              <span>Member since {capper.joinedAt.getFullYear()}</span>
+              <span>Member Since {capper.joinedAt.getFullYear()}</span>
             </>
           ) : null}
         </div>
@@ -137,12 +140,12 @@ function SocialLinks({ socials }: { socials?: CapperSummary["socials"] }) {
   type IconType = React.ComponentType<{ className?: string }>;
   const links = [
     socials.twitter && {
-      label: "X profile",
+      label: "X Profile",
       href: socialProfileUrl("https://x.com", socials.twitter),
       Icon: XIcon as IconType,
     },
     socials.instagram && {
-      label: "Instagram profile",
+      label: "Instagram Profile",
       href: socialProfileUrl("https://instagram.com", socials.instagram),
       Icon: InstagramIcon as IconType,
     },
@@ -164,7 +167,7 @@ function SocialLinks({ socials }: { socials?: CapperSummary["socials"] }) {
           target="_blank"
           rel="noreferrer"
           aria-label={label}
-          className="text-muted-foreground hover:text-foreground hover:bg-surface-2 border-border flex size-10 items-center justify-center rounded-lg border transition-colors"
+          className="text-muted-foreground hover:text-foreground hover:bg-surface-2 border-border focus-visible:ring-ring flex size-11 items-center justify-center rounded-lg border transition-colors outline-none focus-visible:ring-2 sm:size-10"
         >
           <Icon className="size-4" />
         </a>

@@ -15,7 +15,7 @@ export default async function ProfileSettingsPage() {
     <div className="space-y-6">
       <SectionHeader
         icon={UserCog}
-        title="Capper identity"
+        title="Capper Identity"
         subtitle="Shape how your record appears across SCL"
       />
 

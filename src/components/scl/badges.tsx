@@ -18,7 +18,7 @@ export function VerificationBadge({
   return (
     <span
       className={cn("text-live inline-flex items-center gap-1", className)}
-      title="Verified record"
+      title="Verified Record"
     >
       <BadgeCheck className={px} aria-label="Verified" />
       {withLabel ? <span className="text-xs font-medium">Verified</span> : null}
@@ -55,7 +55,7 @@ export function LegacyBadge({ className }: { className?: string }) {
         "border-border bg-surface-3 text-muted-foreground inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium",
         className,
       )}
-      title="Record imported from the previous SCL platform"
+      title="Record Imported From The Previous SCL Platform"
     >
       <History className="size-3" />
       Legacy

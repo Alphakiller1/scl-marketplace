@@ -22,7 +22,7 @@ export function PerformanceSummary({
   className?: string;
 }) {
   return (
-    <Card className={cn("scl-card-gradient gap-0 p-5", className)}>
+    <Card className={cn("scl-card-gradient gap-0 p-4 sm:p-5", className)}>
       <div className="flex items-center justify-between">
         <h2 className="text-muted-foreground text-[0.7rem] font-semibold tracking-wide uppercase">
           Performance
@@ -30,7 +30,7 @@ export function PerformanceSummary({
         <StreakChip streak={capper.streak} />
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         <RecordStat record={capper.record} />
         <WinRateStat winPct={capper.winPct} />
         <UnitStat units={capper.units} />
@@ -40,14 +40,14 @@ export function PerformanceSummary({
       <div className="border-border mt-4 flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-muted-foreground text-[0.7rem] font-medium tracking-wide uppercase">
-            Recent form
+            Recent Form
           </span>
           <RecentFormStrip form={capper.recentForm} />
           <span className="text-muted-foreground text-xs">
             <span className="nums text-foreground font-semibold tabular-nums">
               {(capper.settledPicks ?? 0).toLocaleString()}
             </span>{" "}
-            graded picks
+            Graded Picks
           </span>
         </div>
         <PerformanceSparkline points={capper.performanceTrend} />

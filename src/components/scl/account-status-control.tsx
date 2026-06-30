@@ -76,7 +76,7 @@ export function AccountStatusControl({
         size="icon"
         className="size-10 justify-self-end"
         aria-label="Apply account status"
-        title="Apply account status"
+        title="Apply Account Status"
         disabled={!changed || pending}
         onClick={() => void save()}
       >

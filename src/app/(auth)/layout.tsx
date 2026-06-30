@@ -5,9 +5,9 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { SclLogo } from "@/components/scl-logo";
 
 const trustSignals = [
-  { icon: LockKeyhole, label: "Access", value: "Role protected" },
-  { icon: ShieldCheck, label: "Identity", value: "Email verified" },
-  { icon: Scale, label: "Policies", value: "Version recorded" },
+  { icon: LockKeyhole, label: "Access", value: "Role Protected" },
+  { icon: ShieldCheck, label: "Identity", value: "Email Verified" },
+  { icon: Scale, label: "Policies", value: "Version Recorded" },
 ];
 
 export default function AuthLayout({
@@ -27,8 +27,8 @@ export default function AuthLayout({
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 mx-auto w-full max-w-5xl px-4 pt-4 sm:px-8 lg:px-10 lg:pt-12">
         <Link
           href="/"
-          aria-label="SCL home"
-          className="pointer-events-auto inline-flex"
+          aria-label="SCL Home"
+          className="pointer-events-auto inline-flex min-h-11 items-center"
         >
           <BrandLockup />
         </Link>
@@ -43,7 +43,7 @@ export default function AuthLayout({
               Sports Capper Leaderboard
             </p>
             <p className="mt-3 text-4xl font-bold">
-              The identity behind the record.
+              The Identity Behind The Record
             </p>
             <p className="text-muted-foreground mt-4 max-w-sm">
               Secure access, documented acceptance, and a public capper profile
@@ -65,13 +65,13 @@ export default function AuthLayout({
           </dl>
         </aside>
 
-        <main className="flex min-h-screen items-center px-4 py-16 sm:px-8 lg:px-10">
+        <main className="flex min-h-screen items-start px-4 pt-24 pb-8 sm:px-8 lg:items-center lg:px-10 lg:py-16">
           <div className="mx-auto w-full max-w-md">
-            <div className="border-border bg-card rounded-xl border p-5 shadow-sm sm:p-7">
+            <div className="border-border bg-card rounded-xl border p-4 shadow-sm sm:p-7">
               {children}
             </div>
             <p className="text-muted-foreground mt-5 text-center text-xs">
-              Sports Capper Leaderboard account security
+              Sports Capper Leaderboard Account Security
             </p>
           </div>
         </main>

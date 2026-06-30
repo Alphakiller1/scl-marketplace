@@ -7,7 +7,7 @@ export function SectionHeader({
   title,
   subtitle,
   href,
-  hrefLabel = "View all",
+  hrefLabel = "View All",
   icon: Icon,
   className,
 }: {
@@ -19,15 +19,17 @@ export function SectionHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-end justify-between gap-4", className)}>
-      <div className="flex items-center gap-2">
+    <div className={cn("flex items-start justify-between gap-3", className)}>
+      <div className="flex min-w-0 items-start gap-2.5">
         {Icon ? (
-          <span className="bg-surface-2 text-brand flex size-8 items-center justify-center rounded-lg">
+          <span className="bg-surface-2 text-brand flex size-9 shrink-0 items-center justify-center rounded-lg">
             <Icon className="size-4" />
           </span>
         ) : null}
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+        <div className="min-w-0">
+          <h2 className="text-lg leading-tight font-semibold tracking-tight">
+            {title}
+          </h2>
           {subtitle ? (
             <p className="text-muted-foreground text-sm">{subtitle}</p>
           ) : null}
@@ -36,7 +38,7 @@ export function SectionHeader({
       {href ? (
         <Link
           href={href}
-          className="text-brand inline-flex shrink-0 items-center gap-1 text-sm font-medium hover:underline"
+          className="text-brand inline-flex min-h-11 shrink-0 items-center gap-1 text-sm font-medium hover:underline sm:min-h-8"
         >
           {hrefLabel}
           <ArrowRight className="size-3.5" />

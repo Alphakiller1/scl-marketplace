@@ -21,13 +21,14 @@ const toneText = { pos: "text-pos", neg: "text-neg", muted: "text-foreground" };
 export function PlayListItem({ play }: { play: PlayView }) {
   const hasResult = play.profitUnits != null;
   return (
-    <div className="border-border bg-card flex items-center gap-3 rounded-xl border p-3">
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <SportTag sport={play.sport} />
-          <span className="truncate font-semibold">{play.selection}</span>
-        </div>
-        <div className="text-muted-foreground mt-0.5 flex items-center gap-2 text-xs">
+    <div className="border-border bg-card rounded-xl border p-3.5">
+      <div className="flex items-start justify-between gap-3">
+        <SportTag sport={play.sport} />
+        <StatusBadge status={OUTCOME_TO_STATUS[play.outcome]} />
+      </div>
+      <p className="mt-2 font-semibold break-words">{play.selection}</p>
+      <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+        <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
           <span>{play.market}</span>
           <span className="nums tabular-nums">
             {formatOdds(play.oddsAmerican)}
@@ -36,10 +37,6 @@ export function PlayListItem({ play }: { play: PlayView }) {
             {formatUnits(play.units, true, false)}
           </span>
         </div>
-      </div>
-
-      <div className="flex flex-col items-end gap-1">
-        <StatusBadge status={OUTCOME_TO_STATUS[play.outcome]} />
         {hasResult ? (
           <span
             className={cn(

@@ -17,7 +17,7 @@ export function StorefrontPreview({
           id="storefront-preview-title"
           className="text-sm font-semibold tracking-wide"
         >
-          Storefront preview
+          Storefront Preview
         </h2>
         <span className="text-muted-foreground inline-flex items-center gap-1 text-xs">
           {storefront.enabled ? (

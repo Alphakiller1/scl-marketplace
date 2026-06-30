@@ -8,7 +8,7 @@ import { Leaderboard } from "@/components/scl/leaderboard";
 import { CapperCard } from "@/components/scl/capper-card";
 import { PickCard } from "@/components/scl/pick-card";
 import { EmptyState } from "@/components/scl/states";
-import { sortLeaderboard, summarizeLeaderboard } from "@/lib/leaderboard";
+import { sortLeaderboard } from "@/lib/leaderboard";
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 import { getPublicRecentPicksResult } from "@/lib/queries/plays";
 
@@ -18,20 +18,19 @@ export default async function Home() {
   const { cappers, failed: leaderboardFailed } = await getLeaderboardResult({
     verifiedOnly: true,
   });
-  const summary = summarizeLeaderboard(cappers);
   const { picks: recentPicks, failed: picksFailed } =
     await getPublicRecentPicksResult(cappers, 4);
   const topRoi = sortLeaderboard(cappers, "roi").slice(0, 3);
 
   return (
     <>
-      <CompetitionHero summary={summary} />
+      <CompetitionHero />
 
-      <div className="mx-auto max-w-6xl space-y-14 px-4 py-12 sm:px-6">
+      <div className="mx-auto max-w-6xl space-y-10 px-4 py-10 sm:space-y-14 sm:px-6 sm:py-12">
         <section className="space-y-4">
           <SectionHeader
             icon={Trophy}
-            title="Performance leaderboard"
+            title="Performance Leaderboard"
             subtitle="Verified records ranked by net units"
             href="/leaderboard"
           />
@@ -46,7 +45,7 @@ export default async function Home() {
         <section className="space-y-4">
           <SectionHeader
             icon={Zap}
-            title="Latest tracked picks"
+            title="Latest Tracked Picks"
             subtitle="Recent submissions from ranked cappers"
             href="/picks"
           />
@@ -61,8 +60,8 @@ export default async function Home() {
               icon={Zap}
               title={
                 picksFailed
-                  ? "Couldn't load public picks"
-                  : "No public picks yet"
+                  ? "Couldn't Load Public Picks"
+                  : "No Public Picks Yet"
               }
               description={
                 picksFailed
@@ -76,7 +75,7 @@ export default async function Home() {
         <section className="space-y-4">
           <SectionHeader
             icon={Flame}
-            title="ROI leaders"
+            title="ROI Leaders"
             subtitle="Best return across each capper's tracked sample"
             href="/cappers"
           />
@@ -89,17 +88,17 @@ export default async function Home() {
           ) : (
             <EmptyState
               icon={Flame}
-              title="No ROI leaders yet"
+              title="No ROI Leaders Yet"
               description="ROI rankings appear after cappers build a graded sample."
             />
           )}
         </section>
 
-        <section className="border-border flex flex-col items-start gap-4 border-y py-10 sm:flex-row sm:items-center sm:justify-between">
+        <section className="border-border flex flex-col items-stretch gap-5 border-y py-8 sm:flex-row sm:items-center sm:justify-between sm:py-10">
           <div className="max-w-2xl">
             <ShieldCheck className="text-brand size-8" />
             <h2 className="mt-4 text-2xl font-bold text-balance sm:text-3xl">
-              Build a record people can inspect.
+              Build A Record People Can Inspect
             </h2>
             <p className="text-muted-foreground mt-2">
               Log plays, accumulate a transparent performance history, and
@@ -110,9 +109,9 @@ export default async function Home() {
             render={<Link href="/signup" />}
             nativeButton={false}
             size="lg"
-            className="shrink-0 gap-2"
+            className="min-h-11 w-full shrink-0 gap-2 sm:min-h-9 sm:w-auto"
           >
-            Become a capper <ArrowRight className="size-4" aria-hidden />
+            Become A Capper <ArrowRight className="size-4" aria-hidden />
           </Button>
         </section>
       </div>

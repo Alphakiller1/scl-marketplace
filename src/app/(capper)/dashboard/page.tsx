@@ -28,8 +28,8 @@ export default async function DashboardPage() {
   );
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-end justify-between gap-4">
+    <div className="space-y-7 sm:space-y-8">
+      <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
             Welcome{user?.name ? `, ${user.name}` : ""}
@@ -41,9 +41,9 @@ export default async function DashboardPage() {
         <Button
           render={<Link href="/dashboard/picks/new" />}
           nativeButton={false}
-          className="gap-1.5"
+          className="min-h-11 w-full gap-1.5 sm:min-h-8 sm:w-auto"
         >
-          <Plus className="size-4" /> Submit a play
+          <Plus className="size-4" /> Submit A Play
         </Button>
       </div>
 
@@ -52,7 +52,7 @@ export default async function DashboardPage() {
           <MailWarning className="text-gold mt-0.5 size-5 shrink-0" />
           <div className="text-sm">
             <p className="font-medium">
-              Verify your email to start logging plays
+              Verify Your Email To Start Logging Plays
             </p>
             <p className="text-muted-foreground">
               We sent a verification link when you signed up. Gated capper
@@ -79,7 +79,7 @@ export default async function DashboardPage() {
       <section className="space-y-4">
         <SectionHeader
           icon={ClipboardList}
-          title="Recent plays"
+          title="Recent Plays"
           href={plays.length ? "/dashboard/picks" : undefined}
         />
         {recent.length ? (
@@ -91,14 +91,14 @@ export default async function DashboardPage() {
         ) : (
           <EmptyState
             icon={ClipboardList}
-            title="No plays yet"
+            title="No Plays Yet"
             description="Submit your first play to start building a verified record."
             action={
               <Button
                 render={<Link href="/dashboard/picks/new" />}
                 nativeButton={false}
               >
-                Submit a play
+                Submit A Play
               </Button>
             }
           />

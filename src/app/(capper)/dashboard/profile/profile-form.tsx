@@ -36,7 +36,7 @@ import { updateProfileAction } from "@/lib/actions/profile.action";
 import type { CapperProfileView } from "@/lib/queries/profile";
 
 const inputClass =
-  "border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-lg border bg-transparent px-3 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none";
+  "border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 min-h-11 w-full rounded-lg border bg-transparent px-3 text-base shadow-xs focus-visible:ring-[3px] focus-visible:outline-none md:text-sm";
 
 export function ProfileForm({ profile }: { profile: CapperProfileView }) {
   const router = useRouter();
@@ -114,7 +114,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
         policyVersion={profile.user.termsAcceptances[0]?.policyVersion}
       />
 
-      <div className="border-border bg-card rounded-xl border px-5 py-4">
+      <div className="border-border bg-card rounded-xl border px-4 py-4 sm:px-5">
         <OnboardingProgress
           emailVerified={Boolean(profile.user.emailVerified)}
           profileComplete={completion.isComplete}
@@ -141,11 +141,11 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
 
           <section
             aria-labelledby="identity-title"
-            className="border-border bg-card space-y-4 rounded-xl border p-5"
+            className="border-border bg-card space-y-4 rounded-xl border p-4 sm:p-5"
           >
             <div>
               <h2 id="identity-title" className="font-semibold">
-                Public identity
+                Public Identity
               </h2>
               <p className="text-muted-foreground text-sm">
                 The name and positioning shown across SCL.
@@ -155,7 +155,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
             <div className="grid gap-4 sm:grid-cols-2">
               <Field
                 htmlFor="displayName"
-                label="Display name"
+                label="Display Name"
                 error={errors.displayName?.message}
               >
                 <Input
@@ -164,14 +164,14 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
                   {...register("displayName")}
                 />
               </Field>
-              <Field htmlFor="username" label="SCL handle">
+              <Field htmlFor="username" label="SCL Handle">
                 <Input id="username" value={`@${username}`} disabled />
               </Field>
             </div>
 
             <Field
               htmlFor="headline"
-              label="Capper headline"
+              label="Capper Headline"
               error={errors.headline?.message}
             >
               <Input
@@ -194,7 +194,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
 
           <section
             aria-labelledby="storefront-title"
-            className="border-border bg-card space-y-4 rounded-xl border p-5"
+            className="border-border bg-card space-y-4 rounded-xl border p-4 sm:p-5"
           >
             <div className="flex items-start gap-3">
               <span className="bg-surface-2 text-brand flex size-9 shrink-0 items-center justify-center rounded-lg">
@@ -202,7 +202,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
               </span>
               <div>
                 <h2 id="storefront-title" className="font-semibold">
-                  Default storefront
+                  Default Storefront
                 </h2>
                 <p className="text-muted-foreground text-sm">
                   The storefront identity shown before packages are connected.
@@ -228,7 +228,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
 
             <Field
               htmlFor="storefrontTitle"
-              label="Storefront title"
+              label="Storefront Title"
               error={errors.storefrontTitle?.message}
             >
               <Input
@@ -241,7 +241,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
 
             <Field
               htmlFor="storefrontDescription"
-              label="Storefront description"
+              label="Storefront Description"
               error={errors.storefrontDescription?.message}
             >
               <textarea
@@ -257,11 +257,11 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
 
           <section
             aria-labelledby="coverage-title"
-            className="border-border bg-card space-y-5 rounded-xl border p-5"
+            className="border-border bg-card space-y-5 rounded-xl border p-4 sm:p-5"
           >
             <div>
               <h2 id="coverage-title" className="font-semibold">
-                Coverage and approach
+                Coverage And Approach
               </h2>
               <p className="text-muted-foreground text-sm">
                 Define the markets behind your public record.
@@ -302,7 +302,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
             </Field>
 
             <fieldset className="space-y-3">
-              <legend className="text-sm font-medium">Bet types</legend>
+              <legend className="text-sm font-medium">Bet Types</legend>
               <div className="flex flex-wrap gap-2">
                 {BET_TYPES.map((betType) => (
                   <Chip
@@ -318,12 +318,12 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
             <div className="grid gap-4 sm:grid-cols-2">
               <Field
                 htmlFor="providerType"
-                label="Offering model"
+                label="Offering Model"
                 error={errors.providerType?.message}
               >
                 <select
                   id="providerType"
-                  className={`${inputClass} h-9`}
+                  className={`${inputClass} h-11 md:h-9`}
                   {...register("providerType")}
                 >
                   {OFFERING_MODELS.map((model) => (
@@ -335,15 +335,15 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
               </Field>
               <Field
                 htmlFor="dailyVolume"
-                label="Daily volume"
+                label="Daily Volume"
                 error={errors.dailyVolume?.message}
               >
                 <select
                   id="dailyVolume"
-                  className={`${inputClass} h-9`}
+                  className={`${inputClass} h-11 md:h-9`}
                   {...register("dailyVolume")}
                 >
-                  <option value="">Not set</option>
+                  <option value="">Not Set</option>
                   {DAILY_VOLUMES.map((volume) => (
                     <option key={volume.value} value={volume.value}>
                       {volume.label}
@@ -355,7 +355,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
 
             <Field
               htmlFor="biggestBetWon"
-              label="Signature result"
+              label="Signature Result"
               error={errors.biggestBetWon?.message}
             >
               <Input
@@ -377,11 +377,11 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
 
           <section
             aria-labelledby="links-title"
-            className="border-border bg-card space-y-4 rounded-xl border p-5"
+            className="border-border bg-card space-y-4 rounded-xl border p-4 sm:p-5"
           >
             <div>
               <h2 id="links-title" className="font-semibold">
-                Public links
+                Public Links
               </h2>
               <p className="text-muted-foreground text-sm">
                 Connect your SCL record to your established audience.
@@ -447,7 +447,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
             </Field>
           </section>
 
-          <div className="border-border bg-background/95 sticky bottom-3 z-10 flex items-center justify-between gap-3 rounded-xl border p-3 shadow-lg backdrop-blur">
+          <div className="border-border bg-background/95 sticky bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-10 flex items-center justify-between gap-3 rounded-xl border p-3 shadow-lg backdrop-blur">
             <span className="text-muted-foreground hidden text-sm sm:block">
               @{username}
             </span>
@@ -457,7 +457,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
               className="w-full gap-2 sm:w-auto"
             >
               <Save className="size-4" />
-              {isSubmitting ? "Saving…" : "Save public profile"}
+              {isSubmitting ? "Saving…" : "Save Public Profile"}
             </Button>
           </div>
         </form>
@@ -518,7 +518,7 @@ function Chip({
         className="peer sr-only"
         {...register}
       />
-      <span className="border-border text-muted-foreground peer-checked:border-brand peer-checked:bg-brand/10 peer-checked:text-brand inline-flex min-h-9 items-center rounded-lg border px-3 text-sm font-medium transition-colors select-none">
+      <span className="border-border text-muted-foreground peer-checked:border-brand peer-checked:bg-brand/10 peer-checked:text-brand inline-flex min-h-11 items-center rounded-lg border px-3 text-sm font-medium transition-colors select-none md:min-h-9">
         {label}
       </span>
     </label>

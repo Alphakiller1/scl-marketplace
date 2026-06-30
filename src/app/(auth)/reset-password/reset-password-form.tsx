@@ -41,13 +41,13 @@ export function ResetPasswordForm({ token }: { token: string }) {
       <>
         <AuthHeader
           icon={ShieldCheck}
-          eyebrow="Password recovery"
-          title="Password updated"
+          eyebrow="Password Recovery"
+          title="Password Updated"
           description="Your new credentials are ready for secure SCL access."
         />
         <AuthStatusNotice
           tone="success"
-          title="Recovery complete"
+          title="Recovery Complete"
           description="The reset link has been consumed and cannot be reused."
         />
         <Button
@@ -65,8 +65,8 @@ export function ResetPasswordForm({ token }: { token: string }) {
     <>
       <AuthHeader
         icon={KeyRound}
-        eyebrow="Password recovery"
-        title="Choose a new password"
+        eyebrow="Password Recovery"
+        title="Choose A New Password"
         description="Set a new credential for your SCL account."
       />
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>

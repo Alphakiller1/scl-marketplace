@@ -49,7 +49,7 @@ export function LeaderboardRow({
       <span
         className={cn(
           "nums text-right font-semibold tabular-nums",
-          toneText[signTone(capper.units)],
+          toneText[signTone(capper.roi)],
         )}
       >
         {formatRoi(capper.roi)}
@@ -57,7 +57,7 @@ export function LeaderboardRow({
       <span
         className={cn(
           "nums text-right font-semibold tabular-nums",
-          toneText[signTone(capper.roi)],
+          toneText[signTone(capper.units)],
         )}
       >
         {formatUnits(capper.units)}
@@ -84,7 +84,7 @@ export function LeaderboardMobileCard({
   return (
     <Link
       href={`/cappers/${capper.handle}`}
-      className="border-border bg-card active:bg-surface-2 focus-visible:ring-ring flex min-h-44 flex-col gap-3 rounded-xl border p-3 focus-visible:ring-2 focus-visible:outline-none"
+      className="border-border bg-card active:bg-surface-2 focus-visible:ring-ring flex min-h-40 flex-col gap-3 rounded-xl border p-3.5 focus-visible:ring-2 focus-visible:outline-none"
     >
       <div className="flex items-center gap-3">
         <RankBadge rank={rank ?? capper.rank} />
@@ -94,10 +94,15 @@ export function LeaderboardMobileCard({
             <span className="truncate font-semibold">{capper.name}</span>
             {capper.verified ? <VerificationBadge size="xs" /> : null}
           </div>
-          <SportTag sport={capper.topSport} />
+          <div className="mt-1 flex items-center gap-2">
+            <SportTag sport={capper.topSport} />
+            <span className="nums text-muted-foreground text-xs tabular-nums">
+              {formatRecord(capper.record.w, capper.record.l, capper.record.p)}
+            </span>
+          </div>
         </div>
       </div>
-      <div className="border-border grid grid-cols-4 gap-2 border-t pt-3">
+      <div className="border-border grid grid-cols-3 gap-2 border-t pt-3">
         <MobileStat label="Win" value={`${capper.winPct.toFixed(1)}%`} />
         <MobileStat
           label="Units"
@@ -109,24 +114,15 @@ export function LeaderboardMobileCard({
           value={formatRoi(capper.roi)}
           tone={signTone(capper.roi)}
         />
-        <div className="flex flex-col items-center gap-1">
-          <RecentFormStrip form={capper.recentForm.slice(-4)} />
-          <span className="text-muted-foreground text-[0.7rem] font-medium tracking-wide uppercase">
-            Form
-          </span>
-        </div>
       </div>
       <div className="bg-surface-2 flex min-h-11 items-center justify-between gap-3 rounded-lg px-3">
         <span className="text-muted-foreground text-xs">
           <span className="nums text-foreground font-semibold tabular-nums">
             {(capper.settledPicks ?? 0).toLocaleString()}
           </span>{" "}
-          graded picks
+          Graded Picks
         </span>
-        <PerformanceSparkline
-          points={capper.performanceTrend}
-          className="h-8 w-24"
-        />
+        <RecentFormStrip form={capper.recentForm.slice(-5)} />
       </div>
     </Link>
   );

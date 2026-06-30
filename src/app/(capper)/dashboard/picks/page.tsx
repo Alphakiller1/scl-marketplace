@@ -20,7 +20,7 @@ export default async function MyPicksPage() {
         title="My Picks"
         subtitle={`${plays.length} submitted ${plays.length === 1 ? "play" : "plays"}`}
         href="/dashboard/picks/new"
-        hrefLabel="Submit a play"
+        hrefLabel="Submit A Play"
       />
       {plays.length ? (
         <div className="space-y-2">
@@ -31,7 +31,7 @@ export default async function MyPicksPage() {
       ) : (
         <EmptyState
           icon={ClipboardList}
-          title="No plays yet"
+          title="No Plays Yet"
           description="Your submitted plays will appear here."
           action={
             <Button
@@ -39,7 +39,7 @@ export default async function MyPicksPage() {
               nativeButton={false}
               className="gap-1.5"
             >
-              <Plus className="size-4" /> Submit a play
+              <Plus className="size-4" /> Submit A Play
             </Button>
           }
         />

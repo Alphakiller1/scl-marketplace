@@ -28,7 +28,7 @@ export function ProfileIdentityPreview({
           id="profile-preview-title"
           className="text-sm font-semibold tracking-wide"
         >
-          Public identity preview
+          Public Identity Preview
         </h2>
         <span className="text-muted-foreground text-xs">Live</span>
       </div>
@@ -68,7 +68,7 @@ export function ProfileIdentityPreview({
         </p>
 
         <p className="mt-3 min-h-10 text-sm font-medium">
-          {profile.headline?.trim() || "Your capper headline"}
+          {profile.headline?.trim() || "Your Capper Headline"}
         </p>
 
         <div className="mt-3 flex min-h-6 flex-wrap gap-1.5">
@@ -78,7 +78,7 @@ export function ProfileIdentityPreview({
               .map((sport) => <SportTag key={sport} sport={sport} />)
           ) : (
             <span className="text-muted-foreground text-xs">
-              Sports coverage appears here
+              Sports Coverage Appears Here
             </span>
           )}
         </div>

@@ -12,7 +12,7 @@ export default function AccountRestrictedPage() {
         <ShieldX className="size-6" />
       </span>
       <div>
-        <h1 className="text-2xl font-bold">Account access restricted</h1>
+        <h1 className="text-2xl font-bold">Account Access Restricted</h1>
         <p className="text-muted-foreground mt-2 text-sm">
           This account cannot access protected SCL tools. Contact SCL support
           for a status review.

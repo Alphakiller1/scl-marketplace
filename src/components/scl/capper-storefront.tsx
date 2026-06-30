@@ -33,14 +33,14 @@ export function CapperStorefront({
           </div>
         </div>
         <span className="border-border bg-surface-2 text-muted-foreground inline-flex min-h-8 shrink-0 items-center self-start rounded-lg border px-2.5 text-xs font-medium">
-          Third-party checkout
+          Third-Party Checkout
         </span>
       </div>
 
       <EmptyState
         className="mt-4 py-8"
         icon={PackageOpen}
-        title="No packages live yet"
+        title="No Packages Live Yet"
         description={`${capperName} controls which third-party packages are marketed through SCL. Approved packages will appear here.`}
       />
 

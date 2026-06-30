@@ -1,15 +1,13 @@
 import Link from "next/link";
-import { ArrowRight, ShieldCheck, Trophy } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { VerificationBadge } from "@/components/scl/badges";
-import type { LeaderboardSummary } from "@/lib/leaderboard";
-import { formatPct, formatRoi, formatUnits } from "@/lib/format";
 
-export function CompetitionHero({ summary }: { summary: LeaderboardSummary }) {
+export function CompetitionHero() {
   return (
     <section
-      className="border-border relative min-h-[540px] overflow-hidden border-b sm:min-h-[560px]"
+      className="dark border-border bg-background text-foreground relative min-h-[31rem] overflow-hidden border-b sm:min-h-[35rem]"
       aria-labelledby="scl-hero-title"
     >
       <picture className="absolute inset-0">
@@ -26,17 +24,20 @@ export function CompetitionHero({ summary }: { summary: LeaderboardSummary }) {
           className="size-full object-contain object-right-bottom sm:object-right"
         />
       </picture>
-      <div aria-hidden className="bg-background/45 absolute inset-0" />
+      <div
+        aria-hidden
+        className="bg-background/55 sm:bg-background/45 absolute inset-0"
+      />
 
-      <div className="relative mx-auto flex min-h-[540px] max-w-6xl flex-col justify-between px-4 py-10 sm:min-h-[560px] sm:px-6 sm:py-14">
+      <div className="relative mx-auto flex min-h-[31rem] max-w-6xl flex-col px-4 py-8 sm:min-h-[35rem] sm:justify-center sm:px-6 sm:py-14">
         <div className="max-w-xl">
           <div className="border-border-strong bg-background/75 inline-flex min-h-8 items-center gap-2 rounded-lg border px-3 text-xs font-semibold backdrop-blur-sm">
             <VerificationBadge size="xs" />
-            Public performance records
+            Public Performance Records
           </div>
           <h1
             id="scl-hero-title"
-            className="mt-5 max-w-lg text-4xl font-extrabold text-balance sm:text-6xl"
+            className="mt-4 max-w-lg text-3xl leading-[1.08] font-extrabold text-balance sm:mt-5 sm:text-5xl lg:text-6xl"
           >
             Sports Capper <span className="scl-brand-text">Leaderboard</span>
           </h1>
@@ -44,82 +45,27 @@ export function CompetitionHero({ summary }: { summary: LeaderboardSummary }) {
             Compare tracked records, evaluate long-term performance, and see
             which handicappers are earning their rank.
           </p>
-          <div className="mt-7 flex flex-wrap gap-3">
+          <div className="mt-6 grid gap-3 sm:mt-7 sm:flex sm:flex-wrap">
             <Button
               render={<Link href="/leaderboard" />}
               nativeButton={false}
               size="lg"
-              className="gap-2"
+              className="min-h-11 w-full min-w-0 gap-2 whitespace-normal sm:min-h-9 sm:w-auto"
             >
-              Explore leaderboard <ArrowRight className="size-4" aria-hidden />
+              Explore Leaderboard <ArrowRight className="size-4" aria-hidden />
             </Button>
             <Button
               render={<Link href="/signup" />}
               nativeButton={false}
               size="lg"
               variant="outline"
-              className="bg-background/60 backdrop-blur-sm"
+              className="bg-background/60 min-h-11 w-full min-w-0 whitespace-normal backdrop-blur-sm sm:min-h-9 sm:w-auto"
             >
-              Become a capper
+              Become A Capper
             </Button>
           </div>
         </div>
-
-        <dl className="border-border bg-background/75 grid max-w-3xl grid-cols-2 overflow-hidden rounded-xl border backdrop-blur-md sm:grid-cols-4">
-          <HeroMetric
-            icon={Trophy}
-            label="Ranked cappers"
-            value={summary.rankedCappers.toLocaleString()}
-          />
-          <HeroMetric
-            icon={ShieldCheck}
-            label="Verified"
-            value={summary.verifiedCappers.toLocaleString()}
-          />
-          <HeroMetric
-            label="Tracked picks"
-            value={summary.trackedPicks.toLocaleString()}
-          />
-          <HeroMetric
-            label="Platform ROI"
-            value={summary.trackedPicks ? formatRoi(summary.roi) : "—"}
-            detail={
-              summary.trackedPicks
-                ? `${formatPct(summary.winPct)} win rate · ${formatUnits(summary.netUnits)}`
-                : "Awaiting graded plays"
-            }
-          />
-        </dl>
       </div>
     </section>
-  );
-}
-
-function HeroMetric({
-  label,
-  value,
-  detail,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  detail?: string;
-  icon?: React.ComponentType<{ className?: string }>;
-}) {
-  return (
-    <div className="border-border min-w-0 border-r border-b p-3 last:border-r-0 sm:border-b-0 sm:p-4">
-      <dt className="text-muted-foreground flex items-center gap-1.5 text-[0.7rem] font-semibold uppercase">
-        {Icon ? <Icon className="text-brand size-3.5" aria-hidden /> : null}
-        {label}
-      </dt>
-      <dd className="nums mt-1 text-xl font-bold tabular-nums sm:text-2xl">
-        {value}
-      </dd>
-      {detail ? (
-        <p className="text-muted-foreground mt-0.5 truncate text-xs">
-          {detail}
-        </p>
-      ) : null}
-    </div>
   );
 }

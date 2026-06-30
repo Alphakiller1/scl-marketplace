@@ -28,7 +28,7 @@ export function PasswordField({
           {...inputProps}
           id={id}
           type={visible ? "text" : "password"}
-          className="min-h-10 pr-11"
+          className="min-h-11 pr-12"
         />
         <button
           type="button"
@@ -37,8 +37,8 @@ export function PasswordField({
               ? `Hide ${label.toLowerCase()}`
               : `Show ${label.toLowerCase()}`
           }
-          title={visible ? "Hide password" : "Show password"}
-          className="text-muted-foreground hover:text-foreground focus-visible:ring-ring absolute top-1/2 right-1 flex size-9 -translate-y-1/2 items-center justify-center rounded-lg outline-none focus-visible:ring-2"
+          title={visible ? "Hide Password" : "Show Password"}
+          className="text-muted-foreground hover:text-foreground focus-visible:ring-ring absolute top-1/2 right-0 flex size-11 -translate-y-1/2 items-center justify-center rounded-lg outline-none focus-visible:ring-2"
           onClick={() => setVisible((current) => !current)}
         >
           {visible ? (

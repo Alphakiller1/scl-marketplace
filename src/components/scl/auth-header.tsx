@@ -18,7 +18,7 @@ export function AuthHeader({
         <Icon className="size-5" aria-hidden />
       </span>
       <p className="text-brand text-xs font-semibold uppercase">{eyebrow}</p>
-      <h1 className="mt-1 text-2xl font-bold">{title}</h1>
+      <h1 className="mt-1 text-2xl leading-tight font-bold">{title}</h1>
       <p className="text-muted-foreground mt-2 text-sm">{description}</p>
     </header>
   );
@@ -49,7 +49,7 @@ export function AuthStatusNotice({
 
 export function AuthFormSkeleton() {
   return (
-    <div className="space-y-5" aria-label="Loading account form">
+    <div className="space-y-5" aria-label="Loading Account Form">
       <Skeleton className="size-11 rounded-xl" />
       <div className="space-y-2">
         <Skeleton className="h-3 w-24" />

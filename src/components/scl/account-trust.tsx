@@ -49,10 +49,10 @@ export function AccountTrustSummary({
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 id="account-trust-title" className="font-semibold">
-            Account trust
+            Account Trust
           </h2>
           <p className="text-muted-foreground text-sm">
-            Access and policy standing
+            Access And Policy Standing
           </p>
         </div>
         <AccountStatusBadge status={status} />
@@ -71,13 +71,13 @@ export function AccountTrustSummary({
           value={
             acceptedAt
               ? `Accepted ${policyVersion ?? ""}`.trim()
-              : "Review required"
+              : "Review Required"
           }
           complete={Boolean(acceptedAt)}
         />
         <TrustRow
           icon={ShieldCheck}
-          label="Capper access"
+          label="Capper Access"
           value={status === "ACTIVE" ? "Enabled" : "Limited"}
           complete={status === "ACTIVE"}
         />

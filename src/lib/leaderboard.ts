@@ -4,11 +4,11 @@ import { LEADERBOARD_SORTS, SPORT_KEYS } from "@/lib/constants";
 import type { CapperSummary } from "@/lib/mock";
 
 export const LEADERBOARD_WINDOWS = [
-  { key: "all", label: "All time" },
-  { key: "7d", label: "Past 7 days" },
-  { key: "30d", label: "Past 30 days" },
-  { key: "90d", label: "Past 90 days" },
-  { key: "year", label: "This year" },
+  { key: "all", label: "All Time" },
+  { key: "7d", label: "Past 7 Days" },
+  { key: "30d", label: "Past 30 Days" },
+  { key: "90d", label: "Past 90 Days" },
+  { key: "year", label: "This Year" },
 ] as const;
 
 export const LEADERBOARD_MIN_PICKS = [0, 10, 25, 50] as const;

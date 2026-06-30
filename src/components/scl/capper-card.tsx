@@ -24,14 +24,14 @@ export function CapperCard({
   rank?: number;
 }) {
   return (
-    <Card className="group hover:border-border-strong relative gap-0 overflow-hidden p-4 transition-colors">
+    <Card className="group hover:border-border-strong relative gap-0 overflow-hidden p-3.5 transition-colors sm:p-4">
       <div className="flex items-start gap-3">
         <RankBadge rank={rank ?? capper.rank} />
         <CapperAvatar name={capper.name} src={capper.avatarUrl} size="lg" />
         <div className="min-w-0 flex-1">
           <Link
             href={`/cappers/${capper.handle}`}
-            className="flex items-center gap-1.5 font-semibold hover:underline"
+            className="focus-visible:ring-ring flex min-h-11 items-center gap-1.5 rounded-lg font-semibold outline-none before:absolute before:inset-0 hover:underline focus-visible:ring-2 sm:min-h-8"
           >
             <span className="truncate">{capper.name}</span>
             {capper.verified ? <VerificationBadge size="sm" /> : null}
@@ -56,7 +56,7 @@ export function CapperCard({
       <div className="mt-3 flex min-h-10 items-center justify-between gap-3">
         <div>
           <span className="text-muted-foreground block text-[0.7rem] font-semibold uppercase">
-            {(capper.settledPicks ?? 0).toLocaleString()} graded picks
+            {(capper.settledPicks ?? 0).toLocaleString()} Graded Picks
           </span>
           <RecentFormStrip form={capper.recentForm} className="mt-1" />
         </div>

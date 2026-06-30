@@ -56,6 +56,8 @@ Numbers are the product. These render performance consistently everywhere.
 
 ## Composite
 
+- `MobileSiteNav` / `MobileAppNav` (`mobile-navigation.tsx`) — sheet-based phone navigation
+  with 44px targets, preserved SCL identity, and safe-area-aware actions.
 - `LeaderboardRow` (`leaderboard-row.tsx`) — desktop leaderboard row (grid, hover, links).
 - `LeaderboardMobileCard` — mobile card equivalent (never a compressed table).
 - `CapperCard` (`capper-card.tsx`) — discovery/résumé card.

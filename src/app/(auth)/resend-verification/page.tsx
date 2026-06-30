@@ -41,13 +41,13 @@ export default function ResendVerificationPage() {
       <>
         <AuthHeader
           icon={MailCheck}
-          eyebrow="Email verification"
-          title="Check your inbox"
+          eyebrow="Email Verification"
+          title="Check Your Inbox"
           description="If an eligible pending account matches that address, a new link is on the way."
         />
         <AuthStatusNotice
           tone="info"
-          title="Request received"
+          title="Request Received"
           description="For security, verification emails are limited to one per minute."
         />
         <Button
@@ -66,8 +66,8 @@ export default function ResendVerificationPage() {
     <>
       <AuthHeader
         icon={Send}
-        eyebrow="Email verification"
-        title="Send a new verification link"
+        eyebrow="Email Verification"
+        title="Send A New Verification Link"
         description="Request a fresh single-use link for a pending SCL account."
       />
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>

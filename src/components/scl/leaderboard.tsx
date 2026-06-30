@@ -25,7 +25,7 @@ export function Leaderboard({
       <EmptyState
         icon={Trophy}
         title={
-          failed ? "Couldn't load the leaderboard" : "No ranked cappers found"
+          failed ? "Couldn't Load The Leaderboard" : "No Ranked Cappers Found"
         }
         description={
           failed
@@ -42,7 +42,7 @@ export function Leaderboard({
         <div className="text-muted-foreground grid grid-cols-[3.25rem_minmax(13rem,1fr)_5.5rem_5.5rem_5.5rem_4.5rem_8rem] items-center gap-3 border-b px-3 py-2 text-[0.7rem] font-semibold uppercase">
           <span>Rank</span>
           <span>Capper</span>
-          <span className="text-right">Win rate</span>
+          <span className="text-right">Win Rate</span>
           <span className="text-right">ROI</span>
           <span className="text-right">Units</span>
           <span className="text-right">Picks</span>
