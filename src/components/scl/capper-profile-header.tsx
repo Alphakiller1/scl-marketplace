@@ -140,12 +140,12 @@ function SocialLinks({ socials }: { socials?: CapperSummary["socials"] }) {
   type IconType = React.ComponentType<{ className?: string }>;
   const links = [
     socials.twitter && {
-      label: "X profile",
+      label: "X Profile",
       href: socialProfileUrl("https://x.com", socials.twitter),
       Icon: XIcon as IconType,
     },
     socials.instagram && {
-      label: "Instagram profile",
+      label: "Instagram Profile",
       href: socialProfileUrl("https://instagram.com", socials.instagram),
       Icon: InstagramIcon as IconType,
     },

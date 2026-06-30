@@ -42,37 +42,37 @@ export function calculateProfileCompletion(
   const items: ProfileCompletionItem[] = [
     {
       id: "identity",
-      label: "Display name",
+      label: "Display Name",
       complete: hasText(profile.displayName, 2),
     },
     {
       id: "photo",
-      label: "Profile image",
+      label: "Profile Image",
       complete: hasText(profile.avatarUrl),
     },
     {
       id: "headline",
-      label: "Capper headline",
+      label: "Capper Headline",
       complete: hasText(profile.headline, 12),
     },
     {
       id: "bio",
-      label: "About section",
+      label: "About Section",
       complete: hasText(profile.bio, 80),
     },
     {
       id: "sports",
-      label: "Sports coverage",
+      label: "Sports Coverage",
       complete: Boolean(profile.sports?.length),
     },
     {
       id: "specialties",
-      label: "Betting specialties",
+      label: "Betting Specialties",
       complete: Boolean(profile.specialties?.length),
     },
     {
       id: "links",
-      label: "Public link",
+      label: "Public Link",
       complete: [
         profile.instagram,
         profile.twitter,

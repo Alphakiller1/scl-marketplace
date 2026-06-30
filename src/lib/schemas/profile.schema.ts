@@ -86,7 +86,7 @@ export const DAILY_VOLUMES: { value: DailyVolume; label: string }[] = [
   { value: "LOW", label: "Low" },
   { value: "MODERATE", label: "Moderate" },
   { value: "HIGH", label: "High" },
-  { value: "VERY_HIGH", label: "Very high" },
+  { value: "VERY_HIGH", label: "Very High" },
 ];
 
 export const BET_TYPES: { value: BetType; label: string }[] = [
