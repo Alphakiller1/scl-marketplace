@@ -11,11 +11,13 @@ export function Leaderboard({
   cappers,
   limit,
   failed = false,
+  compactMobile = false,
   emptyDescription = "No cappers match this ranking scope yet.",
 }: {
   cappers: CapperSummary[];
   limit?: number;
   failed?: boolean;
+  compactMobile?: boolean;
   emptyDescription?: string;
 }) {
   const visible = typeof limit === "number" ? cappers.slice(0, limit) : cappers;
@@ -64,6 +66,7 @@ export function Leaderboard({
             key={capper.id}
             capper={capper}
             rank={capper.rank}
+            compact={compactMobile}
           />
         ))}
       </div>

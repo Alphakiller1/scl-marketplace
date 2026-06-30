@@ -13,16 +13,29 @@ import { RecentFormStrip, StreakChip } from "@/components/scl/indicators";
 import { RoiStat, UnitStat, WinRateStat } from "@/components/scl/stat";
 import { PerformanceSparkline } from "@/components/scl/performance-sparkline";
 import { RankBadge } from "@/components/scl/rank-badge";
+import { CompactCapperRow } from "@/components/scl/compact-capper-row";
 
 /** Discovery card — a capper's public résumé at a glance. */
 export function CapperCard({
   capper,
   rank,
+  compact = false,
 }: {
   capper: CapperSummary;
   /** Position within the current list; falls back to the global units rank. */
   rank?: number;
+  compact?: boolean;
 }) {
+  if (compact) {
+    return (
+      <CompactCapperRow
+        capper={capper}
+        rank={rank ?? capper.rank}
+        primaryMetric="roi"
+      />
+    );
+  }
+
   return (
     <Card className="group hover:border-border-strong relative gap-0 overflow-hidden p-3.5 transition-colors sm:p-4">
       <div className="flex items-start gap-3">
