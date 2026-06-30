@@ -22,11 +22,14 @@ export async function sendVerificationEmail(email: string, token: string) {
     return { delivered: false as const, link };
   }
 
-  const { error } = await resend.emails.send({
-    from,
-    to: email,
-    subject: "Verify your SCL account",
-    html: `
+  // Never throw: a delivery failure (e.g. an unverified sender domain) must not break signup.
+  // We report delivered:false and hand the link back so the caller can fall back gracefully.
+  try {
+    const { error } = await resend.emails.send({
+      from,
+      to: email,
+      subject: "Verify your SCL account",
+      html: `
       <div style="font-family:system-ui,sans-serif;max-width:480px;margin:auto">
         <h2>Verify your email</h2>
         <p>Confirm your email to start logging plays and building your record on SCL.</p>
@@ -34,9 +37,18 @@ export async function sendVerificationEmail(email: string, token: string) {
         <p style="color:#666;font-size:13px">This link expires in 24 hours. If you didn't sign up, ignore this email.</p>
       </div>
     `,
-  });
-  if (error) throw new Error(error.message);
-  return { delivered: true as const, link };
+    });
+    if (error) {
+      console.error(
+        `[email] verification send failed for ${email}: ${error.message}`,
+      );
+      return { delivered: false as const, link };
+    }
+    return { delivered: true as const, link };
+  } catch (err) {
+    console.error(`[email] verification send threw for ${email}:`, err);
+    return { delivered: false as const, link };
+  }
 }
 
 export async function sendPasswordResetEmail(email: string, token: string) {

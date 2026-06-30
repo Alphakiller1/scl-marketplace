@@ -15,8 +15,10 @@ import { PasswordField } from "@/components/scl/password-field";
 import { signupSchema, type SignupInput } from "@/lib/schemas/auth.schema";
 import { signupAction } from "@/lib/actions/signup.action";
 
+type Done = { emailDelivered: boolean; verifyUrl?: string };
+
 export default function SignupPage() {
-  const [done, setDone] = useState(false);
+  const [done, setDone] = useState<Done | null>(null);
   const {
     register,
     handleSubmit,
@@ -24,28 +26,76 @@ export default function SignupPage() {
   } = useForm<SignupInput>({ resolver: zodResolver(signupSchema) });
 
   async function onSubmit(values: SignupInput) {
-    const result = await signupAction(values);
-    if (!result.ok) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await signupAction(values);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      setDone({
+        emailDelivered: result.emailDelivered,
+        verifyUrl: result.verifyUrl,
+      });
+    } catch {
+      // Never fail silently — a thrown server error must surface to the user.
+      toast.error(
+        "Something went wrong creating your account. Please try again.",
+      );
     }
-    setDone(true);
   }
 
   if (done) {
+    // Email delivered: the standard "check your inbox" confirmation.
+    if (done.emailDelivered) {
+      return (
+        <div className="space-y-5">
+          <AuthHeader
+            icon={MailCheck}
+            eyebrow="Account Created"
+            title="Verify Your Email"
+            description="Your SCL identity is reserved. Confirm your email to activate capper access."
+          />
+          <AuthStatusNotice
+            tone="info"
+            title="Verification Sent"
+            description="Check your inbox — the secure link expires in 24 hours."
+          />
+          <Button
+            render={<Link href="/login" />}
+            nativeButton={false}
+            variant="outline"
+            className="min-h-11 w-full"
+          >
+            Back To Log In
+          </Button>
+        </div>
+      );
+    }
+    // Email couldn't be delivered: keep signup seamless with a one-tap verify instead of
+    // stranding the user waiting on an email that won't arrive.
     return (
       <div className="space-y-5">
         <AuthHeader
           icon={MailCheck}
           eyebrow="Account Created"
-          title="Verify Your Email"
+          title="One Tap To Finish"
           description="Your SCL identity is reserved. Confirm your email to activate capper access."
         />
-        <AuthStatusNotice
-          tone="info"
-          title="Verification Sent"
-          description="The secure link expires in 24 hours."
-        />
+        {done.verifyUrl ? (
+          <Button
+            render={<Link href={done.verifyUrl} />}
+            nativeButton={false}
+            className="min-h-11 w-full"
+          >
+            Verify &amp; Continue
+          </Button>
+        ) : (
+          <AuthStatusNotice
+            tone="info"
+            title="Almost There"
+            description="Use the resend option from the log-in page to get your verification link."
+          />
+        )}
         <Button
           render={<Link href="/login" />}
           nativeButton={false}
