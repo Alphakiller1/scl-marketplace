@@ -1,15 +1,13 @@
 import Link from "next/link";
-import { ArrowRight, ShieldCheck, Trophy } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { VerificationBadge } from "@/components/scl/badges";
-import type { LeaderboardSummary } from "@/lib/leaderboard";
-import { formatPct, formatRoi, formatUnits } from "@/lib/format";
 
-export function CompetitionHero({ summary }: { summary: LeaderboardSummary }) {
+export function CompetitionHero() {
   return (
     <section
-      className="dark border-border bg-background text-foreground relative min-h-[34rem] overflow-hidden border-b sm:min-h-[35rem]"
+      className="dark border-border bg-background text-foreground relative min-h-[31rem] overflow-hidden border-b sm:min-h-[35rem]"
       aria-labelledby="scl-hero-title"
     >
       <picture className="absolute inset-0">
@@ -31,7 +29,7 @@ export function CompetitionHero({ summary }: { summary: LeaderboardSummary }) {
         className="bg-background/55 sm:bg-background/45 absolute inset-0"
       />
 
-      <div className="relative mx-auto flex min-h-[34rem] max-w-6xl flex-col justify-between gap-8 px-4 py-8 sm:min-h-[35rem] sm:px-6 sm:py-14">
+      <div className="relative mx-auto flex min-h-[31rem] max-w-6xl flex-col px-4 py-8 sm:min-h-[35rem] sm:justify-center sm:px-6 sm:py-14">
         <div className="max-w-xl">
           <div className="border-border-strong bg-background/75 inline-flex min-h-8 items-center gap-2 rounded-lg border px-3 text-xs font-semibold backdrop-blur-sm">
             <VerificationBadge size="xs" />
@@ -67,62 +65,7 @@ export function CompetitionHero({ summary }: { summary: LeaderboardSummary }) {
             </Button>
           </div>
         </div>
-
-        <dl className="border-border bg-background/75 grid max-w-3xl grid-cols-2 overflow-hidden rounded-xl border backdrop-blur-md sm:grid-cols-4">
-          <HeroMetric
-            icon={Trophy}
-            label="Ranked Cappers"
-            value={summary.rankedCappers.toLocaleString()}
-          />
-          <HeroMetric
-            icon={ShieldCheck}
-            label="Verified"
-            value={summary.verifiedCappers.toLocaleString()}
-          />
-          <HeroMetric
-            label="Tracked Picks"
-            value={summary.trackedPicks.toLocaleString()}
-          />
-          <HeroMetric
-            label="Platform ROI"
-            value={summary.trackedPicks ? formatRoi(summary.roi) : "—"}
-            detail={
-              summary.trackedPicks
-                ? `${formatPct(summary.winPct)} win rate · ${formatUnits(summary.netUnits)}`
-                : "Awaiting Graded Plays"
-            }
-          />
-        </dl>
       </div>
     </section>
-  );
-}
-
-function HeroMetric({
-  label,
-  value,
-  detail,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  detail?: string;
-  icon?: React.ComponentType<{ className?: string }>;
-}) {
-  return (
-    <div className="border-border min-w-0 border-r border-b p-3 last:border-r-0 sm:border-b-0 sm:p-4">
-      <dt className="text-muted-foreground flex items-center gap-1.5 text-[0.7rem] font-semibold uppercase">
-        {Icon ? <Icon className="text-brand size-3.5" aria-hidden /> : null}
-        {label}
-      </dt>
-      <dd className="nums mt-1 text-xl font-bold tabular-nums sm:text-2xl">
-        {value}
-      </dd>
-      {detail ? (
-        <p className="text-muted-foreground mt-0.5 text-xs leading-snug sm:truncate">
-          {detail}
-        </p>
-      ) : null}
-    </div>
   );
 }

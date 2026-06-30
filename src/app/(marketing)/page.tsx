@@ -8,7 +8,7 @@ import { Leaderboard } from "@/components/scl/leaderboard";
 import { CapperCard } from "@/components/scl/capper-card";
 import { PickCard } from "@/components/scl/pick-card";
 import { EmptyState } from "@/components/scl/states";
-import { sortLeaderboard, summarizeLeaderboard } from "@/lib/leaderboard";
+import { sortLeaderboard } from "@/lib/leaderboard";
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 import { getPublicRecentPicksResult } from "@/lib/queries/plays";
 
@@ -18,14 +18,13 @@ export default async function Home() {
   const { cappers, failed: leaderboardFailed } = await getLeaderboardResult({
     verifiedOnly: true,
   });
-  const summary = summarizeLeaderboard(cappers);
   const { picks: recentPicks, failed: picksFailed } =
     await getPublicRecentPicksResult(cappers, 4);
   const topRoi = sortLeaderboard(cappers, "roi").slice(0, 3);
 
   return (
     <>
-      <CompetitionHero summary={summary} />
+      <CompetitionHero />
 
       <div className="mx-auto max-w-6xl space-y-10 px-4 py-10 sm:space-y-14 sm:px-6 sm:py-12">
         <section className="space-y-4">
