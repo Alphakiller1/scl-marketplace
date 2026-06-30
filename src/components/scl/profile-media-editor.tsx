@@ -54,9 +54,9 @@ export function ProfileMediaEditor({
       aria-labelledby="profile-media-title"
       className="border-border bg-card overflow-hidden rounded-xl border"
     >
-      <div className="border-border border-b px-5 py-4">
+      <div className="border-border border-b px-4 py-4 sm:px-5">
         <h2 id="profile-media-title" className="font-semibold">
-          Profile media
+          Profile Media
         </h2>
         <p className="text-muted-foreground text-sm">
           Build a recognizable identity across rankings and public profiles.
@@ -64,7 +64,7 @@ export function ProfileMediaEditor({
       </div>
 
       <div className="relative">
-        <div className="bg-surface-2 relative h-36 overflow-hidden">
+        <div className="bg-surface-2 relative h-28 overflow-hidden sm:h-36">
           {bannerUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={bannerUrl} alt="" className="size-full object-cover" />
@@ -74,7 +74,7 @@ export function ProfileMediaEditor({
           <Button
             type="button"
             variant="secondary"
-            className="absolute right-3 bottom-3 min-h-10 gap-1.5"
+            className="absolute right-3 bottom-3 min-h-11 gap-1.5 sm:min-h-10"
             onClick={() => bannerInput.current?.click()}
             disabled={uploading !== null}
           >
@@ -98,18 +98,19 @@ export function ProfileMediaEditor({
           />
         </div>
 
-        <div className="flex items-end justify-between gap-3 px-5 pb-5">
+        <div className="flex items-end justify-between gap-3 px-4 pb-4 sm:px-5 sm:pb-5">
           <div className="bg-card -mt-8 rounded-xl p-1">
             <CapperAvatar
               name={displayName}
               src={avatarUrl ?? undefined}
               size="xl"
+              className="size-16 text-base sm:size-20 sm:text-xl"
             />
           </div>
           <Button
             type="button"
             variant="outline"
-            className="mt-3 min-h-10 gap-1.5"
+            className="mt-3 min-h-11 gap-1.5 sm:min-h-10"
             onClick={() => avatarInput.current?.click()}
             disabled={uploading !== null}
           >
@@ -118,7 +119,7 @@ export function ProfileMediaEditor({
             ) : (
               <Camera className="size-4" />
             )}
-            Profile image
+            Profile Image
           </Button>
           <input
             ref={avatarInput}

@@ -23,7 +23,7 @@ export default function PackagesPage() {
       <EmptyState
         className="mt-6"
         icon={PackageOpen}
-        title="No packages live yet"
+        title="No Packages Live Yet"
         description="Approved offers will appear here. Browse capper profiles to review tracked records and storefront details."
         action={
           <Button

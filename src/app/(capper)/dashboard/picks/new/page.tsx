@@ -43,21 +43,21 @@ export default function NewPlayPage() {
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <SectionHeader
-        title="Submit a play"
+        title="Submit A Play"
         subtitle="Logged as pending until the result is graded"
       />
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6">
         <form
           onSubmit={handleSubmit(onSubmit)}
           className="space-y-4"
           noValidate
         >
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="sport">Sport</Label>
               <select
                 id="sport"
-                className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full rounded-lg border bg-transparent px-3 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
+                className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-lg border bg-transparent px-3 text-base shadow-xs focus-visible:ring-[3px] focus-visible:outline-none sm:text-sm"
                 defaultValue=""
                 {...register("sport")}
               >
@@ -73,7 +73,7 @@ export default function NewPlayPage() {
               <FieldError message={errors.sport?.message} />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="league">League (optional)</Label>
+              <Label htmlFor="league">League (Optional)</Label>
               <Input
                 id="league"
                 placeholder="e.g. NBA"
@@ -103,7 +103,7 @@ export default function NewPlayPage() {
             <FieldError message={errors.selection?.message} />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="oddsAmerican">Odds (American)</Label>
               <Input
@@ -132,19 +132,23 @@ export default function NewPlayPage() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="notes">Notes (optional)</Label>
+            <Label htmlFor="notes">Notes (Optional)</Label>
             <textarea
               id="notes"
               rows={3}
-              className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-lg border bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
+              className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 min-h-24 w-full rounded-lg border bg-transparent px-3 py-2 text-base shadow-xs focus-visible:ring-[3px] focus-visible:outline-none sm:text-sm"
               placeholder="Reasoning (kept on your record)"
               {...register("notes")}
             />
             <FieldError message={errors.notes?.message} />
           </div>
 
-          <Button type="submit" disabled={isSubmitting} className="w-full">
-            {isSubmitting ? "Submitting…" : "Submit play"}
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="min-h-11 w-full"
+          >
+            {isSubmitting ? "Submitting…" : "Submit Play"}
           </Button>
         </form>
       </Card>

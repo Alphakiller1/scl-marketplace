@@ -18,7 +18,7 @@ export default async function AdminOverviewPage() {
     <div className="space-y-8">
       <SectionHeader
         icon={Gavel}
-        title="Admin overview"
+        title="Admin Overview"
         subtitle="Operations across the SCL marketplace"
       />
       <Card className="p-4">

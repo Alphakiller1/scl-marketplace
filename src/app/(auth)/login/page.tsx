@@ -57,8 +57,8 @@ function LoginForm() {
     <>
       <AuthHeader
         icon={LogIn}
-        eyebrow="Secure access"
-        title="Welcome back"
+        eyebrow="Secure Access"
+        title="Welcome Back"
         description="Open your capper workspace and verified record."
       />
 
@@ -69,7 +69,7 @@ function LoginForm() {
             id="email"
             type="email"
             autoComplete="email"
-            className="min-h-10"
+            className="min-h-11"
             {...register("email")}
           />
           {errors.email ? (
@@ -88,25 +88,28 @@ function LoginForm() {
         <div className="flex justify-end">
           <Link
             href="/forgot-password"
-            className="text-brand min-h-10 py-2 text-sm font-medium hover:underline"
+            className="text-brand inline-flex min-h-11 items-center text-sm font-medium hover:underline"
           >
-            Forgot password?
+            Forgot Password?
           </Link>
         </div>
 
         <Button
           type="submit"
-          className="min-h-10 w-full"
+          className="min-h-11 w-full"
           disabled={isSubmitting}
         >
-          {isSubmitting ? "Signing in…" : "Log in"}
+          {isSubmitting ? "Signing In…" : "Log In"}
         </Button>
       </form>
 
       <p className="text-muted-foreground mt-6 text-center text-sm">
         New to SCL?{" "}
-        <Link href="/signup" className="text-brand font-medium hover:underline">
-          Create an account
+        <Link
+          href="/signup"
+          className="text-brand inline-flex min-h-11 items-center font-medium hover:underline"
+        >
+          Create An Account
         </Link>
       </p>
     </>

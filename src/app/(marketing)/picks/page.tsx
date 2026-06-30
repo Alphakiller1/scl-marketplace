@@ -26,7 +26,7 @@ export default async function PicksPage() {
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <SectionHeader
         icon={Zap}
-        title="Latest picks"
+        title="Latest Picks"
         subtitle="Recent tracked submissions from active cappers"
       />
       {picks.length ? (

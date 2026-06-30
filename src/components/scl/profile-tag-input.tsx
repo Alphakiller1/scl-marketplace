@@ -36,7 +36,8 @@ export function ProfileTagInput({
         <Input
           value={draft}
           maxLength={40}
-          placeholder="Player props"
+          placeholder="Player Props"
+          className="min-h-11"
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
@@ -49,9 +50,9 @@ export function ProfileTagInput({
           type="button"
           variant="outline"
           size="icon"
-          className="size-10"
-          aria-label="Add specialty"
-          title="Add specialty"
+          className="size-11"
+          aria-label="Add Specialty"
+          title="Add Specialty"
           onClick={addTag}
           disabled={!draft.trim() || value.length >= max}
         >
@@ -64,14 +65,14 @@ export function ProfileTagInput({
           {value.map((tag) => (
             <span
               key={tag}
-              className="border-border bg-surface-2 inline-flex min-h-8 items-center gap-1.5 rounded-lg border px-2.5 text-sm"
+              className="border-border bg-surface-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg border px-2.5 text-sm"
             >
               {tag}
               <button
                 type="button"
                 aria-label={`Remove ${tag}`}
                 title={`Remove ${tag}`}
-                className="text-muted-foreground hover:text-foreground focus-visible:ring-ring -mr-2 flex size-8 items-center justify-center rounded-lg outline-none focus-visible:ring-2"
+                className="text-muted-foreground hover:text-foreground focus-visible:ring-ring -mr-2 flex size-11 items-center justify-center rounded-lg outline-none focus-visible:ring-2"
                 onClick={() => onChange(value.filter((item) => item !== tag))}
               >
                 <X className="size-3.5" />

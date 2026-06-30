@@ -13,7 +13,7 @@ import {
 /** Today's-pick card — the active, valuable surface of the product. */
 export function PickCard({ pick }: { pick: TodayPick }) {
   return (
-    <Card className="gap-0 p-4">
+    <Card className="gap-0 p-3.5 sm:p-4">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <SportTag sport={pick.sport} />
@@ -44,7 +44,7 @@ export function PickCard({ pick }: { pick: TodayPick }) {
       <div className="border-border mt-3 flex items-center justify-between border-t pt-3">
         <Link
           href={`/cappers/${pick.capper.handle}`}
-          className="flex items-center gap-2 hover:underline"
+          className="focus-visible:ring-ring flex min-h-11 min-w-0 items-center gap-2 rounded-lg outline-none hover:underline focus-visible:ring-2"
         >
           <CapperAvatar
             name={pick.capper.name}

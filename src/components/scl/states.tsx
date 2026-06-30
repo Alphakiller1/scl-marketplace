@@ -18,7 +18,7 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "border-border bg-surface-2/40 flex flex-col items-center justify-center rounded-xl border border-dashed px-6 py-12 text-center",
+        "border-border bg-surface-2/40 flex flex-col items-center justify-center rounded-xl border border-dashed px-4 py-9 text-center sm:px-6 sm:py-12",
         className,
       )}
     >
@@ -33,7 +33,7 @@ export function EmptyState({
           {description}
         </p>
       ) : null}
-      {action ? <div className="mt-4">{action}</div> : null}
+      {action ? <div className="mt-4 w-full sm:w-auto">{action}</div> : null}
     </div>
   );
 }

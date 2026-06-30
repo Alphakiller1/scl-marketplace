@@ -15,7 +15,7 @@ export default async function AdminCappersPage() {
     <div className="space-y-5">
       <SectionHeader
         icon={Users}
-        title="Capper accounts"
+        title="Capper Accounts"
         subtitle="Account access, verification, and status controls"
       />
 
@@ -66,7 +66,7 @@ export default async function AdminCappersPage() {
       ) : (
         <EmptyState
           icon={Users}
-          title="No capper accounts"
+          title="No Capper Accounts"
           description="Self-service capper accounts will appear here after signup."
         />
       )}

@@ -39,7 +39,7 @@ export function AcceptTermsForm() {
         <p className="text-live text-xs font-semibold uppercase">
           Policy version {CURRENT_POLICY_VERSION}
         </p>
-        <h1 className="mt-1 text-2xl font-bold">Review account policies</h1>
+        <h1 className="mt-1 text-2xl font-bold">Review Account Policies</h1>
         <p className="text-muted-foreground mt-2 text-sm">
           Current policy acceptance is required before accessing capper tools.
         </p>

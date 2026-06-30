@@ -18,13 +18,13 @@ export default async function ResetPasswordPage({
       <>
         <AuthHeader
           icon={KeyRound}
-          eyebrow="Password recovery"
-          title="Reset link required"
+          eyebrow="Password Recovery"
+          title="Reset Link Required"
           description="Request a new secure link to update your password."
         />
         <AuthStatusNotice
           tone="error"
-          title="No reset token found"
+          title="No Reset Token Found"
           description="The recovery URL is incomplete or no longer available."
         />
         <Button

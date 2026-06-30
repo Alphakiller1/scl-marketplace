@@ -26,10 +26,10 @@ export function PerformanceScoreboard({
 
   return (
     <Card className="scl-card-gradient gap-0 overflow-hidden p-0">
-      <div className="border-border flex min-h-12 items-center justify-between gap-4 border-b px-4">
+      <div className="border-border flex min-h-12 flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b px-4 py-2">
         <div className="flex items-center gap-2">
           <ChartNoAxesCombined className="text-brand size-4" aria-hidden />
-          <h2 className="text-sm font-semibold">Tracked performance</h2>
+          <h2 className="text-sm font-semibold">Tracked Performance</h2>
         </div>
         <span className="text-muted-foreground text-xs">
           <span className="nums text-foreground font-semibold tabular-nums">

@@ -16,7 +16,7 @@ export function ProfileCompletionPanel({
       <div className="flex items-baseline justify-between gap-3">
         <div>
           <h2 id="profile-completion-title" className="font-semibold">
-            Profile strength
+            Profile Strength
           </h2>
           <p className="text-muted-foreground text-sm">
             {completion.completed} of {completion.total} identity signals

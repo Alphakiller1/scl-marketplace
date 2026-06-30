@@ -41,13 +41,13 @@ export default function ForgotPasswordPage() {
       <>
         <AuthHeader
           icon={MailCheck}
-          eyebrow="Password recovery"
-          title="Check your email"
+          eyebrow="Password Recovery"
+          title="Check Your Email"
           description="If an eligible SCL account matches that address, a secure reset link is on the way."
         />
         <AuthStatusNotice
           tone="info"
-          title="Request received"
+          title="Request Received"
           description="The link expires in one hour and can be used once."
         />
         <Button
@@ -66,8 +66,8 @@ export default function ForgotPasswordPage() {
     <>
       <AuthHeader
         icon={KeyRound}
-        eyebrow="Password recovery"
-        title="Recover account access"
+        eyebrow="Password Recovery"
+        title="Recover Account Access"
         description="Request a single-use reset link for your SCL account."
       />
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>

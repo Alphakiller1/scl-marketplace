@@ -27,10 +27,10 @@ export default async function LeaderboardPage({
   const summary = summarizeLeaderboard(cappers);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+    <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-10">
       <LeaderboardOverview summary={summary} />
       <LeaderboardFilters filters={filters} />
-      <section aria-label="Ranked cappers" className="mt-6">
+      <section aria-label="Ranked Cappers" className="mt-5 sm:mt-6">
         <Leaderboard
           cappers={cappers}
           failed={failed}
