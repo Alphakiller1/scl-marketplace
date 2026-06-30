@@ -13,18 +13,23 @@ const hashToken = (token: string) =>
  */
 export async function createVerificationToken(
   email: string,
+  options?: { force?: boolean },
 ): Promise<string | null> {
   const identifier = email.toLowerCase();
-  const existing = await prisma.verificationToken.findFirst({
-    where: { identifier },
-    orderBy: { createdAt: "desc" },
-    select: { createdAt: true },
-  });
-  if (
-    existing &&
-    existing.createdAt.getTime() > Date.now() - TOKEN_COOLDOWN_MS
-  ) {
-    return null;
+  // `force` bypasses the resend cooldown — used by signup itself, where the user always
+  // needs a working token (the cooldown only guards the standalone "resend" button from abuse).
+  if (!options?.force) {
+    const existing = await prisma.verificationToken.findFirst({
+      where: { identifier },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    });
+    if (
+      existing &&
+      existing.createdAt.getTime() > Date.now() - TOKEN_COOLDOWN_MS
+    ) {
+      return null;
+    }
   }
 
   const token = randomBytes(32).toString("hex");
