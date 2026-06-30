@@ -11,7 +11,9 @@ import { CURRENT_POLICY_VERSION } from "@/lib/legal";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getRequestIdentity } from "@/lib/request-identity";
 
-type SignupResult = { ok: true } | { ok: false; error: string };
+type SignupResult =
+  | { ok: true; emailDelivered: boolean; verifyUrl?: string }
+  | { ok: false; error: string };
 
 export async function signupAction(input: SignupInput): Promise<SignupResult> {
   const parsed = signupSchema.safeParse(input);
@@ -83,13 +85,23 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
     return { ok: false, error: "We couldn't create that account." };
   }
 
+  // The account is valid even if email delivery fails. Track whether the verification email
+  // actually sent; when it didn't (e.g. sender domain not yet verified), hand back the verify
+  // link so the UI can let the user finish in one tap instead of waiting for an email that
+  // never arrives. This fallback self-heals: once a verified sender is configured, emails
+  // deliver and `verifyUrl` is no longer returned.
+  let emailDelivered = false;
+  let verifyUrl: string | undefined;
   try {
     const token = await createVerificationToken(lowerEmail);
-    if (token) await sendVerificationEmail(lowerEmail, token);
+    if (token) {
+      const delivery = await sendVerificationEmail(lowerEmail, token);
+      emailDelivered = delivery.delivered;
+      if (!delivery.delivered) verifyUrl = delivery.link;
+    }
   } catch (error) {
-    // The account is valid even if the provider is temporarily unavailable.
     console.error("[signup] verification delivery failed:", error);
   }
 
-  return { ok: true };
+  return { ok: true, emailDelivered, verifyUrl };
 }
