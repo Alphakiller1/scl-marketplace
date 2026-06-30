@@ -59,11 +59,13 @@ export async function sendPasswordResetEmail(email: string, token: string) {
     return { delivered: false as const, link };
   }
 
-  const { error } = await resend.emails.send({
-    from,
-    to: email,
-    subject: "Reset your SCL password",
-    html: `
+  // Never throw on a provider error (e.g. unverified sender) — return delivery status + link.
+  try {
+    const { error } = await resend.emails.send({
+      from,
+      to: email,
+      subject: "Reset your SCL password",
+      html: `
       <div style="font-family:system-ui,sans-serif;max-width:480px;margin:auto">
         <h2>Reset your password</h2>
         <p>Use the secure link below to choose a new password for your SCL account.</p>
@@ -71,7 +73,14 @@ export async function sendPasswordResetEmail(email: string, token: string) {
         <p style="color:#666;font-size:13px">This link expires in one hour and works once. If you didn't request it, ignore this email.</p>
       </div>
     `,
-  });
-  if (error) throw new Error(error.message);
-  return { delivered: true as const, link };
+    });
+    if (error) {
+      console.error(`[email] reset send failed for ${email}: ${error.message}`);
+      return { delivered: false as const, link };
+    }
+    return { delivered: true as const, link };
+  } catch (err) {
+    console.error(`[email] reset send threw for ${email}:`, err);
+    return { delivered: false as const, link };
+  }
 }
