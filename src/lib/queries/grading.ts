@@ -86,3 +86,51 @@ export async function getRecentGradingAudits(limit = 25) {
 export type GradingAuditItem = Awaited<
   ReturnType<typeof getRecentGradingAudits>
 >[number];
+
+/** Pending parlays with their legs — the admin parlay grading queue. */
+export async function getParlayGradingQueue() {
+  const parlays = await prisma.parlay.findMany({
+    where: { outcome: "PENDING" },
+    select: {
+      id: true,
+      units: true,
+      combinedOddsAmerican: true,
+      capper: {
+        select: { user: { select: { displayName: true, username: true } } },
+      },
+      legs: {
+        select: {
+          id: true,
+          sport: true,
+          market: true,
+          selection: true,
+          oddsAmerican: true,
+          outcome: true,
+        },
+        orderBy: { createdAt: "asc" },
+      },
+    },
+    orderBy: { createdAt: "asc" },
+    take: 100,
+  });
+
+  return parlays.map((p) => ({
+    id: p.id,
+    units: Number(p.units),
+    combinedOddsAmerican: p.combinedOddsAmerican,
+    capperName:
+      p.capper.user.displayName ?? p.capper.user.username ?? "Unknown capper",
+    legs: p.legs.map((l) => ({
+      id: l.id,
+      sport: l.sport,
+      market: l.market,
+      selection: l.selection,
+      oddsAmerican: l.oddsAmerican,
+      outcome: l.outcome,
+    })),
+  }));
+}
+
+export type ParlayQueueItem = Awaited<
+  ReturnType<typeof getParlayGradingQueue>
+>[number];
