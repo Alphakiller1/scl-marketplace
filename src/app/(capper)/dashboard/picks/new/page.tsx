@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -42,10 +43,19 @@ export default function NewPlayPage() {
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
-      <SectionHeader
-        title="Submit A Play"
-        subtitle="Logged as pending until the result is graded"
-      />
+      <div className="flex items-center justify-between gap-3">
+        <SectionHeader
+          title="Submit A Play"
+          subtitle="Logged as pending until the result is graded"
+        />
+        <Button
+          variant="ghost"
+          render={<Link href="/dashboard/picks/new/parlay" />}
+          nativeButton={false}
+        >
+          Parlay
+        </Button>
+      </div>
       <Card className="p-4 sm:p-6">
         <form
           onSubmit={handleSubmit(onSubmit)}

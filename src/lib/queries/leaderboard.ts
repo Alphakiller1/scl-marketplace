@@ -10,7 +10,7 @@ import {
   sortLeaderboard,
   type LeaderboardFilters,
 } from "@/lib/leaderboard";
-import { computeCapperStats, type PlayForStats } from "@/lib/stats";
+import { computeCapperStats } from "@/lib/stats";
 import type { CapperSummary, FormResult } from "@/lib/mock";
 import { resolveStorefrontIdentity } from "@/lib/storefront";
 import { safeHttpUrl } from "@/lib/urls";
@@ -99,6 +99,24 @@ function fetchRankableProfiles(filters: LeaderboardFilters) {
         },
         orderBy: { createdAt: "asc" },
       },
+      // Parlays are positions of record alongside straight plays. A parlay matches a
+      // sport filter when any leg is that sport.
+      parlays: {
+        where: {
+          ...(windowStart ? { createdAt: { gte: windowStart } } : undefined),
+          ...(filters.sport !== "ALL"
+            ? { legs: { some: { sport: filters.sport } } }
+            : undefined),
+        },
+        select: {
+          outcome: true,
+          units: true,
+          profitUnits: true,
+          createdAt: true,
+          gradedAt: true,
+        },
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
 }
@@ -151,30 +169,47 @@ function summarize(p: ProfileRow): CapperSummary | null {
   const username = p.user.username;
   if (!username) return null;
 
-  const playsForStats: PlayForStats[] = p.plays.map((pl) => ({
-    outcome: pl.outcome,
-    units: Number(pl.units),
-    profitUnits: pl.profitUnits == null ? null : Number(pl.profitUnits),
-  }));
-  const stats = computeCapperStats(playsForStats);
-  const performanceTrend = buildPerformanceTrend(
-    p.plays.map((play) => ({
-      outcome: play.outcome,
-      profitUnits: play.profitUnits == null ? null : Number(play.profitUnits),
+  // Straight plays + parlays are the capper's positions of record (legs are already
+  // excluded from p.plays). Merge them, oldest → newest, for all aggregations.
+  const positions = [
+    ...p.plays.map((pl) => ({
+      outcome: pl.outcome,
+      units: Number(pl.units),
+      profitUnits: pl.profitUnits == null ? null : Number(pl.profitUnits),
+      createdAt: pl.createdAt,
+      gradedAt: pl.gradedAt,
+    })),
+    ...p.parlays.map((pa) => ({
+      outcome: pa.outcome,
+      units: Number(pa.units),
+      profitUnits: pa.profitUnits == null ? null : Number(pa.profitUnits),
+      createdAt: pa.createdAt,
+      gradedAt: pa.gradedAt,
+    })),
+  ].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
+  const stats = computeCapperStats(
+    positions.map((x) => ({
+      outcome: x.outcome,
+      units: x.units,
+      profitUnits: x.profitUnits,
     })),
   );
+  const performanceTrend = buildPerformanceTrend(
+    positions.map((x) => ({ outcome: x.outcome, profitUnits: x.profitUnits })),
+  );
 
-  const settled = [...p.plays]
+  const settled = positions
     .filter(
-      (pl) =>
-        pl.outcome === "WIN" || pl.outcome === "LOSS" || pl.outcome === "PUSH",
+      (x) =>
+        x.outcome === "WIN" || x.outcome === "LOSS" || x.outcome === "PUSH",
     )
     .sort(
       (a, b) =>
         (a.gradedAt ?? a.createdAt).getTime() -
         (b.gradedAt ?? b.createdAt).getTime(),
     )
-    .map((pl) => pl.outcome);
+    .map((x) => x.outcome);
   const { recentForm, streak } = deriveForm(settled);
 
   return {
@@ -200,7 +235,7 @@ function summarize(p: ProfileRow): CapperSummary | null {
     settledPicks: stats.settled,
     stakedUnits: stats.stakedUnits,
     performanceTrend,
-    lastPlayAt: p.plays.at(-1)?.createdAt,
+    lastPlayAt: positions.at(-1)?.createdAt,
     headline: p.headline ?? undefined,
     bio: p.bio ?? undefined,
     specialties: p.specialties.length ? p.specialties : undefined,

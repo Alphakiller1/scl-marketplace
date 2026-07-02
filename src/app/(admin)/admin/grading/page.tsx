@@ -1,19 +1,25 @@
-import { ClipboardCheck, History } from "lucide-react";
+import { ClipboardCheck, History, Layers } from "lucide-react";
 
 import { AutoGradeButton } from "@/components/scl/auto-grade-button";
 import { SportTag } from "@/components/scl/badges";
 import { GradingAuditList } from "@/components/scl/grading-audit-list";
+import { ParlayGradeControl } from "@/components/scl/parlay-grade-control";
 import { PlayGradeControl } from "@/components/scl/play-grade-control";
 import { SectionHeader } from "@/components/scl/section";
 import { EmptyState } from "@/components/scl/states";
 import { formatOdds, formatUnits } from "@/lib/format";
-import { getGradingQueue, getRecentGradingAudits } from "@/lib/queries/grading";
+import {
+  getGradingQueue,
+  getParlayGradingQueue,
+  getRecentGradingAudits,
+} from "@/lib/queries/grading";
 
 export const metadata = { title: "Grading" };
 
 export default async function AdminGradingPage() {
-  const [queue, audits] = await Promise.all([
+  const [queue, parlays, audits] = await Promise.all([
     getGradingQueue(),
+    getParlayGradingQueue(),
     getRecentGradingAudits(),
   ]);
 
@@ -67,6 +73,40 @@ export default async function AdminGradingPage() {
           />
         )}
       </section>
+
+      {parlays.length ? (
+        <section className="space-y-5">
+          <SectionHeader
+            icon={Layers}
+            title="Pending Parlays"
+            subtitle={`${parlays.length} awaiting a result — grade each leg`}
+          />
+          <div className="space-y-3">
+            {parlays.map((parlay) => (
+              <div
+                key={parlay.id}
+                className="border-border bg-card rounded-xl border p-4"
+              >
+                <div className="text-muted-foreground mb-1 flex flex-wrap items-center gap-x-2 text-xs">
+                  <span className="text-foreground font-semibold">
+                    {parlay.legs.length}-leg parlay
+                  </span>
+                  <span>{parlay.capperName}</span>
+                  {parlay.combinedOddsAmerican != null ? (
+                    <span className="nums tabular-nums">
+                      {formatOdds(parlay.combinedOddsAmerican)}
+                    </span>
+                  ) : null}
+                  <span className="nums tabular-nums">
+                    {formatUnits(parlay.units, true, false)}
+                  </span>
+                </div>
+                <ParlayGradeControl parlay={parlay} />
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="space-y-4">
         <SectionHeader
