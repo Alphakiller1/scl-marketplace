@@ -30,7 +30,8 @@ export async function getCapperPlays(
   if (!profile) return [];
 
   const plays = await prisma.play.findMany({
-    where: { capperId: profile.id },
+    // Exclude parlay legs — the parlay is the position of record, not each leg.
+    where: { capperId: profile.id, parlayId: null },
     orderBy: { createdAt: "desc" },
     take,
   });
