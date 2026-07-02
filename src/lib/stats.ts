@@ -65,3 +65,37 @@ export function computeCapperStats(plays: PlayForStats[]): CapperStats {
     roi: staked > 0 ? (profit / staked) * 100 : 0,
   };
 }
+
+export type SportStats = CapperStats & { sport: string };
+
+/**
+ * Per-sport performance breakdown, best (most units) first. Sports without a
+ * settled play are dropped so the dashboard only shows real results.
+ */
+export function computeStatsBySport(
+  plays: (PlayForStats & { sport: string })[],
+): SportStats[] {
+  const grouped = new Map<string, (PlayForStats & { sport: string })[]>();
+  for (const p of plays) {
+    const arr = grouped.get(p.sport);
+    if (arr) arr.push(p);
+    else grouped.set(p.sport, [p]);
+  }
+  return [...grouped.entries()]
+    .map(([sport, rows]) => ({ sport, ...computeCapperStats(rows) }))
+    .filter((s) => s.settled > 0)
+    .sort((a, b) => b.units - a.units);
+}
+
+/** Stats over a trailing window (e.g. last 30 days), by play creation time. */
+export function computeStatsSince(
+  plays: (PlayForStats & { createdAt: Date })[],
+  since: Date,
+): CapperStats {
+  return computeCapperStats(plays.filter((p) => p.createdAt >= since));
+}
+
+/** A Date `days` before `from` (default now) — for trailing-window stats. */
+export function daysAgo(days: number, from: Date = new Date()): Date {
+  return new Date(from.getTime() - days * 24 * 60 * 60 * 1000);
+}
