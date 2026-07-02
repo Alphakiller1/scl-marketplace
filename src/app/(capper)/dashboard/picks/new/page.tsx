@@ -73,6 +73,15 @@ export default function NewPlayPage() {
           }}
         />
       ) : null}
+      {selectedSport ? (
+        <div className="flex items-center gap-3">
+          <span className="border-border flex-1 border-t" />
+          <span className="text-muted-foreground text-xs">
+            or enter manually
+          </span>
+          <span className="border-border flex-1 border-t" />
+        </div>
+      ) : null}
       <Card className="p-4 sm:p-6">
         <form
           onSubmit={handleSubmit(onSubmit)}
