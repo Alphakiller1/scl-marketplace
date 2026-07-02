@@ -82,6 +82,10 @@ function fetchRankableProfiles(filters: LeaderboardFilters) {
       },
       plays: {
         where: {
+          // Parlay legs are display-only components of their parent; the parlay is the
+          // position of record. Excluding legs here keeps record/units/ROI from
+          // double-counting once parlays land (parlay rows are added to stats then).
+          parlayId: null,
           ...(filters.sport !== "ALL" ? { sport: filters.sport } : undefined),
           ...(windowStart ? { createdAt: { gte: windowStart } } : undefined),
         },

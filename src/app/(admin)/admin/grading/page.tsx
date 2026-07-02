@@ -1,5 +1,6 @@
 import { ClipboardCheck, History } from "lucide-react";
 
+import { AutoGradeButton } from "@/components/scl/auto-grade-button";
 import { SportTag } from "@/components/scl/badges";
 import { GradingAuditList } from "@/components/scl/grading-audit-list";
 import { PlayGradeControl } from "@/components/scl/play-grade-control";
@@ -19,11 +20,14 @@ export default async function AdminGradingPage() {
   return (
     <div className="space-y-8">
       <section className="space-y-5">
-        <SectionHeader
-          icon={ClipboardCheck}
-          title="Grading Queue"
-          subtitle={`${queue.length} pending ${queue.length === 1 ? "play" : "plays"} awaiting a result`}
-        />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <SectionHeader
+            icon={ClipboardCheck}
+            title="Grading Queue"
+            subtitle={`${queue.length} pending ${queue.length === 1 ? "play" : "plays"} awaiting a result`}
+          />
+          <AutoGradeButton />
+        </div>
         {queue.length ? (
           <ul className="divide-border border-border divide-y overflow-hidden rounded-xl border">
             {queue.map((p) => (
