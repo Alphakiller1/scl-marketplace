@@ -27,6 +27,11 @@ export function toOddsApiSport(sclKey: string): string | undefined {
   return SCL_TO_ODDS_API[sclKey];
 }
 
+/** The Odds API key. Accepts the canonical name and the common `ODD_API_KEY` misspelling. */
+export function oddsApiKey(): string | undefined {
+  return process.env.ODDS_API_KEY || process.env.ODD_API_KEY;
+}
+
 export function toSclSport(oddsApiKey: string): string | undefined {
   return ODDS_API_TO_SCL[oddsApiKey];
 }
@@ -124,7 +129,7 @@ function normalize(sclSport: string, event: RawEvent): OddsEvent {
 export async function fetchUpcomingOdds(
   sclSport: string,
 ): Promise<OddsEvent[]> {
-  const apiKey = process.env.ODDS_API_KEY;
+  const apiKey = oddsApiKey();
   const apiSport = toOddsApiSport(sclSport);
   if (!apiKey || !apiSport) return [];
 
