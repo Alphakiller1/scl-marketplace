@@ -37,7 +37,7 @@ export function CompactCapperRow({
   return (
     <Link
       href={`/cappers/${capper.handle}`}
-      className="border-border bg-card active:bg-surface-2 focus-visible:ring-ring block min-h-24 rounded-xl border p-3 transition-colors outline-none focus-visible:ring-2"
+      className="border-border bg-card active:bg-surface-2 focus-visible:ring-ring scl-interactive scl-elevated block min-h-24 rounded-xl border p-3 outline-none focus-visible:ring-2"
     >
       <div className="flex min-w-0 items-center gap-2.5">
         <RankBadge rank={rank} className="size-9" />
