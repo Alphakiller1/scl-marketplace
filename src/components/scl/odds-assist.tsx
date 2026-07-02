@@ -14,6 +14,8 @@ export type OddsPick = {
   oddsAmerican: number;
 };
 
+type BoardData = { events: OddsEvent[]; configured: boolean };
+
 const MARKET_ORDER = ["Moneyline", "Spread", "Total"] as const;
 
 function groupByMarket(
@@ -44,7 +46,7 @@ export function OddsAssist({
   sport: string;
   onPick: (pick: OddsPick) => void;
 }) {
-  const [cache, setCache] = useState<Record<string, OddsEvent[]>>({});
+  const [cache, setCache] = useState<Record<string, BoardData>>({});
   const [openId, setOpenId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -54,11 +56,20 @@ export function OddsAssist({
       .then((r) => r.json())
       .then((d) => {
         if (cancelled) return;
-        const events = Array.isArray(d.events) ? (d.events as OddsEvent[]) : [];
-        setCache((c) => ({ ...c, [sport]: events }));
+        setCache((c) => ({
+          ...c,
+          [sport]: {
+            events: Array.isArray(d.events) ? (d.events as OddsEvent[]) : [],
+            configured: Boolean(d.configured),
+          },
+        }));
       })
       .catch(() => {
-        if (!cancelled) setCache((c) => ({ ...c, [sport]: [] }));
+        if (!cancelled)
+          setCache((c) => ({
+            ...c,
+            [sport]: { events: [], configured: true },
+          }));
       });
     return () => {
       cancelled = true;
@@ -66,8 +77,10 @@ export function OddsAssist({
   }, [sport, cache]);
 
   if (!sport) return null;
-  const events = cache[sport];
+  const board = cache[sport];
   const loading = !(sport in cache);
+  const events = board?.events;
+  const configured = board?.configured ?? true;
 
   return (
     <Card className="space-y-3 p-4">
@@ -142,10 +155,16 @@ export function OddsAssist({
             );
           })}
         </ul>
+      ) : configured ? (
+        <p className="text-muted-foreground text-xs">
+          No live games for this sport right now — likely off-season. Try MLB,
+          or enter the play manually below.
+        </p>
       ) : (
         <p className="text-muted-foreground text-xs">
-          No live board for this sport right now — check back closer to game
-          time, or enter the play manually below.
+          Live odds aren&apos;t enabled yet — add{" "}
+          <code className="text-foreground">ODDS_API_KEY</code> in Vercel and
+          redeploy to turn on the board. You can enter plays manually for now.
         </p>
       )}
     </Card>

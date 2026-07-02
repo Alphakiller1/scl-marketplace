@@ -60,6 +60,27 @@ export default function NewPlayPage() {
           Parlay
         </Button>
       </div>
+      {/* Sport first — it drives the live board below. */}
+      <Card className="space-y-1.5 p-4 sm:p-5">
+        <Label htmlFor="sport">Sport</Label>
+        <select
+          id="sport"
+          className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-lg border bg-transparent px-3 text-base shadow-xs focus-visible:ring-[3px] focus-visible:outline-none sm:text-sm"
+          defaultValue=""
+          {...register("sport")}
+        >
+          <option value="" disabled>
+            Choose a sport to load tonight&apos;s board…
+          </option>
+          {SPORTS.map((s) => (
+            <option key={s.key} value={s.key}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+        <FieldError message={errors.sport?.message} />
+      </Card>
+
       {selectedSport ? (
         <OddsAssist
           sport={selectedSport}
@@ -69,54 +90,31 @@ export default function NewPlayPage() {
             setValue("oddsAmerican", pick.oddsAmerican, {
               shouldValidate: true,
             });
-            toast.success("Prefilled from live odds");
+            toast.success("Prefilled from the board");
           }}
         />
       ) : null}
+
       {selectedSport ? (
         <div className="flex items-center gap-3">
           <span className="border-border flex-1 border-t" />
           <span className="text-muted-foreground text-xs">
-            or enter manually
+            or enter it manually
           </span>
           <span className="border-border flex-1 border-t" />
         </div>
       ) : null}
+
       <Card className="p-4 sm:p-6">
         <form
           onSubmit={handleSubmit(onSubmit)}
           className="space-y-4"
           noValidate
         >
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="sport">Sport</Label>
-              <select
-                id="sport"
-                className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-lg border bg-transparent px-3 text-base shadow-xs focus-visible:ring-[3px] focus-visible:outline-none sm:text-sm"
-                defaultValue=""
-                {...register("sport")}
-              >
-                <option value="" disabled>
-                  Select…
-                </option>
-                {SPORTS.map((s) => (
-                  <option key={s.key} value={s.key}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-              <FieldError message={errors.sport?.message} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="league">League (Optional)</Label>
-              <Input
-                id="league"
-                placeholder="e.g. NBA"
-                {...register("league")}
-              />
-              <FieldError message={errors.league?.message} />
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="league">League (Optional)</Label>
+            <Input id="league" placeholder="e.g. NBA" {...register("league")} />
+            <FieldError message={errors.league?.message} />
           </div>
 
           <div className="space-y-1.5">
