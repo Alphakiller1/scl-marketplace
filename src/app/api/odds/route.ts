@@ -15,5 +15,9 @@ export async function GET(request: Request) {
   }
   const sport = new URL(request.url).searchParams.get("sport") ?? "";
   const events = await fetchUpcomingOdds(sport);
-  return NextResponse.json({ events });
+  // `configured` lets the UI distinguish "no API key" from "no games right now".
+  return NextResponse.json({
+    events,
+    configured: Boolean(process.env.ODDS_API_KEY),
+  });
 }
