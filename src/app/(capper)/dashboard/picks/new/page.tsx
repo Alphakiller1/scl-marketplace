@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { OddsAssist } from "@/components/scl/odds-assist";
 import { SectionHeader } from "@/components/scl/section";
 import { SPORTS, UNIT_MAX, UNIT_MIN, UNIT_STEP } from "@/lib/constants";
 import {
@@ -24,11 +25,14 @@ export default function NewPlayPage() {
   const {
     register,
     handleSubmit,
+    setValue,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<PlayFormInput, unknown, PlayInput>({
     resolver: zodResolver(playSchema),
     defaultValues: { units: 1 },
   });
+  const selectedSport = useWatch({ control, name: "sport" });
 
   async function onSubmit(values: PlayInput) {
     const res = await createPlay(values);
@@ -56,6 +60,19 @@ export default function NewPlayPage() {
           Parlay
         </Button>
       </div>
+      {selectedSport ? (
+        <OddsAssist
+          sport={selectedSport}
+          onPick={(pick) => {
+            setValue("market", pick.market, { shouldValidate: true });
+            setValue("selection", pick.selection, { shouldValidate: true });
+            setValue("oddsAmerican", pick.oddsAmerican, {
+              shouldValidate: true,
+            });
+            toast.success("Prefilled from live odds");
+          }}
+        />
+      ) : null}
       <Card className="p-4 sm:p-6">
         <form
           onSubmit={handleSubmit(onSubmit)}

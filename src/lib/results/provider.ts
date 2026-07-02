@@ -1,5 +1,7 @@
 import "server-only";
 
+import { toSclSport } from "@/lib/odds-api";
+
 /**
  * Results providers feed the auto-grader. A provider returns completed games with
  * final scores; the auto-grader ("results are in") turns those into play outcomes.
@@ -34,9 +36,10 @@ export class MockResultsProvider implements ResultsProvider {
   }
 }
 
+// SCL sport keys (NBA/MLB/…) so demo results match real plays.
 const DEMO_GAMES: SettledGame[] = [
   {
-    sport: "basketball_nba",
+    sport: "NBA",
     home: "Boston Celtics",
     away: "Los Angeles Lakers",
     homeScore: 118,
@@ -44,7 +47,7 @@ const DEMO_GAMES: SettledGame[] = [
     completed: true,
   },
   {
-    sport: "basketball_nba",
+    sport: "NBA",
     home: "Denver Nuggets",
     away: "Miami Heat",
     homeScore: 99,
@@ -52,7 +55,7 @@ const DEMO_GAMES: SettledGame[] = [
     completed: true,
   },
   {
-    sport: "baseball_mlb",
+    sport: "MLB",
     home: "New York Yankees",
     away: "Boston Red Sox",
     homeScore: 3,
@@ -60,7 +63,7 @@ const DEMO_GAMES: SettledGame[] = [
     completed: true,
   },
   {
-    sport: "americanfootball_nfl",
+    sport: "NFL",
     home: "Kansas City Chiefs",
     away: "Buffalo Bills",
     homeScore: 24,
@@ -88,13 +91,16 @@ export function oddsApiResultsProvider(): ResultsProvider {
       return events
         .filter(
           (e) =>
-            e.completed && Array.isArray(e.scores) && e.scores.length === 2,
+            e.completed &&
+            Array.isArray(e.scores) &&
+            e.scores.length === 2 &&
+            toSclSport(e.sport_key) != null,
         )
         .map((e) => {
           const home = e.scores!.find((s) => s.name === e.home_team);
           const away = e.scores!.find((s) => s.name === e.away_team);
           return {
-            sport: e.sport_key,
+            sport: toSclSport(e.sport_key)!, // normalized to SCL keys to match plays
             home: e.home_team,
             away: e.away_team,
             homeScore: Number(home?.score ?? 0),
