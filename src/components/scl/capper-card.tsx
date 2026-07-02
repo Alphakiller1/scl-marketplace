@@ -37,7 +37,7 @@ export function CapperCard({
   }
 
   return (
-    <Card className="group hover:border-border-strong relative gap-0 overflow-hidden p-3.5 transition-colors sm:p-4">
+    <Card className="group scl-interactive hover:border-border-strong relative gap-0 overflow-hidden p-3.5 sm:p-4">
       <div className="flex items-start gap-3">
         <RankBadge rank={rank ?? capper.rank} />
         <CapperAvatar name={capper.name} src={capper.avatarUrl} size="lg" />

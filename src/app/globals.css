@@ -127,6 +127,15 @@
 
   --radius: 0.7rem;
 
+  /* Elevation — premium, restrained depth. Hairline = a Linear-style top bevel. */
+  --shadow-hairline: inset 0 1px 0 0 oklch(1 0 0 / 0.75);
+  --shadow-card:
+    0 1px 2px oklch(0.28 0.06 295 / 0.06),
+    0 6px 18px -6px oklch(0.28 0.06 295 / 0.1);
+  --shadow-pop:
+    0 1px 2px oklch(0.28 0.06 295 / 0.08),
+    0 14px 40px -10px oklch(0.28 0.06 295 / 0.2);
+
   --sidebar: oklch(0.985 0.012 305);
   --sidebar-foreground: oklch(0.22 0.05 295);
   --sidebar-primary: oklch(0.52 0.2 260);
@@ -191,6 +200,13 @@
   --sidebar-accent-foreground: oklch(0.95 0.05 322);
   --sidebar-border: oklch(1 0 0 / 9%);
   --sidebar-ring: oklch(0.66 0.26 342);
+
+  /* Elevation — dark base wants soft blacks + a faint light top bevel. */
+  --shadow-hairline: inset 0 1px 0 0 oklch(1 0 0 / 0.06);
+  --shadow-card:
+    0 1px 2px oklch(0 0 0 / 0.3), 0 8px 24px -8px oklch(0 0 0 / 0.4);
+  --shadow-pop:
+    0 2px 6px oklch(0 0 0 / 0.4), 0 18px 48px -12px oklch(0 0 0 / 0.62);
 }
 
 @layer base {
@@ -208,6 +224,16 @@
   .nums {
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
+  }
+  /* Premium depth: subtle elevation on cards, a stronger float on overlays. */
+  [data-slot="card"] {
+    box-shadow: var(--shadow-hairline), var(--shadow-card);
+  }
+  [data-slot="dropdown-menu-content"],
+  [data-slot="popover-content"],
+  [data-slot="select-content"],
+  [data-slot="dialog-content"] {
+    box-shadow: var(--shadow-hairline), var(--shadow-pop);
   }
 }
 
@@ -244,5 +270,31 @@
       color-mix(in oklch, var(--card) 100%, transparent),
       color-mix(in oklch, var(--surface-2) 80%, transparent)
     );
+  }
+  /* Opt-in elevation for surfaces that aren't shadcn cards. */
+  .scl-elevated {
+    box-shadow: var(--shadow-hairline), var(--shadow-card);
+  }
+  /* Opt-in hover lift for interactive cards/rows (leaderboard, capper cards). */
+  .scl-interactive {
+    transition:
+      transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      box-shadow 200ms ease,
+      border-color 200ms ease;
+  }
+  @media (hover: hover) {
+    .scl-interactive:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-strong);
+      box-shadow: var(--shadow-hairline), var(--shadow-pop);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .scl-interactive {
+      transition: none;
+    }
+    .scl-interactive:hover {
+      transform: none;
+    }
   }
 }
