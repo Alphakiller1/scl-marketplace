@@ -41,7 +41,7 @@ const MARKETING_NAV = [
 const navLinkClass =
   "border-border bg-surface-2/50 hover:bg-surface-2 focus-visible:ring-ring flex min-h-12 items-center gap-3 rounded-xl border px-4 text-base font-semibold outline-none transition-colors focus-visible:ring-2";
 
-export function MobileSiteNav() {
+export function MobileSiteNav({ authed = false }: { authed?: boolean }) {
   return (
     <Sheet>
       <SheetTrigger
@@ -86,30 +86,50 @@ export function MobileSiteNav() {
         </nav>
 
         <SheetFooter className="border-border border-t">
-          <SheetClose
-            nativeButton={false}
-            render={
-              <Link
-                href="/signup"
-                className="bg-primary text-primary-foreground flex min-h-12 items-center justify-center gap-2 rounded-lg px-4 font-semibold"
-              />
-            }
-          >
-            <UserRoundPlus className="size-4" aria-hidden />
-            Become A Capper
-          </SheetClose>
-          <SheetClose
-            nativeButton={false}
-            render={
-              <Link
-                href="/login"
-                className="border-border hover:bg-surface-2 flex min-h-12 items-center justify-center gap-2 rounded-lg border px-4 font-semibold transition-colors"
-              />
-            }
-          >
-            <LogIn className="size-4" aria-hidden />
-            Log In
-          </SheetClose>
+          {authed ? (
+            <>
+              <SheetClose
+                nativeButton={false}
+                render={
+                  <Link
+                    href="/dashboard"
+                    className="bg-primary text-primary-foreground flex min-h-12 items-center justify-center gap-2 rounded-lg px-4 font-semibold"
+                  />
+                }
+              >
+                <LayoutDashboard className="size-4" aria-hidden />
+                Dashboard
+              </SheetClose>
+              <SignOutButton className="border-border min-h-12 w-full justify-center rounded-lg border" />
+            </>
+          ) : (
+            <>
+              <SheetClose
+                nativeButton={false}
+                render={
+                  <Link
+                    href="/signup"
+                    className="bg-primary text-primary-foreground flex min-h-12 items-center justify-center gap-2 rounded-lg px-4 font-semibold"
+                  />
+                }
+              >
+                <UserRoundPlus className="size-4" aria-hidden />
+                Become A Capper
+              </SheetClose>
+              <SheetClose
+                nativeButton={false}
+                render={
+                  <Link
+                    href="/login"
+                    className="border-border hover:bg-surface-2 flex min-h-12 items-center justify-center gap-2 rounded-lg border px-4 font-semibold transition-colors"
+                  />
+                }
+              >
+                <LogIn className="size-4" aria-hidden />
+                Log In
+              </SheetClose>
+            </>
+          )}
         </SheetFooter>
       </SheetContent>
     </Sheet>
