@@ -64,22 +64,27 @@ export default async function DashboardPage() {
         </Card>
       ) : null}
 
-      <PerformanceScoreboard
-        record={{
-          w: stats.wins,
-          l: stats.losses,
-          p: stats.pushes,
-        }}
-        winPct={stats.winPct}
-        units={stats.units}
-        roi={stats.roi}
-        settled={stats.settled}
-        pending={stats.pending}
-        performanceTrend={performanceTrend}
-      />
+      <div className="scl-reveal">
+        <PerformanceScoreboard
+          record={{
+            w: stats.wins,
+            l: stats.losses,
+            p: stats.pushes,
+          }}
+          winPct={stats.winPct}
+          units={stats.units}
+          roi={stats.roi}
+          settled={stats.settled}
+          pending={stats.pending}
+          performanceTrend={performanceTrend}
+        />
+      </div>
 
       {bySport.length ? (
-        <section className="space-y-4">
+        <section
+          className="scl-reveal space-y-4"
+          style={{ animationDelay: "80ms" }}
+        >
           <SectionHeader
             icon={BarChart3}
             title="By Sport"
@@ -89,7 +94,10 @@ export default async function DashboardPage() {
         </section>
       ) : null}
 
-      <section className="space-y-4">
+      <section
+        className="scl-reveal space-y-4"
+        style={{ animationDelay: "140ms" }}
+      >
         <SectionHeader
           icon={ClipboardList}
           title="Recent Plays"

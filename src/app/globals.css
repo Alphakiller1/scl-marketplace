@@ -275,6 +275,26 @@
   .scl-elevated {
     box-shadow: var(--shadow-hairline), var(--shadow-card);
   }
+  /* Subtle entrance reveal — opt-in, GPU-friendly, reduced-motion aware. Stagger with
+     inline `animation-delay`. Uses `both` fill so there's no pre-paint flash. */
+  @keyframes scl-reveal-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .scl-reveal {
+    animation: scl-reveal-in 440ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .scl-reveal {
+      animation: none;
+    }
+  }
   /* Opt-in hover lift for interactive cards/rows (leaderboard, capper cards). */
   .scl-interactive {
     transition:
