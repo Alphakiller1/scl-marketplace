@@ -1,15 +1,16 @@
 import Link from "next/link";
-import { ClipboardList, MailWarning, Plus } from "lucide-react";
+import { BarChart3, ClipboardList, MailWarning, Plus } from "lucide-react";
 
 import { getCurrentUser } from "@/lib/session";
 import { getCapperPlays } from "@/lib/queries/plays";
-import { computeCapperStats } from "@/lib/stats";
+import { computeCapperStats, computeStatsBySport } from "@/lib/stats";
 import { buildPerformanceTrend } from "@/lib/leaderboard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/scl/states";
 import { SectionHeader } from "@/components/scl/section";
 import { PlayListItem } from "@/components/scl/play-list-item";
+import { PerformanceBySport } from "@/components/scl/performance-by-sport";
 import { PerformanceScoreboard } from "@/components/scl/performance-scoreboard";
 
 export const metadata = { title: "Dashboard" };
@@ -19,6 +20,7 @@ export default async function DashboardPage() {
   const verified = Boolean(user?.emailVerified);
   const plays = user ? await getCapperPlays(user.id) : [];
   const stats = computeCapperStats(plays);
+  const bySport = computeStatsBySport(plays);
   const recent = plays.slice(0, 6);
   const performanceTrend = buildPerformanceTrend(
     [...plays].reverse().map((play) => ({
@@ -75,6 +77,17 @@ export default async function DashboardPage() {
         pending={stats.pending}
         performanceTrend={performanceTrend}
       />
+
+      {bySport.length ? (
+        <section className="space-y-4">
+          <SectionHeader
+            icon={BarChart3}
+            title="By Sport"
+            subtitle="Your settled record and return in each sport"
+          />
+          <PerformanceBySport items={bySport} />
+        </section>
+      ) : null}
 
       <section className="space-y-4">
         <SectionHeader
