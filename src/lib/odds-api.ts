@@ -85,6 +85,19 @@ function normalize(sclSport: string, event: RawEvent): OddsEvent {
     }
   }
 
+  const spreads = firstMarket(event, "spreads");
+  for (const o of spreads?.outcomes ?? []) {
+    if (typeof o.price === "number" && typeof o.point === "number") {
+      const line = `${o.point > 0 ? "+" : ""}${o.point}`;
+      selections.push({
+        label: `${o.name} ${line}`,
+        market: "Spread",
+        selection: `${o.name} ${line}`,
+        oddsAmerican: Math.round(o.price),
+      });
+    }
+  }
+
   const totals = firstMarket(event, "totals");
   for (const o of totals?.outcomes ?? []) {
     if (typeof o.price === "number" && typeof o.point === "number") {
@@ -117,7 +130,7 @@ export async function fetchUpcomingOdds(
 
   const url =
     `https://api.the-odds-api.com/v4/sports/${apiSport}/odds/` +
-    `?apiKey=${apiKey}&regions=us&markets=h2h,totals&oddsFormat=american`;
+    `?apiKey=${apiKey}&regions=us&markets=h2h,spreads,totals&oddsFormat=american`;
 
   try {
     const res = await fetch(url, { next: { revalidate: 120 } });
