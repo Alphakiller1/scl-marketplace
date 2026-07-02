@@ -1,6 +1,6 @@
 import "server-only";
 
-import { toSclSport } from "@/lib/odds-api";
+import { oddsApiKey, toSclSport } from "@/lib/odds-api";
 
 /**
  * Results providers feed the auto-grader. A provider returns completed games with
@@ -74,7 +74,7 @@ const DEMO_GAMES: SettledGame[] = [
 
 /** Real feed: The Odds API scores endpoint. Throws until ODDS_API_KEY is configured. */
 export function oddsApiResultsProvider(): ResultsProvider {
-  const apiKey = process.env.ODDS_API_KEY;
+  const apiKey = oddsApiKey();
   if (!apiKey) {
     throw new ResultsProviderUnavailable("ODDS_API_KEY is not configured");
   }
@@ -122,7 +122,5 @@ type OddsApiScore = {
 
 /** Auto-select the live provider when a key exists; otherwise demo results. */
 export function getResultsProvider(): ResultsProvider {
-  return process.env.ODDS_API_KEY
-    ? oddsApiResultsProvider()
-    : new MockResultsProvider();
+  return oddsApiKey() ? oddsApiResultsProvider() : new MockResultsProvider();
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { fetchUpcomingOdds } from "@/lib/odds-api";
+import { fetchUpcomingOdds, oddsApiKey } from "@/lib/odds-api";
 import { getCurrentUser } from "@/lib/session";
 
 /**
@@ -18,6 +18,6 @@ export async function GET(request: Request) {
   // `configured` lets the UI distinguish "no API key" from "no games right now".
   return NextResponse.json({
     events,
-    configured: Boolean(process.env.ODDS_API_KEY),
+    configured: Boolean(oddsApiKey()),
   });
 }
