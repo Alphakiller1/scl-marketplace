@@ -49,3 +49,7 @@ src/lib/prisma.ts          # Prisma client singleton
 
 Tracked as GitHub issues (labels `phase-1`, `M1-onboarding`, …). See the `SCL`
 planning workspace for the command center, feature prompts, and QA checklists.
+
+Milestone 2 — Play Tracking & Performance Engine — is feature-complete. Its
+scope, implementation evidence, and production closeout checks are recorded in
+[`docs/MILESTONE_2_CLOSEOUT.md`](docs/MILESTONE_2_CLOSEOUT.md).
