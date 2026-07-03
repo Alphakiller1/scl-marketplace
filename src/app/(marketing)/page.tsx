@@ -4,8 +4,7 @@ import { ArrowRight, Flame, ShieldCheck, Trophy, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/scl/section";
 import { CompetitionHero } from "@/components/scl/competition-hero";
-import { Leaderboard } from "@/components/scl/leaderboard";
-import { CapperCard } from "@/components/scl/capper-card";
+import { RankingRail } from "@/components/scl/ranking-rail";
 import { PickCard } from "@/components/scl/pick-card";
 import { EmptyState } from "@/components/scl/states";
 import { sortLeaderboard } from "@/lib/leaderboard";
@@ -34,13 +33,23 @@ export default async function Home() {
             subtitle="Verified records ranked by net units"
             href="/leaderboard"
           />
-          <Leaderboard
-            cappers={cappers}
-            failed={leaderboardFailed}
-            limit={6}
-            compactMobile
-            emptyDescription="Verified cappers will rank here after their first graded plays."
-          />
+          {cappers.length ? (
+            <RankingRail cappers={cappers.slice(0, 6)} metric="units" />
+          ) : (
+            <EmptyState
+              icon={Trophy}
+              title={
+                leaderboardFailed
+                  ? "Couldn't Load The Leaderboard"
+                  : "No Ranked Cappers Found"
+              }
+              description={
+                leaderboardFailed
+                  ? "Performance data is temporarily unavailable. Please try again shortly."
+                  : "Verified cappers will rank here after their first graded plays."
+              }
+            />
+          )}
         </section>
 
         <section className="space-y-4">
@@ -81,16 +90,7 @@ export default async function Home() {
             href="/cappers"
           />
           {topRoi.length ? (
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {topRoi.map((capper, index) => (
-                <CapperCard
-                  key={capper.id}
-                  capper={capper}
-                  rank={index + 1}
-                  compact
-                />
-              ))}
-            </div>
+            <RankingRail cappers={topRoi} metric="roi" />
           ) : (
             <EmptyState
               icon={Flame}

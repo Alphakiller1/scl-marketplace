@@ -10,7 +10,7 @@ export function CompetitionHero() {
       className="dark border-border bg-background text-foreground relative min-h-[31rem] overflow-hidden border-b sm:min-h-[35rem]"
       aria-labelledby="scl-hero-title"
     >
-      <picture className="absolute inset-0">
+      <picture className="absolute inset-0 block size-full">
         <source
           media="(min-width: 640px)"
           srcSet="/assets/scl/leaderboard-trophy-desktop.webp"
@@ -21,12 +21,12 @@ export function CompetitionHero() {
           width="852"
           height="1846"
           fetchPriority="high"
-          className="size-full object-contain object-right-bottom sm:object-right"
+          className="size-full max-w-none object-cover object-center sm:object-center"
         />
       </picture>
       <div
         aria-hidden
-        className="bg-background/55 sm:bg-background/45 absolute inset-0"
+        className="absolute inset-0 bg-[linear-gradient(90deg,var(--background)_0%,color-mix(in_oklch,var(--background)_82%,transparent)_42%,color-mix(in_oklch,var(--background)_24%,transparent)_78%,transparent_100%)]"
       />
 
       <div className="relative mx-auto flex min-h-[31rem] max-w-6xl flex-col px-4 py-8 sm:min-h-[35rem] sm:justify-center sm:px-6 sm:py-14">

@@ -271,6 +271,12 @@
       color-mix(in oklch, var(--surface-2) 80%, transparent)
     );
   }
+  .scl-scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scl-scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
   /* Opt-in elevation for surfaces that aren't shadcn cards. */
   .scl-elevated {
     box-shadow: var(--shadow-hairline), var(--shadow-card);

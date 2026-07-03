@@ -46,6 +46,7 @@ export type OddsSelection = {
   market: string; // prefill for the play's market field
   selection: string; // prefill for the play's selection field
   oddsAmerican: number;
+  team?: string;
 };
 
 export type OddsEvent = {
@@ -86,6 +87,7 @@ function normalize(sclSport: string, event: RawEvent): OddsEvent {
         market: "Moneyline",
         selection: o.name,
         oddsAmerican: Math.round(o.price),
+        team: o.name,
       });
     }
   }
@@ -99,6 +101,7 @@ function normalize(sclSport: string, event: RawEvent): OddsEvent {
         market: "Spread",
         selection: `${o.name} ${line}`,
         oddsAmerican: Math.round(o.price),
+        team: o.name,
       });
     }
   }

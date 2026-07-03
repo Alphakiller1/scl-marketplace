@@ -9,6 +9,7 @@ import {
   SportTag,
   StatusBadge,
 } from "@/components/scl/badges";
+import { TeamMarkFromText } from "@/components/scl/team-mark";
 
 /** Today's-pick card — the active, valuable surface of the product. */
 export function PickCard({
@@ -32,15 +33,22 @@ export function PickCard({
         <StatusBadge status={pick.status} />
       </div>
 
-      <div className="mt-3">
-        <div className="text-muted-foreground text-sm">{pick.event}</div>
-        <div className="mt-0.5 flex items-baseline gap-2">
-          <span className="text-lg font-semibold tracking-tight">
-            {pick.selection}
-          </span>
-          <span className="nums text-muted-foreground text-sm font-semibold tabular-nums">
-            {formatOdds(pick.oddsAmerican)}
-          </span>
+      <div className="mt-3 flex items-center gap-3">
+        <TeamMarkFromText
+          text={pick.selection}
+          sport={pick.sport}
+          className="size-10"
+        />
+        <div className="min-w-0">
+          <div className="text-muted-foreground text-sm">{pick.event}</div>
+          <div className="mt-0.5 flex items-baseline gap-2">
+            <span className="truncate text-lg font-semibold tracking-tight">
+              {pick.selection}
+            </span>
+            <span className="nums text-muted-foreground shrink-0 text-sm font-semibold tabular-nums">
+              {formatOdds(pick.oddsAmerican)}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -96,7 +104,12 @@ function CompactPickCard({ pick }: { pick: TodayPick }) {
         <StatusBadge status={pick.status} className="shrink-0" />
       </div>
 
-      <div className="mt-2 flex min-w-0 items-baseline gap-2">
+      <div className="mt-2 flex min-w-0 items-center gap-2">
+        <TeamMarkFromText
+          text={pick.selection}
+          sport={pick.sport}
+          className="size-7"
+        />
         <span className="truncate text-base font-semibold">
           {pick.selection}
         </span>
