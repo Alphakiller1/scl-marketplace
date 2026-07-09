@@ -8,11 +8,16 @@ import { SectionHeader } from "@/components/scl/section";
 export const metadata = { title: "Admin" };
 
 export default async function AdminOverviewPage() {
-  const [cappers, plays, pending] = await Promise.all([
-    prisma.capperProfile.count(),
-    prisma.play.count(),
-    prisma.play.count({ where: { outcome: "PENDING" } }),
-  ]);
+  const [cappers, straightPlays, parlays, pendingStraight, pendingParlays] =
+    await Promise.all([
+      prisma.capperProfile.count(),
+      prisma.play.count({ where: { parlayId: null } }),
+      prisma.parlay.count(),
+      prisma.play.count({ where: { outcome: "PENDING", parlayId: null } }),
+      prisma.parlay.count({ where: { outcome: "PENDING" } }),
+    ]);
+  const positions = straightPlays + parlays;
+  const pending = pendingStraight + pendingParlays;
 
   return (
     <div className="space-y-8">
@@ -24,7 +29,7 @@ export default async function AdminOverviewPage() {
       <Card className="p-4">
         <div className="grid grid-cols-3 gap-4">
           <StatBlock label="Cappers" value={cappers} />
-          <StatBlock label="Plays" value={plays} />
+          <StatBlock label="Positions" value={positions} />
           <StatBlock label="Pending grade" value={pending} tone="gold" />
         </div>
       </Card>

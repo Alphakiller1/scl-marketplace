@@ -114,6 +114,7 @@ function fetchRankableProfiles(filters: LeaderboardFilters) {
           profitUnits: true,
           createdAt: true,
           gradedAt: true,
+          legs: { select: { sport: true } },
         },
         orderBy: { createdAt: "asc" },
       },
@@ -220,7 +221,10 @@ function summarize(p: ProfileRow): CapperSummary | null {
     bannerUrl: p.bannerUrl ?? undefined,
     verified: p.user.emailVerified != null,
     topSport: topSport(
-      p.plays.map((x) => x.sport),
+      [
+        ...p.plays.map((x) => x.sport),
+        ...p.parlays.flatMap((x) => x.legs.map((leg) => leg.sport)),
+      ],
       p.sports[0],
     ),
     rank: 0, // assigned after sort

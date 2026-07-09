@@ -22,6 +22,7 @@ export default async function AdminGradingPage() {
     getParlayGradingQueue(),
     getRecentGradingAudits(),
   ]);
+  const pendingPositions = queue.length + parlays.length;
 
   return (
     <div className="space-y-8">
@@ -30,7 +31,7 @@ export default async function AdminGradingPage() {
           <SectionHeader
             icon={ClipboardCheck}
             title="Grading Queue"
-            subtitle={`${queue.length} pending ${queue.length === 1 ? "play" : "plays"} awaiting a result`}
+            subtitle={`${pendingPositions} pending ${pendingPositions === 1 ? "position" : "positions"} awaiting a result`}
           />
           <AutoGradeButton />
         </div>
@@ -68,8 +69,12 @@ export default async function AdminGradingPage() {
         ) : (
           <EmptyState
             icon={ClipboardCheck}
-            title="Nothing to grade"
-            description="Pending plays appear here as cappers submit them."
+            title={parlays.length ? "No straight plays to grade" : "Nothing to grade"}
+            description={
+              parlays.length
+                ? "Pending parlays are listed below."
+                : "Pending positions appear here as cappers submit them."
+            }
           />
         )}
       </section>

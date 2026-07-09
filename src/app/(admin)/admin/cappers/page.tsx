@@ -24,7 +24,7 @@ export default async function AdminCappersPage() {
           <div className="border-border bg-surface-2 text-muted-foreground hidden grid-cols-[minmax(0,1fr)_7rem_5rem_1.4fr] gap-4 border-b px-4 py-2 text-xs font-semibold uppercase md:grid">
             <span>Capper</span>
             <span>Status</span>
-            <span>Plays</span>
+            <span>Positions</span>
             <span>Control</span>
           </div>
           <div className="divide-border divide-y">
@@ -50,9 +50,10 @@ export default async function AdminCappersPage() {
                   <AccountStatusBadge status={account.accountStatus} />
                 </div>
                 <div className="nums text-sm font-semibold tabular-nums">
-                  {account.capperProfile?._count.plays ?? 0}
+                  {(account.capperProfile?.plays.length ?? 0) +
+                    (account.capperProfile?.parlays.length ?? 0)}
                   <span className="text-muted-foreground ml-1 font-normal md:hidden">
-                    plays
+                    positions
                   </span>
                 </div>
                 <AccountStatusControl

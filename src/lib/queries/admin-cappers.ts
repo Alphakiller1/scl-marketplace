@@ -16,7 +16,13 @@ export async function getAdminCapperAccounts() {
       capperProfile: {
         select: {
           sports: true,
-          _count: { select: { plays: true } },
+          plays: {
+            where: { parlayId: null },
+            select: { id: true },
+          },
+          parlays: {
+            select: { id: true },
+          },
         },
       },
     },
