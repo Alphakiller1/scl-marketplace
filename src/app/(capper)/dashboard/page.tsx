@@ -37,7 +37,7 @@ export default async function DashboardPage() {
             Welcome{user?.name ? `, ${user.name}` : ""}
           </h1>
           <p className="text-muted-foreground text-sm">
-            Your record builds as you log plays and they&apos;re graded.
+            Your record builds as you log tracked positions and they&apos;re graded.
           </p>
         </div>
         <Button
@@ -54,7 +54,7 @@ export default async function DashboardPage() {
           <MailWarning className="text-gold mt-0.5 size-5 shrink-0" />
           <div className="text-sm">
             <p className="font-medium">
-              Verify Your Email To Start Logging Plays
+              Verify Your Email To Start Logging Positions
             </p>
             <p className="text-muted-foreground">
               We sent a verification link when you signed up. Gated capper
@@ -100,7 +100,7 @@ export default async function DashboardPage() {
       >
         <SectionHeader
           icon={ClipboardList}
-          title="Recent Plays"
+          title="Recent Positions"
           href={plays.length ? "/dashboard/picks" : undefined}
         />
         {recent.length ? (
@@ -112,8 +112,8 @@ export default async function DashboardPage() {
         ) : (
           <EmptyState
             icon={ClipboardList}
-            title="No Plays Yet"
-            description="Submit your first play to start building a verified record."
+            title="No Positions Yet"
+            description="Submit your first play or parlay to start building a verified record."
             action={
               <Button
                 render={<Link href="/dashboard/picks/new" />}

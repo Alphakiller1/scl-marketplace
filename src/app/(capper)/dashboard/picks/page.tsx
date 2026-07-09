@@ -18,7 +18,7 @@ export default async function MyPicksPage() {
     <div className="space-y-4">
       <SectionHeader
         title="My Picks"
-        subtitle={`${plays.length} submitted ${plays.length === 1 ? "play" : "plays"}`}
+        subtitle={`${plays.length} submitted ${plays.length === 1 ? "position" : "positions"}`}
         href="/dashboard/picks/new"
         hrefLabel="Submit A Play"
       />
@@ -31,8 +31,8 @@ export default async function MyPicksPage() {
       ) : (
         <EmptyState
           icon={ClipboardList}
-          title="No Plays Yet"
-          description="Your submitted plays will appear here."
+          title="No Positions Yet"
+          description="Your submitted plays and parlays will appear here."
           action={
             <Button
               render={<Link href="/dashboard/picks/new" />}

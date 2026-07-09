@@ -49,8 +49,8 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
         <section id="recent-picks" className="scroll-mt-20">
           <SectionHeader
             icon={ListChecks}
-            title="Recent Plays"
-            subtitle="Latest tracked plays, newest first"
+            title="Recent Positions"
+            subtitle="Latest tracked plays and parlays, newest first"
           />
           {plays.length ? (
             <div className="mt-4 space-y-2">
@@ -62,15 +62,15 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
             <EmptyState
               className="mt-4"
               icon={ListChecks}
-              title="Couldn't Load Recent Plays"
-              description="We hit a snag loading this capper's plays. Please try again shortly."
+              title="Couldn't Load Recent Positions"
+              description="We hit a snag loading this capper's tracked positions. Please try again shortly."
             />
           ) : (
             <EmptyState
               className="mt-4"
               icon={ListChecks}
-              title="No Tracked Plays Yet"
-              description={`${capper.name} hasn't posted any graded plays yet.`}
+              title="No Tracked Positions Yet"
+              description={`${capper.name} hasn't posted any tracked plays or parlays yet.`}
             />
           )}
         </section>
