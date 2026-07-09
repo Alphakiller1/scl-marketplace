@@ -1,9 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
 import { profitUnitsForOutcome } from "@/lib/odds";
 import { prisma } from "@/lib/prisma";
+import { revalidateTrackingSurfaces } from "@/lib/revalidate-tracking";
 import {
   gradePlaySchema,
   type GradePlayInput,
@@ -40,6 +39,7 @@ export async function gradePlayAction(
       oddsAmerican: true,
       units: true,
       parlayId: true,
+      capper: { select: { user: { select: { username: true } } } },
     },
   });
   if (!play) return { ok: false, error: "Play not found." };
@@ -82,8 +82,6 @@ export async function gradePlayAction(
     }),
   ]);
 
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/picks");
-  revalidatePath("/admin/grading");
+  revalidateTrackingSurfaces(play.capper.user.username);
   return { ok: true };
 }

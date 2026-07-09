@@ -1,7 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
 import { settleParlay } from "@/lib/grading";
 import {
   americanToDecimal,
@@ -9,6 +7,7 @@ import {
   decimalToAmerican,
 } from "@/lib/odds";
 import { prisma } from "@/lib/prisma";
+import { revalidateTrackingSurfaces } from "@/lib/revalidate-tracking";
 import {
   createParlaySchema,
   gradeParlaySchema,
@@ -48,7 +47,7 @@ export async function createParlay(input: CreateParlayInput): Promise<Result> {
 
   const profile = await prisma.capperProfile.findUnique({
     where: { userId: account.id },
-    select: { id: true },
+    select: { id: true, user: { select: { username: true } } },
   });
   if (!profile) return { ok: false, error: "No capper profile found." };
 
@@ -76,8 +75,7 @@ export async function createParlay(input: CreateParlayInput): Promise<Result> {
     },
   });
 
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/picks");
+  revalidateTrackingSurfaces(profile.user.username);
   return { ok: true };
 }
 
@@ -108,6 +106,7 @@ export async function gradeParlayAction(
     select: {
       id: true,
       units: true,
+      capper: { select: { user: { select: { username: true } } } },
       legs: { select: { id: true, oddsAmerican: true, outcome: true } },
     },
   });
@@ -170,7 +169,6 @@ export async function gradeParlayAction(
 
   await prisma.$transaction(ops);
 
-  revalidatePath("/admin/grading");
-  revalidatePath("/dashboard");
+  revalidateTrackingSurfaces(parlay.capper.user.username);
   return { ok: true };
 }

@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { runAutoGradeAction } from "@/lib/actions/auto-grade.action";
 
-/** Admin control: run the auto-grader over pending plays (demo results until a key is set). */
+/** Admin control: run the auto-grader over pending positions. */
 export function AutoGradeButton() {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -25,7 +25,7 @@ export function AutoGradeButton() {
     if (result.graded === 0) {
       toast.info(
         result.skipped === 0
-          ? "No pending plays to grade."
+          ? "No pending positions to grade."
           : `Nothing auto-gradable yet — ${result.skipped} left for manual review.`,
       );
     } else {

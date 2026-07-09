@@ -1,7 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
+import { revalidateTrackingSurfaces } from "@/lib/revalidate-tracking";
 import { autoGradePending } from "@/lib/results/auto-grade";
 import {
   getResultsProvider,
@@ -14,15 +13,14 @@ type AutoGradeActionResult =
   | { ok: false; error: string };
 
 /**
- * Admin trigger: grade every pending play we can resolve from settled results.
+ * Admin trigger: grade every pending position we can resolve from settled results.
  * Uses the live provider when ODDS_API_KEY is set, otherwise demo results.
  */
 export async function runAutoGradeAction(): Promise<AutoGradeActionResult> {
   await requireAdmin();
   try {
     const result = await autoGradePending(getResultsProvider());
-    revalidatePath("/admin/grading");
-    revalidatePath("/dashboard");
+    revalidateTrackingSurfaces();
     return { ok: true, ...result };
   } catch (err) {
     if (err instanceof ResultsProviderUnavailable) {

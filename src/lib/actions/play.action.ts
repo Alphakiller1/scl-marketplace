@@ -1,8 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
 import { prisma } from "@/lib/prisma";
+import { revalidateTrackingSurfaces } from "@/lib/revalidate-tracking";
 import { getCurrentAccount } from "@/lib/session";
 import { playSchema, type PlayInput } from "@/lib/schemas/play.schema";
 
@@ -31,7 +30,7 @@ export async function createPlay(input: PlayInput): Promise<PlayResult> {
 
   const profile = await prisma.capperProfile.findUnique({
     where: { userId: account.id },
-    select: { id: true },
+    select: { id: true, user: { select: { username: true } } },
   });
   if (!profile) return { ok: false, error: "No capper profile found." };
 
@@ -49,7 +48,6 @@ export async function createPlay(input: PlayInput): Promise<PlayResult> {
     },
   });
 
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/picks");
+  revalidateTrackingSurfaces(profile.user.username);
   return { ok: true };
 }
