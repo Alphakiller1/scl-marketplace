@@ -140,6 +140,94 @@ SCREENSHOT_OCR}` and `Play.sourceRef String?` (permalink to the originating post
   exists; otherwise defer. Do not fake it.
 - **Guardrail:** official data only; label honestly ("CLV where closing data available").
 
+## 4B. Beyond automated capture — non-capture learnings
+
+Everything above M2-4 is about verification/provenance. The following are things SDN does
+_besides_ pulling picks from channels that SCL can adopt regardless of whether the connectors
+ever ship.
+
+### 4B-1 · Grading as a visible trust signal (not just a state change)
+
+- **SDN:** auto-grades off official scoreboards, typically **within ~15 min** of the final, and
+  markets that speed + official sourcing as a feature.
+- **SCL application:** SCL already auto-grades with a `GradingAudit` trail — but it's currently
+  plumbing, not a public trust signal. Surface it: on a settled pick show **"Graded 12 min after
+  final · official box score"** and expose the audit (source `AUTO`/`ADMIN_OVERRIDE`/`MANUAL` +
+  timestamp) on hover. Publish a platform-level **median grade latency** as a trust stat on the
+  home dashboard. Fast, transparent grading _is_ credibility; make it legible.
+
+### 4B-2 · Verification-gated leaderboard eligibility
+
+- **SDN:** "verification eligibility & leaderboard" is a bundled gate — the leaderboard is for
+  verified records.
+- **SCL application:** make leaderboard **placement contingent on verification tier** (§M2-3).
+  Unverified/self-reported records still get a profile, but rank in a separate/greyed lane and
+  are excluded from the headline leaderboard. This protects the one asset SCL cannot afford to
+  dilute — the trustworthiness of the ranking itself.
+
+### 4B-3 · Smart manual entry (AI text-parse + slip OCR) — friction, not sync
+
+- **SDN:** even the manual tier accepts free-text paste (AI parses it) and bet-slip screenshot
+  upload — separate from channel sync.
+- **SCL application:** the capper submit form should accept **`"Lakers -3.5 -110 2u"`**-style
+  free text and parse it into the structured `Play` fields (sport, market, selection, odds,
+  units) with a confirm step, plus optional slip-image OCR. This slashes submit friction for the
+  many cappers who won't wire up a connector. Trust rule stays: self-submitted **pre-game** on
+  SCL → `VERIFIED`; OCR-only → `SELF-REPORTED` (§M2-3).
+
+### 4B-4 · Analytics presentation kit
+
+- **SDN:** units-or-dollars toggle, streaks, and breakdowns by sport / bet type / time window.
+- **SCL application:** ship a small, consistent analytics kit on the capper profile — a **units/$
+  toggle**, a **daily cumulative-units curve**, **streak** surfacing, and **sport / bet-type /
+  window** breakdowns (extends §M2-6). Keep the **market taxonomy complete** (SDN commits to
+  "add unsupported bet types on request") so records stay comparable across cappers — an
+  incomplete/ad-hoc bet-type list quietly breaks leaderboard fairness.
+
+### 4B-5 · Table interaction model for picks/history
+
+- **SDN:** the bets view is a sortable, paginated table (`sortBy=placed_at&sortDir=desc&limit=50&offset=0`).
+- **SCL application:** standardize Today's Picks, profile pick-history, and admin grading on one
+  TanStack-Table pattern — **default sort = most-recently-posted first**, server-side pagination
+  (`limit`/`offset`), sortable columns, and filters (sport, outcome, tier, window). Desktop
+  table / mobile cards per the design contract.
+
+### 4B-6 · The verified record as a first-class marketing asset
+
+- **SDN:** sells "clean, shareable visuals to demonstrate track records" as a _core_ value, not
+  a nice-to-have.
+- **SCL application:** treat the **public profile URL + share card** (§M2-5) as the capper's
+  primary marketing asset, not decoration. First-class: OG images on every profile, a "share my
+  verified record" action, deep links back to SCL, and copy that positions SCL as _the_ place a
+  capper points followers to prove their record. This is also SCL's cheapest acquisition channel
+  — cappers market SCL for free every time they share.
+
+### 4B-7 · Positioning & narrative — "one canonical, non-hindsight record"
+
+- **SDN:** "Post Anywhere. Tracked Everywhere." · records "reflect real calls, not hindsight."
+- **SCL application:** adopt the two narrative pillars in product copy: (a) **not hindsight** —
+  lead trust messaging with pre-game logging + timestamps; (b) **one canonical home** — SCL is
+  the single verified record for a capper whose posts are otherwise scattered across
+  X/Discord/Telegram. This states SCL's reputation-layer identity as a value prop and doesn't
+  depend on the connectors existing yet.
+
+### 4B-8 · Monetization & value-ladder insight
+
+- **SDN:** cappers **pay** ($25/mo + volume-based custom, free trial) for verified tracking and a
+  credibility asset — proof that a verified record has standalone willingness-to-pay.
+- **SCL application:** SCL monetizes the marketplace (packages → native checkout), not tracking —
+  but the insight is the **value ladder**: the free public verified record is the hook that earns
+  trust and audience, and the paid rungs are marketplace tools (native checkout,
+  promotion/placement, deeper analytics). Keep the record itself free and public; charge for
+  reach and commerce, not for being ranked.
+
+### Where SCL should out-invest SDN (its lane)
+
+SDN's leaderboard, discovery, and comparison are a thin credibility bolt-on to a personal
+tracker. For SCL they are **the product**. SCL should out-invest SDN on **leaderboard depth**
+(movement, recent form, tier + sport + window slicing), **capper discovery/comparison**, and the
+**following graph** — the surfaces SDN under-builds because tracking, not discovery, is its core.
+
 ## 5. Do NOT copy
 
 - **SDN's product identity** — it's a personal tracker + subscription. SCL monetizes the
