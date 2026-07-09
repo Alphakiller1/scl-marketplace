@@ -1,8 +1,7 @@
 import "server-only";
 
-import { prisma } from "@/lib/prisma";
 import { getLeaderboard } from "@/lib/queries/leaderboard";
-import type { PlayView } from "@/lib/queries/plays";
+import { getCapperPlaysByHandle, type PlayView } from "@/lib/queries/plays";
 import type { CapperSummary } from "@/lib/mock";
 
 export type PublicCapper = {
@@ -29,23 +28,7 @@ export async function getPublicCapperByHandle(
   let plays: PlayView[] = [];
   let playsError = false;
   try {
-    const rows = await prisma.play.findMany({
-      where: { capper: { user: { username: handle } } },
-      orderBy: { createdAt: "desc" },
-      take: 8,
-    });
-    plays = rows.map((p) => ({
-      id: p.id,
-      sport: p.sport,
-      league: p.league,
-      market: p.market,
-      selection: p.selection,
-      oddsAmerican: p.oddsAmerican,
-      units: Number(p.units),
-      outcome: p.outcome,
-      profitUnits: p.profitUnits == null ? null : Number(p.profitUnits),
-      createdAt: p.createdAt,
-    }));
+    plays = await getCapperPlaysByHandle(handle, 8);
   } catch (err) {
     console.error("[getPublicCapperByHandle] plays unavailable:", err);
     playsError = true;

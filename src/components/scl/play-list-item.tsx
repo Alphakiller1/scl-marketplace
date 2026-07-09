@@ -27,6 +27,24 @@ export function PlayListItem({ play }: { play: PlayView }) {
         <StatusBadge status={OUTCOME_TO_STATUS[play.outcome]} />
       </div>
       <p className="mt-2 font-semibold break-words">{play.selection}</p>
+      {play.kind === "parlay" && play.legs?.length ? (
+        <div className="border-border mt-2 space-y-1.5 border-l pl-3">
+          {play.legs.map((leg, index) => (
+            <div
+              key={leg.id}
+              className="text-muted-foreground flex min-w-0 items-center gap-2 text-xs"
+            >
+              <span className="nums text-foreground/70 tabular-nums">
+                {index + 1}.
+              </span>
+              <span className="truncate">{leg.selection}</span>
+              <span className="nums shrink-0 tabular-nums">
+                {formatOdds(leg.oddsAmerican)}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
       <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
         <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
           <span>{play.market}</span>
