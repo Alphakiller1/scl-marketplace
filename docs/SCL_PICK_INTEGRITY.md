@@ -53,15 +53,37 @@ deleted losses, no fake records."_ This doc makes it enforceable rather than asp
 - **Fairness:** typeahead over today's slate; free text is only a fallback that lands the pick as
   `SELF-REPORTED`.
 
-### C3 · Line & odds verification
+### C3 · Line & odds verification (game lines + alt lines + props)
 
-- At submission, capture the event/market's **available line and price** from the
-  official/odds source. Validate the capper's claimed `oddsAmerican` and `line` against a **real,
-  available number** (within a defined tolerance, or against best-available at capture time).
-- Reject implausible odds (e.g. +150 on a −110 market). Optionally snap to the verified price and
-  mark `oddsVerified = true`.
-- **Fairness:** a tolerance band absorbs normal book-to-book variance; only clearly fabricated
-  prices are blocked.
+Implemented as pure logic in `src/lib/odds-verify.ts` (unit-tested) + a server fetch in
+`src/lib/odds-api.ts` (`verifyPick` / `fetchEventOddsForVerification`).
+
+- **One-sided bound, in implied-probability space.** Fraud is always claiming a price _better_
+  than was obtainable; a capper has no incentive to claim a worse one. So we don't match a
+  "correct" price — we bound how good it could be: **accept iff `claimedImplied ≥
+bestAvailableImplied − tolerance`.** Compare in implied-prob (American odds are non-linear;
+  +100→+110 ≠ −110→−120). `bestAvailable` = the most bettor-favorable price across covered US
+  books for the exact `{ market, side, line }`. Default tolerance ~2 implied-prob points; widen
+  per volatile market (plus-money dogs, props).
+- **Covers game lines, alternate lines, and props** via one **bundled per-event** Odds API call
+  (`h2h,spreads,totals,alternate_spreads,alternate_totals` + a curated per-sport prop set),
+  `regions=us`, cached (Next fetch `revalidate` TTL) so picks on the same event share one snapshot.
+- **Grade at the claimed price** (authenticity); expose a **median reference** price so the
+  leaderboard can rank on a fabrication-proof number.
+- **Degrade, never hard-block.** If no covered book offered that exact market/side/line →
+  `unverifiable` → the pick is `SELF-REPORTED` (§M2-3), not rejected. Only a price clearly better
+  than best-available (beyond tolerance) is **rejected**.
+- **Fairness:** the tolerance band absorbs normal book-to-book + timing variance; only clearly
+  fabricated prices are blocked.
+
+**Odds API budget (dedicated key).** Cost = markets × regions; alt lines + props force the
+per-event endpoint, so bundle everything into one call, stay `us`-only, curate the prop list, and
+**fetch-on-submission with a per-event TTL cache** (pay per _picked event_, not per pick). At
+~10 markets × 1 region ≈ ~10 credits/event-fetch, a 20k/month key ≈ ~65 event-fetches/day →
+~40–65 distinct picked events/day with caching — enough for a small-to-moderate slate. Blanket
+slate polling, multi-region, uncurated props, or huge slates (NCAAB 100+ games) exceed it. Usage
+is logged (`x-requests-remaining`) so burn is watched against the cap; size the plan off SCL's own
+projected picked-events/day.
 
 ### C4 · Formal immutability
 
