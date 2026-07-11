@@ -1,5 +1,15 @@
 import "server-only";
 
+import {
+  VERIFY_REGIONS,
+  VERIFY_TTL_SECONDS,
+  collectAvailablePrices,
+  verificationMarkets,
+  verifyOdds,
+  type RawEventOdds,
+  type VerifyResult,
+} from "@/lib/odds-verify";
+
 /**
  * The Odds API client (odds-assist + auto-grade). Reads ODDS_API_KEY at runtime;
  * every function degrades gracefully to empty when the key or sport isn't available,
@@ -148,4 +158,84 @@ export async function fetchUpcomingOdds(
   } catch {
     return [];
   }
+}
+
+// ── pick odds/line verification (docs/SCL_PICK_INTEGRITY.md §C3) ──────────────
+
+/** Log Odds API credit usage from a response so burn is observable vs. the plan cap. */
+function logOddsUsage(res: Response, label: string): void {
+  const remaining = res.headers.get("x-requests-remaining");
+  const last = res.headers.get("x-requests-last");
+  if (remaining !== null || last !== null) {
+    console.info(
+      `[odds] ${label}: cost=${last ?? "?"} remaining=${remaining ?? "?"}`,
+    );
+  }
+}
+
+/**
+ * One BUNDLED per-event odds call (featured + alternate + curated props), `regions=us`, cached
+ * for VERIFY_TTL_SECONDS via Next's fetch data cache so picks on the same event within the window
+ * share it (one credit spend, not one per pick). Returns null when no key / unsupported sport /
+ * fetch fails — the caller then treats the pick as unverifiable (SELF-REPORTED), never rejected.
+ */
+export async function fetchEventOddsForVerification(
+  sclSport: string,
+  eventId: string,
+): Promise<RawEventOdds | null> {
+  const apiKey = oddsApiKey();
+  const apiSport = toOddsApiSport(sclSport);
+  if (!apiKey || !apiSport) return null;
+  const markets = verificationMarkets(sclSport).join(",");
+  const url =
+    `https://api.the-odds-api.com/v4/sports/${apiSport}/events/${eventId}/odds/` +
+    `?apiKey=${apiKey}&regions=${VERIFY_REGIONS}&markets=${markets}&oddsFormat=american`;
+  try {
+    const res = await fetch(url, {
+      next: { revalidate: VERIFY_TTL_SECONDS, tags: [`odds-event:${eventId}`] },
+    });
+    logOddsUsage(res, `event ${eventId}`);
+    if (!res.ok) return null;
+    return (await res.json()) as RawEventOdds;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch + verify a claimed pick price against the live market (one-sided implied-prob bound).
+ * `unverifiable` when the event/market can't be sourced (→ SELF-REPORTED); `verified`/`rejected`
+ * otherwise. Grade at the capper's claimed price; rank on `reference` (see §C3).
+ */
+export async function verifyPick(params: {
+  sclSport: string;
+  eventId: string;
+  marketKeys: string[];
+  side: string;
+  line?: number;
+  player?: string;
+  claimedAmerican: number;
+  toleranceProb?: number;
+}): Promise<VerifyResult> {
+  const event = await fetchEventOddsForVerification(
+    params.sclSport,
+    params.eventId,
+  );
+  if (!event) {
+    return {
+      status: "unverifiable",
+      reason: "Odds unavailable for this event.",
+    };
+  }
+  const availableAmerican = collectAvailablePrices(event, {
+    marketKeys: params.marketKeys,
+    side: params.side,
+    line: params.line,
+    player: params.player,
+  });
+  return verifyOdds({
+    claimedAmerican: params.claimedAmerican,
+    availableAmerican,
+    toleranceProb: params.toleranceProb,
+  });
 }
