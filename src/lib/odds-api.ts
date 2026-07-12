@@ -3,6 +3,7 @@ import "server-only";
 import {
   VERIFY_REGIONS,
   VERIFY_TTL_SECONDS,
+  bestAvailableAmerican,
   collectAvailablePrices,
   verificationMarkets,
   verifyOdds,
@@ -245,4 +246,113 @@ export async function verifyPick(params: {
     availableAmerican,
     toleranceProb: params.toleranceProb,
   });
+}
+
+// ── expanded per-event board (game lines + alternate lines) ───────────────────
+
+/** Odds API market keys we surface on the board, mapped to the SCL market label. */
+const BOARD_MARKETS: Record<string, "Moneyline" | "Spread" | "Total"> = {
+  h2h: "Moneyline",
+  spreads: "Spread",
+  alternate_spreads: "Spread",
+  totals: "Total",
+  alternate_totals: "Total",
+};
+
+const MARKET_SORT = { Moneyline: 0, Spread: 1, Total: 2 } as const;
+
+/**
+ * Flatten a per-event odds payload into board selections spanning featured **and alternate**
+ * game lines. Prices for the same { market, side, line } are collapsed across books to the single
+ * most bettor-favorable number, so each row shows the best line available. Pure.
+ */
+export function normalizeEventBoard(event: RawEventOdds): OddsSelection[] {
+  const groups = new Map<
+    string,
+    {
+      market: "Moneyline" | "Spread" | "Total";
+      side: string;
+      line?: number;
+      prices: number[];
+    }
+  >();
+
+  for (const bm of event.bookmakers ?? []) {
+    for (const m of bm.markets ?? []) {
+      const market = BOARD_MARKETS[m.key];
+      if (!market) continue;
+      for (const o of m.outcomes ?? []) {
+        if (typeof o.price !== "number") continue;
+        const line = typeof o.point === "number" ? o.point : undefined;
+        if (market !== "Moneyline" && line === undefined) continue;
+        const key = `${market}|${o.name.toLowerCase()}|${line ?? ""}`;
+        const g = groups.get(key);
+        if (g) g.prices.push(Math.round(o.price));
+        else
+          groups.set(key, {
+            market,
+            side: o.name,
+            line,
+            prices: [Math.round(o.price)],
+          });
+      }
+    }
+  }
+
+  const selections: OddsSelection[] = [];
+  for (const g of groups.values()) {
+    const best = bestAvailableAmerican(g.prices);
+    if (best === null) continue;
+    if (g.market === "Moneyline") {
+      selections.push({
+        label: `${g.side} ML`,
+        market: "Moneyline",
+        selection: g.side,
+        side: g.side,
+        oddsAmerican: best,
+      });
+    } else if (g.market === "Spread") {
+      const signed = `${(g.line ?? 0) > 0 ? "+" : ""}${g.line}`;
+      selections.push({
+        label: `${g.side} ${signed}`,
+        market: "Spread",
+        selection: `${g.side} ${signed}`,
+        side: g.side,
+        line: g.line,
+        oddsAmerican: best,
+      });
+    } else {
+      selections.push({
+        label: `${g.side} ${g.line}`,
+        market: "Total",
+        selection: `${g.side} ${g.line}`,
+        side: g.side,
+        line: g.line,
+        oddsAmerican: best,
+      });
+    }
+  }
+
+  return selections.sort((a, b) => {
+    const ma = MARKET_SORT[a.market as keyof typeof MARKET_SORT] ?? 9;
+    const mb = MARKET_SORT[b.market as keyof typeof MARKET_SORT] ?? 9;
+    if (ma !== mb) return ma - mb;
+    // Keep each side's alternate-line ladder contiguous (team ladder / all Over then Under).
+    if (a.side !== b.side) return a.side.localeCompare(b.side);
+    return (a.line ?? 0) - (b.line ?? 0);
+  });
+}
+
+/**
+ * The full board for one event — featured + alternate game lines — reusing the cached per-event
+ * verification fetch, so browsing and verifying the same event share a single credit spend.
+ * Returns [] when the event can't be sourced (no key / unsupported / fetch failure).
+ */
+export async function fetchEventBoard(
+  sclSport: string,
+  eventId: string,
+): Promise<OddsSelection[]> {
+  const event = await fetchEventOddsForVerification(sclSport, eventId);
+  if (!event) return [];
+  return normalizeEventBoard(event);
 }
