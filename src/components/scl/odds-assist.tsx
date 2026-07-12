@@ -12,6 +12,11 @@ export type OddsPick = {
   market: string;
   selection: string;
   oddsAmerican: number;
+  // Event binding (C2) — makes the pick eligible for the strict/verified path.
+  eventId: string;
+  eventStartsAt: string; // ISO commence time
+  side: string;
+  line?: number;
 };
 
 type BoardData = { events: OddsEvent[]; configured: boolean };
@@ -136,6 +141,10 @@ export function OddsAssist({
                                   market: s.market,
                                   selection: s.selection,
                                   oddsAmerican: s.oddsAmerican,
+                                  eventId: e.id,
+                                  eventStartsAt: e.commenceTime,
+                                  side: s.side,
+                                  line: s.line,
                                 })
                               }
                               className="border-border hover:border-brand hover:bg-surface-2 flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition-colors"
