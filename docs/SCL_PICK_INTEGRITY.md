@@ -50,10 +50,11 @@ client-supplied start time is never trusted.
 **Status (M2):** wired end-to-end. The board selector (`OddsAssist`, on the new-pick form) loads
 the live slate for the chosen sport and, on tap, binds the pick to a real event — it now carries
 `eventId`, `eventStartsAt`, structured `side`, and `line` through to `createPlay`, which treats a
-pick as event-bound (strict-path eligible) when it has `eventId` + a `side`. Free-text **manual
-entry** remains the deliberate fallback for anything off the board (props, obscure books) and lands
-as `SELF-REPORTED`. Still open: a true typeahead/search over large slates, and pulling props/alt
-lines into the board itself (today the board offers moneyline/spread/total).
+pick as event-bound (strict-path eligible) when it has `eventId` + a `side`. The board now covers **moneyline/spread/total, alternate spreads/totals, and curated player props**
+(alt lines + props load lazily per event, reusing the cached verification fetch). Free-text
+**manual entry** remains the deliberate fallback for anything still off the board (obscure
+books/markets) and lands as `SELF-REPORTED`. Still open before verification can be made mandatory: a
+typeahead/search for large prop slates, and widening the curated prop set per sport.
 
 - Every pick binds to a **real scheduled event** from an official schedule source (event id,
   teams, start time) — not typed free text.

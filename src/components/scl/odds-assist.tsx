@@ -17,11 +17,18 @@ export type OddsPick = {
   eventStartsAt: string; // ISO commence time
   side: string;
   line?: number;
+  player?: string;
 };
 
 type BoardData = { events: OddsEvent[]; configured: boolean };
 
 const MARKET_ORDER = ["Moneyline", "Spread", "Total"] as const;
+
+/** Game markets first (in MARKET_ORDER); prop groups sort after, alphabetically by label. */
+function marketOrder(market: string): number {
+  const i = MARKET_ORDER.indexOf(market as (typeof MARKET_ORDER)[number]);
+  return i === -1 ? MARKET_ORDER.length : i;
+}
 
 function groupByMarket(
   selections: OddsSelection[],
@@ -32,11 +39,10 @@ function groupByMarket(
     if (arr) arr.push(s);
     else groups.set(s.market, [s]);
   }
-  return [...groups.entries()].sort(
-    (a, b) =>
-      MARKET_ORDER.indexOf(a[0] as (typeof MARKET_ORDER)[number]) -
-      MARKET_ORDER.indexOf(b[0] as (typeof MARKET_ORDER)[number]),
-  );
+  return [...groups.entries()].sort((a, b) => {
+    const r = marketOrder(a[0]) - marketOrder(b[0]);
+    return r !== 0 ? r : a[0].localeCompare(b[0]);
+  });
 }
 
 /**
@@ -176,6 +182,7 @@ export function OddsAssist({
                                   eventStartsAt: e.commenceTime,
                                   side: s.side,
                                   line: s.line,
+                                  player: s.player,
                                 })
                               }
                               className="border-border hover:border-brand hover:bg-surface-2 flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition-colors"
