@@ -4,11 +4,14 @@ import { test } from "node:test";
 import {
   bestAvailableAmerican,
   collectAvailablePrices,
+  decidePickIntegrity,
   impliedProbFromAmerican,
+  marketKeysForMarket,
   medianAmerican,
   verificationMarkets,
   verifyOdds,
   type RawEventOdds,
+  type VerifyResult,
 } from "@/lib/odds-verify";
 
 test("impliedProbFromAmerican matches known values", () => {
@@ -160,4 +163,126 @@ test("verificationMarkets bundles core + curated sport props", () => {
     "alternate_spreads",
     "alternate_totals",
   ]);
+});
+
+test("marketKeysForMarket maps game markets to featured + alternate keys", () => {
+  assert.deepEqual(marketKeysForMarket("Moneyline"), ["h2h"]);
+  assert.deepEqual(marketKeysForMarket("Spread"), [
+    "spreads",
+    "alternate_spreads",
+  ]);
+  assert.deepEqual(marketKeysForMarket("Total"), [
+    "totals",
+    "alternate_totals",
+  ]);
+  // unknown label is treated as a prop market key (trimmed)
+  assert.deepEqual(marketKeysForMarket("  pitcher_strikeouts "), [
+    "pitcher_strikeouts",
+  ]);
+});
+
+const VERIFIED: VerifyResult = {
+  status: "verified",
+  bestAvailable: -110,
+  reference: -110,
+  claimedImplied: 0.52,
+  bestImplied: 0.52,
+};
+const REJECTED: VerifyResult = {
+  status: "rejected",
+  bestAvailable: 150,
+  reference: 150,
+  reason:
+    "Claimed +250 is better than the best available (+150) beyond tolerance.",
+  claimedImplied: 0.2857,
+  bestImplied: 0.4,
+};
+const UNVERIFIABLE: VerifyResult = {
+  status: "unverifiable",
+  reason: "No covered book offered this market/side/line at capture time.",
+};
+
+const BEFORE = new Date("2026-07-12T18:00:00Z");
+const START = new Date("2026-07-12T23:05:00Z");
+
+test("decidePickIntegrity: strict path (pre-game + verified + event-bound + manual) → VERIFIED", () => {
+  const d = decidePickIntegrity({
+    now: BEFORE,
+    eventStartsAt: START,
+    eventBound: true,
+    verify: VERIFIED,
+    source: "MANUAL",
+  });
+  assert.equal(d.accept, true);
+  if (d.accept) {
+    assert.equal(d.tier, "VERIFIED");
+    assert.equal(d.loggedPreGame, true);
+    assert.equal(d.oddsVerified, true);
+  }
+});
+
+test("decidePickIntegrity: authorized connector on the strict path → AUTO_VERIFIED", () => {
+  const d = decidePickIntegrity({
+    now: BEFORE,
+    eventStartsAt: START,
+    eventBound: true,
+    verify: VERIFIED,
+    source: "IMPORTED_X",
+  });
+  assert.equal(d.accept && d.tier, "AUTO_VERIFIED");
+});
+
+test("decidePickIntegrity: C1 hard-rejects a pick at/after start time", () => {
+  const d = decidePickIntegrity({
+    now: START, // exactly at start counts as started
+    eventStartsAt: START,
+    eventBound: true,
+    verify: VERIFIED,
+    source: "MANUAL",
+  });
+  assert.equal(d.accept, false);
+});
+
+test("decidePickIntegrity: C3 hard-rejects fabricated odds with the verify reason", () => {
+  const d = decidePickIntegrity({
+    now: BEFORE,
+    eventStartsAt: START,
+    eventBound: true,
+    verify: REJECTED,
+    source: "MANUAL",
+  });
+  assert.equal(d.accept, false);
+  if (!d.accept) assert.equal(d.reason, REJECTED.reason);
+});
+
+test("decidePickIntegrity: pre-game but unverifiable market → accepted as SELF_REPORTED", () => {
+  const d = decidePickIntegrity({
+    now: BEFORE,
+    eventStartsAt: START,
+    eventBound: true,
+    verify: UNVERIFIABLE,
+    source: "MANUAL",
+  });
+  assert.equal(d.accept, true);
+  if (d.accept) {
+    assert.equal(d.tier, "SELF_REPORTED");
+    assert.equal(d.oddsVerified, false);
+    assert.equal(d.loggedPreGame, true); // logged pre-game, just couldn't price-check
+  }
+});
+
+test("decidePickIntegrity: legacy free-text pick (no event) → SELF_REPORTED, not pre-game", () => {
+  const d = decidePickIntegrity({
+    now: BEFORE,
+    eventStartsAt: null,
+    eventBound: false,
+    verify: null,
+    source: "MANUAL",
+  });
+  assert.equal(d.accept, true);
+  if (d.accept) {
+    assert.equal(d.tier, "SELF_REPORTED");
+    assert.equal(d.loggedPreGame, false);
+    assert.equal(d.oddsVerified, false);
+  }
 });

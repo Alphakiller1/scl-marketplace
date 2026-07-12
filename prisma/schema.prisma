@@ -259,6 +259,32 @@ enum GradingSource {
   MANUAL
 }
 
+// How a pick reached SCL (C5 provenance). MANUAL = typed into the entry form;
+// the IMPORTED_*/OCR values are reserved for the M2 auto-capture connectors.
+enum PickSource {
+  MANUAL
+  IMPORTED_X
+  IMPORTED_DISCORD
+  IMPORTED_TELEGRAM
+  SCREENSHOT_OCR
+}
+
+// Lifecycle guard (C4). DRAFT may still be edited; COMMITTED is append-only —
+// outcomes change only via GradingAudit, never by mutating the Play in place.
+enum PickStatus {
+  DRAFT
+  COMMITTED
+}
+
+// Public trust tier surfaced on the leaderboard. VERIFIED = event-bound, logged
+// pre-game, and claimed odds within tolerance of the market. AUTO_VERIFIED is the
+// same bar reached through an authorized connector. SELF_REPORTED = everything else.
+enum VerificationTier {
+  AUTO_VERIFIED
+  VERIFIED
+  SELF_REPORTED
+}
+
 model Play {
   id           String    @id @default(cuid())
   capperId     String
@@ -275,12 +301,26 @@ model Play {
   createdAt    DateTime  @default(now())
   gradedAt     DateTime?
 
+  // Pick integrity (docs/SCL_PICK_INTEGRITY.md) — all additive + defaulted so existing rows
+  // and existing reads are unaffected. Populated by createPlay on the event-bound path.
+  eventId          String? // official schedule/odds event id (C2 event binding)
+  eventStartsAt    DateTime? // scheduled first pitch/tip; drives the C1 pre-game lock
+  loggedPreGame    Boolean          @default(false) // createdAt < eventStartsAt (C1)
+  line             Decimal?         @db.Decimal(10, 2) // structured point/total (C2)
+  side             String? // structured side: team, Over/Under (C2)
+  source           PickSource       @default(MANUAL) // provenance (C5)
+  sourceRef        String? // permalink to the originating post, when imported (C5)
+  oddsVerified     Boolean          @default(false) // claimed price within tolerance (C3)
+  verificationTier VerificationTier @default(SELF_REPORTED) // public trust tier (M2-3)
+  status           PickStatus       @default(COMMITTED) // DRAFT is editable; COMMITTED is locked (C4)
+
   capper CapperProfile  @relation(fields: [capperId], references: [id], onDelete: Cascade)
   parlay Parlay?        @relation(fields: [parlayId], references: [id], onDelete: SetNull)
   audits GradingAudit[]
 
   @@index([capperId])
   @@index([outcome])
+  @@index([eventId])
 }
 
 model Parlay {

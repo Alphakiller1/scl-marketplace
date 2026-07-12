@@ -18,6 +18,10 @@ write it.
   visibility, `isLegacy`.
 - **Play** — `sport`, `league`, `market`, `selection`, `oddsAmerican` (int), `units`
   (Decimal, **0.25–5**), `outcome` (PENDING/WIN/LOSS/PUSH/VOID), `profitUnits`, `parlayId`.
+  Pick-integrity fields (all optional/defaulted, see `docs/SCL_PICK_INTEGRITY.md`): `eventId`,
+  `eventStartsAt`, `loggedPreGame`, `line`, `side`, `source` (PickSource), `sourceRef`,
+  `oddsVerified`, `verificationTier` (AUTO_VERIFIED/VERIFIED/SELF_REPORTED), `status`
+  (DRAFT/COMMITTED). Set by `createPlay` from verified facts — never self-asserted.
 - **Parlay** — legs (`Play[]`), `combinedOddsAmerican`, `units`, `outcome`, `profitUnits`.
 - **Package** — `title`, `priceCents`, `billingPeriod`, external `checkoutUrl`, offering model
   (`providerType` in the current schema). Storefront provider is a separate Phase 1 concept.

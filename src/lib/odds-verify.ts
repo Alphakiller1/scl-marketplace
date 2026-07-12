@@ -61,6 +61,21 @@ export function verificationMarkets(sclSport: string): string[] {
   return [...CORE_MARKETS, ...(PROP_MARKETS_BY_SPORT[sclSport] ?? [])];
 }
 
+/**
+ * Map a Play's `market` label to the Odds API market keys to verify against. The odds-assist
+ * prefill writes "Moneyline"/"Spread"/"Total"; each game market bundles its featured + alternate
+ * key so a pick at any line matches. Anything else is treated as a prop market key as-is.
+ */
+export const GAME_MARKET_KEYS: Record<string, string[]> = {
+  Moneyline: ["h2h"],
+  Spread: ["spreads", "alternate_spreads"],
+  Total: ["totals", "alternate_totals"],
+};
+
+export function marketKeysForMarket(market: string): string[] {
+  return GAME_MARKET_KEYS[market.trim()] ?? [market.trim()];
+}
+
 // ── implied-probability + best-available math ────────────────────────────────
 
 /** American odds → implied probability (with vig), in [0,1]. */
@@ -209,4 +224,79 @@ export function collectAvailablePrices(
     }
   }
   return prices;
+}
+
+// ── pick-integrity decision (C1 pre-game lock + C3 odds + trust tier) ─────────
+
+/** Provenance of a pick — mirrors the Prisma `PickSource` enum. */
+export type PickSourceKind =
+  | "MANUAL"
+  | "IMPORTED_X"
+  | "IMPORTED_DISCORD"
+  | "IMPORTED_TELEGRAM"
+  | "SCREENSHOT_OCR";
+
+/** Public trust tier — mirrors the Prisma `VerificationTier` enum. */
+export type VerificationTierValue =
+  | "AUTO_VERIFIED"
+  | "VERIFIED"
+  | "SELF_REPORTED";
+
+export type PickIntegrityInput = {
+  now: Date;
+  /** Scheduled start; null when the pick isn't bound to a known event (legacy free-text). */
+  eventStartsAt: Date | null;
+  /** True once the pick carries an event id + a structured side (C2). */
+  eventBound: boolean;
+  /** Result of the C3 odds check, or null when verification wasn't attempted. */
+  verify: VerifyResult | null;
+  source: PickSourceKind;
+};
+
+export type PickIntegrityDecision =
+  | {
+      accept: true;
+      loggedPreGame: boolean;
+      oddsVerified: boolean;
+      tier: VerificationTierValue;
+    }
+  | { accept: false; reason: string };
+
+/**
+ * The single trust gate for a submitted pick. Pure — the server action supplies `now`, the event
+ * start, and the fetched verify result. Two things hard-reject; everything else is accepted but
+ * may land as SELF_REPORTED (which keeps it off the verified leaderboard):
+ *
+ *   C1 — a known start time that has already passed (no post-game logging, ever).
+ *   C3 — a claimed price better than the market beyond tolerance (fabricated odds).
+ *
+ * VERIFIED requires the full strict path: event-bound + logged pre-game + odds verified. The same
+ * bar reached through an authorized connector is AUTO_VERIFIED.
+ */
+export function decidePickIntegrity(
+  input: PickIntegrityInput,
+): PickIntegrityDecision {
+  const { now, eventStartsAt, eventBound, verify, source } = input;
+
+  if (eventStartsAt !== null && now.getTime() >= eventStartsAt.getTime()) {
+    return {
+      accept: false,
+      reason:
+        "This event has already started — picks lock at the scheduled start time.",
+    };
+  }
+  const loggedPreGame =
+    eventStartsAt !== null && now.getTime() < eventStartsAt.getTime();
+
+  if (verify && verify.status === "rejected") {
+    return { accept: false, reason: verify.reason };
+  }
+  const oddsVerified = verify?.status === "verified";
+
+  let tier: VerificationTierValue = "SELF_REPORTED";
+  if (eventBound && loggedPreGame && oddsVerified) {
+    tier = source === "MANUAL" ? "VERIFIED" : "AUTO_VERIFIED";
+  }
+
+  return { accept: true, loggedPreGame, oddsVerified, tier };
 }
