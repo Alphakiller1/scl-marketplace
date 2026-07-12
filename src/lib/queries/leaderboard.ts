@@ -11,6 +11,7 @@ import {
   type LeaderboardFilters,
 } from "@/lib/leaderboard";
 import { computeCapperStats } from "@/lib/stats";
+import { computeVerifiedShare } from "@/lib/verification";
 import type { CapperSummary, FormResult } from "@/lib/mock";
 import { resolveStorefrontIdentity } from "@/lib/storefront";
 import { safeHttpUrl } from "@/lib/urls";
@@ -96,6 +97,7 @@ function fetchRankableProfiles(filters: LeaderboardFilters) {
           sport: true,
           createdAt: true,
           gradedAt: true,
+          verificationTier: true,
         },
         orderBy: { createdAt: "asc" },
       },
@@ -233,6 +235,7 @@ function summarize(p: ProfileRow): CapperSummary | null {
     recentForm,
     trophies: [],
     settledPicks: stats.settled,
+    verifiedShare: computeVerifiedShare(p.plays.map((x) => x.verificationTier)),
     stakedUnits: stats.stakedUnits,
     performanceTrend,
     lastPlayAt: positions.at(-1)?.createdAt,

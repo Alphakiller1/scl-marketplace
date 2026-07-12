@@ -45,6 +45,7 @@ export async function getPublicCapperByHandle(
       outcome: p.outcome,
       profitUnits: p.profitUnits == null ? null : Number(p.profitUnits),
       createdAt: p.createdAt,
+      verificationTier: p.verificationTier,
     }));
   } catch (err) {
     console.error("[getPublicCapperByHandle] plays unavailable:", err);

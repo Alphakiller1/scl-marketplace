@@ -4,6 +4,8 @@
  * NOT for production use — replace with Prisma-backed queries per feature.
  */
 
+import type { VerificationTier } from "@/lib/verification";
+
 export type FormResult = "W" | "L" | "P";
 export type PickStatus = "pending" | "live" | "win" | "loss" | "push" | "void";
 
@@ -31,6 +33,7 @@ export type CapperSummary = {
   recentForm: FormResult[]; // most recent last
   trophies: string[];
   settledPicks?: number;
+  verifiedShare?: number; // 0–100: share of tracked picks that are market-verified
   stakedUnits?: number;
   performanceTrend?: number[];
   lastPlayAt?: Date;
@@ -61,6 +64,7 @@ export type TodayPick = {
   status: PickStatus;
   postedAt: Date;
   gameTime: string;
+  verificationTier?: VerificationTier;
 };
 
 const ago = (mins: number) => new Date(Date.now() - mins * 60_000);
