@@ -49,6 +49,17 @@ export function PerformanceSummary({
             </span>{" "}
             Graded Picks
           </span>
+          {capper.verifiedShare != null && capper.verifiedShare > 0 ? (
+            <span
+              className="text-live text-xs font-medium"
+              title="Share of tracked picks logged pre-game and checked against the live market"
+            >
+              <span className="nums tabular-nums">
+                {Math.round(capper.verifiedShare)}%
+              </span>{" "}
+              Verified
+            </span>
+          ) : null}
         </div>
         <PerformanceSparkline points={capper.performanceTrend} />
       </div>

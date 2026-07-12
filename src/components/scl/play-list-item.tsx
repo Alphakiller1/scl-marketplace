@@ -2,7 +2,7 @@ import type { Outcome } from "@prisma/client";
 
 import { cn } from "@/lib/utils";
 import { formatOdds, formatUnits, signTone } from "@/lib/format";
-import { SportTag, StatusBadge } from "@/components/scl/badges";
+import { PickTierBadge, SportTag, StatusBadge } from "@/components/scl/badges";
 import type { PlayView } from "@/lib/queries/plays";
 
 const OUTCOME_TO_STATUS = {
@@ -23,7 +23,10 @@ export function PlayListItem({ play }: { play: PlayView }) {
   return (
     <div className="border-border bg-card rounded-xl border p-3.5">
       <div className="flex items-start justify-between gap-3">
-        <SportTag sport={play.sport} />
+        <div className="flex flex-wrap items-center gap-2">
+          <SportTag sport={play.sport} />
+          <PickTierBadge tier={play.verificationTier} />
+        </div>
         <StatusBadge status={OUTCOME_TO_STATUS[play.outcome]} />
       </div>
       <p className="mt-2 font-semibold break-words">{play.selection}</p>

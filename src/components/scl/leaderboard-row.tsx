@@ -63,9 +63,19 @@ export function LeaderboardRow({
       >
         {formatUnits(capper.units)}
       </span>
-      <span className="nums text-muted-foreground text-right text-sm font-semibold tabular-nums">
-        {(capper.settledPicks ?? 0).toLocaleString()}
-      </span>
+      <div className="text-right">
+        <div className="nums text-muted-foreground text-sm font-semibold tabular-nums">
+          {(capper.settledPicks ?? 0).toLocaleString()}
+        </div>
+        {capper.verifiedShare != null && capper.verifiedShare > 0 ? (
+          <div
+            className="nums text-live text-[0.7rem] font-medium tabular-nums"
+            title="Share of tracked picks market-verified"
+          >
+            {Math.round(capper.verifiedShare)}% ver.
+          </div>
+        ) : null}
+      </div>
       <div className="flex justify-end">
         <PerformanceSparkline points={capper.performanceTrend} />
       </div>
@@ -134,6 +144,11 @@ export function LeaderboardMobileCard({
             {(capper.settledPicks ?? 0).toLocaleString()}
           </span>{" "}
           Graded Picks
+          {capper.verifiedShare != null && capper.verifiedShare > 0 ? (
+            <span className="text-live ml-2 font-medium">
+              {Math.round(capper.verifiedShare)}% Verified
+            </span>
+          ) : null}
         </span>
         <RecentFormStrip form={capper.recentForm.slice(-5)} />
       </div>

@@ -152,6 +152,12 @@ IMPORTED_TELEGRAM, SCREENSHOT_OCR}` + `sourceRef` (permalink to the capper's own
 The tier is **computed from facts** (timing, provenance, structure, grading source), never
 self-asserted. It's the single public signal that says "how much should you trust this record."
 
+**Surfaced (M2-3):** `src/lib/verification.ts` owns the tier copy/tone; `PickTierBadge`
+(`src/components/scl/badges.tsx`) renders it on every pick (profile plays, public picks feed, the
+capper dashboard). Per-capper **verified share** is computed in the leaderboard query and shown on
+the profile performance panel + the leaderboard cards. Ranking still uses net units/ROI; a
+verified-only ranking is a follow-up.
+
 ## Fairness safeguards (strict ≠ hostile)
 
 - **Draft → commit:** cappers can prepare/edit a draft; the lock + immutability apply only on

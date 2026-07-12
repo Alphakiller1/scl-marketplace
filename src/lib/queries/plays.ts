@@ -4,6 +4,7 @@ import type { Outcome } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import type { CapperSummary, TodayPick } from "@/lib/mock";
+import type { VerificationTier } from "@/lib/verification";
 
 export type PlayView = {
   id: string;
@@ -16,6 +17,7 @@ export type PlayView = {
   outcome: Outcome;
   profitUnits: number | null;
   createdAt: Date;
+  verificationTier: VerificationTier;
 };
 
 /** A capper's plays (most recent first), with Decimals serialized to numbers. */
@@ -47,6 +49,7 @@ export async function getCapperPlays(
     outcome: p.outcome,
     profitUnits: p.profitUnits == null ? null : Number(p.profitUnits),
     createdAt: p.createdAt,
+    verificationTier: p.verificationTier,
   }));
 }
 
@@ -97,6 +100,7 @@ export async function getPublicRecentPicksResult(
         units: true,
         outcome: true,
         createdAt: true,
+        verificationTier: true,
       },
       orderBy: { createdAt: "desc" },
       take,
@@ -124,6 +128,7 @@ export async function getPublicRecentPicksResult(
           status: OUTCOME_TO_PICK_STATUS[play.outcome],
           postedAt: play.createdAt,
           gameTime: play.outcome === "PENDING" ? "Pending" : "Graded",
+          verificationTier: play.verificationTier,
         } satisfies TodayPick,
       ];
     });

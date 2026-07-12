@@ -3,6 +3,11 @@ import { BadgeCheck, History, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SPORTS } from "@/lib/constants";
 import type { PickStatus } from "@/lib/mock";
+import {
+  isVerifiedTier,
+  verificationTierMeta,
+  type VerificationTier,
+} from "@/lib/verification";
 
 /** Verified handicapper marker — trust is the product. */
 export function VerificationBadge({
@@ -22,6 +27,36 @@ export function VerificationBadge({
     >
       <BadgeCheck className={px} aria-label="Verified" />
       {withLabel ? <span className="text-xs font-medium">Verified</span> : null}
+    </span>
+  );
+}
+
+/**
+ * Per-pick trust tier (pick integrity, §C3/M2-3). Verified/auto-verified read as a positive
+ * signal; self-reported is deliberately neutral — it counts, but isn't market-checked.
+ */
+export function PickTierBadge({
+  tier,
+  className,
+}: {
+  tier: VerificationTier;
+  className?: string;
+}) {
+  const meta = verificationTierMeta(tier);
+  const verified = isVerifiedTier(tier);
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.7rem] font-semibold",
+        verified
+          ? "bg-live/15 text-live"
+          : "bg-surface-3 text-muted-foreground",
+        className,
+      )}
+      title={meta.description}
+    >
+      {verified ? <BadgeCheck className="size-3" /> : null}
+      {meta.short}
     </span>
   );
 }

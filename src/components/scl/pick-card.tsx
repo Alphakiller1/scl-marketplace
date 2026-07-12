@@ -6,6 +6,7 @@ import { formatOdds, formatRecord, formatUnits, timeAgo } from "@/lib/format";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
 import {
   VerificationBadge,
+  PickTierBadge,
   SportTag,
   StatusBadge,
 } from "@/components/scl/badges";
@@ -29,7 +30,12 @@ export function PickCard({
           <SportTag sport={pick.sport} />
           <span className="text-muted-foreground text-xs">{pick.gameTime}</span>
         </div>
-        <StatusBadge status={pick.status} />
+        <div className="flex items-center gap-1.5">
+          {pick.verificationTier ? (
+            <PickTierBadge tier={pick.verificationTier} />
+          ) : null}
+          <StatusBadge status={pick.status} />
+        </div>
       </div>
 
       <div className="mt-3">
@@ -93,7 +99,12 @@ function CompactPickCard({ pick }: { pick: TodayPick }) {
             {pick.event}
           </span>
         </div>
-        <StatusBadge status={pick.status} className="shrink-0" />
+        <div className="flex shrink-0 items-center gap-1.5">
+          {pick.verificationTier ? (
+            <PickTierBadge tier={pick.verificationTier} />
+          ) : null}
+          <StatusBadge status={pick.status} />
+        </div>
       </div>
 
       <div className="mt-2 flex min-w-0 items-baseline gap-2">
