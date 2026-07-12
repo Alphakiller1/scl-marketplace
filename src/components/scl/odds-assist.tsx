@@ -53,6 +53,9 @@ export function OddsAssist({
 }) {
   const [cache, setCache] = useState<Record<string, BoardData>>({});
   const [openId, setOpenId] = useState<string | null>(null);
+  // Per-event board (featured + alternate lines), fetched lazily the first time an event is
+  // opened. undefined = not loaded yet; [] = loaded but nothing extra (or fetch failed).
+  const [detail, setDetail] = useState<Record<string, OddsSelection[]>>({});
 
   useEffect(() => {
     if (!sport || sport in cache) return;
@@ -81,6 +84,31 @@ export function OddsAssist({
     };
   }, [sport, cache]);
 
+  // Lazy-load the expanded board (alternate lines) for whichever event is open.
+  useEffect(() => {
+    if (!openId || openId in detail) return;
+    let cancelled = false;
+    fetch(
+      `/api/odds/event?sport=${encodeURIComponent(sport)}&eventId=${encodeURIComponent(openId)}`,
+    )
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return;
+        setDetail((prev) => ({
+          ...prev,
+          [openId]: Array.isArray(d.selections)
+            ? (d.selections as OddsSelection[])
+            : [],
+        }));
+      })
+      .catch(() => {
+        if (!cancelled) setDetail((prev) => ({ ...prev, [openId]: [] }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [openId, sport, detail]);
+
   if (!sport) return null;
   const board = cache[sport];
   const loading = !(sport in cache);
@@ -102,6 +130,9 @@ export function OddsAssist({
         <ul className="divide-border border-border max-h-96 divide-y overflow-auto rounded-lg border">
           {events.map((e) => {
             const open = openId === e.id;
+            const rows = detail[e.id];
+            // Show featured lines immediately; swap to featured+alt once loaded.
+            const shown = rows && rows.length ? rows : e.selections;
             return (
               <li key={e.id} className="bg-card">
                 <button
@@ -126,7 +157,7 @@ export function OddsAssist({
                 </button>
                 {open ? (
                   <div className="space-y-2.5 px-3 pt-0.5 pb-3">
-                    {groupByMarket(e.selections).map(([market, opts]) => (
+                    {groupByMarket(shown).map(([market, opts]) => (
                       <div key={market}>
                         <p className="text-muted-foreground mb-1 text-[0.7rem] font-semibold tracking-wide uppercase">
                           {market}
@@ -158,6 +189,11 @@ export function OddsAssist({
                         </div>
                       </div>
                     ))}
+                    {rows === undefined ? (
+                      <p className="text-muted-foreground text-xs">
+                        Loading alternate lines…
+                      </p>
+                    ) : null}
                   </div>
                 ) : null}
               </li>
