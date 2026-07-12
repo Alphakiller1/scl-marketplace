@@ -251,7 +251,7 @@ export default function NewPlayPage() {
                     </span>
                   </p>
                   {eventBound ? (
-                    <p className="mt-1 text-brand text-[0.7rem] font-medium">
+                    <p className="text-brand mt-1 text-[0.7rem] font-medium">
                       Pre-game · odds will be verified
                     </p>
                   ) : null}
