@@ -175,7 +175,10 @@ test("marketKeysForMarket maps game markets to featured + alternate keys", () =>
     "totals",
     "alternate_totals",
   ]);
-  // unknown label is treated as a prop market key (trimmed)
+  // prop display labels resolve back to their Odds API key
+  assert.deepEqual(marketKeysForMarket("Strikeouts"), ["pitcher_strikeouts"]);
+  assert.deepEqual(marketKeysForMarket("Points"), ["player_points"]);
+  // a raw key (or anything unrecognized) is passed through, trimmed
   assert.deepEqual(marketKeysForMarket("  pitcher_strikeouts "), [
     "pitcher_strikeouts",
   ]);

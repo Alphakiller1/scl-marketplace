@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  PROP_MARKET_LABEL,
   VERIFY_REGIONS,
   VERIFY_TTL_SECONDS,
   bestAvailableAmerican,
@@ -54,10 +55,11 @@ export function oddsAssistSupported(sclKey: string): boolean {
 
 export type OddsSelection = {
   label: string; // display, e.g. "Boston Celtics ML"
-  market: string; // prefill for the play's market field
+  market: string; // prefill for the play's market field (game label or prop label)
   selection: string; // prefill for the play's selection field
   side: string; // structured side for verification: team, or "Over"/"Under" (C2)
   line?: number; // structured point/total for spreads + totals (C2)
+  player?: string; // structured player for props (C2)
   oddsAmerican: number;
 };
 
@@ -259,42 +261,73 @@ const BOARD_MARKETS: Record<string, "Moneyline" | "Spread" | "Total"> = {
   alternate_totals: "Total",
 };
 
+// Game markets sort ahead of props; props (rank 10) then sort alphabetically by their label.
 const MARKET_SORT = { Moneyline: 0, Spread: 1, Total: 2 } as const;
+const PROP_RANK = 10;
+
+type BoardGroup = {
+  market: string; // game label ("Spread") or prop label ("Strikeouts")
+  side: string;
+  line?: number;
+  player?: string;
+  prices: number[];
+};
+
+function marketRank(market: string): number {
+  return MARKET_SORT[market as keyof typeof MARKET_SORT] ?? PROP_RANK;
+}
 
 /**
- * Flatten a per-event odds payload into board selections spanning featured **and alternate**
- * game lines. Prices for the same { market, side, line } are collapsed across books to the single
- * most bettor-favorable number, so each row shows the best line available. Pure.
+ * Flatten a per-event odds payload into board selections spanning featured **and alternate** game
+ * lines plus curated **player props**. Prices for the same { market, side, line, player } are
+ * collapsed across books to the single most bettor-favorable number, so each row shows the best
+ * line available. Props carry a `player`; their `market` is the human label (e.g. "Strikeouts"),
+ * which verification maps back to its Odds API key. Pure.
  */
 export function normalizeEventBoard(event: RawEventOdds): OddsSelection[] {
-  const groups = new Map<
-    string,
-    {
-      market: "Moneyline" | "Spread" | "Total";
-      side: string;
-      line?: number;
-      prices: number[];
+  const groups = new Map<string, BoardGroup>();
+
+  const add = (key: string, seed: () => BoardGroup, price: number) => {
+    const g = groups.get(key);
+    if (g) g.prices.push(price);
+    else {
+      const next = seed();
+      next.prices = [price];
+      groups.set(key, next);
     }
-  >();
+  };
 
   for (const bm of event.bookmakers ?? []) {
     for (const m of bm.markets ?? []) {
-      const market = BOARD_MARKETS[m.key];
-      if (!market) continue;
+      const gameMarket = BOARD_MARKETS[m.key];
+      const propLabel = PROP_MARKET_LABEL[m.key];
+      if (!gameMarket && !propLabel) continue;
       for (const o of m.outcomes ?? []) {
         if (typeof o.price !== "number") continue;
+        const price = Math.round(o.price);
         const line = typeof o.point === "number" ? o.point : undefined;
-        if (market !== "Moneyline" && line === undefined) continue;
-        const key = `${market}|${o.name.toLowerCase()}|${line ?? ""}`;
-        const g = groups.get(key);
-        if (g) g.prices.push(Math.round(o.price));
-        else
-          groups.set(key, {
-            market,
-            side: o.name,
-            line,
-            prices: [Math.round(o.price)],
-          });
+        if (gameMarket) {
+          if (gameMarket !== "Moneyline" && line === undefined) continue;
+          add(
+            `g|${gameMarket}|${o.name.toLowerCase()}|${line ?? ""}`,
+            () => ({ market: gameMarket, side: o.name, line, prices: [] }),
+            price,
+          );
+        } else {
+          const player = (o.description ?? "").trim();
+          if (!player || line === undefined) continue;
+          add(
+            `p|${propLabel}|${player.toLowerCase()}|${o.name.toLowerCase()}|${line}`,
+            () => ({
+              market: propLabel,
+              side: o.name,
+              line,
+              player,
+              prices: [],
+            }),
+            price,
+          );
+        }
       }
     }
   }
@@ -303,7 +336,18 @@ export function normalizeEventBoard(event: RawEventOdds): OddsSelection[] {
   for (const g of groups.values()) {
     const best = bestAvailableAmerican(g.prices);
     if (best === null) continue;
-    if (g.market === "Moneyline") {
+    if (g.player) {
+      const text = `${g.player} ${g.side} ${g.line}`;
+      selections.push({
+        label: text,
+        market: g.market,
+        selection: text,
+        side: g.side,
+        line: g.line,
+        player: g.player,
+        oddsAmerican: best,
+      });
+    } else if (g.market === "Moneyline") {
       selections.push({
         label: `${g.side} ML`,
         market: "Moneyline",
@@ -334,10 +378,15 @@ export function normalizeEventBoard(event: RawEventOdds): OddsSelection[] {
   }
 
   return selections.sort((a, b) => {
-    const ma = MARKET_SORT[a.market as keyof typeof MARKET_SORT] ?? 9;
-    const mb = MARKET_SORT[b.market as keyof typeof MARKET_SORT] ?? 9;
-    if (ma !== mb) return ma - mb;
-    // Keep each side's alternate-line ladder contiguous (team ladder / all Over then Under).
+    const ra = marketRank(a.market);
+    const rb = marketRank(b.market);
+    if (ra !== rb) return ra - rb;
+    // Props share rank 10 — group them by label; game markets have distinct ranks already.
+    if (a.market !== b.market) return a.market.localeCompare(b.market);
+    // Within a market: player ladder (props), then side ladder, then line.
+    const pa = a.player ?? "";
+    const pb = b.player ?? "";
+    if (pa !== pb) return pa.localeCompare(pb);
     if (a.side !== b.side) return a.side.localeCompare(b.side);
     return (a.line ?? 0) - (b.line ?? 0);
   });

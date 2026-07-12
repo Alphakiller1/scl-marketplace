@@ -62,9 +62,36 @@ export function verificationMarkets(sclSport: string): string[] {
 }
 
 /**
- * Map a Play's `market` label to the Odds API market keys to verify against. The odds-assist
- * prefill writes "Moneyline"/"Spread"/"Total"; each game market bundles its featured + alternate
- * key so a pick at any line matches. Anything else is treated as a prop market key as-is.
+ * Human labels for the curated prop markets (Odds API key → display). The board stores the label
+ * as the Play's `market` (so it reads "Strikeouts", not `pitcher_strikeouts`) and verification maps
+ * it back via {@link marketKeysForMarket}.
+ */
+export const PROP_MARKET_LABEL: Record<string, string> = {
+  pitcher_strikeouts: "Strikeouts",
+  pitcher_outs: "Outs",
+  pitcher_earned_runs: "Earned Runs",
+  batter_hits: "Hits",
+  player_points: "Points",
+  player_rebounds: "Rebounds",
+  player_assists: "Assists",
+  player_threes: "3-Pointers",
+  player_pass_yds: "Passing Yds",
+  player_rush_yds: "Rushing Yds",
+  player_receptions: "Receptions",
+  player_reception_yds: "Receiving Yds",
+  player_shots_on_goal: "Shots On Goal",
+};
+
+/** Reverse of PROP_MARKET_LABEL (display label → Odds API key). Labels are unique. */
+const PROP_LABEL_TO_KEY: Record<string, string> = Object.fromEntries(
+  Object.entries(PROP_MARKET_LABEL).map(([key, label]) => [label, key]),
+);
+
+/**
+ * Map a Play's `market` to the Odds API market keys to verify against. The board writes
+ * "Moneyline"/"Spread"/"Total" for game lines (each bundling its featured + alternate key so a pick
+ * at any line matches) and a prop label like "Strikeouts" for props (resolved back to its key).
+ * An unrecognized value is passed through as-is (already a market key).
  */
 export const GAME_MARKET_KEYS: Record<string, string[]> = {
   Moneyline: ["h2h"],
@@ -73,7 +100,11 @@ export const GAME_MARKET_KEYS: Record<string, string[]> = {
 };
 
 export function marketKeysForMarket(market: string): string[] {
-  return GAME_MARKET_KEYS[market.trim()] ?? [market.trim()];
+  const m = market.trim();
+  if (GAME_MARKET_KEYS[m]) return GAME_MARKET_KEYS[m];
+  const propKey = PROP_LABEL_TO_KEY[m];
+  if (propKey) return [propKey];
+  return [m];
 }
 
 // ── implied-probability + best-available math ────────────────────────────────

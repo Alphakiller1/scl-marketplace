@@ -80,6 +80,7 @@ export default function NewPlayPage() {
     setValue("eventStartsAt", "");
     setValue("side", "");
     setValue("line", undefined as unknown as number);
+    setValue("player", "");
   }
 
   function clearPick() {
@@ -230,6 +231,7 @@ export default function NewPlayPage() {
                 setValue("eventStartsAt", pick.eventStartsAt);
                 setValue("side", pick.side);
                 setValue("line", pick.line as number | undefined);
+                setValue("player", pick.player ?? "");
               }}
             />
           ) : null}
