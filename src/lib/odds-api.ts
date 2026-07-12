@@ -161,10 +161,14 @@ export async function fetchUpcomingOdds(
     const res = await fetch(url, { next: { revalidate: 120 } });
     if (!res.ok) return [];
     const events = (await res.json()) as RawEvent[];
-    return events
-      .map((e) => normalize(sclSport, e))
-      .filter((e) => e.selections.length > 0)
-      .slice(0, 30);
+    return (
+      events
+        .map((e) => normalize(sclSport, e))
+        .filter((e) => e.selections.length > 0)
+        // Keep enough of the soonest games that today + tomorrow's slate both fit for
+        // daily sports; the board buckets them into Today/Tomorrow client-side.
+        .slice(0, 60)
+    );
   } catch {
     return [];
   }

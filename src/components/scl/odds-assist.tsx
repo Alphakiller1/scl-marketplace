@@ -6,8 +6,22 @@ import { ChevronDown, Zap } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SkeletonCard } from "@/components/scl/states";
+import { cn } from "@/lib/utils";
 import { formatOdds } from "@/lib/format";
 import type { OddsEvent, OddsSelection } from "@/lib/odds-api";
+
+type SlateDay = "today" | "tomorrow";
+
+/** Local calendar-day key (matches the date the board displays), no time component. */
+function localDateKey(d: Date): string {
+  return d.toDateString();
+}
+
+function slateDayKeys(now = new Date()): Record<SlateDay, string> {
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return { today: localDateKey(now), tomorrow: localDateKey(tomorrow) };
+}
 
 export type OddsPick = {
   market: string;
@@ -90,6 +104,14 @@ export function OddsAssist({
   const [cache, setCache] = useState<Record<string, BoardData>>({});
   const [openId, setOpenId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Record<string, EventDetailData>>({});
+  // null = auto (default to whichever of today/tomorrow has games); set once the capper chooses.
+  const [dayChoice, setDayChoice] = useState<SlateDay | null>(null);
+
+  // A new sport re-defaults the slate day and collapses any open event.
+  useEffect(() => {
+    setDayChoice(null);
+    setOpenId(null);
+  }, [sport]);
 
   useEffect(() => {
     if (!sport || sport in cache) return;
@@ -153,10 +175,23 @@ export function OddsAssist({
   const events = board?.events;
   const configured = board?.configured ?? true;
 
+  const list = events ?? [];
+  const keys = slateDayKeys();
+  const todayEvents = list.filter(
+    (e) => localDateKey(new Date(e.commenceTime)) === keys.today,
+  );
+  const tomorrowEvents = list.filter(
+    (e) => localDateKey(new Date(e.commenceTime)) === keys.tomorrow,
+  );
+  const hasNearTerm = todayEvents.length + tomorrowEvents.length > 0;
+  const day: SlateDay =
+    dayChoice ?? (todayEvents.length ? "today" : "tomorrow");
+  const dayEvents = day === "today" ? todayEvents : tomorrowEvents;
+
   return (
     <Card className="space-y-3 p-4">
       <div className="flex items-center gap-1.5 text-sm font-medium">
-        <Zap className="text-brand size-4" /> Tonight&apos;s board
+        <Zap className="text-brand size-4" /> Games board
         <span className="text-muted-foreground ml-auto text-xs font-normal">
           Tap a price to fill your play
         </span>
@@ -164,43 +199,71 @@ export function OddsAssist({
 
       {loading || events == null ? (
         <SkeletonCard />
+      ) : hasNearTerm ? (
+        <>
+          <DayToggle
+            day={day}
+            todayCount={todayEvents.length}
+            tomorrowCount={tomorrowEvents.length}
+            onChange={(d) => {
+              setDayChoice(d);
+              setOpenId(null);
+            }}
+          />
+          {dayEvents.length ? (
+            <ul className="divide-border border-border max-h-96 divide-y overflow-auto rounded-lg border">
+              {dayEvents.map((e) => {
+                const open = openId === e.id;
+                return (
+                  <li key={e.id} className="bg-card">
+                    <button
+                      type="button"
+                      onClick={() => setOpenId(open ? null : e.id)}
+                      className="hover:bg-surface-2 flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm"
+                      aria-expanded={open}
+                    >
+                      <span className="truncate font-medium">
+                        {e.away}{" "}
+                        <span className="text-muted-foreground">@</span>{" "}
+                        {e.home}
+                      </span>
+                      <span className="text-muted-foreground flex shrink-0 items-center gap-1.5 text-xs">
+                        {new Date(e.commenceTime).toLocaleTimeString(
+                          undefined,
+                          {
+                            hour: "numeric",
+                            minute: "2-digit",
+                          },
+                        )}
+                        <ChevronDown
+                          className={`size-4 transition-transform ${open ? "rotate-180" : ""}`}
+                        />
+                      </span>
+                    </button>
+                    {open ? (
+                      <EventDetail
+                        event={e}
+                        detail={detail[e.id]}
+                        onPick={onPick}
+                      />
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-muted-foreground text-xs">
+              No {day === "today" ? "more games today" : "games tomorrow"} for
+              this sport — {day === "today" ? "check Tomorrow" : "check Today"}{" "}
+              or enter the play manually below.
+            </p>
+          )}
+        </>
       ) : events.length ? (
-        <ul className="divide-border border-border max-h-96 divide-y overflow-auto rounded-lg border">
-          {events.map((e) => {
-            const open = openId === e.id;
-            return (
-              <li key={e.id} className="bg-card">
-                <button
-                  type="button"
-                  onClick={() => setOpenId(open ? null : e.id)}
-                  className="hover:bg-surface-2 flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm"
-                  aria-expanded={open}
-                >
-                  <span className="truncate font-medium">
-                    {e.away} <span className="text-muted-foreground">@</span>{" "}
-                    {e.home}
-                  </span>
-                  <span className="text-muted-foreground flex shrink-0 items-center gap-1.5 text-xs">
-                    {new Date(e.commenceTime).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                    <ChevronDown
-                      className={`size-4 transition-transform ${open ? "rotate-180" : ""}`}
-                    />
-                  </span>
-                </button>
-                {open ? (
-                  <EventDetail
-                    event={e}
-                    detail={detail[e.id]}
-                    onPick={onPick}
-                  />
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
+        <p className="text-muted-foreground text-xs">
+          No games today or tomorrow for this sport yet — check back closer to
+          game day, or enter the play manually below.
+        </p>
       ) : board?.failed ? (
         <p className="text-muted-foreground text-xs">
           Couldn&apos;t load the board right now. Try again in a moment, or
@@ -219,6 +282,44 @@ export function OddsAssist({
         </p>
       )}
     </Card>
+  );
+}
+
+/** Today / Tomorrow slate switch — the day the capper is logging picks for. */
+function DayToggle({
+  day,
+  todayCount,
+  tomorrowCount,
+  onChange,
+}: {
+  day: SlateDay;
+  todayCount: number;
+  tomorrowCount: number;
+  onChange: (day: SlateDay) => void;
+}) {
+  const counts: Record<SlateDay, number> = {
+    today: todayCount,
+    tomorrow: tomorrowCount,
+  };
+  return (
+    <div className="bg-surface-2 grid grid-cols-2 gap-1 rounded-lg p-1">
+      {(["today", "tomorrow"] as const).map((d) => (
+        <button
+          key={d}
+          type="button"
+          onClick={() => onChange(d)}
+          aria-pressed={day === d}
+          className={cn(
+            "min-h-9 rounded-md text-xs font-semibold capitalize transition-colors",
+            day === d
+              ? "bg-card text-foreground shadow-xs"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {d} · {counts[d]}
+        </button>
+      ))}
+    </div>
   );
 }
 
