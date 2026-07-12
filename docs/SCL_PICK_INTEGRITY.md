@@ -32,6 +32,10 @@ deleted losses, no fake records."_ This doc makes it enforceable rather than asp
 
 ### C1 · Pre-game submission lock (the keystone)
 
+**Status (M2):** wired in `createPlay` via the pure `decidePickIntegrity` gate (`src/lib/odds-verify.ts`,
+unit-tested). The server derives the lock from its own clock (`now` vs. `eventStartsAt`) — the
+client-supplied start time is never trusted.
+
 - A pick MUST be submitted **strictly before** its event's scheduled start (with a small
   clock-skew buffer, e.g. lock at `eventStartsAt`). Submissions at/after start are **rejected**,
   not silently downgraded.
@@ -42,6 +46,12 @@ deleted losses, no fake records."_ This doc makes it enforceable rather than asp
   time."_ No ambiguity about why it failed.
 
 ### C2 · Structured, event-bound selection (no free-text picks)
+
+**Status (M2):** the `Play` fields (`eventId`, `eventStartsAt`, `side`, `line`) and the optional
+Zod inputs exist, and `createPlay` treats a pick as event-bound (eligible for the strict path) only
+when it carries `eventId` + a structured `side`. The **typeahead selector UI over the live slate**
+is the remaining piece — until it ships, a pick can still arrive as free text and lands as
+`SELF-REPORTED`.
 
 - Every pick binds to a **real scheduled event** from an official schedule source (event id,
   teams, start time) — not typed free text.
@@ -55,16 +65,17 @@ deleted losses, no fake records."_ This doc makes it enforceable rather than asp
 
 ### C3 · Line & odds verification (game lines + alt lines + props)
 
-Implemented as pure logic in `src/lib/odds-verify.ts` (unit-tested) + a server fetch in
-`src/lib/odds-api.ts` (`verifyPick` / `fetchEventOddsForVerification`).
+**Status (M2):** wired in `createPlay` — on the event-bound path it calls `verifyPick` and feeds the
+result into `decidePickIntegrity` (rejected → hard-fail; verified → eligible for VERIFIED tier;
+unverifiable → `SELF-REPORTED`). Implemented as pure logic in `src/lib/odds-verify.ts` (unit-tested),
+plus a server fetch in `src/lib/odds-api.ts` (`verifyPick` / `fetchEventOddsForVerification`).
 
 - **One-sided bound, in implied-probability space.** Fraud is always claiming a price _better_
   than was obtainable; a capper has no incentive to claim a worse one. So we don't match a
-  "correct" price — we bound how good it could be: **accept iff `claimedImplied ≥
-bestAvailableImplied − tolerance`.** Compare in implied-prob (American odds are non-linear;
-  +100→+110 ≠ −110→−120). `bestAvailable` = the most bettor-favorable price across covered US
-  books for the exact `{ market, side, line }`. Default tolerance ~2 implied-prob points; widen
-  per volatile market (plus-money dogs, props).
+  "correct" price — we bound how good it could be: **accept iff `claimedImplied ≥ bestAvailableImplied − tolerance`.**
+  Compare in implied-prob (American odds are non-linear; +100→+110 ≠ −110→−120). `bestAvailable` =
+  the most bettor-favorable price across covered US books for the exact `{ market, side, line }`.
+  Default tolerance ~2 implied-prob points; widen per volatile market (plus-money dogs, props).
 - **Covers game lines, alternate lines, and props** via one **bundled per-event** Odds API call
   (`h2h,spreads,totals,alternate_spreads,alternate_totals` + a curated per-sport prop set),
   `regions=us`, cached (Next fetch `revalidate` TTL) so picks on the same event share one snapshot.
@@ -152,24 +163,34 @@ self-asserted. It's the single public signal that says "how much should you trus
 
 ## Schema deltas (Milestone 2)
 
-On `Play`, add: `eventId String?`, `eventStartsAt DateTime?`, `loggedPreGame Boolean @default(false)`,
-`line Decimal? @db.Decimal(10,2)`, `side String?` (structured selection), `source PickSource @default(MANUAL)`,
-`sourceRef String?`, `oddsVerified Boolean @default(false)`, `status PickStatus @default(COMMITTED)` (DRAFT/COMMITTED).
-Add a `SportingEvent` reference (id, teams, `startsAt`, official status) sourced from the official
-schedule, and a partial unique index on active `(capperId, eventId, market, side)`. Keep all of
-this in the `scl` schema; migrations never touch `public`.
+**Landed** on `Play` (all additive + defaulted, so existing rows and reads are unaffected):
+`eventId String?`, `eventStartsAt DateTime?`, `loggedPreGame Boolean @default(false)`,
+`line Decimal? @db.Decimal(10,2)`, `side String?` (structured selection),
+`source PickSource @default(MANUAL)`, `sourceRef String?`, `oddsVerified Boolean @default(false)`,
+`verificationTier VerificationTier @default(SELF_REPORTED)`, `status PickStatus @default(COMMITTED)`,
+plus enums `PickSource` / `PickStatus` / `VerificationTier` and an `@@index([eventId])`. Apply with
+`npm run db:push` (owner step — the migration only adds nullable/defaulted columns to the `scl`
+schema and never touches `public`).
 
-Enforcement points: the `playSchema` (Zod) validates structure/odds/units; `createPlay` enforces
-the pre-game lock, event binding, line check, dedup, and throttle **server-side before the
-write**; the DB guards immutability + dedup; grading stays official + audited.
+**Still to add:** a `SportingEvent` reference table (id, teams, `startsAt`, official status) sourced
+from the official schedule — for now `eventId` + `eventStartsAt` are denormalized on `Play` — and a
+partial unique index on active `(capperId, eventId, market, side)` for C6 dedup.
+
+Enforcement points: the `playSchema` (Zod) validates structure/odds/units and carries the optional
+event fields; `createPlay` enforces the pre-game lock (C1) + odds check (C3) via `decidePickIntegrity`
+**server-side before the write**, and sets `loggedPreGame` / `oddsVerified` / `verificationTier` /
+`source` from verified facts. Dedup + throttle + the DB immutability guard are still to come; grading
+stays official + audited.
 
 ## Milestone 2 sequence
 
 1. **Event binding + `eventStartsAt` + pre-game lock (C1–C2)** — the keystone; unlocks tiers and
-   auto-grading. Structured selection replaces free text.
-2. **Formal immutability (C4)** — server invariant + `scl` DB guard.
-3. **Dedup/hedge (C6)** + **throttle (C8)** — cheap, close obvious gaming.
-4. **Line/odds verification (C3)** — needs the official odds source in place.
+   auto-grading. Structured selection replaces free text. _Schema + server gate landed; the
+   typeahead selector UI is the remaining piece._
+2. **Line/odds verification (C3)** — _landed_: `verifyPick` wired into `createPlay` on the
+   event-bound path (one-sided implied-prob bound over the bundled per-event odds).
+3. **Formal immutability (C4)** — server invariant + `scl` DB guard.
+4. **Dedup/hedge (C6)** + **throttle (C8)** — cheap, close obvious gaming.
 5. **Provenance/tiers (C5)** — ties into the connector work (§M2-4) and tier surfacing (§M2-3).
 6. **Official-only grading hardening (C7)** — mostly formalizing what exists.
 

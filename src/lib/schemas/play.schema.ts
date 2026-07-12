@@ -32,6 +32,23 @@ export const playSchema = z.object({
       "Units must be in 0.25 increments",
     ),
   notes: optionalText(280),
+
+  // Pick-integrity binding (docs/SCL_PICK_INTEGRITY.md). All optional: the structured selector
+  // supplies them for the strict/verified path; a legacy free-text pick omits them and lands as
+  // SELF_REPORTED. The server never trusts these — it re-derives the lock and re-fetches odds.
+  eventId: optionalText(64),
+  eventStartsAt: z
+    .string()
+    .datetime({ offset: true })
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v ? v : undefined)),
+  side: optionalText(120),
+  line: z.preprocess(
+    (v) => (v === "" || v === null ? undefined : v),
+    z.coerce.number().optional(),
+  ),
+  player: optionalText(120),
 });
 
 // Input = pre-coercion (what the form holds); Output = post-validation (DB-ready).
