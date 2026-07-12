@@ -55,6 +55,8 @@ export type OddsSelection = {
   label: string; // display, e.g. "Boston Celtics ML"
   market: string; // prefill for the play's market field
   selection: string; // prefill for the play's selection field
+  side: string; // structured side for verification: team, or "Over"/"Under" (C2)
+  line?: number; // structured point/total for spreads + totals (C2)
   oddsAmerican: number;
 };
 
@@ -95,6 +97,7 @@ function normalize(sclSport: string, event: RawEvent): OddsEvent {
         label: `${o.name} ML`,
         market: "Moneyline",
         selection: o.name,
+        side: o.name,
         oddsAmerican: Math.round(o.price),
       });
     }
@@ -108,6 +111,8 @@ function normalize(sclSport: string, event: RawEvent): OddsEvent {
         label: `${o.name} ${line}`,
         market: "Spread",
         selection: `${o.name} ${line}`,
+        side: o.name,
+        line: o.point,
         oddsAmerican: Math.round(o.price),
       });
     }
@@ -120,6 +125,8 @@ function normalize(sclSport: string, event: RawEvent): OddsEvent {
         label: `${o.name} ${o.point}`,
         market: "Total",
         selection: `${o.name} ${o.point}`,
+        side: o.name,
+        line: o.point,
         oddsAmerican: Math.round(o.price),
       });
     }

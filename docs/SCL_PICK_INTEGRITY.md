@@ -47,11 +47,13 @@ client-supplied start time is never trusted.
 
 ### C2 · Structured, event-bound selection (no free-text picks)
 
-**Status (M2):** the `Play` fields (`eventId`, `eventStartsAt`, `side`, `line`) and the optional
-Zod inputs exist, and `createPlay` treats a pick as event-bound (eligible for the strict path) only
-when it carries `eventId` + a structured `side`. The **typeahead selector UI over the live slate**
-is the remaining piece — until it ships, a pick can still arrive as free text and lands as
-`SELF-REPORTED`.
+**Status (M2):** wired end-to-end. The board selector (`OddsAssist`, on the new-pick form) loads
+the live slate for the chosen sport and, on tap, binds the pick to a real event — it now carries
+`eventId`, `eventStartsAt`, structured `side`, and `line` through to `createPlay`, which treats a
+pick as event-bound (strict-path eligible) when it has `eventId` + a `side`. Free-text **manual
+entry** remains the deliberate fallback for anything off the board (props, obscure books) and lands
+as `SELF-REPORTED`. Still open: a true typeahead/search over large slates, and pulling props/alt
+lines into the board itself (today the board offers moneyline/spread/total).
 
 - Every pick binds to a **real scheduled event** from an official schedule source (event id,
   teams, start time) — not typed free text.
@@ -185,8 +187,9 @@ stays official + audited.
 ## Milestone 2 sequence
 
 1. **Event binding + `eventStartsAt` + pre-game lock (C1–C2)** — the keystone; unlocks tiers and
-   auto-grading. Structured selection replaces free text. _Schema + server gate landed; the
-   typeahead selector UI is the remaining piece._
+   auto-grading. Structured selection replaces free text. _Landed_: schema + server gate + the
+   board selector that binds picks to real events (moneyline/spread/total). Remaining: typeahead
+   for large slates + props/alt lines on the board.
 2. **Line/odds verification (C3)** — _landed_: `verifyPick` wired into `createPlay` on the
    event-bound path (one-sided implied-prob bound over the bundled per-event odds).
 3. **Formal immutability (C4)** — server invariant + `scl` DB guard.

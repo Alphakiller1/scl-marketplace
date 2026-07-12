@@ -51,6 +51,8 @@ export default function NewPlayPage() {
   const market = useWatch({ control, name: "market" });
   const odds = useWatch({ control, name: "oddsAmerican" });
   const units = useWatch({ control, name: "units" });
+  const eventId = useWatch({ control, name: "eventId" });
+  const eventBound = Boolean(eventId);
 
   const oddsNum = Number(odds);
   const hasPick = Boolean(selection && market && Math.abs(oddsNum) >= 100);
@@ -70,10 +72,21 @@ export default function NewPlayPage() {
     router.refresh();
   }
 
+  // Event binding is what promotes a pick to the strict/verified path. Any time the pick is
+  // hand-edited or reset it must be dropped, so a stale board line never attaches to a
+  // different selection.
+  function clearEventBinding() {
+    setValue("eventId", "");
+    setValue("eventStartsAt", "");
+    setValue("side", "");
+    setValue("line", undefined as unknown as number);
+  }
+
   function clearPick() {
     setValue("selection", "");
     setValue("market", "");
     setValue("oddsAmerican", "" as unknown as number);
+    clearEventBinding();
   }
 
   return (
@@ -212,6 +225,11 @@ export default function NewPlayPage() {
                 setValue("oddsAmerican", pick.oddsAmerican, {
                   shouldValidate: true,
                 });
+                // Carry the event binding so createPlay runs the strict path (C1 lock + C3 odds).
+                setValue("eventId", pick.eventId);
+                setValue("eventStartsAt", pick.eventStartsAt);
+                setValue("side", pick.side);
+                setValue("line", pick.line as number | undefined);
               }}
             />
           ) : null}
@@ -232,6 +250,11 @@ export default function NewPlayPage() {
                       {formatOdds(oddsNum)}
                     </span>
                   </p>
+                  {eventBound ? (
+                    <p className="text-brand mt-1 text-[0.7rem] font-medium">
+                      Pre-game · odds will be verified
+                    </p>
+                  ) : null}
                 </div>
                 <button
                   type="button"
@@ -277,7 +300,10 @@ export default function NewPlayPage() {
 
           <button
             type="button"
-            onClick={() => setManual(true)}
+            onClick={() => {
+              clearEventBinding();
+              setManual(true);
+            }}
             className="text-muted-foreground hover:text-foreground mx-auto block text-xs"
           >
             Can&apos;t find it on the board? Enter a play manually
