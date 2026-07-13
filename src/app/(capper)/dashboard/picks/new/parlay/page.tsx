@@ -10,12 +10,13 @@ import { toast } from "sonner";
 
 import { OddsAssist } from "@/components/scl/odds-assist";
 import { SectionHeader } from "@/components/scl/section";
+import { SportPills } from "@/components/scl/sport-pills";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createParlay } from "@/lib/actions/parlay.action";
-import { SPORTS, UNIT_MAX, UNIT_MIN, UNIT_STEP } from "@/lib/constants";
+import { UNIT_MAX, UNIT_MIN, UNIT_STEP } from "@/lib/constants";
 import { formatOdds } from "@/lib/format";
 import {
   americanToDecimal,
@@ -27,9 +28,6 @@ import {
   type CreateParlayFormInput,
   type CreateParlayInput,
 } from "@/lib/schemas/parlay.schema";
-
-const SELECT_CLASS =
-  "border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-lg border bg-transparent px-3 text-base shadow-xs focus-visible:ring-[3px] focus-visible:outline-none sm:text-sm";
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -108,23 +106,9 @@ export default function NewParlayPage() {
         <FieldError message={errors.units?.message} />
       </Card>
 
-      <Card className="space-y-1.5 p-4 sm:p-5">
-        <Label htmlFor="sport">Add legs from the board</Label>
-        <select
-          id="sport"
-          className={SELECT_CLASS}
-          value={sport}
-          onChange={(e) => setSport(e.target.value)}
-        >
-          <option value="" disabled>
-            Choose a sport to load the board…
-          </option>
-          {SPORTS.map((s) => (
-            <option key={s.key} value={s.key}>
-              {s.label}
-            </option>
-          ))}
-        </select>
+      <Card className="space-y-2 p-4 sm:p-5">
+        <Label>Add legs from the board</Label>
+        <SportPills value={sport} onChange={setSport} />
       </Card>
 
       {sport ? (

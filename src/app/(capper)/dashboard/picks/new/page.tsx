@@ -9,12 +9,13 @@ import { toast } from "sonner";
 
 import { OddsAssist } from "@/components/scl/odds-assist";
 import { SectionHeader } from "@/components/scl/section";
+import { SportPills } from "@/components/scl/sport-pills";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createPlay } from "@/lib/actions/play.action";
-import { SPORTS, UNIT_MAX, UNIT_MIN, UNIT_STEP } from "@/lib/constants";
+import { UNIT_MAX, UNIT_MIN, UNIT_STEP } from "@/lib/constants";
 import { formatOdds } from "@/lib/format";
 import { americanToDecimal } from "@/lib/odds";
 import {
@@ -22,9 +23,6 @@ import {
   type PlayFormInput,
   type PlayInput,
 } from "@/lib/schemas/play.schema";
-
-const SELECT_CLASS =
-  "border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-lg border bg-transparent px-3 text-base shadow-xs focus-visible:ring-[3px] focus-visible:outline-none sm:text-sm";
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -104,23 +102,12 @@ export default function NewPlayPage() {
       </div>
 
       {/* Sport — always visible; drives the board */}
-      <Card className="space-y-1.5 p-4 sm:p-5">
-        <Label htmlFor="sport">Sport</Label>
-        <select
-          id="sport"
-          className={SELECT_CLASS}
-          defaultValue=""
-          {...register("sport")}
-        >
-          <option value="" disabled>
-            Choose a sport to load tonight&apos;s board…
-          </option>
-          {SPORTS.map((s) => (
-            <option key={s.key} value={s.key}>
-              {s.label}
-            </option>
-          ))}
-        </select>
+      <Card className="space-y-2 p-4 sm:p-5">
+        <Label>Sport</Label>
+        <SportPills
+          value={sport ?? ""}
+          onChange={(s) => setValue("sport", s, { shouldValidate: true })}
+        />
         <FieldError message={errors.sport?.message} />
       </Card>
 
