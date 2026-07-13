@@ -31,6 +31,8 @@ export const SPORT_KEYS = SPORTS.map((s) => s.key) as SportKey[];
 export const UNIT_MIN = 0.25;
 export const UNIT_MAX = 5;
 export const UNIT_STEP = 0.25;
+/** Quick-select stake chips on the pick slip (must stay within UNIT_MIN..UNIT_MAX). */
+export const UNIT_QUICK_CHIPS = [0.5, 1, 2, 3] as const;
 
 // Leaderboard timeframes (days; null = season/year handled separately).
 export const LEADERBOARD_TIMEFRAMES = [

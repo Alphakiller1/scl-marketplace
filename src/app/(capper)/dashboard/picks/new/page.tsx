@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { OddsAssist } from "@/components/scl/odds-assist";
 import { SectionHeader } from "@/components/scl/section";
 import { SportPills } from "@/components/scl/sport-pills";
+import { StakeQuickChips } from "@/components/scl/stake-quick-chips";
 import { VerificationReceipt } from "@/components/scl/verification-receipt";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -234,6 +235,15 @@ export default function NewPlayPage() {
                   </p>
                 </div>
               </div>
+              <StakeQuickChips
+                value={typeof units === "number" ? units : null}
+                onChange={(u) =>
+                  setValue("units", u, {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  })
+                }
+              />
               <FieldError message={errors.units?.message} />
 
               <div className="space-y-1.5">
