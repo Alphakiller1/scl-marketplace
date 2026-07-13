@@ -13,12 +13,14 @@ export function Leaderboard({
   failed = false,
   compactMobile = false,
   emptyDescription = "No cappers match this ranking scope yet.",
+  emptyTitle,
 }: {
   cappers: CapperSummary[];
   limit?: number;
   failed?: boolean;
   compactMobile?: boolean;
   emptyDescription?: string;
+  emptyTitle?: string;
 }) {
   const visible = typeof limit === "number" ? cappers.slice(0, limit) : cappers;
 
@@ -27,7 +29,9 @@ export function Leaderboard({
       <EmptyState
         icon={Trophy}
         title={
-          failed ? "Couldn't Load The Leaderboard" : "No Ranked Cappers Found"
+          failed
+            ? "Couldn't Load The Leaderboard"
+            : (emptyTitle ?? "No Ranked Cappers Found")
         }
         description={
           failed
@@ -71,5 +75,44 @@ export function Leaderboard({
         ))}
       </div>
     </>
+  );
+}
+
+/** Visually distinct unranked / below-minimum band — never shows competition places. */
+export function BuildingRecordSection({
+  cappers,
+  failed = false,
+}: {
+  cappers: CapperSummary[];
+  failed?: boolean;
+}) {
+  if (!cappers.length || failed) return null;
+
+  return (
+    <section
+      aria-label="Building a record"
+      className="border-border bg-surface-2/40 mt-8 rounded-xl border border-dashed p-3 sm:mt-10 sm:p-4"
+    >
+      <div className="mb-3 flex flex-col gap-1 sm:mb-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-sm font-bold tracking-wide uppercase">
+            Building A Record
+          </h2>
+          <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
+            Zero graded picks or below the selected sample minimum — visible
+            here without a rank number.
+          </p>
+        </div>
+        <p className="nums text-muted-foreground text-xs tabular-nums">
+          {cappers.length.toLocaleString()}{" "}
+          {cappers.length === 1 ? "capper" : "cappers"}
+        </p>
+      </div>
+      <Leaderboard
+        cappers={cappers}
+        emptyTitle="No Cappers Building A Record"
+        emptyDescription="Every matching capper currently meets the ranking sample."
+      />
+    </section>
   );
 }

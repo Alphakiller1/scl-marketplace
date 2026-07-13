@@ -1,7 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
-import { getLeaderboard } from "@/lib/queries/leaderboard";
+import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 import type { PlayView } from "@/lib/queries/plays";
 import type { CapperSummary } from "@/lib/mock";
 
@@ -16,14 +16,16 @@ export type PublicCapper = {
 /**
  * The public profile payload for /cappers/[handle]. Pulls the capper from the
  * live leaderboard (so rank/stats stay consistent with the board) and attaches
- * their most recent tracked plays. Returns null when the handle isn't a ranked
- * capper, so the page can 404 honestly.
+ * their most recent tracked plays. Returns null when the handle isn't a public
+ * capper (ranked or building a record), so the page can 404 honestly.
  */
 export async function getPublicCapperByHandle(
   handle: string,
 ): Promise<PublicCapper | null> {
-  const board = await getLeaderboard();
-  const capper = board.find((c) => c.handle === handle);
+  const { cappers, unranked } = await getLeaderboardResult();
+  const capper =
+    cappers.find((c) => c.handle === handle) ??
+    unranked.find((c) => c.handle === handle);
   if (!capper) return null;
 
   let plays: PlayView[] = [];

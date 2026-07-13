@@ -19,7 +19,7 @@ export function CompactCapperRow({
   primaryMetric,
 }: {
   capper: CapperSummary;
-  rank: number;
+  rank: number | null | undefined;
   primaryMetric: "units" | "roi";
 }) {
   const primaryValue =
