@@ -10,6 +10,13 @@ import { TeamMark } from "@/components/scl/team-mark";
 import { cn } from "@/lib/utils";
 import { formatOdds } from "@/lib/format";
 import { pickKey } from "@/lib/slip";
+import {
+  availablePropMarkets,
+  filterPlayerPropGroups,
+  groupPropsByPlayer,
+  propMarketShortLabel,
+  splitMarketPreview,
+} from "@/lib/prop-board";
 import { getTeamIdentity, type TeamIdentity } from "@/lib/teams";
 import type { OddsEvent, OddsSelection } from "@/lib/odds-api";
 
@@ -49,10 +56,11 @@ type EventDetailData =
   | { status: "error" };
 
 const MARKET_ORDER = ["Moneyline", "Spread", "Total"] as const;
-// Props with many players get long — show this many by default, with a "show all".
-const PROP_PLAYER_CAP = 12;
 // Alternate spread/total ladders are long — show the closest-to-main lines, expand for the rest.
 const ALT_LINE_CAP = 8;
+
+const PROP_PILL_CLASS =
+  "min-h-10 rounded-full border px-3.5 text-sm font-semibold transition-colors";
 
 const CHIP_CLASS =
   "border-border hover:border-brand hover:bg-surface-2 flex min-h-10 items-center gap-1.5 rounded-md border px-3 py-2 text-xs transition-colors";
@@ -80,20 +88,6 @@ function groupByMarket(
     const r = marketOrder(a[0]) - marketOrder(b[0]);
     return r !== 0 ? r : a[0].localeCompare(b[0]);
   });
-}
-
-/** Sub-group a prop market's selections by player, preserving the incoming (sorted) order. */
-function groupByPlayer(
-  selections: OddsSelection[],
-): [string, OddsSelection[]][] {
-  const groups = new Map<string, OddsSelection[]>();
-  for (const s of selections) {
-    const player = s.player ?? "";
-    const arr = groups.get(player);
-    if (arr) arr.push(s);
-    else groups.set(player, [s]);
-  }
-  return [...groups.entries()];
 }
 
 /**
@@ -414,8 +408,9 @@ function moneylineFor(
 
 /**
  * One expanded event: featured game lines (shown immediately) plus alternate lines and player
- * props once the per-event fetch returns. Props are searchable by player and grouped per player;
- * long lists are capped until "show all". Local search/expand state resets when the event closes.
+ * props once the per-event fetch returns. Props: sticky player search, category filter pills,
+ * and player accordions (collapsed by default; 3-market preview + Show all). Local state resets
+ * when the event closes.
  */
 function EventDetail({
   event,
@@ -429,7 +424,11 @@ function EventDetail({
   selectedKeys?: Set<string>;
 }) {
   const [query, setQuery] = useState("");
-  const [showAllProps, setShowAllProps] = useState(false);
+  const [propMarket, setPropMarket] = useState<string | null>(null);
+  const [playerOpen, setPlayerOpen] = useState<Record<string, boolean>>({});
+  const [playerShowAll, setPlayerShowAll] = useState<Record<string, boolean>>(
+    {},
+  );
   const [altExpanded, setAltExpanded] = useState<Record<string, boolean>>({});
 
   const shown =
@@ -442,13 +441,18 @@ function EventDetail({
   const featuredGroups = groupByMarket(
     shown.filter((s) => isGameMarket(s.market) && s.featured),
   );
-  const propGroups = groupByMarket(
-    shown.filter((s) => !isGameMarket(s.market)),
+  const propSelections = shown.filter((s) => !isGameMarket(s.market));
+  const propMarkets = availablePropMarkets(propSelections);
+  const playerGroups = filterPlayerPropGroups(
+    groupPropsByPlayer(propSelections),
+    { query, market: propMarket },
   );
   const altGroups = groupByMarket(
     shown.filter((s) => isGameMarket(s.market) && !s.featured),
   );
-  const q = query.trim().toLowerCase();
+  const q = query.trim();
+  // Search auto-opens matching players so a named prop is ≤2 taps (type + chip).
+  const searching = q.length > 0;
 
   const renderChip = (s: OddsSelection, key: string) => {
     const pick: OddsPick = {
@@ -501,17 +505,6 @@ function EventDetail({
     </p>
   );
 
-  const propSections = propGroups
-    .map(([market, opts]) => {
-      const byPlayer = groupByPlayer(opts).filter(
-        ([player]) => !q || player.toLowerCase().includes(q),
-      );
-      const visible =
-        !q && !showAllProps ? byPlayer.slice(0, PROP_PLAYER_CAP) : byPlayer;
-      return { market, visible, total: byPlayer.length };
-    })
-    .filter((section) => section.visible.length > 0);
-
   // Alt ladders sorted by proximity to the main line, capped until expanded per market.
   const altSections = altGroups.map(([market, opts]) => {
     const ref = shown.find(
@@ -552,46 +545,139 @@ function EventDetail({
         </p>
       ) : null}
 
-      {/* 2 · Player props — searchable, grouped by player */}
-      {propGroups.length ? (
+      {/* 2 · Player props — sticky search, category pills, player accordions */}
+      {propSelections.length ? (
         <div className="space-y-2.5">
-          <input
-            type="text"
-            value={query}
-            onChange={(ev) => setQuery(ev.target.value)}
-            placeholder="Search props by player…"
-            aria-label="Search props by player"
-            className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-10 w-full rounded-lg border bg-transparent px-3 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
-          />
-          {propSections.map(({ market, visible, total }) => (
-            <div key={market}>
-              {marketLabel(market)}
-              <div className="space-y-2">
-                {visible.map(([player, plays]) => (
-                  <div key={player}>
-                    <p className="text-foreground text-xs font-medium">
-                      {player}
-                    </p>
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      {plays.map((s, i) => renderChip(s, `${player}-${i}`))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {!q && !showAllProps && total > PROP_PLAYER_CAP ? (
+          <div className="bg-card sticky top-0 z-10 space-y-2 pb-1">
+            <input
+              type="text"
+              value={query}
+              onChange={(ev) => setQuery(ev.target.value)}
+              placeholder="Search props by player…"
+              aria-label="Search props by player"
+              className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-10 w-full rounded-lg border bg-transparent px-3 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
+            />
+            {propMarkets.length > 1 ? (
+              <div
+                className="flex flex-wrap gap-1.5"
+                role="group"
+                aria-label="Filter props by stat"
+              >
                 <button
                   type="button"
-                  onClick={() => setShowAllProps(true)}
-                  className="text-brand mt-2 text-xs font-medium hover:underline"
+                  onClick={() => setPropMarket(null)}
+                  aria-pressed={propMarket === null}
+                  className={cn(
+                    PROP_PILL_CLASS,
+                    propMarket === null
+                      ? "border-brand bg-brand/10 text-brand"
+                      : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30",
+                  )}
                 >
-                  Show all {total} players
+                  All
                 </button>
-              ) : null}
-            </div>
-          ))}
-          {q && propSections.length === 0 ? (
+                {propMarkets.map((market) => {
+                  const active = propMarket === market;
+                  return (
+                    <button
+                      key={market}
+                      type="button"
+                      onClick={() => setPropMarket(active ? null : market)}
+                      aria-pressed={active}
+                      className={cn(
+                        PROP_PILL_CLASS,
+                        active
+                          ? "border-brand bg-brand/10 text-brand"
+                          : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30",
+                      )}
+                    >
+                      {propMarketShortLabel(market)}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="divide-border border-border divide-y overflow-hidden rounded-lg border">
+            {playerGroups.map(({ player, markets }) => {
+              const open = searching || Boolean(playerOpen[player]);
+              const showAll = Boolean(playerShowAll[player]);
+              const { preview, remaining } = splitMarketPreview(markets);
+              const visibleMarkets = showAll ? markets : preview;
+              const marketCount = markets.length;
+              const chipCount = markets.reduce(
+                (n, [, opts]) => n + opts.length,
+                0,
+              );
+              return (
+                <div key={player} className="bg-card">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPlayerOpen((p) => ({ ...p, [player]: !open }))
+                    }
+                    aria-expanded={open}
+                    className="hover:bg-surface-2 flex min-h-10 w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors"
+                  >
+                    <span className="min-w-0 truncate font-medium">
+                      {player}
+                    </span>
+                    <span className="text-muted-foreground flex shrink-0 items-center gap-1.5 text-xs">
+                      <span className="nums tabular-nums">
+                        {marketCount} {marketCount === 1 ? "market" : "markets"}
+                        {" · "}
+                        {chipCount}
+                      </span>
+                      <ChevronDown
+                        className={cn(
+                          "size-4 transition-transform",
+                          open ? "rotate-180" : "",
+                        )}
+                      />
+                    </span>
+                  </button>
+                  {open ? (
+                    <div className="space-y-2.5 px-3 pb-3">
+                      {visibleMarkets.map(([market, opts]) => (
+                        <div key={market}>
+                          {marketLabel(market)}
+                          <div className="flex flex-wrap gap-1.5">
+                            {opts.map((s, i) =>
+                              renderChip(s, `${player}-${market}-${i}`),
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      {remaining > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPlayerShowAll((p) => ({
+                              ...p,
+                              [player]: !showAll,
+                            }))
+                          }
+                          className="text-brand min-h-10 text-xs font-medium hover:underline"
+                        >
+                          {showAll
+                            ? "Show fewer"
+                            : `Show all (${markets.length})`}
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+          {playerGroups.length === 0 ? (
             <p className="text-muted-foreground text-xs">
-              No players match “{query}”.
+              {q
+                ? `No players match “${query}”.`
+                : propMarket
+                  ? `No ${propMarketShortLabel(propMarket)} props for this game.`
+                  : "No props for this game."}
             </p>
           ) : null}
         </div>
