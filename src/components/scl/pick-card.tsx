@@ -42,9 +42,11 @@ export function PickCard({
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <SportTag sport={pick.sport} />
-          <span className="text-muted-foreground truncate text-xs">
-            {pick.event}
-          </span>
+          {pick.event ? (
+            <span className="text-muted-foreground truncate text-xs">
+              {pick.event}
+            </span>
+          ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           {pick.verificationTier ? (
@@ -131,9 +133,11 @@ function CompactPickCard({ pick }: { pick: TodayPick }) {
       <div className="flex min-w-0 items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <SportTag sport={pick.sport} />
-          <span className="text-muted-foreground truncate text-xs">
-            {pick.event}
-          </span>
+          {pick.event ? (
+            <span className="text-muted-foreground truncate text-xs">
+              {pick.event}
+            </span>
+          ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           {pick.verificationTier ? (

@@ -43,3 +43,22 @@ test("pickContextLabel drops duplicate sport/league labels", () => {
     "Spread",
   );
 });
+
+test("pickContextLabel renders nothing when market is only the sport or league", () => {
+  assert.equal(
+    pickContextLabel({ sport: "MLB", league: "MLB", market: "MLB" }),
+    "",
+  );
+  assert.equal(
+    pickContextLabel({
+      sport: "MLB",
+      league: "First Five Innings",
+      market: "First Five Innings",
+    }),
+    "",
+  );
+  assert.equal(
+    pickContextLabel({ sport: "WNBA", league: null, market: "WNBA" }),
+    "",
+  );
+});
