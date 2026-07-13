@@ -5,9 +5,8 @@ import type { Outcome } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   buildPerformanceTrend,
-  hasLeaderboardSample,
   leaderboardWindowStart,
-  sortLeaderboard,
+  partitionLeaderboard,
   type LeaderboardFilters,
 } from "@/lib/leaderboard";
 import { computeCapperStats } from "@/lib/stats";
@@ -268,27 +267,27 @@ export async function getLeaderboard(
 
 export async function getLeaderboardResult(
   options: Partial<LeaderboardFilters> = {},
-): Promise<{ cappers: CapperSummary[]; failed: boolean }> {
+): Promise<{
+  cappers: CapperSummary[];
+  unranked: CapperSummary[];
+  failed: boolean;
+}> {
   const filters = { ...DEFAULT_FILTERS, ...options };
   let profiles: ProfileRow[];
   try {
     profiles = await fetchRankableProfiles(filters);
   } catch (err) {
     console.error("[getLeaderboard] database unavailable:", err);
-    return { cappers: [], failed: true };
+    return { cappers: [], unranked: [], failed: true };
   }
 
   const cappers = profiles
     .map(summarize)
-    .filter((c): c is CapperSummary => c !== null)
-    .filter((c) => hasLeaderboardSample(c, filters));
+    .filter((c): c is CapperSummary => c !== null);
 
-  const ranked = sortLeaderboard(cappers, filters.sort);
-  ranked.forEach((c, i) => {
-    c.rank = i + 1;
-  });
+  const { ranked, unranked } = partitionLeaderboard(cappers, filters);
 
-  // Modest, data-derived honors (no fabricated awards).
+  // Modest, data-derived honors (no fabricated awards) — ranked field only.
   if (ranked.length) {
     const topUnits = [...ranked].sort((a, b) => b.units - a.units)[0];
     if (topUnits.units > 0) withTrophy(topUnits, "Top Units");
@@ -299,5 +298,5 @@ export async function getLeaderboardResult(
     for (const c of ranked) if (c.streak >= 4) withTrophy(c, "Hot Streak");
   }
 
-  return { cappers: ranked, failed: false };
+  return { cappers: ranked, unranked, failed: false };
 }

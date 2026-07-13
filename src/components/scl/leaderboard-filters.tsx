@@ -8,6 +8,7 @@ import {
   LEADERBOARD_WINDOWS,
   type LeaderboardFilters as Filters,
 } from "@/lib/leaderboard";
+import { cn } from "@/lib/utils";
 
 export function LeaderboardFilters({
   filters,
@@ -82,114 +83,137 @@ function FilterForm({
           {label}
         </div>
       ) : null}
-      <div className="grid gap-3 lg:grid-cols-[1fr_1fr_1fr_1fr_1.4fr_auto_auto]">
-        <FilterSelect label="Sport" name="sport" defaultValue={filters.sport}>
-          <option value="ALL">All Sports</option>
-          {SPORTS.map((sport) => (
-            <option key={sport.key} value={sport.key}>
-              {sport.label}
-            </option>
-          ))}
-        </FilterSelect>
-        <FilterSelect
-          label="Window"
-          name="window"
-          defaultValue={filters.window}
-        >
-          {LEADERBOARD_WINDOWS.map((window) => (
-            <option key={window.key} value={window.key}>
-              {window.label}
-            </option>
-          ))}
-        </FilterSelect>
-        <FilterSelect label="Rank By" name="sort" defaultValue={filters.sort}>
-          {LEADERBOARD_SORTS.map((sort) => (
-            <option key={sort.key} value={sort.key}>
-              {sort.label}
-            </option>
-          ))}
-        </FilterSelect>
-        <FilterSelect
-          label="Minimum Sample"
-          name="minPicks"
-          defaultValue={String(filters.minPicks)}
-        >
-          {LEADERBOARD_MIN_PICKS.map((count) => (
-            <option key={count} value={count}>
-              {count === 0 ? "Any Sample" : `${count}+ Picks`}
-            </option>
-          ))}
-        </FilterSelect>
-        <label className="min-w-0">
-          <span className="text-muted-foreground block text-[0.7rem] font-semibold uppercase">
-            Find A Capper
-          </span>
-          <span className="border-input bg-surface-2 focus-within:ring-ring mt-1 flex min-h-11 items-center gap-2 rounded-lg border px-3 focus-within:ring-2">
-            <Search className="text-muted-foreground size-4" aria-hidden />
-            <input
-              type="search"
-              name="q"
-              defaultValue={filters.search}
-              placeholder="Name Or Handle"
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-            />
-          </span>
-        </label>
-        <FilterSelect
-          label="Record"
-          name="record"
-          defaultValue={filters.verifiedOnly ? "verified" : "all"}
-        >
-          <option value="verified">Verified Only</option>
-          <option value="all">All Records</option>
-        </FilterSelect>
-        <div className="flex items-end gap-2">
-          <Button
-            type="submit"
-            className="min-h-11 flex-1 lg:min-h-10 lg:flex-none"
-          >
-            Apply
-          </Button>
-          <Button
-            render={<Link href={action} />}
-            nativeButton={false}
-            variant="outline"
-            size="icon"
-            className="size-11 lg:size-10"
-            aria-label="Reset Leaderboard Filters"
-            title="Reset Filters"
-          >
-            <RotateCcw className="size-4" aria-hidden />
-          </Button>
+      <div className="grid gap-4">
+        <FilterPillGroup
+          label="Sport"
+          name="sport"
+          value={filters.sport}
+          options={[
+            { value: "ALL", label: "All Sports" },
+            ...SPORTS.map((sport) => ({
+              value: sport.key,
+              label: sport.label,
+            })),
+          ]}
+        />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <FilterPillGroup
+            label="Window"
+            name="window"
+            value={filters.window}
+            options={LEADERBOARD_WINDOWS.map((window) => ({
+              value: window.key,
+              label: window.label,
+            }))}
+          />
+          <FilterPillGroup
+            label="Rank By"
+            name="sort"
+            value={filters.sort}
+            options={LEADERBOARD_SORTS.map((sort) => ({
+              value: sort.key,
+              label: sort.label,
+            }))}
+          />
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <FilterPillGroup
+            label="Minimum Sample"
+            name="minPicks"
+            value={String(filters.minPicks)}
+            options={LEADERBOARD_MIN_PICKS.map((count) => ({
+              value: String(count),
+              label: count === 0 ? "Any Sample" : `${count}+ Picks`,
+            }))}
+          />
+          <FilterPillGroup
+            label="Record"
+            name="record"
+            value={filters.verifiedOnly ? "verified" : "all"}
+            options={[
+              { value: "verified", label: "Verified Only" },
+              { value: "all", label: "All Records" },
+            ]}
+          />
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <label className="min-w-0 flex-1">
+            <span className="text-muted-foreground block text-[0.7rem] font-semibold uppercase">
+              Find A Capper
+            </span>
+            <span className="border-input bg-surface-2 focus-within:ring-ring mt-1 flex min-h-11 items-center gap-2 rounded-lg border px-3 focus-within:ring-2">
+              <Search className="text-muted-foreground size-4" aria-hidden />
+              <input
+                type="search"
+                name="q"
+                defaultValue={filters.search}
+                placeholder="Name Or Handle"
+                className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+              />
+            </span>
+          </label>
+          <div className="flex items-end gap-2">
+            <Button
+              type="submit"
+              className="min-h-11 flex-1 sm:min-h-10 sm:flex-none"
+            >
+              Apply
+            </Button>
+            <Button
+              render={<Link href={action} />}
+              nativeButton={false}
+              variant="outline"
+              size="icon"
+              className="size-11 sm:size-10"
+              aria-label="Reset Leaderboard Filters"
+              title="Reset Filters"
+            >
+              <RotateCcw className="size-4" aria-hidden />
+            </Button>
+          </div>
         </div>
       </div>
     </form>
   );
 }
 
-function FilterSelect({
+/** Radio pill row — same visual language as SportPills, keeps URL GET forms. */
+function FilterPillGroup({
   label,
   name,
-  defaultValue,
-  children,
+  value,
+  options,
 }: {
   label: string;
   name: string;
-  defaultValue: string;
-  children: React.ReactNode;
+  value: string;
+  options: { value: string; label: string }[];
 }) {
   return (
-    <label className="min-w-0">
-      <span className="text-muted-foreground block text-[0.7rem] font-semibold uppercase">
+    <fieldset className="min-w-0">
+      <legend className="text-muted-foreground text-[0.7rem] font-semibold uppercase">
         {label}
-      </span>
-      <select
-        name={name}
-        defaultValue={defaultValue}
-        className="border-input bg-surface-2 focus:ring-ring mt-1 min-h-11 w-full rounded-lg border px-3 text-base outline-none focus:ring-2 md:text-sm lg:min-h-10"
-      >
-        {children}
-      </select>
-    </label>
+      </legend>
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {options.map((option) => (
+          <label
+            key={option.value}
+            className={cn(
+              "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground inline-flex min-h-10 cursor-pointer items-center rounded-full border px-3.5 text-sm font-semibold transition-colors",
+              "has-[:checked]:border-brand has-[:checked]:bg-brand/10 has-[:checked]:text-brand",
+            )}
+          >
+            <input
+              type="radio"
+              name={name}
+              value={option.value}
+              defaultChecked={value === option.value}
+              className="sr-only"
+            />
+            {option.label}
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }

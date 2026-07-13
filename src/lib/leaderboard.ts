@@ -122,13 +122,60 @@ export function sortLeaderboard(
   return ranked;
 }
 
-export function hasLeaderboardSample(
+/**
+ * Eligible for a public rank number: at least one graded pick in scope, and
+ * at/above the selected minimum sample. Zero-sample and below-minimum cappers
+ * stay visible as unranked ("Building a record") instead of faking a place.
+ */
+export function isLeaderboardEligible(
   capper: CapperSummary,
   filters: LeaderboardFilters,
 ): boolean {
   const settledPicks = capper.settledPicks ?? 0;
-  const isScoped = filters.sport !== "ALL" || filters.window !== "all";
-  return (!isScoped || settledPicks > 0) && settledPicks >= filters.minPicks;
+  return settledPicks > 0 && settledPicks >= filters.minPicks;
+}
+
+/** @deprecated Prefer `isLeaderboardEligible` — kept for callers that still
+ * gate on sample presence rather than ranked/unranked split. */
+export function hasLeaderboardSample(
+  capper: CapperSummary,
+  filters: LeaderboardFilters,
+): boolean {
+  return isLeaderboardEligible(capper, filters);
+}
+
+export type LeaderboardPartition = {
+  ranked: CapperSummary[];
+  unranked: CapperSummary[];
+};
+
+/**
+ * Split cappers into ranked (sample-eligible, numbered) and unranked (zero
+ * graded / below minimum — `rank` cleared to 0, no competition place).
+ */
+export function partitionLeaderboard(
+  cappers: CapperSummary[],
+  filters: LeaderboardFilters,
+): LeaderboardPartition {
+  const eligible: CapperSummary[] = [];
+  const building: CapperSummary[] = [];
+
+  for (const capper of cappers) {
+    if (isLeaderboardEligible(capper, filters)) eligible.push(capper);
+    else building.push(capper);
+  }
+
+  const ranked = sortLeaderboard(eligible, filters.sort);
+  ranked.forEach((capper, index) => {
+    capper.rank = index + 1;
+  });
+
+  const unranked = sortLeaderboard(building, filters.sort);
+  unranked.forEach((capper) => {
+    capper.rank = 0;
+  });
+
+  return { ranked, unranked };
 }
 
 export type LeaderboardSummary = {

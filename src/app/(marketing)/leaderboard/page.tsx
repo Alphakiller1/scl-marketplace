@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 
-import { Leaderboard } from "@/components/scl/leaderboard";
+import {
+  BuildingRecordSection,
+  Leaderboard,
+} from "@/components/scl/leaderboard";
 import { LeaderboardFilters } from "@/components/scl/leaderboard-filters";
 import { LeaderboardOverview } from "@/components/scl/leaderboard-overview";
 import {
@@ -23,7 +26,7 @@ export default async function LeaderboardPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const filters = parseLeaderboardFilters(await searchParams);
-  const { cappers, failed } = await getLeaderboardResult(filters);
+  const { cappers, unranked, failed } = await getLeaderboardResult(filters);
   const summary = summarizeLeaderboard(cappers);
 
   return (
@@ -34,9 +37,10 @@ export default async function LeaderboardPage({
         <Leaderboard
           cappers={cappers}
           failed={failed}
-          emptyDescription="No cappers match these filters. Reduce the minimum sample, broaden the time window, or show all records."
+          emptyDescription="No cappers match these ranking filters yet. Cappers below the sample threshold appear under Building A Record."
         />
       </section>
+      <BuildingRecordSection cappers={unranked} failed={failed} />
     </div>
   );
 }

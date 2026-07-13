@@ -6,9 +6,26 @@ export function RankBadge({
   rank,
   className,
 }: {
-  rank: number;
+  /** Competition place. `0` / null / undefined = unranked (building a record). */
+  rank: number | null | undefined;
   className?: string;
 }) {
+  if (rank == null || rank <= 0) {
+    return (
+      <span
+        className={cn(
+          "nums text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-lg border border-dashed text-sm font-bold tabular-nums",
+          "border-border bg-surface-2",
+          className,
+        )}
+        aria-label="Unranked"
+        title="Building a record"
+      >
+        —
+      </span>
+    );
+  }
+
   const podium = rank <= 3;
   const Icon = rank === 1 ? Crown : Medal;
 

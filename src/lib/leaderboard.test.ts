@@ -4,8 +4,10 @@ import test from "node:test";
 import {
   buildPerformanceTrend,
   hasLeaderboardSample,
+  isLeaderboardEligible,
   leaderboardWindowStart,
   parseLeaderboardFilters,
+  partitionLeaderboard,
   summarizeLeaderboard,
 } from "@/lib/leaderboard";
 import type { CapperSummary } from "@/lib/mock";
@@ -53,14 +55,84 @@ test("performance trend is cumulative and excludes unsettled plays", () => {
   );
 });
 
-test("scoped leaderboards exclude cappers without a settled sample", () => {
-  const filters = parseLeaderboardFilters({ sport: "MLB", minPicks: "0" });
-  const capper = { settledPicks: 0 } as CapperSummary;
+test("zero-sample cappers are never ranking-eligible", () => {
+  const unscoped = parseLeaderboardFilters({ minPicks: "0" });
+  const scoped = parseLeaderboardFilters({ sport: "MLB", minPicks: "0" });
+  const zero = { settledPicks: 0 } as CapperSummary;
 
-  assert.equal(hasLeaderboardSample(capper, filters), false);
+  assert.equal(isLeaderboardEligible(zero, unscoped), false);
+  assert.equal(isLeaderboardEligible(zero, scoped), false);
+  assert.equal(hasLeaderboardSample(zero, unscoped), false);
+});
+
+test("below-minimum-sample cappers are not ranking-eligible", () => {
+  const filters = parseLeaderboardFilters({ minPicks: "10" });
   assert.equal(
-    hasLeaderboardSample({ settledPicks: 1 } as CapperSummary, filters),
+    isLeaderboardEligible({ settledPicks: 9 } as CapperSummary, filters),
+    false,
+  );
+  assert.equal(
+    isLeaderboardEligible({ settledPicks: 10 } as CapperSummary, filters),
     true,
+  );
+});
+
+test("partitionLeaderboard ranks eligible and clears unranked places", () => {
+  const filters = parseLeaderboardFilters({ minPicks: "10", sort: "units" });
+  const cappers = [
+    {
+      id: "a",
+      name: "Alpha",
+      settledPicks: 12,
+      units: 4,
+      roi: 10,
+      winPct: 55,
+      rank: 99,
+    },
+    {
+      id: "b",
+      name: "Bravo",
+      settledPicks: 0,
+      units: 0,
+      roi: 0,
+      winPct: 0,
+      rank: 99,
+    },
+    {
+      id: "c",
+      name: "Charlie",
+      settledPicks: 5,
+      units: 20,
+      roi: 40,
+      winPct: 80,
+      rank: 99,
+    },
+    {
+      id: "d",
+      name: "Delta",
+      settledPicks: 15,
+      units: 8,
+      roi: 12,
+      winPct: 60,
+      rank: 99,
+    },
+  ] as CapperSummary[];
+
+  const { ranked, unranked } = partitionLeaderboard(cappers, filters);
+
+  assert.deepEqual(
+    ranked.map((c) => ({ id: c.id, rank: c.rank })),
+    [
+      { id: "d", rank: 1 },
+      { id: "a", rank: 2 },
+    ],
+  );
+  assert.deepEqual(
+    unranked.map((c) => ({ id: c.id, rank: c.rank })),
+    [
+      { id: "c", rank: 0 },
+      { id: "b", rank: 0 },
+    ],
   );
 });
 

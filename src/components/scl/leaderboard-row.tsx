@@ -72,7 +72,7 @@ export function LeaderboardRow({
             className="nums text-live text-[0.7rem] font-medium tabular-nums"
             title="Share of tracked picks market-verified"
           >
-            {Math.round(capper.verifiedShare)}% ver.
+            {Math.round(capper.verifiedShare)}% Verified
           </div>
         ) : null}
       </div>

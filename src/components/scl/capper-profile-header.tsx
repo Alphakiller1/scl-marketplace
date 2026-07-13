@@ -79,13 +79,19 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
             <RankBadge rank={capper.rank} />
             <span>
               <span className="text-foreground block font-semibold">
-                Public Rank
+                {capper.rank > 0 ? "Public Rank" : "Public Standing"}
               </span>
               <span className="inline-flex items-center gap-1 text-xs">
-                #{capper.rank}
-                {capper.rankDelta ? (
-                  <RankMovementIndicator delta={capper.rankDelta} />
-                ) : null}
+                {capper.rank > 0 ? (
+                  <>
+                    #{capper.rank}
+                    {capper.rankDelta ? (
+                      <RankMovementIndicator delta={capper.rankDelta} />
+                    ) : null}
+                  </>
+                ) : (
+                  "Building a record"
+                )}
               </span>
             </span>
           </span>

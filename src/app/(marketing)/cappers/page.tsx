@@ -21,7 +21,8 @@ export default async function CappersPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const filters = parseLeaderboardFilters(await searchParams);
-  const { cappers, failed } = await getLeaderboardResult(filters);
+  const { cappers, unranked, failed } = await getLeaderboardResult(filters);
+  const results = [...cappers, ...unranked];
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-10">
@@ -41,9 +42,9 @@ export default async function CappersPage({
         </div>
         <p className="nums text-muted-foreground tabular-nums">
           <span className="text-foreground text-2xl font-bold">
-            {cappers.length}
+            {results.length}
           </span>{" "}
-          {cappers.length === 1 ? "Result" : "Results"}
+          {results.length === 1 ? "Result" : "Results"}
         </p>
       </header>
       <LeaderboardFilters
@@ -51,7 +52,7 @@ export default async function CappersPage({
         action="/cappers"
         label="Discovery Filters"
       />
-      {cappers.length === 0 ? (
+      {results.length === 0 ? (
         <EmptyState
           className="mt-6"
           icon={Users}
@@ -64,7 +65,7 @@ export default async function CappersPage({
         />
       ) : (
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {cappers.map((capper) => (
+          {results.map((capper) => (
             <CapperCard key={capper.id} capper={capper} rank={capper.rank} />
           ))}
         </div>
