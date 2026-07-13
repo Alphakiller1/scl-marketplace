@@ -254,30 +254,30 @@ export function OddsAssist({
             <p className="text-muted-foreground text-xs">
               No {day === "today" ? "more games today" : "games tomorrow"} for
               this sport — {day === "today" ? "check Tomorrow" : "check Today"}{" "}
-              or enter the play manually below.
+              or pick another sport.
             </p>
           )}
         </>
       ) : events.length ? (
         <p className="text-muted-foreground text-xs">
           No games today or tomorrow for this sport yet — check back closer to
-          game day, or enter the play manually below.
+          game day, or pick another sport.
         </p>
       ) : board?.failed ? (
         <p className="text-muted-foreground text-xs">
-          Couldn&apos;t load the board right now. Try again in a moment, or
-          enter the play manually below.
+          Couldn&apos;t load the board right now — refresh in a moment, or pick
+          another sport.
         </p>
       ) : configured ? (
         <p className="text-muted-foreground text-xs">
-          No live games for this sport right now — likely off-season. Try MLB,
-          or enter the play manually below.
+          No live games for this sport right now — likely off-season. Try
+          another sport, like MLB or WNBA.
         </p>
       ) : (
         <p className="text-muted-foreground text-xs">
           Live odds aren&apos;t enabled yet — add{" "}
           <code className="text-foreground">ODDS_API_KEY</code> in Vercel and
-          redeploy to turn on the board. You can enter plays manually for now.
+          redeploy to turn on the board.
         </p>
       )}
     </Card>

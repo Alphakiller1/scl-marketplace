@@ -43,31 +43,37 @@ export async function createPlay(input: PlayInput): Promise<PlayResult> {
 
   const d = parsed.data;
 
-  // Pick integrity (docs/SCL_PICK_INTEGRITY.md). Event-bound picks run the strict path: a hard
-  // pre-game lock (C1) and a live odds check (C3). Legacy free-text picks (no event) skip
-  // verification and land as SELF_REPORTED. The server re-derives the lock from its own clock and
-  // re-fetches the market — the client-supplied event fields are never trusted for either.
-  const now = new Date();
-  const eventStartsAt = d.eventStartsAt ? new Date(d.eventStartsAt) : null;
-  const eventBound = Boolean(d.eventId && d.side);
-
-  let verify: VerifyResult | null = null;
-  if (d.eventId && eventStartsAt && d.side) {
-    verify = await verifyPick({
-      sclSport: d.sport,
-      eventId: d.eventId,
-      marketKeys: marketKeysForMarket(d.market),
-      side: d.side,
-      line: d.line,
-      player: d.player,
-      claimedAmerican: d.oddsAmerican,
-    });
+  // Verification is the universal standard (docs/SCL_PICK_INTEGRITY.md): every pick MUST be an
+  // event-bound board pick. Free-text entry is retired — reject anything lacking a real event +
+  // structured side here on the server, never trusting that the UI enforced it.
+  if (!d.eventId || !d.eventStartsAt || !d.side) {
+    return {
+      ok: false,
+      error:
+        "Pick a line from the board — manual free-text entry is no longer accepted.",
+    };
   }
+
+  // Pick integrity: the strict path — a hard pre-game lock (C1) and a live odds check (C3). The
+  // server re-derives the lock from its own clock and re-fetches the market; the client-supplied
+  // event fields are never trusted for either.
+  const now = new Date();
+  const eventStartsAt = new Date(d.eventStartsAt);
+
+  const verify: VerifyResult = await verifyPick({
+    sclSport: d.sport,
+    eventId: d.eventId,
+    marketKeys: marketKeysForMarket(d.market),
+    side: d.side,
+    line: d.line,
+    player: d.player,
+    claimedAmerican: d.oddsAmerican,
+  });
 
   const decision = decidePickIntegrity({
     now,
     eventStartsAt,
-    eventBound,
+    eventBound: true,
     verify,
     source: "MANUAL",
   });

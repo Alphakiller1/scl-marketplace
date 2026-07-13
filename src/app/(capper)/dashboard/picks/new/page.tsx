@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -44,8 +43,6 @@ export default function NewPlayPage() {
     resolver: zodResolver(playSchema),
     defaultValues: { units: 1 },
   });
-  const [manual, setManual] = useState(false);
-
   const sport = useWatch({ control, name: "sport" });
   const selection = useWatch({ control, name: "selection" });
   const market = useWatch({ control, name: "market" });
@@ -127,191 +124,100 @@ export default function NewPlayPage() {
         <FieldError message={errors.sport?.message} />
       </Card>
 
-      {manual ? (
-        /* ---------- Manual entry (props / anything off-board) ---------- */
-        <Card className="p-4 sm:p-6">
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className="space-y-4"
-            noValidate
-          >
-            <div className="space-y-1.5">
-              <Label htmlFor="league">League (Optional)</Label>
-              <Input
-                id="league"
-                placeholder="e.g. NBA"
-                {...register("league")}
-              />
+      {/* Board flow only — every pick is an event-bound, verified board pick. */}
+      {sport && !hasPick ? (
+        <OddsAssist
+          sport={sport}
+          onPick={(pick) => {
+            setValue("market", pick.market, { shouldValidate: true });
+            setValue("selection", pick.selection, { shouldValidate: true });
+            setValue("oddsAmerican", pick.oddsAmerican, {
+              shouldValidate: true,
+            });
+            // Carry the event binding so createPlay runs the strict path (C1 lock + C3 odds).
+            setValue("eventId", pick.eventId);
+            setValue("eventStartsAt", pick.eventStartsAt);
+            setValue("side", pick.side);
+            setValue("line", pick.line as number | undefined);
+            setValue("player", pick.player ?? "");
+          }}
+        />
+      ) : null}
+
+      {hasPick ? (
+        <Card className="border-brand/50 scl-elevated space-y-4 border-2 p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-muted-foreground text-[0.7rem] font-semibold tracking-wide uppercase">
+                Bet slip
+              </p>
+              <p className="mt-0.5 text-lg font-bold break-words">
+                {selection}
+              </p>
+              <p className="text-muted-foreground text-sm">
+                {market} ·{" "}
+                <span className="text-foreground nums font-semibold tabular-nums">
+                  {formatOdds(oddsNum)}
+                </span>
+              </p>
+              {eventBound ? (
+                <p className="text-brand mt-1 text-[0.7rem] font-medium">
+                  Pre-game · odds will be verified
+                </p>
+              ) : null}
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="market">Market</Label>
-              <Input
-                id="market"
-                placeholder="e.g. Spread, Moneyline, Total, Player Prop"
-                {...register("market")}
-              />
-              <FieldError message={errors.market?.message} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="selection">Selection</Label>
-              <Input
-                id="selection"
-                placeholder="e.g. Knicks -3.5"
-                {...register("selection")}
-              />
-              <FieldError message={errors.selection?.message} />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="oddsAmerican">Odds (American)</Label>
-                <Input
-                  id="oddsAmerican"
-                  type="number"
-                  step={1}
-                  placeholder="-110"
-                  {...register("oddsAmerican", { valueAsNumber: true })}
-                />
-                <FieldError message={errors.oddsAmerican?.message} />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="units">
-                  Units ({UNIT_MIN}–{UNIT_MAX})
-                </Label>
-                <Input
-                  id="units"
-                  type="number"
-                  step={UNIT_STEP}
-                  min={UNIT_MIN}
-                  max={UNIT_MAX}
-                  {...register("units", { valueAsNumber: true })}
-                />
-                <FieldError message={errors.units?.message} />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="notes">Notes (Optional)</Label>
-              <textarea
-                id="notes"
-                rows={3}
-                className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 min-h-24 w-full rounded-lg border bg-transparent px-3 py-2 text-base shadow-xs focus-visible:ring-[3px] focus-visible:outline-none sm:text-sm"
-                placeholder="Reasoning (kept on your record)"
-                {...register("notes")}
-              />
-            </div>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="min-h-11 w-full"
+            <button
+              type="button"
+              onClick={clearPick}
+              aria-label="Clear pick"
+              className="text-muted-foreground hover:text-foreground hover:bg-surface-2 rounded-md p-1.5"
             >
-              {isSubmitting ? "Submitting…" : "Submit Play"}
-            </Button>
-          </form>
-          <button
-            type="button"
-            onClick={() => setManual(false)}
-            className="text-muted-foreground hover:text-foreground mt-3 text-xs"
-          >
-            ← Back to the board
-          </button>
-        </Card>
-      ) : (
-        /* ---------- Board flow: pick a line → bet slip ---------- */
-        <>
-          {sport && !hasPick ? (
-            <OddsAssist
-              sport={sport}
-              onPick={(pick) => {
-                setValue("market", pick.market, { shouldValidate: true });
-                setValue("selection", pick.selection, { shouldValidate: true });
-                setValue("oddsAmerican", pick.oddsAmerican, {
-                  shouldValidate: true,
-                });
-                // Carry the event binding so createPlay runs the strict path (C1 lock + C3 odds).
-                setValue("eventId", pick.eventId);
-                setValue("eventStartsAt", pick.eventStartsAt);
-                setValue("side", pick.side);
-                setValue("line", pick.line as number | undefined);
-                setValue("player", pick.player ?? "");
-              }}
+              <X className="size-5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 items-end gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="units">Units</Label>
+              <Input
+                id="units"
+                type="number"
+                step={UNIT_STEP}
+                min={UNIT_MIN}
+                max={UNIT_MAX}
+                {...register("units", { valueAsNumber: true })}
+              />
+            </div>
+            <div className="text-right">
+              <p className="text-muted-foreground text-xs">To win</p>
+              <p className="text-pos nums text-xl font-bold tabular-nums">
+                {toWin != null ? `+${toWin.toFixed(2)}u` : "—"}
+              </p>
+            </div>
+          </div>
+          <FieldError message={errors.units?.message} />
+
+          <div className="space-y-1.5">
+            <Label htmlFor="notes">Notes (optional)</Label>
+            <textarea
+              id="notes"
+              rows={2}
+              className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 min-h-16 w-full rounded-lg border bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
+              placeholder="Reasoning (kept on your record)"
+              {...register("notes")}
             />
-          ) : null}
+          </div>
 
-          {hasPick ? (
-            <Card className="border-brand/50 scl-elevated space-y-4 border-2 p-4 sm:p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-muted-foreground text-[0.7rem] font-semibold tracking-wide uppercase">
-                    Bet slip
-                  </p>
-                  <p className="mt-0.5 text-lg font-bold break-words">
-                    {selection}
-                  </p>
-                  <p className="text-muted-foreground text-sm">
-                    {market} ·{" "}
-                    <span className="text-foreground nums font-semibold tabular-nums">
-                      {formatOdds(oddsNum)}
-                    </span>
-                  </p>
-                  {eventBound ? (
-                    <p className="text-brand mt-1 text-[0.7rem] font-medium">
-                      Pre-game · odds will be verified
-                    </p>
-                  ) : null}
-                </div>
-                <button
-                  type="button"
-                  onClick={clearPick}
-                  aria-label="Clear pick"
-                  className="text-muted-foreground hover:text-foreground hover:bg-surface-2 rounded-md p-1.5"
-                >
-                  <X className="size-5" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 items-end gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="units">Units</Label>
-                  <Input
-                    id="units"
-                    type="number"
-                    step={UNIT_STEP}
-                    min={UNIT_MIN}
-                    max={UNIT_MAX}
-                    {...register("units", { valueAsNumber: true })}
-                  />
-                </div>
-                <div className="text-right">
-                  <p className="text-muted-foreground text-xs">To win</p>
-                  <p className="text-pos nums text-xl font-bold tabular-nums">
-                    {toWin != null ? `+${toWin.toFixed(2)}u` : "—"}
-                  </p>
-                </div>
-              </div>
-              <FieldError message={errors.units?.message} />
-
-              <Button
-                type="button"
-                onClick={handleSubmit(onSubmit)}
-                disabled={isSubmitting}
-                className="min-h-12 w-full text-base"
-              >
-                {isSubmitting ? "Submitting…" : "Submit Play"}
-              </Button>
-            </Card>
-          ) : null}
-
-          <button
+          <Button
             type="button"
-            onClick={() => {
-              clearEventBinding();
-              setManual(true);
-            }}
-            className="text-muted-foreground hover:text-foreground mx-auto block text-xs"
+            onClick={handleSubmit(onSubmit)}
+            disabled={isSubmitting}
+            className="min-h-12 w-full text-base"
           >
-            Can&apos;t find it on the board? Enter a play manually
-          </button>
-        </>
-      )}
+            {isSubmitting ? "Submitting…" : "Submit Play"}
+          </Button>
+        </Card>
+      ) : null}
     </div>
   );
 }
