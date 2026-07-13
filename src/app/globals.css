@@ -38,6 +38,7 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-avatar-foreground: var(--avatar-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
@@ -100,6 +101,12 @@
   --secondary-foreground: oklch(0.24 0.05 295);
   --muted: oklch(0.96 0.016 305);
   --muted-foreground: oklch(0.5 0.035 300);
+  --avatar-foreground: oklch(0.99 0 0);
+  --avatar-start-lightness: 0.48;
+  --avatar-end-lightness: 0.36;
+  --avatar-chroma: 0.16;
+  --avatar-glow-lightness: 0.9;
+  --avatar-glow-chroma: 0.035;
   --accent: oklch(0.95 0.035 330);
   --accent-foreground: oklch(0.4 0.16 335);
   --destructive: oklch(0.58 0.22 25);
@@ -167,6 +174,12 @@
   --secondary-foreground: oklch(0.97 0.012 305);
   --muted: oklch(0.29 0.055 293);
   --muted-foreground: oklch(0.76 0.03 305);
+  --avatar-foreground: oklch(0.99 0 0);
+  --avatar-start-lightness: 0.52;
+  --avatar-end-lightness: 0.38;
+  --avatar-chroma: 0.17;
+  --avatar-glow-lightness: 0.94;
+  --avatar-glow-chroma: 0.035;
   --accent: oklch(0.44 0.15 322);
   --accent-foreground: oklch(0.95 0.05 322);
   --destructive: oklch(0.66 0.2 25);
@@ -270,6 +283,28 @@
       color-mix(in oklch, var(--card) 100%, transparent),
       color-mix(in oklch, var(--surface-2) 80%, transparent)
     );
+  }
+  .scl-avatar-fallback {
+    background-image:
+      radial-gradient(
+        circle at 24% 18%,
+        oklch(
+          var(--avatar-glow-lightness) var(--avatar-glow-chroma)
+            var(--avatar-hue) / 0.18
+        ),
+        transparent 52%
+      ),
+      linear-gradient(
+        135deg,
+        oklch(
+          var(--avatar-start-lightness) var(--avatar-chroma) var(--avatar-hue)
+        ),
+        oklch(
+          var(--avatar-end-lightness) var(--avatar-chroma) var(--avatar-hue-alt)
+        )
+      );
+    text-shadow: 0 1px 2px
+      color-mix(in oklch, var(--background) 70%, transparent);
   }
   /* Opt-in elevation for surfaces that aren't shadcn cards. */
   .scl-elevated {
