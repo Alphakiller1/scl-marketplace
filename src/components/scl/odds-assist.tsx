@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, Zap } from "lucide-react";
+import { Check, ChevronDown, Zap } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,6 +34,29 @@ export type OddsPick = {
   line?: number;
   player?: string;
 };
+
+/**
+ * Stable identity for a board pick — enough fields to treat exact repeats as the same line
+ * (event, market, player, side, point, price). Callers use it to mark a chip as already-added
+ * and to reject duplicate parlay legs.
+ */
+export function pickKey(p: {
+  eventId: string;
+  market: string;
+  side: string;
+  line?: number;
+  oddsAmerican: number;
+  player?: string;
+}): string {
+  return [
+    p.eventId,
+    p.market,
+    p.player ?? "",
+    p.side,
+    p.line ?? "",
+    p.oddsAmerican,
+  ].join("|");
+}
 
 type BoardData = { events: OddsEvent[]; configured: boolean; failed?: boolean };
 
@@ -99,9 +122,12 @@ function groupByPlayer(
 export function OddsAssist({
   sport,
   onPick,
+  selectedKeys,
 }: {
   sport: string;
   onPick: (pick: OddsPick) => void;
+  // Keys (see `pickKey`) of picks already added — their chips render as selected + disabled.
+  selectedKeys?: Set<string>;
 }) {
   const [cache, setCache] = useState<Record<string, BoardData>>({});
   const [openId, setOpenId] = useState<string | null>(null);
@@ -246,6 +272,7 @@ export function OddsAssist({
                         event={e}
                         detail={detail[e.id]}
                         onPick={onPick}
+                        selectedKeys={selectedKeys}
                       />
                     ) : null}
                   </li>
@@ -345,10 +372,12 @@ function EventDetail({
   event,
   detail,
   onPick,
+  selectedKeys,
 }: {
   event: OddsEvent;
   detail: EventDetailData | undefined;
   onPick: (pick: OddsPick) => void;
+  selectedKeys?: Set<string>;
 }) {
   const [query, setQuery] = useState("");
   const [showAllProps, setShowAllProps] = useState(false);
@@ -372,30 +401,39 @@ function EventDetail({
   );
   const q = query.trim().toLowerCase();
 
-  const renderChip = (s: OddsSelection, key: string) => (
-    <button
-      key={key}
-      type="button"
-      onClick={() =>
-        onPick({
-          market: s.market,
-          selection: s.selection,
-          oddsAmerican: s.oddsAmerican,
-          eventId: event.id,
-          eventStartsAt: event.commenceTime,
-          side: s.side,
-          line: s.line,
-          player: s.player,
-        })
-      }
-      className={CHIP_CLASS}
-    >
-      <span>{s.selection}</span>
-      <span className="text-brand nums font-semibold tabular-nums">
-        {formatOdds(s.oddsAmerican)}
-      </span>
-    </button>
-  );
+  const renderChip = (s: OddsSelection, key: string) => {
+    const pick: OddsPick = {
+      market: s.market,
+      selection: s.selection,
+      oddsAmerican: s.oddsAmerican,
+      eventId: event.id,
+      eventStartsAt: event.commenceTime,
+      side: s.side,
+      line: s.line,
+      player: s.player,
+    };
+    const selected = selectedKeys?.has(pickKey(pick)) ?? false;
+    return (
+      <button
+        key={key}
+        type="button"
+        onClick={() => onPick(pick)}
+        disabled={selected}
+        aria-pressed={selected}
+        className={cn(
+          CHIP_CLASS,
+          selected &&
+            "border-brand bg-brand/10 text-brand hover:bg-brand/10 cursor-default",
+        )}
+      >
+        {selected ? <Check className="text-brand size-3.5 shrink-0" /> : null}
+        <span>{s.selection}</span>
+        <span className="text-brand nums font-semibold tabular-nums">
+          {formatOdds(s.oddsAmerican)}
+        </span>
+      </button>
+    );
+  };
 
   const marketLabel = (market: string) => (
     <p className="text-muted-foreground mb-1 text-[0.7rem] font-semibold tracking-wide uppercase">

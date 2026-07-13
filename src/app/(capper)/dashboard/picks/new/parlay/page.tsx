@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { OddsAssist } from "@/components/scl/odds-assist";
+import { OddsAssist, pickKey } from "@/components/scl/odds-assist";
 import { SectionHeader } from "@/components/scl/section";
 import { SportPills } from "@/components/scl/sport-pills";
 import { Button } from "@/components/ui/button";
@@ -62,6 +62,21 @@ export default function NewParlayPage() {
       ? units * (americanToDecimal(combinedAmerican) - 1)
       : null;
 
+  // Keys of legs already on the slip — the board marks these chips selected and refuses
+  // to append an exact duplicate.
+  const selectedKeys = new Set(
+    (legs ?? []).map((l) =>
+      pickKey({
+        eventId: l?.eventId ?? "",
+        market: l?.market ?? "",
+        side: l?.side ?? "",
+        line: typeof l?.line === "number" ? l.line : undefined,
+        oddsAmerican: Number(l?.oddsAmerican),
+        player: l?.player,
+      }),
+    ),
+  );
+
   async function onSubmit(values: CreateParlayInput) {
     const res = await createParlay(values);
     if (!res.ok) {
@@ -114,7 +129,9 @@ export default function NewParlayPage() {
       {sport ? (
         <OddsAssist
           sport={sport}
-          onPick={(pick) =>
+          selectedKeys={selectedKeys}
+          onPick={(pick) => {
+            if (selectedKeys.has(pickKey(pick))) return; // no exact-duplicate legs
             append({
               sport,
               market: pick.market,
@@ -125,8 +142,8 @@ export default function NewParlayPage() {
               side: pick.side,
               line: pick.line,
               player: pick.player,
-            })
-          }
+            });
+          }}
         />
       ) : null}
 
