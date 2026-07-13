@@ -1,13 +1,40 @@
+import type { CSSProperties } from "react";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
 function initials(name: string): string {
-  return name
+  const letters = name
+    .replace(/^@/, "")
     .split(/\s+/)
+    .filter(Boolean)
     .slice(0, 2)
     .map((w) => w[0])
     .join("")
     .toUpperCase();
+  return letters || "SCL";
+}
+
+function hashString(value: string): number {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+  return hash;
+}
+
+type AvatarFallbackStyle = CSSProperties & {
+  "--avatar-hue": string;
+  "--avatar-hue-alt": string;
+};
+
+function avatarFallbackStyle(seed: string): AvatarFallbackStyle {
+  const hashSeed = seed.trim().toLowerCase() || "scl";
+  const hue = hashString(hashSeed) % 360;
+  return {
+    "--avatar-hue": `${hue}deg`,
+    "--avatar-hue-alt": `${(hue + 52) % 360}deg`,
+  };
 }
 
 export function CapperAvatar({
@@ -30,7 +57,10 @@ export function CapperAvatar({
   return (
     <Avatar className={cn(sizes[size], "rounded-xl", className)}>
       {src ? <AvatarImage src={src} alt={name} /> : null}
-      <AvatarFallback className="bg-surface-3 text-foreground rounded-xl font-semibold">
+      <AvatarFallback
+        className="scl-avatar-fallback text-avatar-foreground bg-surface-3 rounded-xl font-semibold"
+        style={avatarFallbackStyle(name)}
+      >
         {initials(name)}
       </AvatarFallback>
     </Avatar>
