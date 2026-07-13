@@ -255,15 +255,27 @@ export function OddsAssist({
           ) : (
             <p className="text-muted-foreground text-xs">
               No {day === "today" ? "more games today" : "games tomorrow"} for
-              this sport — {day === "today" ? "check Tomorrow" : "check Today"}{" "}
-              or pick another sport.
+              this sport —{" "}
+              <button
+                type="button"
+                onClick={() =>
+                  setDayChoice({
+                    sport,
+                    day: day === "today" ? "tomorrow" : "today",
+                  })
+                }
+                className="text-brand font-medium hover:underline"
+              >
+                {day === "today" ? "check Tomorrow" : "check Today"}
+              </button>{" "}
+              or pick another sport above.
             </p>
           )}
         </>
       ) : events.length ? (
         <p className="text-muted-foreground text-xs">
           No games today or tomorrow for this sport yet — check back closer to
-          game day, or pick another sport.
+          game day, or pick another sport above.
         </p>
       ) : board?.failed ? (
         <p className="text-muted-foreground text-xs">
