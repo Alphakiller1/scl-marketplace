@@ -45,6 +45,8 @@ type EventDetailData =
 const MARKET_ORDER = ["Moneyline", "Spread", "Total"] as const;
 // Props with many players get long — show this many by default, with a "show all".
 const PROP_PLAYER_CAP = 12;
+// Alternate spread/total ladders are long — show the closest-to-main lines, expand for the rest.
+const ALT_LINE_CAP = 8;
 
 const CHIP_CLASS =
   "border-border hover:border-brand hover:bg-surface-2 flex min-h-10 items-center gap-1.5 rounded-md border px-3 py-2 text-xs transition-colors";
@@ -309,7 +311,7 @@ function DayToggle({
           onClick={() => onChange(d)}
           aria-pressed={day === d}
           className={cn(
-            "min-h-9 rounded-md text-xs font-semibold capitalize transition-colors",
+            "min-h-10 rounded-md text-xs font-semibold capitalize transition-colors",
             day === d
               ? "bg-card text-foreground shadow-xs"
               : "text-muted-foreground hover:text-foreground",
@@ -337,15 +339,25 @@ function EventDetail({
   onPick: (pick: OddsPick) => void;
 }) {
   const [query, setQuery] = useState("");
-  const [showAll, setShowAll] = useState(false);
+  const [showAllProps, setShowAllProps] = useState(false);
+  const [altExpanded, setAltExpanded] = useState<Record<string, boolean>>({});
 
   const shown =
     detail?.status === "ready" && detail.selections.length > 0
       ? detail.selections
       : event.selections;
-  const grouped = groupByMarket(shown);
-  const gameGroups = grouped.filter(([m]) => isGameMarket(m));
-  const propGroups = grouped.filter(([m]) => !isGameMarket(m));
+
+  // Hierarchy: featured game lines (always visible) → player props (searchable) → alternate
+  // spread/total ladders (collapsed). Keeps props discoverable instead of buried under a wall.
+  const featuredGroups = groupByMarket(
+    shown.filter((s) => isGameMarket(s.market) && s.featured),
+  );
+  const propGroups = groupByMarket(
+    shown.filter((s) => !isGameMarket(s.market)),
+  );
+  const altGroups = groupByMarket(
+    shown.filter((s) => isGameMarket(s.market) && !s.featured),
+  );
   const q = query.trim().toLowerCase();
 
   const renderChip = (s: OddsSelection, key: string) => (
@@ -373,24 +385,50 @@ function EventDetail({
     </button>
   );
 
+  const marketLabel = (market: string) => (
+    <p className="text-muted-foreground mb-1 text-[0.7rem] font-semibold tracking-wide uppercase">
+      {market}
+    </p>
+  );
+
   const propSections = propGroups
     .map(([market, opts]) => {
       const byPlayer = groupByPlayer(opts).filter(
         ([player]) => !q || player.toLowerCase().includes(q),
       );
       const visible =
-        !q && !showAll ? byPlayer.slice(0, PROP_PLAYER_CAP) : byPlayer;
+        !q && !showAllProps ? byPlayer.slice(0, PROP_PLAYER_CAP) : byPlayer;
       return { market, visible, total: byPlayer.length };
     })
     .filter((section) => section.visible.length > 0);
 
+  // Alt ladders sorted by proximity to the main line, capped until expanded per market.
+  const altSections = altGroups.map(([market, opts]) => {
+    const ref = shown.find(
+      (s) => s.market === market && s.featured && typeof s.line === "number",
+    )?.line;
+    const refAbs = typeof ref === "number" ? Math.abs(ref) : null;
+    const sorted = [...opts].sort((a, b) => {
+      const la = Math.abs(a.line ?? 0);
+      const lb = Math.abs(b.line ?? 0);
+      if (refAbs !== null) return Math.abs(la - refAbs) - Math.abs(lb - refAbs);
+      return la - lb;
+    });
+    const expanded = Boolean(altExpanded[market]);
+    return {
+      market,
+      visible: expanded ? sorted : sorted.slice(0, ALT_LINE_CAP),
+      total: sorted.length,
+      expanded,
+    };
+  });
+
   return (
     <div className="space-y-3 px-3 pt-0.5 pb-3">
-      {gameGroups.map(([market, opts]) => (
+      {/* 1 · Featured game lines — always visible */}
+      {featuredGroups.map(([market, opts]) => (
         <div key={market}>
-          <p className="text-muted-foreground mb-1 text-[0.7rem] font-semibold tracking-wide uppercase">
-            {market}
-          </p>
+          {marketLabel(market)}
           <div className="flex flex-wrap gap-1.5">
             {opts.map((s, i) => renderChip(s, `${market}-${i}`))}
           </div>
@@ -404,6 +442,7 @@ function EventDetail({
         </p>
       ) : null}
 
+      {/* 2 · Player props — searchable, grouped by player */}
       {propGroups.length ? (
         <div className="space-y-2.5">
           <input
@@ -416,9 +455,7 @@ function EventDetail({
           />
           {propSections.map(({ market, visible, total }) => (
             <div key={market}>
-              <p className="text-muted-foreground mb-1 text-[0.7rem] font-semibold tracking-wide uppercase">
-                {market}
-              </p>
+              {marketLabel(market)}
               <div className="space-y-2">
                 {visible.map(([player, plays]) => (
                   <div key={player}>
@@ -431,10 +468,10 @@ function EventDetail({
                   </div>
                 ))}
               </div>
-              {!q && !showAll && total > PROP_PLAYER_CAP ? (
+              {!q && !showAllProps && total > PROP_PLAYER_CAP ? (
                 <button
                   type="button"
-                  onClick={() => setShowAll(true)}
+                  onClick={() => setShowAllProps(true)}
                   className="text-brand mt-2 text-xs font-medium hover:underline"
                 >
                   Show all {total} players
@@ -449,6 +486,29 @@ function EventDetail({
           ) : null}
         </div>
       ) : null}
+
+      {/* 3 · Alternate spread/total ladders — collapsed by default */}
+      {altSections.map(({ market, visible, total, expanded }) => (
+        <div key={market}>
+          {marketLabel(`Alternate ${market}`)}
+          <div className="flex flex-wrap gap-1.5">
+            {visible.map((s, i) => renderChip(s, `alt-${market}-${i}`))}
+          </div>
+          {total > ALT_LINE_CAP ? (
+            <button
+              type="button"
+              onClick={() =>
+                setAltExpanded((p) => ({ ...p, [market]: !expanded }))
+              }
+              className="text-brand mt-2 text-xs font-medium hover:underline"
+            >
+              {expanded
+                ? "Show fewer"
+                : `Show all ${total} ${market.toLowerCase()} lines`}
+            </button>
+          ) : null}
+        </div>
+      ))}
     </div>
   );
 }

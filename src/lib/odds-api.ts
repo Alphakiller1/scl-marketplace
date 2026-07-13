@@ -60,6 +60,7 @@ export type OddsSelection = {
   side: string; // structured side for verification: team, or "Over"/"Under" (C2)
   line?: number; // structured point/total for spreads + totals (C2)
   player?: string; // structured player for props (C2)
+  featured?: boolean; // true = the main game line (h2h / main spread / main total); false = an alternate
   oddsAmerican: number;
 };
 
@@ -101,6 +102,7 @@ function normalize(sclSport: string, event: RawEvent): OddsEvent {
         market: "Moneyline",
         selection: o.name,
         side: o.name,
+        featured: true,
         oddsAmerican: Math.round(o.price),
       });
     }
@@ -116,6 +118,7 @@ function normalize(sclSport: string, event: RawEvent): OddsEvent {
         selection: `${o.name} ${line}`,
         side: o.name,
         line: o.point,
+        featured: true,
         oddsAmerican: Math.round(o.price),
       });
     }
@@ -130,6 +133,7 @@ function normalize(sclSport: string, event: RawEvent): OddsEvent {
         selection: `${o.name} ${o.point}`,
         side: o.name,
         line: o.point,
+        featured: true,
         oddsAmerican: Math.round(o.price),
       });
     }
@@ -279,11 +283,15 @@ const BOARD_MARKETS: Record<string, "Moneyline" | "Spread" | "Total"> = {
 const MARKET_SORT = { Moneyline: 0, Spread: 1, Total: 2 } as const;
 const PROP_RANK = 10;
 
+// The featured (main) game markets — everything else spreads/totals returns is an alternate line.
+const FEATURED_KEYS = new Set(["h2h", "spreads", "totals"]);
+
 type BoardGroup = {
   market: string; // game label ("Spread") or prop label ("Strikeouts")
   side: string;
   line?: number;
   player?: string;
+  featured: boolean;
   prices: number[];
 };
 
@@ -301,12 +309,20 @@ function marketRank(market: string): number {
 export function normalizeEventBoard(event: RawEventOdds): OddsSelection[] {
   const groups = new Map<string, BoardGroup>();
 
-  const add = (key: string, seed: () => BoardGroup, price: number) => {
+  const add = (
+    key: string,
+    seed: () => BoardGroup,
+    price: number,
+    featured: boolean,
+  ) => {
     const g = groups.get(key);
-    if (g) g.prices.push(price);
-    else {
+    if (g) {
+      g.prices.push(price);
+      if (featured) g.featured = true;
+    } else {
       const next = seed();
       next.prices = [price];
+      next.featured = featured;
       groups.set(key, next);
     }
   };
@@ -316,6 +332,7 @@ export function normalizeEventBoard(event: RawEventOdds): OddsSelection[] {
       const gameMarket = BOARD_MARKETS[m.key];
       const propLabel = PROP_MARKET_LABEL[m.key];
       if (!gameMarket && !propLabel) continue;
+      const isFeatured = FEATURED_KEYS.has(m.key);
       for (const o of m.outcomes ?? []) {
         if (typeof o.price !== "number") continue;
         const price = Math.round(o.price);
@@ -324,8 +341,15 @@ export function normalizeEventBoard(event: RawEventOdds): OddsSelection[] {
           if (gameMarket !== "Moneyline" && line === undefined) continue;
           add(
             `g|${gameMarket}|${o.name.toLowerCase()}|${line ?? ""}`,
-            () => ({ market: gameMarket, side: o.name, line, prices: [] }),
+            () => ({
+              market: gameMarket,
+              side: o.name,
+              line,
+              featured: false,
+              prices: [],
+            }),
             price,
+            isFeatured,
           );
         } else {
           const player = (o.description ?? "").trim();
@@ -337,9 +361,11 @@ export function normalizeEventBoard(event: RawEventOdds): OddsSelection[] {
               side: o.name,
               line,
               player,
+              featured: false,
               prices: [],
             }),
             price,
+            false,
           );
         }
       }
@@ -367,6 +393,7 @@ export function normalizeEventBoard(event: RawEventOdds): OddsSelection[] {
         market: "Moneyline",
         selection: g.side,
         side: g.side,
+        featured: true, // moneyline is always a featured market
         oddsAmerican: best,
       });
     } else if (g.market === "Spread") {
@@ -377,6 +404,7 @@ export function normalizeEventBoard(event: RawEventOdds): OddsSelection[] {
         selection: `${g.side} ${signed}`,
         side: g.side,
         line: g.line,
+        featured: g.featured,
         oddsAmerican: best,
       });
     } else {
@@ -386,6 +414,7 @@ export function normalizeEventBoard(event: RawEventOdds): OddsSelection[] {
         selection: `${g.side} ${g.line}`,
         side: g.side,
         line: g.line,
+        featured: g.featured,
         oddsAmerican: best,
       });
     }
