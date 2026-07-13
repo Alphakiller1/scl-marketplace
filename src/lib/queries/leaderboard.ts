@@ -75,6 +75,7 @@ function fetchRankableProfiles(filters: LeaderboardFilters) {
       sports: true,
       instagram: true,
       twitter: true,
+      tiktok: true,
       website: true,
       createdAt: true,
       user: {
@@ -156,11 +157,13 @@ function deriveForm(settled: Outcome[]): {
 function pruneSocials(
   twitter: string | null,
   instagram: string | null,
+  tiktok: string | null,
   website: string | null,
 ): CapperSummary["socials"] {
   const out: NonNullable<CapperSummary["socials"]> = {};
   if (twitter) out.twitter = twitter;
   if (instagram) out.instagram = instagram;
+  if (tiktok) out.tiktok = tiktok;
   const safeWebsite = safeHttpUrl(website);
   if (safeWebsite) out.website = safeWebsite;
   return Object.keys(out).length ? out : undefined;
@@ -253,7 +256,7 @@ function summarize(p: ProfileRow): CapperSummary | null {
       enabled: p.storefrontEnabled,
     }),
     joinedAt: p.createdAt,
-    socials: pruneSocials(p.twitter, p.instagram, p.website),
+    socials: pruneSocials(p.twitter, p.instagram, p.tiktok, p.website),
     isLegacy: p.isLegacy || undefined,
   };
 }

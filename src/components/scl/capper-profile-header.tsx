@@ -21,10 +21,15 @@ import { socialProfileUrl } from "@/lib/urls";
 export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
   const sports = capper.sports?.length ? capper.sports : [capper.topSport];
   const identity = identityDisplayLinesFromCapper(capper);
+  const avatarName = identity.primary.replace(/^@/, "") || capper.handle;
+  const verifiedPct =
+    capper.verifiedShare != null && capper.verifiedShare > 0
+      ? Math.round(capper.verifiedShare)
+      : null;
 
   return (
     <article className="border-border bg-card overflow-hidden rounded-xl border">
-      <div className="bg-surface-2 relative h-24 overflow-hidden sm:h-36">
+      <div className="bg-surface-2 relative h-20 overflow-hidden sm:h-28">
         {capper.bannerUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -37,18 +42,18 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
         )}
       </div>
 
-      <div className="px-4 pb-4 sm:px-7 sm:pb-7">
-        <div className="-mt-7 flex flex-col gap-4 sm:-mt-10 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex min-w-0 items-end gap-3 sm:gap-4">
+      <div className="px-4 pb-4 sm:px-6 sm:pb-6">
+        <div className="-mt-7 flex flex-col gap-3 sm:-mt-9 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex min-w-0 items-end gap-3">
             <span className="bg-card rounded-xl p-1">
               <CapperAvatar
-                name={capper.name}
+                name={avatarName}
                 src={capper.avatarUrl}
                 size="xl"
-                className="size-16 text-base sm:size-20 sm:text-xl"
+                className="size-14 text-base sm:size-16 sm:text-lg"
               />
             </span>
-            <div className="min-w-0 pb-1">
+            <div className="min-w-0 pb-0.5">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="max-w-full truncate text-xl font-bold sm:text-2xl">
                   {identity.primary}
@@ -78,12 +83,12 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
           </div>
         </div>
 
-        <div className="text-muted-foreground mt-5 flex flex-wrap items-center gap-3 text-sm">
+        <div className="text-muted-foreground mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
           <span className="inline-flex items-center gap-2">
             <RankBadge rank={capper.rank} />
-            <span>
-              <span className="text-foreground block font-semibold">
-                {capper.rank > 0 ? "Public Rank" : "Public Standing"}
+            <span className="leading-tight">
+              <span className="text-foreground block text-xs font-semibold tracking-wide uppercase">
+                {capper.rank > 0 ? "Rank" : "Standing"}
               </span>
               <span className="inline-flex items-center gap-1 text-xs">
                 {capper.rank > 0 ? (
@@ -99,21 +104,35 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
               </span>
             </span>
           </span>
+          {verifiedPct != null ? (
+            <>
+              <span className="border-border h-7 border-l" aria-hidden />
+              <span
+                className="text-live text-xs font-semibold"
+                title="Share of tracked picks logged pre-game and checked against the live market"
+              >
+                <span className="nums tabular-nums">{verifiedPct}%</span>{" "}
+                Verified
+              </span>
+            </>
+          ) : null}
           {capper.joinedAt ? (
             <>
-              <span className="border-border h-8 border-l" aria-hidden />
-              <span>Member Since {capper.joinedAt.getFullYear()}</span>
+              <span className="border-border h-7 border-l" aria-hidden />
+              <span className="text-xs">
+                Since {capper.joinedAt.getFullYear()}
+              </span>
             </>
           ) : null}
         </div>
 
         {capper.headline ? (
-          <p className="mt-3 max-w-2xl text-base font-semibold">
+          <p className="mt-3 max-w-2xl text-sm font-semibold sm:text-base">
             {capper.headline}
           </p>
         ) : null}
 
-        <div className="mt-4 flex flex-wrap items-center gap-1.5">
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
           {sports.map((sport) => (
             <SportTag key={sport} sport={sport} />
           ))}
@@ -128,13 +147,13 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
         </div>
 
         {capper.bio ? (
-          <p className="text-muted-foreground mt-5 max-w-2xl text-sm leading-relaxed">
+          <p className="text-muted-foreground mt-3 max-w-2xl text-sm leading-relaxed">
             {capper.bio}
           </p>
         ) : null}
 
         {capper.trophies.length ? (
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             {capper.trophies.map((trophy) => (
               <TrophyBadge key={trophy} label={trophy} />
             ))}
@@ -158,6 +177,11 @@ function SocialLinks({ socials }: { socials?: CapperSummary["socials"] }) {
       label: "Instagram Profile",
       href: socialProfileUrl("https://instagram.com", socials.instagram),
       Icon: InstagramIcon as IconType,
+    },
+    socials.tiktok && {
+      label: "TikTok Profile",
+      href: socialProfileUrl("https://www.tiktok.com", socials.tiktok),
+      Icon: TikTokIcon as IconType,
     },
     socials.website && {
       label: "Website",
@@ -186,7 +210,7 @@ function SocialLinks({ socials }: { socials?: CapperSummary["socials"] }) {
   );
 }
 
-/* lucide dropped its brand icons, so the X/Instagram marks are inline. */
+/* lucide dropped its brand icons, so platform marks are inline. */
 function XIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -213,6 +237,19 @@ function InstagramIcon({ className }: { className?: string }) {
       <rect x="2" y="2" width="20" height="20" rx="5.5" />
       <circle cx="12" cy="12" r="4.5" />
       <circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function TikTokIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden
+      className={className}
+    >
+      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 0 0-.79-.05A6.34 6.34 0 0 0 3.16 15.3a6.34 6.34 0 0 0 6.33 6.34 6.34 6.34 0 0 0 6.34-6.34V8.75a8.18 8.18 0 0 0 4.76 1.52V6.84a4.85 4.85 0 0 1-1-.15Z" />
     </svg>
   );
 }

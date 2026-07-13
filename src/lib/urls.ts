@@ -11,9 +11,13 @@ export function safeHttpUrl(value?: string | null): string | null {
 }
 
 export function socialProfileUrl(
-  origin: "https://x.com" | "https://instagram.com",
+  origin: "https://x.com" | "https://instagram.com" | "https://www.tiktok.com",
   handle: string,
 ) {
   const normalized = handle.trim().replace(/^@/, "");
-  return `${origin}/${encodeURIComponent(normalized)}`;
+  const path =
+    origin === "https://www.tiktok.com"
+      ? `@${encodeURIComponent(normalized)}`
+      : encodeURIComponent(normalized);
+  return `${origin}/${path}`;
 }
