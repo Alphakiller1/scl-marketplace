@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { settleParlay } from "@/lib/grading";
+import { verifyPick } from "@/lib/odds-api";
+import { decidePickIntegrity, marketKeysForMarket } from "@/lib/odds-verify";
 import {
   americanToDecimal,
   combineDecimalOdds,
@@ -53,6 +55,54 @@ export async function createParlay(input: CreateParlayInput): Promise<Result> {
   if (!profile) return { ok: false, error: "No capper profile found." };
 
   const d = parsed.data;
+
+  // Verification is the universal standard (docs/SCL_PICK_INTEGRITY.md): every leg must be an
+  // event-bound board pick, and each is verified on its own (C1 pre-game lock + C3 odds). Any
+  // non-board or late/fabricated leg rejects the whole parlay. Never trust the UI to enforce it.
+  const now = new Date();
+  const decided: Array<{
+    leg: (typeof d.legs)[number];
+    eventStartsAt: Date;
+    loggedPreGame: boolean;
+    oddsVerified: boolean;
+    tier: "AUTO_VERIFIED" | "VERIFIED" | "SELF_REPORTED";
+  }> = [];
+  for (const [i, l] of d.legs.entries()) {
+    if (!l.eventId || !l.eventStartsAt || !l.side) {
+      return {
+        ok: false,
+        error: `Leg ${i + 1}: pick a line from the board — free-text legs aren't accepted.`,
+      };
+    }
+    const eventStartsAt = new Date(l.eventStartsAt);
+    const verify = await verifyPick({
+      sclSport: l.sport,
+      eventId: l.eventId,
+      marketKeys: marketKeysForMarket(l.market),
+      side: l.side,
+      line: l.line,
+      player: l.player,
+      claimedAmerican: l.oddsAmerican,
+    });
+    const decision = decidePickIntegrity({
+      now,
+      eventStartsAt,
+      eventBound: true,
+      verify,
+      source: "MANUAL",
+    });
+    if (!decision.accept) {
+      return { ok: false, error: `Leg ${i + 1}: ${decision.reason}` };
+    }
+    decided.push({
+      leg: l,
+      eventStartsAt,
+      loggedPreGame: decision.loggedPreGame,
+      oddsVerified: decision.oddsVerified,
+      tier: decision.tier,
+    });
+  }
+
   const combinedDecimal = combineDecimalOdds(
     d.legs.map((l) => americanToDecimal(l.oddsAmerican)),
   );
@@ -63,7 +113,7 @@ export async function createParlay(input: CreateParlayInput): Promise<Result> {
       units: d.units,
       combinedOddsAmerican: decimalToAmerican(combinedDecimal),
       legs: {
-        create: d.legs.map((l) => ({
+        create: decided.map(({ leg: l, eventStartsAt, ...v }) => ({
           capperId: profile.id,
           sport: l.sport,
           league: l.league ?? null,
@@ -71,6 +121,14 @@ export async function createParlay(input: CreateParlayInput): Promise<Result> {
           selection: l.selection,
           oddsAmerican: l.oddsAmerican,
           units: 0, // the parlay carries the stake; legs are components
+          eventId: l.eventId,
+          eventStartsAt,
+          side: l.side,
+          line: l.line ?? null,
+          source: "MANUAL",
+          loggedPreGame: v.loggedPreGame,
+          oddsVerified: v.oddsVerified,
+          verificationTier: v.tier,
         })),
       },
     },

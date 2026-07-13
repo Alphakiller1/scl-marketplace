@@ -33,6 +33,21 @@ export const parlayLegSchema = z.object({
     .number()
     .int("Whole number only")
     .refine((n) => Math.abs(n) >= 100, "Use American odds (≤ -100 or ≥ +100)"),
+  // Event binding — every leg is a board pick (docs/SCL_PICK_INTEGRITY.md); createParlay
+  // rejects any leg missing these and verifies each one.
+  eventId: optionalText(64),
+  eventStartsAt: z
+    .string()
+    .datetime({ offset: true })
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v ? v : undefined)),
+  side: optionalText(120),
+  line: z.preprocess(
+    (v) => (v === "" || v === null ? undefined : v),
+    z.coerce.number().optional(),
+  ),
+  player: optionalText(120),
 });
 
 /** A parlay carries the stake; its legs are components (units live on the parlay). */
