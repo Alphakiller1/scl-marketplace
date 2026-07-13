@@ -67,7 +67,8 @@ type BoardData = { events: OddsEvent[]; configured: boolean; failed?: boolean };
 
 // Per-event board load: absent = still loading; ready (may be empty) or error otherwise.
 type EventDetailData =
-  { status: "ready"; selections: OddsSelection[] } | { status: "error" };
+  | { status: "ready"; selections: OddsSelection[] }
+  | { status: "error" };
 
 const MARKET_ORDER = ["Moneyline", "Spread", "Total"] as const;
 // Props with many players get long — show this many by default, with a "show all".
