@@ -6,18 +6,23 @@ import { PickCard } from "@/components/scl/pick-card";
 import { EmptyState } from "@/components/scl/states";
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 import { getPublicRecentPicksResult } from "@/lib/queries/plays";
+import { publicFeedCappers } from "@/lib/public-picks";
 
 export const metadata: Metadata = {
   title: "Today's Picks",
-  description: "Live and pending plays from ranked sports cappers.",
+  description: "Live and pending plays from active sports cappers.",
 };
 
 export const revalidate = 60;
 
 export default async function PicksPage() {
-  const { cappers, failed: leaderboardFailed } = await getLeaderboardResult();
-  const { picks, failed: picksFailed } = await getPublicRecentPicksResult(
+  const {
     cappers,
+    unranked,
+    failed: leaderboardFailed,
+  } = await getLeaderboardResult();
+  const { picks, failed: picksFailed } = await getPublicRecentPicksResult(
+    publicFeedCappers(cappers, unranked),
     24,
   );
   const failed = leaderboardFailed || picksFailed;

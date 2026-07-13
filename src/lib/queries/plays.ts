@@ -4,7 +4,7 @@ import type { Outcome } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import type { CapperSummary, TodayPick } from "@/lib/mock";
-import { pickContextLabel } from "@/lib/pick-identity";
+import { joinPlaysToPublicPicks } from "@/lib/public-picks";
 import type { VerificationTier } from "@/lib/verification";
 
 export type PlayView = {
@@ -57,18 +57,13 @@ export async function getCapperPlays(
   }));
 }
 
-const OUTCOME_TO_PICK_STATUS = {
-  PENDING: "pending",
-  WIN: "win",
-  LOSS: "loss",
-  PUSH: "push",
-  VOID: "void",
-} as const satisfies Record<Outcome, TodayPick["status"]>;
-
 /**
  * Latest public plays from active cappers. The available Phase 1 schema does
  * not store event start time, so the UI labels these as pending or graded
  * rather than inventing a game time.
+ *
+ * Pass ranked.concat(unranked) from getLeaderboardResult so Building-a-Record
+ * cappers' verified plays surface; ranking itself stays on the leaderboard.
  */
 export async function getPublicRecentPicks(
   cappers: CapperSummary[],
@@ -81,8 +76,6 @@ export async function getPublicRecentPicksResult(
   cappers: CapperSummary[],
   take = 8,
 ): Promise<{ picks: TodayPick[]; failed: boolean }> {
-  const capperById = new Map(cappers.map((capper) => [capper.id, capper]));
-
   try {
     const plays = await prisma.play.findMany({
       where: {
@@ -112,42 +105,7 @@ export async function getPublicRecentPicksResult(
       take,
     });
 
-    const picks = plays.flatMap((play) => {
-      const capper = capperById.get(play.capperId);
-      if (!capper) return [];
-      return [
-        {
-          id: play.id,
-          capper: {
-            id: capper.id,
-            name: capper.name,
-            handle: capper.handle,
-            displayName: capper.displayName,
-            verified: capper.verified,
-            avatarUrl: capper.avatarUrl,
-          },
-          capperRecord: capper.record,
-          sport: play.sport,
-          event: pickContextLabel({
-            sport: play.sport,
-            league: play.league,
-            market: play.market,
-          }),
-          selection: play.selection,
-          oddsAmerican: play.oddsAmerican,
-          units: Number(play.units),
-          status: OUTCOME_TO_PICK_STATUS[play.outcome],
-          postedAt: play.createdAt,
-          gameTime: play.outcome === "PENDING" ? "Pending" : "Graded",
-          verificationTier: play.verificationTier,
-          side: play.side,
-          market: play.market,
-          profitUnits:
-            play.profitUnits == null ? null : Number(play.profitUnits),
-        } satisfies TodayPick,
-      ];
-    });
-    return { picks, failed: false };
+    return { picks: joinPlaysToPublicPicks(plays, cappers), failed: false };
   } catch (error) {
     console.error("[getPublicRecentPicks] database unavailable:", error);
     return { picks: [], failed: true };
