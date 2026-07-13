@@ -46,7 +46,12 @@ export type CapperSummary = {
   specialties?: string[];
   sports?: string[]; // full coverage list shown on the profile
   joinedAt?: Date;
-  socials?: { twitter?: string; instagram?: string; website?: string };
+  socials?: {
+    twitter?: string;
+    instagram?: string;
+    tiktok?: string;
+    website?: string;
+  };
   storefront?: StorefrontSummary;
   isLegacy?: boolean; // record imported from the previous SCL platform
 };

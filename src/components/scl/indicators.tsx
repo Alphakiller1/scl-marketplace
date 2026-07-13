@@ -49,7 +49,7 @@ export function RankMovementIndicator({
   );
 }
 
-/** Recent form as W/L/P pips — most recent on the right. */
+/** Recent form as compact W/L/P pills — most recent on the right. */
 export function RecentFormStrip({
   form,
   className,
@@ -57,25 +57,36 @@ export function RecentFormStrip({
   form: FormResult[];
   className?: string;
 }) {
+  if (!form.length) return null;
+
   const tone: Record<FormResult, string> = {
     W: "bg-pos/20 text-pos",
     L: "bg-neg/20 text-neg",
     P: "bg-surface-3 text-muted-foreground",
   };
+  const label: Record<FormResult, string> = {
+    W: "Win",
+    L: "Loss",
+    P: "Push",
+  };
+
   return (
     <div
       className={cn("flex items-center gap-1", className)}
-      aria-label="Recent form"
+      role="list"
+      aria-label={`Recent form, ${form.length} results, oldest to newest`}
     >
       {form.map((r, i) => (
         <span
           key={i}
+          role="listitem"
+          aria-label={`${label[r]}${i === form.length - 1 ? ", most recent" : ""}`}
           className={cn(
-            "flex size-5 items-center justify-center rounded text-[0.65rem] font-bold",
+            "flex size-5 items-center justify-center rounded-full text-[0.65rem] font-bold",
             tone[r],
           )}
         >
-          {r}
+          <span aria-hidden>{r}</span>
         </span>
       ))}
     </div>

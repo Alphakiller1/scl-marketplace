@@ -24,9 +24,11 @@ export function CapperStorefront({
           </span>
           <div className="min-w-0">
             <p className="text-brand text-xs font-semibold uppercase">
-              Storefront
+              Marketplace
             </p>
-            <h2 className="mt-1 text-xl font-semibold">{storefront.title}</h2>
+            <h2 className="mt-1 text-lg font-semibold sm:text-xl">
+              {storefront.title}
+            </h2>
             <p className="text-muted-foreground mt-1 max-w-2xl text-sm leading-relaxed">
               {storefront.description}
             </p>
@@ -40,13 +42,14 @@ export function CapperStorefront({
       <EmptyState
         className="mt-4 py-8"
         icon={PackageOpen}
-        title="No Packages Live Yet"
-        description={`${capperName} controls which third-party packages are marketed through SCL. Approved packages will appear here.`}
+        title="Packages Not Listed Yet"
+        description={`${capperName} hasn't published packages on SCL. You can still review their tracked record and recent plays above.`}
       />
 
-      <p className="text-muted-foreground mt-3 text-xs">
+      <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
         Purchases, subscriptions, and fulfillment are handled by the applicable
-        third-party storefront.
+        third-party storefront — SCL lists marketplace offers and does not
+        process payments.
       </p>
     </section>
   );

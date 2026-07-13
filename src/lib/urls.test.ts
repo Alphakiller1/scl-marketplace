@@ -22,4 +22,8 @@ test("socialProfileUrl treats handles as path data", () => {
     socialProfileUrl("https://x.com", "@chase.analytics"),
     "https://x.com/chase.analytics",
   );
+  assert.equal(
+    socialProfileUrl("https://www.tiktok.com", "@sclbets"),
+    "https://www.tiktok.com/@sclbets",
+  );
 });

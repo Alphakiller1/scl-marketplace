@@ -44,6 +44,7 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
   if (!data) notFound();
 
   const { capper, plays, playsError } = data;
+  const identity = identityDisplayLinesFromCapper(capper);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
@@ -78,7 +79,7 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
               className="mt-4"
               icon={ListChecks}
               title="No Tracked Plays Yet"
-              description={`${capper.name} hasn't posted any graded plays yet.`}
+              description={`${identity.primary} hasn't posted any graded plays yet.`}
             />
           )}
         </section>
@@ -88,7 +89,7 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
             <CapperStorefront
               className="mt-0"
               storefront={capper.storefront}
-              capperName={capper.name}
+              capperName={identity.primary}
             />
           </aside>
         ) : null}
