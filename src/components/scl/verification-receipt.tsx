@@ -68,9 +68,6 @@ export function VerificationReceipt({
             >
               {copy.headline}
             </p>
-            {receipt.kind === "straight" ? (
-              <PickTierBadge tier={receipt.tier} />
-            ) : null}
           </div>
           <p className="mt-1 text-lg font-bold break-words">{copy.summary}</p>
           {copy.context ? (
