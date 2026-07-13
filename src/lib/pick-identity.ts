@@ -2,6 +2,7 @@ import { resolveKnownTeam, type TeamIdentity } from "@/lib/teams";
 
 /** Sides that are market directions, never team names. */
 const NON_TEAM_SIDES = new Set(["over", "under"]);
+const REAL_MARKET_TYPES = new Set(["moneyline", "spread", "total"]);
 
 /**
  * Safe team identity for a board-structured `side` only. Returns null for Over/Under,
@@ -32,6 +33,13 @@ export function pickContextLabel(opts: {
   const league = opts.league?.trim();
   const sport = opts.sport.trim();
   const market = opts.market.trim();
+  const marketIsRealType = REAL_MARKET_TYPES.has(normalizeLabel(market));
+  const marketIsSport = normalizeLabel(market) === normalizeLabel(sport);
+  const marketIsLeague =
+    Boolean(league) && normalizeLabel(market) === normalizeLabel(league ?? "");
+
+  if (marketIsSport || (marketIsLeague && !marketIsRealType)) return "";
+
   if (
     league &&
     normalizeLabel(league) !== normalizeLabel(sport) &&

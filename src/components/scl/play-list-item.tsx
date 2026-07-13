@@ -38,9 +38,11 @@ export function PlayListItem({ play }: { play: PlayView }) {
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <SportTag sport={play.sport} />
-          <span className="text-muted-foreground truncate text-xs">
-            {context}
-          </span>
+          {context ? (
+            <span className="text-muted-foreground truncate text-xs">
+              {context}
+            </span>
+          ) : null}
           <PickTierBadge tier={play.verificationTier} />
         </div>
         <StatusBadge status={OUTCOME_TO_STATUS[play.outcome]} />
