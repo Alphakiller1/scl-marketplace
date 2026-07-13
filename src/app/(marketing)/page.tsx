@@ -11,15 +11,20 @@ import { EmptyState } from "@/components/scl/states";
 import { sortLeaderboard } from "@/lib/leaderboard";
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 import { getPublicRecentPicksResult } from "@/lib/queries/plays";
+import { publicFeedCappers } from "@/lib/public-picks";
 
 export const revalidate = 60;
 
 export default async function Home() {
-  const { cappers, failed: leaderboardFailed } = await getLeaderboardResult({
+  const {
+    cappers,
+    unranked,
+    failed: leaderboardFailed,
+  } = await getLeaderboardResult({
     verifiedOnly: true,
   });
   const { picks: recentPicks, failed: picksFailed } =
-    await getPublicRecentPicksResult(cappers, 4);
+    await getPublicRecentPicksResult(publicFeedCappers(cappers, unranked), 4);
   const topRoi = sortLeaderboard(cappers, "roi").slice(0, 3);
 
   return (
@@ -47,7 +52,7 @@ export default async function Home() {
           <SectionHeader
             icon={Zap}
             title="Latest Tracked Picks"
-            subtitle="Recent submissions from ranked cappers"
+            subtitle="Recent submissions from active cappers"
             href="/picks"
           />
           {recentPicks.length ? (
