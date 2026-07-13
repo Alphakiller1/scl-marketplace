@@ -159,17 +159,27 @@ export async function fetchUpcomingOdds(
 
   try {
     const res = await fetch(url, { next: { revalidate: 120 } });
-    if (!res.ok) return [];
+    // Log credit usage (x-requests-remaining reveals an exhausted quota) + the status on
+    // failure, so an empty board in prod is diagnosable (bad key = 401, quota = remaining 0,
+    // genuinely no games = 0 events) instead of a silent [].
+    logOddsUsage(res, `upcoming ${sclSport}`);
+    if (!res.ok) {
+      console.warn(`[odds] upcoming ${sclSport}: HTTP ${res.status}`);
+      return [];
+    }
     const events = (await res.json()) as RawEvent[];
-    return (
-      events
-        .map((e) => normalize(sclSport, e))
-        .filter((e) => e.selections.length > 0)
-        // Keep enough of the soonest games that today + tomorrow's slate both fit for
-        // daily sports; the board buckets them into Today/Tomorrow client-side.
-        .slice(0, 60)
-    );
-  } catch {
+    const board = events
+      .map((e) => normalize(sclSport, e))
+      .filter((e) => e.selections.length > 0)
+      // Keep enough of the soonest games that today + tomorrow's slate both fit for
+      // daily sports; the board buckets them into Today/Tomorrow client-side.
+      .slice(0, 60);
+    if (board.length === 0) {
+      console.info(`[odds] upcoming ${sclSport}: 0 usable events returned`);
+    }
+    return board;
+  } catch (err) {
+    console.warn(`[odds] upcoming ${sclSport}: fetch failed`, err);
     return [];
   }
 }
