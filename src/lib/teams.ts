@@ -132,6 +132,18 @@ export function getTeamIdentity(name: string, sport?: string): TeamIdentity {
   return fallbackTeam(name);
 }
 
+/**
+ * Strict team lookup for public surfaces (picks feed, play rows). Returns null when the name is
+ * not in the sport's known map — never invents a decorative mark from free text.
+ */
+export function resolveKnownTeam(
+  name: string,
+  sport: string,
+): TeamIdentity | null {
+  const found = TEAM_INDEX.get(indexKey(sport, name));
+  return found ? stripAliases(found) : null;
+}
+
 export function readableTextColor(hex: string): "#0b0f19" | "#ffffff" {
   const rgb = parseHex(hex);
   if (!rgb) return "#ffffff";

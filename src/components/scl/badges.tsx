@@ -49,13 +49,13 @@ export function PickTierBadge({
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.7rem] font-semibold",
         verified
-          ? "bg-live/15 text-live"
-          : "bg-surface-3 text-muted-foreground",
+          ? "bg-live/15 text-live ring-live/25 ring-1"
+          : "border-border/80 text-muted-foreground border bg-transparent",
         className,
       )}
       title={meta.description}
     >
-      {verified ? <BadgeCheck className="size-3" /> : null}
+      {verified ? <BadgeCheck className="size-3" aria-hidden /> : null}
       {meta.short}
     </span>
   );
@@ -127,13 +127,29 @@ const STATUS_STYLES: Record<
 > = {
   pending: {
     label: "Pending",
-    className: "bg-surface-3 text-muted-foreground",
+    className: "bg-muted/60 text-muted-foreground",
   },
-  live: { label: "Live", className: "bg-live/15 text-live", live: true },
-  win: { label: "Win", className: "bg-pos/15 text-pos" },
-  loss: { label: "Loss", className: "bg-neg/15 text-neg" },
-  push: { label: "Push", className: "bg-surface-3 text-foreground" },
-  void: { label: "Void", className: "bg-surface-3 text-muted-foreground" },
+  live: {
+    label: "Live",
+    className: "bg-live/15 text-live ring-1 ring-live/30",
+    live: true,
+  },
+  win: {
+    label: "Win",
+    className: "bg-pos/15 text-pos ring-1 ring-pos/30",
+  },
+  loss: {
+    label: "Loss",
+    className: "bg-neg/15 text-neg ring-1 ring-neg/30",
+  },
+  push: {
+    label: "Push",
+    className: "border-border text-foreground border bg-transparent",
+  },
+  void: {
+    label: "Void",
+    className: "bg-muted/40 text-muted-foreground",
+  },
 };
 
 export function StatusBadge({
@@ -151,6 +167,7 @@ export function StatusBadge({
         s.className,
         className,
       )}
+      aria-label={`Result: ${s.label}`}
     >
       {s.live ? (
         <span className="relative flex size-1.5">

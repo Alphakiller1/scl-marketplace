@@ -1,19 +1,16 @@
 "use client";
 
-import { type CSSProperties, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, ChevronDown, Zap } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SkeletonCard } from "@/components/scl/states";
+import { TeamMark } from "@/components/scl/team-mark";
 import { cn } from "@/lib/utils";
 import { formatOdds } from "@/lib/format";
 import { pickKey } from "@/lib/slip";
-import {
-  getTeamIdentity,
-  readableTextColor,
-  type TeamIdentity,
-} from "@/lib/teams";
+import { getTeamIdentity, type TeamIdentity } from "@/lib/teams";
 import type { OddsEvent, OddsSelection } from "@/lib/odds-api";
 
 /** Re-export for callers that historically imported `pickKey` from this module. */
@@ -399,23 +396,6 @@ function TeamLine({
           {formatOdds(moneyline)}
         </span>
       ) : null}
-    </span>
-  );
-}
-
-function TeamMark({ team }: { team: TeamIdentity }) {
-  const style = {
-    backgroundColor: team.primaryColor,
-    color: readableTextColor(team.primaryColor),
-  } satisfies CSSProperties;
-
-  return (
-    <span
-      className="border-border/60 flex size-7 shrink-0 items-center justify-center rounded-full border text-[0.62rem] font-bold tracking-wide shadow-xs"
-      style={style}
-      aria-hidden
-    >
-      {team.abbr}
     </span>
   );
 }

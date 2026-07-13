@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { getTeamIdentity, readableTextColor } from "@/lib/teams";
+import {
+  getTeamIdentity,
+  readableTextColor,
+  resolveKnownTeam,
+} from "@/lib/teams";
 
 test("getTeamIdentity resolves mapped teams and aliases", () => {
   assert.equal(getTeamIdentity("Los Angeles Sparks", "WNBA").abbr, "LAS");
@@ -18,6 +22,12 @@ test("getTeamIdentity creates deterministic fallback marks", () => {
 
   assert.deepEqual(first, second);
   assert.equal(first.abbr, "MCM");
+});
+
+test("resolveKnownTeam returns null for unknown names", () => {
+  assert.equal(resolveKnownTeam("LA Dodgers", "MLB")?.abbr, "LAD");
+  assert.equal(resolveKnownTeam("Mystery City Meteors", "MLB"), null);
+  assert.equal(resolveKnownTeam("Los Angeles Dodgers", "WNBA"), null);
 });
 
 test("readableTextColor chooses a contrasting text color", () => {
