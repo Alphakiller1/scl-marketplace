@@ -8,12 +8,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SkeletonCard } from "@/components/scl/states";
 import { cn } from "@/lib/utils";
 import { formatOdds } from "@/lib/format";
+import { pickKey } from "@/lib/slip";
 import {
   getTeamIdentity,
   readableTextColor,
   type TeamIdentity,
 } from "@/lib/teams";
 import type { OddsEvent, OddsSelection } from "@/lib/odds-api";
+
+/** Re-export for callers that historically imported `pickKey` from this module. */
+export { pickKey } from "@/lib/slip";
 
 type SlateDay = "today" | "tomorrow";
 
@@ -39,29 +43,6 @@ export type OddsPick = {
   line?: number;
   player?: string;
 };
-
-/**
- * Stable identity for a board pick — enough fields to treat exact repeats as the same line
- * (event, market, player, side, point, price). Callers use it to mark a chip as already-added
- * and to reject duplicate parlay legs.
- */
-export function pickKey(p: {
-  eventId: string;
-  market: string;
-  side: string;
-  line?: number;
-  oddsAmerican: number;
-  player?: string;
-}): string {
-  return [
-    p.eventId,
-    p.market,
-    p.player ?? "",
-    p.side,
-    p.line ?? "",
-    p.oddsAmerican,
-  ].join("|");
-}
 
 type BoardData = { events: OddsEvent[]; configured: boolean; failed?: boolean };
 
@@ -131,7 +112,8 @@ export function OddsAssist({
 }: {
   sport: string;
   onPick: (pick: OddsPick) => void;
-  // Keys (see `pickKey`) of picks already added — their chips render as selected + disabled.
+  // Keys (see `pickKey`) of picks already on the slip — those chips render selected + disabled.
+  // Conflicting (non-exact) chips stay clickable so conflict toasts can fire.
   selectedKeys?: Set<string>;
 }) {
   const [cache, setCache] = useState<Record<string, BoardData>>({});
@@ -505,17 +487,28 @@ function EventDetail({
         key={key}
         type="button"
         onClick={() => onPick(pick)}
+        // Exact-selected only — conflict chips stay enabled so the page can toast.
         disabled={selected}
         aria-pressed={selected}
         className={cn(
           CHIP_CLASS,
           selected &&
-            "border-brand bg-brand/10 text-brand hover:bg-brand/10 cursor-default",
+            "border-brand bg-brand text-brand-foreground hover:bg-brand hover:border-brand cursor-default",
         )}
       >
-        {selected ? <Check className="text-brand size-3.5 shrink-0" /> : null}
-        <span>{s.selection}</span>
-        <span className="text-brand nums font-semibold tabular-nums">
+        {selected ? (
+          <Check className="text-brand-foreground size-3.5 shrink-0" />
+        ) : null}
+        <span className="min-w-0 truncate">
+          {selected ? "Added · " : ""}
+          {s.selection}
+        </span>
+        <span
+          className={cn(
+            "nums shrink-0 font-semibold tabular-nums",
+            selected ? "text-brand-foreground/90" : "text-brand",
+          )}
+        >
           {formatOdds(s.oddsAmerican)}
         </span>
       </button>
