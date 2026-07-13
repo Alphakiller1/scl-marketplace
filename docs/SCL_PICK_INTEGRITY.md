@@ -47,14 +47,16 @@ client-supplied start time is never trusted.
 
 ### C2 · Structured, event-bound selection (no free-text picks)
 
-**Status (M2):** wired end-to-end. The board selector (`OddsAssist`, on the new-pick form) loads
-the live slate for the chosen sport and, on tap, binds the pick to a real event — it now carries
-`eventId`, `eventStartsAt`, structured `side`, and `line` through to `createPlay`, which treats a
-pick as event-bound (strict-path eligible) when it has `eventId` + a `side`. The board now covers **moneyline/spread/total, alternate spreads/totals, and curated player props**
-(alt lines + props load lazily per event, reusing the cached verification fetch). Free-text
-**manual entry** remains the deliberate fallback for anything still off the board (obscure
-books/markets) and lands as `SELF-REPORTED`. Still open before verification can be made mandatory: a
-typeahead/search for large prop slates, and widening the curated prop set per sport.
+**Status (M2 — MANDATORY):** verification is now the universal standard. The board selector
+(`OddsAssist`) loads the live slate (Today/Tomorrow) and, on tap, binds the pick to a real event —
+carrying `eventId`, `eventStartsAt`, structured `side`, `line`, and (for props) `player` through to
+`createPlay`. Free-text manual entry has been **retired**: `createPlay` rejects any pick lacking
+`eventId` + `eventStartsAt` + `side` server-side (defence in depth — the UI removed the manual path,
+but the server never trusts that). The board covers **moneyline/spread/total, alternate
+spreads/totals, and curated player props** (alt lines + props load lazily per event, reusing the
+cached verification fetch); anything the board doesn't cover simply can't be posted until the board
+covers it. Still open: a typeahead/search for large prop slates, and widening the curated prop set
+per sport.
 
 - Every pick binds to a **real scheduled event** from an official schedule source (event id,
   teams, start time) — not typed free text.
@@ -63,8 +65,9 @@ typeahead/search for large prop slates, and widening the curated prop set per sp
   **exactly one gradeable outcome**.
 - This simultaneously kills T2 (ambiguity), enables reliable auto-grading, and is the anchor for
   C3 (line verification).
-- **Fairness:** typeahead over today's slate; free text is only a fallback that lands the pick as
-  `SELF-REPORTED`.
+- **Fairness:** the board is fast (Today/Tomorrow, tap a price). A market the board doesn't carry
+  can't be posted until we add it — the deliberate tradeoff for one honest standard applied to
+  everyone.
 
 ### C3 · Line & odds verification (game lines + alt lines + props)
 
