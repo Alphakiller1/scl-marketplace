@@ -11,8 +11,11 @@ import {
   type VerifyResult,
 } from "@/lib/odds-verify";
 import { verifyPick } from "@/lib/odds-api";
+import type { StraightReceipt } from "@/lib/verification";
 
-type PlayResult = { ok: true } | { ok: false; error: string };
+export type PlayResult =
+  | { ok: true; receipt: StraightReceipt }
+  | { ok: false; error: string };
 
 export async function createPlay(input: PlayInput): Promise<PlayResult> {
   const account = await getCurrentAccount();
@@ -102,5 +105,16 @@ export async function createPlay(input: PlayInput): Promise<PlayResult> {
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/picks");
-  return { ok: true };
+  return {
+    ok: true,
+    receipt: {
+      kind: "straight",
+      selection: d.selection,
+      market: d.market,
+      oddsAmerican: d.oddsAmerican,
+      loggedPreGame: decision.loggedPreGame,
+      oddsVerified: decision.oddsVerified,
+      tier: decision.tier,
+    },
+  };
 }
