@@ -2,7 +2,13 @@ import Link from "next/link";
 
 import { Card } from "@/components/ui/card";
 import type { TodayPick } from "@/lib/mock";
-import { formatOdds, formatRecord, formatUnits, timeAgo } from "@/lib/format";
+import {
+  formatOdds,
+  formatRecord,
+  formatUnits,
+  signTone,
+  timeAgo,
+} from "@/lib/format";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
 import {
   VerificationBadge,
@@ -10,6 +16,15 @@ import {
   SportTag,
   StatusBadge,
 } from "@/components/scl/badges";
+import { TeamMark } from "@/components/scl/team-mark";
+import { teamIdentityFromSide } from "@/lib/pick-identity";
+import { cn } from "@/lib/utils";
+
+const toneText = {
+  pos: "text-pos",
+  neg: "text-neg",
+  muted: "text-muted-foreground",
+} as const;
 
 /** Today's-pick card — the active, valuable surface of the product. */
 export function PickCard({
@@ -23,14 +38,19 @@ export function PickCard({
     return <CompactPickCard pick={pick} />;
   }
 
+  const team = teamIdentityFromSide(pick.side, pick.sport);
+  const hasResult = pick.profitUnits != null;
+
   return (
-    <Card className="gap-0 p-3.5 sm:p-4">
+    <Card className="gap-0 overflow-hidden p-3.5 sm:p-4">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <SportTag sport={pick.sport} />
-          <span className="text-muted-foreground text-xs">{pick.gameTime}</span>
+          <span className="text-muted-foreground truncate text-xs">
+            {pick.event}
+          </span>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1.5">
           {pick.verificationTier ? (
             <PickTierBadge tier={pick.verificationTier} />
           ) : null}
@@ -38,23 +58,39 @@ export function PickCard({
         </div>
       </div>
 
-      <div className="mt-3">
-        <div className="text-muted-foreground text-sm">{pick.event}</div>
-        <div className="mt-0.5 flex items-baseline gap-2">
-          <span className="text-lg font-semibold tracking-tight">
-            {pick.selection}
-          </span>
-          <span className="nums text-muted-foreground text-sm font-semibold tabular-nums">
-            {formatOdds(pick.oddsAmerican)}
-          </span>
+      <div className="mt-3 flex min-w-0 items-start gap-2.5">
+        {team ? <TeamMark team={team} size="md" className="mt-0.5" /> : null}
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <span className="text-lg font-semibold tracking-tight break-words">
+              {pick.selection}
+            </span>
+            <span className="nums text-muted-foreground text-sm font-semibold tabular-nums">
+              {formatOdds(pick.oddsAmerican)}
+            </span>
+          </div>
         </div>
       </div>
 
-      <div className="bg-surface-2 mt-3 flex items-center gap-2 rounded-lg px-2.5 py-1.5">
-        <span className="text-muted-foreground text-xs font-medium">Stake</span>
-        <span className="nums text-brand font-semibold tabular-nums">
-          {formatUnits(pick.units, true, false)}
-        </span>
+      <div className="bg-surface-2 mt-3 flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="text-muted-foreground text-xs font-medium">
+            Stake
+          </span>
+          <span className="nums text-brand font-semibold tabular-nums">
+            {formatUnits(pick.units, true, false)}
+          </span>
+        </div>
+        {hasResult ? (
+          <span
+            className={cn(
+              "nums shrink-0 text-sm font-bold tabular-nums",
+              toneText[signTone(pick.profitUnits ?? 0)],
+            )}
+          >
+            {formatUnits(pick.profitUnits ?? 0)}
+          </span>
+        ) : null}
       </div>
 
       <div className="border-border mt-3 flex items-center justify-between border-t pt-3">
@@ -67,9 +103,9 @@ export function PickCard({
             src={pick.capper.avatarUrl}
             size="sm"
           />
-          <div className="leading-tight">
-            <div className="flex items-center gap-1 text-sm font-semibold">
-              <span>{pick.capper.name}</span>
+          <div className="min-w-0 leading-tight">
+            <div className="flex min-w-0 items-center gap-1 text-sm font-semibold">
+              <span className="truncate">{pick.capper.name}</span>
               {pick.capper.verified ? <VerificationBadge size="xs" /> : null}
             </div>
             <span className="nums text-muted-foreground text-xs tabular-nums">
@@ -81,7 +117,7 @@ export function PickCard({
             </span>
           </div>
         </Link>
-        <span className="text-muted-foreground text-xs">
+        <span className="text-muted-foreground shrink-0 text-xs">
           {timeAgo(pick.postedAt)}
         </span>
       </div>
@@ -90,8 +126,11 @@ export function PickCard({
 }
 
 function CompactPickCard({ pick }: { pick: TodayPick }) {
+  const team = teamIdentityFromSide(pick.side, pick.sport);
+  const hasResult = pick.profitUnits != null;
+
   return (
-    <Card className="gap-0 p-3">
+    <Card className="gap-0 overflow-hidden p-3">
       <div className="flex min-w-0 items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <SportTag sport={pick.sport} />
@@ -107,13 +146,16 @@ function CompactPickCard({ pick }: { pick: TodayPick }) {
         </div>
       </div>
 
-      <div className="mt-2 flex min-w-0 items-baseline gap-2">
-        <span className="truncate text-base font-semibold">
-          {pick.selection}
-        </span>
-        <span className="nums text-muted-foreground shrink-0 text-sm font-semibold tabular-nums">
-          {formatOdds(pick.oddsAmerican)}
-        </span>
+      <div className="mt-2 flex min-w-0 items-center gap-2">
+        {team ? <TeamMark team={team} size="sm" /> : null}
+        <div className="flex min-w-0 flex-1 items-baseline gap-2">
+          <span className="truncate text-base font-semibold">
+            {pick.selection}
+          </span>
+          <span className="nums text-muted-foreground shrink-0 text-sm font-semibold tabular-nums">
+            {formatOdds(pick.oddsAmerican)}
+          </span>
+        </div>
       </div>
 
       <div className="border-border mt-2 flex min-h-11 items-center justify-between gap-3 border-t pt-2">
@@ -138,12 +180,30 @@ function CompactPickCard({ pick }: { pick: TodayPick }) {
         </Link>
 
         <div className="shrink-0 text-right">
-          <span className="text-muted-foreground block text-[0.7rem] font-semibold uppercase">
-            Stake
-          </span>
-          <span className="nums text-brand text-sm font-bold tabular-nums">
-            {formatUnits(pick.units, true, false)}
-          </span>
+          {hasResult ? (
+            <>
+              <span className="text-muted-foreground block text-[0.7rem] font-semibold uppercase">
+                Result
+              </span>
+              <span
+                className={cn(
+                  "nums text-sm font-bold tabular-nums",
+                  toneText[signTone(pick.profitUnits ?? 0)],
+                )}
+              >
+                {formatUnits(pick.profitUnits ?? 0)}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="text-muted-foreground block text-[0.7rem] font-semibold uppercase">
+                Stake
+              </span>
+              <span className="nums text-brand text-sm font-bold tabular-nums">
+                {formatUnits(pick.units, true, false)}
+              </span>
+            </>
+          )}
         </div>
       </div>
     </Card>

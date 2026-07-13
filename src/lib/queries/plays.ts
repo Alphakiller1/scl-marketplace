@@ -4,6 +4,7 @@ import type { Outcome } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import type { CapperSummary, TodayPick } from "@/lib/mock";
+import { pickContextLabel } from "@/lib/pick-identity";
 import type { VerificationTier } from "@/lib/verification";
 
 export type PlayView = {
@@ -18,6 +19,8 @@ export type PlayView = {
   profitUnits: number | null;
   createdAt: Date;
   verificationTier: VerificationTier;
+  /** Structured board side when present — never invent from free-text selection. */
+  side: string | null;
 };
 
 /** A capper's plays (most recent first), with Decimals serialized to numbers. */
@@ -50,6 +53,7 @@ export async function getCapperPlays(
     profitUnits: p.profitUnits == null ? null : Number(p.profitUnits),
     createdAt: p.createdAt,
     verificationTier: p.verificationTier,
+    side: p.side,
   }));
 }
 
@@ -99,8 +103,10 @@ export async function getPublicRecentPicksResult(
         oddsAmerican: true,
         units: true,
         outcome: true,
+        profitUnits: true,
         createdAt: true,
         verificationTier: true,
+        side: true,
       },
       orderBy: { createdAt: "desc" },
       take,
@@ -121,7 +127,11 @@ export async function getPublicRecentPicksResult(
           },
           capperRecord: capper.record,
           sport: play.sport,
-          event: play.league ?? play.market,
+          event: pickContextLabel({
+            sport: play.sport,
+            league: play.league,
+            market: play.market,
+          }),
           selection: play.selection,
           oddsAmerican: play.oddsAmerican,
           units: Number(play.units),
@@ -129,6 +139,10 @@ export async function getPublicRecentPicksResult(
           postedAt: play.createdAt,
           gameTime: play.outcome === "PENDING" ? "Pending" : "Graded",
           verificationTier: play.verificationTier,
+          side: play.side,
+          market: play.market,
+          profitUnits:
+            play.profitUnits == null ? null : Number(play.profitUnits),
         } satisfies TodayPick,
       ];
     });

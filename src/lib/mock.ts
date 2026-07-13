@@ -65,6 +65,10 @@ export type TodayPick = {
   postedAt: Date;
   gameTime: string;
   verificationTier?: VerificationTier;
+  /** Board-structured side (team / Over / Under) — safe team identity only. */
+  side?: string | null;
+  market?: string;
+  profitUnits?: number | null;
 };
 
 const ago = (mins: number) => new Date(Date.now() - mins * 60_000);

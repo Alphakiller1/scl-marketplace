@@ -3,6 +3,8 @@ import type { Outcome } from "@prisma/client";
 import { cn } from "@/lib/utils";
 import { formatOdds, formatUnits, signTone } from "@/lib/format";
 import { PickTierBadge, SportTag, StatusBadge } from "@/components/scl/badges";
+import { TeamMark } from "@/components/scl/team-mark";
+import { pickContextLabel, teamIdentityFromSide } from "@/lib/pick-identity";
 import type { PlayView } from "@/lib/queries/plays";
 
 const OUTCOME_TO_STATUS = {
@@ -16,24 +18,42 @@ const OUTCOME_TO_STATUS = {
   "pending" | "win" | "loss" | "push" | "void"
 >;
 
-const toneText = { pos: "text-pos", neg: "text-neg", muted: "text-foreground" };
+const toneText = {
+  pos: "text-pos",
+  neg: "text-neg",
+  muted: "text-muted-foreground",
+} as const;
 
 export function PlayListItem({ play }: { play: PlayView }) {
   const hasResult = play.profitUnits != null;
+  const team = teamIdentityFromSide(play.side, play.sport);
+  const context = pickContextLabel({
+    sport: play.sport,
+    league: play.league,
+    market: play.market,
+  });
+
   return (
-    <div className="border-border bg-card rounded-xl border p-3.5">
+    <div className="border-border bg-card overflow-hidden rounded-xl border p-3.5">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <SportTag sport={play.sport} />
+          <span className="text-muted-foreground truncate text-xs">
+            {context}
+          </span>
           <PickTierBadge tier={play.verificationTier} />
         </div>
         <StatusBadge status={OUTCOME_TO_STATUS[play.outcome]} />
       </div>
-      <p className="mt-2 font-semibold break-words">{play.selection}</p>
-      <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+      <div className="mt-2 flex min-w-0 items-start gap-2.5">
+        {team ? <TeamMark team={team} size="sm" className="mt-0.5" /> : null}
+        <p className="min-w-0 flex-1 font-semibold break-words">
+          {play.selection}
+        </p>
+      </div>
+      <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
         <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-          <span>{play.market}</span>
-          <span className="nums tabular-nums">
+          <span className="nums font-semibold tabular-nums">
             {formatOdds(play.oddsAmerican)}
           </span>
           <span className="nums tabular-nums">
@@ -43,7 +63,7 @@ export function PlayListItem({ play }: { play: PlayView }) {
         {hasResult ? (
           <span
             className={cn(
-              "nums text-sm font-semibold tabular-nums",
+              "nums text-sm font-bold tabular-nums",
               toneText[signTone(play.profitUnits ?? 0)],
             )}
           >
