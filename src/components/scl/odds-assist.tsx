@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useState } from "react";
 import { Check, ChevronDown, Zap } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
@@ -8,6 +8,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SkeletonCard } from "@/components/scl/states";
 import { cn } from "@/lib/utils";
 import { formatOdds } from "@/lib/format";
+import {
+  getTeamIdentity,
+  readableTextColor,
+  type TeamIdentity,
+} from "@/lib/teams";
 import type { OddsEvent, OddsSelection } from "@/lib/odds-api";
 
 type SlateDay = "today" | "tomorrow";
@@ -62,8 +67,7 @@ type BoardData = { events: OddsEvent[]; configured: boolean; failed?: boolean };
 
 // Per-event board load: absent = still loading; ready (may be empty) or error otherwise.
 type EventDetailData =
-  | { status: "ready"; selections: OddsSelection[] }
-  | { status: "error" };
+  { status: "ready"; selections: OddsSelection[] } | { status: "error" };
 
 const MARKET_ORDER = ["Moneyline", "Spread", "Total"] as const;
 // Props with many players get long — show this many by default, with a "show all".
@@ -243,30 +247,11 @@ export function OddsAssist({
                 const open = openId === e.id;
                 return (
                   <li key={e.id} className="bg-card">
-                    <button
-                      type="button"
-                      onClick={() => setOpenId(open ? null : e.id)}
-                      className="hover:bg-surface-2 flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm"
-                      aria-expanded={open}
-                    >
-                      <span className="truncate font-medium">
-                        {e.away}{" "}
-                        <span className="text-muted-foreground">@</span>{" "}
-                        {e.home}
-                      </span>
-                      <span className="text-muted-foreground flex shrink-0 items-center gap-1.5 text-xs">
-                        {new Date(e.commenceTime).toLocaleTimeString(
-                          undefined,
-                          {
-                            hour: "numeric",
-                            minute: "2-digit",
-                          },
-                        )}
-                        <ChevronDown
-                          className={`size-4 transition-transform ${open ? "rotate-180" : ""}`}
-                        />
-                      </span>
-                    </button>
+                    <EventRow
+                      event={e}
+                      open={open}
+                      onToggle={() => setOpenId(open ? null : e.id)}
+                    />
                     {open ? (
                       <EventDetail
                         event={e}
@@ -361,6 +346,107 @@ function DayToggle({
       ))}
     </div>
   );
+}
+
+function EventRow({
+  event,
+  open,
+  onToggle,
+}: {
+  event: OddsEvent;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const away = getTeamIdentity(event.away, event.sport);
+  const home = getTeamIdentity(event.home, event.sport);
+  const awayMl = moneylineFor(event, away);
+  const homeMl = moneylineFor(event, home);
+
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="hover:bg-surface-2 flex w-full items-start justify-between gap-2 px-3 py-2.5 text-left text-sm transition-colors"
+      aria-expanded={open}
+      aria-label={`${event.away} at ${event.home}`}
+    >
+      <span className="min-w-0 flex-1 space-y-1.5">
+        <TeamLine team={away} moneyline={awayMl} />
+        <TeamLine team={home} moneyline={homeMl} />
+      </span>
+      <span className="text-muted-foreground flex shrink-0 items-center gap-1.5 pt-0.5 text-xs">
+        <span className="bg-surface-2 text-muted-foreground hidden rounded px-1.5 py-0.5 text-[0.65rem] font-semibold sm:inline">
+          {event.sport}
+        </span>
+        <span className="nums tabular-nums">
+          {new Date(event.commenceTime).toLocaleTimeString(undefined, {
+            hour: "numeric",
+            minute: "2-digit",
+          })}
+        </span>
+        <ChevronDown
+          className={`size-4 transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </span>
+    </button>
+  );
+}
+
+function TeamLine({
+  team,
+  moneyline,
+}: {
+  team: TeamIdentity;
+  moneyline?: number;
+}) {
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      <span
+        className="h-7 w-1 shrink-0 rounded-full"
+        style={{ backgroundColor: team.primaryColor }}
+        aria-hidden
+      />
+      <TeamMark team={team} />
+      <span className="min-w-0 flex-1 font-medium">
+        <span className="truncate sm:hidden">{team.shortName}</span>
+        <span className="hidden truncate sm:block">{team.fullName}</span>
+      </span>
+      {typeof moneyline === "number" ? (
+        <span className="text-muted-foreground nums shrink-0 text-xs font-semibold tabular-nums">
+          {formatOdds(moneyline)}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+function TeamMark({ team }: { team: TeamIdentity }) {
+  const style = {
+    backgroundColor: team.primaryColor,
+    color: readableTextColor(team.primaryColor),
+  } satisfies CSSProperties;
+
+  return (
+    <span
+      className="border-border/60 flex size-7 shrink-0 items-center justify-center rounded-full border text-[0.62rem] font-bold tracking-wide shadow-xs"
+      style={style}
+      aria-hidden
+    >
+      {team.abbr}
+    </span>
+  );
+}
+
+function moneylineFor(
+  event: OddsEvent,
+  team: TeamIdentity,
+): number | undefined {
+  const selection = event.selections.find(
+    (s) =>
+      s.market === "Moneyline" &&
+      getTeamIdentity(s.side, event.sport).key === team.key,
+  );
+  return selection?.oddsAmerican;
 }
 
 /**
