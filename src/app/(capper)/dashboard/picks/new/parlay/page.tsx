@@ -5,12 +5,12 @@ import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { OddsAssist } from "@/components/scl/odds-assist";
 import { SectionHeader } from "@/components/scl/section";
 import { SportPills } from "@/components/scl/sport-pills";
+import { VerificationReceipt } from "@/components/scl/verification-receipt";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,7 @@ import {
   type CreateParlayInput,
 } from "@/lib/schemas/parlay.schema";
 import { findConflict, pickKey, toSlipLeg, type SlipPick } from "@/lib/slip";
+import type { ParlayReceipt } from "@/lib/verification";
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -56,7 +57,7 @@ function legToSlipPick(l: {
 }
 
 export default function NewParlayPage() {
-  const router = useRouter();
+  const [receipt, setReceipt] = useState<ParlayReceipt | null>(null);
   const [sport, setSport] = useState("");
   const {
     register,
@@ -93,9 +94,19 @@ export default function NewParlayPage() {
       toast.error(res.error);
       return;
     }
-    toast.success("Parlay submitted");
-    router.push("/dashboard/picks");
-    router.refresh();
+    setReceipt(res.receipt);
+  }
+
+  if (receipt) {
+    return (
+      <div className="mx-auto max-w-xl space-y-5">
+        <SectionHeader
+          title="Parlay Logged"
+          subtitle="Confirmation for your record"
+        />
+        <VerificationReceipt receipt={receipt} />
+      </div>
+    );
   }
 
   return (

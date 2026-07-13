@@ -1,8 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { X } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { OddsAssist } from "@/components/scl/odds-assist";
 import { SectionHeader } from "@/components/scl/section";
 import { SportPills } from "@/components/scl/sport-pills";
+import { VerificationReceipt } from "@/components/scl/verification-receipt";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ import {
 } from "@/lib/schemas/play.schema";
 import { pickKey } from "@/lib/slip";
 import { cn } from "@/lib/utils";
+import type { StraightReceipt } from "@/lib/verification";
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -32,7 +34,7 @@ function FieldError({ message }: { message?: string }) {
 }
 
 export default function NewPlayPage() {
-  const router = useRouter();
+  const [receipt, setReceipt] = useState<StraightReceipt | null>(null);
   const {
     register,
     handleSubmit,
@@ -90,9 +92,7 @@ export default function NewPlayPage() {
       toast.error(res.error);
       return;
     }
-    toast.success("Play added to your record");
-    router.push("/dashboard/picks");
-    router.refresh();
+    setReceipt(res.receipt);
   }
 
   // Event binding is what promotes a pick to the strict/verified path. Any time the pick is
@@ -111,6 +111,18 @@ export default function NewPlayPage() {
     setValue("market", "");
     setValue("oddsAmerican", "" as unknown as number);
     clearEventBinding();
+  }
+
+  if (receipt) {
+    return (
+      <div className="mx-auto max-w-xl space-y-5">
+        <SectionHeader
+          title="Play Logged"
+          subtitle="Confirmation for your record"
+        />
+        <VerificationReceipt receipt={receipt} />
+      </div>
+    );
   }
 
   return (

@@ -18,11 +18,17 @@ import {
   type GradeParlayInput,
 } from "@/lib/schemas/parlay.schema";
 import { getCurrentAccount, requireAdmin } from "@/lib/session";
+import { isVerifiedTier, type ParlayReceipt } from "@/lib/verification";
 
 type Result = { ok: true } | { ok: false; error: string };
+export type CreateParlayResult =
+  | { ok: true; receipt: ParlayReceipt }
+  | { ok: false; error: string };
 
 /** Capper logs a multi-leg parlay. Stake lives on the parlay; legs are components. */
-export async function createParlay(input: CreateParlayInput): Promise<Result> {
+export async function createParlay(
+  input: CreateParlayInput,
+): Promise<CreateParlayResult> {
   const account = await getCurrentAccount();
   if (!account) return { ok: false, error: "You must be logged in." };
   if (account.accountStatus !== "ACTIVE") {
@@ -106,12 +112,16 @@ export async function createParlay(input: CreateParlayInput): Promise<Result> {
   const combinedDecimal = combineDecimalOdds(
     d.legs.map((l) => americanToDecimal(l.oddsAmerican)),
   );
+  const combinedOddsAmerican = decimalToAmerican(combinedDecimal);
+  const tiers = decided.map((x) => x.tier);
+  const verifiedLegCount = tiers.filter(isVerifiedTier).length;
+  const allLoggedPreGame = decided.every((x) => x.loggedPreGame);
 
   await prisma.parlay.create({
     data: {
       capperId: profile.id,
       units: d.units,
-      combinedOddsAmerican: decimalToAmerican(combinedDecimal),
+      combinedOddsAmerican,
       legs: {
         create: decided.map(({ leg: l, eventStartsAt, ...v }) => ({
           capperId: profile.id,
@@ -136,7 +146,17 @@ export async function createParlay(input: CreateParlayInput): Promise<Result> {
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/picks");
-  return { ok: true };
+  return {
+    ok: true,
+    receipt: {
+      kind: "parlay",
+      legCount: decided.length,
+      combinedOddsAmerican,
+      allLoggedPreGame,
+      verifiedLegCount,
+      tiers,
+    },
+  };
 }
 
 /**

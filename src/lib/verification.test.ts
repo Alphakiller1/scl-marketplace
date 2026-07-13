@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
   computeVerifiedShare,
   isVerifiedTier,
+  submissionReceiptCopy,
   verificationTierMeta,
 } from "@/lib/verification";
 
@@ -28,4 +29,68 @@ test("computeVerifiedShare: fraction of verified picks, as 0–100", () => {
     computeVerifiedShare(["VERIFIED", "SELF_REPORTED", "SELF_REPORTED"]),
     (1 / 3) * 100,
   );
+});
+
+test("submissionReceiptCopy: verified straight pick", () => {
+  const copy = submissionReceiptCopy({
+    kind: "straight",
+    selection: "Dream ML",
+    market: "Moneyline",
+    oddsAmerican: -315,
+    loggedPreGame: true,
+    oddsVerified: true,
+    tier: "VERIFIED",
+  });
+  assert.equal(copy.headline, "Pick Verified");
+  assert.equal(copy.summary, "Dream ML -315");
+  assert.equal(copy.context, "Moneyline");
+  assert.equal(copy.statusLine, "Odds captured pre-game");
+  assert.equal(copy.gradingLine, "Graded automatically after final");
+  assert.equal(copy.tone, "verified");
+});
+
+test("submissionReceiptCopy: self-reported straight does not claim verified", () => {
+  const copy = submissionReceiptCopy({
+    kind: "straight",
+    selection: "Lakers -4.5",
+    market: "Spread",
+    oddsAmerican: -110,
+    loggedPreGame: true,
+    oddsVerified: false,
+    tier: "SELF_REPORTED",
+  });
+  assert.equal(copy.headline, "Self-reported");
+  assert.match(copy.statusLine, /not board-verified/i);
+  assert.equal(copy.tone, "muted");
+  assert.doesNotMatch(copy.headline, /verified/i);
+});
+
+test("submissionReceiptCopy: verified parlay", () => {
+  const copy = submissionReceiptCopy({
+    kind: "parlay",
+    legCount: 3,
+    combinedOddsAmerican: 625,
+    allLoggedPreGame: true,
+    verifiedLegCount: 3,
+    tiers: ["VERIFIED", "VERIFIED", "VERIFIED"],
+  });
+  assert.equal(copy.headline, "Parlay Submitted");
+  assert.equal(copy.summary, "3 legs · +625");
+  assert.equal(copy.statusLine, "All legs locked from the board");
+  assert.equal(copy.gradingLine, "Graded automatically after results settle");
+  assert.equal(copy.tone, "verified");
+});
+
+test("submissionReceiptCopy: mixed-tier parlay stays honest", () => {
+  const copy = submissionReceiptCopy({
+    kind: "parlay",
+    legCount: 3,
+    combinedOddsAmerican: 400,
+    allLoggedPreGame: true,
+    verifiedLegCount: 2,
+    tiers: ["VERIFIED", "VERIFIED", "SELF_REPORTED"],
+  });
+  assert.equal(copy.headline, "Parlay Submitted");
+  assert.match(copy.statusLine, /self-reported/i);
+  assert.equal(copy.tone, "muted");
 });

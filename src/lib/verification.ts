@@ -65,3 +65,114 @@ export function computeVerifiedShare(tiers: VerificationTier[]): number {
   const verified = tiers.filter(isVerifiedTier).length;
   return (verified / tiers.length) * 100;
 }
+
+// ── post-submit receipt (trust ceremony; copy must match decidePickIntegrity) ─
+
+/** Payload returned by createPlay on success — facts from the server decision. */
+export type StraightReceipt = {
+  kind: "straight";
+  selection: string;
+  market: string;
+  oddsAmerican: number;
+  loggedPreGame: boolean;
+  oddsVerified: boolean;
+  tier: VerificationTier;
+};
+
+/** Payload returned by createParlay on success — rolled-up leg trust facts. */
+export type ParlayReceipt = {
+  kind: "parlay";
+  legCount: number;
+  combinedOddsAmerican: number;
+  allLoggedPreGame: boolean;
+  verifiedLegCount: number;
+  tiers: VerificationTier[];
+};
+
+export type SubmissionReceipt = StraightReceipt | ParlayReceipt;
+
+/** Presentation strings for the post-submit confirmation card. */
+export type ReceiptCopy = {
+  headline: string;
+  /** Primary pick/parlay line (selection + odds, or leg count + combined). */
+  summary: string;
+  /** Market / context line under the summary. */
+  context: string | null;
+  /** Pre-game / board lock / self-reported status. */
+  statusLine: string;
+  /** Automatic grading promise — never overclaims market verification. */
+  gradingLine: string;
+  tone: "verified" | "muted";
+};
+
+/** Trust-forward receipt copy from server return facts — no client-side tier guessing. */
+export function submissionReceiptCopy(receipt: SubmissionReceipt): ReceiptCopy {
+  if (receipt.kind === "straight") {
+    const verified = isVerifiedTier(receipt.tier);
+    const odds =
+      receipt.oddsAmerican > 0
+        ? `+${receipt.oddsAmerican}`
+        : `${receipt.oddsAmerican}`;
+    if (verified) {
+      return {
+        headline: "Pick Verified",
+        summary: `${receipt.selection} ${odds}`,
+        context: receipt.market,
+        statusLine: receipt.loggedPreGame
+          ? "Odds captured pre-game"
+          : "Logged against a real event",
+        gradingLine: "Graded automatically after final",
+        tone: "verified",
+      };
+    }
+    return {
+      headline: "Self-reported",
+      summary: `${receipt.selection} ${odds}`,
+      context: receipt.market,
+      statusLine:
+        "Odds could not be verified — saved to your record, not board-verified",
+      gradingLine: "Still graded automatically after the event settles",
+      tone: "muted",
+    };
+  }
+
+  const odds =
+    receipt.combinedOddsAmerican > 0
+      ? `+${receipt.combinedOddsAmerican}`
+      : `${receipt.combinedOddsAmerican}`;
+  const allVerified = receipt.verifiedLegCount === receipt.legCount;
+  const noneVerified = receipt.verifiedLegCount === 0;
+  const summary = `${receipt.legCount} legs · ${odds}`;
+
+  if (allVerified) {
+    return {
+      headline: "Parlay Submitted",
+      summary,
+      context: null,
+      statusLine: receipt.allLoggedPreGame
+        ? "All legs locked from the board"
+        : "All legs verified against the market",
+      gradingLine: "Graded automatically after results settle",
+      tone: "verified",
+    };
+  }
+  if (noneVerified) {
+    return {
+      headline: "Parlay Submitted",
+      summary,
+      context: null,
+      statusLine:
+        "Odds could not be verified on every leg — saved, not board-verified",
+      gradingLine: "Still graded automatically after results settle",
+      tone: "muted",
+    };
+  }
+  return {
+    headline: "Parlay Submitted",
+    summary,
+    context: null,
+    statusLine: `${receipt.verifiedLegCount} of ${receipt.legCount} legs odds-verified — unverified legs count as self-reported`,
+    gradingLine: "Graded automatically after results settle",
+    tone: "muted",
+  };
+}
