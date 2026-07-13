@@ -7,7 +7,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
-import { OddsAssist, pickKey } from "@/components/scl/odds-assist";
+import { OddsAssist } from "@/components/scl/odds-assist";
 import { SectionHeader } from "@/components/scl/section";
 import { SportPills } from "@/components/scl/sport-pills";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import {
   type PlayFormInput,
   type PlayInput,
 } from "@/lib/schemas/play.schema";
+import { pickKey } from "@/lib/slip";
 import { cn } from "@/lib/utils";
 
 function FieldError({ message }: { message?: string }) {

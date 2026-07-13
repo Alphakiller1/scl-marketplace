@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { OddsAssist, pickKey } from "@/components/scl/odds-assist";
+import { OddsAssist } from "@/components/scl/odds-assist";
 import { SectionHeader } from "@/components/scl/section";
 import { SportPills } from "@/components/scl/sport-pills";
 import { Button } from "@/components/ui/button";
@@ -28,10 +28,31 @@ import {
   type CreateParlayFormInput,
   type CreateParlayInput,
 } from "@/lib/schemas/parlay.schema";
+import { findConflict, pickKey, toSlipLeg, type SlipPick } from "@/lib/slip";
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return <p className="text-neg text-xs">{message}</p>;
+}
+
+function legToSlipPick(l: {
+  eventId?: string;
+  market?: string;
+  side?: string;
+  line?: unknown;
+  oddsAmerican?: unknown;
+  player?: string;
+}): SlipPick {
+  const line =
+    typeof l.line === "number" && Number.isFinite(l.line) ? l.line : undefined;
+  return {
+    eventId: l.eventId ?? "",
+    market: l.market ?? "",
+    side: l.side ?? "",
+    line,
+    oddsAmerican: Number(l.oddsAmerican),
+    player: l.player,
+  };
 }
 
 export default function NewParlayPage() {
@@ -62,20 +83,9 @@ export default function NewParlayPage() {
       ? units * (americanToDecimal(combinedAmerican) - 1)
       : null;
 
-  // Keys of legs already on the slip — the board marks these chips selected and refuses
-  // to append an exact duplicate.
-  const selectedKeys = new Set(
-    (legs ?? []).map((l) =>
-      pickKey({
-        eventId: l?.eventId ?? "",
-        market: l?.market ?? "",
-        side: l?.side ?? "",
-        line: typeof l?.line === "number" ? l.line : undefined,
-        oddsAmerican: Number(l?.oddsAmerican),
-        player: l?.player,
-      }),
-    ),
-  );
+  const slipLegs = (legs ?? []).map(legToSlipPick);
+  // Keys of legs already on the slip — the board marks these chips selected + disabled.
+  const selectedKeys = new Set(slipLegs.map(pickKey));
 
   async function onSubmit(values: CreateParlayInput) {
     const res = await createParlay(values);
@@ -133,18 +143,12 @@ export default function NewParlayPage() {
               sport={sport}
               selectedKeys={selectedKeys}
               onPick={(pick) => {
-                if (selectedKeys.has(pickKey(pick))) return; // no exact-duplicate legs
-                append({
-                  sport,
-                  market: pick.market,
-                  selection: pick.selection,
-                  oddsAmerican: pick.oddsAmerican,
-                  eventId: pick.eventId,
-                  eventStartsAt: pick.eventStartsAt,
-                  side: pick.side,
-                  line: pick.line,
-                  player: pick.player,
-                });
+                const conflict = findConflict(slipLegs, pick);
+                if (conflict) {
+                  toast.error(conflict.message);
+                  return;
+                }
+                append(toSlipLeg(pick, sport));
               }}
             />
           ) : null}
