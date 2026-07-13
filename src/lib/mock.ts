@@ -20,6 +20,8 @@ export type CapperSummary = {
   id: string;
   name: string;
   handle: string;
+  /** Raw display name from the user profile; null when unset (name may fall back to handle). */
+  displayName?: string | null;
   avatarUrl?: string;
   verified: boolean;
   topSport: string;
@@ -53,7 +55,7 @@ export type TodayPick = {
   id: string;
   capper: Pick<
     CapperSummary,
-    "id" | "name" | "handle" | "verified" | "avatarUrl"
+    "id" | "name" | "handle" | "displayName" | "verified" | "avatarUrl"
   >;
   capperRecord: { w: number; l: number; p: number };
   sport: string;

@@ -11,6 +11,7 @@ import {
 import { RankMovementIndicator } from "@/components/scl/indicators";
 import { RankBadge } from "@/components/scl/rank-badge";
 import { Button } from "@/components/ui/button";
+import { identityDisplayLinesFromCapper } from "@/lib/identity";
 import { socialProfileUrl } from "@/lib/urls";
 
 /**
@@ -19,6 +20,7 @@ import { socialProfileUrl } from "@/lib/urls";
  */
 export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
   const sports = capper.sports?.length ? capper.sports : [capper.topSport];
+  const identity = identityDisplayLinesFromCapper(capper);
 
   return (
     <article className="border-border bg-card overflow-hidden rounded-xl border">
@@ -49,16 +51,18 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
             <div className="min-w-0 pb-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="max-w-full truncate text-xl font-bold sm:text-2xl">
-                  {capper.name}
+                  {identity.primary}
                 </h1>
                 {capper.verified ? (
                   <VerificationBadge size="md" withLabel />
                 ) : null}
                 {capper.isLegacy ? <LegacyBadge /> : null}
               </div>
-              <span className="text-muted-foreground text-sm">
-                @{capper.handle}
-              </span>
+              {identity.secondary ? (
+                <span className="text-muted-foreground text-sm">
+                  {identity.secondary}
+                </span>
+              ) : null}
             </div>
           </div>
 

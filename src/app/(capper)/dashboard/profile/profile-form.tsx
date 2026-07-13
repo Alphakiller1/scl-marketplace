@@ -33,6 +33,7 @@ import {
   OFFERING_MODELS,
 } from "@/lib/schemas/profile.schema";
 import { updateProfileAction } from "@/lib/actions/profile.action";
+import { formatHandle } from "@/lib/identity";
 import type { CapperProfileView } from "@/lib/queries/profile";
 
 const inputClass =
@@ -165,7 +166,11 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
                 />
               </Field>
               <Field htmlFor="username" label="SCL Handle">
-                <Input id="username" value={`@${username}`} disabled />
+                <Input
+                  id="username"
+                  value={formatHandle(username) ?? `@${username}`}
+                  disabled
+                />
               </Field>
             </div>
 
@@ -449,7 +454,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
 
           <div className="border-border bg-background/95 sticky bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-10 flex items-center justify-between gap-3 rounded-xl border p-3 shadow-lg backdrop-blur">
             <span className="text-muted-foreground hidden text-sm sm:block">
-              @{username}
+              {formatHandle(username) ?? `@${username}`}
             </span>
             <Button
               type="submit"

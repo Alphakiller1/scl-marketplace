@@ -1,7 +1,8 @@
 import Link from "next/link";
 
 import { CapperAvatar } from "@/components/scl/capper-avatar";
-import { SportTag, VerificationBadge } from "@/components/scl/badges";
+import { CapperIdentityLabel } from "@/components/scl/capper-identity-label";
+import { SportTag } from "@/components/scl/badges";
 import { RankBadge } from "@/components/scl/rank-badge";
 import { cn } from "@/lib/utils";
 import { formatRecord, formatRoi, formatUnits, signTone } from "@/lib/format";
@@ -44,12 +45,11 @@ export function CompactCapperRow({
         <CapperAvatar name={capper.name} src={capper.avatarUrl} size="sm" />
 
         <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-1">
-            <span className="truncate text-sm font-semibold">
-              {capper.name}
-            </span>
-            {capper.verified ? <VerificationBadge size="xs" /> : null}
-          </div>
+          <CapperIdentityLabel
+            capper={capper}
+            compact
+            primaryClassName="text-sm"
+          />
           <div className="mt-0.5 flex items-center gap-1.5">
             <SportTag
               sport={capper.topSport}

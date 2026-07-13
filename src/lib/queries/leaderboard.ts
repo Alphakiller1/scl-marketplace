@@ -213,10 +213,13 @@ function summarize(p: ProfileRow): CapperSummary | null {
     .map((x) => x.outcome);
   const { recentForm, streak } = deriveForm(settled);
 
+  const displayName = p.user.displayName?.trim() || null;
+
   return {
     id: p.id,
-    name: p.user.displayName ?? username,
+    name: displayName ?? username,
     handle: username,
+    displayName,
     avatarUrl: p.avatarUrl ?? undefined,
     bannerUrl: p.bannerUrl ?? undefined,
     verified: p.user.emailVerified != null,
