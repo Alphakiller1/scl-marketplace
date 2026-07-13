@@ -104,14 +104,12 @@ export function OddsAssist({
   const [cache, setCache] = useState<Record<string, BoardData>>({});
   const [openId, setOpenId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Record<string, EventDetailData>>({});
-  // null = auto (default to whichever of today/tomorrow has games); set once the capper chooses.
-  const [dayChoice, setDayChoice] = useState<SlateDay | null>(null);
-
-  // A new sport re-defaults the slate day and collapses any open event.
-  useEffect(() => {
-    setDayChoice(null);
-    setOpenId(null);
-  }, [sport]);
+  // Keyed to the sport so switching sports auto-re-defaults the day (no reset effect needed);
+  // null / a stale sport = auto (default to whichever of today/tomorrow has games).
+  const [dayChoice, setDayChoice] = useState<{
+    sport: string;
+    day: SlateDay;
+  } | null>(null);
 
   useEffect(() => {
     if (!sport || sport in cache) return;
@@ -184,8 +182,9 @@ export function OddsAssist({
     (e) => localDateKey(new Date(e.commenceTime)) === keys.tomorrow,
   );
   const hasNearTerm = todayEvents.length + tomorrowEvents.length > 0;
+  const chosenDay = dayChoice?.sport === sport ? dayChoice.day : null;
   const day: SlateDay =
-    dayChoice ?? (todayEvents.length ? "today" : "tomorrow");
+    chosenDay ?? (todayEvents.length ? "today" : "tomorrow");
   const dayEvents = day === "today" ? todayEvents : tomorrowEvents;
 
   return (
@@ -206,7 +205,7 @@ export function OddsAssist({
             todayCount={todayEvents.length}
             tomorrowCount={tomorrowEvents.length}
             onChange={(d) => {
-              setDayChoice(d);
+              setDayChoice({ sport, day: d });
               setOpenId(null);
             }}
           />
