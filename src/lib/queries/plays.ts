@@ -122,6 +122,7 @@ export async function getPublicRecentPicksResult(
             id: capper.id,
             name: capper.name,
             handle: capper.handle,
+            displayName: capper.displayName,
             verified: capper.verified,
             avatarUrl: capper.avatarUrl,
           },

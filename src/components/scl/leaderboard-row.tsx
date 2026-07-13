@@ -4,7 +4,8 @@ import { cn } from "@/lib/utils";
 import type { CapperSummary } from "@/lib/mock";
 import { formatRecord, formatRoi, formatUnits, signTone } from "@/lib/format";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
-import { VerificationBadge, SportTag } from "@/components/scl/badges";
+import { CapperIdentityLabel } from "@/components/scl/capper-identity-label";
+import { SportTag } from "@/components/scl/badges";
 import { RecentFormStrip } from "@/components/scl/indicators";
 import { PerformanceSparkline } from "@/components/scl/performance-sparkline";
 import { RankBadge } from "@/components/scl/rank-badge";
@@ -31,10 +32,7 @@ export function LeaderboardRow({
       <div className="flex min-w-0 items-center gap-3">
         <CapperAvatar name={capper.name} src={capper.avatarUrl} size="sm" />
         <div className="min-w-0">
-          <div className="flex items-center gap-1">
-            <span className="truncate font-semibold">{capper.name}</span>
-            {capper.verified ? <VerificationBadge size="xs" /> : null}
-          </div>
+          <CapperIdentityLabel capper={capper} compact />
           <div className="flex items-center gap-1.5">
             <SportTag sport={capper.topSport} />
             <span className="nums text-muted-foreground text-xs tabular-nums">
@@ -113,10 +111,7 @@ export function LeaderboardMobileCard({
         <RankBadge rank={rank ?? capper.rank} />
         <CapperAvatar name={capper.name} src={capper.avatarUrl} size="md" />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1">
-            <span className="truncate font-semibold">{capper.name}</span>
-            {capper.verified ? <VerificationBadge size="xs" /> : null}
-          </div>
+          <CapperIdentityLabel capper={capper} compact />
           <div className="mt-1 flex items-center gap-2">
             <SportTag sport={capper.topSport} />
             <span className="nums text-muted-foreground text-xs tabular-nums">

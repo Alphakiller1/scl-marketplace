@@ -1,7 +1,6 @@
-import { AtSign } from "lucide-react";
-
 import { CapperAvatar } from "@/components/scl/capper-avatar";
 import { SportTag, VerificationBadge } from "@/components/scl/badges";
+import { identityDisplayLines } from "@/lib/identity";
 
 export type ProfileIdentityPreviewData = {
   displayName: string;
@@ -18,6 +17,12 @@ export function ProfileIdentityPreview({
 }: {
   profile: ProfileIdentityPreviewData;
 }) {
+  const identity = identityDisplayLines({
+    displayName: profile.displayName,
+    handle: profile.username,
+  });
+  const avatarName = identity.primary.replace(/^@/, "") || profile.username;
+
   return (
     <section
       aria-labelledby="profile-preview-title"
@@ -51,7 +56,7 @@ export function ProfileIdentityPreview({
         <div className="-mt-7 flex items-end justify-between gap-3">
           <span className="bg-card rounded-xl p-1">
             <CapperAvatar
-              name={profile.displayName || profile.username}
+              name={avatarName}
               src={profile.avatarUrl ?? undefined}
               size="xl"
             />
@@ -59,13 +64,10 @@ export function ProfileIdentityPreview({
           {profile.verified ? <VerificationBadge size="sm" withLabel /> : null}
         </div>
 
-        <h3 className="mt-3 truncate text-lg font-bold">
-          {profile.displayName || profile.username}
-        </h3>
-        <p className="text-muted-foreground flex items-center text-sm">
-          <AtSign className="size-3.5" aria-hidden />
-          {profile.username}
-        </p>
+        <h3 className="mt-3 truncate text-lg font-bold">{identity.primary}</h3>
+        {identity.secondary ? (
+          <p className="text-muted-foreground text-sm">{identity.secondary}</p>
+        ) : null}
 
         <p className="mt-3 min-h-10 text-sm font-medium">
           {profile.headline?.trim() || "Your Capper Headline"}

@@ -10,12 +10,8 @@ import {
   timeAgo,
 } from "@/lib/format";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
-import {
-  VerificationBadge,
-  PickTierBadge,
-  SportTag,
-  StatusBadge,
-} from "@/components/scl/badges";
+import { CapperIdentityLabel } from "@/components/scl/capper-identity-label";
+import { PickTierBadge, SportTag, StatusBadge } from "@/components/scl/badges";
 import { TeamMark } from "@/components/scl/team-mark";
 import { teamIdentityFromSide } from "@/lib/pick-identity";
 import { cn } from "@/lib/utils";
@@ -103,11 +99,12 @@ export function PickCard({
             src={pick.capper.avatarUrl}
             size="sm"
           />
-          <div className="min-w-0 leading-tight">
-            <div className="flex min-w-0 items-center gap-1 text-sm font-semibold">
-              <span className="truncate">{pick.capper.name}</span>
-              {pick.capper.verified ? <VerificationBadge size="xs" /> : null}
-            </div>
+          <div className="min-w-0">
+            <CapperIdentityLabel
+              capper={pick.capper}
+              compact
+              primaryClassName="text-sm"
+            />
             <span className="nums text-muted-foreground text-xs tabular-nums">
               {formatRecord(
                 pick.capperRecord.w,
@@ -168,11 +165,12 @@ function CompactPickCard({ pick }: { pick: TodayPick }) {
             src={pick.capper.avatarUrl}
             size="sm"
           />
-          <div className="min-w-0 leading-tight">
-            <div className="flex min-w-0 items-center gap-1 text-sm font-semibold">
-              <span className="truncate">{pick.capper.name}</span>
-              {pick.capper.verified ? <VerificationBadge size="xs" /> : null}
-            </div>
+          <div className="min-w-0">
+            <CapperIdentityLabel
+              capper={pick.capper}
+              compact
+              primaryClassName="text-sm"
+            />
             <span className="text-muted-foreground text-xs">
               {timeAgo(pick.postedAt)}
             </span>

@@ -3,12 +3,8 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import type { CapperSummary } from "@/lib/mock";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
-import {
-  VerificationBadge,
-  SportTag,
-  TrophyBadge,
-  LegacyBadge,
-} from "@/components/scl/badges";
+import { CapperIdentityLabel } from "@/components/scl/capper-identity-label";
+import { SportTag, TrophyBadge, LegacyBadge } from "@/components/scl/badges";
 import { RecentFormStrip, StreakChip } from "@/components/scl/indicators";
 import { RoiStat, UnitStat, WinRateStat } from "@/components/scl/stat";
 import { PerformanceSparkline } from "@/components/scl/performance-sparkline";
@@ -44,10 +40,9 @@ export function CapperCard({
         <div className="min-w-0 flex-1">
           <Link
             href={`/cappers/${capper.handle}`}
-            className="focus-visible:ring-ring flex min-h-11 items-center gap-1.5 rounded-lg font-semibold outline-none before:absolute before:inset-0 hover:underline focus-visible:ring-2 sm:min-h-8"
+            className="focus-visible:ring-ring relative z-10 flex min-h-11 items-center rounded-lg outline-none before:absolute before:inset-0 hover:underline focus-visible:ring-2 sm:min-h-8"
           >
-            <span className="truncate">{capper.name}</span>
-            {capper.verified ? <VerificationBadge size="sm" /> : null}
+            <CapperIdentityLabel capper={capper} compact className="relative" />
           </Link>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <SportTag sport={capper.topSport} />

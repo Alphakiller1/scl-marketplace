@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ListChecks } from "lucide-react";
 
 import { formatRoi, formatUnits } from "@/lib/format";
+import { formatHandle, identityDisplayLinesFromCapper } from "@/lib/identity";
 import { getPublicCapperByHandle } from "@/lib/queries/capper";
 import { CapperProfileHeader } from "@/components/scl/capper-profile-header";
 import { CapperStorefront } from "@/components/scl/capper-storefront";
@@ -23,11 +24,18 @@ export async function generateMetadata({
   if (!data) return { title: "Capper Not Found" };
 
   const { capper } = data;
+  const identity = identityDisplayLinesFromCapper(capper);
+  const handleLabel = formatHandle(capper.handle);
   const description =
     capper.headline ??
-    `${capper.name} — ${capper.topSport} handicapper on SCL. ${capper.winPct.toFixed(1)}% win rate, ${formatUnits(capper.units)} (${formatRoi(capper.roi)} ROI).`;
+    `${identity.primary} — ${capper.topSport} handicapper on SCL. ${capper.winPct.toFixed(1)}% win rate, ${formatUnits(capper.units)} (${formatRoi(capper.roi)} ROI).`;
 
-  return { title: `${capper.name} (@${capper.handle})`, description };
+  const title =
+    handleLabel && identity.secondary
+      ? `${identity.primary} (${handleLabel})`
+      : identity.primary;
+
+  return { title, description };
 }
 
 export default async function CapperProfilePage({ params }: ProfileParams) {
