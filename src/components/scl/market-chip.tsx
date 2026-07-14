@@ -9,6 +9,7 @@ import { formatOdds } from "@/lib/format";
  * Odds market chip — SCL-DESIGN-SPEC CHIP recipe.
  * Selected: pink fill + pink-ink + "✓ " odds prefix + double ring.
  * Optional mono book tag labels capture attribution (v1.1).
+ * When oddsAmerican is null, renders "—" (honest missing book line) and is not pickable.
  */
 export function MarketChip({
   label,
@@ -20,7 +21,8 @@ export function MarketChip({
   className,
 }: {
   label: string;
-  oddsAmerican: number;
+  /** American price, or null when the active book has no line. */
+  oddsAmerican: number | null;
   /** Odds API bookmaker key — shown as a mono short tag when present. */
   book?: string;
   selected?: boolean;
@@ -28,18 +30,21 @@ export function MarketChip({
   onClick?: () => void;
   className?: string;
 }) {
-  const bookTag = book ? bookShort(book) : null;
+  const missing = oddsAmerican === null;
+  const bookTag = book && !missing ? bookShort(book) : null;
   return (
     <button
       type="button"
       onClick={onClick}
-      disabled={disabled || selected}
+      disabled={disabled || selected || missing}
       aria-pressed={selected}
       className={cn(
         "flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-[var(--scl-radius-chip)] border px-2 py-1.5 text-center transition-[background-color,box-shadow,border-color] duration-150 ease-in-out",
         selected
           ? "cursor-default border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] shadow-[0_0_0_2px_var(--scl-ink-950),0_0_0_3.5px_var(--scl-pink-deep)]"
           : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-700)] hover:bg-[color:var(--scl-ink-600)]",
+        missing &&
+          "cursor-default opacity-60 hover:bg-[color:var(--scl-ink-700)]",
         className,
       )}
     >
@@ -61,7 +66,7 @@ export function MarketChip({
         )}
       >
         {selected ? "✓ " : ""}
-        {formatOdds(oddsAmerican)}
+        {missing ? "—" : formatOdds(oddsAmerican)}
       </span>
       {bookTag ? (
         <span
