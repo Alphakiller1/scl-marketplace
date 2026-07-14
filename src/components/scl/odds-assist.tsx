@@ -113,6 +113,41 @@ export function OddsAssist({
     sport: string;
     day: SlateDay;
   } | null>(null);
+  /** Displayed board sport — lags `sport` during the dim→crossfade handoff. */
+  const [renderSport, setRenderSport] = useState(sport);
+  const [switchPhase, setSwitchPhase] = useState<"idle" | "out" | "in">("idle");
+
+  useEffect(() => {
+    if (!sport || sport === renderSport) return;
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // Defer all setState into timers — avoids react-hooks/set-state-in-effect.
+    if (reduce) {
+      const t = window.setTimeout(() => {
+        setRenderSport(sport);
+        setOpenId(null);
+        setSwitchPhase("idle");
+      }, 0);
+      return () => window.clearTimeout(t);
+    }
+
+    const tOut = window.setTimeout(() => {
+      setOpenId(null);
+      setSwitchPhase("out");
+    }, 0);
+    const tSwap = window.setTimeout(() => {
+      setRenderSport(sport);
+      setSwitchPhase("in");
+    }, 150);
+    const tIdle = window.setTimeout(() => setSwitchPhase("idle"), 360);
+    return () => {
+      window.clearTimeout(tOut);
+      window.clearTimeout(tSwap);
+      window.clearTimeout(tIdle);
+    };
+  }, [sport, renderSport]);
 
   useEffect(() => {
     if (!sport || sport in cache) return;
@@ -171,8 +206,9 @@ export function OddsAssist({
   }, [openId, sport, detail]);
 
   if (!sport) return null;
-  const board = cache[sport];
-  const loading = !(sport in cache);
+  const boardSport = renderSport || sport;
+  const board = cache[boardSport];
+  const loading = !(boardSport in cache);
   const events = board?.events;
   const configured = board?.configured ?? true;
 
@@ -185,16 +221,28 @@ export function OddsAssist({
     (e) => localDateKey(new Date(e.commenceTime)) === keys.tomorrow,
   );
   const hasNearTerm = todayEvents.length + tomorrowEvents.length > 0;
-  const chosenDay = dayChoice?.sport === sport ? dayChoice.day : null;
+  const chosenDay = dayChoice?.sport === boardSport ? dayChoice.day : null;
   const day: SlateDay =
     chosenDay ?? (todayEvents.length ? "today" : "tomorrow");
   const dayEvents = day === "today" ? todayEvents : tomorrowEvents;
 
   return (
-    <Card className="scl-scanline space-y-3 p-4">
+    <Card
+      className={cn(
+        "scl-scanline relative space-y-3 p-4 transition-opacity duration-150 ease-out",
+        switchPhase === "out" && "opacity-50",
+        switchPhase === "in" && "scl-board-fade-in",
+      )}
+    >
+      {switchPhase === "out" ? (
+        <div
+          className="absolute inset-0 z-10 rounded-[var(--scl-radius-card)] bg-[color:var(--scl-ink-950)]/50"
+          aria-hidden
+        />
+      ) : null}
       <div className="flex items-baseline justify-between gap-2 border-t border-[color:var(--scl-gold-deep)] pt-2.5">
         <h2 className="scl-display text-sm font-semibold tracking-[0.08em] uppercase">
-          {sport} Board
+          {boardSport} Board
         </h2>
         <span className="scl-data text-[0.625rem] tracking-[0.1em] text-[color:var(--scl-muted-label)] uppercase">
           Odds: Live Feed · {loading || events == null ? "…" : dayEvents.length}{" "}
@@ -221,7 +269,7 @@ export function OddsAssist({
             tomorrowCount={tomorrowEvents.length}
             loading={false}
             onChange={(d) => {
-              setDayChoice({ sport, day: d });
+              setDayChoice({ sport: boardSport, day: d });
               setOpenId(null);
             }}
           />
@@ -259,7 +307,7 @@ export function OddsAssist({
                 type="button"
                 onClick={() =>
                   setDayChoice({
-                    sport,
+                    sport: boardSport,
                     day: day === "today" ? "tomorrow" : "today",
                   })
                 }

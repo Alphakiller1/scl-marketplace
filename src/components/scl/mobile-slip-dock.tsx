@@ -11,8 +11,8 @@ import {
 import { cn } from "@/lib/utils";
 
 /**
- * Mobile-only (<lg) fixed bottom slip dock — concept slipbar: gold border,
- * display legs count, mono combined odds, gold CTA to open the sheet.
+ * Mobile sticky slip bar — SCL-DESIGN-SPEC STICKY SLIP BAR recipe.
+ * Fixed bottom, 56px, gold-deep border, the one permitted gradient, VIEW SLIP CTA.
  */
 export function MobileSlipDock({
   title,
@@ -22,7 +22,7 @@ export function MobileSlipDock({
   className,
 }: {
   title: string;
-  /** e.g. "1 selection" / "3 legs" */
+  /** e.g. "1 LEG" / "3 LEGS" */
   countLabel: string;
   /** Combined or single-leg American odds, or null when not yet combinable. */
   oddsLabel?: string | null;
@@ -34,7 +34,7 @@ export function MobileSlipDock({
   return (
     <div className={cn("lg:hidden", className)}>
       <div
-        className="h-[calc(4.5rem+env(safe-area-inset-bottom,0px))]"
+        className="h-[calc(56px+env(safe-area-inset-bottom,0px)+0.75rem)]"
         aria-hidden
       />
 
@@ -43,30 +43,25 @@ export function MobileSlipDock({
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
         <div
-          className="mb-3 flex min-h-14 items-center gap-3 rounded-[14px] border px-4 py-2 shadow-[var(--scl-shadow-slip)]"
+          className="mb-3 flex h-14 items-center gap-3 rounded-[14px] border px-4"
           style={{
-            background:
-              "linear-gradient(180deg, color-mix(in srgb, var(--scl-ink-600) 80%, var(--scl-ink-800)), var(--scl-ink-800))",
+            background: "linear-gradient(180deg,#1E2940,#141C2C)",
             borderColor: "var(--scl-gold-deep)",
+            boxShadow: "var(--scl-shadow-slip)",
           }}
         >
-          <span className="min-w-0 flex-1">
-            <span className="scl-eyebrow text-muted-foreground block">
-              {title}
-            </span>
-            <span className="scl-display text-foreground block truncate text-base font-bold tracking-[0.05em] uppercase">
-              {countLabel}
-            </span>
+          <span className="scl-display min-w-0 flex-1 truncate text-base font-bold tracking-[0.05em] text-[color:var(--scl-text)] uppercase">
+            {countLabel}
           </span>
           {oddsLabel ? (
-            <span className="scl-data text-gold shrink-0 text-[0.95rem] font-semibold">
+            <span className="scl-data shrink-0 text-[15px] font-semibold text-[color:var(--scl-gold)]">
               {oddsLabel}
             </span>
           ) : null}
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="bg-gold text-gold-foreground scl-display hover:bg-gold/90 min-h-10 shrink-0 rounded-[10px] px-4 text-sm font-bold tracking-[0.08em] uppercase transition-colors"
+            className="scl-display h-10 shrink-0 rounded-[10px] bg-[color:var(--scl-gold)] px-4 text-[15px] font-bold tracking-[0.08em] text-[color:var(--scl-gold-ink)] uppercase"
             aria-haspopup="dialog"
             aria-expanded={open}
           >

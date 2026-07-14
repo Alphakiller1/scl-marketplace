@@ -380,12 +380,26 @@
   .scl-ticket-settling .scl-ticket-stamp {
     animation: scl-ticket-stamp-in 400ms ease-out 720ms both;
   }
+  @keyframes scl-board-fade-in {
+    from {
+      opacity: 0.5;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  .scl-board-fade-in {
+    animation: scl-board-fade-in 200ms ease-out both;
+  }
   @media (prefers-reduced-motion: reduce) {
     .scl-ticket-settling .scl-ticket-capture,
     .scl-ticket-settling .scl-ticket-stamp {
       animation: none;
       opacity: 1;
       transform: scale(1) rotate(6deg);
+    }
+    .scl-board-fade-in {
+      animation: none;
     }
   }
   /* Subtle entrance reveal — opt-in, GPU-friendly, reduced-motion aware. Stagger with

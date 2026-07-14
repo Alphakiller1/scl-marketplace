@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { MobileSlipDock } from "@/components/scl/mobile-slip-dock";
 import { OddsAssist } from "@/components/scl/odds-assist";
 import { SectionHeader } from "@/components/scl/section";
+import { SportPills } from "@/components/scl/sport-pills";
 import { StakeQuickChips } from "@/components/scl/stake-quick-chips";
 import { Ticket } from "@/components/scl/ticket";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createPlay } from "@/lib/actions/play.action";
-import { SPORTS, UNIT_MAX, UNIT_MIN, UNIT_STEP } from "@/lib/constants";
+import { UNIT_MAX, UNIT_MIN, UNIT_STEP } from "@/lib/constants";
 import { formatOdds, formatUnits } from "@/lib/format";
 import { americanToDecimal } from "@/lib/odds";
 import {
@@ -254,32 +255,12 @@ export default function NewPlayPage() {
         </Button>
       </div>
 
-      {/* Sport pill rail — SPORT PILL recipe; same sport state + handler */}
       <Card className="space-y-2 p-4 sm:p-5">
         <Label>Sport</Label>
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-          {SPORTS.map((s) => {
-            const active = (sport ?? "") === s.key;
-            return (
-              <button
-                key={s.key}
-                type="button"
-                onClick={() =>
-                  setValue("sport", s.key, { shouldValidate: true })
-                }
-                aria-pressed={active}
-                className={cn(
-                  "scl-display flex h-11 shrink-0 items-center gap-2 rounded-[22px] border px-3.5 text-[15px] font-semibold tracking-[0.05em]",
-                  active
-                    ? "border-[color:var(--scl-gold)] bg-[color:var(--scl-gold)] text-[color:var(--scl-gold-ink)]"
-                    : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",
-                )}
-              >
-                {s.label}
-              </button>
-            );
-          })}
-        </div>
+        <SportPills
+          value={sport ?? ""}
+          onChange={(key) => setValue("sport", key, { shouldValidate: true })}
+        />
         <FieldError message={errors.sport?.message} />
       </Card>
 
