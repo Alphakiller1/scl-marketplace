@@ -8,7 +8,7 @@ import { Leaderboard } from "@/components/scl/leaderboard";
 import { CapperCard } from "@/components/scl/capper-card";
 import { EmptyState } from "@/components/scl/states";
 import { SportTag } from "@/components/scl/badges";
-import { leagueInitials } from "@/lib/league-action";
+import { LeagueMark } from "@/components/scl/league-mark";
 import { sortLeaderboard } from "@/lib/leaderboard";
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 import { getLeagueActionReport } from "@/lib/queries/league-action";
@@ -63,9 +63,7 @@ export default async function Home() {
                     className="flex min-h-20 flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <span className="bg-surface-2 text-brand flex size-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold">
-                        {leagueInitials(league.league)}
-                      </span>
+                      <LeagueMark leagueKey={league.league} size="lg" />
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="nums text-muted-foreground text-xs font-semibold tabular-nums">
@@ -74,7 +72,7 @@ export default async function Home() {
                           <h3 className="truncate font-bold">
                             {league.league}
                           </h3>
-                          <SportTag sport={league.sport} />
+                          <SportTag sport={league.sport} withMark={false} />
                         </div>
                         <p className="text-muted-foreground mt-1 text-sm">
                           Recent verified-board activity from public cappers.

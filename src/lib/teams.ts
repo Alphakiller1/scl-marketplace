@@ -1,3 +1,12 @@
+/**
+ * Team identity + optional CDN logo URLs for seeded leagues (MLB, WNBA).
+ *
+ * Logos use ESPN's public team-logo CDN (`a.espncdn.com`). Missing/broken URLs
+ * must never blank the UI — TeamMark falls back to the deterministic color mark.
+ *
+ * Player headshots: OUT OF SCOPE — see `src/lib/players.ts` for the deferred slot.
+ */
+
 export type TeamIdentity = {
   key: string;
   abbr: string;
@@ -5,6 +14,8 @@ export type TeamIdentity = {
   fullName: string;
   primaryColor: string;
   secondaryColor?: string;
+  /** Optional remote logo (ESPN CDN). Prefer TeamMark's onError color fallback. */
+  logoUrl?: string;
 };
 
 type TeamRecord = TeamIdentity & { aliases: string[] };
@@ -22,90 +33,141 @@ const FALLBACK_COLORS = [
   "#8b5cf6",
 ];
 
+/** ESPN CDN slug for our sport key → path segment under /i/teamlogos/{slug}/500/. */
+const ESPN_SPORT_SLUG: Record<string, string> = {
+  MLB: "mlb",
+  WNBA: "wnba",
+};
+
+/**
+ * Our internal abbr → ESPN CDN file stem when they differ.
+ * Default is lowercase of our abbr (e.g. NYY → nyy).
+ */
+const ESPN_ABBR_OVERRIDE: Record<string, Record<string, string>> = {
+  MLB: {
+    CWS: "chw",
+  },
+  WNBA: {
+    GSV: "gs",
+    LVA: "lv",
+    LAS: "la",
+    NYL: "ny",
+    PHO: "phx",
+    WAS: "wsh",
+  },
+};
+
+export function espnTeamLogoUrl(
+  sport: string,
+  abbr: string,
+): string | undefined {
+  const slug = ESPN_SPORT_SLUG[sport.toUpperCase()];
+  if (!slug) return undefined;
+  const stem =
+    ESPN_ABBR_OVERRIDE[sport.toUpperCase()]?.[abbr.toUpperCase()] ??
+    abbr.toLowerCase();
+  return `https://a.espncdn.com/i/teamlogos/${slug}/500/${stem}.png`;
+}
+
 const WNBA_TEAMS: TeamRecord[] = [
-  team("ATL", "Dream", "Atlanta Dream", "#c8102e", ["Atlanta"]),
-  team("CHI", "Sky", "Chicago Sky", "#4cc1e0", ["Chicago"]),
-  team("CON", "Sun", "Connecticut Sun", "#f05023", ["Connecticut"]),
-  team("DAL", "Wings", "Dallas Wings", "#002b5c", ["Dallas"]),
-  team("GSV", "Valkyries", "Golden State Valkyries", "#6f42c1", [
+  team("WNBA", "ATL", "Dream", "Atlanta Dream", "#c8102e", ["Atlanta"]),
+  team("WNBA", "CHI", "Sky", "Chicago Sky", "#4cc1e0", ["Chicago"]),
+  team("WNBA", "CON", "Sun", "Connecticut Sun", "#f05023", ["Connecticut"]),
+  team("WNBA", "DAL", "Wings", "Dallas Wings", "#002b5c", ["Dallas"]),
+  team("WNBA", "GSV", "Valkyries", "Golden State Valkyries", "#6f42c1", [
     "Golden State",
     "GS Valkyries",
   ]),
-  team("IND", "Fever", "Indiana Fever", "#c8102e", ["Indiana"]),
-  team("LVA", "Aces", "Las Vegas Aces", "#a7a8aa", ["Las Vegas", "Vegas"]),
-  team("LAS", "Sparks", "Los Angeles Sparks", "#552583", [
+  team("WNBA", "IND", "Fever", "Indiana Fever", "#c8102e", ["Indiana"]),
+  team("WNBA", "LVA", "Aces", "Las Vegas Aces", "#a7a8aa", [
+    "Las Vegas",
+    "Vegas",
+  ]),
+  team("WNBA", "LAS", "Sparks", "Los Angeles Sparks", "#552583", [
     "Los Angeles",
     "LA Sparks",
   ]),
-  team("MIN", "Lynx", "Minnesota Lynx", "#005083", ["Minnesota"]),
-  team("NYL", "Liberty", "New York Liberty", "#86cebc", [
+  team("WNBA", "MIN", "Lynx", "Minnesota Lynx", "#005083", ["Minnesota"]),
+  team("WNBA", "NYL", "Liberty", "New York Liberty", "#86cebc", [
     "New York",
     "NY Liberty",
   ]),
-  team("PHO", "Mercury", "Phoenix Mercury", "#201747", ["Phoenix"]),
-  team("POR", "Fire", "Portland Fire", "#e03a3e", ["Portland"]),
-  team("SEA", "Storm", "Seattle Storm", "#2c5234", ["Seattle"]),
-  team("TOR", "Tempo", "Toronto Tempo", "#6c1d45", ["Toronto"]),
-  team("WAS", "Mystics", "Washington Mystics", "#002b5c", ["Washington"]),
+  team("WNBA", "PHO", "Mercury", "Phoenix Mercury", "#201747", ["Phoenix"]),
+  team("WNBA", "POR", "Fire", "Portland Fire", "#e03a3e", ["Portland"]),
+  team("WNBA", "SEA", "Storm", "Seattle Storm", "#2c5234", ["Seattle"]),
+  team("WNBA", "TOR", "Tempo", "Toronto Tempo", "#6c1d45", ["Toronto"]),
+  team("WNBA", "WAS", "Mystics", "Washington Mystics", "#002b5c", [
+    "Washington",
+  ]),
 ];
 
 const MLB_TEAMS: TeamRecord[] = [
-  team("ARI", "D-backs", "Arizona Diamondbacks", "#a71930", [
+  team("MLB", "ARI", "D-backs", "Arizona Diamondbacks", "#a71930", [
     "Arizona",
     "Diamondbacks",
   ]),
-  team("ATL", "Braves", "Atlanta Braves", "#13274f", ["Atlanta"]),
-  team("BAL", "Orioles", "Baltimore Orioles", "#df4601", ["Baltimore"]),
-  team("BOS", "Red Sox", "Boston Red Sox", "#bd3039", ["Boston"]),
-  team("CHC", "Cubs", "Chicago Cubs", "#0e3386", ["Cubs"]),
-  team("CWS", "White Sox", "Chicago White Sox", "#27251f", [
+  team("MLB", "ATL", "Braves", "Atlanta Braves", "#13274f", ["Atlanta"]),
+  team("MLB", "BAL", "Orioles", "Baltimore Orioles", "#df4601", ["Baltimore"]),
+  team("MLB", "BOS", "Red Sox", "Boston Red Sox", "#bd3039", ["Boston"]),
+  team("MLB", "CHC", "Cubs", "Chicago Cubs", "#0e3386", ["Cubs"]),
+  team("MLB", "CWS", "White Sox", "Chicago White Sox", "#27251f", [
     "White Sox",
     "Chi White Sox",
   ]),
-  team("CIN", "Reds", "Cincinnati Reds", "#c6011f", ["Cincinnati"]),
-  team("CLE", "Guardians", "Cleveland Guardians", "#00385d", ["Cleveland"]),
-  team("COL", "Rockies", "Colorado Rockies", "#333366", ["Colorado"]),
-  team("DET", "Tigers", "Detroit Tigers", "#0c2340", ["Detroit"]),
-  team("HOU", "Astros", "Houston Astros", "#002d62", ["Houston"]),
-  team("KC", "Royals", "Kansas City Royals", "#004687", [
+  team("MLB", "CIN", "Reds", "Cincinnati Reds", "#c6011f", ["Cincinnati"]),
+  team("MLB", "CLE", "Guardians", "Cleveland Guardians", "#00385d", [
+    "Cleveland",
+  ]),
+  team("MLB", "COL", "Rockies", "Colorado Rockies", "#333366", ["Colorado"]),
+  team("MLB", "DET", "Tigers", "Detroit Tigers", "#0c2340", ["Detroit"]),
+  team("MLB", "HOU", "Astros", "Houston Astros", "#002d62", ["Houston"]),
+  team("MLB", "KC", "Royals", "Kansas City Royals", "#004687", [
     "Kansas City",
     "KC Royals",
   ]),
-  team("LAA", "Angels", "Los Angeles Angels", "#ba0021", [
+  team("MLB", "LAA", "Angels", "Los Angeles Angels", "#ba0021", [
     "LA Angels",
     "Los Angeles Angels of Anaheim",
   ]),
-  team("LAD", "Dodgers", "Los Angeles Dodgers", "#005a9c", [
+  team("MLB", "LAD", "Dodgers", "Los Angeles Dodgers", "#005a9c", [
     "LA Dodgers",
     "Dodgers",
   ]),
-  team("MIA", "Marlins", "Miami Marlins", "#00a3e0", ["Miami"]),
-  team("MIL", "Brewers", "Milwaukee Brewers", "#12284b", ["Milwaukee"]),
-  team("MIN", "Twins", "Minnesota Twins", "#002b5c", ["Minnesota"]),
-  team("NYM", "Mets", "New York Mets", "#002d72", ["NY Mets", "Mets"]),
-  team("NYY", "Yankees", "New York Yankees", "#0c2340", [
+  team("MLB", "MIA", "Marlins", "Miami Marlins", "#00a3e0", ["Miami"]),
+  team("MLB", "MIL", "Brewers", "Milwaukee Brewers", "#12284b", ["Milwaukee"]),
+  team("MLB", "MIN", "Twins", "Minnesota Twins", "#002b5c", ["Minnesota"]),
+  team("MLB", "NYM", "Mets", "New York Mets", "#002d72", ["NY Mets", "Mets"]),
+  team("MLB", "NYY", "Yankees", "New York Yankees", "#0c2340", [
     "NY Yankees",
     "Yankees",
   ]),
-  team("ATH", "Athletics", "Athletics", "#003831", [
+  team("MLB", "ATH", "Athletics", "Athletics", "#003831", [
     "A's",
     "Oakland Athletics",
     "Sacramento Athletics",
   ]),
-  team("PHI", "Phillies", "Philadelphia Phillies", "#e81828", ["Philadelphia"]),
-  team("PIT", "Pirates", "Pittsburgh Pirates", "#fdb827", ["Pittsburgh"]),
-  team("SD", "Padres", "San Diego Padres", "#2f241d", ["San Diego"]),
-  team("SF", "Giants", "San Francisco Giants", "#fd5a1e", ["San Francisco"]),
-  team("SEA", "Mariners", "Seattle Mariners", "#0c2c56", ["Seattle"]),
-  team("STL", "Cardinals", "St. Louis Cardinals", "#c41e3a", [
+  team("MLB", "PHI", "Phillies", "Philadelphia Phillies", "#e81828", [
+    "Philadelphia",
+  ]),
+  team("MLB", "PIT", "Pirates", "Pittsburgh Pirates", "#fdb827", [
+    "Pittsburgh",
+  ]),
+  team("MLB", "SD", "Padres", "San Diego Padres", "#2f241d", ["San Diego"]),
+  team("MLB", "SF", "Giants", "San Francisco Giants", "#fd5a1e", [
+    "San Francisco",
+  ]),
+  team("MLB", "SEA", "Mariners", "Seattle Mariners", "#0c2c56", ["Seattle"]),
+  team("MLB", "STL", "Cardinals", "St. Louis Cardinals", "#c41e3a", [
     "Saint Louis Cardinals",
     "St Louis Cardinals",
     "St. Louis",
   ]),
-  team("TB", "Rays", "Tampa Bay Rays", "#092c5c", ["Tampa Bay"]),
-  team("TEX", "Rangers", "Texas Rangers", "#003278", ["Texas"]),
-  team("TOR", "Blue Jays", "Toronto Blue Jays", "#134a8e", ["Toronto"]),
-  team("WSH", "Nationals", "Washington Nationals", "#ab0003", ["Washington"]),
+  team("MLB", "TB", "Rays", "Tampa Bay Rays", "#092c5c", ["Tampa Bay"]),
+  team("MLB", "TEX", "Rangers", "Texas Rangers", "#003278", ["Texas"]),
+  team("MLB", "TOR", "Blue Jays", "Toronto Blue Jays", "#134a8e", ["Toronto"]),
+  team("MLB", "WSH", "Nationals", "Washington Nationals", "#ab0003", [
+    "Washington",
+  ]),
 ];
 
 const TEAMS_BY_SPORT: Record<string, TeamRecord[]> = {
@@ -156,6 +218,7 @@ export function readableTextColor(hex: string): "#0b0f19" | "#ffffff" {
 }
 
 function team(
+  sport: "MLB" | "WNBA",
   abbr: string,
   shortName: string,
   fullName: string,
@@ -170,6 +233,7 @@ function team(
     fullName,
     primaryColor,
     secondaryColor,
+    logoUrl: espnTeamLogoUrl(sport, abbr),
     aliases,
   };
 }
@@ -182,6 +246,7 @@ function stripAliases(t: TeamRecord): TeamIdentity {
     fullName: t.fullName,
     primaryColor: t.primaryColor,
     secondaryColor: t.secondaryColor,
+    logoUrl: t.logoUrl,
   };
 }
 

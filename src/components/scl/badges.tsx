@@ -1,5 +1,6 @@
 import { BadgeCheck, History, Trophy } from "lucide-react";
 
+import { LeagueMark } from "@/components/scl/league-mark";
 import { cn } from "@/lib/utils";
 import { SPORTS } from "@/lib/constants";
 import type { PickStatus } from "@/lib/mock";
@@ -105,17 +106,24 @@ const SPORT_LABEL = new Map<string, string>(
 export function SportTag({
   sport,
   className,
+  withMark = true,
 }: {
   sport: string;
   className?: string;
+  /** When false, render the label chip without a LeagueMark (e.g. beside a larger mark). */
+  withMark?: boolean;
 }) {
   return (
     <span
       className={cn(
-        "bg-surface-3 text-muted-foreground inline-flex items-center rounded-md px-2 py-0.5 text-[0.7rem] font-semibold tracking-wide uppercase",
+        "bg-surface-3 text-muted-foreground inline-flex items-center rounded-md text-[0.7rem] font-semibold tracking-wide uppercase",
+        withMark ? "gap-1 py-0.5 pr-2 pl-0.5" : "px-2 py-0.5",
         className,
       )}
     >
+      {withMark ? (
+        <LeagueMark leagueKey={sport} size="sm" className="rounded-md" />
+      ) : null}
       {SPORT_LABEL.get(sport) ?? sport}
     </span>
   );
