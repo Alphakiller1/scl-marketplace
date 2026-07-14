@@ -7,6 +7,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
+import { MobileSlipDock } from "@/components/scl/mobile-slip-dock";
 import { OddsAssist } from "@/components/scl/odds-assist";
 import { SectionHeader } from "@/components/scl/section";
 import { SportPills } from "@/components/scl/sport-pills";
@@ -25,6 +26,7 @@ import {
   type PlayInput,
 } from "@/lib/schemas/play.schema";
 import { pickKey } from "@/lib/slip";
+import { useIsLg } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
 import type { StraightReceipt } from "@/lib/verification";
 
@@ -35,6 +37,7 @@ function FieldError({ message }: { message?: string }) {
 
 export default function NewPlayPage() {
   const [receipt, setReceipt] = useState<StraightReceipt | null>(null);
+  const isLg = useIsLg();
   const {
     register,
     handleSubmit,
@@ -125,6 +128,79 @@ export default function NewPlayPage() {
     );
   }
 
+  const slipBody = hasPick ? (
+    <Card className="border-brand/50 scl-elevated space-y-4 border-2 p-4 sm:p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-muted-foreground text-[0.7rem] font-semibold tracking-wide uppercase">
+            Bet slip
+          </p>
+          <p className="mt-0.5 text-lg font-bold break-words">{selection}</p>
+          <p className="text-muted-foreground text-sm">
+            {market} ·{" "}
+            <span className="text-foreground nums font-semibold tabular-nums">
+              {formatOdds(oddsNum)}
+            </span>
+          </p>
+          {eventBound ? (
+            <p className="text-brand mt-1 text-[0.7rem] font-medium">
+              Pre-game · odds will be verified
+            </p>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          onClick={clearPick}
+          aria-label="Clear pick"
+          className="text-muted-foreground hover:text-foreground hover:bg-surface-2 min-h-10 min-w-10 rounded-md p-1.5"
+        >
+          <X className="size-5" />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 items-end gap-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="units">Units</Label>
+          <Input
+            id="units"
+            type="number"
+            step={UNIT_STEP}
+            min={UNIT_MIN}
+            max={UNIT_MAX}
+            {...register("units", { valueAsNumber: true })}
+          />
+        </div>
+        <div className="text-right">
+          <p className="text-muted-foreground text-xs">To win</p>
+          <p className="text-pos nums text-xl font-bold tabular-nums">
+            {toWin != null ? `+${toWin.toFixed(2)}u` : "—"}
+          </p>
+        </div>
+      </div>
+      <FieldError message={errors.units?.message} />
+
+      <div className="space-y-1.5">
+        <Label htmlFor="notes">Notes (optional)</Label>
+        <textarea
+          id="notes"
+          rows={2}
+          className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 min-h-16 w-full rounded-lg border bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
+          placeholder="Reasoning (kept on your record)"
+          {...register("notes")}
+        />
+      </div>
+
+      <Button
+        type="button"
+        onClick={handleSubmit(onSubmit)}
+        disabled={isSubmitting}
+        className="min-h-12 w-full text-base"
+      >
+        {isSubmitting ? "Submitting…" : "Submit Play"}
+      </Button>
+    </Card>
+  ) : null;
+
   return (
     <div className="mx-auto max-w-xl space-y-5 lg:max-w-5xl">
       <div className="flex items-center justify-between gap-3">
@@ -151,7 +227,7 @@ export default function NewPlayPage() {
         <FieldError message={errors.sport?.message} />
       </Card>
 
-      {/* Board flow only — every pick is an event-bound, verified board pick. */}
+      {/* Board stays visible on mobile; slip is desktop sticky column + mobile bottom dock. */}
       <div
         className={cn(
           "grid gap-5 lg:items-start",
@@ -159,7 +235,7 @@ export default function NewPlayPage() {
         )}
       >
         {sport ? (
-          <div className={cn("min-w-0", hasPick && "hidden lg:block")}>
+          <div className="min-w-0">
             <OddsAssist
               sport={sport}
               selectedKeys={selectedKeys}
@@ -182,83 +258,20 @@ export default function NewPlayPage() {
           </div>
         ) : null}
 
-        {hasPick ? (
-          <div className="min-w-0 lg:sticky lg:top-20">
-            <Card className="border-brand/50 scl-elevated space-y-4 border-2 p-4 sm:p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-muted-foreground text-[0.7rem] font-semibold tracking-wide uppercase">
-                    Bet slip
-                  </p>
-                  <p className="mt-0.5 text-lg font-bold break-words">
-                    {selection}
-                  </p>
-                  <p className="text-muted-foreground text-sm">
-                    {market} ·{" "}
-                    <span className="text-foreground nums font-semibold tabular-nums">
-                      {formatOdds(oddsNum)}
-                    </span>
-                  </p>
-                  {eventBound ? (
-                    <p className="text-brand mt-1 text-[0.7rem] font-medium">
-                      Pre-game · odds will be verified
-                    </p>
-                  ) : null}
-                </div>
-                <button
-                  type="button"
-                  onClick={clearPick}
-                  aria-label="Clear pick"
-                  className="text-muted-foreground hover:text-foreground hover:bg-surface-2 rounded-md p-1.5"
-                >
-                  <X className="size-5" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 items-end gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="units">Units</Label>
-                  <Input
-                    id="units"
-                    type="number"
-                    step={UNIT_STEP}
-                    min={UNIT_MIN}
-                    max={UNIT_MAX}
-                    {...register("units", { valueAsNumber: true })}
-                  />
-                </div>
-                <div className="text-right">
-                  <p className="text-muted-foreground text-xs">To win</p>
-                  <p className="text-pos nums text-xl font-bold tabular-nums">
-                    {toWin != null ? `+${toWin.toFixed(2)}u` : "—"}
-                  </p>
-                </div>
-              </div>
-              <FieldError message={errors.units?.message} />
-
-              <div className="space-y-1.5">
-                <Label htmlFor="notes">Notes (optional)</Label>
-                <textarea
-                  id="notes"
-                  rows={2}
-                  className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 min-h-16 w-full rounded-lg border bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
-                  placeholder="Reasoning (kept on your record)"
-                  {...register("notes")}
-                />
-              </div>
-
-              <Button
-                type="button"
-                onClick={handleSubmit(onSubmit)}
-                disabled={isSubmitting}
-                className="min-h-12 w-full text-base"
-              >
-                {isSubmitting ? "Submitting…" : "Submit Play"}
-              </Button>
-            </Card>
-          </div>
+        {hasPick && isLg ? (
+          <div className="min-w-0 lg:sticky lg:top-20">{slipBody}</div>
         ) : null}
       </div>
+
+      {hasPick && isLg === false ? (
+        <MobileSlipDock
+          title="Bet slip"
+          countLabel="1 selection"
+          oddsLabel={formatOdds(oddsNum)}
+        >
+          {slipBody}
+        </MobileSlipDock>
+      ) : null}
     </div>
   );
 }
