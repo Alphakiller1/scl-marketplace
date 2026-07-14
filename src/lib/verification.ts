@@ -74,6 +74,8 @@ export type StraightReceipt = {
   selection: string;
   market: string;
   oddsAmerican: number;
+  /** ISO timestamp from the persisted play row when the odds were locked. */
+  capturedAt: string;
   loggedPreGame: boolean;
   oddsVerified: boolean;
   tier: VerificationTier;
@@ -84,6 +86,8 @@ export type ParlayReceipt = {
   kind: "parlay";
   legCount: number;
   combinedOddsAmerican: number;
+  /** ISO timestamp from the persisted parlay row when the odds were locked. */
+  capturedAt: string;
   allLoggedPreGame: boolean;
   verifiedLegCount: number;
   tiers: VerificationTier[];
