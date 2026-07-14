@@ -23,21 +23,24 @@ export function defaultStorefrontTitle(name: string): string {
 }
 
 export function resolveStorefrontIdentity({
-  displayName,
+  displayName: _displayName,
   username,
   title,
   description,
   enabled = true,
 }: StorefrontIdentityInput): StorefrontIdentity {
-  const name = clean(displayName) ?? clean(username) ?? "SCL Capper";
+  const name = clean(username) ?? "";
+  const handle = name ? `@${name.replace(/^@/, "")}` : "";
+  const label = handle || "this capper";
   const customTitle = clean(title);
   const customDescription = clean(description);
 
   return {
-    title: customTitle ?? defaultStorefrontTitle(name),
+    title:
+      customTitle ?? (handle ? defaultStorefrontTitle(handle) : "Storefront"),
     description:
       customDescription ??
-      `Picks and packages selected by ${name} will appear here when they are live.`,
+      `Picks and packages selected by ${label} will appear here when they are live.`,
     enabled,
     customized: Boolean(customTitle || customDescription),
   };

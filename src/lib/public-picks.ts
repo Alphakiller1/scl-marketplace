@@ -55,7 +55,7 @@ export function joinPlaysToPublicPicks(
           id: capper.id,
           name: capper.name,
           handle: capper.handle,
-          displayName: capper.displayName,
+          displayName: null,
           verified: capper.verified,
           avatarUrl: capper.avatarUrl,
         },

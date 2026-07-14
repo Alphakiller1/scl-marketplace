@@ -53,11 +53,6 @@ export async function updateProfileAction(
       facebook: nullifyHandle(d.facebook),
       tiktok: nullifyHandle(d.tiktok),
       website: nullify(d.website),
-      user: {
-        update: {
-          displayName: d.displayName,
-        },
-      },
     },
     select: { user: { select: { username: true } } },
   });

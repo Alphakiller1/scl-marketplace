@@ -16,7 +16,7 @@ export async function getGradingQueue() {
       units: true,
       createdAt: true,
       capper: {
-        select: { user: { select: { displayName: true, username: true } } },
+        select: { user: { select: { username: true } } },
       },
     },
     orderBy: { createdAt: "asc" },
@@ -32,8 +32,9 @@ export async function getGradingQueue() {
     oddsAmerican: p.oddsAmerican,
     units: Number(p.units),
     createdAt: p.createdAt,
-    capperName:
-      p.capper.user.displayName ?? p.capper.user.username ?? "Unknown capper",
+    capperName: p.capper.user.username
+      ? `@${p.capper.user.username.replace(/^@/, "")}`
+      : "",
   }));
 }
 
@@ -59,7 +60,7 @@ export async function getRecentGradingAudits(limit = 25) {
           market: true,
           selection: true,
           capper: {
-            select: { user: { select: { displayName: true, username: true } } },
+            select: { user: { select: { username: true } } },
           },
         },
       },
@@ -73,13 +74,14 @@ export async function getRecentGradingAudits(limit = 25) {
     source: a.source,
     reason: a.reason,
     createdAt: a.createdAt,
-    gradedBy: a.gradedBy?.displayName ?? a.gradedBy?.username ?? "System",
+    gradedBy: a.gradedBy?.username
+      ? `@${a.gradedBy.username.replace(/^@/, "")}`
+      : "System",
     market: a.play.market,
     selection: a.play.selection,
-    capperName:
-      a.play.capper.user.displayName ??
-      a.play.capper.user.username ??
-      "Unknown capper",
+    capperName: a.play.capper.user.username
+      ? `@${a.play.capper.user.username.replace(/^@/, "")}`
+      : "",
   }));
 }
 
@@ -96,7 +98,7 @@ export async function getParlayGradingQueue() {
       units: true,
       combinedOddsAmerican: true,
       capper: {
-        select: { user: { select: { displayName: true, username: true } } },
+        select: { user: { select: { username: true } } },
       },
       legs: {
         select: {
@@ -118,8 +120,9 @@ export async function getParlayGradingQueue() {
     id: p.id,
     units: Number(p.units),
     combinedOddsAmerican: p.combinedOddsAmerican,
-    capperName:
-      p.capper.user.displayName ?? p.capper.user.username ?? "Unknown capper",
+    capperName: p.capper.user.username
+      ? `@${p.capper.user.username.replace(/^@/, "")}`
+      : "",
     legs: p.legs.map((l) => ({
       id: l.id,
       sport: l.sport,

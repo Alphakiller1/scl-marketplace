@@ -18,12 +18,8 @@ const socialHandleSchema = z
   .optional();
 
 // Empty strings from inputs are allowed; the server action coerces "" -> null.
+// Public identity is @username only — displayName is not collected or updated.
 export const profileSchema = z.object({
-  displayName: z
-    .string()
-    .trim()
-    .min(2, "Use at least 2 characters")
-    .max(60, "Keep it under 60 characters"),
   headline: z.string().max(120, "Keep it under 120 characters").optional(),
   bio: z.string().max(600, "Keep it under 600 characters").optional(),
   providerType: z.nativeEnum(ProviderType),

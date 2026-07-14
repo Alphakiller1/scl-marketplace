@@ -4,7 +4,6 @@ import test from "node:test";
 import { profileSchema } from "@/lib/schemas/profile.schema";
 
 const validProfile = {
-  displayName: "Chase Analytics",
   providerType: "FREE" as const,
   sports: ["MLB"],
   specialties: ["Player props"],

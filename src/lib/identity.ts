@@ -1,22 +1,23 @@
 /**
  * Public identity display helpers.
  * Format for UI only — never mutate DB/route handles.
+ *
+ * Product rule: public identity is @username only. `displayName` may still
+ * exist in the DB but is not read for marketplace surfaces.
  */
 
 export type IdentityInput = {
+  /** @deprecated Ignored — username-only identity. Kept so call sites type-check during migration. */
   displayName?: string | null;
   handle?: string | null;
-  /**
-   * Compact cards (feed, leaderboard rows) collapse near-duplicate
-   * display-name / @handle pairs. Profile-style two-line UIs keep both.
-   */
+  /** @deprecated No-op — there is no secondary line when identity is handle-only. */
   compact?: boolean;
 };
 
 export type IdentityDisplayLines = {
-  /** What to show first (display name, or @handle when name is missing). */
+  /** `@handle` when present; empty string when missing (never a fake name). */
   primary: string;
-  /** Formatted @handle when distinct and worth showing; otherwise null. */
+  /** Always null under username-only identity. */
   secondary: string | null;
 };
 
@@ -64,66 +65,25 @@ export function identityKeysEqual(a: string, b: string): boolean {
   return Boolean(ka) && ka === kb;
 }
 
-function cleanPublicLabel(value?: string | null): string | null {
-  const trimmed = value?.trim() || null;
-  if (!trimmed) return null;
-  if (looksLikeEmail(trimmed)) return null;
-  return trimmed;
-}
-
 /**
- * Resolve primary / secondary identity lines for marketplace surfaces.
- *
- * - Primary: display name; if missing → @handle only
- * - Secondary: @handle when present and distinct
- * - Never surfaces raw email
- * - Compact mode collapses near-duplicate name/@handle pairs
+ * Resolve primary identity for marketplace surfaces.
+ * Always `@handle` when available; otherwise an empty string (never a placeholder name).
  */
 export function identityDisplayLines(
   input: IdentityInput,
 ): IdentityDisplayLines {
-  const name = cleanPublicLabel(input.displayName);
   const handleFmt = formatHandle(input.handle);
-  const handleBare = bareHandle(input.handle);
-
-  if (name && handleFmt && handleBare) {
-    const duplicate = identityKeysEqual(name, handleBare);
-    if (input.compact && duplicate) {
-      return { primary: name, secondary: null };
-    }
-    return { primary: name, secondary: handleFmt };
-  }
-
-  if (name) return { primary: name, secondary: null };
-  if (handleFmt) return { primary: handleFmt, secondary: null };
-
-  return { primary: "SCL Capper", secondary: null };
+  return { primary: handleFmt ?? "", secondary: null };
 }
 
-/**
- * CapperSummary-friendly resolution. Prefer raw `displayName` when present;
- * when only the resolved `name` is available, treat name≈handle as a missing
- * display name so compact surfaces can show @handle alone.
- */
+/** CapperSummary-friendly resolution — username only. */
 export function identityDisplayLinesFromCapper(
   capper: {
     name: string;
     handle: string;
     displayName?: string | null;
   },
-  opts?: { compact?: boolean },
+  _opts?: { compact?: boolean },
 ): IdentityDisplayLines {
-  let displayName: string | null | undefined = capper.displayName;
-
-  if (displayName === undefined) {
-    displayName = identityKeysEqual(capper.name, capper.handle)
-      ? null
-      : capper.name;
-  }
-
-  return identityDisplayLines({
-    displayName,
-    handle: capper.handle,
-    compact: opts?.compact,
-  });
+  return identityDisplayLines({ handle: capper.handle || capper.name });
 }

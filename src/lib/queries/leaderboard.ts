@@ -216,11 +216,11 @@ function summarize(p: ProfileRow): CapperSummary | null {
     .map((x) => x.outcome);
   const { recentForm, streak } = deriveForm(settled);
 
-  const displayName = p.user.displayName?.trim() || null;
+  const displayName = null; // dormant — public identity is username-only
 
   return {
     id: p.id,
-    name: displayName ?? username,
+    name: username,
     handle: username,
     displayName,
     avatarUrl: p.avatarUrl ?? undefined,
@@ -249,7 +249,6 @@ function summarize(p: ProfileRow): CapperSummary | null {
     specialties: p.specialties.length ? p.specialties : undefined,
     sports: p.sports.length ? p.sports : undefined,
     storefront: resolveStorefrontIdentity({
-      displayName: p.user.displayName,
       username,
       title: p.storefrontTitle,
       description: p.storefrontDescription,
