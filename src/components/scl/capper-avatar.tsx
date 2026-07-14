@@ -25,7 +25,6 @@ function hashString(value: string): number {
 
 type AvatarFallbackStyle = CSSProperties & {
   "--avatar-hue": string;
-  "--avatar-hue-alt": string;
 };
 
 function avatarFallbackStyle(seed: string): AvatarFallbackStyle {
@@ -33,7 +32,6 @@ function avatarFallbackStyle(seed: string): AvatarFallbackStyle {
   const hue = hashString(hashSeed) % 360;
   return {
     "--avatar-hue": `${hue}deg`,
-    "--avatar-hue-alt": `${(hue + 52) % 360}deg`,
   };
 }
 
@@ -58,7 +56,7 @@ export function CapperAvatar({
     <Avatar className={cn(sizes[size], "rounded-xl", className)}>
       {src ? <AvatarImage src={src} alt={name} /> : null}
       <AvatarFallback
-        className="scl-avatar-fallback text-avatar-foreground bg-surface-3 rounded-xl font-semibold"
+        className="scl-avatar-fallback text-avatar-foreground rounded-xl font-semibold"
         style={avatarFallbackStyle(name)}
       >
         {initials(name)}
