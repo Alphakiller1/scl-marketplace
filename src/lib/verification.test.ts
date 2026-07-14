@@ -8,6 +8,8 @@ import {
   verificationTierMeta,
 } from "@/lib/verification";
 
+const CAPTURED_AT = "2026-07-13T23:20:00.000Z";
+
 test("isVerifiedTier: only VERIFIED and AUTO_VERIFIED clear the bar", () => {
   assert.equal(isVerifiedTier("VERIFIED"), true);
   assert.equal(isVerifiedTier("AUTO_VERIFIED"), true);
@@ -37,6 +39,7 @@ test("submissionReceiptCopy: verified straight pick", () => {
     selection: "Dream ML",
     market: "Moneyline",
     oddsAmerican: -315,
+    capturedAt: CAPTURED_AT,
     loggedPreGame: true,
     oddsVerified: true,
     tier: "VERIFIED",
@@ -55,6 +58,7 @@ test("submissionReceiptCopy: self-reported straight does not claim verified", ()
     selection: "Lakers -4.5",
     market: "Spread",
     oddsAmerican: -110,
+    capturedAt: CAPTURED_AT,
     loggedPreGame: true,
     oddsVerified: false,
     tier: "SELF_REPORTED",
@@ -70,6 +74,7 @@ test("submissionReceiptCopy: verified parlay", () => {
     kind: "parlay",
     legCount: 3,
     combinedOddsAmerican: 625,
+    capturedAt: CAPTURED_AT,
     allLoggedPreGame: true,
     verifiedLegCount: 3,
     tiers: ["VERIFIED", "VERIFIED", "VERIFIED"],
@@ -86,6 +91,7 @@ test("submissionReceiptCopy: mixed-tier parlay stays honest", () => {
     kind: "parlay",
     legCount: 3,
     combinedOddsAmerican: 400,
+    capturedAt: CAPTURED_AT,
     allLoggedPreGame: true,
     verifiedLegCount: 2,
     tiers: ["VERIFIED", "VERIFIED", "SELF_REPORTED"],

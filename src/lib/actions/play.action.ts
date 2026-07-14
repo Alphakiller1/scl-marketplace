@@ -82,7 +82,7 @@ export async function createPlay(input: PlayInput): Promise<PlayResult> {
   });
   if (!decision.accept) return { ok: false, error: decision.reason };
 
-  await prisma.play.create({
+  const play = await prisma.play.create({
     data: {
       capperId: profile.id,
       sport: d.sport,
@@ -101,6 +101,7 @@ export async function createPlay(input: PlayInput): Promise<PlayResult> {
       oddsVerified: decision.oddsVerified,
       verificationTier: decision.tier,
     },
+    select: { createdAt: true },
   });
 
   revalidatePath("/dashboard");
@@ -112,6 +113,7 @@ export async function createPlay(input: PlayInput): Promise<PlayResult> {
       selection: d.selection,
       market: d.market,
       oddsAmerican: d.oddsAmerican,
+      capturedAt: play.createdAt.toISOString(),
       loggedPreGame: decision.loggedPreGame,
       oddsVerified: decision.oddsVerified,
       tier: decision.tier,

@@ -117,7 +117,7 @@ export async function createParlay(
   const verifiedLegCount = tiers.filter(isVerifiedTier).length;
   const allLoggedPreGame = decided.every((x) => x.loggedPreGame);
 
-  await prisma.parlay.create({
+  const parlay = await prisma.parlay.create({
     data: {
       capperId: profile.id,
       units: d.units,
@@ -142,6 +142,7 @@ export async function createParlay(
         })),
       },
     },
+    select: { createdAt: true },
   });
 
   revalidatePath("/dashboard");
@@ -152,6 +153,7 @@ export async function createParlay(
       kind: "parlay",
       legCount: decided.length,
       combinedOddsAmerican,
+      capturedAt: parlay.createdAt.toISOString(),
       allLoggedPreGame,
       verifiedLegCount,
       tiers,

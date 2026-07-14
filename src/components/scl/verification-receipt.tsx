@@ -13,6 +13,21 @@ import {
   type SubmissionReceipt,
 } from "@/lib/verification";
 
+function formatCapturedAt(capturedAt: string): string | null {
+  const date = new Date(capturedAt);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const formatted = date.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "America/New_York",
+  });
+
+  return `${formatted} ET`;
+}
+
 /**
  * Compact post-submit confirmation — replaces success toast with a trust-forward
  * receipt. Copy is derived from server return facts via `submissionReceiptCopy`.
@@ -28,6 +43,7 @@ export function VerificationReceipt({
 }) {
   const copy = submissionReceiptCopy(receipt);
   const verifiedTone = copy.tone === "verified";
+  const capturedAt = formatCapturedAt(receipt.capturedAt);
   const showTier =
     receipt.kind === "parlay" &&
     receipt.tiers.some((t) => !isVerifiedTier(t)) &&
@@ -78,6 +94,7 @@ export function VerificationReceipt({
 
       <ul className="text-muted-foreground space-y-1.5 text-sm">
         <li>{copy.statusLine}</li>
+        {capturedAt ? <li>Odds locked {capturedAt}</li> : null}
         <li>{copy.gradingLine}</li>
         {showTier ? (
           <li className="flex flex-wrap items-center gap-1.5 pt-0.5">
