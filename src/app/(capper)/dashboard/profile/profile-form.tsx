@@ -359,7 +359,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
             </label>
           </section>
 
-          <div className="border-border bg-[color:var(--scl-ink-800)] sticky bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-10 flex items-center justify-between gap-3 rounded-xl border p-3 shadow-lg">
+          <div className="border-border bg-card sticky bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-10 flex items-center justify-between gap-3 rounded-xl border p-3 shadow-lg">
             <span className="text-muted-foreground hidden text-sm sm:block">
               {handleLabel}
             </span>

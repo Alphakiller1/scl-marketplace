@@ -12,7 +12,7 @@ export async function SiteHeader() {
   const authed = Boolean(session?.user);
 
   return (
-    <header className="border-border bg-[color:var(--scl-ink-900)] sticky top-0 z-40 w-full border-b pt-[env(safe-area-inset-top)]">
+    <header className="border-border bg-sidebar sticky top-0 z-40 w-full border-b pt-[env(safe-area-inset-top)]">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
         <Link
           href="/"
