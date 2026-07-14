@@ -299,6 +299,50 @@ export function getOddsForBook(
   return bestAvailableAmerican(prices);
 }
 
+/**
+ * Live American price for a board line identity. When `bookKey` is set, only that
+ * book counts (honest null if suspended). Otherwise best across `bookKeys` or all
+ * books on the payload. Pure — used by the M5 odds-movement guard.
+ */
+export function liveLineAmerican(
+  event: RawEventOdds,
+  params: {
+    marketKeys: string[];
+    side: string;
+    line?: number;
+    player?: string;
+    /** Capture book on the pick — preferred single-book live price. */
+    bookKey?: string | null;
+    /** Capper profile books when no capture book (empty = all on payload). */
+    bookKeys?: readonly string[];
+  },
+): number | null {
+  if (params.bookKey) {
+    for (const mk of params.marketKeys) {
+      const price = getOddsForBook(event, mk, params.bookKey, {
+        side: params.side,
+        line: params.line,
+        player: params.player,
+      });
+      if (price != null) return price;
+    }
+    return null;
+  }
+  const filterKeys =
+    params.bookKeys && params.bookKeys.length > 0 ? params.bookKeys : undefined;
+  const prices = collectAvailablePrices(
+    event,
+    {
+      marketKeys: params.marketKeys,
+      side: params.side,
+      line: params.line,
+      player: params.player,
+    },
+    filterKeys ? { bookKeys: filterKeys } : undefined,
+  );
+  return bestAvailableAmerican(prices);
+}
+
 // ── pick-integrity decision (C1 pre-game lock + C3 odds + trust tier) ─────────
 
 /** Provenance of a pick — mirrors the Prisma `PickSource` enum. */

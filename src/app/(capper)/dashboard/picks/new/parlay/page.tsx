@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { EntryModeCards } from "@/components/scl/entry-mode-cards";
 import { GamePicker, type OddsPick } from "@/components/scl/game-picker";
+import { LineMovedPrompt } from "@/components/scl/line-moved-prompt";
 import { MobileSlipDock } from "@/components/scl/mobile-slip-dock";
 import { ParlayLegCard } from "@/components/scl/parlay-leg-card";
 import { SectionHeader } from "@/components/scl/section";
@@ -18,7 +19,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createParlay } from "@/lib/actions/parlay.action";
+import {
+  createParlay,
+  type AcceptedMove,
+  type MovedLinePayload,
+} from "@/lib/actions/parlay.action";
 import { UNIT_MAX, UNIT_MIN, UNIT_STEP } from "@/lib/constants";
 import { formatOdds } from "@/lib/format";
 import {
@@ -84,6 +89,15 @@ export default function NewParlayPage() {
     /** When replacing into an existing expanded leg index. */
     targetIndex: number | null;
   } | null>(null);
+  const [movedLines, setMovedLines] = useState<MovedLinePayload[] | null>(null);
+  const [unavailableLines, setUnavailableLines] = useState<
+    MovedLinePayload[] | null
+  >(null);
+  const [pendingValues, setPendingValues] = useState<CreateParlayInput | null>(
+    null,
+  );
+  const [acceptedSoFar, setAcceptedSoFar] = useState<AcceptedMove[]>([]);
+  const [submitting, setSubmitting] = useState(false);
   const isLg = useIsLg();
   const {
     register,
@@ -142,13 +156,64 @@ export default function NewParlayPage() {
     setPendingConflict({ conflict, pick, targetIndex });
   }
 
-  async function onSubmit(values: CreateParlayInput) {
-    const res = await createParlay(values);
-    if (!res.ok) {
-      toast.error(res.error);
-      return;
+  async function submitParlay(
+    values: CreateParlayInput,
+    acceptedMoves?: AcceptedMove[],
+  ) {
+    setSubmitting(true);
+    try {
+      const res = await createParlay(values, acceptedMoves);
+      if (res.ok) {
+        setMovedLines(null);
+        setUnavailableLines(null);
+        setPendingValues(null);
+        setAcceptedSoFar([]);
+        setReceipt(res.receipt);
+        return;
+      }
+      if ("needsConfirm" in res && res.needsConfirm) {
+        setPendingValues(values);
+        setUnavailableLines(null);
+        setMovedLines(res.needsConfirm);
+        return;
+      }
+      if ("unavailable" in res && res.unavailable) {
+        setPendingValues(null);
+        setMovedLines(null);
+        setAcceptedSoFar([]);
+        setUnavailableLines(res.unavailable);
+        return;
+      }
+      if ("error" in res) {
+        toast.error(res.error);
+      }
+    } finally {
+      setSubmitting(false);
     }
-    setReceipt(res.receipt);
+  }
+
+  async function onSubmit(values: CreateParlayInput) {
+    setAcceptedSoFar([]);
+    await submitParlay(values);
+  }
+
+  async function acceptMoved(lines: MovedLinePayload[]) {
+    if (!pendingValues) return;
+    const incoming: AcceptedMove[] = lines
+      .filter((l) => l.updatedOddsAmerican != null)
+      .map((l) => ({
+        moveKey: l.moveKey,
+        selectedOddsAmerican: l.selectedOddsAmerican,
+        acceptedOddsAmerican: l.updatedOddsAmerican as number,
+      }));
+    const merged = [
+      ...acceptedSoFar.filter(
+        (a) => !incoming.some((b) => b.moveKey === a.moveKey),
+      ),
+      ...incoming,
+    ];
+    setAcceptedSoFar(merged);
+    await submitParlay(pendingValues, merged);
   }
 
   if (receipt) {
@@ -229,14 +294,36 @@ export default function NewParlayPage() {
 
       <FieldError message={errors.legs?.message} />
 
-      <Button
-        type="button"
-        onClick={handleSubmit(onSubmit)}
-        disabled={isSubmitting || fields.length < 2}
-        className={`min-h-12 w-full text-base ${PINK_CTA}`}
-      >
-        {isSubmitting ? "Submitting…" : "Submit parlay"}
-      </Button>
+      {unavailableLines ? (
+        <LineMovedPrompt
+          mode="blocked"
+          lines={unavailableLines}
+          onCancel={() => setUnavailableLines(null)}
+        />
+      ) : null}
+      {movedLines ? (
+        <LineMovedPrompt
+          mode="confirm"
+          lines={movedLines}
+          onAcceptAll={acceptMoved}
+          onCancel={() => {
+            setMovedLines(null);
+            setPendingValues(null);
+            setAcceptedSoFar([]);
+          }}
+        />
+      ) : null}
+
+      {!movedLines && !unavailableLines ? (
+        <Button
+          type="button"
+          onClick={handleSubmit(onSubmit)}
+          disabled={isSubmitting || submitting || fields.length < 2}
+          className={`min-h-12 w-full text-base ${PINK_CTA}`}
+        >
+          {isSubmitting || submitting ? "Submitting…" : "Submit parlay"}
+        </Button>
+      ) : null}
     </Card>
   );
 

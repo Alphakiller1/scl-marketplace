@@ -85,6 +85,23 @@ export function VerificationReceipt({
               </div>
             ) : null}
             <p className="text-muted-foreground text-sm">{copy.gradingLine}</p>
+            {receipt.kind === "straight" && receipt.moveNote ? (
+              <p className="scl-data text-muted-foreground text-[0.65rem] tracking-[0.08em] uppercase">
+                {receipt.moveNote}
+              </p>
+            ) : null}
+            {receipt.kind === "parlay" && receipt.moveNotes?.length ? (
+              <ul className="space-y-1">
+                {receipt.moveNotes.map((note) => (
+                  <li
+                    key={note}
+                    className="scl-data text-muted-foreground text-[0.65rem] tracking-[0.08em] uppercase"
+                  >
+                    {note}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             <Button
               className={`min-h-12 w-full text-base ${PINK_CTA}`}
               render={<Link href={picksHref} />}

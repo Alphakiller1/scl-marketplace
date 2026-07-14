@@ -11,15 +11,28 @@ import {
   marketKeysForMarket,
   type VerifyResult,
 } from "@/lib/odds-verify";
-import { verifyPick } from "@/lib/odds-api";
+import { fetchLiveLine, verifyPick } from "@/lib/odds-api";
 import { americanToDecimal } from "@/lib/odds";
+import {
+  moveKey,
+  resolveCaptureOdds,
+  type AcceptedMove,
+  type MovedLinePayload,
+} from "@/lib/odds-movement";
 import type { StraightReceipt } from "@/lib/verification";
 
 export type PlayResult =
   | { ok: true; receipt: StraightReceipt }
-  | { ok: false; error: string };
+  | { ok: false; error: string }
+  | { ok: false; needsConfirm: MovedLinePayload[] }
+  | { ok: false; unavailable: MovedLinePayload[] };
 
-export async function createPlay(input: PlayInput): Promise<PlayResult> {
+export type { AcceptedMove, MovedLinePayload };
+
+export async function createPlay(
+  input: PlayInput,
+  acceptedMoves?: AcceptedMove[],
+): Promise<PlayResult> {
   const account = await getCurrentAccount();
   if (!account) return { ok: false, error: "You must be logged in." };
   if (account.accountStatus !== "ACTIVE") {
@@ -59,20 +72,68 @@ export async function createPlay(input: PlayInput): Promise<PlayResult> {
     };
   }
 
-  // Pick integrity: the strict path — a hard pre-game lock (C1) and a live odds check (C3). The
-  // server re-derives the lock from its own clock and re-fetches the market; the client-supplied
-  // event fields are never trusted for either.
   const now = new Date();
   const eventStartsAt = new Date(d.eventStartsAt);
-
-  const verify: VerifyResult = await verifyPick({
-    sclSport: d.sport,
+  const marketKeys = marketKeysForMarket(d.market);
+  const key = moveKey({
     eventId: d.eventId,
-    marketKeys: marketKeysForMarket(d.market),
+    market: d.market,
     side: d.side,
     line: d.line,
     player: d.player,
-    claimedAmerican: d.oddsAmerican,
+  });
+  const captureBook = d.book && isBookKey(d.book) ? d.book : null;
+
+  // M5 odds-movement guard: re-fetch live price before any write.
+  const { event: liveEvent, liveAmerican } = await fetchLiveLine({
+    sclSport: d.sport,
+    eventId: d.eventId,
+    marketKeys,
+    side: d.side,
+    line: d.line,
+    player: d.player,
+    book: captureBook,
+    books: profile.books,
+  });
+  if (!liveEvent) {
+    return {
+      ok: false,
+      error: "Odds unavailable for this event — try again in a moment.",
+    };
+  }
+
+  const capture = resolveCaptureOdds({
+    selectedAmerican: d.oddsAmerican,
+    liveAmerican,
+    acceptedMoves,
+    moveKey: key,
+    eventId: d.eventId,
+    eventLabel: d.selection,
+    market: d.market,
+    selection: d.selection,
+    side: d.side,
+    line: d.line,
+    player: d.player,
+    book: captureBook,
+    verifiedAt: now,
+  });
+
+  if (capture.status === "unavailable") {
+    return { ok: false, unavailable: [capture.moved] };
+  }
+  if (capture.status === "needs_confirm") {
+    return { ok: false, needsConfirm: [capture.moved] };
+  }
+
+  // C1/C3 integrity against the odds we will persist (never the stale selected price alone).
+  const verify: VerifyResult = await verifyPick({
+    sclSport: d.sport,
+    eventId: d.eventId,
+    marketKeys,
+    side: d.side,
+    line: d.line,
+    player: d.player,
+    claimedAmerican: capture.oddsAmerican,
     books: profile.books,
   });
 
@@ -85,8 +146,6 @@ export async function createPlay(input: PlayInput): Promise<PlayResult> {
   });
   if (!decision.accept) return { ok: false, error: decision.reason };
 
-  const captureBook = d.book && isBookKey(d.book) ? d.book : null;
-
   const play = await prisma.play.create({
     data: {
       capperId: profile.id,
@@ -94,7 +153,9 @@ export async function createPlay(input: PlayInput): Promise<PlayResult> {
       league: d.league ?? null,
       market: d.market,
       selection: d.selection,
-      oddsAmerican: d.oddsAmerican,
+      oddsAmerican: capture.oddsAmerican,
+      selectedOddsAmerican: capture.selectedOddsAmerican,
+      oddsMovedAccepted: capture.oddsMovedAccepted,
       units: d.units,
       notes: d.notes ?? null,
       eventId: d.eventId ?? null,
@@ -118,13 +179,14 @@ export async function createPlay(input: PlayInput): Promise<PlayResult> {
       kind: "straight",
       selection: d.selection,
       market: d.market,
-      oddsAmerican: d.oddsAmerican,
+      oddsAmerican: capture.oddsAmerican,
       capturedAt: play.createdAt.toISOString(),
       loggedPreGame: decision.loggedPreGame,
       oddsVerified: decision.oddsVerified,
       tier: decision.tier,
       units: d.units,
-      toWinUnits: d.units * (americanToDecimal(d.oddsAmerican) - 1),
+      toWinUnits: d.units * (americanToDecimal(capture.oddsAmerican) - 1),
+      moveNote: capture.moveNote,
     },
   };
 }

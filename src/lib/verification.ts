@@ -83,6 +83,8 @@ export type StraightReceipt = {
   units?: number;
   /** Potential win in units at capture (stake × decimal−1). */
   toWinUnits?: number;
+  /** Honest move sub-line when selected ≠ captured (M5). */
+  moveNote?: string;
 };
 
 /** Payload returned by createParlay on success — rolled-up leg trust facts. */
@@ -97,6 +99,8 @@ export type ParlayReceipt = {
   tiers: VerificationTier[];
   units?: number;
   toWinUnits?: number;
+  /** Per-leg move notes when any leg auto-accepted or explicitly accepted a move. */
+  moveNotes?: string[];
 };
 
 export type SubmissionReceipt = StraightReceipt | ParlayReceipt;

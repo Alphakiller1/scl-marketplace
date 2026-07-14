@@ -13,6 +13,7 @@ import {
   VERIFY_TTL_SECONDS,
   collectAvailablePrices,
   getOddsForBook as getOddsForBookFromEvent,
+  liveLineAmerican,
   verificationMarkets,
   verifyOdds,
   type RawEventOdds,
@@ -226,6 +227,40 @@ export async function verifyPick(params: {
     availableAmerican,
     toleranceProb: params.toleranceProb,
   });
+}
+
+/**
+ * Re-fetch event odds and return the live American for one board line (M5 guard).
+ * `event` is null when the fetch failed; `liveAmerican` is null when the line is
+ * suspended/unavailable on the requested book scope.
+ */
+export async function fetchLiveLine(params: {
+  sclSport: string;
+  eventId: string;
+  marketKeys: string[];
+  side: string;
+  line?: number;
+  player?: string;
+  book?: string | null;
+  books?: readonly string[];
+}): Promise<{ event: RawEventOdds | null; liveAmerican: number | null }> {
+  const event = await fetchEventOddsForVerification(
+    params.sclSport,
+    params.eventId,
+    { books: params.books },
+  );
+  if (!event) return { event: null, liveAmerican: null };
+  const bookKeys = (params.books ?? []).filter(isBookKey);
+  const book = params.book && isBookKey(params.book) ? params.book : null;
+  const liveAmerican = liveLineAmerican(event, {
+    marketKeys: params.marketKeys,
+    side: params.side,
+    line: params.line,
+    player: params.player,
+    bookKey: book,
+    bookKeys,
+  });
+  return { event, liveAmerican };
 }
 
 /**
