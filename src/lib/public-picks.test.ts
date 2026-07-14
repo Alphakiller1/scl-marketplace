@@ -64,7 +64,13 @@ test("publicFeedCappers concatenates ranked and unranked without dropping either
 
 test("joinPlaysToPublicPicks includes Building-a-Record cappers when supplied", () => {
   const ranked = [
-    capper({ id: "r1", handle: "ranked", rank: 1, name: "Ranked Cap" }),
+    capper({
+      id: "r1",
+      handle: "ranked",
+      rank: 1,
+      name: "Ranked Cap",
+      settledPicks: 12,
+    }),
   ];
   const unranked = [
     capper({
@@ -85,10 +91,15 @@ test("joinPlaysToPublicPicks includes Building-a-Record cappers when supplied", 
   );
 
   assert.deepEqual(
-    picks.map((p) => ({ id: p.id, handle: p.capper.handle })),
+    picks.map((p) => ({
+      id: p.id,
+      handle: p.capper.handle,
+      rank: p.capperRank,
+      settled: p.capperSettledPicks,
+    })),
     [
-      { id: "p-unranked", handle: "newbie" },
-      { id: "p-ranked", handle: "ranked" },
+      { id: "p-unranked", handle: "newbie", rank: 0, settled: 0 },
+      { id: "p-ranked", handle: "ranked", rank: 1, settled: 12 },
     ],
   );
 });

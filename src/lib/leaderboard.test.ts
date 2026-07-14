@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   buildPerformanceTrend,
   hasLeaderboardSample,
+  isBuildingARecord,
   isLeaderboardEligible,
   leaderboardWindowStart,
   parseLeaderboardFilters,
@@ -75,6 +76,20 @@ test("below-minimum-sample cappers are not ranking-eligible", () => {
     isLeaderboardEligible({ settledPicks: 10 } as CapperSummary, filters),
     true,
   );
+});
+
+test("isBuildingARecord agrees with the leaderboard partition gate", () => {
+  // Prefer partitioned rank when present (feed cards use this).
+  assert.equal(isBuildingARecord({ rank: 0, settledPicks: 0 }), true);
+  assert.equal(isBuildingARecord({ rank: 1, settledPicks: 0 }), false);
+  // Default minPicks=0 matches getLeaderboardResult(): zero graded = building.
+  assert.equal(isBuildingARecord({ settledPicks: 0 }), true);
+  assert.equal(isBuildingARecord({ settledPicks: 1 }), false);
+  // Unknown sample is not treated as building (mock cards without partition data).
+  assert.equal(isBuildingARecord({}), false);
+  // Higher threshold matches leaderboard min-sample filter.
+  assert.equal(isBuildingARecord({ settledPicks: 9 }, 10), true);
+  assert.equal(isBuildingARecord({ settledPicks: 10 }, 10), false);
 });
 
 test("partitionLeaderboard ranks eligible and clears unranked places", () => {

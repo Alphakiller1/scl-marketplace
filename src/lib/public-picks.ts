@@ -60,6 +60,8 @@ export function joinPlaysToPublicPicks(
           avatarUrl: capper.avatarUrl,
         },
         capperRecord: capper.record,
+        capperRank: capper.rank,
+        capperSettledPicks: capper.settledPicks ?? 0,
         sport: play.sport,
         event: pickContextLabel({
           sport: play.sport,

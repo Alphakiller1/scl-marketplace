@@ -135,6 +135,25 @@ export function isLeaderboardEligible(
   return settledPicks > 0 && settledPicks >= filters.minPicks;
 }
 
+/**
+ * Same gate as {@link partitionLeaderboard} / {@link isLeaderboardEligible}.
+ * Prefer `rank` from a partitioned CapperSummary when present so feed cards
+ * agree with the leaderboard band; otherwise fall back to settled-sample math.
+ */
+export function isBuildingARecord(
+  input: {
+    rank?: number | null;
+    settledPicks?: number | null;
+  },
+  minPicks: number = 0,
+): boolean {
+  if (typeof input.rank === "number") return input.rank <= 0;
+  // Unknown sample → don't claim "building" (mock cards without partition data).
+  if (input.settledPicks == null) return false;
+  const settledPicks = input.settledPicks;
+  return !(settledPicks > 0 && settledPicks >= minPicks);
+}
+
 /** @deprecated Prefer `isLeaderboardEligible` — kept for callers that still
  * gate on sample presence rather than ranked/unranked split. */
 export function hasLeaderboardSample(
