@@ -5,19 +5,19 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
-  SCL Design System — "The Ledger & The Board" (July 2026).
-  Settlement Gold is scarce (verification, rank, selection, CTAs).
-  Green/red are graded results only. See docs/SCL_DESIGN_CONTRACT.md.
+  SCL Design System — token registration for Tailwind v4.
+  Every color has a job. Identity is a deep-purple base with a pink-magenta brand and a
+  blue action color (the original SCL energy, executed clean); live/verification is cyan,
+  performance is green/red, rank is gold. See docs/SCL_DESIGN_CONTRACT.md.
 */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans:
-    var(--font-barlow), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono:
-    var(--font-plex-mono), var(--font-geist-mono), ui-monospace, monospace;
-  --font-heading: var(--font-barlow-condensed), var(--font-barlow), sans-serif;
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
 
+  /* surfaces & lines */
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
@@ -29,6 +29,7 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  /* brand + neutrals */
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-brand: var(--brand);
@@ -42,6 +43,7 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
 
+  /* performance + status (the product) */
   --color-pos: var(--pos);
   --color-pos-foreground: var(--pos-foreground);
   --color-neg: var(--neg);
@@ -52,12 +54,14 @@
   --color-live-foreground: var(--live-foreground);
   --color-push: var(--push);
 
+  /* charts */
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
+  /* sidebar */
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -76,198 +80,170 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* ---- Light theme — "Ticket Paper" (warm stock, not gray SaaS) ---- */
+/* ---- Light theme (dark is the hero; light stays clean & trustworthy) ---- */
 :root {
-  /* Ledger & Board foundation tokens */
-  --scl-ink-950: #f3f1ea;
-  --scl-ink-900: #ece9e0;
-  --scl-ink-800: #ffffff;
-  --scl-ink-700: #f5f3ed;
-  --scl-ink-600: #e9e5da;
-  --scl-line: #d8d3c4;
-  --scl-text: #161b26;
-  --scl-muted-label: #6e7686;
-  --scl-muted-data: #454e60;
-  --scl-gold: #c6952f;
-  --scl-gold-deep: #b98f2e;
-  --scl-gold-ink: #241a05;
-  --scl-win: #2fbf7b;
-  --scl-loss: #e5484d;
-  --scl-push: #8b97ab;
-  --scl-font-display:
-    var(--font-barlow-condensed), "Barlow Condensed", sans-serif;
-  --scl-font-ui: var(--font-barlow), "Barlow", sans-serif;
-  --scl-font-data: var(--font-plex-mono), "IBM Plex Mono", monospace;
-  --scl-radius-card: 14px;
-  --scl-radius-chip: 10px;
-  --scl-shadow-card: 0 8px 24px rgba(0, 0, 0, 0.12);
-  --scl-shadow-slip: 0 12px 30px rgba(0, 0, 0, 0.18);
+  --background: oklch(0.985 0.008 305);
+  --foreground: oklch(0.2 0.05 295);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.05 295);
+  --surface-2: oklch(0.972 0.013 305);
+  --surface-3: oklch(0.948 0.02 305);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.05 295);
 
-  --background: var(--scl-ink-950);
-  --foreground: var(--scl-text);
-  --card: var(--scl-ink-800);
-  --card-foreground: var(--scl-text);
-  --surface-2: var(--scl-ink-700);
-  --surface-3: var(--scl-ink-600);
-  --popover: var(--scl-ink-800);
-  --popover-foreground: var(--scl-text);
+  /* Blue = action, pink-magenta = brand identity (the original SCL energy). */
+  --primary: oklch(0.52 0.2 260);
+  --primary-foreground: oklch(0.99 0 0);
+  --brand: oklch(0.58 0.25 342);
+  --brand-foreground: oklch(0.99 0 0);
 
-  /* Settlement Gold drives CTAs, selection, verification, rank */
-  --primary: var(--scl-gold);
-  --primary-foreground: var(--scl-gold-ink);
-  --brand: var(--scl-gold);
-  --brand-foreground: var(--scl-gold-ink);
-
-  --secondary: var(--scl-ink-700);
-  --secondary-foreground: var(--scl-text);
-  --muted: var(--scl-ink-700);
-  --muted-foreground: var(--scl-muted-label);
-  --avatar-foreground: #ffffff;
-  --avatar-start-lightness: 0.42;
-  --avatar-end-lightness: 0.3;
-  --avatar-chroma: 0.08;
+  --secondary: oklch(0.96 0.016 305);
+  --secondary-foreground: oklch(0.24 0.05 295);
+  --muted: oklch(0.96 0.016 305);
+  --muted-foreground: oklch(0.5 0.035 300);
+  --avatar-foreground: oklch(0.99 0 0);
+  --avatar-start-lightness: 0.48;
+  --avatar-end-lightness: 0.36;
+  --avatar-chroma: 0.16;
   --avatar-glow-lightness: 0.9;
-  --avatar-glow-chroma: 0.02;
-  --accent: color-mix(in srgb, var(--scl-gold) 16%, var(--scl-ink-700));
-  --accent-foreground: var(--scl-gold-deep);
-  --destructive: var(--scl-loss);
+  --avatar-glow-chroma: 0.035;
+  --accent: oklch(0.95 0.035 330);
+  --accent-foreground: oklch(0.4 0.16 335);
+  --destructive: oklch(0.58 0.22 25);
 
-  --pos: var(--scl-win);
-  --pos-foreground: #062416;
-  --neg: var(--scl-loss);
-  --neg-foreground: #2a0608;
-  --gold: var(--scl-gold);
-  --gold-foreground: var(--scl-gold-ink);
-  --live: var(--scl-gold);
-  --live-foreground: var(--scl-gold-ink);
-  --push: var(--scl-push);
+  --pos: oklch(0.6 0.16 150);
+  --pos-foreground: oklch(0.99 0 0);
+  --neg: oklch(0.58 0.22 25);
+  --neg-foreground: oklch(0.99 0 0);
+  --gold: oklch(0.74 0.14 80);
+  --gold-foreground: oklch(0.22 0.05 80);
+  --live: oklch(0.62 0.13 200);
+  --live-foreground: oklch(0.99 0 0);
+  --push: oklch(0.6 0.025 300);
 
-  --border: var(--scl-line);
-  --border-strong: color-mix(in srgb, var(--scl-gold) 45%, var(--scl-line));
-  --input: var(--scl-line);
-  --ring: var(--scl-gold);
+  --border: oklch(0.9 0.014 305);
+  --border-strong: oklch(0.84 0.024 320);
+  --input: oklch(0.9 0.014 305);
+  --ring: oklch(0.58 0.25 342);
 
-  --chart-1: var(--scl-gold);
-  --chart-2: var(--scl-gold-deep);
-  --chart-3: var(--scl-win);
-  --chart-4: var(--scl-muted-data);
-  --chart-5: var(--scl-loss);
+  --chart-1: oklch(0.58 0.25 342);
+  --chart-2: oklch(0.52 0.2 260);
+  --chart-3: oklch(0.7 0.14 200);
+  --chart-4: oklch(0.55 0.19 300);
+  --chart-5: oklch(0.74 0.14 80);
 
-  --radius: var(--scl-radius-card);
+  --radius: 0.7rem;
 
-  --shadow-hairline: inset 0 1px 0 0 rgba(255, 255, 255, 0.75);
-  --shadow-card: var(--scl-shadow-card);
-  --shadow-pop: 0 14px 40px -10px rgba(0, 0, 0, 0.18);
+  /* Elevation — premium, restrained depth. Hairline = a Linear-style top bevel. */
+  --shadow-hairline: inset 0 1px 0 0 oklch(1 0 0 / 0.75);
+  --shadow-card:
+    0 1px 2px oklch(0.28 0.06 295 / 0.06),
+    0 6px 18px -6px oklch(0.28 0.06 295 / 0.1);
+  --shadow-pop:
+    0 1px 2px oklch(0.28 0.06 295 / 0.08),
+    0 14px 40px -10px oklch(0.28 0.06 295 / 0.2);
 
-  --sidebar: var(--scl-ink-900);
-  --sidebar-foreground: var(--scl-text);
-  --sidebar-primary: var(--scl-gold);
-  --sidebar-primary-foreground: var(--scl-gold-ink);
-  --sidebar-accent: var(--scl-ink-700);
-  --sidebar-accent-foreground: var(--scl-text);
-  --sidebar-border: var(--scl-line);
-  --sidebar-ring: var(--scl-gold);
+  /* Compatibility aliases for post-M2 components, mapped to the original SCL identity. */
+  --scl-ink-950: var(--background);
+  --scl-ink-900: var(--background);
+  --scl-ink-800: var(--card);
+  --scl-ink-700: var(--surface-2);
+  --scl-ink-600: var(--surface-3);
+  --scl-line: var(--border);
+  --scl-text: var(--foreground);
+  --scl-muted-label: var(--muted-foreground);
+  --scl-muted-data: var(--foreground);
+  --scl-gold: var(--gold);
+  --scl-gold-deep: color-mix(in oklch, var(--gold) 75%, var(--brand));
+  --scl-gold-ink: var(--gold-foreground);
+  --scl-win: var(--pos);
+  --scl-loss: var(--neg);
+  --scl-push: var(--push);
+  --scl-font-display: var(--font-sans);
+  --scl-font-ui: var(--font-sans);
+  --scl-font-data: var(--font-geist-mono);
+  --scl-radius-card: var(--radius);
+  --scl-radius-chip: calc(var(--radius) * 0.8);
+  --scl-shadow-card: var(--shadow-card);
+  --scl-shadow-slip: var(--shadow-pop);
+
+  --sidebar: oklch(0.985 0.012 305);
+  --sidebar-foreground: oklch(0.22 0.05 295);
+  --sidebar-primary: oklch(0.52 0.2 260);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.95 0.035 330);
+  --sidebar-accent-foreground: oklch(0.4 0.16 335);
+  --sidebar-border: oklch(0.9 0.014 305);
+  --sidebar-ring: oklch(0.58 0.25 342);
 }
 
-/* Alias for design-doc paste compatibility */
-.light {
-  --scl-ink-950: #f3f1ea;
-  --scl-ink-900: #ece9e0;
-  --scl-ink-800: #ffffff;
-  --scl-ink-700: #f5f3ed;
-  --scl-ink-600: #e9e5da;
-  --scl-line: #d8d3c4;
-  --scl-text: #161b26;
-  --scl-muted-label: #6e7686;
-  --scl-muted-data: #454e60;
-  --scl-gold: #c6952f;
-}
-
-/* ---- Dark theme — blue-cast ink (never pure black) ---- */
+/* ---- Dark theme — deep purple base, blue action, pink-magenta brand: the
+   original SCL energy, executed clean. This is the primary experience. ---- */
 .dark {
-  --scl-ink-950: #07090f;
-  --scl-ink-900: #0c111b;
-  --scl-ink-800: #121a28;
-  --scl-ink-700: #1b2536;
-  --scl-ink-600: #26334a;
-  --scl-line: #243045;
-  --scl-text: #edf1f7;
-  --scl-muted-label: #7e8aa0;
-  --scl-muted-data: #aab6c9;
-  --scl-gold: #e9b64b;
-  --scl-gold-deep: #b98f2e;
-  --scl-gold-ink: #241a05;
-  --scl-win: #2fbf7b;
-  --scl-loss: #e5484d;
-  --scl-push: #8b97ab;
-  --scl-shadow-card: 0 8px 24px rgba(0, 0, 0, 0.35);
-  --scl-shadow-slip: 0 12px 30px rgba(0, 0, 0, 0.55);
+  --background: oklch(0.16 0.055 293);
+  --foreground: oklch(0.97 0.012 305);
+  --card: oklch(0.205 0.06 292);
+  --card-foreground: oklch(0.97 0.012 305);
+  --surface-2: oklch(0.25 0.065 291);
+  --surface-3: oklch(0.3 0.07 290);
+  --popover: oklch(0.205 0.06 292);
+  --popover-foreground: oklch(0.97 0.012 305);
 
-  --background: var(--scl-ink-950);
-  --foreground: var(--scl-text);
-  --card: var(--scl-ink-800);
-  --card-foreground: var(--scl-text);
-  --surface-2: var(--scl-ink-700);
-  --surface-3: var(--scl-ink-600);
-  --popover: var(--scl-ink-800);
-  --popover-foreground: var(--scl-text);
+  --primary: oklch(0.62 0.19 260);
+  --primary-foreground: oklch(0.99 0 0);
+  --brand: oklch(0.66 0.26 342);
+  --brand-foreground: oklch(0.99 0 0);
 
-  --primary: var(--scl-gold);
-  --primary-foreground: var(--scl-gold-ink);
-  --brand: var(--scl-gold);
-  --brand-foreground: var(--scl-gold-ink);
+  --secondary: oklch(0.3 0.07 295);
+  --secondary-foreground: oklch(0.97 0.012 305);
+  --muted: oklch(0.29 0.055 293);
+  --muted-foreground: oklch(0.76 0.03 305);
+  --avatar-foreground: oklch(0.99 0 0);
+  --avatar-start-lightness: 0.52;
+  --avatar-end-lightness: 0.38;
+  --avatar-chroma: 0.17;
+  --avatar-glow-lightness: 0.94;
+  --avatar-glow-chroma: 0.035;
+  --accent: oklch(0.44 0.15 322);
+  --accent-foreground: oklch(0.95 0.05 322);
+  --destructive: oklch(0.66 0.2 25);
 
-  --secondary: var(--scl-ink-700);
-  --secondary-foreground: var(--scl-text);
-  --muted: var(--scl-ink-700);
-  --muted-foreground: var(--scl-muted-label);
-  --avatar-foreground: #ffffff;
-  --avatar-start-lightness: 0.38;
-  --avatar-end-lightness: 0.26;
-  --avatar-chroma: 0.06;
-  --avatar-glow-lightness: 0.7;
-  --avatar-glow-chroma: 0.02;
-  --accent: color-mix(in srgb, var(--scl-gold) 14%, var(--scl-ink-700));
-  --accent-foreground: var(--scl-gold);
-  --destructive: var(--scl-loss);
+  --pos: oklch(0.74 0.17 152);
+  --pos-foreground: oklch(0.16 0.03 152);
+  --neg: oklch(0.68 0.2 25);
+  --neg-foreground: oklch(0.16 0.03 25);
+  --gold: oklch(0.83 0.14 84);
+  --gold-foreground: oklch(0.2 0.05 84);
+  --live: oklch(0.8 0.13 200);
+  --live-foreground: oklch(0.16 0.03 200);
+  --push: oklch(0.72 0.03 300);
 
-  --pos: var(--scl-win);
-  --pos-foreground: #062416;
-  --neg: var(--scl-loss);
-  --neg-foreground: #2a0608;
-  --gold: var(--scl-gold);
-  --gold-foreground: var(--scl-gold-ink);
-  --live: var(--scl-gold);
-  --live-foreground: var(--scl-gold-ink);
-  --push: var(--scl-push);
+  --border: oklch(1 0 0 / 10%);
+  --border-strong: oklch(0.72 0.18 342 / 28%);
+  --input: oklch(1 0 0 / 13%);
+  --ring: oklch(0.66 0.26 342);
 
-  --border: var(--scl-line);
-  --border-strong: color-mix(
-    in srgb,
-    var(--scl-gold-deep) 55%,
-    var(--scl-line)
-  );
-  --input: var(--scl-line);
-  --ring: var(--scl-gold);
+  --chart-1: oklch(0.66 0.26 342);
+  --chart-2: oklch(0.62 0.19 260);
+  --chart-3: oklch(0.8 0.13 200);
+  --chart-4: oklch(0.6 0.2 300);
+  --chart-5: oklch(0.83 0.14 84);
 
-  --chart-1: var(--scl-gold);
-  --chart-2: var(--scl-gold-deep);
-  --chart-3: var(--scl-win);
-  --chart-4: var(--scl-muted-data);
-  --chart-5: var(--scl-loss);
+  --sidebar: oklch(0.175 0.06 294);
+  --sidebar-foreground: oklch(0.97 0.012 305);
+  --sidebar-primary: oklch(0.62 0.19 260);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.33 0.085 300);
+  --sidebar-accent-foreground: oklch(0.95 0.05 322);
+  --sidebar-border: oklch(1 0 0 / 9%);
+  --sidebar-ring: oklch(0.66 0.26 342);
 
-  --shadow-hairline: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
-  --shadow-card: var(--scl-shadow-card);
-  --shadow-pop: var(--scl-shadow-slip);
-
-  --sidebar: var(--scl-ink-900);
-  --sidebar-foreground: var(--scl-text);
-  --sidebar-primary: var(--scl-gold);
-  --sidebar-primary-foreground: var(--scl-gold-ink);
-  --sidebar-accent: var(--scl-ink-700);
-  --sidebar-accent-foreground: var(--scl-text);
-  --sidebar-border: var(--scl-line);
-  --sidebar-ring: var(--scl-gold);
+  /* Elevation — dark base wants soft blacks + a faint light top bevel. */
+  --shadow-hairline: inset 0 1px 0 0 oklch(1 0 0 / 0.06);
+  --shadow-card:
+    0 1px 2px oklch(0 0 0 / 0.3), 0 8px 24px -8px oklch(0 0 0 / 0.4);
+  --shadow-pop:
+    0 2px 6px oklch(0 0 0 / 0.4), 0 18px 48px -12px oklch(0 0 0 / 0.62);
 }
 
 @layer base {
@@ -276,25 +252,18 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: var(--scl-font-ui);
     -webkit-font-smoothing: antialiased;
   }
   html {
     @apply font-sans;
-  }
-  h1,
-  h2,
-  h3,
-  .scl-display {
-    font-family: var(--scl-font-display);
   }
   /* Numbers are the product — default stats to tabular figures. */
   .nums {
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
   }
+  /* Premium depth: subtle elevation on cards, a stronger float on overlays. */
   [data-slot="card"] {
-    border-radius: var(--scl-radius-card);
     box-shadow: var(--shadow-hairline), var(--shadow-card);
   }
   [data-slot="dropdown-menu-content"],
@@ -306,7 +275,9 @@
 }
 
 @layer utilities {
-  /* Ledger data face — odds, lines, units, ROI, timestamps. No exceptions. */
+  .scl-display {
+    font-family: var(--scl-font-display);
+  }
   .scl-data {
     font-family: var(--scl-font-data);
     font-variant-numeric: tabular-nums;
@@ -319,30 +290,44 @@
     letter-spacing: 0.18em;
     text-transform: uppercase;
   }
-  /* Faint board scanlines — pick-flow / odds board only. */
   .scl-scanline {
     background-image: repeating-linear-gradient(
       0deg,
-      rgba(255, 255, 255, 0.012) 0 1px,
+      color-mix(in oklch, var(--foreground) 3%, transparent) 0 1px,
       transparent 1px 4px
     );
   }
-  /* Settlement Gold wordmark/heading — scarce brand signal. */
-  .scl-brand-text {
-    color: var(--scl-gold);
-    background: none;
-    -webkit-background-clip: unset;
-    background-clip: unset;
-  }
-  /* Kept for compatibility; no decorative orbs (Ledger & Board). */
+  /* Subtle stadium-light glow behind hero/feature surfaces. Restrained. */
   .scl-glow {
-    background-image: none;
+    background-image:
+      radial-gradient(
+        46% 55% at 22% 0%,
+        color-mix(in oklch, var(--brand) 22%, transparent),
+        transparent 70%
+      ),
+      radial-gradient(
+        46% 55% at 80% 4%,
+        color-mix(in oklch, var(--primary) 20%, transparent),
+        transparent 72%
+      );
+  }
+  /* Pink→blue brand wordmark/heading fill. */
+  .scl-brand-text {
+    background-image: linear-gradient(
+      100deg,
+      var(--brand),
+      var(--accent) 45%,
+      var(--primary)
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
   .scl-card-gradient {
     background-image: linear-gradient(
       180deg,
-      var(--card),
-      color-mix(in srgb, var(--surface-2) 80%, var(--card))
+      color-mix(in oklch, var(--card) 100%, transparent),
+      color-mix(in oklch, var(--surface-2) 80%, transparent)
     );
   }
   .scl-avatar-fallback {
@@ -365,8 +350,9 @@
         )
       );
     text-shadow: 0 1px 2px
-      color-mix(in srgb, var(--background) 70%, transparent);
+      color-mix(in oklch, var(--background) 70%, transparent);
   }
+  /* Opt-in elevation for surfaces that aren't shadcn cards. */
   .scl-elevated {
     box-shadow: var(--shadow-hairline), var(--shadow-card);
   }
@@ -402,6 +388,8 @@
       transform: scale(1) rotate(6deg);
     }
   }
+  /* Subtle entrance reveal — opt-in, GPU-friendly, reduced-motion aware. Stagger with
+     inline `animation-delay`. Uses `both` fill so there's no pre-paint flash. */
   @keyframes scl-reveal-in {
     from {
       opacity: 0;
@@ -420,6 +408,7 @@
       animation: none;
     }
   }
+  /* Opt-in hover lift for interactive cards/rows (leaderboard, capper cards). */
   .scl-interactive {
     transition:
       transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
