@@ -162,7 +162,7 @@ function FilterForm({
           <div className="flex items-end gap-2">
             <Button
               type="submit"
-              className="min-h-11 flex-1 border-[color:var(--scl-gold)] bg-[color:var(--scl-gold)] text-[color:var(--scl-gold-ink)] hover:bg-[color:var(--scl-gold-deep)] hover:text-[color:var(--scl-gold-ink)] sm:flex-none"
+              className="min-h-11 flex-1 border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)] sm:flex-none"
             >
               Apply
             </Button>
@@ -208,7 +208,7 @@ function FilterPillGroup({
             className={cn(
               "scl-display inline-flex min-h-11 cursor-pointer items-center rounded-[22px] border px-3.5 text-[15px] font-semibold tracking-[0.05em] transition-colors",
               "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",
-              "has-[:checked]:border-[color:var(--scl-gold)] has-[:checked]:bg-[color:var(--scl-gold)] has-[:checked]:text-[color:var(--scl-gold-ink)]",
+              "has-[:checked]:border-[color:var(--scl-blue)] has-[:checked]:bg-[color:var(--scl-blue)] has-[:checked]:text-[color:var(--scl-blue-ink)]",
             )}
           >
             <input

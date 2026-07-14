@@ -26,7 +26,7 @@ export function SectionHeader({
             <Icon className="size-4" />
           </span>
         ) : null}
-        <div className="min-w-0 border-t border-[color:var(--scl-gold-deep)] pt-2.5">
+        <div className="min-w-0 border-t border-[color:var(--scl-pink-deep)] pt-2.5">
           <h2 className="scl-display text-lg leading-tight font-semibold tracking-[0.06em] uppercase">
             {title}
           </h2>

@@ -6,7 +6,7 @@
 
 /*
   SCL Design System ? "The Ledger & The Board" (July 2026).
-  Settlement Gold is scarce (verification, rank, selection, CTAs).
+  v1.1: pink = conviction, blue = navigation. No Settlement Gold.
   Green/red are graded results only. See design/SCL-DESIGN-SPEC.md.
 */
 @theme inline {
@@ -44,8 +44,11 @@
   --color-pos-foreground: var(--pos-foreground);
   --color-neg: var(--neg);
   --color-neg-foreground: var(--neg-foreground);
-  --color-gold: var(--gold);
-  --color-gold-foreground: var(--gold-foreground);
+  --color-pink: var(--pink);
+  --color-pink-foreground: var(--pink-foreground);
+  --color-blue: var(--blue);
+  --color-blue-foreground: var(--blue-foreground);
+
   --color-live: var(--live);
   --color-live-foreground: var(--live-foreground);
   --color-push: var(--push);
@@ -86,9 +89,13 @@
   --scl-text: #161b26;
   --scl-muted-label: #6e7686;
   --scl-muted-data: #454e60;
-  --scl-gold: #c6952f;
-  --scl-gold-deep: #b98f2e;
-  --scl-gold-ink: #241a05;
+  --scl-pink: #a6007f;
+  --scl-pink-deep: #8d006a;
+  --scl-pink-ink: #fff3fc;
+  --scl-blue: #044cb6;
+  --scl-blue-deep: #0043ac;
+  --scl-blue-ink: #f1f9ff;
+
   --scl-win: #2fbf7b;
   --scl-loss: #e5484d;
   --scl-push: #8b97ab;
@@ -110,11 +117,11 @@
   --popover: var(--scl-ink-800);
   --popover-foreground: var(--scl-text);
 
-  /* Settlement Gold drives CTAs, selection, verification, rank */
-  --primary: var(--scl-gold);
-  --primary-foreground: var(--scl-gold-ink);
-  --brand: var(--scl-gold);
-  --brand-foreground: var(--scl-gold-ink);
+  /* Pink = conviction (CTAs, selection, verification, rank); blue = navigation */
+  --primary: var(--scl-pink);
+  --primary-foreground: var(--scl-pink-ink);
+  --brand: var(--scl-pink);
+  --brand-foreground: var(--scl-pink-ink);
 
   --secondary: var(--scl-ink-700);
   --secondary-foreground: var(--scl-text);
@@ -123,27 +130,30 @@
   --avatar-foreground: #ffffff;
   --avatar-start-lightness: 0.42;
   --avatar-chroma: 0.08;
-  --accent: color-mix(in srgb, var(--scl-gold) 16%, var(--scl-ink-700));
-  --accent-foreground: var(--scl-gold-deep);
+  --accent: color-mix(in srgb, var(--scl-pink) 16%, var(--scl-ink-700));
+  --accent-foreground: var(--scl-pink-deep);
   --destructive: var(--scl-loss);
 
   --pos: var(--scl-win);
   --pos-foreground: #062416;
   --neg: var(--scl-loss);
   --neg-foreground: #2a0608;
-  --gold: var(--scl-gold);
-  --gold-foreground: var(--scl-gold-ink);
-  --live: var(--scl-gold);
-  --live-foreground: var(--scl-gold-ink);
+  --pink: var(--scl-pink);
+  --pink-foreground: var(--scl-pink-ink);
+  --blue: var(--scl-blue);
+  --blue-foreground: var(--scl-blue-ink);
+
+  --live: var(--scl-blue);
+  --live-foreground: var(--scl-blue-ink);
   --push: var(--scl-push);
 
   --border: var(--scl-line);
-  --border-strong: color-mix(in srgb, var(--scl-gold) 45%, var(--scl-line));
+  --border-strong: color-mix(in srgb, var(--scl-pink) 45%, var(--scl-line));
   --input: var(--scl-line);
-  --ring: var(--scl-gold);
+  --ring: var(--scl-pink);
 
-  --chart-1: var(--scl-gold);
-  --chart-2: var(--scl-gold-deep);
+  --chart-1: var(--scl-pink);
+  --chart-2: var(--scl-pink-deep);
   --chart-3: var(--scl-win);
   --chart-4: var(--scl-muted-data);
   --chart-5: var(--scl-loss);
@@ -156,12 +166,12 @@
 
   --sidebar: var(--scl-ink-900);
   --sidebar-foreground: var(--scl-text);
-  --sidebar-primary: var(--scl-gold);
-  --sidebar-primary-foreground: var(--scl-gold-ink);
+  --sidebar-primary: var(--scl-pink);
+  --sidebar-primary-foreground: var(--scl-pink-ink);
   --sidebar-accent: var(--scl-ink-700);
   --sidebar-accent-foreground: var(--scl-text);
   --sidebar-border: var(--scl-line);
-  --sidebar-ring: var(--scl-gold);
+  --sidebar-ring: var(--scl-pink);
 }
 
 /* Alias for design-doc paste compatibility */
@@ -175,7 +185,12 @@
   --scl-text: #161b26;
   --scl-muted-label: #6e7686;
   --scl-muted-data: #454e60;
-  --scl-gold: #c6952f;
+  --scl-pink: #a6007f;
+  --scl-pink-deep: #8d006a;
+  --scl-pink-ink: #fff3fc;
+  --scl-blue: #044cb6;
+  --scl-blue-deep: #0043ac;
+  --scl-blue-ink: #f1f9ff;
 }
 
 /* ---- Dark theme ? blue-cast ink (never pure black) ---- */
@@ -189,9 +204,13 @@
   --scl-text: #edf1f7;
   --scl-muted-label: #7e8aa0;
   --scl-muted-data: #aab6c9;
-  --scl-gold: #e9b64b;
-  --scl-gold-deep: #b98f2e;
-  --scl-gold-ink: #241a05;
+  --scl-pink: #ba008e;
+  --scl-pink-deep: #8d006a;
+  --scl-pink-ink: #fff3fc;
+  --scl-blue: #105fd9;
+  --scl-blue-deep: #0043ac;
+  --scl-blue-ink: #f1f9ff;
+
   --scl-win: #2fbf7b;
   --scl-loss: #e5484d;
   --scl-push: #8b97ab;
@@ -207,10 +226,10 @@
   --popover: var(--scl-ink-800);
   --popover-foreground: var(--scl-text);
 
-  --primary: var(--scl-gold);
-  --primary-foreground: var(--scl-gold-ink);
-  --brand: var(--scl-gold);
-  --brand-foreground: var(--scl-gold-ink);
+  --primary: var(--scl-pink);
+  --primary-foreground: var(--scl-pink-ink);
+  --brand: var(--scl-pink);
+  --brand-foreground: var(--scl-pink-ink);
 
   --secondary: var(--scl-ink-700);
   --secondary-foreground: var(--scl-text);
@@ -219,31 +238,34 @@
   --avatar-foreground: #ffffff;
   --avatar-start-lightness: 0.38;
   --avatar-chroma: 0.06;
-  --accent: color-mix(in srgb, var(--scl-gold) 14%, var(--scl-ink-700));
-  --accent-foreground: var(--scl-gold);
+  --accent: color-mix(in srgb, var(--scl-pink) 14%, var(--scl-ink-700));
+  --accent-foreground: var(--scl-pink);
   --destructive: var(--scl-loss);
 
   --pos: var(--scl-win);
   --pos-foreground: #062416;
   --neg: var(--scl-loss);
   --neg-foreground: #2a0608;
-  --gold: var(--scl-gold);
-  --gold-foreground: var(--scl-gold-ink);
-  --live: var(--scl-gold);
-  --live-foreground: var(--scl-gold-ink);
+  --pink: var(--scl-pink);
+  --pink-foreground: var(--scl-pink-ink);
+  --blue: var(--scl-blue);
+  --blue-foreground: var(--scl-blue-ink);
+
+  --live: var(--scl-blue);
+  --live-foreground: var(--scl-blue-ink);
   --push: var(--scl-push);
 
   --border: var(--scl-line);
   --border-strong: color-mix(
     in srgb,
-    var(--scl-gold-deep) 55%,
+    var(--scl-pink-deep) 55%,
     var(--scl-line)
   );
   --input: var(--scl-line);
-  --ring: var(--scl-gold);
+  --ring: var(--scl-pink);
 
-  --chart-1: var(--scl-gold);
-  --chart-2: var(--scl-gold-deep);
+  --chart-1: var(--scl-pink);
+  --chart-2: var(--scl-pink-deep);
   --chart-3: var(--scl-win);
   --chart-4: var(--scl-muted-data);
   --chart-5: var(--scl-loss);
@@ -254,12 +276,12 @@
 
   --sidebar: var(--scl-ink-900);
   --sidebar-foreground: var(--scl-text);
-  --sidebar-primary: var(--scl-gold);
-  --sidebar-primary-foreground: var(--scl-gold-ink);
+  --sidebar-primary: var(--scl-pink);
+  --sidebar-primary-foreground: var(--scl-pink-ink);
   --sidebar-accent: var(--scl-ink-700);
   --sidebar-accent-foreground: var(--scl-text);
   --sidebar-border: var(--scl-line);
-  --sidebar-ring: var(--scl-gold);
+  --sidebar-ring: var(--scl-pink);
 }
 
 @layer base {

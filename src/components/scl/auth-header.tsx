@@ -14,7 +14,7 @@ export function AuthHeader({
 }) {
   return (
     <header className="mb-6">
-      <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-[color:var(--scl-ink-700)] text-[color:var(--scl-gold)]">
+      <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-[color:var(--scl-ink-700)] text-[color:var(--scl-pink)]">
         <Icon className="size-5" aria-hidden />
       </span>
       <p className="scl-eyebrow text-[color:var(--scl-muted-label)]">

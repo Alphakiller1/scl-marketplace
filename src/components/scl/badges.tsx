@@ -24,7 +24,7 @@ export function VerificationBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 text-[color:var(--scl-gold)]",
+        "inline-flex items-center gap-1 text-[color:var(--scl-pink)]",
         className,
       )}
       title="Verified Record"
@@ -53,7 +53,7 @@ export function PickTierBadge({
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.7rem] font-semibold",
         verified
-          ? "bg-[color:var(--scl-gold)]/15 text-[color:var(--scl-gold)] ring-1 ring-[color:var(--scl-gold)]/30"
+          ? "bg-[color:var(--scl-pink)]/15 text-[color:var(--scl-pink)] ring-1 ring-[color:var(--scl-pink)]/30"
           : "border-border/80 text-muted-foreground border bg-transparent",
         className,
       )}

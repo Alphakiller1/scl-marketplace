@@ -296,6 +296,8 @@ model Play {
   selection    String
   oddsAmerican Int
   units        Decimal   @db.Decimal(10, 2) // standardized range 0.25–5 (enforced in Zod, see src/lib/constants.ts)
+  /// Odds API bookmaker key captured at submit (src/lib/books.ts). Null = pre-book era / unknown.
+  book         String?
   outcome      Outcome   @default(PENDING)
   profitUnits  Decimal?  @db.Decimal(10, 2)
   notes        String?

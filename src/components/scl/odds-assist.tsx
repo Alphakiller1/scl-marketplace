@@ -63,7 +63,7 @@ const PROP_PILL_CLASS =
   "scl-display min-h-11 rounded-[22px] border px-3.5 text-[15px] font-semibold tracking-[0.05em] transition-colors";
 
 const PROP_PILL_ACTIVE =
-  "border-[color:var(--scl-gold)] bg-[color:var(--scl-gold)] text-[color:var(--scl-gold-ink)]";
+  "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]";
 
 const PROP_PILL_IDLE =
   "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]";
@@ -246,7 +246,7 @@ export function OddsAssist({
           aria-hidden
         />
       ) : null}
-      <div className="flex items-baseline justify-between gap-2 border-t border-[color:var(--scl-gold-deep)] pt-2.5">
+      <div className="flex items-baseline justify-between gap-2 border-t border-[color:var(--scl-pink-deep)] pt-2.5">
         <h2 className="scl-display text-sm font-semibold tracking-[0.08em] uppercase">
           {boardSport} Board
         </h2>
@@ -397,13 +397,20 @@ function DayToggle({
           className={cn(
             "scl-display relative min-h-10 rounded-lg text-sm font-semibold tracking-[0.06em] uppercase transition-colors",
             day === d
-              ? "bg-[color:var(--scl-ink-600)] text-[color:var(--scl-text)] shadow-[inset_0_0_0_1px_var(--scl-line)]"
+              ? "bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)] shadow-[inset_0_0_0_1px_var(--scl-blue-deep)]"
               : "text-[color:var(--scl-muted-data)] hover:text-[color:var(--scl-text)]",
             loading && "opacity-60",
           )}
         >
           {d}
-          <span className="scl-data mt-0.5 block text-[0.65rem] font-medium tracking-[0.08em] text-[color:var(--scl-muted-label)] normal-case">
+          <span
+            className={cn(
+              "scl-data mt-0.5 block text-[0.65rem] font-medium tracking-[0.08em] normal-case",
+              day === d
+                ? "text-[color:var(--scl-blue-ink)]/80"
+                : "text-[color:var(--scl-muted-label)]",
+            )}
+          >
             {dateLabel[d]}
             {loading ? "" : ` · ${counts[d]}`}
           </span>
@@ -513,7 +520,7 @@ function BoardTeamLine({ team, fav }: { team: TeamIdentity; fav?: boolean }) {
         {team.shortName}
       </span>
       {fav ? (
-        <span className="scl-data shrink-0 rounded border border-[color:var(--scl-gold)] px-1.5 py-px text-[8.5px] tracking-[0.12em] text-[color:var(--scl-gold)] uppercase">
+        <span className="scl-data shrink-0 rounded border border-[color:var(--scl-pink)] px-1.5 py-px text-[8.5px] tracking-[0.12em] text-[color:var(--scl-pink)] uppercase">
           Fav
         </span>
       ) : null}

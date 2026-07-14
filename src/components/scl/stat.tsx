@@ -1,12 +1,12 @@
 import { cn } from "@/lib/utils";
 import { formatRecord, formatRoi, formatUnits, signTone } from "@/lib/format";
 
-type Tone = "pos" | "neg" | "muted" | "gold" | "brand" | "live" | "default";
+type Tone = "pos" | "neg" | "muted" | "pink" | "brand" | "live" | "default";
 
 const toneText: Record<Tone, string> = {
   pos: "text-pos",
   neg: "text-neg",
-  gold: "text-gold",
+  pink: "text-pink",
   brand: "text-brand",
   live: "text-live",
   muted: "text-muted-foreground",

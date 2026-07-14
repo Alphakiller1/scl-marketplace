@@ -27,7 +27,7 @@ function nearTermCount(events: { commenceTime: string }[]): number {
 
 /**
  * Sport pill rail — SCL-DESIGN-SPEC SPORT PILL recipe.
- * 44px, radius 22px, mono count badge, gold active, opacity .42 when count is 0.
+ * 44px, radius 22px, mono count badge, blue active (navigation), opacity .42 when count is 0.
  */
 export function SportPills({
   value,
@@ -93,7 +93,7 @@ export function SportPills({
             className={cn(
               "scl-display flex h-11 shrink-0 items-center gap-2 rounded-[22px] border px-3.5 text-[15px] font-semibold tracking-[0.05em] transition-opacity",
               active
-                ? "border-[color:var(--scl-gold)] bg-[color:var(--scl-gold)] text-[color:var(--scl-gold-ink)]"
+                ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
                 : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",
               zero && !active && "opacity-[0.42]",
             )}
@@ -104,7 +104,7 @@ export function SportPills({
                 className={cn(
                   "scl-data rounded-[9px] border px-1.5 py-0.5 text-[10px] font-medium",
                   active
-                    ? "border-transparent bg-black/18 text-[color:var(--scl-gold-ink)]"
+                    ? "border-transparent bg-black/18 text-[color:var(--scl-blue-ink)]"
                     : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-950)] text-[color:var(--scl-muted-label)]",
                 )}
               >

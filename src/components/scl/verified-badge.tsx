@@ -21,7 +21,7 @@ export function VerifiedBadge({
     return (
       <span
         className={cn(
-          "scl-data inline-flex items-center gap-1 text-[0.7rem] font-semibold text-[color:var(--scl-gold)]",
+          "scl-data inline-flex items-center gap-1 text-[0.7rem] font-semibold text-[color:var(--scl-pink)]",
           className,
         )}
         title="Share of tracked picks market-verified"
@@ -40,7 +40,7 @@ export function VerifiedBadge({
       className={cn(
         "inline-flex min-h-8 items-center gap-1 rounded-md px-2 text-[0.7rem] font-semibold tracking-wide",
         verified
-          ? "border border-[color:var(--scl-gold)] text-[color:var(--scl-gold)]"
+          ? "border border-[color:var(--scl-pink)] text-[color:var(--scl-pink)]"
           : "border border-[color:var(--scl-line)] text-[color:var(--scl-muted-label)]",
         className,
       )}

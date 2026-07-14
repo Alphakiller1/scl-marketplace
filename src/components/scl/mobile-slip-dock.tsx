@@ -46,7 +46,7 @@ export function MobileSlipDock({
           className="mb-3 flex h-14 items-center gap-3 rounded-[14px] border px-4"
           style={{
             background: "linear-gradient(180deg,#1E2940,#141C2C)",
-            borderColor: "var(--scl-gold-deep)",
+            borderColor: "var(--scl-pink-deep)",
             boxShadow: "var(--scl-shadow-slip)",
           }}
         >
@@ -54,14 +54,14 @@ export function MobileSlipDock({
             {countLabel}
           </span>
           {oddsLabel ? (
-            <span className="scl-data shrink-0 text-[15px] font-semibold text-[color:var(--scl-gold)]">
+            <span className="scl-data shrink-0 text-[15px] font-semibold text-[color:var(--scl-pink)]">
               {oddsLabel}
             </span>
           ) : null}
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="scl-display h-11 shrink-0 rounded-[10px] bg-[color:var(--scl-gold)] px-4 text-[15px] font-bold tracking-[0.08em] text-[color:var(--scl-gold-ink)] uppercase"
+            className="scl-display h-11 shrink-0 rounded-[10px] bg-[color:var(--scl-pink)] px-4 text-[15px] font-bold tracking-[0.08em] text-[color:var(--scl-pink-ink)] uppercase"
             aria-haspopup="dialog"
             aria-expanded={open}
           >

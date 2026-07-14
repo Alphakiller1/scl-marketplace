@@ -4,8 +4,8 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VerificationBadge } from "@/components/scl/badges";
 
-const GOLD_CTA =
-  "border-[color:var(--scl-gold)] bg-[color:var(--scl-gold)] text-[color:var(--scl-gold-ink)] hover:bg-[color:var(--scl-gold-deep)] hover:text-[color:var(--scl-gold-ink)]";
+const PINK_CTA =
+  "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)]";
 
 export function CompetitionHero() {
   return (
@@ -54,7 +54,7 @@ export function CompetitionHero() {
               render={<Link href="/leaderboard" />}
               nativeButton={false}
               size="lg"
-              className={`min-h-11 w-full min-w-0 gap-2 whitespace-normal sm:w-auto ${GOLD_CTA}`}
+              className={`min-h-11 w-full min-w-0 gap-2 whitespace-normal sm:w-auto ${PINK_CTA}`}
             >
               Explore Leaderboard <ArrowRight className="size-4" aria-hidden />
             </Button>

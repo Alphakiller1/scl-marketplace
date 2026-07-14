@@ -76,7 +76,7 @@ export async function SiteHeader() {
                 render={<Link href="/signup" />}
                 nativeButton={false}
                 size="sm"
-                className="hidden min-h-11 border-[color:var(--scl-gold)] bg-[color:var(--scl-gold)] text-[color:var(--scl-gold-ink)] hover:bg-[color:var(--scl-gold-deep)] hover:text-[color:var(--scl-gold-ink)] sm:inline-flex md:h-11"
+                className="hidden min-h-11 border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)] sm:inline-flex md:h-11"
               >
                 Become A Capper
               </Button>
