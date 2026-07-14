@@ -13,6 +13,7 @@ export async function getCapperProfileByUserId(userId: string) {
       bannerUrl: true,
       specialties: true,
       sports: true,
+      books: true,
       betTypes: true,
       dailyVolume: true,
       writtenAnalysis: true,

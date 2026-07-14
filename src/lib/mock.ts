@@ -45,6 +45,8 @@ export type CapperSummary = {
   bannerUrl?: string;
   specialties?: string[];
   sports?: string[]; // full coverage list shown on the profile
+  /** Odds API bookmaker keys from CapperProfile.books (optional public context). */
+  books?: string[];
   joinedAt?: Date;
   socials?: {
     twitter?: string;

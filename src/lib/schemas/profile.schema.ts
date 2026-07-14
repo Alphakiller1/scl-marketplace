@@ -2,6 +2,7 @@ import { z } from "zod";
 import { BetType, DailyVolume, ProviderType } from "@prisma/client";
 
 import { SPORT_KEYS } from "@/lib/constants";
+import { BOOK_KEYS } from "@/lib/books";
 import {
   STOREFRONT_DESCRIPTION_MAX_LENGTH,
   STOREFRONT_TITLE_MAX_LENGTH,
@@ -15,6 +16,7 @@ export const profileSchema = z.object({
   bio: z.string().max(600, "Keep it under 600 characters").optional(),
   providerType: z.nativeEnum(ProviderType),
   sports: z.array(z.enum(SPORT_KEYS as [string, ...string[]])).default([]),
+  books: z.array(z.enum(BOOK_KEYS as [string, ...string[]])).default([]),
   specialties: z
     .array(
       z

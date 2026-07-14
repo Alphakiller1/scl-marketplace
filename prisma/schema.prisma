@@ -161,6 +161,8 @@ model CapperProfile {
   bannerUrl             String?
   specialties           String[]     @default([])
   sports                String[]     @default([]) // canonical sport keys from src/lib/sports.ts
+  /// Odds API bookmaker keys the capper bets (src/lib/books.ts). Empty = all US books.
+  books                 String[]     @default([])
   betTypes              BetType[]    @default([])
   dailyVolume           DailyVolume?
   writtenAnalysis       Boolean      @default(false)

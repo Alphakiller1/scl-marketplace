@@ -63,6 +63,7 @@ function fetchRankableProfiles(filters: LeaderboardFilters) {
       storefrontEnabled: true,
       isLegacy: true,
       sports: true,
+      books: true,
       createdAt: true,
       user: {
         select: { username: true, emailVerified: true },
@@ -220,6 +221,7 @@ function summarize(p: ProfileRow): CapperSummary | null {
     bio: p.bio ?? undefined,
     specialties: p.specialties.length ? p.specialties : undefined,
     sports: p.sports.length ? p.sports : undefined,
+    books: p.books.length ? p.books : undefined,
     storefront: resolveStorefrontIdentity({
       username,
       title: p.storefrontTitle,

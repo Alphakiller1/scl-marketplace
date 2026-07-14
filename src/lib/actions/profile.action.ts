@@ -38,6 +38,7 @@ export async function updateProfileAction(
       bio: nullify(d.bio),
       providerType: d.providerType,
       sports: d.sports,
+      books: d.books,
       specialties: d.specialties,
       betTypes: d.betTypes,
       dailyVolume: d.dailyVolume ? d.dailyVolume : null,
