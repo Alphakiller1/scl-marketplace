@@ -42,6 +42,7 @@ function play(
     units: 1,
     outcome: "PENDING",
     profitUnits: null,
+    eventStartsAt: null,
     createdAt: new Date("2026-07-13T12:00:00Z"),
     verificationTier: "VERIFIED",
     side: "Yankees",
