@@ -8,6 +8,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 
 import { MobileSlipDock } from "@/components/scl/mobile-slip-dock";
+import { BettingTitle } from "@/components/scl/betting-title";
 import { OddsAssist, type OddsPick } from "@/components/scl/odds-assist";
 import { SectionHeader } from "@/components/scl/section";
 import { SlipConflictPrompt } from "@/components/scl/slip-conflict-prompt";
@@ -202,9 +203,11 @@ export default function NewParlayPage() {
                 )}
               >
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">
-                    {leg?.selection || `Leg ${i + 1}`}
-                  </p>
+                  <BettingTitle
+                    as="p"
+                    text={leg?.selection || `Leg ${i + 1}`}
+                    className="truncate text-sm font-semibold"
+                  />
                   <p className="text-muted-foreground text-xs">
                     {leg?.market}
                     {Math.abs(legOdds) >= 100 ? (

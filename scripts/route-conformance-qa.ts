@@ -58,6 +58,72 @@ async function overflowX(page: Page): Promise<number> {
   );
 }
 
+async function smallInputs(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const bad: string[] = [];
+    for (const el of Array.from(
+      document.querySelectorAll("input, textarea, select, [role='combobox']"),
+    )) {
+      if (!(el instanceof HTMLElement)) continue;
+      const input = el as HTMLInputElement;
+      const type = (input.type || "").toLowerCase();
+      // Hidden radios / checkboxes / sr-only fields are not tap targets.
+      if (
+        type === "hidden" ||
+        type === "radio" ||
+        type === "checkbox" ||
+        type === "file" ||
+        el.getAttribute("aria-hidden") === "true" ||
+        el.classList.contains("sr-only")
+      ) {
+        continue;
+      }
+      const style = window.getComputedStyle(el);
+      if (
+        style.display === "none" ||
+        style.visibility === "hidden" ||
+        Number.parseFloat(style.opacity || "1") < 0.05
+      ) {
+        continue;
+      }
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) continue;
+      if (r.height < 40) {
+        const id =
+          el.id ||
+          el.getAttribute("name") ||
+          el.getAttribute("role") ||
+          el.tagName;
+        bad.push(`${el.tagName.toLowerCase()}#${id} h=${Math.round(r.height)}`);
+      }
+    }
+    return bad.slice(0, 8);
+  });
+}
+
+async function blurLeftovers(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const bad: string[] = [];
+    for (const el of Array.from(document.querySelectorAll("body *"))) {
+      if (!(el instanceof HTMLElement)) continue;
+      const cls = el.className?.toString?.() ?? "";
+      const style = window.getComputedStyle(el);
+      if (
+        /backdrop-blur|blur-sm|blur-md|blur-lg|blur-xl|blur-2xl|blur-3xl/.test(
+          cls,
+        ) ||
+        (style.backdropFilter && style.backdropFilter !== "none") ||
+        (style.filter && /\bblur\(/.test(style.filter))
+      ) {
+        bad.push(
+          `${el.tagName.toLowerCase()}.${cls.split(/\s+/).slice(0, 3).join(".")}`,
+        );
+      }
+    }
+    return [...new Set(bad)].slice(0, 8);
+  });
+}
+
 async function smallTapTargets(page: Page): Promise<string[]> {
   return page.evaluate(() => {
     const bad: string[] = [];
@@ -236,6 +302,30 @@ async function main() {
             check: "tap-targets",
             status: taps.length === 0 ? "PASS" : "WARN",
             detail: taps.length ? taps.join(" | ") : "all ΓëÑ40px height",
+          });
+
+          const inputs = await smallInputs(page);
+          findings.push({
+            route: route.path,
+            viewport: vp.id,
+            theme,
+            check: "input-targets",
+            status: inputs.length === 0 ? "PASS" : "FAIL",
+            detail: inputs.length
+              ? inputs.join(" | ")
+              : "inputs/selects ≥40px height",
+          });
+
+          const blur = await blurLeftovers(page);
+          findings.push({
+            route: route.path,
+            viewport: vp.id,
+            theme,
+            check: "no-blur",
+            status: blur.length === 0 ? "PASS" : "FAIL",
+            detail: blur.length
+              ? blur.join(" | ")
+              : "no blur/backdrop leftovers",
           });
 
           const gold = await goldMisuseSamples(page);

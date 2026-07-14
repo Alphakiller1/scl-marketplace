@@ -1,90 +1,60 @@
-# Route conformance QA — application cleanup
+# Route conformance QA — Milestone 2 application pass
 
 Base: local production build (`next start`) after this PR’s changes.  
-Viewports: 375×812 and 1280×800 · themes: dark + light.
+Viewports: 375×812 and 1280×800 · themes: dark + light.  
+Automated: `BASE_URL=http://127.0.0.1:3010 npx tsx scripts/route-conformance-qa.ts`
 
 ## Summary
 
-| Status | Count                                                                                                 |
-| ------ | ----------------------------------------------------------------------------------------------------- |
-| PASS   | 58                                                                                                    |
-| FAIL   | 0                                                                                                     |
-| WARN   | 22 (mostly empty numeric samples on empty pick-entry / font stack still Geist Mono pending system PR) |
-| SKIP   | 0                                                                                                     |
+| Status | Count                                                                  |
+| ------ | ---------------------------------------------------------------------- |
+| PASS   | 108                                                                    |
+| FAIL   | 0                                                                      |
+| WARN   | 12 (empty numeric samples on empty pick boards / no live odds session) |
+| SKIP   | 0                                                                      |
 
-Automated findings: `npx tsx scripts/route-conformance-qa.ts`
+## Violations fixed in this PR
 
-## Route-by-route (before → after)
+1. **Parlay / units input ≥40px** — shared `Input` no longer shrinks to `md:h-8` (32px). Stays `h-11` / `min-h-10` at all breakpoints; numeric inputs use `scl-data` (IBM Plex Mono). `Select` trigger also raised to ≥40px.
+2. **Leaderboard search field** — `#q` was a 20px inner input inside a tall wrapper; now `h-11` so the control itself meets the tap-target rule.
+3. **Ticket / slip / chip numeric typography** — `BettingTitle` + `splitBettingTitle` wrap betting numbers (Over 170.5, spreads, odds, leg counts) in `scl-data` while keeping display type for team/market words. Applied on Ticket selection titles, single-play slip, parlay legs, and MarketChip labels.
+4. **Homepage blur** — already cleared by system PR #107; matrix `no-blur` PASS on `/` (and all scoped routes). No glass/glow replacements added.
+5. **VerificationReceipt CTA** — gold primary CTA aligned with Ticket footer recipe.
 
-### `/`
+## Route matrix (strict checks)
 
-| Check                                           | Before                                                                | After                                                                   |
-| ----------------------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Brand / hero coherence                          | FAIL — magenta brand gradient wordmark, `scl-brand-text`, brand icons | PASS — ink surfaces, display type, gold primary CTAs only               |
-| Gold scarcity                                   | FAIL — brand accents masquerading as identity                         | PASS — gold on Explore / Become CTAs + verified badge                   |
-| Numeric mono (`.nums` → `scl-data`/`StatValue`) | FAIL                                                                  | PASS (class-level); computed face still Geist Mono until system font PR |
-| Overflow @375                                   | FAIL risk                                                             | PASS `delta=0`                                                          |
-| Tap targets @375                                | mixed                                                                 | PASS ≥40px                                                              |
+| Route                         | Overflow @375 | Taps ≥40 | Inputs ≥40 | No blur | Gold scarcity | Numeric mono              |
+| ----------------------------- | ------------- | -------- | ---------- | ------- | ------------- | ------------------------- |
+| `/`                           | PASS          | PASS     | PASS       | PASS    | PASS          | PASS (IBM Plex Mono)      |
+| `/leaderboard`                | PASS          | PASS     | PASS       | PASS    | PASS          | PASS                      |
+| `/picks`                      | PASS          | PASS     | PASS       | PASS    | PASS          | WARN (empty board)        |
+| `/dashboard/picks/new`        | PASS          | PASS     | PASS       | PASS    | PASS          | WARN (empty / auth shell) |
+| `/dashboard/picks/new/parlay` | PASS          | PASS     | PASS       | PASS    | PASS          | WARN (empty / auth shell) |
 
-Screenshots: `home-375-dark.png`, `home-375-light.png`, `home-1280-dark.png`
+Dark + light and 375 + 1280 all covered in the automated matrix above.
 
-### `/leaderboard`
+## Post-submit Ticket
 
-| Check                | Before                                | After                                                              |
-| -------------------- | ------------------------------------- | ------------------------------------------------------------------ |
-| Filter pills         | FAIL — magenta/`brand` selected state | PASS — gold selected sport-pill recipe, min-h-11                   |
-| Eyebrow / metrics    | FAIL — `text-brand` + `.nums`         | PASS — muted mono eyebrow, `StatValue`, gold-deep section hairline |
-| Overflow / taps @375 | —                                     | PASS                                                               |
+**Intentionally skipped in production** — no local `.env` / staging credentials in this environment; submitting would mutate live capper data.
 
-Screenshots: `leaderboard-375-dark.png`, `leaderboard-1280-dark.png`
+Receipt UI path (code + `/picks` Ticket faces):
 
-### `/picks`
+- Eyebrow muted mono `SCL · Pick Receipt`
+- Selection title: display + mono numeric tokens
+- Gold VERIFIED stamp / odds / To Win
+- Capture line mono + Grades Automatically (win-green)
+- Gold “View on your record” / “View My Picks” CTA
 
-| Check                | Before                              | After                                                               |
-| -------------------- | ----------------------------------- | ------------------------------------------------------------------- |
-| Ticket eyebrow gold  | FAIL — `SCL · Pick Receipt` in gold | PASS — muted-label eyebrow; gold reserved for stamp / odds / to-win |
-| Section header brand | FAIL                                | PASS — ink icon well + gold hairline                                |
-| Overflow @375        | —                                   | PASS                                                                |
+Re-verify post-submit on staging with a disposable test account before Milestone 2 sign-off.
 
-Screenshot: `picks-375-dark.png`
+## Known remaining risk
 
-### `/dashboard/picks/new`
-
-| Check                               | Before                     | After                                                                  |
-| ----------------------------------- | -------------------------- | ---------------------------------------------------------------------- |
-| “Verified Board Entry” gold eyebrow | FAIL                       | PASS — muted mono                                                      |
-| Slip brand border / green to-win    | FAIL                       | PASS — gold-deep slip border; to-win gold `StatValue`; gold Submit CTA |
-| Show all spread/total lines         | FAIL — sub-40px brand link | PASS — `min-h-11` muted control                                        |
-| Sport pill clip                     | FAIL — left-edge clip      | PASS — wider bleed + `scroll-px-4`                                     |
-| Prop filter pills                   | FAIL — brand selected      | PASS — gold selected recipe                                            |
-| Board / chip / slip                 | partial                    | PASS patterns aligned (MarketChip unchanged; slip + dock gold CTA)     |
-
-Screenshot: `pick-new-375-dark.png`  
-Note: live board expand + chip select needs odds API + signed-in session in staging; page shell verified anonymously.
-
-### `/dashboard/picks/new/parlay`
-
-| Check                            | Before           | After                                                       |
-| -------------------------------- | ---------------- | ----------------------------------------------------------- |
-| Inline brand slip / conflict CTA | FAIL             | PASS — ink conflict panel; gold Replace; gold combined odds |
-| Sticky slip bar                  | OK from prior PR | PASS — shared `MobileSlipDock`, 44px VIEW SLIP              |
-| Sport pills                      | duplicated rail  | PASS — shared `SportPills`                                  |
-
-Screenshot: `pick-parlay-375-dark.png`
-
-## Ticket post-submit
-
-Not exercised in production: no local `.env` / staging credentials in this environment.  
-Receipt UI path remains `Ticket` with muted eyebrow + gold stamp/odds/to-win + gold “View on your record” CTA. Re-verify on staging with a test account.
-
-## Known leftover (system / Claude PR)
-
-- Computed data font is still **Geist Mono** via tokens — application now uses `scl-data` / `StatValue` everywhere on these routes; swapping the token to IBM Plex Mono is a globals/primitives task.
-- Default `Button` size variants still shrink at `md:` in the primitive; headers/CTAs on these routes override to `min-h-11 md:h-11`.
+- Live board expand / chip select / sticky slip with 2 legs needs signed-in session + odds API.
+- WARN rows are empty-state numeric sampling, not font regressions (home/leaderboard already show IBM Plex Mono).
 
 ## How to re-run
 
 ```bash
-npm run build && npx next start -p 3000
-npx tsx scripts/route-conformance-qa.ts
+npm run build && npx next start -p 3010
+BASE_URL=http://127.0.0.1:3010 npx tsx scripts/route-conformance-qa.ts
 ```

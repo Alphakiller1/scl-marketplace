@@ -1,5 +1,6 @@
 "use client";
 
+import { BettingTitle } from "@/components/scl/betting-title";
 import { cn } from "@/lib/utils";
 import { formatOdds } from "@/lib/format";
 
@@ -36,16 +37,15 @@ export function MarketChip({
         className,
       )}
     >
-      <span
+      <BettingTitle
+        text={label}
         className={cn(
           "min-w-0 truncate text-xs font-medium",
           selected
             ? "font-semibold text-[color:var(--scl-gold-ink)]"
             : "text-[color:var(--scl-muted-data)]",
         )}
-      >
-        {label}
-      </span>
+      />
       <span
         className={cn(
           "scl-data text-sm font-semibold tabular-nums",
