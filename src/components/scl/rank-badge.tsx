@@ -2,6 +2,9 @@ import { Crown, Medal } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
+/** Shared vocabulary for below-sample / unranked cappers (leaderboard + feed). */
+export const BUILDING_RECORD_LABEL = "Building a record";
+
 export function RankBadge({
   rank,
   className,
@@ -19,7 +22,7 @@ export function RankBadge({
           className,
         )}
         aria-label="Unranked"
-        title="Building a record"
+        title={BUILDING_RECORD_LABEL}
       >
         —
       </span>

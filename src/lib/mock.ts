@@ -63,6 +63,13 @@ export type TodayPick = {
     "id" | "name" | "handle" | "displayName" | "verified" | "avatarUrl"
   >;
   capperRecord: { w: number; l: number; p: number };
+  /**
+   * Leaderboard partition place (`0` = Building a record). When set, public
+   * feed cards use the same unranked badge as the leaderboard.
+   */
+  capperRank?: number;
+  /** Graded-sample count for the same min-sample gate as the leaderboard. */
+  capperSettledPicks?: number;
   sport: string;
   event: string;
   selection: string;

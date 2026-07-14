@@ -9,7 +9,7 @@ import {
   VerificationBadge,
 } from "@/components/scl/badges";
 import { RankMovementIndicator } from "@/components/scl/indicators";
-import { RankBadge } from "@/components/scl/rank-badge";
+import { RankBadge, BUILDING_RECORD_LABEL } from "@/components/scl/rank-badge";
 import { Button } from "@/components/ui/button";
 import { identityDisplayLinesFromCapper } from "@/lib/identity";
 import { socialProfileUrl } from "@/lib/urls";
@@ -99,7 +99,7 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                     ) : null}
                   </>
                 ) : (
-                  "Building a record"
+                  BUILDING_RECORD_LABEL
                 )}
               </span>
             </span>

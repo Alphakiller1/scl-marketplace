@@ -12,7 +12,9 @@ import {
 import { CapperAvatar } from "@/components/scl/capper-avatar";
 import { CapperIdentityLabel } from "@/components/scl/capper-identity-label";
 import { PickTierBadge, SportTag, StatusBadge } from "@/components/scl/badges";
+import { BUILDING_RECORD_LABEL, RankBadge } from "@/components/scl/rank-badge";
 import { TeamMark } from "@/components/scl/team-mark";
+import { isBuildingARecord } from "@/lib/leaderboard";
 import { teamIdentityFromSide } from "@/lib/pick-identity";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +23,33 @@ const toneText = {
   neg: "text-neg",
   muted: "text-muted-foreground",
 } as const;
+
+function CapperStandingLine({ pick }: { pick: TodayPick }) {
+  // Same min-sample gate as getLeaderboardResult() default partition (minPicks: 0).
+  const building = isBuildingARecord({
+    rank: pick.capperRank,
+    settledPicks: pick.capperSettledPicks,
+  });
+
+  if (building) {
+    return (
+      <span className="text-muted-foreground inline-flex min-h-10 items-center gap-1.5 text-xs font-medium">
+        <RankBadge rank={0} className="size-8" />
+        <span className="min-w-0 leading-snug">{BUILDING_RECORD_LABEL}</span>
+      </span>
+    );
+  }
+
+  return (
+    <span className="nums text-muted-foreground text-xs tabular-nums">
+      {formatRecord(
+        pick.capperRecord.w,
+        pick.capperRecord.l,
+        pick.capperRecord.p,
+      )}
+    </span>
+  );
+}
 
 /** Today's-pick card — the active, valuable surface of the product. */
 export function PickCard({
@@ -107,13 +136,7 @@ export function PickCard({
               compact
               primaryClassName="text-sm"
             />
-            <span className="nums text-muted-foreground text-xs tabular-nums">
-              {formatRecord(
-                pick.capperRecord.w,
-                pick.capperRecord.l,
-                pick.capperRecord.p,
-              )}
-            </span>
+            <CapperStandingLine pick={pick} />
           </div>
         </Link>
         <span className="text-muted-foreground shrink-0 text-xs">
@@ -127,6 +150,10 @@ export function PickCard({
 function CompactPickCard({ pick }: { pick: TodayPick }) {
   const team = teamIdentityFromSide(pick.side, pick.sport);
   const hasResult = pick.profitUnits != null;
+  const building = isBuildingARecord({
+    rank: pick.capperRank,
+    settledPicks: pick.capperSettledPicks,
+  });
 
   return (
     <Card className="gap-0 overflow-hidden p-3">
@@ -175,9 +202,18 @@ function CompactPickCard({ pick }: { pick: TodayPick }) {
               compact
               primaryClassName="text-sm"
             />
-            <span className="text-muted-foreground text-xs">
-              {timeAgo(pick.postedAt)}
-            </span>
+            {building ? (
+              <span className="text-muted-foreground inline-flex min-h-10 items-center gap-1.5 text-xs font-medium">
+                <RankBadge rank={0} className="size-7" />
+                <span className="min-w-0 truncate leading-snug">
+                  {BUILDING_RECORD_LABEL}
+                </span>
+              </span>
+            ) : (
+              <span className="text-muted-foreground text-xs">
+                {timeAgo(pick.postedAt)}
+              </span>
+            )}
           </div>
         </Link>
 
