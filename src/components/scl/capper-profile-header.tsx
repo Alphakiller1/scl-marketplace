@@ -15,8 +15,9 @@ import { identityDisplayLinesFromCapper } from "@/lib/identity";
 import { socialProfileUrl } from "@/lib/urls";
 
 /**
- * The public capper profile hero — identity, rank, specialties, and the
- * trust signals (verification, trophies, socials) above the performance grid.
+ * The public capper profile hero — full-bleed cover, then identity / trust
+ * signals above the performance grid. Name sits below the cover so it never
+ * clips under the banner (375px→1440px).
  */
 export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
   const sports = capper.sports?.length ? capper.sports : [capper.topSport];
@@ -28,59 +29,61 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
       : null;
 
   return (
-    <article className="border-border bg-card overflow-hidden rounded-xl border">
-      <div className="bg-surface-2 relative h-20 overflow-hidden sm:h-28">
-        {capper.bannerUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={capper.bannerUrl}
-            alt=""
-            className="size-full object-cover"
-          />
-        ) : (
-          <div aria-hidden className="scl-glow absolute inset-0" />
-        )}
+    <article className="border-border bg-card border-b">
+      {/* Full-bleed cover — breaks out of any ancestor max-width / horizontal pad. */}
+      <div className="relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2">
+        <div className="bg-surface-2 relative h-28 w-full overflow-hidden sm:h-36 lg:h-40">
+          {capper.bannerUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={capper.bannerUrl}
+              alt=""
+              className="absolute inset-0 size-full object-cover"
+            />
+          ) : (
+            <div aria-hidden className="scl-glow absolute inset-0 size-full" />
+          )}
+        </div>
       </div>
 
-      <div className="px-4 pb-4 sm:px-6 sm:pb-6">
-        <div className="-mt-7 flex flex-col gap-3 sm:-mt-9 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex min-w-0 items-end gap-3">
-            <span className="bg-card rounded-xl p-1">
-              <CapperAvatar
-                name={avatarName}
-                src={capper.avatarUrl}
-                size="xl"
-                className="size-14 text-base sm:size-16 sm:text-lg"
-              />
-            </span>
-            <div className="min-w-0 pb-0.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="max-w-full truncate text-xl font-bold sm:text-2xl">
-                  {identity.primary}
-                </h1>
-                {capper.verified ? (
-                  <VerificationBadge size="md" withLabel />
-                ) : null}
-                {capper.isLegacy ? <LegacyBadge /> : null}
-              </div>
-              {identity.secondary ? (
-                <span className="text-muted-foreground text-sm">
-                  {identity.secondary}
-                </span>
-              ) : null}
-            </div>
-          </div>
+      <div className="mx-auto max-w-5xl px-4 sm:px-6">
+        {/* Only the avatar overlaps the cover; actions sit beside it on larger screens. */}
+        <div className="relative z-10 -mt-10 flex items-end justify-between gap-3 sm:-mt-12">
+          <span className="bg-card ring-card shrink-0 rounded-xl p-1 ring-4">
+            <CapperAvatar
+              name={avatarName}
+              src={capper.avatarUrl}
+              size="xl"
+              className="size-16 text-base sm:size-20 sm:text-xl"
+            />
+          </span>
 
-          <div className="flex w-full items-center gap-2 sm:w-auto sm:shrink-0">
+          <div className="flex min-w-0 items-center gap-2 pb-1">
             <SocialLinks socials={capper.socials} />
             <Button
               render={<a href="#recent-picks" />}
               nativeButton={false}
-              className="min-h-11 flex-1 sm:min-h-10 sm:flex-none"
+              className="min-h-11 sm:min-h-10"
             >
               View Picks
             </Button>
           </div>
+        </div>
+
+        {/* Identity block — always below the cover edge, never truncated by it. */}
+        <div className="mt-3 min-w-0">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <h1 className="min-w-0 text-xl font-bold break-words sm:text-2xl lg:text-3xl">
+              {identity.primary}
+            </h1>
+            {capper.verified ? <VerificationBadge size="md" withLabel /> : null}
+            {capper.isLegacy ? <LegacyBadge /> : null}
+          </div>
+          {identity.secondary ? (
+            <span className="text-muted-foreground mt-0.5 block text-sm break-all">
+              {identity.secondary}
+            </span>
+          ) : null}
         </div>
 
         <div className="text-muted-foreground mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
@@ -153,12 +156,14 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
         ) : null}
 
         {capper.trophies.length ? (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap gap-2 pb-5 sm:pb-6">
             {capper.trophies.map((trophy) => (
               <TrophyBadge key={trophy} label={trophy} />
             ))}
           </div>
-        ) : null}
+        ) : (
+          <div className="pb-5 sm:pb-6" />
+        )}
       </div>
     </article>
   );

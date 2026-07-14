@@ -38,23 +38,23 @@ export function ProfileIdentityPreview({
         <span className="text-muted-foreground text-xs">Live</span>
       </div>
 
-      <div className="bg-surface-2 relative h-24 overflow-hidden">
+      <div className="bg-surface-2 relative h-24 w-full overflow-hidden">
         {profile.bannerUrl ? (
           // Stored profile media is rendered directly so imported and Supabase URLs both work.
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={profile.bannerUrl}
             alt=""
-            className="size-full object-cover"
+            className="absolute inset-0 size-full object-cover"
           />
         ) : (
-          <div aria-hidden className="scl-glow absolute inset-0" />
+          <div aria-hidden className="scl-glow absolute inset-0 size-full" />
         )}
       </div>
 
       <div className="px-4 pb-4">
-        <div className="-mt-7 flex items-end justify-between gap-3">
-          <span className="bg-card rounded-xl p-1">
+        <div className="relative z-10 -mt-7 flex items-end justify-between gap-3">
+          <span className="bg-card ring-card rounded-xl p-1 ring-4">
             <CapperAvatar
               name={avatarName}
               src={profile.avatarUrl ?? undefined}
@@ -64,9 +64,14 @@ export function ProfileIdentityPreview({
           {profile.verified ? <VerificationBadge size="sm" withLabel /> : null}
         </div>
 
-        <h3 className="mt-3 truncate text-lg font-bold">{identity.primary}</h3>
+        {/* Name below the cover overlap — matches public profile layout. */}
+        <h3 className="mt-3 text-lg font-bold break-words">
+          {identity.primary}
+        </h3>
         {identity.secondary ? (
-          <p className="text-muted-foreground text-sm">{identity.secondary}</p>
+          <p className="text-muted-foreground text-sm break-all">
+            {identity.secondary}
+          </p>
         ) : null}
 
         <p className="mt-3 min-h-10 text-sm font-medium">

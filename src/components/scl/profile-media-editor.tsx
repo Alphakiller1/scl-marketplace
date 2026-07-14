@@ -64,12 +64,16 @@ export function ProfileMediaEditor({
       </div>
 
       <div className="relative">
-        <div className="bg-surface-2 relative h-28 overflow-hidden sm:h-36">
+        <div className="bg-surface-2 relative h-28 w-full overflow-hidden sm:h-36">
           {bannerUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={bannerUrl} alt="" className="size-full object-cover" />
+            <img
+              src={bannerUrl}
+              alt=""
+              className="absolute inset-0 size-full object-cover"
+            />
           ) : (
-            <div aria-hidden className="scl-glow absolute inset-0" />
+            <div aria-hidden className="scl-glow absolute inset-0 size-full" />
           )}
           <Button
             type="button"
