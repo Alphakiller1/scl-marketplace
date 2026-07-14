@@ -1,9 +1,11 @@
-import type { CSSProperties } from "react";
+"use client";
+
+import { useState, type CSSProperties } from "react";
 
 import { cn } from "@/lib/utils";
 import { readableTextColor, type TeamIdentity } from "@/lib/teams";
 
-/** Compact team monogram — board + pick surfaces (square on the board via className). */
+/** Compact team mark: CDN logo when available, color+abbr fallback on error/miss. */
 export function TeamMark({
   team,
   size = "md",
@@ -13,23 +15,39 @@ export function TeamMark({
   size?: "sm" | "md";
   className?: string;
 }) {
+  const [failed, setFailed] = useState(false);
+  const showLogo = Boolean(team.logoUrl) && !failed;
   const style = {
-    backgroundColor: team.primaryColor,
+    backgroundColor: showLogo ? "transparent" : team.primaryColor,
     color: readableTextColor(team.primaryColor),
   } satisfies CSSProperties;
 
   return (
     <span
       className={cn(
-        "scl-display border-border/60 flex shrink-0 items-center justify-center rounded-full border font-bold tracking-wide shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]",
+        "scl-display border-border/60 relative flex shrink-0 items-center justify-center overflow-hidden rounded-full border font-bold tracking-wide shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]",
         size === "sm" ? "size-5 text-[0.55rem]" : "size-[30px] text-xs",
+        showLogo ? "bg-background" : null,
         className,
       )}
       style={style}
       title={team.fullName}
       aria-hidden
     >
-      {team.abbr}
+      {showLogo ? (
+        // External ESPN CDN; plain img keeps remotePatterns optional and onError reliable.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={team.logoUrl}
+          alt=""
+          className="size-full object-contain p-0.5"
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        team.abbr
+      )}
     </span>
   );
 }
