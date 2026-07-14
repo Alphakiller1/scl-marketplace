@@ -209,29 +209,48 @@ export type RawOutcome = {
   description?: string;
 };
 export type RawMarket = { key: string; outcomes: RawOutcome[] };
+export type RawBookmaker = {
+  /** Odds API bookmaker key (e.g. draftkings). Required for per-book attribution. */
+  key?: string;
+  title?: string;
+  markets?: RawMarket[];
+};
 export type RawEventOdds = {
   id: string;
-  bookmakers?: { markets?: RawMarket[] }[];
+  bookmakers?: RawBookmaker[];
+};
+
+export type PriceFilter = {
+  marketKeys: string[];
+  side: string;
+  line?: number;
+  player?: string;
 };
 
 /**
  * Collect every American price offered for a specific { marketKeys, side, line, player } across
- * all books on a per-event odds payload. `marketKeys` groups a featured market with its alternate
- * (e.g. ["spreads","alternate_spreads"]). Pure — no network.
+ * books on a per-event odds payload. `marketKeys` groups a featured market with its alternate
+ * (e.g. ["spreads","alternate_spreads"]). When `bookKeys` is non-empty, only those bookmakers
+ * count (capper verified against the books they bet). Empty/omitted = all books on the payload
+ * (today's regions=us behavior). Pure — no network.
  */
 export function collectAvailablePrices(
   event: RawEventOdds,
-  filter: {
-    marketKeys: string[];
-    side: string;
-    line?: number;
-    player?: string;
-  },
+  filter: PriceFilter,
+  opts?: { bookKeys?: readonly string[] },
 ): number[] {
   const wantSide = filter.side.trim().toLowerCase();
   const wantPlayer = filter.player?.trim().toLowerCase();
+  const allowed =
+    opts?.bookKeys && opts.bookKeys.length > 0
+      ? new Set(opts.bookKeys.map((k) => k.toLowerCase()))
+      : null;
   const prices: number[] = [];
   for (const bm of event.bookmakers ?? []) {
+    if (allowed) {
+      const key = bm.key?.trim().toLowerCase();
+      if (!key || !allowed.has(key)) continue;
+    }
     for (const market of bm.markets ?? []) {
       if (!filter.marketKeys.includes(market.key)) continue;
       for (const o of market.outcomes ?? []) {
@@ -255,6 +274,29 @@ export function collectAvailablePrices(
     }
   }
   return prices;
+}
+
+/**
+ * Honest American price for one book on a market identity, or null when that book has no line
+ * (UI renders "—"; never substitutes another book's price). Pure.
+ */
+export function getOddsForBook(
+  event: RawEventOdds,
+  marketKey: string,
+  bookKey: string,
+  outcome: { side: string; line?: number; player?: string },
+): number | null {
+  const prices = collectAvailablePrices(
+    event,
+    {
+      marketKeys: [marketKey],
+      side: outcome.side,
+      line: outcome.line,
+      player: outcome.player,
+    },
+    { bookKeys: [bookKey] },
+  );
+  return bestAvailableAmerican(prices);
 }
 
 // ── pick-integrity decision (C1 pre-game lock + C3 odds + trust tier) ─────────

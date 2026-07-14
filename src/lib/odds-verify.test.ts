@@ -5,6 +5,7 @@ import {
   bestAvailableAmerican,
   collectAvailablePrices,
   decidePickIntegrity,
+  getOddsForBook,
   impliedProbFromAmerican,
   marketKeysForMarket,
   medianAmerican,
@@ -77,6 +78,7 @@ const EVENT: RawEventOdds = {
   id: "e1",
   bookmakers: [
     {
+      key: "draftkings",
       markets: [
         {
           key: "spreads",
@@ -109,6 +111,7 @@ const EVENT: RawEventOdds = {
       ],
     },
     {
+      key: "fanduel",
       markets: [
         {
           key: "spreads",
@@ -288,4 +291,62 @@ test("decidePickIntegrity: legacy free-text pick (no event) → SELF_REPORTED, n
     assert.equal(d.loggedPreGame, false);
     assert.equal(d.oddsVerified, false);
   }
+});
+
+test("collectAvailablePrices filters to capper books when bookKeys set", () => {
+  const prices = collectAvailablePrices(
+    EVENT,
+    {
+      marketKeys: ["spreads", "alternate_spreads"],
+      side: "Los Angeles Lakers",
+      line: -3.5,
+    },
+    { bookKeys: ["fanduel"] },
+  );
+  assert.deepEqual(prices, [-105]);
+});
+
+test("collectAvailablePrices with empty bookKeys matches all-books behavior", () => {
+  const all = collectAvailablePrices(EVENT, {
+    marketKeys: ["spreads"],
+    side: "Los Angeles Lakers",
+    line: -3.5,
+  });
+  const emptyFilter = collectAvailablePrices(
+    EVENT,
+    {
+      marketKeys: ["spreads"],
+      side: "Los Angeles Lakers",
+      line: -3.5,
+    },
+    { bookKeys: [] },
+  );
+  assert.deepEqual(
+    all.sort((a, b) => a - b),
+    emptyFilter.sort((a, b) => a - b),
+  );
+});
+
+test("getOddsForBook returns honest null when that book has no line", () => {
+  assert.equal(
+    getOddsForBook(EVENT, "spreads", "betmgm", {
+      side: "Los Angeles Lakers",
+      line: -3.5,
+    }),
+    null,
+  );
+  assert.equal(
+    getOddsForBook(EVENT, "spreads", "fanduel", {
+      side: "Los Angeles Lakers",
+      line: -3.5,
+    }),
+    -105,
+  );
+  assert.equal(
+    getOddsForBook(EVENT, "spreads", "draftkings", {
+      side: "Los Angeles Lakers",
+      line: -3.5,
+    }),
+    -110,
+  );
 });

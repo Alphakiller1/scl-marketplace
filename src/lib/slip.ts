@@ -11,6 +11,7 @@ export type SlipPick = {
   oddsAmerican: number;
   player?: string;
   selection?: string;
+  book?: string;
 };
 
 export type SlipConflictKind =
@@ -172,5 +173,6 @@ export function toSlipLeg(
     side: pick.side,
     line: pick.line,
     player: pick.player,
+    book: pick.book,
   };
 }

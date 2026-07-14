@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getCurrentAccount } from "@/lib/session";
 import { playSchema, type PlayInput } from "@/lib/schemas/play.schema";
+import { isBookKey } from "@/lib/books";
 import {
   decidePickIntegrity,
   marketKeysForMarket,
@@ -41,7 +42,7 @@ export async function createPlay(input: PlayInput): Promise<PlayResult> {
 
   const profile = await prisma.capperProfile.findUnique({
     where: { userId: account.id },
-    select: { id: true },
+    select: { id: true, books: true },
   });
   if (!profile) return { ok: false, error: "No capper profile found." };
 
@@ -72,6 +73,7 @@ export async function createPlay(input: PlayInput): Promise<PlayResult> {
     line: d.line,
     player: d.player,
     claimedAmerican: d.oddsAmerican,
+    books: profile.books,
   });
 
   const decision = decidePickIntegrity({
@@ -82,6 +84,8 @@ export async function createPlay(input: PlayInput): Promise<PlayResult> {
     source: "MANUAL",
   });
   if (!decision.accept) return { ok: false, error: decision.reason };
+
+  const captureBook = d.book && isBookKey(d.book) ? d.book : null;
 
   const play = await prisma.play.create({
     data: {
@@ -97,6 +101,7 @@ export async function createPlay(input: PlayInput): Promise<PlayResult> {
       eventStartsAt,
       side: d.side ?? null,
       line: d.line ?? null,
+      book: captureBook,
       source: "MANUAL",
       loggedPreGame: decision.loggedPreGame,
       oddsVerified: decision.oddsVerified,

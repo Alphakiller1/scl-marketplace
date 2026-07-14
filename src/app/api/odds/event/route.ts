@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getCapperBooks } from "@/lib/capper-books";
 import { fetchEventBoard, oddsApiKey } from "@/lib/odds-api";
 import { getCurrentUser } from "@/lib/session";
 
@@ -18,8 +19,9 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const sport = params.get("sport") ?? "";
   const eventId = params.get("eventId") ?? "";
+  const books = await getCapperBooks(user.id);
   const selections =
-    sport && eventId ? await fetchEventBoard(sport, eventId) : [];
+    sport && eventId ? await fetchEventBoard(sport, eventId, { books }) : [];
   return NextResponse.json({
     selections,
     configured: Boolean(oddsApiKey()),

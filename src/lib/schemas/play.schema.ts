@@ -49,6 +49,8 @@ export const playSchema = z.object({
     z.coerce.number().optional(),
   ),
   player: optionalText(120),
+  // Capture book (Odds API key) at submit — historical attribution when profile books change.
+  book: optionalText(40),
 });
 
 // Input = pre-coercion (what the form holds); Output = post-validation (DB-ready).

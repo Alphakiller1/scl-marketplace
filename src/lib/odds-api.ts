@@ -1,16 +1,31 @@
 import "server-only";
 
+import { bookmakersQueryParam, isBookKey } from "@/lib/books";
 import {
-  PROP_MARKET_LABEL,
+  normalizeEventBoard,
+  normalizeUpcomingEvent,
+  type OddsBoardOpts,
+  type OddsEvent,
+  type OddsSelection,
+} from "@/lib/odds-board";
+import {
   VERIFY_REGIONS,
   VERIFY_TTL_SECONDS,
-  bestAvailableAmerican,
   collectAvailablePrices,
+  getOddsForBook as getOddsForBookFromEvent,
   verificationMarkets,
   verifyOdds,
   type RawEventOdds,
   type VerifyResult,
 } from "@/lib/odds-verify";
+
+export type { OddsEvent, OddsSelection, OddsBoardOpts as OddsFetchOpts };
+export {
+  getOddsForBook,
+  normalizeEventBoard,
+  preferredThenAll,
+} from "@/lib/odds-board";
+export { getOddsForBookFromEvent as getOddsForBookEvent };
 
 /**
  * The Odds API client (odds-assist + auto-grade). Reads ODDS_API_KEY at runtime;
@@ -19,6 +34,10 @@ import {
  *
  * SCL sport keys (NBA, MLB, …) differ from The Odds API's (basketball_nba, …), so all
  * translation lives here and is shared with the auto-grade results provider.
+ *
+ * Capper books (M4): when CapperProfile.books is non-empty, requests use `bookmakers=`;
+ * empty books keeps today's `regions=us`. Never emit an empty board solely because of the
+ * filter — fall back to regions=us. Verification always filters to the capper's books.
  */
 const SCL_TO_ODDS_API: Record<string, string> = {
   NFL: "americanfootball_nfl",
@@ -53,142 +72,12 @@ export function oddsAssistSupported(sclKey: string): boolean {
   return sclKey in SCL_TO_ODDS_API;
 }
 
-export type OddsSelection = {
-  label: string; // display, e.g. "Boston Celtics ML"
-  market: string; // prefill for the play's market field (game label or prop label)
-  selection: string; // prefill for the play's selection field
-  side: string; // structured side for verification: team, or "Over"/"Under" (C2)
-  line?: number; // structured point/total for spreads + totals (C2)
-  player?: string; // structured player for props (C2)
-  featured?: boolean; // true = the main game line (h2h / main spread / main total); false = an alternate
-  oddsAmerican: number;
-};
-
-export type OddsEvent = {
-  id: string;
-  sport: string; // SCL key
-  commenceTime: string;
-  home: string;
-  away: string;
-  selections: OddsSelection[]; // moneyline + totals, ready to prefill an entry
-};
-
-type RawOutcome = { name: string; price: number; point?: number };
-type RawMarket = { key: string; outcomes: RawOutcome[] };
-type RawEvent = {
-  id: string;
-  commence_time: string;
-  home_team: string;
-  away_team: string;
-  bookmakers?: { markets?: RawMarket[] }[];
-};
-
-function firstMarket(event: RawEvent, key: string): RawMarket | undefined {
-  for (const bm of event.bookmakers ?? []) {
-    const m = bm.markets?.find((mk) => mk.key === key);
-    if (m) return m;
-  }
-  return undefined;
+/** regions=us when books empty; else bookmakers=<keys>. */
+function oddsScopeQuery(books?: readonly string[]): string {
+  const bm = bookmakersQueryParam(books ?? []);
+  if (bm) return `bookmakers=${encodeURIComponent(bm)}`;
+  return `regions=${VERIFY_REGIONS}`;
 }
-
-function normalize(sclSport: string, event: RawEvent): OddsEvent {
-  const selections: OddsSelection[] = [];
-
-  const h2h = firstMarket(event, "h2h");
-  for (const o of h2h?.outcomes ?? []) {
-    if (typeof o.price === "number") {
-      selections.push({
-        label: `${o.name} ML`,
-        market: "Moneyline",
-        selection: o.name,
-        side: o.name,
-        featured: true,
-        oddsAmerican: Math.round(o.price),
-      });
-    }
-  }
-
-  const spreads = firstMarket(event, "spreads");
-  for (const o of spreads?.outcomes ?? []) {
-    if (typeof o.price === "number" && typeof o.point === "number") {
-      const line = `${o.point > 0 ? "+" : ""}${o.point}`;
-      selections.push({
-        label: `${o.name} ${line}`,
-        market: "Spread",
-        selection: `${o.name} ${line}`,
-        side: o.name,
-        line: o.point,
-        featured: true,
-        oddsAmerican: Math.round(o.price),
-      });
-    }
-  }
-
-  const totals = firstMarket(event, "totals");
-  for (const o of totals?.outcomes ?? []) {
-    if (typeof o.price === "number" && typeof o.point === "number") {
-      selections.push({
-        label: `${o.name} ${o.point}`,
-        market: "Total",
-        selection: `${o.name} ${o.point}`,
-        side: o.name,
-        line: o.point,
-        featured: true,
-        oddsAmerican: Math.round(o.price),
-      });
-    }
-  }
-
-  return {
-    id: event.id,
-    sport: sclSport,
-    commenceTime: event.commence_time,
-    home: event.home_team,
-    away: event.away_team,
-    selections,
-  };
-}
-
-/** Upcoming games with moneyline + totals for a SCL sport. [] when no key/unsupported. */
-export async function fetchUpcomingOdds(
-  sclSport: string,
-): Promise<OddsEvent[]> {
-  const apiKey = oddsApiKey();
-  const apiSport = toOddsApiSport(sclSport);
-  if (!apiKey || !apiSport) return [];
-
-  const url =
-    `https://api.the-odds-api.com/v4/sports/${apiSport}/odds/` +
-    `?apiKey=${apiKey}&regions=us&markets=h2h,spreads,totals&oddsFormat=american`;
-
-  try {
-    const res = await fetch(url, { next: { revalidate: 120 } });
-    // Log credit usage (x-requests-remaining reveals an exhausted quota) + the status on
-    // failure, so an empty board in prod is diagnosable (bad key = 401, quota = remaining 0,
-    // genuinely no games = 0 events) instead of a silent [].
-    logOddsUsage(res, `upcoming ${sclSport}`);
-    if (!res.ok) {
-      console.warn(`[odds] upcoming ${sclSport}: HTTP ${res.status}`);
-      return [];
-    }
-    const events = (await res.json()) as RawEvent[];
-    const board = events
-      .map((e) => normalize(sclSport, e))
-      .filter((e) => e.selections.length > 0)
-      // Keep enough of the soonest games that today + tomorrow's slate both fit for
-      // daily sports; the board buckets them into Today/Tomorrow client-side.
-      .slice(0, 60);
-    if (board.length === 0) {
-      console.info(`[odds] upcoming ${sclSport}: 0 usable events returned`);
-    }
-    return board;
-  } catch (err) {
-    console.warn(`[odds] upcoming ${sclSport}: fetch failed`, err);
-    return [];
-  }
-}
-
-// ── pick odds/line verification (docs/SCL_PICK_INTEGRITY.md §C3) ──────────────
 
 /** Log Odds API credit usage from a response so burn is observable vs. the plan cap. */
 function logOddsUsage(res: Response, label: string): void {
@@ -201,30 +90,94 @@ function logOddsUsage(res: Response, label: string): void {
   }
 }
 
+/** Upcoming games with moneyline + totals for a SCL sport. [] when no key/unsupported. */
+export async function fetchUpcomingOdds(
+  sclSport: string,
+  opts?: OddsBoardOpts,
+): Promise<OddsEvent[]> {
+  const apiKey = oddsApiKey();
+  const apiSport = toOddsApiSport(sclSport);
+  if (!apiKey || !apiSport) return [];
+
+  const preferred = opts?.books;
+  const attempt = async (books: readonly string[] | undefined) => {
+    const url =
+      `https://api.the-odds-api.com/v4/sports/${apiSport}/odds/` +
+      `?apiKey=${apiKey}&${oddsScopeQuery(books)}&markets=h2h,spreads,totals&oddsFormat=american`;
+    const res = await fetch(url, { next: { revalidate: 120 } });
+    logOddsUsage(res, `upcoming ${sclSport}`);
+    if (!res.ok) {
+      console.warn(`[odds] upcoming ${sclSport}: HTTP ${res.status}`);
+      return [] as OddsEvent[];
+    }
+    const events = (await res.json()) as Parameters<
+      typeof normalizeUpcomingEvent
+    >[1][];
+    return events
+      .map((e) => normalizeUpcomingEvent(sclSport, e, preferred))
+      .filter((e) => e.selections.length > 0)
+      .slice(0, 60);
+  };
+
+  try {
+    const board = await attempt(preferred);
+    if (board.length > 0) return board;
+
+    // Never empty the board solely because of a bookmakers filter — fall back to regions=us.
+    if (bookmakersQueryParam(preferred ?? [])) {
+      console.info(
+        `[odds] upcoming ${sclSport}: bookmakers filter empty, falling back to regions=us`,
+      );
+      return await attempt(undefined);
+    }
+    console.info(`[odds] upcoming ${sclSport}: 0 usable events returned`);
+    return board;
+  } catch (err) {
+    console.warn(`[odds] upcoming ${sclSport}: fetch failed`, err);
+    return [];
+  }
+}
+
 /**
- * One BUNDLED per-event odds call (featured + alternate + curated props), `regions=us`, cached
- * for VERIFY_TTL_SECONDS via Next's fetch data cache so picks on the same event within the window
- * share it (one credit spend, not one per pick). Returns null when no key / unsupported sport /
- * fetch fails — the caller then treats the pick as unverifiable (SELF-REPORTED), never rejected.
+ * One BUNDLED per-event odds call (featured + alternate + curated props), cached for
+ * VERIFY_TTL_SECONDS. When `books` is set, requests those bookmakers; falls back to
+ * regions=us if the filtered payload has no bookmakers. Returns null when no key /
+ * unsupported / fetch fails — caller marks SELF-REPORTED, never rejected.
  */
 export async function fetchEventOddsForVerification(
   sclSport: string,
   eventId: string,
+  opts?: OddsBoardOpts,
 ): Promise<RawEventOdds | null> {
   const apiKey = oddsApiKey();
   const apiSport = toOddsApiSport(sclSport);
   if (!apiKey || !apiSport) return null;
   const markets = verificationMarkets(sclSport).join(",");
-  const url =
-    `https://api.the-odds-api.com/v4/sports/${apiSport}/events/${eventId}/odds/` +
-    `?apiKey=${apiKey}&regions=${VERIFY_REGIONS}&markets=${markets}&oddsFormat=american`;
-  try {
+
+  const attempt = async (books: readonly string[] | undefined) => {
+    const url =
+      `https://api.the-odds-api.com/v4/sports/${apiSport}/events/${eventId}/odds/` +
+      `?apiKey=${apiKey}&${oddsScopeQuery(books)}&markets=${markets}&oddsFormat=american`;
     const res = await fetch(url, {
       next: { revalidate: VERIFY_TTL_SECONDS, tags: [`odds-event:${eventId}`] },
     });
     logOddsUsage(res, `event ${eventId}`);
     if (!res.ok) return null;
     return (await res.json()) as RawEventOdds;
+  };
+
+  try {
+    const preferred = opts?.books;
+    const event = await attempt(preferred);
+    if (event && (event.bookmakers?.length ?? 0) > 0) return event;
+
+    if (bookmakersQueryParam(preferred ?? [])) {
+      console.info(
+        `[odds] event ${eventId}: bookmakers filter empty, falling back to regions=us`,
+      );
+      return await attempt(undefined);
+    }
+    return event;
   } catch {
     return null;
   }
@@ -232,8 +185,8 @@ export async function fetchEventOddsForVerification(
 
 /**
  * Fetch + verify a claimed pick price against the live market (one-sided implied-prob bound).
- * `unverifiable` when the event/market can't be sourced (→ SELF-REPORTED); `verified`/`rejected`
- * otherwise. Grade at the capper's claimed price; rank on `reference` (see §C3).
+ * When `books` is non-empty, available prices are filtered to those books so verification
+ * matches what the capper bets. Empty books = all books on the payload (regions=us).
  */
 export async function verifyPick(params: {
   sclSport: string;
@@ -244,10 +197,12 @@ export async function verifyPick(params: {
   player?: string;
   claimedAmerican: number;
   toleranceProb?: number;
+  books?: readonly string[];
 }): Promise<VerifyResult> {
   const event = await fetchEventOddsForVerification(
     params.sclSport,
     params.eventId,
+    { books: params.books },
   );
   if (!event) {
     return {
@@ -255,183 +210,21 @@ export async function verifyPick(params: {
       reason: "Odds unavailable for this event.",
     };
   }
-  const availableAmerican = collectAvailablePrices(event, {
-    marketKeys: params.marketKeys,
-    side: params.side,
-    line: params.line,
-    player: params.player,
-  });
+  const bookKeys = (params.books ?? []).filter(isBookKey);
+  const availableAmerican = collectAvailablePrices(
+    event,
+    {
+      marketKeys: params.marketKeys,
+      side: params.side,
+      line: params.line,
+      player: params.player,
+    },
+    bookKeys.length ? { bookKeys } : undefined,
+  );
   return verifyOdds({
     claimedAmerican: params.claimedAmerican,
     availableAmerican,
     toleranceProb: params.toleranceProb,
-  });
-}
-
-// ── expanded per-event board (game lines + alternate lines) ───────────────────
-
-/** Odds API market keys we surface on the board, mapped to the SCL market label. */
-const BOARD_MARKETS: Record<string, "Moneyline" | "Spread" | "Total"> = {
-  h2h: "Moneyline",
-  spreads: "Spread",
-  alternate_spreads: "Spread",
-  totals: "Total",
-  alternate_totals: "Total",
-};
-
-// Game markets sort ahead of props; props (rank 10) then sort alphabetically by their label.
-const MARKET_SORT = { Moneyline: 0, Spread: 1, Total: 2 } as const;
-const PROP_RANK = 10;
-
-// The featured (main) game markets — everything else spreads/totals returns is an alternate line.
-const FEATURED_KEYS = new Set(["h2h", "spreads", "totals"]);
-
-type BoardGroup = {
-  market: string; // game label ("Spread") or prop label ("Strikeouts")
-  side: string;
-  line?: number;
-  player?: string;
-  featured: boolean;
-  prices: number[];
-};
-
-function marketRank(market: string): number {
-  return MARKET_SORT[market as keyof typeof MARKET_SORT] ?? PROP_RANK;
-}
-
-/**
- * Flatten a per-event odds payload into board selections spanning featured **and alternate** game
- * lines plus curated **player props**. Prices for the same { market, side, line, player } are
- * collapsed across books to the single most bettor-favorable number, so each row shows the best
- * line available. Props carry a `player`; their `market` is the human label (e.g. "Strikeouts"),
- * which verification maps back to its Odds API key. Pure.
- */
-export function normalizeEventBoard(event: RawEventOdds): OddsSelection[] {
-  const groups = new Map<string, BoardGroup>();
-
-  const add = (
-    key: string,
-    seed: () => BoardGroup,
-    price: number,
-    featured: boolean,
-  ) => {
-    const g = groups.get(key);
-    if (g) {
-      g.prices.push(price);
-      if (featured) g.featured = true;
-    } else {
-      const next = seed();
-      next.prices = [price];
-      next.featured = featured;
-      groups.set(key, next);
-    }
-  };
-
-  for (const bm of event.bookmakers ?? []) {
-    for (const m of bm.markets ?? []) {
-      const gameMarket = BOARD_MARKETS[m.key];
-      const propLabel = PROP_MARKET_LABEL[m.key];
-      if (!gameMarket && !propLabel) continue;
-      const isFeatured = FEATURED_KEYS.has(m.key);
-      for (const o of m.outcomes ?? []) {
-        if (typeof o.price !== "number") continue;
-        const price = Math.round(o.price);
-        const line = typeof o.point === "number" ? o.point : undefined;
-        if (gameMarket) {
-          if (gameMarket !== "Moneyline" && line === undefined) continue;
-          add(
-            `g|${gameMarket}|${o.name.toLowerCase()}|${line ?? ""}`,
-            () => ({
-              market: gameMarket,
-              side: o.name,
-              line,
-              featured: false,
-              prices: [],
-            }),
-            price,
-            isFeatured,
-          );
-        } else {
-          const player = (o.description ?? "").trim();
-          if (!player || line === undefined) continue;
-          add(
-            `p|${propLabel}|${player.toLowerCase()}|${o.name.toLowerCase()}|${line}`,
-            () => ({
-              market: propLabel,
-              side: o.name,
-              line,
-              player,
-              featured: false,
-              prices: [],
-            }),
-            price,
-            false,
-          );
-        }
-      }
-    }
-  }
-
-  const selections: OddsSelection[] = [];
-  for (const g of groups.values()) {
-    const best = bestAvailableAmerican(g.prices);
-    if (best === null) continue;
-    if (g.player) {
-      const text = `${g.player} ${g.side} ${g.line}`;
-      selections.push({
-        label: text,
-        market: g.market,
-        selection: text,
-        side: g.side,
-        line: g.line,
-        player: g.player,
-        oddsAmerican: best,
-      });
-    } else if (g.market === "Moneyline") {
-      selections.push({
-        label: `${g.side} ML`,
-        market: "Moneyline",
-        selection: g.side,
-        side: g.side,
-        featured: true, // moneyline is always a featured market
-        oddsAmerican: best,
-      });
-    } else if (g.market === "Spread") {
-      const signed = `${(g.line ?? 0) > 0 ? "+" : ""}${g.line}`;
-      selections.push({
-        label: `${g.side} ${signed}`,
-        market: "Spread",
-        selection: `${g.side} ${signed}`,
-        side: g.side,
-        line: g.line,
-        featured: g.featured,
-        oddsAmerican: best,
-      });
-    } else {
-      selections.push({
-        label: `${g.side} ${g.line}`,
-        market: "Total",
-        selection: `${g.side} ${g.line}`,
-        side: g.side,
-        line: g.line,
-        featured: g.featured,
-        oddsAmerican: best,
-      });
-    }
-  }
-
-  return selections.sort((a, b) => {
-    const ra = marketRank(a.market);
-    const rb = marketRank(b.market);
-    if (ra !== rb) return ra - rb;
-    // Props share rank 10 — group them by label; game markets have distinct ranks already.
-    if (a.market !== b.market) return a.market.localeCompare(b.market);
-    // Within a market: player ladder (props), then side ladder, then line.
-    const pa = a.player ?? "";
-    const pb = b.player ?? "";
-    if (pa !== pb) return pa.localeCompare(pb);
-    if (a.side !== b.side) return a.side.localeCompare(b.side);
-    return (a.line ?? 0) - (b.line ?? 0);
   });
 }
 
@@ -443,8 +236,9 @@ export function normalizeEventBoard(event: RawEventOdds): OddsSelection[] {
 export async function fetchEventBoard(
   sclSport: string,
   eventId: string,
+  opts?: OddsBoardOpts,
 ): Promise<OddsSelection[]> {
-  const event = await fetchEventOddsForVerification(sclSport, eventId);
+  const event = await fetchEventOddsForVerification(sclSport, eventId, opts);
   if (!event) return [];
-  return normalizeEventBoard(event);
+  return normalizeEventBoard(event, opts);
 }
