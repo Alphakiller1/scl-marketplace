@@ -6,19 +6,10 @@ import {
   STOREFRONT_DESCRIPTION_MAX_LENGTH,
   STOREFRONT_TITLE_MAX_LENGTH,
 } from "@/lib/storefront";
-import { safeHttpUrl } from "@/lib/urls";
-
-const socialHandleSchema = z
-  .string()
-  .max(40)
-  .refine(
-    (value) => value === "" || /^@?[a-zA-Z0-9._-]+$/.test(value),
-    "Use a social handle, not a full URL",
-  )
-  .optional();
 
 // Empty strings from inputs are allowed; the server action coerces "" -> null.
-// Public identity is @username only — displayName is not collected or updated.
+// Public identity is @username only. External social/website links are not
+// collected (existing DB values stay dormant — not cleared, not rendered).
 export const profileSchema = z.object({
   headline: z.string().max(120, "Keep it under 120 characters").optional(),
   bio: z.string().max(600, "Keep it under 600 characters").optional(),
@@ -55,17 +46,6 @@ export const profileSchema = z.object({
     )
     .optional(),
   storefrontEnabled: z.boolean().default(true),
-  instagram: socialHandleSchema,
-  twitter: socialHandleSchema,
-  facebook: socialHandleSchema,
-  tiktok: socialHandleSchema,
-  website: z
-    .string()
-    .max(200)
-    .refine((value) => value === "" || safeHttpUrl(value) !== null, {
-      message: "Use a full http:// or https:// URL",
-    })
-    .optional(),
 });
 
 export type ProfileFormInput = z.input<typeof profileSchema>;
