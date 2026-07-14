@@ -132,7 +132,12 @@ export function isLeaderboardEligible(
   filters: LeaderboardFilters,
 ): boolean {
   const settledPicks = capper.settledPicks ?? 0;
-  return settledPicks > 0 && settledPicks >= filters.minPicks;
+  return (
+    settledPicks > 0 &&
+    settledPicks >= filters.minPicks &&
+    capper.units >= 0 &&
+    capper.roi >= 0
+  );
 }
 
 /**
@@ -144,6 +149,8 @@ export function isBuildingARecord(
   input: {
     rank?: number | null;
     settledPicks?: number | null;
+    units?: number | null;
+    roi?: number | null;
   },
   minPicks: number = 0,
 ): boolean {
@@ -151,7 +158,10 @@ export function isBuildingARecord(
   // Unknown sample → don't claim "building" (mock cards without partition data).
   if (input.settledPicks == null) return false;
   const settledPicks = input.settledPicks;
-  return !(settledPicks > 0 && settledPicks >= minPicks);
+  if (!(settledPicks > 0 && settledPicks >= minPicks)) return true;
+  if (typeof input.units === "number" && input.units < 0) return true;
+  if (typeof input.roi === "number" && input.roi < 0) return true;
+  return false;
 }
 
 /** @deprecated Prefer `isLeaderboardEligible` — kept for callers that still
@@ -208,9 +218,11 @@ export type LeaderboardSummary = {
 };
 
 export function summarizeLeaderboard(
-  cappers: CapperSummary[],
+  ranked: CapperSummary[],
+  unranked: CapperSummary[] = [],
 ): LeaderboardSummary {
-  const totals = cappers.reduce(
+  const scoped = ranked.concat(unranked);
+  const totals = scoped.reduce(
     (summary, capper) => {
       summary.verifiedCappers += capper.verified ? 1 : 0;
       summary.trackedPicks += capper.settledPicks ?? 0;
@@ -234,7 +246,7 @@ export function summarizeLeaderboard(
   const decisions = totals.wins + totals.losses;
 
   return {
-    rankedCappers: cappers.length,
+    rankedCappers: ranked.length,
     verifiedCappers: totals.verifiedCappers,
     trackedPicks: totals.trackedPicks,
     winPct: decisions ? (totals.wins / decisions) * 100 : 0,

@@ -27,7 +27,7 @@ export default async function LeaderboardPage({
 }) {
   const filters = parseLeaderboardFilters(await searchParams);
   const { cappers, unranked, failed } = await getLeaderboardResult(filters);
-  const summary = summarizeLeaderboard(cappers);
+  const summary = summarizeLeaderboard(cappers, unranked);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-10">
@@ -37,7 +37,7 @@ export default async function LeaderboardPage({
         <Leaderboard
           cappers={cappers}
           failed={failed}
-          emptyDescription="No cappers match these ranking filters yet. Cappers below the sample threshold appear under Building A Record."
+          emptyDescription="No cappers match these ranking filters yet. Cappers below the sample threshold or net-negative in this scope appear under Building A Record."
         />
       </section>
       <BuildingRecordSection cappers={unranked} failed={failed} />
