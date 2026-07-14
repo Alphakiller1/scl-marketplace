@@ -74,9 +74,12 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
   const handleLabel = formatHandle(username) ?? "";
   const completion = calculateProfileCompletion({
     ...values,
-    // displayName dormant — completion audit lands in a follow-up PR
-    displayName: null,
     avatarUrl: media.avatarUrl,
+    bannerUrl: media.bannerUrl,
+    providerType: values.providerType,
+    betTypes: values.betTypes,
+    dailyVolume:
+      values.dailyVolume === "" ? null : (values.dailyVolume ?? null),
   });
   const storefront = resolveStorefrontIdentity({
     username,
