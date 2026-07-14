@@ -3,26 +3,24 @@
 import { useState } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Trash2 } from "lucide-react";
-import Link from "next/link";
 import { toast } from "sonner";
 
+import { EntryModeCards } from "@/components/scl/entry-mode-cards";
+import { GamePicker, type OddsPick } from "@/components/scl/game-picker";
 import { MobileSlipDock } from "@/components/scl/mobile-slip-dock";
-import { BettingTitle } from "@/components/scl/betting-title";
-import { OddsAssist, type OddsPick } from "@/components/scl/odds-assist";
+import { ParlayLegCard } from "@/components/scl/parlay-leg-card";
 import { SectionHeader } from "@/components/scl/section";
 import { SlipConflictPrompt } from "@/components/scl/slip-conflict-prompt";
-import { SportPills } from "@/components/scl/sport-pills";
 import { StakeQuickChips } from "@/components/scl/stake-quick-chips";
 import { StatValue } from "@/components/scl/stat-value";
-import { Ticket } from "@/components/scl/ticket";
+import { VerificationReceipt } from "@/components/scl/verification-receipt";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createParlay } from "@/lib/actions/parlay.action";
 import { UNIT_MAX, UNIT_MIN, UNIT_STEP } from "@/lib/constants";
-import { formatOdds, formatUnits } from "@/lib/format";
+import { formatOdds } from "@/lib/format";
 import {
   americanToDecimal,
   combineDecimalOdds,
@@ -41,11 +39,11 @@ import {
   type SlipPick,
 } from "@/lib/slip";
 import { useIsLg } from "@/lib/use-media-query";
-import { cn } from "@/lib/utils";
-import { isVerifiedTier, type ParlayReceipt } from "@/lib/verification";
+import type { ParlayReceipt } from "@/lib/verification";
 
 const PINK_CTA =
   "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)]";
+const MAX_LEGS = 12;
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -72,12 +70,19 @@ function legToSlipPick(l: {
   };
 }
 
+/**
+ * Parlay entry — collapsible leg cards each embedding GamePicker.
+ * M4 PR-4 / SCL_M4_PICK_REDESIGN §4.1 · §4.4 · §4.5.
+ */
 export default function NewParlayPage() {
   const [receipt, setReceipt] = useState<ParlayReceipt | null>(null);
-  const [sport, setSport] = useState("");
+  /** Which leg card is expanded; `fields.length` = the open "add leg" slot. */
+  const [expanded, setExpanded] = useState<number>(0);
   const [pendingConflict, setPendingConflict] = useState<{
     conflict: SlipConflict;
     pick: OddsPick;
+    /** When replacing into an existing expanded leg index. */
+    targetIndex: number | null;
   } | null>(null);
   const isLg = useIsLg();
   const {
@@ -110,8 +115,32 @@ export default function NewParlayPage() {
       : null;
 
   const slipLegs = (legs ?? []).map(legToSlipPick);
-  // Keys of legs already on the slip — the board marks these chips selected + disabled.
   const selectedKeys = new Set(slipLegs.map(pickKey));
+  const canAdd = fields.length < MAX_LEGS;
+  const addSlotIndex = fields.length;
+
+  function applyPick(pick: OddsPick, targetIndex: number | null) {
+    const conflict = findConflict(slipLegs, pick);
+    if (!conflict) {
+      setPendingConflict(null);
+      if (targetIndex != null && targetIndex < fields.length) {
+        update(targetIndex, toSlipLeg(pick));
+        setExpanded(Math.min(fields.length, MAX_LEGS - 1));
+      } else {
+        append(toSlipLeg(pick));
+        // After append, next add slot is fields.length + 1 — open it if room.
+        setExpanded(
+          fields.length + 1 < MAX_LEGS ? fields.length + 1 : fields.length,
+        );
+      }
+      return;
+    }
+    if (conflict.kind === "duplicate") {
+      setPendingConflict(null);
+      return;
+    }
+    setPendingConflict({ conflict, pick, targetIndex });
+  }
 
   async function onSubmit(values: CreateParlayInput) {
     const res = await createParlay(values);
@@ -123,55 +152,41 @@ export default function NewParlayPage() {
   }
 
   if (receipt) {
-    const verified =
-      receipt.verifiedLegCount === receipt.legCount &&
-      receipt.tiers.every(isVerifiedTier);
-    const stake =
-      receipt.units != null ? formatUnits(receipt.units, true, false) : "—";
-    const toWin =
-      receipt.toWinUnits != null
-        ? formatUnits(receipt.toWinUnits, true, false)
-        : "—";
     return (
       <div className="mx-auto max-w-xl space-y-5">
         <SectionHeader
           title="Parlay Logged"
           subtitle="Confirmation for your record"
         />
-        <Ticket
-          selectionTitle={`${receipt.legCount}-Leg Parlay`}
-          eventLine={null}
-          legs={receipt.legCount}
-          odds={formatOdds(receipt.combinedOddsAmerican)}
-          stake={stake}
-          toWin={toWin}
-          capturedAt={receipt.capturedAt}
-          status={verified ? "verified" : "muted"}
-          footerAction={
-            <Button
-              className={`min-h-12 w-full text-base ${PINK_CTA}`}
-              render={<Link href="/dashboard/picks" />}
-              nativeButton={false}
-            >
-              View on your record
-            </Button>
-          }
-        />
+        <VerificationReceipt receipt={receipt} />
       </div>
     );
   }
 
-  // Shared slip — rendered in the desktop sticky column and the mobile dock. Carries the
-  // inline Replace/Cancel prompt so same-market conflicts resolve in either surface.
   const slipBody = (
     <Card className="scl-elevated space-y-3 border border-[color:var(--scl-pink-deep)] p-4 sm:p-5">
-      <div className="flex items-center justify-between">
-        <p className="scl-eyebrow text-[color:var(--scl-muted-label)]">
-          Parlay slip
-        </p>
-        <StatValue tone="label" className="text-xs">
-          {fields.length} {fields.length === 1 ? "leg" : "legs"}
-        </StatValue>
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <p className="scl-eyebrow text-[color:var(--scl-muted-label)]">
+            Parlay · {fields.length}-leg
+            {fields.length === 1 ? "" : "s"}
+          </p>
+          {combinedAmerican != null ? (
+            <StatValue tone="pink" className="mt-0.5 text-lg font-bold">
+              {formatOdds(combinedAmerican)}
+            </StatValue>
+          ) : (
+            <p className="text-muted-foreground mt-0.5 text-xs">
+              Add 2+ legs to combine
+            </p>
+          )}
+        </div>
+        <div className="text-right">
+          <p className="text-muted-foreground text-xs">To win</p>
+          <StatValue tone="pink" className="text-lg font-bold">
+            {toWin != null ? `+${toWin.toFixed(2)}u` : "—"}
+          </StatValue>
+        </div>
       </div>
 
       {pendingConflict ? (
@@ -181,84 +196,36 @@ export default function NewParlayPage() {
           onCancel={() => setPendingConflict(null)}
           onReplace={() => {
             const { conflict, pick } = pendingConflict;
-            update(conflict.index, toSlipLeg(pick, sport));
+            update(conflict.index, toSlipLeg(pick));
             setPendingConflict(null);
+            setExpanded(
+              fields.length < MAX_LEGS ? fields.length : conflict.index,
+            );
           }}
         />
       ) : null}
 
-      {fields.length ? (
-        <div className="divide-border divide-y">
-          {fields.map((field, i) => {
-            const leg = legs?.[i];
-            const legOdds = Number(leg?.oddsAmerican);
-            const conflicting = pendingConflict?.conflict.index === i;
-            return (
-              <div
-                key={field.id}
-                className={cn(
-                  "flex items-center justify-between gap-3 py-2.5",
-                  conflicting &&
-                    "-mx-2 rounded-md bg-[color:var(--scl-ink-700)] px-2",
-                )}
-              >
-                <div className="min-w-0">
-                  <BettingTitle
-                    as="p"
-                    text={leg?.selection || `Leg ${i + 1}`}
-                    className="truncate text-sm font-semibold"
-                  />
-                  <p className="text-muted-foreground text-xs">
-                    {leg?.market}
-                    {Math.abs(legOdds) >= 100 ? (
-                      <>
-                        {" · "}
-                        <StatValue tone="data" className="font-semibold">
-                          {formatOdds(legOdds)}
-                        </StatValue>
-                      </>
-                    ) : null}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    remove(i);
-                    setPendingConflict(null);
-                  }}
-                  aria-label={`Remove leg ${i + 1}`}
-                  className="text-muted-foreground hover:text-foreground hover:bg-surface-2 min-h-10 min-w-10 rounded-md p-1.5"
-                >
-                  <Trash2 className="size-4" />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <p className="text-muted-foreground py-2 text-xs">
-          Tap lines from the board above to add legs (2–12).
+      <div className="space-y-1.5">
+        <Label htmlFor="units">Stake (units)</Label>
+        <Input
+          id="units"
+          type="number"
+          step={UNIT_STEP}
+          min={UNIT_MIN}
+          max={UNIT_MAX}
+          {...register("units", { valueAsNumber: true })}
+        />
+        <StakeQuickChips
+          value={typeof units === "number" ? units : null}
+          onChange={(u) =>
+            setValue("units", u, { shouldValidate: true, shouldDirty: true })
+          }
+        />
+        <p className="text-muted-foreground text-xs">
+          Stake lives on the parlay; legs are components.
         </p>
-      )}
-
-      {combinedAmerican != null ? (
-        <div className="border-border flex items-center justify-between border-t pt-3">
-          <div>
-            <p className="text-muted-foreground text-xs">
-              {priced.length}-leg parlay
-            </p>
-            <StatValue tone="pink" className="text-lg font-bold">
-              {formatOdds(combinedAmerican)}
-            </StatValue>
-          </div>
-          <div className="text-right">
-            <p className="text-muted-foreground text-xs">To win</p>
-            <StatValue tone="pink" className="text-lg font-bold">
-              {toWin != null ? `+${toWin.toFixed(2)}u` : "—"}
-            </StatValue>
-          </div>
-        </div>
-      ) : null}
+        <FieldError message={errors.units?.message} />
+      </div>
 
       <FieldError message={errors.legs?.message} />
 
@@ -275,76 +242,82 @@ export default function NewParlayPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-5 lg:max-w-5xl">
-      <div className="flex items-center justify-between gap-3">
+      <div>
+        <p className="scl-eyebrow mb-1 text-[color:var(--scl-muted-label)]">
+          Verified Board Entry
+        </p>
         <SectionHeader
           title="Submit A Parlay"
-          subtitle="Tap 2+ lines off the board to build your legs"
+          subtitle="Build legs from the same game board — 2 to 12"
         />
-        <Button
-          variant="ghost"
-          render={<Link href="/dashboard/picks/new" />}
-          nativeButton={false}
-          className="min-h-11"
-        >
-          Single play
-        </Button>
       </div>
 
-      <Card className="space-y-1.5 p-4 sm:p-5">
-        <Label htmlFor="units">Stake (units)</Label>
-        <Input
-          id="units"
-          type="number"
-          step={UNIT_STEP}
-          min={UNIT_MIN}
-          max={UNIT_MAX}
-          className="sm:max-w-40"
-          {...register("units", { valueAsNumber: true })}
-        />
-        <StakeQuickChips
-          value={typeof units === "number" ? units : null}
-          onChange={(u) =>
-            setValue("units", u, { shouldValidate: true, shouldDirty: true })
-          }
-        />
-        <p className="text-muted-foreground text-xs">
-          The parlay carries the stake; legs are components.
-        </p>
-        <FieldError message={errors.units?.message} />
-      </Card>
+      <EntryModeCards mode="parlay" />
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
-        <div className="min-w-0 space-y-5">
-          <Card className="space-y-2 p-4 sm:p-5">
-            <Label>Add legs from the board</Label>
-            <SportPills
-              value={sport}
-              onChange={(key) => {
-                setSport(key);
-                setPendingConflict(null);
-              }}
-            />
-          </Card>
+        <div className="min-w-0 space-y-3">
+          <div className="flex items-baseline justify-between gap-2 px-0.5">
+            <p className="scl-display text-sm font-semibold tracking-[0.08em] uppercase">
+              Parlay
+            </p>
+            <span className="scl-data text-[0.65rem] tracking-[0.1em] text-[color:var(--scl-muted-label)] uppercase">
+              {fields.length} leg{fields.length === 1 ? "" : "s"}
+              {combinedAmerican != null
+                ? ` · ${formatOdds(combinedAmerican)}`
+                : ""}
+            </span>
+          </div>
 
-          {sport ? (
-            <OddsAssist
-              sport={sport}
-              selectedKeys={selectedKeys}
-              onPick={(pick) => {
-                const conflict = findConflict(slipLegs, pick);
-                if (!conflict) {
+          {fields.map((field, i) => {
+            const leg = legs?.[i];
+            const legOdds = Number(leg?.oddsAmerican);
+            const isOpen = expanded === i;
+            return (
+              <ParlayLegCard
+                key={field.id}
+                index={i}
+                expanded={isOpen}
+                selection={leg?.selection}
+                oddsAmerican={Math.abs(legOdds) >= 100 ? legOdds : undefined}
+                league={leg?.sport}
+                onToggle={() => setExpanded(isOpen ? -1 : i)}
+                onRemove={() => {
+                  remove(i);
                   setPendingConflict(null);
-                  append(toSlipLeg(pick, sport));
-                  return;
-                }
-                // Exact duplicate: chip is already selected — quiet no-op.
-                if (conflict.kind === "duplicate") {
-                  setPendingConflict(null);
-                  return;
-                }
-                setPendingConflict({ conflict, pick });
-              }}
-            />
+                  setExpanded(Math.min(i, Math.max(0, fields.length - 2)));
+                }}
+              >
+                <GamePicker
+                  selectedKeys={selectedKeys}
+                  onPick={(pick) => applyPick(pick, i)}
+                />
+              </ParlayLegCard>
+            );
+          })}
+
+          {canAdd ? (
+            <ParlayLegCard
+              index={addSlotIndex}
+              expanded={expanded === addSlotIndex || fields.length === 0}
+              onToggle={() =>
+                setExpanded(
+                  expanded === addSlotIndex && fields.length > 0
+                    ? -1
+                    : addSlotIndex,
+                )
+              }
+            >
+              <GamePicker
+                selectedKeys={selectedKeys}
+                onPick={(pick) => applyPick(pick, null)}
+              />
+            </ParlayLegCard>
+          ) : null}
+
+          {fields.length === 0 ? (
+            <p className="text-muted-foreground px-0.5 text-xs">
+              Expand a leg, pick a game, tap a line — units stay in the slip.
+            </p>
           ) : null}
         </div>
 
@@ -363,6 +336,30 @@ export default function NewParlayPage() {
         >
           {slipBody}
         </MobileSlipDock>
+      ) : null}
+
+      {isLg === false && fields.length === 0 ? (
+        <Card className="space-y-1.5 p-4 sm:p-5">
+          <Label htmlFor="units-mobile">Stake (units)</Label>
+          <Input
+            id="units-mobile"
+            type="number"
+            step={UNIT_STEP}
+            min={UNIT_MIN}
+            max={UNIT_MAX}
+            {...register("units", { valueAsNumber: true })}
+          />
+          <StakeQuickChips
+            value={typeof units === "number" ? units : null}
+            onChange={(u) =>
+              setValue("units", u, {
+                shouldValidate: true,
+                shouldDirty: true,
+              })
+            }
+          />
+          <FieldError message={errors.units?.message} />
+        </Card>
       ) : null}
     </div>
   );

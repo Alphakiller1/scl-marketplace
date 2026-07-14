@@ -6,6 +6,7 @@ import {
   conflictKey,
   findConflict,
   pickKey,
+  toSlipLeg,
   type SlipPick,
 } from "@/lib/slip";
 
@@ -181,4 +182,20 @@ test("different market families on same game are allowed", () => {
   });
   assert.equal(canAddLeg([ml], spread), true);
   assert.equal(canAddLeg([ml, spread], total), true);
+});
+
+test("toSlipLeg carries sport + book from the board pick", () => {
+  const payload = toSlipLeg({
+    eventId: "evt-1",
+    market: "Moneyline",
+    selection: "Lakers",
+    side: "Lakers",
+    oddsAmerican: -140,
+    eventStartsAt: "2026-07-14T23:00:00.000Z",
+    sport: "NBA",
+    book: "draftkings",
+  });
+  assert.equal(payload.sport, "NBA");
+  assert.equal(payload.book, "draftkings");
+  assert.equal(payload.selection, "Lakers");
 });

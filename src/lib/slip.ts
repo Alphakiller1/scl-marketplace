@@ -155,16 +155,16 @@ export function canAddLeg(
   return findConflict(existingLegs, pick) === null;
 }
 
-/** Map a board pick (+ sport) into a parlay leg payload ready for `append`. */
+/** Map a board pick into a parlay leg payload ready for `append`. */
 export function toSlipLeg(
   pick: SlipPick & {
     selection: string;
     eventStartsAt: string;
+    sport: string;
   },
-  sport: string,
 ) {
   return {
-    sport,
+    sport: pick.sport,
     market: pick.market,
     selection: pick.selection,
     oddsAmerican: pick.oddsAmerican,
