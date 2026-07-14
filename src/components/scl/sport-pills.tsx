@@ -30,7 +30,7 @@ export function SportPills({
             className={cn(
               "min-h-10 rounded-full border px-3.5 text-sm font-semibold transition-colors",
               active
-                ? "border-brand bg-brand/10 text-brand"
+                ? "border-gold bg-gold text-gold-foreground"
                 : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30",
             )}
           >

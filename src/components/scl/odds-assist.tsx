@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, ChevronDown, Zap } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -63,7 +63,7 @@ const PROP_PILL_CLASS =
   "min-h-10 rounded-full border px-3.5 text-sm font-semibold transition-colors";
 
 const CHIP_CLASS =
-  "border-border hover:border-brand hover:bg-surface-2 flex min-h-10 items-center gap-1.5 rounded-md border px-3 py-2 text-xs transition-colors";
+  "border-border bg-surface-2 hover:bg-surface-3 flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-[10px] border px-2 py-1.5 text-center transition-colors";
 
 /** Game markets first (in MARKET_ORDER); prop groups sort after, alphabetically by label. */
 function marketOrder(market: string): number {
@@ -194,11 +194,13 @@ export function OddsAssist({
   const dayEvents = day === "today" ? todayEvents : tomorrowEvents;
 
   return (
-    <Card className="space-y-3 p-4">
-      <div className="flex items-center gap-1.5 text-sm font-medium">
-        <Zap className="text-brand size-4" /> Games board
-        <span className="text-muted-foreground ml-auto text-xs font-normal">
-          Tap a price to fill your play
+    <Card className="scl-scanline space-y-3 p-4">
+      <div className="flex items-baseline justify-between gap-2 border-t border-[color:var(--scl-gold-deep)] pt-2.5">
+        <h2 className="scl-display text-sm font-semibold tracking-[0.08em] uppercase">
+          {sport} Board
+        </h2>
+        <span className="scl-data text-muted-foreground text-[0.65rem] tracking-[0.1em] uppercase">
+          Odds: Live Feed
         </span>
       </div>
 
@@ -216,11 +218,14 @@ export function OddsAssist({
             }}
           />
           {dayEvents.length ? (
-            <ul className="divide-border border-border max-h-96 divide-y overflow-auto rounded-lg border">
+            <ul className="max-h-96 space-y-2.5 overflow-auto">
               {dayEvents.map((e) => {
                 const open = openId === e.id;
                 return (
-                  <li key={e.id} className="bg-card">
+                  <li
+                    key={e.id}
+                    className="bg-card border-border overflow-hidden rounded-[14px] border"
+                  >
                     <EventRow
                       event={e}
                       open={open}
@@ -301,7 +306,7 @@ function DayToggle({
     tomorrow: tomorrowCount,
   };
   return (
-    <div className="bg-surface-2 grid grid-cols-2 gap-1 rounded-lg p-1">
+    <div className="bg-card border-border grid grid-cols-2 gap-1 rounded-[10px] border p-1">
       {(["today", "tomorrow"] as const).map((d) => (
         <button
           key={d}
@@ -309,13 +314,16 @@ function DayToggle({
           onClick={() => onChange(d)}
           aria-pressed={day === d}
           className={cn(
-            "min-h-10 rounded-md text-xs font-semibold capitalize transition-colors",
+            "scl-display min-h-10 rounded-lg text-sm font-semibold tracking-[0.06em] uppercase transition-colors",
             day === d
-              ? "bg-card text-foreground shadow-xs"
+              ? "bg-surface-3 text-foreground shadow-[inset_0_0_0_1px_var(--border)]"
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          {d} · {counts[d]}
+          {d}
+          <span className="scl-data text-muted-foreground mt-0.5 block text-[0.65rem] font-medium tracking-[0.08em] normal-case">
+            {counts[d]} events
+          </span>
         </button>
       ))}
     </div>
@@ -335,59 +343,83 @@ function EventRow({
   const home = getTeamIdentity(event.home, event.sport);
   const awayMl = moneylineFor(event, away);
   const homeMl = moneylineFor(event, home);
+  const awayFav =
+    typeof awayMl === "number" && typeof homeMl === "number" && awayMl < homeMl;
+  const homeFav =
+    typeof awayMl === "number" && typeof homeMl === "number" && homeMl < awayMl;
+  const timeLabel = new Date(event.commenceTime).toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
 
   return (
     <button
       type="button"
       onClick={onToggle}
-      className="hover:bg-surface-2 flex w-full items-start justify-between gap-2 px-3 py-2.5 text-left text-sm transition-colors"
+      className="hover:bg-surface-2/60 w-full text-left transition-colors"
       aria-expanded={open}
       aria-label={`${event.away} at ${event.home}`}
     >
-      <span className="min-w-0 flex-1 space-y-1.5">
-        <TeamLine team={away} moneyline={awayMl} />
-        <TeamLine team={home} moneyline={homeMl} />
-      </span>
-      <span className="text-muted-foreground flex shrink-0 items-center gap-1.5 pt-0.5 text-xs">
-        <span className="bg-surface-2 text-muted-foreground hidden rounded px-1.5 py-0.5 text-[0.65rem] font-semibold sm:inline">
-          {event.sport}
+      <div className="grid grid-cols-[4px_minmax(0,1fr)_auto] items-stretch">
+        <span className="flex flex-col" aria-hidden>
+          <span
+            className="min-h-5 flex-1"
+            style={{ backgroundColor: away.primaryColor }}
+          />
+          <span
+            className="min-h-5 flex-1"
+            style={{ backgroundColor: home.primaryColor }}
+          />
         </span>
-        <span className="nums tabular-nums">
-          {new Date(event.commenceTime).toLocaleTimeString(undefined, {
-            hour: "numeric",
-            minute: "2-digit",
-          })}
+        <span className="min-w-0 space-y-1 px-3 pt-3 pb-1.5">
+          <BoardTeamLine team={away} fav={awayFav} />
+          <BoardTeamLine team={home} fav={homeFav} />
         </span>
+        <span className="scl-data text-muted-foreground flex flex-col justify-center gap-1.5 px-3 pt-3 pb-1.5 text-right text-sm font-semibold">
+          <span
+            className={
+              typeof awayMl === "number" && awayMl < 0
+                ? "text-foreground"
+                : undefined
+            }
+          >
+            {typeof awayMl === "number" ? formatOdds(awayMl) : "—"}
+          </span>
+          <span
+            className={
+              typeof homeMl === "number" && homeMl < 0
+                ? "text-foreground"
+                : undefined
+            }
+          >
+            {typeof homeMl === "number" ? formatOdds(homeMl) : "—"}
+          </span>
+        </span>
+      </div>
+      <span className="scl-data text-muted-foreground flex items-center gap-2 px-3 pt-1.5 pb-3 pl-[1.625rem] text-[0.65rem] tracking-[0.1em] uppercase">
+        <span>{timeLabel} ET</span>
+        <span className="text-pos">Pre-Game ✓</span>
         <ChevronDown
-          className={`size-4 transition-transform ${open ? "rotate-180" : ""}`}
+          className={cn(
+            "ml-auto size-4 transition-transform",
+            open && "rotate-180",
+          )}
         />
       </span>
     </button>
   );
 }
 
-function TeamLine({
-  team,
-  moneyline,
-}: {
-  team: TeamIdentity;
-  moneyline?: number;
-}) {
+function BoardTeamLine({ team, fav }: { team: TeamIdentity; fav?: boolean }) {
   return (
-    <span className="flex min-w-0 items-center gap-2">
-      <span
-        className="h-7 w-1 shrink-0 rounded-full"
-        style={{ backgroundColor: team.primaryColor }}
-        aria-hidden
-      />
-      <TeamMark team={team} />
-      <span className="min-w-0 flex-1 font-medium">
-        <span className="truncate sm:hidden">{team.shortName}</span>
-        <span className="hidden truncate sm:block">{team.fullName}</span>
+    <span className="flex min-w-0 items-center gap-2.5">
+      <TeamMark team={team} size="md" className="rounded-lg" />
+      <span className="scl-display truncate text-[1.05rem] font-semibold tracking-[0.02em]">
+        {team.shortName}
       </span>
-      {typeof moneyline === "number" ? (
-        <span className="text-muted-foreground nums shrink-0 text-xs font-semibold tabular-nums">
-          {formatOdds(moneyline)}
+      {fav ? (
+        <span className="scl-data text-gold shrink-0 rounded border border-[color:var(--scl-gold-deep)] px-1.5 py-px text-[0.55rem] tracking-[0.12em] uppercase">
+          Fav
         </span>
       ) : null}
     </span>
@@ -477,22 +509,26 @@ function EventDetail({
         className={cn(
           CHIP_CLASS,
           selected &&
-            "border-brand bg-brand text-brand-foreground hover:bg-brand hover:border-brand cursor-default",
+            "border-gold bg-gold text-gold-foreground hover:bg-gold hover:border-gold cursor-default shadow-[0_0_0_2px_var(--background),0_0_0_3.5px_var(--scl-gold-deep)]",
         )}
       >
-        {selected ? (
-          <Check className="text-brand-foreground size-3.5 shrink-0" />
-        ) : null}
-        <span className="min-w-0 truncate">
-          {selected ? "Added · " : ""}
+        <span
+          className={cn(
+            "min-w-0 truncate text-xs font-medium",
+            selected
+              ? "text-gold-foreground font-semibold"
+              : "text-muted-foreground",
+          )}
+        >
           {s.selection}
         </span>
         <span
           className={cn(
-            "nums shrink-0 font-semibold tabular-nums",
-            selected ? "text-brand-foreground/90" : "text-brand",
+            "nums scl-data text-sm font-semibold tabular-nums",
+            selected ? "text-gold-foreground" : "text-foreground",
           )}
         >
+          {selected ? "✓ " : ""}
           {formatOdds(s.oddsAmerican)}
         </span>
       </button>
@@ -500,7 +536,7 @@ function EventDetail({
   };
 
   const marketLabel = (market: string) => (
-    <p className="text-muted-foreground mb-1 text-[0.7rem] font-semibold tracking-wide uppercase">
+    <p className="scl-data text-muted-foreground mb-1 text-[0.56rem] font-semibold tracking-[0.18em] uppercase">
       {market}
     </p>
   );
@@ -624,7 +660,7 @@ function EventDetail({
                       {player}
                     </span>
                     <span className="text-muted-foreground flex shrink-0 items-center gap-1.5 text-xs">
-                      <span className="nums tabular-nums">
+                      <span className="nums scl-data tabular-nums">
                         {marketCount} {marketCount === 1 ? "market" : "markets"}
                         {" · "}
                         {chipCount}

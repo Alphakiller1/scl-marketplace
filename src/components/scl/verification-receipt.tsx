@@ -1,36 +1,21 @@
 "use client";
 
-import { BadgeCheck, CircleSlash } from "lucide-react";
 import Link from "next/link";
 
 import { PickTierBadge } from "@/components/scl/badges";
+import { Ticket } from "@/components/scl/ticket";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { formatOdds, formatUnits } from "@/lib/format";
+import { americanToDecimal } from "@/lib/odds";
 import {
   isVerifiedTier,
   submissionReceiptCopy,
   type SubmissionReceipt,
 } from "@/lib/verification";
 
-function formatCapturedAt(capturedAt: string): string | null {
-  const date = new Date(capturedAt);
-  if (Number.isNaN(date.getTime())) return null;
-
-  const formatted = date.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: "America/New_York",
-  });
-
-  return `${formatted} ET`;
-}
-
 /**
- * Compact post-submit confirmation — replaces success toast with a trust-forward
- * receipt. Copy is derived from server return facts via `submissionReceiptCopy`.
+ * Post-submit confirmation — signature Ticket performing SCL's trust model.
  */
 export function VerificationReceipt({
   receipt,
@@ -43,76 +28,70 @@ export function VerificationReceipt({
 }) {
   const copy = submissionReceiptCopy(receipt);
   const verifiedTone = copy.tone === "verified";
-  const capturedAt = formatCapturedAt(receipt.capturedAt);
   const showTier =
     receipt.kind === "parlay" &&
     receipt.tiers.some((t) => !isVerifiedTier(t)) &&
     receipt.verifiedLegCount > 0;
 
+  const legs = receipt.kind === "parlay" ? receipt.legCount : 1;
+  const oddsAmerican =
+    receipt.kind === "parlay"
+      ? receipt.combinedOddsAmerican
+      : receipt.oddsAmerican;
+  const selectionTitle =
+    receipt.kind === "parlay"
+      ? `${receipt.legCount}-Leg Parlay`
+      : receipt.selection;
+  const eventLine =
+    receipt.kind === "parlay"
+      ? copy.statusLine
+      : [receipt.market, copy.statusLine].filter(Boolean).join(" · ");
+
+  const stake =
+    receipt.units != null ? formatUnits(receipt.units, true, false) : "—";
+  const toWin =
+    receipt.toWinUnits != null
+      ? formatUnits(receipt.toWinUnits, true, false)
+      : receipt.units != null
+        ? formatUnits(
+            receipt.units * (americanToDecimal(oddsAmerican) - 1),
+            true,
+            false,
+          )
+        : "—";
+
   return (
-    <Card
-      role="status"
-      aria-live="polite"
-      className={cn(
-        "scl-elevated mx-auto max-w-md space-y-4 border-2 p-5 sm:p-6",
-        verifiedTone ? "border-live/40" : "border-border",
-        className,
-      )}
-    >
-      <div className="flex items-start gap-3">
-        <div
-          className={cn(
-            "flex size-11 shrink-0 items-center justify-center rounded-xl",
-            verifiedTone
-              ? "bg-live/15 text-live"
-              : "bg-surface-3 text-muted-foreground",
-          )}
-        >
-          {verifiedTone ? (
-            <BadgeCheck className="size-5" aria-hidden />
-          ) : (
-            <CircleSlash className="size-5" aria-hidden />
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p
-              className={cn(
-                "text-xs font-semibold tracking-wide uppercase",
-                verifiedTone ? "text-live" : "text-muted-foreground",
-              )}
+    <div className={cn("mx-auto max-w-md space-y-3", className)}>
+      <Ticket
+        selectionTitle={selectionTitle}
+        eventLine={eventLine}
+        legs={legs}
+        odds={formatOdds(oddsAmerican)}
+        stake={stake}
+        toWin={toWin}
+        capturedAt={receipt.capturedAt}
+        status={verifiedTone ? "verified" : "muted"}
+        footerAction={
+          <div className="space-y-3">
+            {showTier ? (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="sr-only">Leg tiers:</span>
+                {receipt.tiers.map((tier, i) => (
+                  <PickTierBadge key={`${tier}-${i}`} tier={tier} />
+                ))}
+              </div>
+            ) : null}
+            <p className="text-muted-foreground text-sm">{copy.gradingLine}</p>
+            <Button
+              className="min-h-12 w-full text-base"
+              render={<Link href={picksHref} />}
+              nativeButton={false}
             >
-              {copy.headline}
-            </p>
+              View My Picks
+            </Button>
           </div>
-          <p className="mt-1 text-lg font-bold break-words">{copy.summary}</p>
-          {copy.context ? (
-            <p className="text-muted-foreground text-sm">{copy.context}</p>
-          ) : null}
-        </div>
-      </div>
-
-      <ul className="text-muted-foreground space-y-1.5 text-sm">
-        <li>{copy.statusLine}</li>
-        {capturedAt ? <li>Odds locked {capturedAt}</li> : null}
-        <li>{copy.gradingLine}</li>
-        {showTier ? (
-          <li className="flex flex-wrap items-center gap-1.5 pt-0.5">
-            <span className="sr-only">Leg tiers:</span>
-            {receipt.tiers.map((tier, i) => (
-              <PickTierBadge key={`${tier}-${i}`} tier={tier} />
-            ))}
-          </li>
-        ) : null}
-      </ul>
-
-      <Button
-        className="min-h-12 w-full text-base"
-        render={<Link href={picksHref} />}
-        nativeButton={false}
-      >
-        View My Picks
-      </Button>
-    </Card>
+        }
+      />
+    </div>
   );
 }

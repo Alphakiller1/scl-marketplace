@@ -5,22 +5,23 @@ globs: src/app/**/*.tsx,src/components/**/*.tsx,src/app/**/*.css
 
 Follow `docs/SCL_DESIGN_CONTRACT.md` and `docs/SCL_COMPONENT_SYSTEM.md`.
 
-- **Tokens only** (defined in `src/app/globals.css`). Every color has a job:
-  `bg-background/card/surface-2/surface-3` (depth), `border`/`border-strong`, `brand` (indigo
-  identity/CTAs), `pos` (green = wins/+units/+ROI), `neg` (red = losses/−), `gold` (rank/elite/
-  trophies), `live` (cyan = live/verification), `muted-foreground` (secondary). Never raw hex or
-  Tailwind palette colors (no `zinc-900`).
-- **Numbers are the product:** use `tabular-nums` / `.nums`, sign-tone signed stats (pos/neg),
-  uppercase tracked labels, big bold values. Derive display strings via `src/lib/format.ts`.
-- **Build from SCL components** (`src/components/scl/*`): StatBlock/StatPill, Roi/Unit/WinRate/
-  Record stats, VerificationBadge, TrophyBadge, SportTag, StatusBadge, RankMovementIndicator,
-  RecentFormStrip, CapperAvatar, LeaderboardRow/MobileCard, CapperCard, PickCard, SectionHeader,
-  EmptyState, Skeleton*. Add new shared components here and document them.
+- **Tokens only** (defined in `src/app/globals.css`). Foundation is `--scl-*` (ink ladder +
+  Settlement Gold). Semantic aliases: `bg-background/card/surface-2/surface-3` (ink depth),
+  `border`/`border-strong`, `brand`/`primary`/`gold`/`live` = **Settlement Gold** (CTAs,
+  selection, verification, rank — scarce), `pos`/`neg` = graded wins/losses only, never
+  decoration. Never raw hex or Tailwind palette colors (no `zinc-900` / pure `#000`).
+- **Typography:** Barlow Condensed (display), Barlow (UI), IBM Plex Mono (data). Every odds /
+  line / units / ROI / timestamp uses `.scl-data`. Eyebrows use `.scl-eyebrow`.
+- **Build from SCL components** (`src/components/scl/*`): Ticket, StatBlock/StatPill, Roi/Unit/
+  WinRate/Record stats, VerificationBadge, TrophyBadge, SportTag, StatusBadge,
+  RankMovementIndicator, RecentFormStrip, CapperAvatar, LeaderboardRow/MobileCard, CapperCard,
+  PickCard, SectionHeader, EmptyState, Skeleton*. Add new shared components here and document
+  them.
 - **shadcn = Base UI:** polymorphism is `render` (e.g. `<Button render={<Link href="/x" />}>`),
   never `asChild`. Add primitives via `npx shadcn@latest add`.
 - **Mobile-first:** tables get a real mobile card variant (`hidden md:block` / `md:hidden`),
   tap targets ≥ 40px, no overflow at 375px.
 - **States always:** loading (Skeleton*), empty (EmptyState), error (inline + toast).
-- **Motion** (`motion`) is subtle + meaningful only (rank/live/status/filter/reveal/trophy/
-  skeleton); respect `prefers-reduced-motion`. No decorative or readability-harming effects.
-- Don't produce a default-shadcn/SaaS look — it must feel like SCL.
+- **Motion** is subtle + meaningful only (Ticket settle, rank/live/status/filter/reveal/
+  skeleton); respect `prefers-reduced-motion`. No decorative orbs.
+- Don't produce a default-shadcn / AI-template look — it must feel like SCL Ledger & Board.
