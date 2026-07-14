@@ -295,6 +295,10 @@ model Play {
   market       String
   selection    String
   oddsAmerican Int
+  /// What the capper tapped on the board (M5). Null = pre-guard rows.
+  selectedOddsAmerican Int?
+  /// True when the capper explicitly accepted a beyond-tolerance odds move (M5).
+  oddsMovedAccepted Boolean @default(false)
   units        Decimal   @db.Decimal(10, 2) // standardized range 0.25–5 (enforced in Zod, see src/lib/constants.ts)
   /// Odds API bookmaker key captured at submit (src/lib/books.ts). Null = pre-book era / unknown.
   book         String?

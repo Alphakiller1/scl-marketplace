@@ -4,13 +4,19 @@ import { revalidatePath } from "next/cache";
 
 import { settleParlay } from "@/lib/grading";
 import { isBookKey } from "@/lib/books";
-import { verifyPick } from "@/lib/odds-api";
+import { fetchLiveLine, verifyPick } from "@/lib/odds-api";
 import { decidePickIntegrity, marketKeysForMarket } from "@/lib/odds-verify";
 import {
   americanToDecimal,
   combineDecimalOdds,
   decimalToAmerican,
 } from "@/lib/odds";
+import {
+  moveKey,
+  resolveCaptureOdds,
+  type AcceptedMove,
+  type MovedLinePayload,
+} from "@/lib/odds-movement";
 import { prisma } from "@/lib/prisma";
 import {
   createParlaySchema,
@@ -24,11 +30,16 @@ import { isVerifiedTier, type ParlayReceipt } from "@/lib/verification";
 type Result = { ok: true } | { ok: false; error: string };
 export type CreateParlayResult =
   | { ok: true; receipt: ParlayReceipt }
-  | { ok: false; error: string };
+  | { ok: false; error: string }
+  | { ok: false; needsConfirm: MovedLinePayload[] }
+  | { ok: false; unavailable: MovedLinePayload[] };
+
+export type { AcceptedMove, MovedLinePayload };
 
 /** Capper logs a multi-leg parlay. Stake lives on the parlay; legs are components. */
 export async function createParlay(
   input: CreateParlayInput,
+  acceptedMoves?: AcceptedMove[],
 ): Promise<CreateParlayResult> {
   const account = await getCurrentAccount();
   if (!account) return { ok: false, error: "You must be logged in." };
@@ -62,18 +73,25 @@ export async function createParlay(
   if (!profile) return { ok: false, error: "No capper profile found." };
 
   const d = parsed.data;
-
-  // Verification is the universal standard (docs/SCL_PICK_INTEGRITY.md): every leg must be an
-  // event-bound board pick, and each is verified on its own (C1 pre-game lock + C3 odds). Any
-  // non-board or late/fabricated leg rejects the whole parlay. Never trust the UI to enforce it.
   const now = new Date();
+
+  // Verification is the universal standard: every leg must be board-bound; each is
+  // odds-guarded (M5) then C1/C3-checked. Any unavailable/changed leg without a matching
+  // acceptedMoves entry blocks the whole parlay — no partial write.
+  const needsConfirm: MovedLinePayload[] = [];
+  const unavailable: MovedLinePayload[] = [];
   const decided: Array<{
     leg: (typeof d.legs)[number];
     eventStartsAt: Date;
+    oddsAmerican: number;
+    selectedOddsAmerican: number;
+    oddsMovedAccepted: boolean;
+    moveNote?: string;
     loggedPreGame: boolean;
     oddsVerified: boolean;
     tier: "AUTO_VERIFIED" | "VERIFIED" | "SELF_REPORTED";
   }> = [];
+
   for (const [i, l] of d.legs.entries()) {
     if (!l.eventId || !l.eventStartsAt || !l.side) {
       return {
@@ -82,14 +100,66 @@ export async function createParlay(
       };
     }
     const eventStartsAt = new Date(l.eventStartsAt);
-    const verify = await verifyPick({
-      sclSport: l.sport,
+    const marketKeys = marketKeysForMarket(l.market);
+    const key = moveKey({
       eventId: l.eventId,
-      marketKeys: marketKeysForMarket(l.market),
+      market: l.market,
       side: l.side,
       line: l.line,
       player: l.player,
-      claimedAmerican: l.oddsAmerican,
+    });
+    const captureBook = l.book && isBookKey(l.book) ? l.book : null;
+
+    const { event: liveEvent, liveAmerican } = await fetchLiveLine({
+      sclSport: l.sport,
+      eventId: l.eventId,
+      marketKeys,
+      side: l.side,
+      line: l.line,
+      player: l.player,
+      book: captureBook,
+      books: profile.books,
+    });
+    if (!liveEvent) {
+      return {
+        ok: false,
+        error: `Leg ${i + 1}: odds unavailable for this event — try again.`,
+      };
+    }
+
+    const capture = resolveCaptureOdds({
+      selectedAmerican: l.oddsAmerican,
+      liveAmerican,
+      acceptedMoves,
+      moveKey: key,
+      eventId: l.eventId,
+      eventLabel: l.selection,
+      market: l.market,
+      selection: l.selection,
+      side: l.side,
+      line: l.line,
+      player: l.player,
+      book: captureBook,
+      verifiedAt: now,
+    });
+
+    if (capture.status === "unavailable") {
+      unavailable.push(capture.moved);
+      continue;
+    }
+    if (capture.status === "needs_confirm") {
+      needsConfirm.push(capture.moved);
+      continue;
+    }
+
+    const verify = await verifyPick({
+      sclSport: l.sport,
+      eventId: l.eventId,
+      marketKeys,
+      side: l.side,
+      line: l.line,
+      player: l.player,
+      claimedAmerican: capture.oddsAmerican,
       books: profile.books,
     });
     const decision = decidePickIntegrity({
@@ -105,19 +175,31 @@ export async function createParlay(
     decided.push({
       leg: l,
       eventStartsAt,
+      oddsAmerican: capture.oddsAmerican,
+      selectedOddsAmerican: capture.selectedOddsAmerican,
+      oddsMovedAccepted: capture.oddsMovedAccepted,
+      moveNote: capture.moveNote,
       loggedPreGame: decision.loggedPreGame,
       oddsVerified: decision.oddsVerified,
       tier: decision.tier,
     });
   }
 
+  if (unavailable.length) {
+    return { ok: false, unavailable };
+  }
+  if (needsConfirm.length) {
+    return { ok: false, needsConfirm };
+  }
+
   const combinedDecimal = combineDecimalOdds(
-    d.legs.map((l) => americanToDecimal(l.oddsAmerican)),
+    decided.map((x) => americanToDecimal(x.oddsAmerican)),
   );
   const combinedOddsAmerican = decimalToAmerican(combinedDecimal);
   const tiers = decided.map((x) => x.tier);
   const verifiedLegCount = tiers.filter(isVerifiedTier).length;
   const allLoggedPreGame = decided.every((x) => x.loggedPreGame);
+  const moveNotes = decided.map((x) => x.moveNote).filter(Boolean) as string[];
 
   const parlay = await prisma.parlay.create({
     data: {
@@ -125,24 +207,35 @@ export async function createParlay(
       units: d.units,
       combinedOddsAmerican,
       legs: {
-        create: decided.map(({ leg: l, eventStartsAt, ...v }) => ({
-          capperId: profile.id,
-          sport: l.sport,
-          league: l.league ?? null,
-          market: l.market,
-          selection: l.selection,
-          oddsAmerican: l.oddsAmerican,
-          units: 0, // the parlay carries the stake; legs are components
-          eventId: l.eventId,
-          eventStartsAt,
-          side: l.side,
-          line: l.line ?? null,
-          book: l.book && isBookKey(l.book) ? l.book : null,
-          source: "MANUAL",
-          loggedPreGame: v.loggedPreGame,
-          oddsVerified: v.oddsVerified,
-          verificationTier: v.tier,
-        })),
+        create: decided.map(
+          ({
+            leg: l,
+            eventStartsAt,
+            oddsAmerican,
+            selectedOddsAmerican,
+            oddsMovedAccepted,
+            ...v
+          }) => ({
+            capperId: profile.id,
+            sport: l.sport,
+            league: l.league ?? null,
+            market: l.market,
+            selection: l.selection,
+            oddsAmerican,
+            selectedOddsAmerican,
+            oddsMovedAccepted,
+            units: 0, // the parlay carries the stake; legs are components
+            eventId: l.eventId,
+            eventStartsAt,
+            side: l.side,
+            line: l.line ?? null,
+            book: l.book && isBookKey(l.book) ? l.book : null,
+            source: "MANUAL",
+            loggedPreGame: v.loggedPreGame,
+            oddsVerified: v.oddsVerified,
+            verificationTier: v.tier,
+          }),
+        ),
       },
     },
     select: { createdAt: true },
@@ -162,6 +255,7 @@ export async function createParlay(
       tiers,
       units: d.units,
       toWinUnits: d.units * (combinedDecimal - 1),
+      moveNotes: moveNotes.length ? moveNotes : undefined,
     },
   };
 }

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import { EntryModeCards } from "@/components/scl/entry-mode-cards";
 import { GamePicker } from "@/components/scl/game-picker";
+import { LineMovedPrompt } from "@/components/scl/line-moved-prompt";
 import { MobileSlipDock } from "@/components/scl/mobile-slip-dock";
 import { BettingTitle } from "@/components/scl/betting-title";
 import { SectionHeader } from "@/components/scl/section";
@@ -18,7 +19,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createPlay } from "@/lib/actions/play.action";
+import {
+  createPlay,
+  type AcceptedMove,
+  type MovedLinePayload,
+} from "@/lib/actions/play.action";
 import { UNIT_MAX, UNIT_MIN, UNIT_STEP } from "@/lib/constants";
 import { formatOdds } from "@/lib/format";
 import { americanToDecimal } from "@/lib/odds";
@@ -46,6 +51,12 @@ function FieldError({ message }: { message?: string }) {
  */
 export default function NewPlayPage() {
   const [receipt, setReceipt] = useState<StraightReceipt | null>(null);
+  const [movedLines, setMovedLines] = useState<MovedLinePayload[] | null>(null);
+  const [unavailableLines, setUnavailableLines] = useState<
+    MovedLinePayload[] | null
+  >(null);
+  const [pendingValues, setPendingValues] = useState<PlayInput | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const isLg = useIsLg();
   const {
     register,
@@ -98,13 +109,52 @@ export default function NewPlayPage() {
       ? units * (americanToDecimal(oddsNum) - 1)
       : null;
 
-  async function onSubmit(values: PlayInput) {
-    const res = await createPlay(values);
-    if (!res.ok) {
-      toast.error(res.error);
-      return;
+  async function submitPlay(values: PlayInput, acceptedMoves?: AcceptedMove[]) {
+    setSubmitting(true);
+    try {
+      const res = await createPlay(values, acceptedMoves);
+      if (res.ok) {
+        setMovedLines(null);
+        setUnavailableLines(null);
+        setPendingValues(null);
+        setReceipt(res.receipt);
+        return;
+      }
+      if ("needsConfirm" in res && res.needsConfirm) {
+        setPendingValues(values);
+        setUnavailableLines(null);
+        setMovedLines(res.needsConfirm);
+        return;
+      }
+      if ("unavailable" in res && res.unavailable) {
+        setPendingValues(null);
+        setMovedLines(null);
+        setUnavailableLines(res.unavailable);
+        return;
+      }
+      if ("error" in res) {
+        toast.error(res.error);
+      }
+    } finally {
+      setSubmitting(false);
     }
-    setReceipt(res.receipt);
+  }
+
+  async function onSubmit(values: PlayInput) {
+    await submitPlay(values);
+  }
+
+  async function acceptMoved(lines: MovedLinePayload[]) {
+    if (!pendingValues) return;
+    const acceptedMoves: AcceptedMove[] = lines
+      .filter((l) => l.updatedOddsAmerican != null)
+      .map((l) => ({
+        moveKey: l.moveKey,
+        selectedOddsAmerican: l.selectedOddsAmerican,
+        acceptedOddsAmerican: l.updatedOddsAmerican as number,
+      }));
+    // Keep selected oddsAmerican as the original tap; server persists live via acceptedMoves.
+    await submitPlay(pendingValues, acceptedMoves);
   }
 
   function clearEventBinding() {
@@ -122,6 +172,9 @@ export default function NewPlayPage() {
     setValue("oddsAmerican", "" as unknown as number);
     setValue("sport", "" as PlayFormInput["sport"]);
     clearEventBinding();
+    setMovedLines(null);
+    setUnavailableLines(null);
+    setPendingValues(null);
   }
 
   if (receipt) {
@@ -213,14 +266,38 @@ export default function NewPlayPage() {
         />
       </div>
 
-      <Button
-        type="button"
-        onClick={handleSubmit(onSubmit)}
-        disabled={isSubmitting}
-        className={`min-h-12 w-full text-base ${PINK_CTA}`}
-      >
-        {isSubmitting ? "Submitting…" : "Submit Play"}
-      </Button>
+      {unavailableLines ? (
+        <LineMovedPrompt
+          mode="blocked"
+          lines={unavailableLines}
+          onCancel={() => {
+            setUnavailableLines(null);
+            clearPick();
+          }}
+        />
+      ) : null}
+      {movedLines ? (
+        <LineMovedPrompt
+          mode="confirm"
+          lines={movedLines}
+          onAcceptAll={acceptMoved}
+          onCancel={() => {
+            setMovedLines(null);
+            setPendingValues(null);
+          }}
+        />
+      ) : null}
+
+      {!movedLines && !unavailableLines ? (
+        <Button
+          type="button"
+          onClick={handleSubmit(onSubmit)}
+          disabled={isSubmitting || submitting}
+          className={`min-h-12 w-full text-base ${PINK_CTA}`}
+        >
+          {isSubmitting || submitting ? "Submitting…" : "Submit Play"}
+        </Button>
+      ) : null}
     </Card>
   ) : null;
 
