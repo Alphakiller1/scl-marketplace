@@ -1,17 +1,16 @@
 import Link from "next/link";
 
-import { cn } from "@/lib/utils";
 import type { CapperSummary } from "@/lib/mock";
 import { formatRecord, formatRoi, formatUnits, signTone } from "@/lib/format";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
 import { CapperIdentityLabel } from "@/components/scl/capper-identity-label";
 import { SportTag } from "@/components/scl/badges";
+import { StatValue } from "@/components/scl/stat-value";
+import { VerifiedBadge } from "@/components/scl/verified-badge";
 import { RecentFormStrip } from "@/components/scl/indicators";
 import { PerformanceSparkline } from "@/components/scl/performance-sparkline";
 import { RankBadge } from "@/components/scl/rank-badge";
 import { CompactCapperRow } from "@/components/scl/compact-capper-row";
-
-const toneText = { pos: "text-pos", neg: "text-neg", muted: "text-foreground" };
 
 /** Desktop leaderboard row — competitive, not administrative. */
 export function LeaderboardRow({
@@ -35,42 +34,47 @@ export function LeaderboardRow({
           <CapperIdentityLabel capper={capper} compact />
           <div className="flex items-center gap-1.5">
             <SportTag sport={capper.topSport} />
-            <span className="nums scl-data text-muted-foreground text-xs tabular-nums">
+            <StatValue tone="label" className="text-xs">
               {formatRecord(capper.record.w, capper.record.l, capper.record.p)}
-            </span>
+            </StatValue>
           </div>
         </div>
       </div>
 
-      <span className="nums scl-data text-right font-semibold tabular-nums">
+      <StatValue tone="text" className="text-right font-semibold">
         {capper.winPct.toFixed(1)}%
-      </span>
-      <span
-        className={cn(
-          "nums scl-data text-right font-semibold tabular-nums",
-          toneText[signTone(capper.roi)],
-        )}
+      </StatValue>
+      <StatValue
+        tone={
+          signTone(capper.roi) === "pos"
+            ? "win"
+            : signTone(capper.roi) === "neg"
+              ? "loss"
+              : "text"
+        }
+        className="text-right font-semibold"
       >
         {formatRoi(capper.roi)}
-      </span>
-      <span
-        className={cn(
-          "nums scl-data text-right font-semibold tabular-nums",
-          toneText[signTone(capper.units)],
-        )}
+      </StatValue>
+      <StatValue
+        tone={
+          signTone(capper.units) === "pos"
+            ? "win"
+            : signTone(capper.units) === "neg"
+              ? "loss"
+              : "text"
+        }
+        className="text-right font-semibold"
       >
         {formatUnits(capper.units)}
-      </span>
+      </StatValue>
       <div className="text-right">
-        <div className="nums scl-data text-muted-foreground text-sm font-semibold tabular-nums">
+        <StatValue tone="data" className="text-sm font-semibold">
           {(capper.settledPicks ?? 0).toLocaleString()}
-        </div>
+        </StatValue>
         {capper.verifiedShare != null && capper.verifiedShare > 0 ? (
-          <div
-            className="nums scl-data text-live text-[0.7rem] font-medium tabular-nums"
-            title="Share of tracked picks market-verified"
-          >
-            {Math.round(capper.verifiedShare)}% Verified
+          <div className="mt-0.5">
+            <VerifiedBadge verifiedShare={capper.verifiedShare} />
           </div>
         ) : null}
       </div>
@@ -114,9 +118,9 @@ export function LeaderboardMobileCard({
           <CapperIdentityLabel capper={capper} compact />
           <div className="mt-1 flex items-center gap-2">
             <SportTag sport={capper.topSport} />
-            <span className="nums scl-data text-muted-foreground text-xs tabular-nums">
+            <StatValue tone="label" className="text-xs">
               {formatRecord(capper.record.w, capper.record.l, capper.record.p)}
-            </span>
+            </StatValue>
           </div>
         </div>
       </div>
@@ -135,13 +139,13 @@ export function LeaderboardMobileCard({
       </div>
       <div className="bg-surface-2 flex min-h-11 items-center justify-between gap-3 rounded-lg px-3">
         <span className="text-muted-foreground text-xs">
-          <span className="nums scl-data text-foreground font-semibold tabular-nums">
+          <StatValue tone="text" className="font-semibold">
             {(capper.settledPicks ?? 0).toLocaleString()}
-          </span>{" "}
+          </StatValue>{" "}
           Graded Picks
           {capper.verifiedShare != null && capper.verifiedShare > 0 ? (
-            <span className="text-live scl-data ml-2 font-medium">
-              {Math.round(capper.verifiedShare)}% Verified
+            <span className="ml-2 inline-flex">
+              <VerifiedBadge verifiedShare={capper.verifiedShare} />
             </span>
           ) : null}
         </span>
@@ -162,14 +166,12 @@ function MobileStat({
 }) {
   return (
     <div className="flex flex-col items-center">
-      <span
-        className={cn(
-          "nums scl-data font-semibold tabular-nums",
-          toneText[tone],
-        )}
+      <StatValue
+        tone={tone === "pos" ? "win" : tone === "neg" ? "loss" : "text"}
+        className="font-semibold"
       >
         {value}
-      </span>
+      </StatValue>
       <span className="text-muted-foreground text-[0.7rem] font-medium tracking-wide uppercase">
         {label}
       </span>

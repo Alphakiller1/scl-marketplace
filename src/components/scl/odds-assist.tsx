@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MarketChip } from "@/components/scl/market-chip";
 import { SkeletonCard } from "@/components/scl/states";
-import { TeamMark } from "@/components/scl/team-mark";
 import { cn } from "@/lib/utils";
 import { formatOdds } from "@/lib/format";
 import { pickKey } from "@/lib/slip";
@@ -61,9 +61,6 @@ const ALT_LINE_CAP = 8;
 
 const PROP_PILL_CLASS =
   "min-h-10 rounded-full border px-3.5 text-sm font-semibold transition-colors";
-
-const CHIP_CLASS =
-  "border-border bg-surface-2 hover:bg-surface-3 flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-[10px] border px-2 py-1.5 text-center transition-colors";
 
 /** Game markets first (in MARKET_ORDER); prop groups sort after, alphabetically by label. */
 function marketOrder(market: string): number {
@@ -199,19 +196,30 @@ export function OddsAssist({
         <h2 className="scl-display text-sm font-semibold tracking-[0.08em] uppercase">
           {sport} Board
         </h2>
-        <span className="scl-data text-muted-foreground text-[0.65rem] tracking-[0.1em] uppercase">
-          Odds: Live Feed
+        <span className="scl-data text-[0.625rem] tracking-[0.1em] text-[color:var(--scl-muted-label)] uppercase">
+          Odds: Live Feed · {loading || events == null ? "…" : dayEvents.length}{" "}
+          Events
         </span>
       </div>
 
       {loading || events == null ? (
-        <SkeletonCard />
+        <>
+          <DayToggle
+            day="today"
+            todayCount={0}
+            tomorrowCount={0}
+            loading
+            onChange={() => {}}
+          />
+          <SkeletonCard />
+        </>
       ) : hasNearTerm ? (
         <>
           <DayToggle
             day={day}
             todayCount={todayEvents.length}
             tomorrowCount={tomorrowEvents.length}
+            loading={false}
             onChange={(d) => {
               setDayChoice({ sport, day: d });
               setOpenId(null);
@@ -289,41 +297,68 @@ export function OddsAssist({
   );
 }
 
-/** Today / Tomorrow slate switch — the day the capper is logging picks for. */
+/** Today / Tomorrow slate switch — SEGMENTED CONTROL recipe. */
 function DayToggle({
   day,
   todayCount,
   tomorrowCount,
+  loading,
   onChange,
 }: {
   day: SlateDay;
   todayCount: number;
   tomorrowCount: number;
+  loading?: boolean;
   onChange: (day: SlateDay) => void;
 }) {
   const counts: Record<SlateDay, number> = {
     today: todayCount,
     tomorrow: tomorrowCount,
   };
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const dateLabel: Record<SlateDay, string> = {
+    today: now.toLocaleDateString(undefined, {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    }),
+    tomorrow: tomorrow.toLocaleDateString(undefined, {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    }),
+  };
+
   return (
-    <div className="bg-card border-border grid grid-cols-2 gap-1 rounded-[10px] border p-1">
+    <div className="grid grid-cols-2 gap-[3px] rounded-[10px] border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] p-[3px]">
       {(["today", "tomorrow"] as const).map((d) => (
         <button
           key={d}
           type="button"
           onClick={() => onChange(d)}
+          disabled={loading}
           aria-pressed={day === d}
           className={cn(
-            "scl-display min-h-10 rounded-lg text-sm font-semibold tracking-[0.06em] uppercase transition-colors",
+            "scl-display relative min-h-10 rounded-lg text-sm font-semibold tracking-[0.06em] uppercase transition-colors",
             day === d
-              ? "bg-surface-3 text-foreground shadow-[inset_0_0_0_1px_var(--border)]"
-              : "text-muted-foreground hover:text-foreground",
+              ? "bg-[color:var(--scl-ink-600)] text-[color:var(--scl-text)] shadow-[inset_0_0_0_1px_var(--scl-line)]"
+              : "text-[color:var(--scl-muted-data)] hover:text-[color:var(--scl-text)]",
+            loading && "opacity-60",
           )}
         >
           {d}
-          <span className="scl-data text-muted-foreground mt-0.5 block text-[0.65rem] font-medium tracking-[0.08em] normal-case">
-            {counts[d]} events
+          <span className="scl-data mt-0.5 block text-[0.65rem] font-medium tracking-[0.08em] text-[color:var(--scl-muted-label)] normal-case">
+            {dateLabel[d]}
+            {loading ? "" : ` · ${counts[d]}`}
           </span>
+          {loading && d === day ? (
+            <Loader2
+              className="absolute top-2 right-2 size-3.5 animate-spin text-[color:var(--scl-muted-label)]"
+              aria-hidden
+            />
+          ) : null}
         </button>
       ))}
     </div>
@@ -413,12 +448,18 @@ function EventRow({
 function BoardTeamLine({ team, fav }: { team: TeamIdentity; fav?: boolean }) {
   return (
     <span className="flex min-w-0 items-center gap-2.5">
-      <TeamMark team={team} size="md" className="rounded-lg" />
-      <span className="scl-display truncate text-[1.05rem] font-semibold tracking-[0.02em]">
+      <span
+        className="scl-display flex size-[30px] shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white"
+        style={{ backgroundColor: team.primaryColor }}
+        aria-hidden
+      >
+        {team.abbr}
+      </span>
+      <span className="scl-display truncate text-[19px] font-semibold tracking-[0.02em]">
         {team.shortName}
       </span>
       {fav ? (
-        <span className="scl-data text-gold shrink-0 rounded border border-[color:var(--scl-gold-deep)] px-1.5 py-px text-[0.55rem] tracking-[0.12em] uppercase">
+        <span className="scl-data shrink-0 rounded border border-[color:var(--scl-gold)] px-1.5 py-px text-[8.5px] tracking-[0.12em] text-[color:var(--scl-gold)] uppercase">
           Fav
         </span>
       ) : null}
@@ -499,39 +540,13 @@ function EventDetail({
     };
     const selected = selectedKeys?.has(pickKey(pick)) ?? false;
     return (
-      <button
+      <MarketChip
         key={key}
-        type="button"
+        label={s.selection}
+        oddsAmerican={s.oddsAmerican}
+        selected={selected}
         onClick={() => onPick(pick)}
-        // Exact-selected only — conflict chips stay enabled so the page can toast.
-        disabled={selected}
-        aria-pressed={selected}
-        className={cn(
-          CHIP_CLASS,
-          selected &&
-            "border-gold bg-gold text-gold-foreground hover:bg-gold hover:border-gold cursor-default shadow-[0_0_0_2px_var(--background),0_0_0_3.5px_var(--scl-gold-deep)]",
-        )}
-      >
-        <span
-          className={cn(
-            "min-w-0 truncate text-xs font-medium",
-            selected
-              ? "text-gold-foreground font-semibold"
-              : "text-muted-foreground",
-          )}
-        >
-          {s.selection}
-        </span>
-        <span
-          className={cn(
-            "nums scl-data text-sm font-semibold tabular-nums",
-            selected ? "text-gold-foreground" : "text-foreground",
-          )}
-        >
-          {selected ? "✓ " : ""}
-          {formatOdds(s.oddsAmerican)}
-        </span>
-      </button>
+      />
     );
   };
 

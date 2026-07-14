@@ -13,13 +13,15 @@ import {
 } from "@/lib/format";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
 import { CapperIdentityLabel } from "@/components/scl/capper-identity-label";
-import { PickTierBadge, SportTag, StatusBadge } from "@/components/scl/badges";
+import { SportTag, StatusBadge } from "@/components/scl/badges";
+import { StatValue } from "@/components/scl/stat-value";
+import { VerifiedBadge } from "@/components/scl/verified-badge";
 import { BUILDING_RECORD_LABEL, RankBadge } from "@/components/scl/rank-badge";
 import { TeamMark } from "@/components/scl/team-mark";
 import { Ticket, type TicketStatus } from "@/components/scl/ticket";
 import { isBuildingARecord } from "@/lib/leaderboard";
 import { americanToDecimal } from "@/lib/odds";
-import { teamIdentityFromSide } from "@/lib/pick-identity";
+import { pickContextLabel, teamIdentityFromSide } from "@/lib/pick-identity";
 import { isVerifiedTier } from "@/lib/verification";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +30,18 @@ const toneText = {
   neg: "text-neg",
   muted: "text-muted-foreground",
 } as const;
+
+/** Market/event label — omit when missing or same as the league/sport (no double "MLB"). */
+function pickMarketLabel(pick: TodayPick): string | null {
+  const market = pick.market?.trim() || pick.event?.trim() || "";
+  if (!market) return null;
+  const label = pickContextLabel({
+    sport: pick.sport,
+    league: pick.sport,
+    market,
+  });
+  return label || null;
+}
 
 function CapperStandingLine({ pick }: { pick: TodayPick }) {
   const building = isBuildingARecord({
@@ -45,13 +59,13 @@ function CapperStandingLine({ pick }: { pick: TodayPick }) {
   }
 
   return (
-    <span className="nums scl-data text-muted-foreground text-xs tabular-nums">
+    <StatValue tone="label" className="text-xs">
       {formatRecord(
         pick.capperRecord.w,
         pick.capperRecord.l,
         pick.capperRecord.p,
       )}
-    </span>
+    </StatValue>
   );
 }
 
@@ -86,14 +100,13 @@ function CapperTicketFooter({ pick }: { pick: TodayPick }) {
           <CapperStandingLine pick={pick} />
         </div>
       </Link>
-      <span className="text-muted-foreground scl-data shrink-0 text-xs">
+      <StatValue tone="label" className="shrink-0 text-xs">
         {timeAgo(pick.postedAt)}
-      </span>
+      </StatValue>
     </div>
   );
 }
 
-/** Verified (or graded) picks render as the signature Ticket. */
 function VerifiedPickTicket({
   pick,
   compact,
@@ -106,14 +119,14 @@ function VerifiedPickTicket({
     pick.profitUnits != null
       ? formatUnits(pick.profitUnits)
       : formatUnits(projected, true, false);
-  const eventLine = [pick.event, pick.sport, pick.gameTime]
+  const eventLine = [pickMarketLabel(pick), pick.gameTime]
     .filter(Boolean)
     .join(" · ");
 
   return (
     <Ticket
       selectionTitle={pick.selection}
-      eventLine={eventLine}
+      eventLine={eventLine || pick.sport}
       legs={1}
       odds={formatOdds(pick.oddsAmerican)}
       stake={formatUnits(pick.units, true, false)}
@@ -147,22 +160,21 @@ export function PickCard({
 
   const team = teamIdentityFromSide(pick.side, pick.sport);
   const hasResult = pick.profitUnits != null;
+  const marketLabel = pickMarketLabel(pick);
 
   return (
     <Card className="gap-0 overflow-hidden p-3.5 sm:p-4">
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <SportTag sport={pick.sport} />
-          {pick.event ? (
+          {marketLabel ? (
             <span className="text-muted-foreground truncate text-xs">
-              {pick.event}
+              {marketLabel}
             </span>
           ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          {pick.verificationTier ? (
-            <PickTierBadge tier={pick.verificationTier} />
-          ) : null}
+          <VerifiedBadge tier={pick.verificationTier} />
           <StatusBadge status={pick.status} />
         </div>
       </div>
@@ -174,9 +186,9 @@ export function PickCard({
             <span className="scl-display text-lg font-semibold tracking-tight break-words">
               {pick.selection}
             </span>
-            <span className="nums scl-data text-muted-foreground text-sm font-semibold tabular-nums">
+            <StatValue tone="data" className="text-sm font-semibold">
               {formatOdds(pick.oddsAmerican)}
-            </span>
+            </StatValue>
           </div>
         </div>
       </div>
@@ -186,19 +198,17 @@ export function PickCard({
           <span className="text-muted-foreground text-xs font-medium">
             Stake
           </span>
-          <span className="nums scl-data text-brand font-semibold tabular-nums">
+          <StatValue tone="text" className="font-semibold">
             {formatUnits(pick.units, true, false)}
-          </span>
+          </StatValue>
         </div>
         {hasResult ? (
-          <span
-            className={cn(
-              "nums scl-data shrink-0 text-sm font-bold tabular-nums",
-              toneText[signTone(pick.profitUnits ?? 0)],
-            )}
+          <StatValue
+            tone={signTone(pick.profitUnits ?? 0) === "pos" ? "win" : "loss"}
+            className="shrink-0 text-sm font-bold"
           >
             {formatUnits(pick.profitUnits ?? 0)}
-          </span>
+          </StatValue>
         ) : null}
       </div>
 
@@ -216,22 +226,21 @@ function CompactPickCard({ pick }: { pick: TodayPick }) {
     rank: pick.capperRank,
     settledPicks: pick.capperSettledPicks,
   });
+  const marketLabel = pickMarketLabel(pick);
 
   return (
     <Card className="gap-0 overflow-hidden p-3">
       <div className="flex min-w-0 items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <SportTag sport={pick.sport} />
-          {pick.event ? (
+          {marketLabel ? (
             <span className="text-muted-foreground truncate text-xs">
-              {pick.event}
+              {marketLabel}
             </span>
           ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          {pick.verificationTier ? (
-            <PickTierBadge tier={pick.verificationTier} />
-          ) : null}
+          <VerifiedBadge tier={pick.verificationTier} />
           <StatusBadge status={pick.status} />
         </div>
       </div>
@@ -242,9 +251,9 @@ function CompactPickCard({ pick }: { pick: TodayPick }) {
           <span className="scl-display truncate text-base font-semibold">
             {pick.selection}
           </span>
-          <span className="nums scl-data text-muted-foreground shrink-0 text-sm font-semibold tabular-nums">
+          <StatValue tone="data" className="shrink-0 text-sm font-semibold">
             {formatOdds(pick.oddsAmerican)}
-          </span>
+          </StatValue>
         </div>
       </div>
 
@@ -272,9 +281,9 @@ function CompactPickCard({ pick }: { pick: TodayPick }) {
                 </span>
               </span>
             ) : (
-              <span className="text-muted-foreground scl-data text-xs">
+              <StatValue tone="label" className="text-xs">
                 {timeAgo(pick.postedAt)}
-              </span>
+              </StatValue>
             )}
           </div>
         </Link>
@@ -285,23 +294,23 @@ function CompactPickCard({ pick }: { pick: TodayPick }) {
               <span className="text-muted-foreground block text-[0.7rem] font-semibold uppercase">
                 Result
               </span>
-              <span
-                className={cn(
-                  "nums scl-data text-sm font-bold tabular-nums",
-                  toneText[signTone(pick.profitUnits ?? 0)],
-                )}
+              <StatValue
+                tone={
+                  signTone(pick.profitUnits ?? 0) === "pos" ? "win" : "loss"
+                }
+                className="text-sm font-bold"
               >
                 {formatUnits(pick.profitUnits ?? 0)}
-              </span>
+              </StatValue>
             </>
           ) : (
             <>
               <span className="text-muted-foreground block text-[0.7rem] font-semibold uppercase">
                 Stake
               </span>
-              <span className="nums scl-data text-brand text-sm font-bold tabular-nums">
+              <StatValue tone="text" className="text-sm font-bold">
                 {formatUnits(pick.units, true, false)}
-              </span>
+              </StatValue>
             </>
           )}
         </div>

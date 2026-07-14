@@ -7,20 +7,24 @@ import { Trash2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
-import { MobileSlipDock } from "@/components/scl/mobile-slip-dock";
 import { OddsAssist, type OddsPick } from "@/components/scl/odds-assist";
 import { SectionHeader } from "@/components/scl/section";
 import { SlipConflictPrompt } from "@/components/scl/slip-conflict-prompt";
-import { SportPills } from "@/components/scl/sport-pills";
 import { StakeQuickChips } from "@/components/scl/stake-quick-chips";
-import { VerificationReceipt } from "@/components/scl/verification-receipt";
+import { Ticket } from "@/components/scl/ticket";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { createParlay } from "@/lib/actions/parlay.action";
-import { UNIT_MAX, UNIT_MIN, UNIT_STEP } from "@/lib/constants";
-import { formatOdds } from "@/lib/format";
+import { SPORTS, UNIT_MAX, UNIT_MIN, UNIT_STEP } from "@/lib/constants";
+import { formatOdds, formatUnits } from "@/lib/format";
 import {
   americanToDecimal,
   combineDecimalOdds,
@@ -40,7 +44,7 @@ import {
 } from "@/lib/slip";
 import { useIsLg } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
-import type { ParlayReceipt } from "@/lib/verification";
+import { isVerifiedTier, type ParlayReceipt } from "@/lib/verification";
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -70,6 +74,7 @@ function legToSlipPick(l: {
 export default function NewParlayPage() {
   const [receipt, setReceipt] = useState<ParlayReceipt | null>(null);
   const [sport, setSport] = useState("");
+  const [slipOpen, setSlipOpen] = useState(false);
   const [pendingConflict, setPendingConflict] = useState<{
     conflict: SlipConflict;
     pick: OddsPick;
@@ -118,13 +123,40 @@ export default function NewParlayPage() {
   }
 
   if (receipt) {
+    const verified =
+      receipt.verifiedLegCount === receipt.legCount &&
+      receipt.tiers.every(isVerifiedTier);
+    const stake =
+      receipt.units != null ? formatUnits(receipt.units, true, false) : "—";
+    const toWin =
+      receipt.toWinUnits != null
+        ? formatUnits(receipt.toWinUnits, true, false)
+        : "—";
     return (
       <div className="mx-auto max-w-xl space-y-5">
         <SectionHeader
           title="Parlay Logged"
           subtitle="Confirmation for your record"
         />
-        <VerificationReceipt receipt={receipt} />
+        <Ticket
+          selectionTitle={`${receipt.legCount}-Leg Parlay`}
+          eventLine={null}
+          legs={receipt.legCount}
+          odds={formatOdds(receipt.combinedOddsAmerican)}
+          stake={stake}
+          toWin={toWin}
+          capturedAt={receipt.capturedAt}
+          status={verified ? "verified" : "muted"}
+          footerAction={
+            <Button
+              className="min-h-12 w-full text-base"
+              render={<Link href="/dashboard/picks" />}
+              nativeButton={false}
+            >
+              View on your record
+            </Button>
+          }
+        />
       </div>
     );
   }
@@ -281,13 +313,30 @@ export default function NewParlayPage() {
         <div className="min-w-0 space-y-5">
           <Card className="space-y-2 p-4 sm:p-5">
             <Label>Add legs from the board</Label>
-            <SportPills
-              value={sport}
-              onChange={(s) => {
-                setSport(s);
-                setPendingConflict(null);
-              }}
-            />
+            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+              {SPORTS.map((s) => {
+                const active = sport === s.key;
+                return (
+                  <button
+                    key={s.key}
+                    type="button"
+                    onClick={() => {
+                      setSport(s.key);
+                      setPendingConflict(null);
+                    }}
+                    aria-pressed={active}
+                    className={cn(
+                      "scl-display flex h-11 shrink-0 items-center gap-2 rounded-[22px] border px-3.5 text-[15px] font-semibold tracking-[0.05em]",
+                      active
+                        ? "border-[color:var(--scl-gold)] bg-[color:var(--scl-gold)] text-[color:var(--scl-gold-ink)]"
+                        : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",
+                    )}
+                  >
+                    {s.label}
+                  </button>
+                );
+              })}
+            </div>
           </Card>
 
           {sport ? (
@@ -318,15 +367,55 @@ export default function NewParlayPage() {
       </div>
 
       {isLg === false && fields.length > 0 ? (
-        <MobileSlipDock
-          title="Parlay slip"
-          countLabel={`${fields.length} ${fields.length === 1 ? "Leg" : "Legs"}`}
-          oddsLabel={
-            combinedAmerican != null ? formatOdds(combinedAmerican) : null
-          }
-        >
-          {slipBody}
-        </MobileSlipDock>
+        <div className="lg:hidden">
+          <div
+            className="h-[calc(56px+env(safe-area-inset-bottom,0px)+1.5rem)]"
+            aria-hidden
+          />
+          <div
+            className="fixed inset-x-0 bottom-0 z-40 px-3"
+            style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+          >
+            <div
+              className="mb-3 flex h-14 items-center gap-3 rounded-[14px] border px-4"
+              style={{
+                background: "linear-gradient(180deg,#1E2940,#141C2C)",
+                borderColor: "var(--scl-gold-deep)",
+                boxShadow: "var(--scl-shadow-slip)",
+              }}
+            >
+              <span className="scl-display min-w-0 flex-1 truncate text-base font-bold tracking-[0.05em] uppercase">
+                {fields.length} {fields.length === 1 ? "Leg" : "Legs"}
+              </span>
+              {combinedAmerican != null ? (
+                <span className="scl-data shrink-0 text-[0.95rem] font-semibold text-[color:var(--scl-gold)]">
+                  {formatOdds(combinedAmerican)}
+                </span>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setSlipOpen(true)}
+                className="scl-display h-10 shrink-0 rounded-[10px] bg-[color:var(--scl-gold)] px-4 text-sm font-bold tracking-[0.08em] text-[color:var(--scl-gold-ink)] uppercase"
+                aria-haspopup="dialog"
+                aria-expanded={slipOpen}
+              >
+                View Slip
+              </button>
+            </div>
+          </div>
+          <Sheet open={slipOpen} onOpenChange={setSlipOpen}>
+            <SheetContent
+              side="bottom"
+              showCloseButton
+              className="max-h-[85vh] gap-0 overflow-y-auto rounded-t-2xl p-0 pb-[env(safe-area-inset-bottom,0px)]"
+            >
+              <SheetHeader className="border-border border-b px-4 py-3">
+                <SheetTitle>Parlay slip</SheetTitle>
+              </SheetHeader>
+              <div className="p-4">{slipBody}</div>
+            </SheetContent>
+          </Sheet>
+        </div>
       ) : null}
     </div>
   );
