@@ -55,17 +55,17 @@ export function PlayListItem({ play }: { play: PlayView }) {
       </div>
       <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
         <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-          <span className="nums font-semibold tabular-nums">
+          <span className="nums scl-data font-semibold tabular-nums">
             {formatOdds(play.oddsAmerican)}
           </span>
-          <span className="nums tabular-nums">
+          <span className="nums scl-data tabular-nums">
             {formatUnits(play.units, true, false)}
           </span>
         </div>
         {hasResult ? (
           <span
             className={cn(
-              "nums text-sm font-bold tabular-nums",
+              "nums scl-data text-sm font-bold tabular-nums",
               toneText[signTone(play.profitUnits ?? 0)],
             )}
           >
@@ -102,7 +102,7 @@ export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
               ) : null}
               <p className="min-w-0 flex-1 text-sm font-medium break-words">
                 {leg.selection}
-                <span className="text-muted-foreground nums ml-1.5 tabular-nums">
+                <span className="text-muted-foreground nums scl-data ml-1.5 tabular-nums">
                   {formatOdds(leg.oddsAmerican)}
                 </span>
               </p>
@@ -113,18 +113,18 @@ export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
       <div className="border-border mt-2 flex flex-wrap items-center justify-between gap-2 border-t pt-2">
         <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
           {parlay.combinedOddsAmerican != null ? (
-            <span className="nums font-semibold tabular-nums">
+            <span className="nums scl-data font-semibold tabular-nums">
               {formatOdds(parlay.combinedOddsAmerican)}
             </span>
           ) : null}
-          <span className="nums tabular-nums">
+          <span className="nums scl-data tabular-nums">
             {formatUnits(parlay.units, true, false)}
           </span>
         </div>
         {hasResult ? (
           <span
             className={cn(
-              "nums text-sm font-bold tabular-nums",
+              "nums scl-data text-sm font-bold tabular-nums",
               toneText[signTone(parlay.profitUnits ?? 0)],
             )}
           >

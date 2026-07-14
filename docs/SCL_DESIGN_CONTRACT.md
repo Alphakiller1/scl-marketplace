@@ -11,60 +11,61 @@ discover who is actually winning. Mood: _Bloomberg Terminal for cappers × Apple
 data-rich, mobile-first, dense but never cluttered.
 
 We are **not**: a generic SaaS landing page, a casino, a crypto dashboard, a fantasy template,
-a spreadsheet, a WordPress sports blog, or a default shadcn clone.
+a spreadsheet, a WordPress sports blog, or a default shadcn / AI-template clone.
+
+**Signature system (July 2026):** _The Ledger & The Board_ — blue-cast ink surfaces, scarce
+**Settlement Gold**, condensed display + monospace data faces, and the **Ticket** receipt as
+the trust-model visual.
 
 ## Color system (tokens only — never raw hex/Tailwind palette colors)
 
-Defined in `src/app/globals.css`, dark-mode first. Every color has a job:
+Defined in `src/app/globals.css`, dark-mode first (`--scl-*` foundation → semantic aliases).
 
-| Token                                             | Utility                      | Job                                                                              |
-| ------------------------------------------------- | ---------------------------- | -------------------------------------------------------------------------------- |
-| `background` / `card` / `surface-2` / `surface-3` | `bg-*`                       | Deep **purple** base + layered surfaces (depth)                                  |
-| `border` / `border-strong`                        | `border-*`                   | Premium hairlines; `-strong` carries a pink tint                                 |
-| `brand`                                           | `text-brand`, `bg-brand`     | SCL identity — **pink-magenta**. Accents, highlights, rank movement, focus rings |
-| `primary`                                         | `bg-primary`, `text-primary` | **Blue** — the action color (CTAs, primary buttons, links)                       |
-| `accent`                                          | `bg-accent`                  | Purple bridge between brand-pink and primary-blue                                |
-| `pos`                                             | `text-pos`, `bg-pos/15`      | Positive performance (wins, +units, +ROI) — green                                |
-| `neg`                                             | `text-neg`, `bg-neg/15`      | Negative performance (losses, −units) — red                                      |
-| `gold`                                            | `text-gold`, `bg-gold/10`    | Rank, elite status, trophies, badges                                             |
-| `live`                                            | `text-live`, `bg-live/15`    | Live/real-time + verification — cyan                                             |
-| `push`                                            | —                            | Push/void neutral                                                                |
-| `muted-foreground`                                | `text-muted-foreground`      | Secondary metadata, labels                                                       |
+| Token                                             | Utility                 | Job                                                                          |
+| ------------------------------------------------- | ----------------------- | ---------------------------------------------------------------------------- |
+| `background` / `card` / `surface-2` / `surface-3` | `bg-*`                  | Blue-cast **ink** ladder (`--scl-ink-950`…`700`) — never pure black          |
+| `border` / `border-strong`                        | `border-*`              | Hairlines (`--scl-line`); strong carries gold depth                          |
+| `brand` / `primary` / `gold` / `live`             | `text-*`, `bg-*`        | **Settlement Gold** — CTAs, selection, verification, rank, combined odds     |
+| `pos`                                             | `text-pos`, `bg-pos/15` | Graded **wins** / +units / +ROI only — never decoration                      |
+| `neg`                                             | `text-neg`, `bg-neg/15` | Graded **losses** / −units only — never decoration                           |
+| `push`                                            | —                       | Push/void neutral                                                            |
+| `muted-foreground`                                | `text-muted-foreground` | Labels (`--scl-muted-label`); data values prefer `--scl-muted-data` via mono |
 
-Rules: no random colors, no meaningless glow. Gradients are reserved for **brand identity
-only** — the pink→blue `.scl-brand-text` wordmark/heading fill and the restrained pink+blue
-`.scl-glow` radial / `.scl-card-gradient`. The trophy mark (`SclLogo`) carries the same
-pink→blue gradient. The page feels alive through **hierarchy, data, and status — not noise.**
+Rules: Gold is **scarce**. No pink/cyan identity accents. No decorative orbs/glass. Board
+surfaces may use `.scl-scanline`. Gradients are not brand identity — gold text via
+`.scl-brand-text` is solid Settlement Gold.
 
 ## Typography
 
-**Numbers are the product.** Stats use `tabular-nums` (helper class `.nums`) so columns align.
+Three purposeful faces (loaded in `src/app/layout.tsx`):
 
-- Rank numbers: large, bold.
-- Capper names: semibold, truncate gracefully.
-- Stats (ROI/units/win%): bold, tabular, color-coded by sign.
-- Labels (sport/time): uppercase, tracked, `text-muted-foreground`, ~0.7rem.
-- Body: `text-muted-foreground` for secondary copy.
-- Never: tiny cramped table text, inconsistent sizes, weak labels.
+| Role    | Face             | CSS                                   |
+| ------- | ---------------- | ------------------------------------- |
+| Display | Barlow Condensed | `--scl-font-display` / `.scl-display` |
+| UI      | Barlow           | `--scl-font-ui`                       |
+| Data    | IBM Plex Mono    | `--scl-font-data` / `.scl-data`       |
+
+**Every** odds, line, spread, total, units, ROI %, win %, record string, and timestamp uses
+`.scl-data` (mono + `tabular-nums`). Eyebrows use `.scl-eyebrow` (mono, 9–10px, tracked,
+uppercase).
 
 ## Spacing, radius, surfaces
 
-- Radius scale from `--radius` (0.7rem). Cards `rounded-xl`/`rounded-2xl`.
-- Layered depth: `background` → `card` → `surface-2` → `surface-3`. Use elevation to group.
-- Generous row spacing in tables; never spreadsheet-tight.
+- Card radius `--scl-radius-card` (14px). Chip radius `--scl-radius-chip` (10px).
+- Layered depth: page → section → card → raised chip. Use elevation to group.
 - Content max width `max-w-6xl`, page padding `px-4 sm:px-6`.
 
 ## Motion (subtle, meaningful — `motion`)
 
-Allowed only for: rank movement, live status, pick status change, filter transitions, card
-expansion, profile stat reveal, trophy moments, loading skeletons. Never decorative, never
-slow hero animations, never readability-harming shaders. Respect `prefers-reduced-motion`.
+Allowed only for: Ticket settling stamp, rank movement, live status, pick status change,
+filter transitions, card expansion, profile stat reveal, loading skeletons. Never decorative
+orbs. Respect `prefers-reduced-motion` (Ticket settles immediately).
 
 ## Status & verification language
 
-Trust is the product. Always show verification (`VerificationBadge`), grade status
-(`StatusBadge`), and source transparency. Never imply sportsbook sync or verification we don't
-have.
+Trust is the product. The **Ticket** (`src/components/scl/ticket.tsx`) is the post-submit
+ceremony and landing hero signature. Always show verification, grade status, and source
+transparency. Never imply sportsbook sync or verification we don't have.
 
 ## Required states
 

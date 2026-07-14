@@ -35,19 +35,19 @@ export function LeaderboardRow({
           <CapperIdentityLabel capper={capper} compact />
           <div className="flex items-center gap-1.5">
             <SportTag sport={capper.topSport} />
-            <span className="nums text-muted-foreground text-xs tabular-nums">
+            <span className="nums scl-data text-muted-foreground text-xs tabular-nums">
               {formatRecord(capper.record.w, capper.record.l, capper.record.p)}
             </span>
           </div>
         </div>
       </div>
 
-      <span className="nums text-right font-semibold tabular-nums">
+      <span className="nums scl-data text-right font-semibold tabular-nums">
         {capper.winPct.toFixed(1)}%
       </span>
       <span
         className={cn(
-          "nums text-right font-semibold tabular-nums",
+          "nums scl-data text-right font-semibold tabular-nums",
           toneText[signTone(capper.roi)],
         )}
       >
@@ -55,19 +55,19 @@ export function LeaderboardRow({
       </span>
       <span
         className={cn(
-          "nums text-right font-semibold tabular-nums",
+          "nums scl-data text-right font-semibold tabular-nums",
           toneText[signTone(capper.units)],
         )}
       >
         {formatUnits(capper.units)}
       </span>
       <div className="text-right">
-        <div className="nums text-muted-foreground text-sm font-semibold tabular-nums">
+        <div className="nums scl-data text-muted-foreground text-sm font-semibold tabular-nums">
           {(capper.settledPicks ?? 0).toLocaleString()}
         </div>
         {capper.verifiedShare != null && capper.verifiedShare > 0 ? (
           <div
-            className="nums text-live text-[0.7rem] font-medium tabular-nums"
+            className="nums scl-data text-live text-[0.7rem] font-medium tabular-nums"
             title="Share of tracked picks market-verified"
           >
             {Math.round(capper.verifiedShare)}% Verified
@@ -114,7 +114,7 @@ export function LeaderboardMobileCard({
           <CapperIdentityLabel capper={capper} compact />
           <div className="mt-1 flex items-center gap-2">
             <SportTag sport={capper.topSport} />
-            <span className="nums text-muted-foreground text-xs tabular-nums">
+            <span className="nums scl-data text-muted-foreground text-xs tabular-nums">
               {formatRecord(capper.record.w, capper.record.l, capper.record.p)}
             </span>
           </div>
@@ -135,12 +135,12 @@ export function LeaderboardMobileCard({
       </div>
       <div className="bg-surface-2 flex min-h-11 items-center justify-between gap-3 rounded-lg px-3">
         <span className="text-muted-foreground text-xs">
-          <span className="nums text-foreground font-semibold tabular-nums">
+          <span className="nums scl-data text-foreground font-semibold tabular-nums">
             {(capper.settledPicks ?? 0).toLocaleString()}
           </span>{" "}
           Graded Picks
           {capper.verifiedShare != null && capper.verifiedShare > 0 ? (
-            <span className="text-live ml-2 font-medium">
+            <span className="text-live scl-data ml-2 font-medium">
               {Math.round(capper.verifiedShare)}% Verified
             </span>
           ) : null}
@@ -162,7 +162,12 @@ function MobileStat({
 }) {
   return (
     <div className="flex flex-col items-center">
-      <span className={cn("nums font-semibold tabular-nums", toneText[tone])}>
+      <span
+        className={cn(
+          "nums scl-data font-semibold tabular-nums",
+          toneText[tone],
+        )}
+      >
         {value}
       </span>
       <span className="text-muted-foreground text-[0.7rem] font-medium tracking-wide uppercase">

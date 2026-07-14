@@ -79,6 +79,10 @@ export type StraightReceipt = {
   loggedPreGame: boolean;
   oddsVerified: boolean;
   tier: VerificationTier;
+  /** Stake in units — for Ticket receipt face. */
+  units?: number;
+  /** Potential win in units at capture (stake × decimal−1). */
+  toWinUnits?: number;
 };
 
 /** Payload returned by createParlay on success — rolled-up leg trust facts. */
@@ -91,6 +95,8 @@ export type ParlayReceipt = {
   allLoggedPreGame: boolean;
   verifiedLegCount: number;
   tiers: VerificationTier[];
+  units?: number;
+  toWinUnits?: number;
 };
 
 export type SubmissionReceipt = StraightReceipt | ParlayReceipt;

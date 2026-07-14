@@ -194,7 +194,7 @@ export function OddsAssist({
   const dayEvents = day === "today" ? todayEvents : tomorrowEvents;
 
   return (
-    <Card className="space-y-3 p-4">
+    <Card className="scl-scanline space-y-3 p-4">
       <div className="flex items-center gap-1.5 text-sm font-medium">
         <Zap className="text-brand size-4" /> Games board
         <span className="text-muted-foreground ml-auto text-xs font-normal">
@@ -352,7 +352,7 @@ function EventRow({
         <span className="bg-surface-2 text-muted-foreground hidden rounded px-1.5 py-0.5 text-[0.65rem] font-semibold sm:inline">
           {event.sport}
         </span>
-        <span className="nums tabular-nums">
+        <span className="nums scl-data tabular-nums">
           {new Date(event.commenceTime).toLocaleTimeString(undefined, {
             hour: "numeric",
             minute: "2-digit",
@@ -386,7 +386,7 @@ function TeamLine({
         <span className="hidden truncate sm:block">{team.fullName}</span>
       </span>
       {typeof moneyline === "number" ? (
-        <span className="text-muted-foreground nums shrink-0 text-xs font-semibold tabular-nums">
+        <span className="text-muted-foreground nums scl-data shrink-0 text-xs font-semibold tabular-nums">
           {formatOdds(moneyline)}
         </span>
       ) : null}
@@ -489,7 +489,7 @@ function EventDetail({
         </span>
         <span
           className={cn(
-            "nums shrink-0 font-semibold tabular-nums",
+            "nums scl-data shrink-0 font-semibold tabular-nums",
             selected ? "text-brand-foreground/90" : "text-brand",
           )}
         >
@@ -624,7 +624,7 @@ function EventDetail({
                       {player}
                     </span>
                     <span className="text-muted-foreground flex shrink-0 items-center gap-1.5 text-xs">
-                      <span className="nums tabular-nums">
+                      <span className="nums scl-data tabular-nums">
                         {marketCount} {marketCount === 1 ? "market" : "markets"}
                         {" · "}
                         {chipCount}

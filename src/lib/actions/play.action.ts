@@ -11,6 +11,7 @@ import {
   type VerifyResult,
 } from "@/lib/odds-verify";
 import { verifyPick } from "@/lib/odds-api";
+import { americanToDecimal } from "@/lib/odds";
 import type { StraightReceipt } from "@/lib/verification";
 
 export type PlayResult =
@@ -117,6 +118,8 @@ export async function createPlay(input: PlayInput): Promise<PlayResult> {
       loggedPreGame: decision.loggedPreGame,
       oddsVerified: decision.oddsVerified,
       tier: decision.tier,
+      units: d.units,
+      toWinUnits: d.units * (americanToDecimal(d.oddsAmerican) - 1),
     },
   };
 }

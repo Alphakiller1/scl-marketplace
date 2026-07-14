@@ -157,6 +157,8 @@ export async function createParlay(
       allLoggedPreGame,
       verifiedLegCount,
       tiers,
+      units: d.units,
+      toWinUnits: d.units * (combinedDecimal - 1),
     },
   };
 }

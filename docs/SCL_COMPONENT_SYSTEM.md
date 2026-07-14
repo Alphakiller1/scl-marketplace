@@ -15,10 +15,12 @@ Numbers are the product. These render performance consistently everywhere.
 
 ## Badges & status (`badges.tsx`)
 
-- `VerificationBadge` — verified record marker (live/cyan). Sizes `xs|sm|md`.
+- `VerificationBadge` — verified record marker (Settlement Gold). Sizes `xs|sm|md`.
 - `TrophyBadge` — gold award/status chip.
 - `SportTag` — uppercase sport label from the canonical taxonomy.
 - `StatusBadge` — pick status (`pending|live|win|loss|push|void`); `live` animates a ping dot.
+- `Ticket` (`ticket.tsx`) — signature bet-ticket receipt (tear line, gold stamp, mono capture).
+  Used on post-submit verification and the landing hero settling sequence.
 
 ## Indicators (`indicators.tsx`)
 

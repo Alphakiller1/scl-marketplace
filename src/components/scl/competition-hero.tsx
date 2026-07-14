@@ -1,49 +1,29 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { VerificationBadge } from "@/components/scl/badges";
+import { Ticket } from "@/components/scl/ticket";
 
 export function CompetitionHero() {
   return (
     <section
-      className="dark border-border bg-background text-foreground relative min-h-[31rem] overflow-hidden border-b sm:min-h-[35rem]"
+      className="dark border-border bg-background text-foreground scl-scanline relative overflow-hidden border-b"
       aria-labelledby="scl-hero-title"
     >
-      <picture className="absolute inset-0">
-        <source
-          media="(min-width: 640px)"
-          srcSet="/assets/scl/leaderboard-trophy-desktop.webp"
-        />
-        <img
-          src="/assets/scl/leaderboard-trophy-mobile.webp"
-          alt=""
-          width="852"
-          height="1846"
-          fetchPriority="high"
-          className="size-full object-contain object-right-bottom sm:object-right"
-        />
-      </picture>
-      <div
-        aria-hidden
-        className="bg-background/55 sm:bg-background/45 absolute inset-0"
-      />
-
-      <div className="relative mx-auto flex min-h-[31rem] max-w-6xl flex-col px-4 py-8 sm:min-h-[35rem] sm:justify-center sm:px-6 sm:py-14">
+      <div className="relative mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:gap-10 sm:px-6 sm:py-14 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center">
         <div className="max-w-xl">
-          <div className="border-border-strong bg-background/75 inline-flex min-h-8 items-center gap-2 rounded-lg border px-3 text-xs font-semibold backdrop-blur-sm">
-            <VerificationBadge size="xs" />
-            Public Performance Records
-          </div>
+          <p className="scl-eyebrow text-gold mb-3">Verified Board Entry</p>
           <h1
             id="scl-hero-title"
-            className="mt-4 max-w-lg text-3xl leading-[1.08] font-extrabold text-balance sm:mt-5 sm:text-5xl lg:text-6xl"
+            className="scl-display max-w-lg text-4xl leading-[1.02] font-bold tracking-tight text-balance sm:text-5xl lg:text-6xl"
           >
-            Sports Capper <span className="scl-brand-text">Leaderboard</span>
+            Records you can inspect.
           </h1>
-          <p className="text-foreground/85 mt-4 max-w-lg text-base leading-relaxed text-pretty sm:text-lg">
-            Compare tracked records, evaluate long-term performance, and see
-            which handicappers are earning their rank.
+          <p className="text-muted-foreground mt-4 max-w-lg text-base leading-relaxed text-pretty sm:text-lg">
+            Every verified pick is locked to live board odds and graded
+            automatically.
           </p>
           <div className="mt-6 grid gap-3 sm:mt-7 sm:flex sm:flex-wrap">
             <Button
@@ -65,7 +45,25 @@ export function CompetitionHero() {
             </Button>
           </div>
         </div>
+
+        <div className="mx-auto w-full max-w-[340px] lg:mx-0 lg:justify-self-end">
+          <Ticket
+            settling
+            status="win"
+            selectionTitle={"Aces −3.5 /\nUnder 161.5"}
+            eventLine="LVA @ SEA · WNBA · SUN JUL 13, 10:00 PM ET"
+            legs={2}
+            odds="+264"
+            stake="1.0U"
+            toWin="2.64U"
+            capturedAt="2026-07-13T18:22:08.000Z"
+          />
+        </div>
       </div>
+      <div
+        aria-hidden
+        className="bg-gold absolute inset-x-0 bottom-0 h-px opacity-80"
+      />
     </section>
   );
 }

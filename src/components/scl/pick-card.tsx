@@ -41,7 +41,7 @@ function CapperStandingLine({ pick }: { pick: TodayPick }) {
   }
 
   return (
-    <span className="nums text-muted-foreground text-xs tabular-nums">
+    <span className="nums scl-data text-muted-foreground text-xs tabular-nums">
       {formatRecord(
         pick.capperRecord.w,
         pick.capperRecord.l,
@@ -92,7 +92,7 @@ export function PickCard({
             <span className="text-lg font-semibold tracking-tight break-words">
               {pick.selection}
             </span>
-            <span className="nums text-muted-foreground text-sm font-semibold tabular-nums">
+            <span className="nums scl-data text-muted-foreground text-sm font-semibold tabular-nums">
               {formatOdds(pick.oddsAmerican)}
             </span>
           </div>
@@ -104,14 +104,14 @@ export function PickCard({
           <span className="text-muted-foreground text-xs font-medium">
             Stake
           </span>
-          <span className="nums text-brand font-semibold tabular-nums">
+          <span className="nums scl-data text-brand font-semibold tabular-nums">
             {formatUnits(pick.units, true, false)}
           </span>
         </div>
         {hasResult ? (
           <span
             className={cn(
-              "nums shrink-0 text-sm font-bold tabular-nums",
+              "nums scl-data shrink-0 text-sm font-bold tabular-nums",
               toneText[signTone(pick.profitUnits ?? 0)],
             )}
           >
@@ -139,7 +139,7 @@ export function PickCard({
             <CapperStandingLine pick={pick} />
           </div>
         </Link>
-        <span className="text-muted-foreground shrink-0 text-xs">
+        <span className="text-muted-foreground scl-data shrink-0 text-xs">
           {timeAgo(pick.postedAt)}
         </span>
       </div>
@@ -180,7 +180,7 @@ function CompactPickCard({ pick }: { pick: TodayPick }) {
           <span className="truncate text-base font-semibold">
             {pick.selection}
           </span>
-          <span className="nums text-muted-foreground shrink-0 text-sm font-semibold tabular-nums">
+          <span className="nums scl-data text-muted-foreground shrink-0 text-sm font-semibold tabular-nums">
             {formatOdds(pick.oddsAmerican)}
           </span>
         </div>
@@ -210,7 +210,7 @@ function CompactPickCard({ pick }: { pick: TodayPick }) {
                 </span>
               </span>
             ) : (
-              <span className="text-muted-foreground text-xs">
+              <span className="text-muted-foreground scl-data text-xs">
                 {timeAgo(pick.postedAt)}
               </span>
             )}
@@ -225,7 +225,7 @@ function CompactPickCard({ pick }: { pick: TodayPick }) {
               </span>
               <span
                 className={cn(
-                  "nums text-sm font-bold tabular-nums",
+                  "nums scl-data text-sm font-bold tabular-nums",
                   toneText[signTone(pick.profitUnits ?? 0)],
                 )}
               >
@@ -237,7 +237,7 @@ function CompactPickCard({ pick }: { pick: TodayPick }) {
               <span className="text-muted-foreground block text-[0.7rem] font-semibold uppercase">
                 Stake
               </span>
-              <span className="nums text-brand text-sm font-bold tabular-nums">
+              <span className="nums scl-data text-brand text-sm font-bold tabular-nums">
                 {formatUnits(pick.units, true, false)}
               </span>
             </>
