@@ -8,8 +8,9 @@ import Link from "next/link";
 import { toast } from "sonner";
 
 import { MobileSlipDock } from "@/components/scl/mobile-slip-dock";
-import { OddsAssist } from "@/components/scl/odds-assist";
+import { OddsAssist, type OddsPick } from "@/components/scl/odds-assist";
 import { SectionHeader } from "@/components/scl/section";
+import { SlipConflictPrompt } from "@/components/scl/slip-conflict-prompt";
 import { SportPills } from "@/components/scl/sport-pills";
 import { StakeQuickChips } from "@/components/scl/stake-quick-chips";
 import { VerificationReceipt } from "@/components/scl/verification-receipt";
@@ -30,8 +31,15 @@ import {
   type CreateParlayFormInput,
   type CreateParlayInput,
 } from "@/lib/schemas/parlay.schema";
-import { findConflict, pickKey, toSlipLeg, type SlipPick } from "@/lib/slip";
+import {
+  findConflict,
+  pickKey,
+  toSlipLeg,
+  type SlipConflict,
+  type SlipPick,
+} from "@/lib/slip";
 import { useIsLg } from "@/lib/use-media-query";
+import { cn } from "@/lib/utils";
 import type { ParlayReceipt } from "@/lib/verification";
 
 function FieldError({ message }: { message?: string }) {
@@ -62,6 +70,10 @@ function legToSlipPick(l: {
 export default function NewParlayPage() {
   const [receipt, setReceipt] = useState<ParlayReceipt | null>(null);
   const [sport, setSport] = useState("");
+  const [pendingConflict, setPendingConflict] = useState<{
+    conflict: SlipConflict;
+    pick: OddsPick;
+  } | null>(null);
   const isLg = useIsLg();
   const {
     register,
@@ -73,7 +85,10 @@ export default function NewParlayPage() {
     resolver: zodResolver(createParlaySchema),
     defaultValues: { units: 1, legs: [] },
   });
-  const { fields, append, remove } = useFieldArray({ control, name: "legs" });
+  const { fields, append, remove, update } = useFieldArray({
+    control,
+    name: "legs",
+  });
 
   const legs = useWatch({ control, name: "legs" });
   const units = useWatch({ control, name: "units" });
@@ -114,6 +129,8 @@ export default function NewParlayPage() {
     );
   }
 
+  // Shared slip — rendered in the desktop sticky column and the mobile dock. Carries the
+  // inline Replace/Cancel prompt so same-market conflicts resolve in either surface.
   const slipBody = (
     <Card className="border-brand/50 scl-elevated space-y-3 border-2 p-4 sm:p-5">
       <div className="flex items-center justify-between">
@@ -125,15 +142,32 @@ export default function NewParlayPage() {
         </span>
       </div>
 
+      {pendingConflict ? (
+        <SlipConflictPrompt
+          message={pendingConflict.conflict.message}
+          incomingLabel={`${pendingConflict.pick.selection} · ${formatOdds(pendingConflict.pick.oddsAmerican)}`}
+          onCancel={() => setPendingConflict(null)}
+          onReplace={() => {
+            const { conflict, pick } = pendingConflict;
+            update(conflict.index, toSlipLeg(pick, sport));
+            setPendingConflict(null);
+          }}
+        />
+      ) : null}
+
       {fields.length ? (
         <div className="divide-border divide-y">
           {fields.map((field, i) => {
             const leg = legs?.[i];
             const legOdds = Number(leg?.oddsAmerican);
+            const conflicting = pendingConflict?.conflict.index === i;
             return (
               <div
                 key={field.id}
-                className="flex items-center justify-between gap-3 py-2.5"
+                className={cn(
+                  "flex items-center justify-between gap-3 py-2.5",
+                  conflicting && "bg-brand/5 -mx-2 rounded-md px-2",
+                )}
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold">
@@ -153,7 +187,10 @@ export default function NewParlayPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => remove(i)}
+                  onClick={() => {
+                    remove(i);
+                    setPendingConflict(null);
+                  }}
                   aria-label={`Remove leg ${i + 1}`}
                   className="text-muted-foreground hover:text-foreground hover:bg-surface-2 min-h-10 min-w-10 rounded-md p-1.5"
                 >
@@ -244,7 +281,13 @@ export default function NewParlayPage() {
         <div className="min-w-0 space-y-5">
           <Card className="space-y-2 p-4 sm:p-5">
             <Label>Add legs from the board</Label>
-            <SportPills value={sport} onChange={setSport} />
+            <SportPills
+              value={sport}
+              onChange={(s) => {
+                setSport(s);
+                setPendingConflict(null);
+              }}
+            />
           </Card>
 
           {sport ? (
@@ -253,11 +296,17 @@ export default function NewParlayPage() {
               selectedKeys={selectedKeys}
               onPick={(pick) => {
                 const conflict = findConflict(slipLegs, pick);
-                if (conflict) {
-                  toast.error(conflict.message);
+                if (!conflict) {
+                  setPendingConflict(null);
+                  append(toSlipLeg(pick, sport));
                   return;
                 }
-                append(toSlipLeg(pick, sport));
+                // Exact duplicate: chip is already selected — quiet no-op.
+                if (conflict.kind === "duplicate") {
+                  setPendingConflict(null);
+                  return;
+                }
+                setPendingConflict({ conflict, pick });
               }}
             />
           ) : null}

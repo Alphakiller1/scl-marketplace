@@ -98,13 +98,13 @@ function conflictMessage(
 ): string {
   switch (kind) {
     case "moneyline":
-      return "This parlay already has a Moneyline for this game. Remove it before adding another.";
+      return "This parlay already has a Moneyline for this game.";
     case "spread":
-      return "This parlay already has a Spread for this game. Remove it before adding another.";
+      return "This parlay already has a Spread for this game.";
     case "total":
-      return "This parlay already has a Total for this game. Remove it before adding another.";
+      return "This parlay already has a Total for this game.";
     case "player_prop":
-      return `This parlay already has a ${market} pick for this player. Remove it before adding another.`;
+      return `This parlay already has a ${market} pick for this player.`;
   }
 }
 
