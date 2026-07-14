@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DayToggle } from "@/components/scl/day-toggle";
 import { MarketChip } from "@/components/scl/market-chip";
 import { SkeletonCard } from "@/components/scl/states";
 import { cn } from "@/lib/utils";
 import { formatOdds } from "@/lib/format";
+import { selectionForActiveBook } from "@/lib/game-picker";
 import { pickKey } from "@/lib/slip";
 import {
   availablePropMarkets,
@@ -17,24 +19,12 @@ import {
   propMarketShortLabel,
   splitMarketPreview,
 } from "@/lib/prop-board";
+import { filterBySlateDay, type SlateDay } from "@/lib/slate";
 import { getTeamIdentity, type TeamIdentity } from "@/lib/teams";
 import type { OddsEvent, OddsSelection } from "@/lib/odds-board";
 
 /** Re-export for callers that historically imported `pickKey` from this module. */
 export { pickKey } from "@/lib/slip";
-
-type SlateDay = "today" | "tomorrow";
-
-/** Local calendar-day key (matches the date the board displays), no time component. */
-function localDateKey(d: Date): string {
-  return d.toDateString();
-}
-
-function slateDayKeys(now = new Date()): Record<SlateDay, string> {
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  return { today: localDateKey(now), tomorrow: localDateKey(tomorrow) };
-}
 
 export type OddsPick = {
   market: string;
@@ -221,13 +211,8 @@ export function OddsAssist({
   const configured = board?.configured ?? true;
 
   const list = events ?? [];
-  const keys = slateDayKeys();
-  const todayEvents = list.filter(
-    (e) => localDateKey(new Date(e.commenceTime)) === keys.today,
-  );
-  const tomorrowEvents = list.filter(
-    (e) => localDateKey(new Date(e.commenceTime)) === keys.tomorrow,
-  );
+  const todayEvents = filterBySlateDay(list, "today");
+  const tomorrowEvents = filterBySlateDay(list, "tomorrow");
   const hasNearTerm = todayEvents.length + tomorrowEvents.length > 0;
   const chosenDay = dayChoice?.sport === boardSport ? dayChoice.day : null;
   const day: SlateDay =
@@ -353,81 +338,6 @@ export function OddsAssist({
   );
 }
 
-/** Today / Tomorrow slate switch — SEGMENTED CONTROL recipe. */
-function DayToggle({
-  day,
-  todayCount,
-  tomorrowCount,
-  loading,
-  onChange,
-}: {
-  day: SlateDay;
-  todayCount: number;
-  tomorrowCount: number;
-  loading?: boolean;
-  onChange: (day: SlateDay) => void;
-}) {
-  const counts: Record<SlateDay, number> = {
-    today: todayCount,
-    tomorrow: tomorrowCount,
-  };
-  const now = new Date();
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const dateLabel: Record<SlateDay, string> = {
-    today: now.toLocaleDateString(undefined, {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    }),
-    tomorrow: tomorrow.toLocaleDateString(undefined, {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    }),
-  };
-
-  return (
-    <div className="grid grid-cols-2 gap-[3px] rounded-[10px] border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] p-[3px]">
-      {(["today", "tomorrow"] as const).map((d) => (
-        <button
-          key={d}
-          type="button"
-          onClick={() => onChange(d)}
-          disabled={loading}
-          aria-pressed={day === d}
-          className={cn(
-            "scl-display relative min-h-10 rounded-lg text-sm font-semibold tracking-[0.06em] uppercase transition-colors",
-            day === d
-              ? "bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)] shadow-[inset_0_0_0_1px_var(--scl-blue-deep)]"
-              : "text-[color:var(--scl-muted-data)] hover:text-[color:var(--scl-text)]",
-            loading && "opacity-60",
-          )}
-        >
-          {d}
-          <span
-            className={cn(
-              "scl-data mt-0.5 block text-[0.65rem] font-medium tracking-[0.08em] normal-case",
-              day === d
-                ? "text-[color:var(--scl-blue-ink)]/80"
-                : "text-[color:var(--scl-muted-label)]",
-            )}
-          >
-            {dateLabel[d]}
-            {loading ? "" : ` · ${counts[d]}`}
-          </span>
-          {loading && d === day ? (
-            <Loader2
-              className="absolute top-2 right-2 size-3.5 animate-spin text-[color:var(--scl-muted-label)]"
-              aria-hidden
-            />
-          ) : null}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 function EventRow({
   event,
   open,
@@ -546,18 +456,22 @@ function moneylineFor(
  * One expanded event: featured game lines (shown immediately) plus alternate lines and player
  * props once the per-event fetch returns. Props: sticky player search, category filter pills,
  * and player accordions (collapsed by default; 3-market preview + Show all). Local state resets
- * when the event closes.
+ * when the event closes. Optional `activeBook` drives per-book prices via getOddsForBook
+ * (honest "—" when that book has no line).
  */
-function EventDetail({
+export function EventDetail({
   event,
   detail,
   onPick,
   selectedKeys,
+  activeBook,
 }: {
   event: OddsEvent;
   detail: EventDetailData | undefined;
   onPick: (pick: OddsPick) => void;
   selectedKeys?: Set<string>;
+  /** Capper book rail selection — null/undefined = best attributed price. */
+  activeBook?: string | null;
 }) {
   const [query, setQuery] = useState("");
   const [propMarket, setPropMarket] = useState<string | null>(null);
@@ -591,26 +505,30 @@ function EventDetail({
   const searching = q.length > 0;
 
   const renderChip = (s: OddsSelection, key: string) => {
-    const pick: OddsPick = {
-      market: s.market,
-      selection: s.selection,
-      oddsAmerican: s.oddsAmerican,
-      eventId: event.id,
-      eventStartsAt: event.commenceTime,
-      side: s.side,
-      line: s.line,
-      player: s.player,
-      book: s.book,
-    };
-    const selected = selectedKeys?.has(pickKey(pick)) ?? false;
+    const priced = selectionForActiveBook(s, activeBook);
+    const pick: OddsPick | null =
+      priced.oddsAmerican === null
+        ? null
+        : {
+            market: s.market,
+            selection: s.selection,
+            oddsAmerican: priced.oddsAmerican,
+            eventId: event.id,
+            eventStartsAt: event.commenceTime,
+            side: s.side,
+            line: s.line,
+            player: s.player,
+            book: priced.book,
+          };
+    const selected = pick ? (selectedKeys?.has(pickKey(pick)) ?? false) : false;
     return (
       <MarketChip
         key={key}
         label={s.selection}
-        oddsAmerican={s.oddsAmerican}
-        book={s.book}
+        oddsAmerican={priced.oddsAmerican}
+        book={priced.book}
         selected={selected}
-        onClick={() => onPick(pick)}
+        onClick={pick ? () => onPick(pick) : undefined}
       />
     );
   };

@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Mobile sticky slip bar — SCL-DESIGN-SPEC STICKY SLIP BAR recipe.
- * Fixed bottom, 56px, gold-deep border, the one permitted gradient, VIEW SLIP CTA.
+ * Fixed bottom, 56px, pink-deep border, the one permitted gradient, VIEW SLIP CTA.
  */
 export function MobileSlipDock({
   title,
