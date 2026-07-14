@@ -1,3 +1,4 @@
+import { deriveLifecycle } from "@/lib/lifecycle";
 import type { CapperSummary, TodayPick } from "@/lib/mock";
 import { pickContextLabel } from "@/lib/pick-identity";
 import type { VerificationTier } from "@/lib/verification";
@@ -25,15 +26,8 @@ export type PublicPlayJoinRow = {
   createdAt: Date;
   verificationTier: VerificationTier;
   side: string | null;
+  eventStartsAt: Date | null;
 };
-
-const OUTCOME_TO_PICK_STATUS = {
-  PENDING: "pending",
-  WIN: "win",
-  LOSS: "loss",
-  PUSH: "push",
-  VOID: "void",
-} as const satisfies Record<PublicPlayJoinRow["outcome"], TodayPick["status"]>;
 
 /**
  * Join DB plays to capper summaries for the public feed. Plays whose capper
@@ -71,7 +65,10 @@ export function joinPlaysToPublicPicks(
         selection: play.selection,
         oddsAmerican: play.oddsAmerican,
         units: Number(play.units),
-        status: OUTCOME_TO_PICK_STATUS[play.outcome],
+        status: deriveLifecycle({
+          outcome: play.outcome,
+          eventStartsAt: play.eventStartsAt,
+        }),
         postedAt: play.createdAt,
         gameTime: play.outcome === "PENDING" ? "Pending" : "Graded",
         verificationTier: play.verificationTier,

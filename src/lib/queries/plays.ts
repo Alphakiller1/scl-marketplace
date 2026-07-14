@@ -21,6 +21,8 @@ export type PlayView = {
   verificationTier: VerificationTier;
   /** Structured board side when present — never invent from free-text selection. */
   side: string | null;
+  /** Scheduled event start (C2) — drives the pre-game/live/awaiting-grade lifecycle. */
+  eventStartsAt: Date | null;
 };
 
 export type ParlayLegView = {
@@ -42,6 +44,8 @@ export type ParlayView = {
   createdAt: Date;
   /** Verified only when every leg was logged pre-game and price-verified. */
   verificationTier: VerificationTier;
+  /** Earliest leg start — drives the parlay's lifecycle chip. */
+  eventStartsAt: Date | null;
   legs: ParlayLegView[];
 };
 
@@ -93,7 +97,17 @@ export async function getCapperPlays(
     createdAt: p.createdAt,
     verificationTier: p.verificationTier,
     side: p.side,
+    eventStartsAt: p.eventStartsAt,
   }));
+}
+
+/** Earliest leg start (or null) — the parlay's lifecycle anchors to its first game. */
+function earliestStart(legs: { eventStartsAt: Date | null }[]): Date | null {
+  const times = legs
+    .map((l) => l.eventStartsAt)
+    .filter((d): d is Date => d != null);
+  if (times.length === 0) return null;
+  return times.reduce((a, b) => (a.getTime() <= b.getTime() ? a : b));
 }
 
 /** A capper's parlays (most recent first) with their legs — the parlay is the position. */
@@ -122,6 +136,7 @@ export async function getCapperParlays(
           oddsAmerican: true,
           side: true,
           verificationTier: true,
+          eventStartsAt: true,
         },
       },
     },
@@ -139,6 +154,7 @@ export async function getCapperParlays(
       p.legs.every((l) => isVerifiedTier(l.verificationTier))
         ? "VERIFIED"
         : "SELF_REPORTED",
+    eventStartsAt: earliestStart(p.legs),
     legs: p.legs.map((l) => ({
       id: l.id,
       sport: l.sport,
@@ -193,6 +209,7 @@ export async function getPublicRecentPicksResult(
         createdAt: true,
         verificationTier: true,
         side: true,
+        eventStartsAt: true,
       },
       orderBy: { createdAt: "desc" },
       take,

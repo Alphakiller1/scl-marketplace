@@ -49,6 +49,7 @@ export async function getPublicCapperByHandle(
       createdAt: p.createdAt,
       verificationTier: p.verificationTier,
       side: p.side,
+      eventStartsAt: p.eventStartsAt,
     }));
   } catch (err) {
     console.error("[getPublicCapperByHandle] plays unavailable:", err);
