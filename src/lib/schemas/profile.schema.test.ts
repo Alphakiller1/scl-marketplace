@@ -16,6 +16,26 @@ test("profile schema accepts a minimal valid profile", () => {
   assert.equal(profileSchema.safeParse(validProfile).success, true);
 });
 
+test("profile schema accepts curated sportsbooks", () => {
+  assert.equal(
+    profileSchema.safeParse({
+      ...validProfile,
+      books: ["draftkings", "fanduel"],
+    }).success,
+    true,
+  );
+});
+
+test("profile schema rejects unknown sportsbooks", () => {
+  assert.equal(
+    profileSchema.safeParse({
+      ...validProfile,
+      books: ["pinnacle"],
+    }).success,
+    false,
+  );
+});
+
 test("profile schema rejects unknown sports", () => {
   assert.equal(
     profileSchema.safeParse({

@@ -1,0 +1,42 @@
+/**
+ * Curated sportsbooks for CapperProfile.books — keys match The Odds API
+ * `bookmakers` query param (US / US2 regions).
+ * @see https://the-odds-api.com/sports-odds-data/bookmaker-apis.html
+ */
+
+export const SUPPORTED_BOOKS = [
+  { key: "draftkings", label: "DraftKings", short: "DK" },
+  { key: "fanduel", label: "FanDuel", short: "FD" },
+  { key: "betmgm", label: "BetMGM", short: "MGM" },
+  { key: "williamhill_us", label: "Caesars", short: "CZR" },
+  { key: "fanatics", label: "Fanatics", short: "FAN" },
+  { key: "espnbet", label: "ESPN BET", short: "ESPN" },
+  { key: "hardrockbet", label: "Hard Rock Bet", short: "HRB" },
+  { key: "betrivers", label: "BetRivers", short: "BRV" },
+  { key: "bovada", label: "Bovada", short: "BOV" },
+  { key: "betonlineag", label: "BetOnline", short: "BOL" },
+] as const;
+
+export type BookKey = (typeof SUPPORTED_BOOKS)[number]["key"];
+
+export const BOOK_KEYS = SUPPORTED_BOOKS.map((b) => b.key) as BookKey[];
+
+const BY_KEY = new Map(SUPPORTED_BOOKS.map((b) => [b.key, b]));
+
+export function isBookKey(value: string): value is BookKey {
+  return BY_KEY.has(value as BookKey);
+}
+
+export function bookLabel(key: string): string {
+  return BY_KEY.get(key as BookKey)?.label ?? key;
+}
+
+export function bookShort(key: string): string {
+  return BY_KEY.get(key as BookKey)?.short ?? key;
+}
+
+/** Comma-separated Odds API `bookmakers=` value; empty → omit (use regions=us). */
+export function bookmakersQueryParam(books: readonly string[]): string | null {
+  const keys = books.filter(isBookKey);
+  return keys.length ? keys.join(",") : null;
+}

@@ -18,6 +18,7 @@ import { ProfileMediaEditor } from "@/components/scl/profile-media-editor";
 import { ProfileTagInput } from "@/components/scl/profile-tag-input";
 import { StorefrontPreview } from "@/components/scl/storefront-preview";
 import { SPORTS } from "@/lib/constants";
+import { SUPPORTED_BOOKS } from "@/lib/books";
 import { calculateProfileCompletion } from "@/lib/profile-completion";
 import {
   resolveStorefrontIdentity,
@@ -58,6 +59,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
       bio: profile.bio ?? "",
       providerType: profile.providerType,
       sports: profile.sports,
+      books: profile.books,
       specialties: profile.specialties,
       betTypes: profile.betTypes,
       dailyVolume: profile.dailyVolume ?? "",
@@ -266,6 +268,27 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
               </div>
               {errors.sports ? (
                 <p className="text-neg text-xs">{errors.sports.message}</p>
+              ) : null}
+            </fieldset>
+
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-medium">My sportsbooks</legend>
+              <p className="text-muted-foreground text-xs">
+                Books you bet — used later to filter board prices. Leave empty
+                to use all US books.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {SUPPORTED_BOOKS.map((book) => (
+                  <Chip
+                    key={book.key}
+                    value={book.key}
+                    label={book.label}
+                    {...register("books")}
+                  />
+                ))}
+              </div>
+              {errors.books ? (
+                <p className="text-neg text-xs">{errors.books.message}</p>
               ) : null}
             </fieldset>
 

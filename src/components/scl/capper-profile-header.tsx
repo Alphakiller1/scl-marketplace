@@ -1,4 +1,5 @@
 import type { CapperSummary } from "@/lib/mock";
+import { bookShort } from "@/lib/books";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
 import {
   LegacyBadge,
@@ -20,6 +21,7 @@ import { identityDisplayLinesFromCapper } from "@/lib/identity";
 export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
   // Selected coverage from CapperProfile.sports — never invent chips from play history.
   const selectedSports = capper.sports?.length ? capper.sports : [];
+  const selectedBooks = capper.books?.length ? capper.books : [];
   const identity = identityDisplayLinesFromCapper(capper);
   const avatarName = identity.primary.replace(/^@/, "") || capper.handle;
   const verifiedPct =
@@ -173,7 +175,9 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
           </p>
         ) : null}
 
-        {selectedSports.length || capper.specialties?.length ? (
+        {selectedSports.length ||
+        selectedBooks.length ||
+        capper.specialties?.length ? (
           <div className="mt-3 space-y-2">
             {selectedSports.length ? (
               <div>
@@ -185,6 +189,16 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                     <SportTag key={sport} sport={sport} />
                   ))}
                 </div>
+              </div>
+            ) : null}
+            {selectedBooks.length ? (
+              <div>
+                <p className="text-muted-foreground mb-1.5 text-[0.7rem] font-semibold tracking-wide uppercase">
+                  Books
+                </p>
+                <p className="scl-data text-muted-foreground text-xs font-medium tracking-[0.04em]">
+                  {selectedBooks.map((key) => bookShort(key)).join(" · ")}
+                </p>
               </div>
             ) : null}
             {capper.specialties?.length ? (
