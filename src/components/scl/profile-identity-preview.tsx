@@ -3,7 +3,6 @@ import { SportTag, VerificationBadge } from "@/components/scl/badges";
 import { identityDisplayLines } from "@/lib/identity";
 
 export type ProfileIdentityPreviewData = {
-  displayName: string;
   username: string;
   headline?: string;
   avatarUrl?: string | null;
@@ -18,10 +17,10 @@ export function ProfileIdentityPreview({
   profile: ProfileIdentityPreviewData;
 }) {
   const identity = identityDisplayLines({
-    displayName: profile.displayName,
     handle: profile.username,
   });
-  const avatarName = identity.primary.replace(/^@/, "") || profile.username;
+  const avatarName =
+    identity.primary.replace(/^@/, "") || profile.username || "scl";
 
   return (
     <section

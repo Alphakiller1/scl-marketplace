@@ -119,13 +119,6 @@ export default function SignupPage() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <Field
-          id="displayName"
-          label="Display Name"
-          autoComplete="name"
-          register={register("displayName")}
-          error={errors.displayName?.message}
-        />
-        <Field
           id="username"
           label="SCL Handle"
           autoComplete="username"

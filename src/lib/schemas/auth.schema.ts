@@ -13,11 +13,6 @@ export type LoginInput = z.infer<typeof loginSchema>;
 
 export const signupSchema = z
   .object({
-    displayName: z
-      .string()
-      .trim()
-      .min(2, "Name must be at least 2 characters")
-      .max(50),
     username: z
       .string()
       .trim()

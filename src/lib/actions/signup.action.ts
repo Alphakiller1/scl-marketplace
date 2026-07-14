@@ -33,7 +33,7 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
   if (!parsed.success)
     return { ok: false, error: "Please check the form and try again." };
 
-  const { email, username, displayName, password } = parsed.data;
+  const { email, username, password } = parsed.data;
   const lowerEmail = email.toLowerCase();
   const requestIdentity = await getRequestIdentity();
   const [emailAllowed, requestAllowed] = await Promise.all([
@@ -93,7 +93,6 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
         where: { id: byEmail.id },
         data: {
           username,
-          displayName,
           passwordHash,
           role: "CAPPER",
           ...newAccountState,
@@ -108,7 +107,6 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
         data: {
           email: lowerEmail,
           username,
-          displayName,
           passwordHash,
           role: "CAPPER",
           ...newAccountState,

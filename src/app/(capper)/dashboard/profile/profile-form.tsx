@@ -54,8 +54,6 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
   } = useForm<ProfileFormInput, unknown, ProfileInput>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      displayName:
-        profile.user.displayName ?? profile.user.username ?? "SCL Capper",
       headline: profile.headline ?? "",
       bio: profile.bio ?? "",
       providerType: profile.providerType,
@@ -77,19 +75,15 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
   });
 
   const values = useWatch({ control });
-  const displayName =
-    values.displayName?.trim() ||
-    profile.user.displayName ||
-    profile.user.username ||
-    "SCL Capper";
-  const username = profile.user.username ?? "capper";
+  const username = profile.user.username ?? "";
+  const handleLabel = formatHandle(username) ?? "";
   const completion = calculateProfileCompletion({
     ...values,
-    displayName,
+    // displayName dormant — completion audit lands in a follow-up PR
+    displayName: null,
     avatarUrl: media.avatarUrl,
   });
   const storefront = resolveStorefrontIdentity({
-    displayName,
     username,
     title: values.storefrontTitle,
     description: values.storefrontDescription,
@@ -129,7 +123,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
           noValidate
         >
           <ProfileMediaEditor
-            displayName={displayName}
+            name={username || "scl"}
             avatarUrl={media.avatarUrl}
             bannerUrl={media.bannerUrl}
             onChange={(kind, url) =>
@@ -149,30 +143,17 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
                 Public Identity
               </h2>
               <p className="text-muted-foreground text-sm">
-                The name and positioning shown across SCL.
+                Your @handle is your public name across SCL.
               </p>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field
-                htmlFor="displayName"
-                label="Display Name"
-                error={errors.displayName?.message}
-              >
-                <Input
-                  id="displayName"
-                  autoComplete="name"
-                  {...register("displayName")}
-                />
-              </Field>
-              <Field htmlFor="username" label="SCL Handle">
-                <Input
-                  id="username"
-                  value={formatHandle(username) ?? `@${username}`}
-                  disabled
-                />
-              </Field>
-            </div>
+            <Field htmlFor="username" label="SCL Handle">
+              <Input
+                id="username"
+                value={handleLabel || `@${username}`}
+                disabled
+              />
+            </Field>
 
             <Field
               htmlFor="headline"
@@ -454,7 +435,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
 
           <div className="border-border bg-background/95 sticky bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-10 flex items-center justify-between gap-3 rounded-xl border p-3 shadow-lg backdrop-blur">
             <span className="text-muted-foreground hidden text-sm sm:block">
-              {formatHandle(username) ?? `@${username}`}
+              {handleLabel}
             </span>
             <Button
               type="submit"
@@ -471,7 +452,6 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
           <ProfileCompletionPanel completion={completion} />
           <ProfileIdentityPreview
             profile={{
-              displayName,
               username,
               headline: values.headline,
               avatarUrl: media.avatarUrl,

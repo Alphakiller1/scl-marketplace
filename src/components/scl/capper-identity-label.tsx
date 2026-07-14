@@ -38,7 +38,7 @@ export function CapperIdentityLabel({
     linesOverride ??
     (capper
       ? identityDisplayLinesFromCapper(capper, { compact })
-      : { primary: "SCL Capper", secondary: null });
+      : { primary: "", secondary: null });
   const showVerified = verified ?? capper?.verified;
 
   return (

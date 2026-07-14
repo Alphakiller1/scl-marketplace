@@ -10,14 +10,15 @@ import { uploadProfileMediaAction } from "@/lib/actions/profile-media.action";
 import type { ProfileMediaKind } from "@/lib/schemas/profile-media.schema";
 
 type ProfileMediaEditorProps = {
-  displayName: string;
+  /** Seed for avatar initials — typically the @username without @. */
+  name: string;
   avatarUrl?: string | null;
   bannerUrl?: string | null;
   onChange: (kind: ProfileMediaKind, url: string) => void;
 };
 
 export function ProfileMediaEditor({
-  displayName,
+  name,
   avatarUrl,
   bannerUrl,
   onChange,
@@ -105,7 +106,7 @@ export function ProfileMediaEditor({
         <div className="flex items-end justify-between gap-3 px-4 pb-4 sm:px-5 sm:pb-5">
           <div className="bg-card -mt-8 rounded-xl p-1">
             <CapperAvatar
-              name={displayName}
+              name={name}
               src={avatarUrl ?? undefined}
               size="xl"
               className="size-16 text-base sm:size-20 sm:text-xl"

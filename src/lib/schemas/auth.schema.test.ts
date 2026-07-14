@@ -23,7 +23,6 @@ test("password reset request normalizes surrounding whitespace", () => {
 
 test("signup normalizes public handles and email addresses", () => {
   const parsed = signupSchema.parse({
-    displayName: " Chase Analytics ",
     username: " Chase_Analytics ",
     email: " CAPPPER@EXAMPLE.COM ",
     password: "long-passphrase",
@@ -31,7 +30,6 @@ test("signup normalizes public handles and email addresses", () => {
     acceptTerms: true,
   });
 
-  assert.equal(parsed.displayName, "Chase Analytics");
   assert.equal(parsed.username, "chase_analytics");
   assert.equal(parsed.email, "cappper@example.com");
 });

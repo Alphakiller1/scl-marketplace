@@ -35,9 +35,9 @@ export default async function AdminCappersPage() {
               >
                 <div className="min-w-0">
                   <h2 className="truncate font-semibold">
-                    {account.displayName ??
-                      account.username ??
-                      "Unnamed capper"}
+                    {account.username
+                      ? `@${account.username.replace(/^@/, "")}`
+                      : account.email}
                   </h2>
                   <p className="text-muted-foreground truncate text-sm">
                     {account.email}

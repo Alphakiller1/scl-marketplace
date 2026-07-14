@@ -6,11 +6,8 @@ import {
   resolveStorefrontIdentity,
 } from "@/lib/storefront";
 
-test("default storefront follows the capper identity until customized", () => {
-  assert.equal(
-    defaultStorefrontTitle("Chase Analytics"),
-    "Chase Analytics' Storefront",
-  );
+test("default storefront follows the @username identity until customized", () => {
+  assert.equal(defaultStorefrontTitle("@chase"), "@chase's Storefront");
 
   assert.deepEqual(
     resolveStorefrontIdentity({
@@ -18,9 +15,9 @@ test("default storefront follows the capper identity until customized", () => {
       username: "chase",
     }),
     {
-      title: "Chase Analytics' Storefront",
+      title: "@chase's Storefront",
       description:
-        "Picks and packages selected by Chase Analytics will appear here when they are live.",
+        "Picks and packages selected by @chase will appear here when they are live.",
       enabled: true,
       customized: false,
     },
@@ -30,7 +27,7 @@ test("default storefront follows the capper identity until customized", () => {
 test("custom storefront copy is trimmed and visibility is preserved", () => {
   assert.deepEqual(
     resolveStorefrontIdentity({
-      displayName: "Capper",
+      username: "capper",
       title: "  Market Board  ",
       description: "  Daily and weekly packages.  ",
       enabled: false,
