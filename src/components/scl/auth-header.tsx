@@ -14,11 +14,15 @@ export function AuthHeader({
 }) {
   return (
     <header className="mb-6">
-      <span className="bg-brand/15 text-brand mb-4 flex size-11 items-center justify-center rounded-xl">
+      <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-[color:var(--scl-ink-700)] text-[color:var(--scl-gold)]">
         <Icon className="size-5" aria-hidden />
       </span>
-      <p className="text-brand text-xs font-semibold uppercase">{eyebrow}</p>
-      <h1 className="mt-1 text-2xl leading-tight font-bold">{title}</h1>
+      <p className="scl-eyebrow text-[color:var(--scl-muted-label)]">
+        {eyebrow}
+      </p>
+      <h1 className="scl-display mt-1 text-2xl leading-tight font-bold tracking-[0.04em] uppercase">
+        {title}
+      </h1>
       <p className="text-muted-foreground mt-2 text-sm">{description}</p>
     </header>
   );

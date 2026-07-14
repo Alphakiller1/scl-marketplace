@@ -47,7 +47,10 @@ export function ProfileIdentityPreview({
             className="absolute inset-0 size-full object-cover"
           />
         ) : (
-          <div aria-hidden className="scl-glow absolute inset-0 size-full" />
+          <div
+            aria-hidden
+            className="absolute inset-0 size-full bg-[color:var(--scl-ink-900)]"
+          />
         )}
       </div>
 

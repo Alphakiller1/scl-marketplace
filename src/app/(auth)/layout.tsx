@@ -16,11 +16,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      <div
-        aria-hidden
-        className="scl-glow pointer-events-none absolute inset-0"
-      />
+    <div className="relative min-h-screen overflow-hidden bg-[color:var(--scl-ink-950)]">
       <div className="absolute top-4 right-4 z-10">
         <ThemeToggle />
       </div>
@@ -39,10 +35,10 @@ export default function AuthLayout({
           <div className="h-9" aria-hidden />
 
           <div className="max-w-md">
-            <p className="text-brand text-xs font-semibold uppercase">
+            <p className="scl-eyebrow text-[color:var(--scl-muted-label)]">
               Sports Capper Leaderboard
             </p>
-            <p className="mt-3 text-4xl font-bold">
+            <p className="scl-display mt-3 text-4xl font-bold tracking-[0.04em] uppercase">
               The Identity Behind The Record
             </p>
             <p className="text-muted-foreground mt-4 max-w-sm">
@@ -57,7 +53,10 @@ export default function AuthLayout({
                 key={label}
                 className="border-border bg-card/60 flex items-center gap-3 rounded-xl border px-3 py-2.5"
               >
-                <Icon className="text-brand size-4" aria-hidden />
+                <Icon
+                  className="size-4 text-[color:var(--scl-muted-data)]"
+                  aria-hidden
+                />
                 <dt className="text-muted-foreground text-sm">{label}</dt>
                 <dd className="ml-auto text-sm font-medium">{value}</dd>
               </div>
@@ -83,10 +82,12 @@ export default function AuthLayout({
 function BrandLockup() {
   return (
     <span className="flex items-center gap-2.5">
-      <span className="from-brand/20 to-primary/20 ring-border-strong flex size-9 items-center justify-center rounded-xl bg-gradient-to-br ring-1">
+      <span className="ring-border-strong flex size-9 items-center justify-center rounded-xl bg-[color:var(--scl-ink-800)] ring-1">
         <SclLogo className="size-6" />
       </span>
-      <span className="scl-brand-text text-lg font-extrabold">SCL</span>
+      <span className="scl-display text-lg font-bold tracking-[0.08em] uppercase">
+        SCL
+      </span>
     </span>
   );
 }

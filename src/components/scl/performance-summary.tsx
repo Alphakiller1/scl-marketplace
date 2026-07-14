@@ -29,7 +29,7 @@ export function PerformanceSummary({
       : null;
 
   return (
-    <Card className={cn("scl-card-gradient gap-0 p-4 sm:p-5", className)}>
+    <Card className={cn("gap-0 p-4 sm:p-5", className)}>
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-muted-foreground text-[0.7rem] font-semibold tracking-wide uppercase">
           Performance
