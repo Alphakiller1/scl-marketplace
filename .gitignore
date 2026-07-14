@@ -45,6 +45,8 @@ next-env.d.ts
 prisma/legacy-cappers.json
 
 # Local visual QA artifacts (do not commit)
-qa-screenshots-m2/
-qa-screenshots-m2-auth/
+qa-screenshots*/
+
+# Local dev toolchain (portable node, etc. — never commit)
+.tools/
 

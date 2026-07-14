@@ -2,14 +2,18 @@ import Link from "next/link";
 import { BarChart3, ClipboardList, MailWarning, Plus } from "lucide-react";
 
 import { getCurrentUser } from "@/lib/session";
-import { getCapperPlays } from "@/lib/queries/plays";
+import {
+  getCapperParlays,
+  getCapperPlays,
+  mergeRecordEntries,
+} from "@/lib/queries/plays";
 import { computeCapperStats, computeStatsBySport } from "@/lib/stats";
 import { buildPerformanceTrend } from "@/lib/leaderboard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/scl/states";
 import { SectionHeader } from "@/components/scl/section";
-import { PlayListItem } from "@/components/scl/play-list-item";
+import { ParlayListItem, PlayListItem } from "@/components/scl/play-list-item";
 import { PerformanceBySport } from "@/components/scl/performance-by-sport";
 import { PerformanceScoreboard } from "@/components/scl/performance-scoreboard";
 
@@ -18,10 +22,13 @@ export const metadata = { title: "Dashboard" };
 export default async function DashboardPage() {
   const user = await getCurrentUser();
   const verified = Boolean(user?.emailVerified);
-  const plays = user ? await getCapperPlays(user.id) : [];
+  const [plays, parlays] = user
+    ? await Promise.all([getCapperPlays(user.id), getCapperParlays(user.id)])
+    : [[], []];
   const stats = computeCapperStats(plays);
   const bySport = computeStatsBySport(plays);
-  const recent = plays.slice(0, 6);
+  // Stats stay on straight plays; the recent feed also surfaces parlays as positions.
+  const recent = mergeRecordEntries(plays, parlays).slice(0, 6);
   const performanceTrend = buildPerformanceTrend(
     [...plays].reverse().map((play) => ({
       outcome: play.outcome,
@@ -105,9 +112,13 @@ export default async function DashboardPage() {
         />
         {recent.length ? (
           <div className="space-y-2">
-            {recent.map((p) => (
-              <PlayListItem key={p.id} play={p} />
-            ))}
+            {recent.map((e) =>
+              e.kind === "parlay" ? (
+                <ParlayListItem key={`parlay-${e.id}`} parlay={e} />
+              ) : (
+                <PlayListItem key={`play-${e.id}`} play={e} />
+              ),
+            )}
           </div>
         ) : (
           <EmptyState
