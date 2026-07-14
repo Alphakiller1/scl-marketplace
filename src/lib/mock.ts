@@ -54,6 +54,12 @@ export type CapperSummary = {
   };
   storefront?: StorefrontSummary;
   isLegacy?: boolean; // record imported from the previous SCL platform
+  /** Pick counts in recent windows (straight + parlay positions). */
+  activity?: {
+    last3Days: number;
+    last14Days: number;
+    month: number;
+  };
 };
 
 export type TodayPick = {

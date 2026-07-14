@@ -9,6 +9,7 @@ import {
 import { RankMovementIndicator } from "@/components/scl/indicators";
 import { RankBadge, BUILDING_RECORD_LABEL } from "@/components/scl/rank-badge";
 import { Button } from "@/components/ui/button";
+import { formatLastPickDate } from "@/lib/capper-activity";
 import { identityDisplayLinesFromCapper } from "@/lib/identity";
 
 /**
@@ -25,6 +26,8 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
     capper.verifiedShare != null && capper.verifiedShare > 0
       ? Math.round(capper.verifiedShare)
       : null;
+  const lastPickLabel = formatLastPickDate(capper.lastPlayAt);
+  const activity = capper.activity;
 
   return (
     <article className="border-border bg-card border-b">
@@ -121,6 +124,41 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
               <span className="border-border h-7 border-l" aria-hidden />
               <span className="text-xs">
                 Since {capper.joinedAt.getFullYear()}
+              </span>
+            </>
+          ) : null}
+          {lastPickLabel ? (
+            <>
+              <span className="border-border h-7 border-l" aria-hidden />
+              <span className="text-xs">
+                Last pick{" "}
+                <span className="text-foreground nums font-medium tabular-nums">
+                  {lastPickLabel}
+                </span>
+              </span>
+            </>
+          ) : null}
+          {activity ? (
+            <>
+              <span className="border-border h-7 border-l" aria-hidden />
+              <span
+                className="nums text-xs tabular-nums"
+                title="Tracked picks in the last 3 days, 14 days, and current calendar month"
+              >
+                <span className="text-foreground font-medium">
+                  {activity.last3Days}
+                </span>
+                <span className="text-muted-foreground">/3d</span>
+                <span className="text-muted-foreground mx-1">·</span>
+                <span className="text-foreground font-medium">
+                  {activity.last14Days}
+                </span>
+                <span className="text-muted-foreground">/14d</span>
+                <span className="text-muted-foreground mx-1">·</span>
+                <span className="text-foreground font-medium">
+                  {activity.month}
+                </span>
+                <span className="text-muted-foreground">/mo</span>
               </span>
             </>
           ) : null}

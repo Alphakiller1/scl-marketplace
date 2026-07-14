@@ -13,6 +13,7 @@ import { computeCapperStats } from "@/lib/stats";
 import { computeVerifiedShare } from "@/lib/verification";
 import type { CapperSummary, FormResult } from "@/lib/mock";
 import { resolveStorefrontIdentity } from "@/lib/storefront";
+import { computeCapperActivity } from "@/lib/capper-activity";
 
 /**
  * Live leaderboard data — computed from real plays, never fabricated. Only
@@ -187,6 +188,7 @@ function summarize(p: ProfileRow): CapperSummary | null {
   const { recentForm, streak } = deriveForm(settled);
 
   const displayName = null; // dormant — public identity is username-only
+  const activity = computeCapperActivity(positions.map((x) => x.createdAt));
 
   return {
     id: p.id,
@@ -227,6 +229,7 @@ function summarize(p: ProfileRow): CapperSummary | null {
     joinedAt: p.createdAt,
     socials: undefined, // dormant — external links no longer rendered
     isLegacy: p.isLegacy || undefined,
+    activity,
   };
 }
 
