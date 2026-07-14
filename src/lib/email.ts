@@ -5,9 +5,14 @@ const from = process.env.EMAIL_FROM ?? "no-reply@scl.local";
 const resend = apiKey ? new Resend(apiKey) : null;
 
 function appUrl() {
-  if (process.env.AUTH_URL) return process.env.AUTH_URL;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "http://localhost:3000";
+  const base =
+    process.env.AUTH_URL ??
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ??
+    "http://localhost:3000";
+  // Trim stray whitespace/newlines — a trailing newline in AUTH_URL was splitting the
+  // verification/reset links in emails — and drop trailing slashes so `${appUrl()}/path`
+  // is always well-formed.
+  return base.trim().replace(/\/+$/, "");
 }
 
 /**
