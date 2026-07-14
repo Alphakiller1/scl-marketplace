@@ -12,14 +12,14 @@ import { OddsAssist } from "@/components/scl/odds-assist";
 import { SectionHeader } from "@/components/scl/section";
 import { SportPills } from "@/components/scl/sport-pills";
 import { StakeQuickChips } from "@/components/scl/stake-quick-chips";
-import { VerificationReceipt } from "@/components/scl/verification-receipt";
+import { Ticket } from "@/components/scl/ticket";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createPlay } from "@/lib/actions/play.action";
 import { UNIT_MAX, UNIT_MIN, UNIT_STEP } from "@/lib/constants";
-import { formatOdds } from "@/lib/format";
+import { formatOdds, formatUnits } from "@/lib/format";
 import { americanToDecimal } from "@/lib/odds";
 import {
   playSchema,
@@ -29,7 +29,7 @@ import {
 import { pickKey } from "@/lib/slip";
 import { useIsLg } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
-import type { StraightReceipt } from "@/lib/verification";
+import { isVerifiedTier, type StraightReceipt } from "@/lib/verification";
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -118,13 +118,38 @@ export default function NewPlayPage() {
   }
 
   if (receipt) {
+    const verified = isVerifiedTier(receipt.tier);
+    const stake =
+      receipt.units != null ? formatUnits(receipt.units, true, false) : "—";
+    const toWin =
+      receipt.toWinUnits != null
+        ? formatUnits(receipt.toWinUnits, true, false)
+        : "—";
     return (
       <div className="mx-auto max-w-xl space-y-5">
         <SectionHeader
           title="Play Logged"
           subtitle="Confirmation for your record"
         />
-        <VerificationReceipt receipt={receipt} />
+        <Ticket
+          selectionTitle={receipt.selection}
+          eventLine={receipt.market}
+          legs={1}
+          odds={formatOdds(receipt.oddsAmerican)}
+          stake={stake}
+          toWin={toWin}
+          capturedAt={receipt.capturedAt}
+          status={verified ? "verified" : "muted"}
+          footerAction={
+            <Button
+              className="min-h-12 w-full text-base"
+              render={<Link href="/dashboard/picks" />}
+              nativeButton={false}
+            >
+              View on your record
+            </Button>
+          }
+        />
       </div>
     );
   }
@@ -230,12 +255,11 @@ export default function NewPlayPage() {
         </Button>
       </div>
 
-      {/* Sport — always visible; drives the board */}
       <Card className="space-y-2 p-4 sm:p-5">
         <Label>Sport</Label>
         <SportPills
           value={sport ?? ""}
-          onChange={(s) => setValue("sport", s, { shouldValidate: true })}
+          onChange={(key) => setValue("sport", key, { shouldValidate: true })}
         />
         <FieldError message={errors.sport?.message} />
       </Card>

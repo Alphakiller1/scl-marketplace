@@ -13,14 +13,14 @@ import { SectionHeader } from "@/components/scl/section";
 import { SlipConflictPrompt } from "@/components/scl/slip-conflict-prompt";
 import { SportPills } from "@/components/scl/sport-pills";
 import { StakeQuickChips } from "@/components/scl/stake-quick-chips";
-import { VerificationReceipt } from "@/components/scl/verification-receipt";
+import { Ticket } from "@/components/scl/ticket";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createParlay } from "@/lib/actions/parlay.action";
 import { UNIT_MAX, UNIT_MIN, UNIT_STEP } from "@/lib/constants";
-import { formatOdds } from "@/lib/format";
+import { formatOdds, formatUnits } from "@/lib/format";
 import {
   americanToDecimal,
   combineDecimalOdds,
@@ -40,7 +40,7 @@ import {
 } from "@/lib/slip";
 import { useIsLg } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
-import type { ParlayReceipt } from "@/lib/verification";
+import { isVerifiedTier, type ParlayReceipt } from "@/lib/verification";
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -118,13 +118,40 @@ export default function NewParlayPage() {
   }
 
   if (receipt) {
+    const verified =
+      receipt.verifiedLegCount === receipt.legCount &&
+      receipt.tiers.every(isVerifiedTier);
+    const stake =
+      receipt.units != null ? formatUnits(receipt.units, true, false) : "—";
+    const toWin =
+      receipt.toWinUnits != null
+        ? formatUnits(receipt.toWinUnits, true, false)
+        : "—";
     return (
       <div className="mx-auto max-w-xl space-y-5">
         <SectionHeader
           title="Parlay Logged"
           subtitle="Confirmation for your record"
         />
-        <VerificationReceipt receipt={receipt} />
+        <Ticket
+          selectionTitle={`${receipt.legCount}-Leg Parlay`}
+          eventLine={null}
+          legs={receipt.legCount}
+          odds={formatOdds(receipt.combinedOddsAmerican)}
+          stake={stake}
+          toWin={toWin}
+          capturedAt={receipt.capturedAt}
+          status={verified ? "verified" : "muted"}
+          footerAction={
+            <Button
+              className="min-h-12 w-full text-base"
+              render={<Link href="/dashboard/picks" />}
+              nativeButton={false}
+            >
+              View on your record
+            </Button>
+          }
+        />
       </div>
     );
   }
@@ -283,8 +310,8 @@ export default function NewParlayPage() {
             <Label>Add legs from the board</Label>
             <SportPills
               value={sport}
-              onChange={(s) => {
-                setSport(s);
+              onChange={(key) => {
+                setSport(key);
                 setPendingConflict(null);
               }}
             />

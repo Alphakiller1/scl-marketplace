@@ -1,8 +1,9 @@
 import type { Outcome } from "@prisma/client";
 
-import { cn } from "@/lib/utils";
 import { formatOdds, formatUnits, signTone } from "@/lib/format";
-import { PickTierBadge, SportTag, StatusBadge } from "@/components/scl/badges";
+import { SportTag, StatusBadge } from "@/components/scl/badges";
+import { StatValue } from "@/components/scl/stat-value";
+import { VerifiedBadge } from "@/components/scl/verified-badge";
 import { TeamMark } from "@/components/scl/team-mark";
 import { pickContextLabel, teamIdentityFromSide } from "@/lib/pick-identity";
 import type { ParlayView, PlayView } from "@/lib/queries/plays";
@@ -17,12 +18,6 @@ const OUTCOME_TO_STATUS = {
   Outcome,
   "pending" | "win" | "loss" | "push" | "void"
 >;
-
-const toneText = {
-  pos: "text-pos",
-  neg: "text-neg",
-  muted: "text-muted-foreground",
-} as const;
 
 export function PlayListItem({ play }: { play: PlayView }) {
   const hasResult = play.profitUnits != null;
@@ -43,7 +38,7 @@ export function PlayListItem({ play }: { play: PlayView }) {
               {context}
             </span>
           ) : null}
-          <PickTierBadge tier={play.verificationTier} />
+          <VerifiedBadge tier={play.verificationTier} />
         </div>
         <StatusBadge status={OUTCOME_TO_STATUS[play.outcome]} />
       </div>
@@ -54,23 +49,21 @@ export function PlayListItem({ play }: { play: PlayView }) {
         </p>
       </div>
       <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
-        <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-          <span className="nums scl-data font-semibold tabular-nums">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+          <StatValue tone="text" className="font-semibold">
             {formatOdds(play.oddsAmerican)}
-          </span>
-          <span className="nums scl-data tabular-nums">
+          </StatValue>
+          <StatValue tone="data">
             {formatUnits(play.units, true, false)}
-          </span>
+          </StatValue>
         </div>
         {hasResult ? (
-          <span
-            className={cn(
-              "nums scl-data text-sm font-bold tabular-nums",
-              toneText[signTone(play.profitUnits ?? 0)],
-            )}
+          <StatValue
+            tone={signTone(play.profitUnits ?? 0) === "pos" ? "win" : "loss"}
+            className="text-sm font-bold"
           >
             {formatUnits(play.profitUnits ?? 0)}
-          </span>
+          </StatValue>
         ) : null}
       </div>
     </div>
@@ -88,7 +81,7 @@ export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
           <span className="bg-surface-2 text-muted-foreground rounded-md px-1.5 py-0.5 text-[0.7rem] font-semibold tracking-wide uppercase">
             {parlay.legs.length}-Leg Parlay
           </span>
-          <PickTierBadge tier={parlay.verificationTier} />
+          <VerifiedBadge tier={parlay.verificationTier} />
         </div>
         <StatusBadge status={OUTCOME_TO_STATUS[parlay.outcome]} />
       </div>
@@ -102,34 +95,32 @@ export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
               ) : null}
               <p className="min-w-0 flex-1 text-sm font-medium break-words">
                 {leg.selection}
-                <span className="text-muted-foreground nums scl-data ml-1.5 tabular-nums">
+                <StatValue tone="data" className="ml-1.5">
                   {formatOdds(leg.oddsAmerican)}
-                </span>
+                </StatValue>
               </p>
             </li>
           );
         })}
       </ul>
       <div className="border-border mt-2 flex flex-wrap items-center justify-between gap-2 border-t pt-2">
-        <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
           {parlay.combinedOddsAmerican != null ? (
-            <span className="nums scl-data font-semibold tabular-nums">
+            <StatValue tone="gold" className="font-semibold">
               {formatOdds(parlay.combinedOddsAmerican)}
-            </span>
+            </StatValue>
           ) : null}
-          <span className="nums scl-data tabular-nums">
+          <StatValue tone="data">
             {formatUnits(parlay.units, true, false)}
-          </span>
+          </StatValue>
         </div>
         {hasResult ? (
-          <span
-            className={cn(
-              "nums scl-data text-sm font-bold tabular-nums",
-              toneText[signTone(parlay.profitUnits ?? 0)],
-            )}
+          <StatValue
+            tone={signTone(parlay.profitUnits ?? 0) === "pos" ? "win" : "loss"}
+            className="text-sm font-bold"
           >
             {formatUnits(parlay.profitUnits ?? 0)}
-          </span>
+          </StatValue>
         ) : null}
       </div>
     </div>

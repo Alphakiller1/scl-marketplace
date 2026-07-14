@@ -2,32 +2,29 @@
 
 import Link from "next/link";
 
-import { Card } from "@/components/ui/card";
 import type { TodayPick } from "@/lib/mock";
-import {
-  formatOdds,
-  formatRecord,
-  formatUnits,
-  signTone,
-  timeAgo,
-} from "@/lib/format";
+import { formatOdds, formatRecord, formatUnits, timeAgo } from "@/lib/format";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
 import { CapperIdentityLabel } from "@/components/scl/capper-identity-label";
-import { PickTierBadge, SportTag, StatusBadge } from "@/components/scl/badges";
+import { StatValue } from "@/components/scl/stat-value";
 import { BUILDING_RECORD_LABEL, RankBadge } from "@/components/scl/rank-badge";
-import { TeamMark } from "@/components/scl/team-mark";
 import { Ticket, type TicketStatus } from "@/components/scl/ticket";
 import { isBuildingARecord } from "@/lib/leaderboard";
 import { americanToDecimal } from "@/lib/odds";
-import { teamIdentityFromSide } from "@/lib/pick-identity";
+import { pickContextLabel } from "@/lib/pick-identity";
 import { isVerifiedTier } from "@/lib/verification";
-import { cn } from "@/lib/utils";
 
-const toneText = {
-  pos: "text-pos",
-  neg: "text-neg",
-  muted: "text-muted-foreground",
-} as const;
+/** Market/event label — omit when missing or same as the league/sport (no double "MLB"). */
+function pickMarketLabel(pick: TodayPick): string | null {
+  const market = pick.market?.trim() || pick.event?.trim() || "";
+  if (!market) return null;
+  const label = pickContextLabel({
+    sport: pick.sport,
+    league: pick.sport,
+    market,
+  });
+  return label || null;
+}
 
 function CapperStandingLine({ pick }: { pick: TodayPick }) {
   const building = isBuildingARecord({
@@ -45,13 +42,13 @@ function CapperStandingLine({ pick }: { pick: TodayPick }) {
   }
 
   return (
-    <span className="nums scl-data text-muted-foreground text-xs tabular-nums">
+    <StatValue tone="label" className="text-xs">
       {formatRecord(
         pick.capperRecord.w,
         pick.capperRecord.l,
         pick.capperRecord.p,
       )}
-    </span>
+    </StatValue>
   );
 }
 
@@ -86,17 +83,17 @@ function CapperTicketFooter({ pick }: { pick: TodayPick }) {
           <CapperStandingLine pick={pick} />
         </div>
       </Link>
-      <span className="text-muted-foreground scl-data shrink-0 text-xs">
+      <StatValue tone="label" className="shrink-0 text-xs">
         {timeAgo(pick.postedAt)}
-      </span>
+      </StatValue>
     </div>
   );
 }
 
-/** Verified (or graded) picks render as the signature Ticket. */
-function VerifiedPickTicket({
+/** Today's-pick card — Ticket signature for every pick (verified + self-reported). */
+export function PickCard({
   pick,
-  compact,
+  compact = false,
 }: {
   pick: TodayPick;
   compact?: boolean;
@@ -106,14 +103,14 @@ function VerifiedPickTicket({
     pick.profitUnits != null
       ? formatUnits(pick.profitUnits)
       : formatUnits(projected, true, false);
-  const eventLine = [pick.event, pick.sport, pick.gameTime]
+  const eventLine = [pickMarketLabel(pick), pick.gameTime]
     .filter(Boolean)
     .join(" · ");
 
   return (
     <Ticket
       selectionTitle={pick.selection}
-      eventLine={eventLine}
+      eventLine={eventLine || pick.sport}
       legs={1}
       odds={formatOdds(pick.oddsAmerican)}
       stake={formatUnits(pick.units, true, false)}
@@ -123,189 +120,5 @@ function VerifiedPickTicket({
       className={compact ? "rounded-[14px]" : undefined}
       footerAction={<CapperTicketFooter pick={pick} />}
     />
-  );
-}
-
-/** Today's-pick card — verified picks use the Ticket signature face. */
-export function PickCard({
-  pick,
-  compact = false,
-}: {
-  pick: TodayPick;
-  compact?: boolean;
-}) {
-  const verified =
-    pick.verificationTier != null && isVerifiedTier(pick.verificationTier);
-
-  if (verified || pick.status === "win" || pick.status === "loss") {
-    return <VerifiedPickTicket pick={pick} compact={compact} />;
-  }
-
-  if (compact) {
-    return <CompactPickCard pick={pick} />;
-  }
-
-  const team = teamIdentityFromSide(pick.side, pick.sport);
-  const hasResult = pick.profitUnits != null;
-
-  return (
-    <Card className="gap-0 overflow-hidden p-3.5 sm:p-4">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <SportTag sport={pick.sport} />
-          {pick.event ? (
-            <span className="text-muted-foreground truncate text-xs">
-              {pick.event}
-            </span>
-          ) : null}
-        </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          {pick.verificationTier ? (
-            <PickTierBadge tier={pick.verificationTier} />
-          ) : null}
-          <StatusBadge status={pick.status} />
-        </div>
-      </div>
-
-      <div className="mt-3 flex min-w-0 items-start gap-2.5">
-        {team ? <TeamMark team={team} size="md" className="mt-0.5" /> : null}
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <span className="scl-display text-lg font-semibold tracking-tight break-words">
-              {pick.selection}
-            </span>
-            <span className="nums scl-data text-muted-foreground text-sm font-semibold tabular-nums">
-              {formatOdds(pick.oddsAmerican)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-surface-2 mt-3 flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="text-muted-foreground text-xs font-medium">
-            Stake
-          </span>
-          <span className="nums scl-data text-brand font-semibold tabular-nums">
-            {formatUnits(pick.units, true, false)}
-          </span>
-        </div>
-        {hasResult ? (
-          <span
-            className={cn(
-              "nums scl-data shrink-0 text-sm font-bold tabular-nums",
-              toneText[signTone(pick.profitUnits ?? 0)],
-            )}
-          >
-            {formatUnits(pick.profitUnits ?? 0)}
-          </span>
-        ) : null}
-      </div>
-
-      <div className="border-border mt-3 border-t pt-3">
-        <CapperTicketFooter pick={pick} />
-      </div>
-    </Card>
-  );
-}
-
-function CompactPickCard({ pick }: { pick: TodayPick }) {
-  const team = teamIdentityFromSide(pick.side, pick.sport);
-  const hasResult = pick.profitUnits != null;
-  const building = isBuildingARecord({
-    rank: pick.capperRank,
-    settledPicks: pick.capperSettledPicks,
-  });
-
-  return (
-    <Card className="gap-0 overflow-hidden p-3">
-      <div className="flex min-w-0 items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <SportTag sport={pick.sport} />
-          {pick.event ? (
-            <span className="text-muted-foreground truncate text-xs">
-              {pick.event}
-            </span>
-          ) : null}
-        </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          {pick.verificationTier ? (
-            <PickTierBadge tier={pick.verificationTier} />
-          ) : null}
-          <StatusBadge status={pick.status} />
-        </div>
-      </div>
-
-      <div className="mt-2 flex min-w-0 items-center gap-2">
-        {team ? <TeamMark team={team} size="sm" /> : null}
-        <div className="flex min-w-0 flex-1 items-baseline gap-2">
-          <span className="scl-display truncate text-base font-semibold">
-            {pick.selection}
-          </span>
-          <span className="nums scl-data text-muted-foreground shrink-0 text-sm font-semibold tabular-nums">
-            {formatOdds(pick.oddsAmerican)}
-          </span>
-        </div>
-      </div>
-
-      <div className="border-border mt-2 flex min-h-11 items-center justify-between gap-3 border-t pt-2">
-        <Link
-          href={`/cappers/${pick.capper.handle}`}
-          className="focus-visible:ring-ring flex min-h-11 min-w-0 items-center gap-2 rounded-lg outline-none hover:underline focus-visible:ring-2"
-        >
-          <CapperAvatar
-            name={pick.capper.name}
-            src={pick.capper.avatarUrl}
-            size="sm"
-          />
-          <div className="min-w-0">
-            <CapperIdentityLabel
-              capper={pick.capper}
-              compact
-              primaryClassName="text-sm"
-            />
-            {building ? (
-              <span className="text-muted-foreground inline-flex min-h-10 items-center gap-1.5 text-xs font-medium">
-                <RankBadge rank={0} className="size-7" />
-                <span className="min-w-0 truncate leading-snug">
-                  {BUILDING_RECORD_LABEL}
-                </span>
-              </span>
-            ) : (
-              <span className="text-muted-foreground scl-data text-xs">
-                {timeAgo(pick.postedAt)}
-              </span>
-            )}
-          </div>
-        </Link>
-
-        <div className="shrink-0 text-right">
-          {hasResult ? (
-            <>
-              <span className="text-muted-foreground block text-[0.7rem] font-semibold uppercase">
-                Result
-              </span>
-              <span
-                className={cn(
-                  "nums scl-data text-sm font-bold tabular-nums",
-                  toneText[signTone(pick.profitUnits ?? 0)],
-                )}
-              >
-                {formatUnits(pick.profitUnits ?? 0)}
-              </span>
-            </>
-          ) : (
-            <>
-              <span className="text-muted-foreground block text-[0.7rem] font-semibold uppercase">
-                Stake
-              </span>
-              <span className="nums scl-data text-brand text-sm font-bold tabular-nums">
-                {formatUnits(pick.units, true, false)}
-              </span>
-            </>
-          )}
-        </div>
-      </div>
-    </Card>
   );
 }

@@ -20,18 +20,7 @@ export type TeamIdentity = {
 
 type TeamRecord = TeamIdentity & { aliases: string[] };
 
-const FALLBACK_COLORS = [
-  "#f97316",
-  "#14b8a6",
-  "#3b82f6",
-  "#a855f7",
-  "#ef4444",
-  "#22c55e",
-  "#eab308",
-  "#ec4899",
-  "#06b6d4",
-  "#8b5cf6",
-];
+const FALLBACK_COLOR = "#3D4E6B";
 
 /** ESPN CDN slug for our sport key → path segment under /i/teamlogos/{slug}/500/. */
 const ESPN_SPORT_SLUG: Record<string, string> = {
@@ -175,6 +164,31 @@ const TEAMS_BY_SPORT: Record<string, TeamRecord[]> = {
   WNBA: WNBA_TEAMS,
 };
 
+/** Spec map shape: normalizedName → { abbr, shortName, primaryColor }. */
+export type TeamMapEntry = {
+  abbr: string;
+  shortName: string;
+  primaryColor: string;
+};
+
+function toTeamMap(teams: TeamRecord[]): Record<string, TeamMapEntry> {
+  const map: Record<string, TeamMapEntry> = {};
+  for (const t of teams) {
+    const entry = {
+      abbr: t.abbr,
+      shortName: t.shortName,
+      primaryColor: t.primaryColor,
+    };
+    for (const alias of [t.fullName, t.shortName, t.abbr, ...t.aliases]) {
+      map[normalize(alias)] = entry;
+    }
+  }
+  return map;
+}
+
+export const WNBA: Record<string, TeamMapEntry> = toTeamMap(WNBA_TEAMS);
+export const MLB: Record<string, TeamMapEntry> = toTeamMap(MLB_TEAMS);
+
 const TEAM_INDEX = new Map<string, TeamRecord>();
 
 for (const [sport, teams] of Object.entries(TEAMS_BY_SPORT)) {
@@ -264,7 +278,6 @@ function normalize(value: string): string {
 }
 
 function fallbackTeam(name: string): TeamIdentity {
-  const hash = hashString(name);
   const words = name
     .replace(/[^a-zA-Z0-9 ]+/g, " ")
     .split(/\s+/)
@@ -282,16 +295,8 @@ function fallbackTeam(name: string): TeamIdentity {
     abbr,
     shortName: words.at(-1) ?? name,
     fullName: name,
-    primaryColor: FALLBACK_COLORS[hash % FALLBACK_COLORS.length],
+    primaryColor: FALLBACK_COLOR,
   };
-}
-
-function hashString(value: string): number {
-  let hash = 0;
-  for (let i = 0; i < value.length; i += 1) {
-    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
-  }
-  return hash;
 }
 
 function parseHex(hex: string): [number, number, number] | null {
