@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
-export type TicketStatus = "verified" | "win" | "muted" | "pending";
+export type TicketStatus = "verified" | "win" | "loss" | "muted" | "pending";
 
 export type TicketProps = {
   selectionTitle: string;
@@ -23,6 +23,7 @@ export type TicketProps = {
 
 function stampLabel(status: TicketStatus): string {
   if (status === "win") return "Win";
+  if (status === "loss") return "Loss";
   if (status === "muted") return "Logged";
   if (status === "pending") return "Pending";
   return "Verified";
@@ -69,6 +70,7 @@ export function Ticket({
   footerAction,
 }: TicketProps) {
   const goldStamp = status === "verified" || status === "win";
+  const lossStamp = status === "loss";
 
   return (
     <article
@@ -82,10 +84,10 @@ export function Ticket({
       <div className="border-border relative border-b border-dashed px-5 pt-[18px] pb-3.5">
         <div
           className={cn(
-            "scl-eyebrow scl-ticket-stamp absolute top-4 right-4 origin-center rounded-md border-2 px-2.5 py-1",
-            goldStamp
-              ? "border-gold text-gold"
-              : "border-border text-muted-foreground",
+            "scl-display scl-ticket-stamp absolute top-4 right-4 origin-center rounded-md border-2 px-2.5 py-1 text-[0.8rem] font-bold tracking-[0.16em] uppercase",
+            goldStamp && "border-gold text-gold",
+            lossStamp && "border-neg text-neg",
+            !goldStamp && !lossStamp && "border-border text-muted-foreground",
             settling ? "rotate-12 opacity-0" : "rotate-6 opacity-100",
           )}
           aria-hidden={settling ? true : undefined}

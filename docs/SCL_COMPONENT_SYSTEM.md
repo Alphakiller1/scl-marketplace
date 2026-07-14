@@ -20,7 +20,7 @@ Numbers are the product. These render performance consistently everywhere.
 - `SportTag` — uppercase sport label from the canonical taxonomy.
 - `StatusBadge` — pick status (`pending|live|win|loss|push|void`); `live` animates a ping dot.
 - `Ticket` (`ticket.tsx`) — signature bet-ticket receipt (tear line, gold stamp, mono capture).
-  Used on post-submit verification and the landing hero settling sequence.
+  Used on post-submit verification, verified/graded pick cards, and the landing hero settling sequence.
 
 ## Indicators (`indicators.tsx`)
 

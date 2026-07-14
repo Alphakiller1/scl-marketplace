@@ -320,7 +320,7 @@ export default function NewParlayPage() {
       {isLg === false && fields.length > 0 ? (
         <MobileSlipDock
           title="Parlay slip"
-          countLabel={`${fields.length} ${fields.length === 1 ? "leg" : "legs"}`}
+          countLabel={`${fields.length} ${fields.length === 1 ? "Leg" : "Legs"}`}
           oddsLabel={
             combinedAmerican != null ? formatOdds(combinedAmerican) : null
           }

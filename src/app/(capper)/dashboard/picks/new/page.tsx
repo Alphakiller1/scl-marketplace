@@ -214,10 +214,13 @@ export default function NewPlayPage() {
   return (
     <div className="mx-auto max-w-xl space-y-5 lg:max-w-5xl">
       <div className="flex items-center justify-between gap-3">
-        <SectionHeader
-          title="Submit A Play"
-          subtitle="Tap a line off the board, set your units, submit"
-        />
+        <div>
+          <p className="scl-eyebrow text-gold mb-1">Verified Board Entry</p>
+          <SectionHeader
+            title="Submit A Play"
+            subtitle="Tap a line off the board, set your units, submit"
+          />
+        </div>
         <Button
           variant="ghost"
           render={<Link href="/dashboard/picks/new/parlay" />}
@@ -276,7 +279,7 @@ export default function NewPlayPage() {
       {hasPick && isLg === false ? (
         <MobileSlipDock
           title="Bet slip"
-          countLabel="1 selection"
+          countLabel="1 Leg"
           oddsLabel={formatOdds(oddsNum)}
         >
           {slipBody}

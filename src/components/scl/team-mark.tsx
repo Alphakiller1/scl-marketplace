@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 import { readableTextColor, type TeamIdentity } from "@/lib/teams";
 
-/** Compact team abbr mark — shared by the odds board and pick surfaces. */
+/** Compact team monogram — board + pick surfaces (square on the board via className). */
 export function TeamMark({
   team,
   size = "md",
@@ -21,8 +21,8 @@ export function TeamMark({
   return (
     <span
       className={cn(
-        "border-border/60 flex shrink-0 items-center justify-center rounded-full border font-bold tracking-wide shadow-xs",
-        size === "sm" ? "size-5 text-[0.55rem]" : "size-7 text-[0.62rem]",
+        "scl-display border-border/60 flex shrink-0 items-center justify-center rounded-full border font-bold tracking-wide shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]",
+        size === "sm" ? "size-5 text-[0.55rem]" : "size-[30px] text-xs",
         className,
       )}
       style={style}
