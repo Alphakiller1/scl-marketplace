@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
 import { MobileSlipDock } from "@/components/scl/mobile-slip-dock";
+import { BettingTitle } from "@/components/scl/betting-title";
 import { OddsAssist } from "@/components/scl/odds-assist";
 import { SectionHeader } from "@/components/scl/section";
 import { SportPills } from "@/components/scl/sport-pills";
@@ -165,9 +166,11 @@ export default function NewPlayPage() {
           <p className="scl-eyebrow text-[color:var(--scl-muted-label)]">
             Bet slip
           </p>
-          <p className="scl-display mt-0.5 text-lg font-bold tracking-[0.02em] break-words uppercase">
-            {selection}
-          </p>
+          <BettingTitle
+            as="p"
+            text={selection ?? ""}
+            className="scl-display mt-0.5 text-lg font-bold tracking-[0.02em] break-words uppercase"
+          />
           <p className="text-muted-foreground text-sm">
             {market} ·{" "}
             <StatValue tone="text" className="font-semibold">

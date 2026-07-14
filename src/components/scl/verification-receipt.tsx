@@ -14,6 +14,9 @@ import {
   type SubmissionReceipt,
 } from "@/lib/verification";
 
+const GOLD_CTA =
+  "border-[color:var(--scl-gold)] bg-[color:var(--scl-gold)] text-[color:var(--scl-gold-ink)] hover:bg-[color:var(--scl-gold-deep)] hover:text-[color:var(--scl-gold-ink)]";
+
 /**
  * Post-submit confirmation — signature Ticket performing SCL's trust model.
  */
@@ -83,7 +86,7 @@ export function VerificationReceipt({
             ) : null}
             <p className="text-muted-foreground text-sm">{copy.gradingLine}</p>
             <Button
-              className="min-h-12 w-full text-base"
+              className={`min-h-12 w-full text-base ${GOLD_CTA}`}
               render={<Link href={picksHref} />}
               nativeButton={false}
             >

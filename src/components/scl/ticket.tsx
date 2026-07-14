@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 
+import { BettingTitle } from "@/components/scl/betting-title";
 import { cn } from "@/lib/utils";
 
 export type TicketStatus = "verified" | "win" | "loss" | "muted" | "pending";
@@ -98,9 +99,11 @@ export function Ticket({
         <p className="scl-eyebrow mb-1.5 pr-24 text-[color:var(--scl-muted-label)]">
           SCL · Pick Receipt
         </p>
-        <h2 className="scl-display text-foreground text-2xl leading-[1.05] font-bold tracking-tight text-balance whitespace-pre-line sm:text-[1.65rem]">
-          {selectionTitle}
-        </h2>
+        <BettingTitle
+          as="h2"
+          text={selectionTitle}
+          className="scl-display text-foreground text-2xl leading-[1.05] font-bold tracking-tight text-balance whitespace-pre-line sm:text-[1.65rem]"
+        />
         {eventLine ? (
           <p className="scl-data text-muted-foreground mt-1.5 text-[0.65rem] tracking-[0.06em] uppercase">
             {eventLine}

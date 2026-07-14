@@ -152,9 +152,10 @@ function FilterForm({
               <input
                 type="search"
                 name="q"
+                id="q"
                 defaultValue={filters.search}
                 placeholder="Name Or Handle"
-                className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                className="h-11 min-h-10 min-w-0 flex-1 bg-transparent text-base outline-none"
               />
             </span>
           </label>
