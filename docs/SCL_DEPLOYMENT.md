@@ -33,10 +33,29 @@ That's it — every push to `main` now auto-deploys and the URL appears in GitHu
 | `AUTH_TRUST_HOST`               | `true`                                                                                  | required for Auth.js on Vercel               |
 | `EMAIL_FROM`                    | a verified sender, e.g. `no-reply@yourdomain`                                           | optional until email is live                 |
 | `RESEND_API_KEY`                | your Resend API key                                                                     | optional; dev logs the link if unset         |
-| `SUPABASE_URL`                  | Supabase project API URL                                                                | required for profile media uploads           |
+| `SUPABASE_URL`                  | Supabase project API URL                                                                | **required for avatar/cover uploads**        |
 | `SUPABASE_SERVICE_ROLE_KEY`     | Supabase service-role key                                                               | server only; never expose to the browser     |
 | `SUPABASE_PROFILE_MEDIA_BUCKET` | `scl-profile-media`                                                                     | optional bucket-name override                |
 | `ODDS_API_KEY`                  | The Odds API key                                                                        | later (odds-assist/grading)                  |
+
+#### Profile media uploads (avatar / cover)
+
+Uploads go through `uploadProfileMediaAction` → Supabase Storage (not Vercel Blob).
+If Production is missing the Supabase vars, the UI returns
+**"Profile media uploads are not configured yet."** — that is a **config gap**, not a
+client bug.
+
+Set these on **Vercel → Project → Settings → Environment Variables** (Production + Preview):
+
+1. `SUPABASE_URL` — Project Settings → API → Project URL
+2. `SUPABASE_SERVICE_ROLE_KEY` — Project Settings → API → `service_role` (secret)
+3. `SUPABASE_PROFILE_MEDIA_BUCKET` — optional; defaults to `scl-profile-media`
+
+The server creates the public bucket on first upload when the service role can manage
+Storage. Confirm Storage is enabled on the Supabase project and the service role is not
+restricted from `storage` APIs.
+
+Local `.env` must mirror the same three keys (see `.env.example`).
 
 When adding each var, Vercel shows **Production / Preview / Development** checkboxes — tick
 **Production + Preview** for everything **except `AUTH_URL`** (Production only). This keeps
