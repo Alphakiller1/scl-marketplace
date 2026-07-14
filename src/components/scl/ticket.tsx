@@ -75,7 +75,7 @@ export function Ticket({
   return (
     <article
       className={cn(
-        "bg-card border-border relative overflow-hidden rounded-[16px] border shadow-[var(--scl-shadow-card)]",
+        "bg-card border-border relative overflow-hidden rounded-[var(--scl-radius-card)] border shadow-[var(--scl-shadow-card)]",
         settling && "scl-ticket-settling",
         className,
       )}
@@ -95,7 +95,9 @@ export function Ticket({
           {stampLabel(status)}
         </div>
 
-        <p className="scl-eyebrow text-gold mb-1.5 pr-24">SCL · Pick Receipt</p>
+        <p className="scl-eyebrow mb-1.5 pr-24 text-[color:var(--scl-muted-label)]">
+          SCL · Pick Receipt
+        </p>
         <h2 className="scl-display text-foreground text-2xl leading-[1.05] font-bold tracking-tight text-balance whitespace-pre-line sm:text-[1.65rem]">
           {selectionTitle}
         </h2>

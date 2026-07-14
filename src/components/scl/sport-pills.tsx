@@ -75,7 +75,7 @@ export function SportPills({
   return (
     <div
       className={cn(
-        "-mx-1 flex [scrollbar-width:none] gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
+        "-mx-4 flex scroll-px-4 [scrollbar-width:none] gap-2 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
         className,
       )}
     >

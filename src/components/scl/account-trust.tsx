@@ -4,7 +4,8 @@ import { Check, Clock3, MailCheck, Scale, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const statusStyles: Record<AccountStatus, string> = {
-  PENDING: "border-gold/30 bg-gold/10 text-gold",
+  PENDING:
+    "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-700)] text-[color:var(--scl-muted-data)]",
   ACTIVE: "border-pos/30 bg-pos/10 text-pos",
   SUSPENDED: "border-neg/30 bg-neg/10 text-neg",
   DISABLED: "border-neg/30 bg-neg/10 text-neg",
@@ -107,7 +108,10 @@ function TrustRow({
       {complete ? (
         <Check className="text-pos size-4" aria-hidden />
       ) : (
-        <Clock3 className="text-gold size-4" aria-hidden />
+        <Clock3
+          className="size-4 text-[color:var(--scl-muted-label)]"
+          aria-hidden
+        />
       )}
     </div>
   );

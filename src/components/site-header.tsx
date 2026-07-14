@@ -18,30 +18,30 @@ export async function SiteHeader() {
           href="/"
           className="flex min-h-11 min-w-0 items-center gap-2.5 font-semibold"
         >
-          <span className="from-brand/20 to-primary/20 ring-border-strong flex size-9 items-center justify-center rounded-xl bg-gradient-to-br ring-1">
+          <span className="ring-border-strong flex size-9 items-center justify-center rounded-xl bg-[color:var(--scl-ink-800)] ring-1">
             <SclLogo className="size-6" />
           </span>
-          <span className="scl-brand-text text-lg font-extrabold tracking-tight">
+          <span className="scl-display text-lg font-bold tracking-[0.08em] uppercase">
             SCL
           </span>
         </Link>
 
-        <nav className="text-muted-foreground hidden items-center gap-6 text-sm sm:flex">
+        <nav className="text-muted-foreground hidden items-center gap-1 text-sm sm:flex">
           <Link
             href="/leaderboard"
-            className="hover:text-foreground transition-colors"
+            className="hover:text-foreground inline-flex min-h-11 items-center px-3 transition-colors"
           >
             Leaderboard
           </Link>
           <Link
             href="/cappers"
-            className="hover:text-foreground transition-colors"
+            className="hover:text-foreground inline-flex min-h-11 items-center px-3 transition-colors"
           >
             Cappers
           </Link>
           <Link
             href="/packages"
-            className="hover:text-foreground transition-colors"
+            className="hover:text-foreground inline-flex min-h-11 items-center px-3 transition-colors"
           >
             Packages
           </Link>
@@ -55,11 +55,11 @@ export async function SiteHeader() {
                 render={<Link href="/dashboard" />}
                 nativeButton={false}
                 size="sm"
-                className="hidden sm:inline-flex"
+                className="hidden min-h-11 sm:inline-flex md:h-11"
               >
                 Dashboard
               </Button>
-              <SignOutButton className="hidden sm:inline-flex" />
+              <SignOutButton className="hidden min-h-11 sm:inline-flex md:h-11" />
             </>
           ) : (
             <>
@@ -68,7 +68,7 @@ export async function SiteHeader() {
                 nativeButton={false}
                 variant="ghost"
                 size="sm"
-                className="hidden sm:inline-flex"
+                className="hidden min-h-11 sm:inline-flex md:h-11"
               >
                 Log In
               </Button>
@@ -76,7 +76,7 @@ export async function SiteHeader() {
                 render={<Link href="/signup" />}
                 nativeButton={false}
                 size="sm"
-                className="hidden sm:inline-flex"
+                className="hidden min-h-11 border-[color:var(--scl-gold)] bg-[color:var(--scl-gold)] text-[color:var(--scl-gold-ink)] hover:bg-[color:var(--scl-gold-deep)] hover:text-[color:var(--scl-gold-ink)] sm:inline-flex md:h-11"
               >
                 Become A Capper
               </Button>

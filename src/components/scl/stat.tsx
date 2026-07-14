@@ -43,7 +43,7 @@ export function StatBlock({
     >
       <span
         className={cn(
-          "nums text-lg font-semibold tracking-tight tabular-nums sm:text-xl",
+          "scl-data text-lg font-semibold tracking-tight tabular-nums sm:text-xl",
           toneText[tone],
         )}
       >
@@ -74,7 +74,7 @@ export function StatPill({
   return (
     <span
       className={cn(
-        "nums bg-surface-2 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-sm font-semibold tabular-nums",
+        "scl-data bg-surface-2 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-sm font-semibold tabular-nums",
         toneText[tone],
         className,
       )}

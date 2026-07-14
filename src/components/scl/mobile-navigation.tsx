@@ -78,7 +78,10 @@ export function MobileSiteNav({ authed = false }: { authed?: boolean }) {
                 nativeButton={false}
                 render={<Link href={item.href} className={navLinkClass} />}
               >
-                <Icon className="text-brand size-5" aria-hidden />
+                <Icon
+                  className="size-5 text-[color:var(--scl-muted-data)]"
+                  aria-hidden
+                />
                 {item.label}
               </SheetClose>
             );
@@ -109,7 +112,7 @@ export function MobileSiteNav({ authed = false }: { authed?: boolean }) {
                 render={
                   <Link
                     href="/signup"
-                    className="bg-primary text-primary-foreground flex min-h-12 items-center justify-center gap-2 rounded-lg px-4 font-semibold"
+                    className="flex min-h-12 items-center justify-center gap-2 rounded-lg border border-[color:var(--scl-gold)] bg-[color:var(--scl-gold)] px-4 font-semibold text-[color:var(--scl-gold-ink)]"
                   />
                 }
               >
@@ -175,7 +178,10 @@ export function MobileAppNav({ area, nav }: { area: string; nav: NavItem[] }) {
                 nativeButton={false}
                 render={<Link href={item.href} className={navLinkClass} />}
               >
-                <Icon className="text-brand size-5" aria-hidden />
+                <Icon
+                  className="size-5 text-[color:var(--scl-muted-data)]"
+                  aria-hidden
+                />
                 {item.label}
               </SheetClose>
             );
@@ -199,11 +205,11 @@ function workspaceIcon(href: string) {
 function BrandLabel({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-2.5">
-      <span className="from-brand/20 to-primary/20 ring-border-strong flex size-10 items-center justify-center rounded-xl bg-gradient-to-br ring-1">
+      <span className="ring-border-strong flex size-10 items-center justify-center rounded-xl bg-[color:var(--scl-ink-800)] ring-1">
         <SclLogo className="size-6" />
       </span>
       <div>
-        <p className="scl-brand-text font-extrabold">SCL</p>
+        <p className="scl-display font-bold tracking-[0.08em] uppercase">SCL</p>
         <p className="text-muted-foreground text-xs">{label}</p>
       </div>
     </div>

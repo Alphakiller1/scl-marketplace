@@ -103,7 +103,7 @@ export function BuildingRecordSection({
             net-negative in this scope appear here without a rank number.
           </p>
         </div>
-        <p className="nums text-muted-foreground text-xs tabular-nums">
+        <p className="scl-data text-muted-foreground text-xs tabular-nums">
           {cappers.length.toLocaleString()}{" "}
           {cappers.length === 1 ? "capper" : "cappers"}
         </p>

@@ -61,7 +61,7 @@ export function MobileSlipDock({
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="scl-display h-10 shrink-0 rounded-[10px] bg-[color:var(--scl-gold)] px-4 text-[15px] font-bold tracking-[0.08em] text-[color:var(--scl-gold-ink)] uppercase"
+            className="scl-display h-11 shrink-0 rounded-[10px] bg-[color:var(--scl-gold)] px-4 text-[15px] font-bold tracking-[0.08em] text-[color:var(--scl-gold-ink)] uppercase"
             aria-haspopup="dialog"
             aria-expanded={open}
           >

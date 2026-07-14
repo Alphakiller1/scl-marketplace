@@ -17,7 +17,7 @@ export function RankBadge({
     return (
       <span
         className={cn(
-          "nums text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-lg border border-dashed text-sm font-bold tabular-nums",
+          "scl-data text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-lg border border-dashed text-sm font-bold tabular-nums",
           "border-border bg-surface-2",
           className,
         )}
@@ -35,7 +35,7 @@ export function RankBadge({
   return (
     <span
       className={cn(
-        "nums flex size-10 shrink-0 items-center justify-center rounded-lg border text-sm font-bold tabular-nums",
+        "scl-data flex size-10 shrink-0 items-center justify-center rounded-lg border text-sm font-bold tabular-nums",
         rank === 1 && "border-gold/35 bg-gold/10 text-gold",
         rank === 2 && "border-gold/25 bg-gold/5 text-gold",
         rank === 3 && "border-gold/20 bg-gold/5 text-gold",

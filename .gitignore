@@ -50,3 +50,6 @@ qa-screenshots*/
 # Local dev toolchain (portable node, etc. — never commit)
 .tools/
 
+
+tmp/
+
