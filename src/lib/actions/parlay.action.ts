@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { settleParlay } from "@/lib/grading";
+import { isBookKey } from "@/lib/books";
 import { verifyPick } from "@/lib/odds-api";
 import { decidePickIntegrity, marketKeysForMarket } from "@/lib/odds-verify";
 import {
@@ -56,7 +57,7 @@ export async function createParlay(
 
   const profile = await prisma.capperProfile.findUnique({
     where: { userId: account.id },
-    select: { id: true },
+    select: { id: true, books: true },
   });
   if (!profile) return { ok: false, error: "No capper profile found." };
 
@@ -89,6 +90,7 @@ export async function createParlay(
       line: l.line,
       player: l.player,
       claimedAmerican: l.oddsAmerican,
+      books: profile.books,
     });
     const decision = decidePickIntegrity({
       now,
@@ -135,6 +137,7 @@ export async function createParlay(
           eventStartsAt,
           side: l.side,
           line: l.line ?? null,
+          book: l.book && isBookKey(l.book) ? l.book : null,
           source: "MANUAL",
           loggedPreGame: v.loggedPreGame,
           oddsVerified: v.oddsVerified,

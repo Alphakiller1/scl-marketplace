@@ -113,6 +113,7 @@ export default function NewPlayPage() {
     setValue("side", "");
     setValue("line", undefined as unknown as number);
     setValue("player", "");
+    setValue("book", "");
   }
 
   function clearPick() {
@@ -302,6 +303,7 @@ export default function NewPlayPage() {
                 setValue("side", pick.side);
                 setValue("line", pick.line as number | undefined);
                 setValue("player", pick.player ?? "");
+                setValue("book", pick.book ?? "");
               }}
             />
           </div>

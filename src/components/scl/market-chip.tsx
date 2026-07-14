@@ -1,16 +1,19 @@
 "use client";
 
 import { BettingTitle } from "@/components/scl/betting-title";
+import { bookShort } from "@/lib/books";
 import { cn } from "@/lib/utils";
 import { formatOdds } from "@/lib/format";
 
 /**
  * Odds market chip — SCL-DESIGN-SPEC CHIP recipe.
- * Selected: gold fill + gold-ink + "✓ " odds prefix + double ring.
+ * Selected: pink fill + pink-ink + "✓ " odds prefix + double ring.
+ * Optional mono book tag labels capture attribution (v1.1).
  */
 export function MarketChip({
   label,
   oddsAmerican,
+  book,
   selected,
   disabled,
   onClick,
@@ -18,11 +21,14 @@ export function MarketChip({
 }: {
   label: string;
   oddsAmerican: number;
+  /** Odds API bookmaker key — shown as a mono short tag when present. */
+  book?: string;
   selected?: boolean;
   disabled?: boolean;
   onClick?: () => void;
   className?: string;
 }) {
+  const bookTag = book ? bookShort(book) : null;
   return (
     <button
       type="button"
@@ -57,6 +63,18 @@ export function MarketChip({
         {selected ? "✓ " : ""}
         {formatOdds(oddsAmerican)}
       </span>
+      {bookTag ? (
+        <span
+          className={cn(
+            "scl-data text-[0.56rem] font-medium tracking-[0.08em] uppercase",
+            selected
+              ? "text-[color:var(--scl-pink-ink)]/80"
+              : "text-[color:var(--scl-muted-data)]",
+          )}
+        >
+          {bookTag}
+        </span>
+      ) : null}
     </button>
   );
 }

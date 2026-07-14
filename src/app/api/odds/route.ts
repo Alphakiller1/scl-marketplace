@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getCapperBooks } from "@/lib/capper-books";
 import { fetchUpcomingOdds, oddsApiKey } from "@/lib/odds-api";
 import { getCurrentUser } from "@/lib/session";
 
@@ -14,7 +15,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const sport = new URL(request.url).searchParams.get("sport") ?? "";
-  const events = await fetchUpcomingOdds(sport);
+  const books = await getCapperBooks(user.id);
+  const events = await fetchUpcomingOdds(sport, { books });
   // `configured` lets the UI distinguish "no API key" from "no games right now".
   return NextResponse.json({
     events,

@@ -18,7 +18,7 @@ import {
   splitMarketPreview,
 } from "@/lib/prop-board";
 import { getTeamIdentity, type TeamIdentity } from "@/lib/teams";
-import type { OddsEvent, OddsSelection } from "@/lib/odds-api";
+import type { OddsEvent, OddsSelection } from "@/lib/odds-board";
 
 /** Re-export for callers that historically imported `pickKey` from this module. */
 export { pickKey } from "@/lib/slip";
@@ -46,6 +46,8 @@ export type OddsPick = {
   side: string;
   line?: number;
   player?: string;
+  /** Odds API bookmaker key for the displayed price (capture attribution). */
+  book?: string;
 };
 
 type BoardData = { events: OddsEvent[]; configured: boolean; failed?: boolean };
@@ -598,6 +600,7 @@ function EventDetail({
       side: s.side,
       line: s.line,
       player: s.player,
+      book: s.book,
     };
     const selected = selectedKeys?.has(pickKey(pick)) ?? false;
     return (
@@ -605,6 +608,7 @@ function EventDetail({
         key={key}
         label={s.selection}
         oddsAmerican={s.oddsAmerican}
+        book={s.book}
         selected={selected}
         onClick={() => onPick(pick)}
       />
