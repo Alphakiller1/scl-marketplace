@@ -1,30 +1,29 @@
 import Link from "next/link";
-import { ArrowRight, Flame, ShieldCheck, Trophy, Zap } from "lucide-react";
+import { Activity, ArrowRight, Flame, ShieldCheck, Trophy } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/scl/section";
 import { CompetitionHero } from "@/components/scl/competition-hero";
 import { Leaderboard } from "@/components/scl/leaderboard";
 import { CapperCard } from "@/components/scl/capper-card";
-import { PickCard } from "@/components/scl/pick-card";
 import { EmptyState } from "@/components/scl/states";
+import { SportTag } from "@/components/scl/badges";
+import { leagueInitials } from "@/lib/league-action";
 import { sortLeaderboard } from "@/lib/leaderboard";
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
-import { getPublicRecentPicksResult } from "@/lib/queries/plays";
-import { publicFeedCappers } from "@/lib/public-picks";
+import { getLeagueActionReport } from "@/lib/queries/league-action";
 
 export const revalidate = 60;
 
 export default async function Home() {
-  const {
-    cappers,
-    unranked,
-    failed: leaderboardFailed,
-  } = await getLeaderboardResult({
+  const { cappers, failed: leaderboardFailed } = await getLeaderboardResult({
     verifiedOnly: true,
   });
-  const { picks: recentPicks, failed: picksFailed } =
-    await getPublicRecentPicksResult(publicFeedCappers(cappers, unranked), 4);
+  const {
+    leagues,
+    windowDays,
+    failed: leagueActionFailed,
+  } = await getLeagueActionReport();
   const topRoi = sortLeaderboard(cappers, "roi").slice(0, 3);
 
   return (
@@ -50,29 +49,64 @@ export default async function Home() {
 
         <section className="space-y-4">
           <SectionHeader
-            icon={Zap}
-            title="Latest Tracked Picks"
-            subtitle="Recent submissions from active cappers"
+            icon={Activity}
+            title="League Action Report"
+            subtitle={`Most active leagues by tracked pick volume over the last ${windowDays} days`}
             href="/picks"
           />
-          {recentPicks.length ? (
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              {recentPicks.map((pick) => (
-                <PickCard key={pick.id} pick={pick} compact />
-              ))}
+          {leagues.length ? (
+            <div className="border-border bg-card overflow-hidden rounded-xl border">
+              <div className="divide-border divide-y">
+                {leagues.map((league, index) => (
+                  <div
+                    key={league.key}
+                    className="flex min-h-20 flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="bg-surface-2 text-brand flex size-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold">
+                        {leagueInitials(league.league)}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="nums text-muted-foreground text-xs font-semibold tabular-nums">
+                            #{index + 1}
+                          </span>
+                          <h3 className="truncate font-bold">
+                            {league.league}
+                          </h3>
+                          <SportTag sport={league.sport} />
+                        </div>
+                        <p className="text-muted-foreground mt-1 text-sm">
+                          Recent verified-board activity from public cappers.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 sm:min-w-52">
+                      <LeagueActionMetric
+                        label="Picks"
+                        value={league.pickCount}
+                      />
+                      <LeagueActionMetric
+                        label="Cappers"
+                        value={league.activeCappers}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
             <EmptyState
-              icon={Zap}
+              icon={Activity}
               title={
-                picksFailed
-                  ? "Couldn't Load Public Picks"
-                  : "No Public Picks Yet"
+                leagueActionFailed
+                  ? "Couldn't Load League Action"
+                  : "No League Action Yet"
               }
               description={
-                picksFailed
-                  ? "Recent tracked submissions are temporarily unavailable. Please try again shortly."
-                  : "Tracked submissions from active cappers will appear here."
+                leagueActionFailed
+                  ? "Recent league activity is temporarily unavailable. Please try again shortly."
+                  : "Tracked pick volume will appear here as cappers submit board-verified plays."
               }
             />
           )}
@@ -127,5 +161,24 @@ export default async function Home() {
         </section>
       </div>
     </>
+  );
+}
+
+function LeagueActionMetric({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="bg-surface-2 flex min-h-11 flex-col justify-center rounded-lg px-3 py-2 text-right">
+      <span className="nums text-base font-bold tabular-nums">
+        {value.toLocaleString()}
+      </span>
+      <span className="text-muted-foreground text-[0.7rem] font-semibold uppercase">
+        {label}
+      </span>
+    </div>
   );
 }
