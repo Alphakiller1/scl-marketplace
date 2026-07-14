@@ -7,7 +7,15 @@
 import type { VerificationTier } from "@/lib/verification";
 
 export type FormResult = "W" | "L" | "P";
-export type PickStatus = "pending" | "live" | "win" | "loss" | "push" | "void";
+export type PickStatus =
+  | "pre-game"
+  | "pending"
+  | "live"
+  | "awaiting-grade"
+  | "win"
+  | "loss"
+  | "push"
+  | "void";
 
 export type StorefrontSummary = {
   title: string;

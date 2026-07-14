@@ -136,6 +136,10 @@ const STATUS_STYLES: Record<
   PickStatus,
   { label: string; className: string; live?: boolean }
 > = {
+  "pre-game": {
+    label: "Pre-Game",
+    className: "bg-live/10 text-live ring-1 ring-live/25",
+  },
   pending: {
     label: "Pending",
     className: "bg-muted/60 text-muted-foreground",
@@ -145,12 +149,16 @@ const STATUS_STYLES: Record<
     className: "bg-live/15 text-live ring-1 ring-live/30",
     live: true,
   },
+  "awaiting-grade": {
+    label: "Awaiting Grade",
+    className: "bg-muted/50 text-muted-foreground",
+  },
   win: {
-    label: "Win",
+    label: "Won",
     className: "bg-pos/15 text-pos ring-1 ring-pos/30",
   },
   loss: {
-    label: "Loss",
+    label: "Lost",
     className: "bg-neg/15 text-neg ring-1 ring-neg/30",
   },
   push: {

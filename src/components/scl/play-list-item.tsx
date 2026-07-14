@@ -1,23 +1,11 @@
-import type { Outcome } from "@prisma/client";
-
 import { formatOdds, formatUnits, signTone } from "@/lib/format";
 import { SportTag, StatusBadge } from "@/components/scl/badges";
 import { StatValue } from "@/components/scl/stat-value";
 import { VerifiedBadge } from "@/components/scl/verified-badge";
 import { TeamMark } from "@/components/scl/team-mark";
+import { deriveLifecycle } from "@/lib/lifecycle";
 import { pickContextLabel, teamIdentityFromSide } from "@/lib/pick-identity";
 import type { ParlayView, PlayView } from "@/lib/queries/plays";
-
-const OUTCOME_TO_STATUS = {
-  PENDING: "pending",
-  WIN: "win",
-  LOSS: "loss",
-  PUSH: "push",
-  VOID: "void",
-} as const satisfies Record<
-  Outcome,
-  "pending" | "win" | "loss" | "push" | "void"
->;
 
 export function PlayListItem({ play }: { play: PlayView }) {
   const hasResult = play.profitUnits != null;
@@ -40,7 +28,12 @@ export function PlayListItem({ play }: { play: PlayView }) {
           ) : null}
           <VerifiedBadge tier={play.verificationTier} />
         </div>
-        <StatusBadge status={OUTCOME_TO_STATUS[play.outcome]} />
+        <StatusBadge
+          status={deriveLifecycle({
+            outcome: play.outcome,
+            eventStartsAt: play.eventStartsAt,
+          })}
+        />
       </div>
       <div className="mt-2 flex min-w-0 items-start gap-2.5">
         {team ? <TeamMark team={team} size="sm" className="mt-0.5" /> : null}
@@ -83,7 +76,12 @@ export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
           </span>
           <VerifiedBadge tier={parlay.verificationTier} />
         </div>
-        <StatusBadge status={OUTCOME_TO_STATUS[parlay.outcome]} />
+        <StatusBadge
+          status={deriveLifecycle({
+            outcome: parlay.outcome,
+            eventStartsAt: parlay.eventStartsAt,
+          })}
+        />
       </div>
       <ul className="mt-2 space-y-1.5">
         {parlay.legs.map((leg) => {
