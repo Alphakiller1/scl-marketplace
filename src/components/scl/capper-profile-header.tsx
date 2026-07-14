@@ -17,7 +17,8 @@ import { identityDisplayLinesFromCapper } from "@/lib/identity";
  * clips under the banner (375px→1440px).
  */
 export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
-  const sports = capper.sports?.length ? capper.sports : [capper.topSport];
+  // Selected coverage from CapperProfile.sports — never invent chips from play history.
+  const selectedSports = capper.sports?.length ? capper.sports : [];
   const identity = identityDisplayLinesFromCapper(capper);
   const avatarName = identity.primary.replace(/^@/, "") || capper.handle;
   const verifiedPct =
@@ -131,19 +132,39 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
           </p>
         ) : null}
 
-        <div className="mt-3 flex flex-wrap items-center gap-1.5">
-          {sports.map((sport) => (
-            <SportTag key={sport} sport={sport} />
-          ))}
-          {capper.specialties?.map((specialty) => (
-            <span
-              key={specialty}
-              className="border-border bg-surface-2 text-muted-foreground rounded-lg border px-2 py-1 text-xs font-medium"
-            >
-              {specialty}
-            </span>
-          ))}
-        </div>
+        {selectedSports.length || capper.specialties?.length ? (
+          <div className="mt-3 space-y-2">
+            {selectedSports.length ? (
+              <div>
+                <p className="text-muted-foreground mb-1.5 text-[0.7rem] font-semibold tracking-wide uppercase">
+                  Sports
+                </p>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {selectedSports.map((sport) => (
+                    <SportTag key={sport} sport={sport} />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {capper.specialties?.length ? (
+              <div>
+                <p className="text-muted-foreground mb-1.5 text-[0.7rem] font-semibold tracking-wide uppercase">
+                  Specialties
+                </p>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {capper.specialties.map((specialty) => (
+                    <span
+                      key={specialty}
+                      className="border-border bg-surface-2 text-muted-foreground rounded-lg border px-2 py-1 text-xs font-medium"
+                    >
+                      {specialty}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         {capper.bio ? (
           <p className="text-muted-foreground mt-3 max-w-2xl text-sm leading-relaxed">
