@@ -26,7 +26,7 @@ export function SlipConflictPrompt({
       aria-labelledby="slip-conflict-title"
       aria-describedby="slip-conflict-desc"
       className={cn(
-        "border-brand/40 bg-brand/5 space-y-3 rounded-lg border p-3",
+        "space-y-3 rounded-lg border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-700)] p-3",
         className,
       )}
     >
@@ -55,14 +55,14 @@ export function SlipConflictPrompt({
         <button
           type="button"
           onClick={onReplace}
-          className="border-brand bg-brand text-brand-foreground hover:bg-brand/90 min-h-10 rounded-full px-4 text-sm font-semibold transition-colors"
+          className="min-h-11 rounded-full border border-[color:var(--scl-gold)] bg-[color:var(--scl-gold)] px-4 text-sm font-semibold text-[color:var(--scl-gold-ink)] transition-colors hover:bg-[color:var(--scl-gold-deep)]"
         >
           Replace
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 min-h-10 rounded-full border px-4 text-sm font-semibold transition-colors"
+          className="border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 min-h-11 rounded-full border px-4 text-sm font-semibold transition-colors"
         >
           Cancel
         </button>

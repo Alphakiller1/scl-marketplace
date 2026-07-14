@@ -4,10 +4,13 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VerificationBadge } from "@/components/scl/badges";
 
+const GOLD_CTA =
+  "border-[color:var(--scl-gold)] bg-[color:var(--scl-gold)] text-[color:var(--scl-gold-ink)] hover:bg-[color:var(--scl-gold-deep)] hover:text-[color:var(--scl-gold-ink)]";
+
 export function CompetitionHero() {
   return (
     <section
-      className="dark border-border bg-background text-foreground relative min-h-[31rem] overflow-hidden border-b sm:min-h-[35rem]"
+      className="border-border relative min-h-[31rem] overflow-hidden border-b bg-[color:var(--scl-ink-950)] text-[color:var(--scl-text)] sm:min-h-[35rem]"
       aria-labelledby="scl-hero-title"
     >
       <picture className="absolute inset-0">
@@ -21,27 +24,28 @@ export function CompetitionHero() {
           width="852"
           height="1846"
           fetchPriority="high"
-          className="size-full object-contain object-right-bottom sm:object-right"
+          className="size-full object-contain object-right-bottom opacity-90 sm:object-right"
         />
       </picture>
       <div
         aria-hidden
-        className="bg-background/55 sm:bg-background/45 absolute inset-0"
+        className="absolute inset-0 bg-[color:var(--scl-ink-950)]/60 sm:bg-[color:var(--scl-ink-950)]/50"
       />
 
       <div className="relative mx-auto flex min-h-[31rem] max-w-6xl flex-col px-4 py-8 sm:min-h-[35rem] sm:justify-center sm:px-6 sm:py-14">
         <div className="max-w-xl">
-          <div className="border-border-strong bg-background/75 inline-flex min-h-8 items-center gap-2 rounded-lg border px-3 text-xs font-semibold backdrop-blur-sm">
+          <div className="scl-data inline-flex min-h-10 items-center gap-2 rounded-lg border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-900)]/90 px-3 text-[0.625rem] font-semibold tracking-[0.16em] uppercase backdrop-blur-sm">
             <VerificationBadge size="xs" />
             Public Performance Records
           </div>
           <h1
             id="scl-hero-title"
-            className="mt-4 max-w-lg text-3xl leading-[1.08] font-extrabold text-balance sm:mt-5 sm:text-5xl lg:text-6xl"
+            className="scl-display mt-4 max-w-lg text-3xl leading-[1.08] font-bold tracking-[0.02em] text-balance uppercase sm:mt-5 sm:text-5xl lg:text-6xl"
           >
-            Sports Capper <span className="scl-brand-text">Leaderboard</span>
+            Sports Capper{" "}
+            <span className="text-[color:var(--scl-text)]">Leaderboard</span>
           </h1>
-          <p className="text-foreground/85 mt-4 max-w-lg text-base leading-relaxed text-pretty sm:text-lg">
+          <p className="mt-4 max-w-lg text-base leading-relaxed text-pretty text-[color:var(--scl-muted-data)] sm:text-lg">
             Compare tracked records, evaluate long-term performance, and see
             which handicappers are earning their rank.
           </p>
@@ -50,7 +54,7 @@ export function CompetitionHero() {
               render={<Link href="/leaderboard" />}
               nativeButton={false}
               size="lg"
-              className="min-h-11 w-full min-w-0 gap-2 whitespace-normal sm:min-h-9 sm:w-auto"
+              className={`min-h-11 w-full min-w-0 gap-2 whitespace-normal sm:w-auto ${GOLD_CTA}`}
             >
               Explore Leaderboard <ArrowRight className="size-4" aria-hidden />
             </Button>
@@ -59,7 +63,7 @@ export function CompetitionHero() {
               nativeButton={false}
               size="lg"
               variant="outline"
-              className="bg-background/60 min-h-11 w-full min-w-0 whitespace-normal backdrop-blur-sm sm:min-h-9 sm:w-auto"
+              className="min-h-11 w-full min-w-0 border-[color:var(--scl-line)] bg-[color:var(--scl-ink-900)]/70 whitespace-normal backdrop-blur-sm sm:w-auto"
             >
               Become A Capper
             </Button>

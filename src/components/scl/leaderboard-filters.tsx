@@ -33,7 +33,10 @@ export function LeaderboardFilters({
       <details className="border-border bg-card mt-5 overflow-hidden rounded-xl border md:hidden">
         <summary className="focus-visible:ring-ring flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 outline-none focus-visible:ring-2 focus-visible:ring-inset">
           <span className="flex items-center gap-2 font-semibold">
-            <SlidersHorizontal className="text-brand size-4" aria-hidden />
+            <SlidersHorizontal
+              className="size-4 text-[color:var(--scl-muted-label)]"
+              aria-hidden
+            />
             Filter Rankings
           </span>
           <span className="text-muted-foreground truncate text-xs">
@@ -79,7 +82,10 @@ function FilterForm({
     >
       {label ? (
         <div className="text-muted-foreground mb-3 flex items-center gap-2 text-xs font-semibold uppercase">
-          <SlidersHorizontal className="text-brand size-4" aria-hidden />
+          <SlidersHorizontal
+            className="size-4 text-[color:var(--scl-muted-label)]"
+            aria-hidden
+          />
           {label}
         </div>
       ) : null}
@@ -155,7 +161,7 @@ function FilterForm({
           <div className="flex items-end gap-2">
             <Button
               type="submit"
-              className="min-h-11 flex-1 sm:min-h-10 sm:flex-none"
+              className="min-h-11 flex-1 border-[color:var(--scl-gold)] bg-[color:var(--scl-gold)] text-[color:var(--scl-gold-ink)] hover:bg-[color:var(--scl-gold-deep)] hover:text-[color:var(--scl-gold-ink)] sm:flex-none"
             >
               Apply
             </Button>
@@ -164,7 +170,7 @@ function FilterForm({
               nativeButton={false}
               variant="outline"
               size="icon"
-              className="size-11 sm:size-10"
+              className="size-11"
               aria-label="Reset Leaderboard Filters"
               title="Reset Filters"
             >
@@ -199,8 +205,9 @@ function FilterPillGroup({
           <label
             key={option.value}
             className={cn(
-              "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground inline-flex min-h-10 cursor-pointer items-center rounded-full border px-3.5 text-sm font-semibold transition-colors",
-              "has-[:checked]:border-brand has-[:checked]:bg-brand/10 has-[:checked]:text-brand",
+              "scl-display inline-flex min-h-11 cursor-pointer items-center rounded-[22px] border px-3.5 text-[15px] font-semibold tracking-[0.05em] transition-colors",
+              "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",
+              "has-[:checked]:border-[color:var(--scl-gold)] has-[:checked]:bg-[color:var(--scl-gold)] has-[:checked]:text-[color:var(--scl-gold-ink)]",
             )}
           >
             <input

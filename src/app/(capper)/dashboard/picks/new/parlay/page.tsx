@@ -13,6 +13,7 @@ import { SectionHeader } from "@/components/scl/section";
 import { SlipConflictPrompt } from "@/components/scl/slip-conflict-prompt";
 import { SportPills } from "@/components/scl/sport-pills";
 import { StakeQuickChips } from "@/components/scl/stake-quick-chips";
+import { StatValue } from "@/components/scl/stat-value";
 import { Ticket } from "@/components/scl/ticket";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -41,6 +42,9 @@ import {
 import { useIsLg } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
 import { isVerifiedTier, type ParlayReceipt } from "@/lib/verification";
+
+const GOLD_CTA =
+  "border-[color:var(--scl-gold)] bg-[color:var(--scl-gold)] text-[color:var(--scl-gold-ink)] hover:bg-[color:var(--scl-gold-deep)] hover:text-[color:var(--scl-gold-ink)]";
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -144,7 +148,7 @@ export default function NewParlayPage() {
           status={verified ? "verified" : "muted"}
           footerAction={
             <Button
-              className="min-h-12 w-full text-base"
+              className={`min-h-12 w-full text-base ${GOLD_CTA}`}
               render={<Link href="/dashboard/picks" />}
               nativeButton={false}
             >
@@ -159,14 +163,14 @@ export default function NewParlayPage() {
   // Shared slip — rendered in the desktop sticky column and the mobile dock. Carries the
   // inline Replace/Cancel prompt so same-market conflicts resolve in either surface.
   const slipBody = (
-    <Card className="border-brand/50 scl-elevated space-y-3 border-2 p-4 sm:p-5">
+    <Card className="scl-elevated space-y-3 border border-[color:var(--scl-gold-deep)] p-4 sm:p-5">
       <div className="flex items-center justify-between">
-        <p className="text-muted-foreground text-[0.7rem] font-semibold tracking-wide uppercase">
+        <p className="scl-eyebrow text-[color:var(--scl-muted-label)]">
           Parlay slip
         </p>
-        <span className="text-muted-foreground text-xs">
+        <StatValue tone="label" className="text-xs">
           {fields.length} {fields.length === 1 ? "leg" : "legs"}
-        </span>
+        </StatValue>
       </div>
 
       {pendingConflict ? (
@@ -193,7 +197,8 @@ export default function NewParlayPage() {
                 key={field.id}
                 className={cn(
                   "flex items-center justify-between gap-3 py-2.5",
-                  conflicting && "bg-brand/5 -mx-2 rounded-md px-2",
+                  conflicting &&
+                    "-mx-2 rounded-md bg-[color:var(--scl-ink-700)] px-2",
                 )}
               >
                 <div className="min-w-0">
@@ -205,9 +210,9 @@ export default function NewParlayPage() {
                     {Math.abs(legOdds) >= 100 ? (
                       <>
                         {" · "}
-                        <span className="nums tabular-nums">
+                        <StatValue tone="data" className="font-semibold">
                           {formatOdds(legOdds)}
-                        </span>
+                        </StatValue>
                       </>
                     ) : null}
                   </p>
@@ -239,15 +244,15 @@ export default function NewParlayPage() {
             <p className="text-muted-foreground text-xs">
               {priced.length}-leg parlay
             </p>
-            <p className="nums text-lg font-bold tabular-nums">
+            <StatValue tone="gold" className="text-lg font-bold">
               {formatOdds(combinedAmerican)}
-            </p>
+            </StatValue>
           </div>
           <div className="text-right">
             <p className="text-muted-foreground text-xs">To win</p>
-            <p className="text-pos nums text-lg font-bold tabular-nums">
+            <StatValue tone="gold" className="text-lg font-bold">
               {toWin != null ? `+${toWin.toFixed(2)}u` : "—"}
-            </p>
+            </StatValue>
           </div>
         </div>
       ) : null}
@@ -258,7 +263,7 @@ export default function NewParlayPage() {
         type="button"
         onClick={handleSubmit(onSubmit)}
         disabled={isSubmitting || fields.length < 2}
-        className="min-h-12 w-full text-base"
+        className={`min-h-12 w-full text-base ${GOLD_CTA}`}
       >
         {isSubmitting ? "Submitting…" : "Submit parlay"}
       </Button>
@@ -276,6 +281,7 @@ export default function NewParlayPage() {
           variant="ghost"
           render={<Link href="/dashboard/picks/new" />}
           nativeButton={false}
+          className="min-h-11"
         >
           Single play
         </Button>

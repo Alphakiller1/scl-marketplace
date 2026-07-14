@@ -7,6 +7,7 @@ import {
 
 import type { LeaderboardSummary } from "@/lib/leaderboard";
 import { formatRoi } from "@/lib/format";
+import { StatValue } from "@/components/scl/stat-value";
 
 export function LeaderboardOverview({
   summary,
@@ -16,12 +17,12 @@ export function LeaderboardOverview({
   return (
     <header>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div className="text-brand flex items-center gap-2 text-xs font-semibold uppercase">
+        <div className="border-t border-[color:var(--scl-gold-deep)] pt-2.5">
+          <div className="scl-eyebrow flex items-center gap-2 text-[color:var(--scl-muted-label)]">
             <Trophy className="size-4" aria-hidden />
             Public Rankings
           </div>
-          <h1 className="mt-2 text-3xl font-bold text-balance sm:text-4xl">
+          <h1 className="scl-display mt-2 text-3xl font-bold tracking-[0.04em] text-balance uppercase sm:text-4xl">
             Leaderboard
           </h1>
           <p className="text-muted-foreground mt-2 max-w-2xl">
@@ -72,15 +73,17 @@ function OverviewMetric({
 }) {
   return (
     <div className="border-border flex min-h-20 items-center gap-2.5 border-r px-2.5 py-3 last:border-r-0 sm:min-h-24 sm:gap-3 sm:px-5 sm:py-4">
-      <span className="bg-surface-2 text-brand flex size-8 shrink-0 items-center justify-center rounded-lg sm:size-9">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[color:var(--scl-ink-700)] text-[color:var(--scl-muted-data)] sm:size-9">
         <Icon className="size-4" aria-hidden />
       </span>
       <div className="min-w-0">
         <dt className="text-muted-foreground truncate text-[0.7rem] font-semibold uppercase">
           {label}
         </dt>
-        <dd className="nums text-xl font-bold tabular-nums sm:text-2xl">
-          {value}
+        <dd>
+          <StatValue tone="text" className="text-xl font-bold sm:text-2xl">
+            {value}
+          </StatValue>
         </dd>
       </div>
     </div>

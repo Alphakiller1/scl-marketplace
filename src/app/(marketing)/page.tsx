@@ -9,11 +9,15 @@ import { CapperCard } from "@/components/scl/capper-card";
 import { EmptyState } from "@/components/scl/states";
 import { SportTag } from "@/components/scl/badges";
 import { LeagueMark } from "@/components/scl/league-mark";
+import { StatValue } from "@/components/scl/stat-value";
 import { sortLeaderboard } from "@/lib/leaderboard";
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 import { getLeagueActionReport } from "@/lib/queries/league-action";
 
 export const revalidate = 60;
+
+const GOLD_CTA =
+  "border-[color:var(--scl-gold)] bg-[color:var(--scl-gold)] text-[color:var(--scl-gold-ink)] hover:bg-[color:var(--scl-gold-deep)] hover:text-[color:var(--scl-gold-ink)]";
 
 export default async function Home() {
   const { cappers, failed: leaderboardFailed } = await getLeaderboardResult({
@@ -66,10 +70,13 @@ export default async function Home() {
                       <LeagueMark leagueKey={league.league} size="lg" />
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="nums text-muted-foreground text-xs font-semibold tabular-nums">
+                          <StatValue
+                            tone="label"
+                            className="text-xs font-semibold"
+                          >
                             #{index + 1}
-                          </span>
-                          <h3 className="truncate font-bold">
+                          </StatValue>
+                          <h3 className="scl-display truncate font-bold tracking-[0.04em] uppercase">
                             {league.league}
                           </h3>
                           <SportTag sport={league.sport} withMark={false} />
@@ -139,8 +146,8 @@ export default async function Home() {
 
         <section className="border-border flex flex-col items-stretch gap-5 border-y py-8 sm:flex-row sm:items-center sm:justify-between sm:py-10">
           <div className="max-w-2xl">
-            <ShieldCheck className="text-brand size-8" />
-            <h2 className="mt-4 text-2xl font-bold text-balance sm:text-3xl">
+            <ShieldCheck className="size-8 text-[color:var(--scl-muted-data)]" />
+            <h2 className="scl-display mt-4 text-2xl font-bold tracking-[0.04em] text-balance uppercase sm:text-3xl">
               Build A Record People Can Inspect
             </h2>
             <p className="text-muted-foreground mt-2">
@@ -152,7 +159,7 @@ export default async function Home() {
             render={<Link href="/signup" />}
             nativeButton={false}
             size="lg"
-            className="min-h-11 w-full shrink-0 gap-2 sm:min-h-9 sm:w-auto"
+            className={`min-h-11 w-full shrink-0 gap-2 sm:w-auto ${GOLD_CTA}`}
           >
             Become A Capper <ArrowRight className="size-4" aria-hidden />
           </Button>
@@ -171,9 +178,9 @@ function LeagueActionMetric({
 }) {
   return (
     <div className="bg-surface-2 flex min-h-11 flex-col justify-center rounded-lg px-3 py-2 text-right">
-      <span className="nums text-base font-bold tabular-nums">
+      <StatValue tone="text" className="text-base font-bold">
         {value.toLocaleString()}
-      </span>
+      </StatValue>
       <span className="text-muted-foreground text-[0.7rem] font-semibold uppercase">
         {label}
       </span>

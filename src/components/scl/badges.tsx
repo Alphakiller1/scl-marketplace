@@ -23,7 +23,10 @@ export function VerificationBadge({
   const px = size === "xs" ? "size-3.5" : size === "md" ? "size-5" : "size-4";
   return (
     <span
-      className={cn("text-live inline-flex items-center gap-1", className)}
+      className={cn(
+        "inline-flex items-center gap-1 text-[color:var(--scl-gold)]",
+        className,
+      )}
       title="Verified Record"
     >
       <BadgeCheck className={px} aria-label="Verified" />
@@ -50,7 +53,7 @@ export function PickTierBadge({
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.7rem] font-semibold",
         verified
-          ? "bg-live/15 text-live ring-live/25 ring-1"
+          ? "bg-[color:var(--scl-gold)]/15 text-[color:var(--scl-gold)] ring-1 ring-[color:var(--scl-gold)]/30"
           : "border-border/80 text-muted-foreground border bg-transparent",
         className,
       )}
@@ -73,7 +76,7 @@ export function TrophyBadge({
   return (
     <span
       className={cn(
-        "border-gold/30 bg-gold/10 text-gold inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium",
+        "inline-flex items-center gap-1 rounded-full border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-700)] px-2 py-0.5 text-xs font-medium text-[color:var(--scl-muted-data)]",
         className,
       )}
     >

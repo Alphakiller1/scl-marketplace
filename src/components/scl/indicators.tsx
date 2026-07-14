@@ -33,7 +33,7 @@ export function RankMovementIndicator({
   return (
     <span
       className={cn(
-        "nums inline-flex items-center gap-0.5 text-xs font-semibold tabular-nums",
+        "scl-data inline-flex items-center gap-0.5 text-xs font-semibold tabular-nums",
         up ? "text-pos" : "text-neg",
         className,
       )}
@@ -106,7 +106,7 @@ export function StreakChip({
   return (
     <span
       className={cn(
-        "nums inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums",
+        "scl-data inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums",
         hot ? "bg-pos/15 text-pos" : "bg-neg/15 text-neg",
         className,
       )}

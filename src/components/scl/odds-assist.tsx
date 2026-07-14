@@ -60,7 +60,13 @@ const MARKET_ORDER = ["Moneyline", "Spread", "Total"] as const;
 const ALT_LINE_CAP = 8;
 
 const PROP_PILL_CLASS =
-  "min-h-10 rounded-full border px-3.5 text-sm font-semibold transition-colors";
+  "scl-display min-h-11 rounded-[22px] border px-3.5 text-[15px] font-semibold tracking-[0.05em] transition-colors";
+
+const PROP_PILL_ACTIVE =
+  "border-[color:var(--scl-gold)] bg-[color:var(--scl-gold)] text-[color:var(--scl-gold-ink)]";
+
+const PROP_PILL_IDLE =
+  "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]";
 
 /** Game markets first (in MARKET_ORDER); prop groups sort after, alphabetically by label. */
 function marketOrder(market: string): number {
@@ -311,7 +317,7 @@ export function OddsAssist({
                     day: day === "today" ? "tomorrow" : "today",
                   })
                 }
-                className="text-brand font-medium hover:underline"
+                className="inline-flex min-h-11 items-center font-medium text-[color:var(--scl-muted-data)] underline-offset-2 hover:underline"
               >
                 {day === "today" ? "check Tomorrow" : "check Today"}
               </button>{" "}
@@ -668,9 +674,7 @@ function EventDetail({
                   aria-pressed={propMarket === null}
                   className={cn(
                     PROP_PILL_CLASS,
-                    propMarket === null
-                      ? "border-brand bg-brand/10 text-brand"
-                      : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30",
+                    propMarket === null ? PROP_PILL_ACTIVE : PROP_PILL_IDLE,
                   )}
                 >
                   All
@@ -685,9 +689,7 @@ function EventDetail({
                       aria-pressed={active}
                       className={cn(
                         PROP_PILL_CLASS,
-                        active
-                          ? "border-brand bg-brand/10 text-brand"
-                          : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30",
+                        active ? PROP_PILL_ACTIVE : PROP_PILL_IDLE,
                       )}
                     >
                       {propMarketShortLabel(market)}
@@ -757,7 +759,7 @@ function EventDetail({
                               [player]: !showAll,
                             }))
                           }
-                          className="text-brand min-h-10 text-xs font-medium hover:underline"
+                          className="min-h-11 text-xs font-medium text-[color:var(--scl-muted-data)] underline-offset-2 hover:underline"
                         >
                           {showAll
                             ? "Show fewer"
@@ -795,7 +797,7 @@ function EventDetail({
               onClick={() =>
                 setAltExpanded((p) => ({ ...p, [market]: !expanded }))
               }
-              className="text-brand mt-2 text-xs font-medium hover:underline"
+              className="mt-2 inline-flex min-h-11 items-center text-xs font-medium text-[color:var(--scl-muted-data)] underline-offset-2 hover:underline"
             >
               {expanded
                 ? "Show fewer"

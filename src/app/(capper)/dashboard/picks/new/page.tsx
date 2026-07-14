@@ -12,6 +12,7 @@ import { OddsAssist } from "@/components/scl/odds-assist";
 import { SectionHeader } from "@/components/scl/section";
 import { SportPills } from "@/components/scl/sport-pills";
 import { StakeQuickChips } from "@/components/scl/stake-quick-chips";
+import { StatValue } from "@/components/scl/stat-value";
 import { Ticket } from "@/components/scl/ticket";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -30,6 +31,9 @@ import { pickKey } from "@/lib/slip";
 import { useIsLg } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
 import { isVerifiedTier, type StraightReceipt } from "@/lib/verification";
+
+const GOLD_CTA =
+  "border-[color:var(--scl-gold)] bg-[color:var(--scl-gold)] text-[color:var(--scl-gold-ink)] hover:bg-[color:var(--scl-gold-deep)] hover:text-[color:var(--scl-gold-ink)]";
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -142,7 +146,7 @@ export default function NewPlayPage() {
           status={verified ? "verified" : "muted"}
           footerAction={
             <Button
-              className="min-h-12 w-full text-base"
+              className={`min-h-12 w-full text-base ${GOLD_CTA}`}
               render={<Link href="/dashboard/picks" />}
               nativeButton={false}
             >
@@ -155,21 +159,23 @@ export default function NewPlayPage() {
   }
 
   const slipBody = hasPick ? (
-    <Card className="border-brand/50 scl-elevated space-y-4 border-2 p-4 sm:p-5">
+    <Card className="scl-elevated space-y-4 border border-[color:var(--scl-gold-deep)] p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-muted-foreground text-[0.7rem] font-semibold tracking-wide uppercase">
+          <p className="scl-eyebrow text-[color:var(--scl-muted-label)]">
             Bet slip
           </p>
-          <p className="mt-0.5 text-lg font-bold break-words">{selection}</p>
+          <p className="scl-display mt-0.5 text-lg font-bold tracking-[0.02em] break-words uppercase">
+            {selection}
+          </p>
           <p className="text-muted-foreground text-sm">
             {market} ·{" "}
-            <span className="text-foreground nums font-semibold tabular-nums">
+            <StatValue tone="text" className="font-semibold">
               {formatOdds(oddsNum)}
-            </span>
+            </StatValue>
           </p>
           {eventBound ? (
-            <p className="text-brand mt-1 text-[0.7rem] font-medium">
+            <p className="scl-data mt-1 text-[0.7rem] font-medium text-[color:var(--scl-win)]">
               Pre-game · odds will be verified
             </p>
           ) : null}
@@ -198,9 +204,9 @@ export default function NewPlayPage() {
         </div>
         <div className="text-right">
           <p className="text-muted-foreground text-xs">To win</p>
-          <p className="text-pos nums text-xl font-bold tabular-nums">
+          <StatValue tone="gold" className="text-xl font-bold">
             {toWin != null ? `+${toWin.toFixed(2)}u` : "—"}
-          </p>
+          </StatValue>
         </div>
       </div>
       <StakeQuickChips
@@ -229,7 +235,7 @@ export default function NewPlayPage() {
         type="button"
         onClick={handleSubmit(onSubmit)}
         disabled={isSubmitting}
-        className="min-h-12 w-full text-base"
+        className={`min-h-12 w-full text-base ${GOLD_CTA}`}
       >
         {isSubmitting ? "Submitting…" : "Submit Play"}
       </Button>
@@ -240,7 +246,9 @@ export default function NewPlayPage() {
     <div className="mx-auto max-w-xl space-y-5 lg:max-w-5xl">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="scl-eyebrow text-gold mb-1">Verified Board Entry</p>
+          <p className="scl-eyebrow mb-1 text-[color:var(--scl-muted-label)]">
+            Verified Board Entry
+          </p>
           <SectionHeader
             title="Submit A Play"
             subtitle="Tap a line off the board, set your units, submit"
@@ -250,6 +258,7 @@ export default function NewPlayPage() {
           variant="ghost"
           render={<Link href="/dashboard/picks/new/parlay" />}
           nativeButton={false}
+          className="min-h-11"
         >
           Parlay
         </Button>

@@ -4,15 +4,10 @@ import { CapperAvatar } from "@/components/scl/capper-avatar";
 import { CapperIdentityLabel } from "@/components/scl/capper-identity-label";
 import { SportTag } from "@/components/scl/badges";
 import { RankBadge } from "@/components/scl/rank-badge";
+import { StatValue } from "@/components/scl/stat-value";
 import { cn } from "@/lib/utils";
 import { formatRecord, formatRoi, formatUnits, signTone } from "@/lib/format";
 import type { CapperSummary } from "@/lib/mock";
-
-const toneText = {
-  pos: "text-pos",
-  neg: "text-neg",
-  muted: "text-foreground",
-};
 
 export function CompactCapperRow({
   capper,
@@ -34,6 +29,9 @@ export function CompactCapperRow({
     primaryMetric === "units"
       ? `${formatRoi(capper.roi)} ROI`
       : `${formatUnits(capper.units)} Units`;
+  const secondaryTone = signTone(
+    primaryMetric === "units" ? capper.roi : capper.units,
+  );
 
   return (
     <Link
@@ -55,21 +53,25 @@ export function CompactCapperRow({
               sport={capper.topSport}
               className="max-w-24 truncate whitespace-nowrap"
             />
-            <span className="nums text-muted-foreground truncate text-xs tabular-nums">
+            <StatValue tone="label" className="truncate text-xs">
               {formatRecord(capper.record.w, capper.record.l, capper.record.p)}
-            </span>
+            </StatValue>
           </div>
         </div>
 
         <div className="shrink-0 text-right">
-          <span
-            className={cn(
-              "nums block text-base font-bold tabular-nums",
-              toneText[primaryTone],
-            )}
+          <StatValue
+            tone={
+              primaryTone === "pos"
+                ? "win"
+                : primaryTone === "neg"
+                  ? "loss"
+                  : "text"
+            }
+            className="block text-base font-bold"
           >
             {primaryValue}
-          </span>
+          </StatValue>
           <span className="text-muted-foreground text-[0.7rem] font-semibold uppercase">
             {primaryMetric === "units" ? "Units" : "ROI"}
           </span>
@@ -77,26 +79,28 @@ export function CompactCapperRow({
       </div>
 
       <div className="border-border text-muted-foreground mt-2 flex min-w-0 items-center gap-2 border-t pt-2 text-xs">
-        <span className="nums shrink-0 tabular-nums">
-          <span className="text-foreground font-semibold">
+        <span className="shrink-0">
+          <StatValue tone="text" className="font-semibold">
             {capper.winPct.toFixed(1)}%
-          </span>{" "}
+          </StatValue>{" "}
           Win
         </span>
         <span aria-hidden>·</span>
-        <span
-          className={cn(
-            "nums shrink-0 font-semibold tabular-nums",
-            toneText[
-              signTone(primaryMetric === "units" ? capper.roi : capper.units)
-            ],
-          )}
+        <StatValue
+          tone={
+            secondaryTone === "pos"
+              ? "win"
+              : secondaryTone === "neg"
+                ? "loss"
+                : "data"
+          }
+          className={cn("shrink-0 font-semibold")}
         >
           {secondaryValue}
-        </span>
-        <span className="nums ml-auto truncate text-right tabular-nums">
+        </StatValue>
+        <StatValue tone="label" className="ml-auto truncate text-right">
           {(capper.settledPicks ?? 0).toLocaleString()} Graded Picks
-        </span>
+        </StatValue>
       </div>
     </Link>
   );

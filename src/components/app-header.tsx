@@ -20,22 +20,22 @@ export function AppHeader({
             href="/"
             className="flex min-h-11 min-w-0 items-center gap-2 font-semibold"
           >
-            <span className="from-brand/20 to-primary/20 ring-border-strong flex size-8 items-center justify-center rounded-xl bg-gradient-to-br ring-1">
+            <span className="ring-border-strong flex size-8 items-center justify-center rounded-xl bg-[color:var(--scl-ink-800)] ring-1">
               <SclLogo className="size-5" />
             </span>
-            <span className="scl-brand-text font-extrabold tracking-tight">
+            <span className="scl-display font-bold tracking-[0.08em] uppercase">
               SCL
             </span>
             <span className="bg-surface-3 text-muted-foreground max-w-20 truncate rounded-md px-1.5 py-0.5 text-[0.7rem] font-semibold tracking-wide uppercase">
               {area}
             </span>
           </Link>
-          <nav className="text-muted-foreground hidden items-center gap-5 text-sm sm:flex">
+          <nav className="text-muted-foreground hidden items-center gap-1 text-sm sm:flex">
             {nav.map((n) => (
               <Link
                 key={n.href}
                 href={n.href}
-                className="hover:text-foreground transition-colors"
+                className="hover:text-foreground inline-flex min-h-11 items-center px-3 transition-colors"
               >
                 {n.label}
               </Link>

@@ -22,12 +22,12 @@ export function SectionHeader({
     <div className={cn("flex items-start justify-between gap-3", className)}>
       <div className="flex min-w-0 items-start gap-2.5">
         {Icon ? (
-          <span className="bg-surface-2 text-brand flex size-9 shrink-0 items-center justify-center rounded-lg">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[color:var(--scl-ink-700)] text-[color:var(--scl-muted-data)]">
             <Icon className="size-4" />
           </span>
         ) : null}
-        <div className="min-w-0">
-          <h2 className="text-lg leading-tight font-semibold tracking-tight">
+        <div className="min-w-0 border-t border-[color:var(--scl-gold-deep)] pt-2.5">
+          <h2 className="scl-display text-lg leading-tight font-semibold tracking-[0.06em] uppercase">
             {title}
           </h2>
           {subtitle ? (
@@ -38,7 +38,7 @@ export function SectionHeader({
       {href ? (
         <Link
           href={href}
-          className="text-brand inline-flex min-h-11 shrink-0 items-center gap-1 text-sm font-medium hover:underline sm:min-h-8"
+          className="inline-flex min-h-11 shrink-0 items-center gap-1 text-sm font-medium text-[color:var(--scl-muted-data)] hover:text-[color:var(--scl-text)] hover:underline"
         >
           {hrefLabel}
           <ArrowRight className="size-3.5" />
