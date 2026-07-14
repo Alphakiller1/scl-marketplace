@@ -34,7 +34,7 @@ export function CompetitionHero() {
 
       <div className="relative mx-auto flex min-h-[31rem] max-w-6xl flex-col px-4 py-8 sm:min-h-[35rem] sm:justify-center sm:px-6 sm:py-14">
         <div className="max-w-xl">
-          <div className="scl-data inline-flex min-h-10 items-center gap-2 rounded-lg border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-900)]/90 px-3 text-[0.625rem] font-semibold tracking-[0.16em] uppercase backdrop-blur-sm">
+          <div className="scl-data inline-flex min-h-10 items-center gap-2 rounded-lg border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-900)] px-3 text-[0.625rem] font-semibold tracking-[0.16em] uppercase">
             <VerificationBadge size="xs" />
             Public Performance Records
           </div>
@@ -63,7 +63,7 @@ export function CompetitionHero() {
               nativeButton={false}
               size="lg"
               variant="outline"
-              className="min-h-11 w-full min-w-0 border-[color:var(--scl-line)] bg-[color:var(--scl-ink-900)]/70 whitespace-normal backdrop-blur-sm sm:w-auto"
+              className="min-h-11 w-full min-w-0 border-[color:var(--scl-line)] bg-[color:var(--scl-ink-900)] whitespace-normal sm:w-auto"
             >
               Become A Capper
             </Button>
