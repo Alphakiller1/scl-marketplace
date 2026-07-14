@@ -36,7 +36,7 @@ type Finding = {
 
 async function setTheme(page: Page, theme: "dark" | "light") {
   await page.emulateMedia({ colorScheme: theme });
-  await page.evaluate((t) => {
+  await page.evaluate((t: "dark" | "light") => {
     const root = document.documentElement;
     root.classList.toggle("dark", t === "dark");
     root.classList.toggle("light", t === "light");
