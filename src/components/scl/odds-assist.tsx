@@ -34,6 +34,8 @@ export type OddsPick = {
   eventId: string;
   eventStartsAt: string; // ISO commence time
   side: string;
+  /** SCL sport key from the board event (for createPlay / parlay legs). */
+  sport: string;
   line?: number;
   player?: string;
   /** Odds API bookmaker key for the displayed price (capture attribution). */
@@ -516,6 +518,7 @@ export function EventDetail({
             eventId: event.id,
             eventStartsAt: event.commenceTime,
             side: s.side,
+            sport: event.sport,
             line: s.line,
             player: s.player,
             book: priced.book,

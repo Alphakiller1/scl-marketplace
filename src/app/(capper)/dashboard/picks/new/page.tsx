@@ -2,26 +2,25 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
-import Link from "next/link";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
+import { EntryModeCards } from "@/components/scl/entry-mode-cards";
+import { GamePicker } from "@/components/scl/game-picker";
 import { MobileSlipDock } from "@/components/scl/mobile-slip-dock";
 import { BettingTitle } from "@/components/scl/betting-title";
-import { OddsAssist } from "@/components/scl/odds-assist";
 import { SectionHeader } from "@/components/scl/section";
-import { SportPills } from "@/components/scl/sport-pills";
 import { StakeQuickChips } from "@/components/scl/stake-quick-chips";
 import { StatValue } from "@/components/scl/stat-value";
-import { Ticket } from "@/components/scl/ticket";
+import { VerificationReceipt } from "@/components/scl/verification-receipt";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createPlay } from "@/lib/actions/play.action";
 import { UNIT_MAX, UNIT_MIN, UNIT_STEP } from "@/lib/constants";
-import { formatOdds, formatUnits } from "@/lib/format";
+import { formatOdds } from "@/lib/format";
 import { americanToDecimal } from "@/lib/odds";
 import {
   playSchema,
@@ -31,7 +30,7 @@ import {
 import { pickKey } from "@/lib/slip";
 import { useIsLg } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
-import { isVerifiedTier, type StraightReceipt } from "@/lib/verification";
+import type { StraightReceipt } from "@/lib/verification";
 
 const PINK_CTA =
   "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)]";
@@ -41,6 +40,10 @@ function FieldError({ message }: { message?: string }) {
   return <p className="text-neg text-xs">{message}</p>;
 }
 
+/**
+ * Straight entry — GamePicker → MarketChip → BetSlip → verified receipt.
+ * M4 PR-4 / SCL_M4_PICK_REDESIGN §4.1 · §4.3 · §4.5.
+ */
 export default function NewPlayPage() {
   const [receipt, setReceipt] = useState<StraightReceipt | null>(null);
   const isLg = useIsLg();
@@ -54,7 +57,6 @@ export default function NewPlayPage() {
     resolver: zodResolver(playSchema),
     defaultValues: { units: 1 },
   });
-  const sport = useWatch({ control, name: "sport" });
   const selection = useWatch({ control, name: "selection" });
   const market = useWatch({ control, name: "market" });
   const odds = useWatch({ control, name: "oddsAmerican" });
@@ -63,6 +65,7 @@ export default function NewPlayPage() {
   const side = useWatch({ control, name: "side" });
   const line = useWatch({ control, name: "line" });
   const player = useWatch({ control, name: "player" });
+  const sport = useWatch({ control, name: "sport" });
   const eventBound = Boolean(eventId);
 
   const oddsNum = Number(odds);
@@ -104,9 +107,6 @@ export default function NewPlayPage() {
     setReceipt(res.receipt);
   }
 
-  // Event binding is what promotes a pick to the strict/verified path. Any time the pick is
-  // hand-edited or reset it must be dropped, so a stale board line never attaches to a
-  // different selection.
   function clearEventBinding() {
     setValue("eventId", "");
     setValue("eventStartsAt", "");
@@ -120,42 +120,18 @@ export default function NewPlayPage() {
     setValue("selection", "");
     setValue("market", "");
     setValue("oddsAmerican", "" as unknown as number);
+    setValue("sport", "" as PlayFormInput["sport"]);
     clearEventBinding();
   }
 
   if (receipt) {
-    const verified = isVerifiedTier(receipt.tier);
-    const stake =
-      receipt.units != null ? formatUnits(receipt.units, true, false) : "—";
-    const toWin =
-      receipt.toWinUnits != null
-        ? formatUnits(receipt.toWinUnits, true, false)
-        : "—";
     return (
       <div className="mx-auto max-w-xl space-y-5">
         <SectionHeader
           title="Play Logged"
           subtitle="Confirmation for your record"
         />
-        <Ticket
-          selectionTitle={receipt.selection}
-          eventLine={receipt.market}
-          legs={1}
-          odds={formatOdds(receipt.oddsAmerican)}
-          stake={stake}
-          toWin={toWin}
-          capturedAt={receipt.capturedAt}
-          status={verified ? "verified" : "muted"}
-          footerAction={
-            <Button
-              className={`min-h-12 w-full text-base ${PINK_CTA}`}
-              render={<Link href="/dashboard/picks" />}
-              nativeButton={false}
-            >
-              View on your record
-            </Button>
-          }
-        />
+        <VerificationReceipt receipt={receipt} />
       </div>
     );
   }
@@ -173,7 +149,8 @@ export default function NewPlayPage() {
             className="scl-display mt-0.5 text-lg font-bold tracking-[0.02em] break-words uppercase"
           />
           <p className="text-muted-foreground text-sm">
-            {market} ·{" "}
+            {market}
+            {sport ? ` · ${sport}` : ""} ·{" "}
             <StatValue tone="text" className="font-semibold">
               {formatOdds(oddsNum)}
             </StatValue>
@@ -223,6 +200,7 @@ export default function NewPlayPage() {
         }
       />
       <FieldError message={errors.units?.message} />
+      <FieldError message={errors.sport?.message} />
 
       <div className="space-y-1.5">
         <Label htmlFor="notes">Notes (optional)</Label>
@@ -248,34 +226,17 @@ export default function NewPlayPage() {
 
   return (
     <div className="mx-auto max-w-xl space-y-5 lg:max-w-5xl">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="scl-eyebrow mb-1 text-[color:var(--scl-muted-label)]">
-            Verified Board Entry
-          </p>
-          <SectionHeader
-            title="Submit A Play"
-            subtitle="Tap a line off the board, set your units, submit"
-          />
-        </div>
-        <Button
-          variant="ghost"
-          render={<Link href="/dashboard/picks/new/parlay" />}
-          nativeButton={false}
-          className="min-h-11"
-        >
-          Parlay
-        </Button>
+      <div>
+        <p className="scl-eyebrow mb-1 text-[color:var(--scl-muted-label)]">
+          Verified Board Entry
+        </p>
+        <SectionHeader
+          title="Submit A Play"
+          subtitle="Find a game, tap a line, set your units"
+        />
       </div>
 
-      <Card className="space-y-2 p-4 sm:p-5">
-        <Label>Sport</Label>
-        <SportPills
-          value={sport ?? ""}
-          onChange={(key) => setValue("sport", key, { shouldValidate: true })}
-        />
-        <FieldError message={errors.sport?.message} />
-      </Card>
+      <EntryModeCards mode="straight" />
 
       {/* Board stays visible on mobile; slip is desktop sticky column + mobile bottom dock. */}
       <div
@@ -284,30 +245,29 @@ export default function NewPlayPage() {
           hasPick && "lg:grid-cols-[minmax(0,1fr)_20rem]",
         )}
       >
-        {sport ? (
-          <div className="min-w-0">
-            <OddsAssist
-              sport={sport}
-              selectedKeys={selectedKeys}
-              onPick={(pick) => {
-                setValue("market", pick.market, { shouldValidate: true });
-                setValue("selection", pick.selection, {
-                  shouldValidate: true,
-                });
-                setValue("oddsAmerican", pick.oddsAmerican, {
-                  shouldValidate: true,
-                });
-                // Carry the event binding so createPlay runs the strict path (C1 lock + C3 odds).
-                setValue("eventId", pick.eventId);
-                setValue("eventStartsAt", pick.eventStartsAt);
-                setValue("side", pick.side);
-                setValue("line", pick.line as number | undefined);
-                setValue("player", pick.player ?? "");
-                setValue("book", pick.book ?? "");
-              }}
-            />
-          </div>
-        ) : null}
+        <div className="min-w-0">
+          <GamePicker
+            selectedKeys={selectedKeys}
+            onPick={(pick) => {
+              setValue("sport", pick.sport as PlayFormInput["sport"], {
+                shouldValidate: true,
+              });
+              setValue("market", pick.market, { shouldValidate: true });
+              setValue("selection", pick.selection, {
+                shouldValidate: true,
+              });
+              setValue("oddsAmerican", pick.oddsAmerican, {
+                shouldValidate: true,
+              });
+              setValue("eventId", pick.eventId);
+              setValue("eventStartsAt", pick.eventStartsAt);
+              setValue("side", pick.side);
+              setValue("line", pick.line as number | undefined);
+              setValue("player", pick.player ?? "");
+              setValue("book", pick.book ?? "");
+            }}
+          />
+        </div>
 
         {hasPick && isLg ? (
           <div className="min-w-0 lg:sticky lg:top-20">{slipBody}</div>
