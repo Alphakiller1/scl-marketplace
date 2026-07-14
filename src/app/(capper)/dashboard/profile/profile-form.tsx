@@ -66,11 +66,6 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
       storefrontTitle: profile.storefrontTitle ?? "",
       storefrontDescription: profile.storefrontDescription ?? "",
       storefrontEnabled: profile.storefrontEnabled,
-      instagram: profile.instagram ?? "",
-      twitter: profile.twitter ?? "",
-      facebook: profile.facebook ?? "",
-      tiktok: profile.tiktok ?? "",
-      website: profile.website ?? "",
     },
   });
 
@@ -359,78 +354,6 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
               />
               Written analysis accompanies my plays
             </label>
-          </section>
-
-          <section
-            aria-labelledby="links-title"
-            className="border-border bg-card space-y-4 rounded-xl border p-4 sm:p-5"
-          >
-            <div>
-              <h2 id="links-title" className="font-semibold">
-                Public Links
-              </h2>
-              <p className="text-muted-foreground text-sm">
-                Connect your SCL record to your established audience.
-              </p>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field
-                htmlFor="instagram"
-                label="Instagram"
-                error={errors.instagram?.message}
-              >
-                <Input
-                  id="instagram"
-                  placeholder="@handle"
-                  {...register("instagram")}
-                />
-              </Field>
-              <Field
-                htmlFor="twitter"
-                label="X"
-                error={errors.twitter?.message}
-              >
-                <Input
-                  id="twitter"
-                  placeholder="@handle"
-                  {...register("twitter")}
-                />
-              </Field>
-              <Field
-                htmlFor="facebook"
-                label="Facebook"
-                error={errors.facebook?.message}
-              >
-                <Input
-                  id="facebook"
-                  placeholder="username"
-                  {...register("facebook")}
-                />
-              </Field>
-              <Field
-                htmlFor="tiktok"
-                label="TikTok"
-                error={errors.tiktok?.message}
-              >
-                <Input
-                  id="tiktok"
-                  placeholder="@handle"
-                  {...register("tiktok")}
-                />
-              </Field>
-            </div>
-            <Field
-              htmlFor="website"
-              label="Website"
-              error={errors.website?.message}
-            >
-              <Input
-                id="website"
-                type="url"
-                placeholder="https://"
-                {...register("website")}
-              />
-            </Field>
           </section>
 
           <div className="border-border bg-background/95 sticky bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-10 flex items-center justify-between gap-3 rounded-xl border p-3 shadow-lg backdrop-blur">

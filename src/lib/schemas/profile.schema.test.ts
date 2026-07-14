@@ -12,29 +12,15 @@ const validProfile = {
   storefrontEnabled: true,
 };
 
-test("profile links allow public web URLs and social handles", () => {
-  assert.equal(
-    profileSchema.safeParse({
-      ...validProfile,
-      twitter: "@chase_analytics",
-      website: "https://example.com/profile",
-    }).success,
-    true,
-  );
+test("profile schema accepts a minimal valid profile", () => {
+  assert.equal(profileSchema.safeParse(validProfile).success, true);
 });
 
-test("profile links reject executable URLs and full social URLs", () => {
+test("profile schema rejects unknown sports", () => {
   assert.equal(
     profileSchema.safeParse({
       ...validProfile,
-      website: "javascript:alert(1)",
-    }).success,
-    false,
-  );
-  assert.equal(
-    profileSchema.safeParse({
-      ...validProfile,
-      twitter: "https://x.com/chase",
+      sports: ["Quidditch"],
     }).success,
     false,
   );

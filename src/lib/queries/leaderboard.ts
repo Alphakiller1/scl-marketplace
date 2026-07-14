@@ -13,7 +13,6 @@ import { computeCapperStats } from "@/lib/stats";
 import { computeVerifiedShare } from "@/lib/verification";
 import type { CapperSummary, FormResult } from "@/lib/mock";
 import { resolveStorefrontIdentity } from "@/lib/storefront";
-import { safeHttpUrl } from "@/lib/urls";
 
 /**
  * Live leaderboard data — computed from real plays, never fabricated. Only
@@ -43,20 +42,10 @@ function fetchRankableProfiles(filters: LeaderboardFilters) {
           : undefined),
         ...(filters.search
           ? {
-              OR: [
-                {
-                  username: {
-                    contains: filters.search,
-                    mode: "insensitive" as const,
-                  },
-                },
-                {
-                  displayName: {
-                    contains: filters.search,
-                    mode: "insensitive" as const,
-                  },
-                },
-              ],
+              username: {
+                contains: filters.search,
+                mode: "insensitive" as const,
+              },
             }
           : undefined),
       },
@@ -73,13 +62,9 @@ function fetchRankableProfiles(filters: LeaderboardFilters) {
       storefrontEnabled: true,
       isLegacy: true,
       sports: true,
-      instagram: true,
-      twitter: true,
-      tiktok: true,
-      website: true,
       createdAt: true,
       user: {
-        select: { displayName: true, username: true, emailVerified: true },
+        select: { username: true, emailVerified: true },
       },
       plays: {
         where: {
@@ -152,21 +137,6 @@ function deriveForm(settled: Outcome[]): {
   }
 
   return { recentForm: forms.slice(-6), streak };
-}
-
-function pruneSocials(
-  twitter: string | null,
-  instagram: string | null,
-  tiktok: string | null,
-  website: string | null,
-): CapperSummary["socials"] {
-  const out: NonNullable<CapperSummary["socials"]> = {};
-  if (twitter) out.twitter = twitter;
-  if (instagram) out.instagram = instagram;
-  if (tiktok) out.tiktok = tiktok;
-  const safeWebsite = safeHttpUrl(website);
-  if (safeWebsite) out.website = safeWebsite;
-  return Object.keys(out).length ? out : undefined;
 }
 
 function summarize(p: ProfileRow): CapperSummary | null {
@@ -255,7 +225,7 @@ function summarize(p: ProfileRow): CapperSummary | null {
       enabled: p.storefrontEnabled,
     }),
     joinedAt: p.createdAt,
-    socials: pruneSocials(p.twitter, p.instagram, p.tiktok, p.website),
+    socials: undefined, // dormant — external links no longer rendered
     isLegacy: p.isLegacy || undefined,
   };
 }

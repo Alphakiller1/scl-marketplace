@@ -9,8 +9,6 @@ import { profileSchema, type ProfileInput } from "@/lib/schemas/profile.schema";
 type ProfileResult = { ok: true } | { ok: false; error: string };
 
 const nullify = (v?: string) => (v && v.trim() ? v.trim() : null);
-const nullifyHandle = (v?: string) =>
-  v && v.trim() ? v.trim().replace(/^@/, "") : null;
 
 export async function updateProfileAction(
   input: ProfileInput,
@@ -48,11 +46,7 @@ export async function updateProfileAction(
       storefrontTitle: nullify(d.storefrontTitle),
       storefrontDescription: nullify(d.storefrontDescription),
       storefrontEnabled: d.storefrontEnabled,
-      instagram: nullifyHandle(d.instagram),
-      twitter: nullifyHandle(d.twitter),
-      facebook: nullifyHandle(d.facebook),
-      tiktok: nullifyHandle(d.tiktok),
-      website: nullify(d.website),
+      // Social / website columns intentionally untouched — dormant legacy values.
     },
     select: { user: { select: { username: true } } },
   });
