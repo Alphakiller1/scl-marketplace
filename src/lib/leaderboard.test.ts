@@ -73,7 +73,28 @@ test("below-minimum-sample cappers are not ranking-eligible", () => {
     false,
   );
   assert.equal(
-    isLeaderboardEligible({ settledPicks: 10 } as CapperSummary, filters),
+    isLeaderboardEligible(
+      { settledPicks: 10, units: 0, roi: 0 } as CapperSummary,
+      filters,
+    ),
+    true,
+  );
+});
+
+test("net-negative cappers are not ranking-eligible", () => {
+  const filters = parseLeaderboardFilters({ minPicks: "10" });
+  assert.equal(
+    isLeaderboardEligible(
+      { settledPicks: 20, units: -0.01, roi: -0.1 } as CapperSummary,
+      filters,
+    ),
+    false,
+  );
+  assert.equal(
+    isLeaderboardEligible(
+      { settledPicks: 20, units: 0, roi: 0 } as CapperSummary,
+      filters,
+    ),
     true,
   );
 });
@@ -90,9 +111,14 @@ test("isBuildingARecord agrees with the leaderboard partition gate", () => {
   // Higher threshold matches leaderboard min-sample filter.
   assert.equal(isBuildingARecord({ settledPicks: 9 }, 10), true);
   assert.equal(isBuildingARecord({ settledPicks: 10 }, 10), false);
+  // Net-negative cappers are also unranked once performance is known.
+  assert.equal(
+    isBuildingARecord({ settledPicks: 10, units: -0.25, roi: -2 }, 10),
+    true,
+  );
 });
 
-test("partitionLeaderboard ranks eligible and clears unranked places", () => {
+test("partitionLeaderboard ranks non-negative eligible cappers and clears unranked places", () => {
   const filters = parseLeaderboardFilters({ minPicks: "10", sort: "units" });
   const cappers = [
     {
@@ -131,9 +157,19 @@ test("partitionLeaderboard ranks eligible and clears unranked places", () => {
       winPct: 60,
       rank: 99,
     },
+    {
+      id: "e",
+      name: "Echo",
+      settledPicks: 18,
+      units: -2,
+      roi: -4,
+      winPct: 45,
+      rank: 99,
+    },
   ] as CapperSummary[];
 
   const { ranked, unranked } = partitionLeaderboard(cappers, filters);
+  assert.equal(ranked.length + unranked.length, cappers.length);
 
   assert.deepEqual(
     ranked.map((c) => ({ id: c.id, rank: c.rank })),
@@ -147,12 +183,13 @@ test("partitionLeaderboard ranks eligible and clears unranked places", () => {
     [
       { id: "c", rank: 0 },
       { id: "b", rank: 0 },
+      { id: "e", rank: 0 },
     ],
   );
 });
 
-test("leaderboard summary is weighted from tracked records", () => {
-  const cappers = [
+test("leaderboard summary keeps ranked count separate from scoped totals", () => {
+  const ranked = [
     {
       verified: true,
       record: { w: 6, l: 4, p: 0 },
@@ -160,6 +197,8 @@ test("leaderboard summary is weighted from tracked records", () => {
       units: 2,
       stakedUnits: 10,
     },
+  ] as CapperSummary[];
+  const unranked = [
     {
       verified: false,
       record: { w: 1, l: 4, p: 0 },
@@ -169,8 +208,8 @@ test("leaderboard summary is weighted from tracked records", () => {
     },
   ] as CapperSummary[];
 
-  assert.deepEqual(summarizeLeaderboard(cappers), {
-    rankedCappers: 2,
+  assert.deepEqual(summarizeLeaderboard(ranked, unranked), {
+    rankedCappers: 1,
     verifiedCappers: 1,
     trackedPicks: 15,
     winPct: (7 / 15) * 100,

@@ -99,8 +99,8 @@ export function BuildingRecordSection({
             Building A Record
           </h2>
           <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
-            Zero graded picks or below the selected sample minimum — visible
-            here without a rank number.
+            Zero graded picks, below the selected sample minimum, or
+            net-negative in this scope appear here without a rank number.
           </p>
         </div>
         <p className="nums text-muted-foreground text-xs tabular-nums">
