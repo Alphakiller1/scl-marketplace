@@ -25,7 +25,7 @@ export default async function AdminOverviewPage() {
         <div className="grid grid-cols-3 gap-4">
           <StatBlock label="Cappers" value={cappers} />
           <StatBlock label="Plays" value={plays} />
-          <StatBlock label="Pending grade" value={pending} tone="gold" />
+          <StatBlock label="Pending grade" value={pending} tone="pink" />
         </div>
       </Card>
 

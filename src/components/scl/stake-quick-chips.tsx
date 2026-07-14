@@ -33,7 +33,7 @@ export function StakeQuickChips({
             className={cn(
               "scl-data min-h-10 min-w-10 rounded-full border px-3 text-sm font-semibold tabular-nums transition-colors",
               active
-                ? "border-gold bg-gold text-gold-foreground"
+                ? "border-pink bg-pink text-pink-foreground"
                 : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30",
             )}
           >

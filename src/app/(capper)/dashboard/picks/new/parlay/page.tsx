@@ -44,8 +44,8 @@ import { useIsLg } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
 import { isVerifiedTier, type ParlayReceipt } from "@/lib/verification";
 
-const GOLD_CTA =
-  "border-[color:var(--scl-gold)] bg-[color:var(--scl-gold)] text-[color:var(--scl-gold-ink)] hover:bg-[color:var(--scl-gold-deep)] hover:text-[color:var(--scl-gold-ink)]";
+const PINK_CTA =
+  "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)]";
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -149,7 +149,7 @@ export default function NewParlayPage() {
           status={verified ? "verified" : "muted"}
           footerAction={
             <Button
-              className={`min-h-12 w-full text-base ${GOLD_CTA}`}
+              className={`min-h-12 w-full text-base ${PINK_CTA}`}
               render={<Link href="/dashboard/picks" />}
               nativeButton={false}
             >
@@ -164,7 +164,7 @@ export default function NewParlayPage() {
   // Shared slip — rendered in the desktop sticky column and the mobile dock. Carries the
   // inline Replace/Cancel prompt so same-market conflicts resolve in either surface.
   const slipBody = (
-    <Card className="scl-elevated space-y-3 border border-[color:var(--scl-gold-deep)] p-4 sm:p-5">
+    <Card className="scl-elevated space-y-3 border border-[color:var(--scl-pink-deep)] p-4 sm:p-5">
       <div className="flex items-center justify-between">
         <p className="scl-eyebrow text-[color:var(--scl-muted-label)]">
           Parlay slip
@@ -247,13 +247,13 @@ export default function NewParlayPage() {
             <p className="text-muted-foreground text-xs">
               {priced.length}-leg parlay
             </p>
-            <StatValue tone="gold" className="text-lg font-bold">
+            <StatValue tone="pink" className="text-lg font-bold">
               {formatOdds(combinedAmerican)}
             </StatValue>
           </div>
           <div className="text-right">
             <p className="text-muted-foreground text-xs">To win</p>
-            <StatValue tone="gold" className="text-lg font-bold">
+            <StatValue tone="pink" className="text-lg font-bold">
               {toWin != null ? `+${toWin.toFixed(2)}u` : "—"}
             </StatValue>
           </div>
@@ -266,7 +266,7 @@ export default function NewParlayPage() {
         type="button"
         onClick={handleSubmit(onSubmit)}
         disabled={isSubmitting || fields.length < 2}
-        className={`min-h-12 w-full text-base ${GOLD_CTA}`}
+        className={`min-h-12 w-full text-base ${PINK_CTA}`}
       >
         {isSubmitting ? "Submitting…" : "Submit parlay"}
       </Button>

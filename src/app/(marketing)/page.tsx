@@ -16,8 +16,8 @@ import { getLeagueActionReport } from "@/lib/queries/league-action";
 
 export const revalidate = 60;
 
-const GOLD_CTA =
-  "border-[color:var(--scl-gold)] bg-[color:var(--scl-gold)] text-[color:var(--scl-gold-ink)] hover:bg-[color:var(--scl-gold-deep)] hover:text-[color:var(--scl-gold-ink)]";
+const PINK_CTA =
+  "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)]";
 
 export default async function Home() {
   const { cappers, failed: leaderboardFailed } = await getLeaderboardResult({
@@ -159,7 +159,7 @@ export default async function Home() {
             render={<Link href="/signup" />}
             nativeButton={false}
             size="lg"
-            className={`min-h-11 w-full shrink-0 gap-2 sm:w-auto ${GOLD_CTA}`}
+            className={`min-h-11 w-full shrink-0 gap-2 sm:w-auto ${PINK_CTA}`}
           >
             Become A Capper <ArrowRight className="size-4" aria-hidden />
           </Button>

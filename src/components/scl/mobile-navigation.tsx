@@ -112,7 +112,7 @@ export function MobileSiteNav({ authed = false }: { authed?: boolean }) {
                 render={
                   <Link
                     href="/signup"
-                    className="flex min-h-12 items-center justify-center gap-2 rounded-lg border border-[color:var(--scl-gold)] bg-[color:var(--scl-gold)] px-4 font-semibold text-[color:var(--scl-gold-ink)]"
+                    className="flex min-h-12 items-center justify-center gap-2 rounded-lg border border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] px-4 font-semibold text-[color:var(--scl-pink-ink)]"
                   />
                 }
               >

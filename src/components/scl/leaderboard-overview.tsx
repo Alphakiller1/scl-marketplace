@@ -17,7 +17,7 @@ export function LeaderboardOverview({
   return (
     <header>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="border-t border-[color:var(--scl-gold-deep)] pt-2.5">
+        <div className="border-t border-[color:var(--scl-pink-deep)] pt-2.5">
           <div className="scl-eyebrow flex items-center gap-2 text-[color:var(--scl-muted-label)]">
             <Trophy className="size-4" aria-hidden />
             Public Rankings

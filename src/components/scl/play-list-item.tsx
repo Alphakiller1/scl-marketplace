@@ -106,7 +106,7 @@ export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
       <div className="border-border mt-2 flex flex-wrap items-center justify-between gap-2 border-t pt-2">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
           {parlay.combinedOddsAmerican != null ? (
-            <StatValue tone="gold" className="font-semibold">
+            <StatValue tone="pink" className="font-semibold">
               {formatOdds(parlay.combinedOddsAmerican)}
             </StatValue>
           ) : null}

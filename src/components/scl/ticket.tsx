@@ -54,7 +54,7 @@ function formatCaptureLine(capturedAt?: string | null): string {
 }
 
 /**
- * Signature bet-ticket card — perforated tear, gold stamp, mono capture line.
+ * Signature bet-ticket card — perforated tear, pink stamp, mono capture line.
  * Reference: scl-pick-flow-concept.html Exhibit B.
  */
 export function Ticket({
@@ -70,7 +70,7 @@ export function Ticket({
   className,
   footerAction,
 }: TicketProps) {
-  const goldStamp = status === "verified" || status === "win";
+  const pinkStamp = status === "verified" || status === "win";
   const lossStamp = status === "loss";
 
   return (
@@ -86,9 +86,9 @@ export function Ticket({
         <div
           className={cn(
             "scl-display scl-ticket-stamp absolute top-4 right-4 origin-center rounded-md border-2 px-2.5 py-1 text-[0.8rem] font-bold tracking-[0.16em] uppercase",
-            goldStamp && "border-gold text-gold",
+            pinkStamp && "border-pink text-pink",
             lossStamp && "border-neg text-neg",
-            !goldStamp && !lossStamp && "border-border text-muted-foreground",
+            !pinkStamp && !lossStamp && "border-border text-muted-foreground",
             settling ? "rotate-12 opacity-0" : "rotate-6 opacity-100",
           )}
           aria-hidden={settling ? true : undefined}
@@ -113,7 +113,7 @@ export function Ticket({
 
       <div className="grid grid-cols-3 gap-2.5 px-5 py-3.5">
         <TicketCell label="Legs" value={String(legs)} />
-        <TicketCell label="Odds" value={odds} gold />
+        <TicketCell label="Odds" value={odds} accent />
         <TicketCell label="Stake" value={stake} />
       </div>
 
@@ -139,7 +139,7 @@ export function Ticket({
         </p>
         <div className="scl-display shrink-0 text-right text-[0.8rem] font-semibold tracking-[0.06em] uppercase">
           <span className="text-muted-foreground block">To Win</span>
-          <span className="scl-data text-gold text-[0.95rem] font-semibold tracking-normal normal-case">
+          <span className="scl-data text-pink text-[0.95rem] font-semibold tracking-normal normal-case">
             {toWin}
           </span>
         </div>
@@ -155,11 +155,11 @@ export function Ticket({
 function TicketCell({
   label,
   value,
-  gold,
+  accent,
 }: {
   label: string;
   value: string;
-  gold?: boolean;
+  accent?: boolean;
 }) {
   return (
     <div>
@@ -167,7 +167,7 @@ function TicketCell({
       <div
         className={cn(
           "scl-data mt-0.5 text-base font-semibold",
-          gold ? "text-gold" : "text-foreground",
+          accent ? "text-pink" : "text-foreground",
         )}
       >
         {value}

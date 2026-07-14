@@ -33,8 +33,8 @@ import { useIsLg } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
 import { isVerifiedTier, type StraightReceipt } from "@/lib/verification";
 
-const GOLD_CTA =
-  "border-[color:var(--scl-gold)] bg-[color:var(--scl-gold)] text-[color:var(--scl-gold-ink)] hover:bg-[color:var(--scl-gold-deep)] hover:text-[color:var(--scl-gold-ink)]";
+const PINK_CTA =
+  "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)]";
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -147,7 +147,7 @@ export default function NewPlayPage() {
           status={verified ? "verified" : "muted"}
           footerAction={
             <Button
-              className={`min-h-12 w-full text-base ${GOLD_CTA}`}
+              className={`min-h-12 w-full text-base ${PINK_CTA}`}
               render={<Link href="/dashboard/picks" />}
               nativeButton={false}
             >
@@ -160,7 +160,7 @@ export default function NewPlayPage() {
   }
 
   const slipBody = hasPick ? (
-    <Card className="scl-elevated space-y-4 border border-[color:var(--scl-gold-deep)] p-4 sm:p-5">
+    <Card className="scl-elevated space-y-4 border border-[color:var(--scl-pink-deep)] p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="scl-eyebrow text-[color:var(--scl-muted-label)]">
@@ -207,7 +207,7 @@ export default function NewPlayPage() {
         </div>
         <div className="text-right">
           <p className="text-muted-foreground text-xs">To win</p>
-          <StatValue tone="gold" className="text-xl font-bold">
+          <StatValue tone="pink" className="text-xl font-bold">
             {toWin != null ? `+${toWin.toFixed(2)}u` : "—"}
           </StatValue>
         </div>
@@ -238,7 +238,7 @@ export default function NewPlayPage() {
         type="button"
         onClick={handleSubmit(onSubmit)}
         disabled={isSubmitting}
-        className={`min-h-12 w-full text-base ${GOLD_CTA}`}
+        className={`min-h-12 w-full text-base ${PINK_CTA}`}
       >
         {isSubmitting ? "Submitting…" : "Submit Play"}
       </Button>

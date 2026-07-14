@@ -36,9 +36,9 @@ export function RankBadge({
     <span
       className={cn(
         "scl-data flex size-10 shrink-0 items-center justify-center rounded-lg border text-sm font-bold tabular-nums",
-        rank === 1 && "border-gold/35 bg-gold/10 text-gold",
-        rank === 2 && "border-gold/25 bg-gold/5 text-gold",
-        rank === 3 && "border-gold/20 bg-gold/5 text-gold",
+        rank === 1 && "border-pink/35 bg-pink/10 text-pink",
+        rank === 2 && "border-pink/25 bg-pink/5 text-pink",
+        rank === 3 && "border-pink/20 bg-pink/5 text-pink",
         !podium && "border-border bg-surface-2 text-muted-foreground",
         className,
       )}

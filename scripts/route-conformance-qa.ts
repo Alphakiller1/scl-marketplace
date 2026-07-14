@@ -1,5 +1,5 @@
-﻿/**
- * Route conformance visual QA ΓÇö SCL-DESIGN-SPEC application surfaces.
+/**
+ * Route conformance visual QA G?? SCL-DESIGN-SPEC application surfaces.
  * Run: npx tsx scripts/route-conformance-qa.ts
  * Expects a local server at BASE_URL (default http://127.0.0.1:3000).
  */
@@ -159,7 +159,30 @@ async function smallTapTargets(page: Page): Promise<string[]> {
   });
 }
 
-async function goldMisuseSamples(page: Page): Promise<string[]> {
+async function leftoverGoldSamples(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const bad: string[] = [];
+    const css = Array.from(document.styleSheets)
+      .flatMap((sheet) => {
+        try {
+          return Array.from(sheet.cssRules).map((r) => r.cssText);
+        } catch {
+          return [] as string[];
+        }
+      })
+      .join("\n");
+    if (
+      /#E9B64B|#B98F2E|#241A05|#C6952F|--scl-gold\b|\btext-gold\b|\bbg-gold\b/i.test(
+        css + document.documentElement.outerHTML,
+      )
+    ) {
+      bad.push("gold token/hex still present in DOM/CSS");
+    }
+    return bad;
+  });
+}
+
+async function pinkMisuseSamples(page: Page): Promise<string[]> {
   return page.evaluate(() => {
     const offenders: string[] = [];
     const all = Array.from(document.querySelectorAll("body *"));
@@ -170,31 +193,28 @@ async function goldMisuseSamples(page: Page): Promise<string[]> {
         .trim()
         .replace(/\s+/g, " ")
         .slice(0, 80);
-      // Class-based gold on non-allowlist labels
-      const hasGoldClass =
-        /\btext-gold\b|\bbg-gold\b|\bborder-gold\b|text-\[color:var\(--scl-gold\)\]/.test(
+      const hasPinkClass =
+        /\btext-pink\b|\bbg-pink\b|\bborder-pink\b|text-\[color:var\(--scl-pink\)\]/.test(
           cls,
         );
-      if (!hasGoldClass) continue;
+      if (!hasPinkClass) continue;
       const allow =
-        /verified|stamp|medal|crown|to win|odds|view slip|submit|apply|become|explore|replace|rank|selected|active|pill|chip|cta|hairline|border-t.*gold-deep|gold-deep/i.test(
+        /verified|stamp|medal|crown|to win|odds|view slip|submit|apply|become|explore|replace|rank|selected|active|pill|chip|cta|hairline|pink-deep|border-t.*pink/i.test(
           cls + " " + text,
         ) ||
-        el.closest("[data-selected='true'], [aria-pressed='true']") != null ||
-        /Γ£ô/.test(text);
-      // Eyebrows / labels that are gold but not VERIFIED stamp
+        el.closest("[data-selected='true'], [aria-pressed='true']") != null;
       if (
         /\bscl-eyebrow\b/.test(cls) &&
-        /text-gold|scl-gold/.test(cls) &&
+        /text-pink|scl-pink/.test(cls) &&
         !/verified stamp/i.test(text)
       ) {
-        offenders.push(`eyebrow gold: "${text}"`);
+        offenders.push(`eyebrow pink: "${text}"`);
       } else if (
-        hasGoldClass &&
+        hasPinkClass &&
         /board entry|pending|warning|public rankings/i.test(text) &&
         !allow
       ) {
-        offenders.push(`gold label: "${text}"`);
+        offenders.push(`pink label: "${text}"`);
       }
     }
     return [...new Set(offenders)].slice(0, 10);
@@ -218,7 +238,7 @@ async function numericFontSamples(page: Page): Promise<string[]> {
         fs,
       );
       samples.push(
-        `${monoish ? "MONO" : "NOT-MONO"} ┬╖ ${fs.split(",")[0]} ┬╖ "${text}"`,
+        `${monoish ? "MONO" : "NOT-MONO"} -+ ${fs.split(",")[0]} -+ "${text}"`,
       );
     }
     return samples.slice(0, 8);
@@ -275,7 +295,7 @@ async function main() {
               theme,
               check: "auth",
               status: "SKIP",
-              detail: `Redirected to login ΓÇö board/slip/Ticket live checks need a signed-in session`,
+              detail: `Redirected to login G?? board/slip/Ticket live checks need a signed-in session`,
             });
             await page.screenshot({
               path: join(OUT, `${key}-login.png`),
@@ -301,7 +321,7 @@ async function main() {
             theme,
             check: "tap-targets",
             status: taps.length === 0 ? "PASS" : "WARN",
-            detail: taps.length ? taps.join(" | ") : "all ΓëÑ40px height",
+            detail: taps.length ? taps.join(" | ") : "all G??40px height",
           });
 
           const inputs = await smallInputs(page);
@@ -313,7 +333,7 @@ async function main() {
             status: inputs.length === 0 ? "PASS" : "FAIL",
             detail: inputs.length
               ? inputs.join(" | ")
-              : "inputs/selects ≥40px height",
+              : "inputs/selects =40px height",
           });
 
           const blur = await blurLeftovers(page);
@@ -328,16 +348,28 @@ async function main() {
               : "no blur/backdrop leftovers",
           });
 
-          const gold = await goldMisuseSamples(page);
+          const leftoverGold = await leftoverGoldSamples(page);
           findings.push({
             route: route.path,
             viewport: vp.id,
             theme,
-            check: "gold-scarcity",
-            status: gold.length === 0 ? "PASS" : "FAIL",
-            detail: gold.length
-              ? gold.join(" | ")
-              : "no eyebrow/pending gold offenders",
+            check: "no-gold",
+            status: leftoverGold.length === 0 ? "PASS" : "FAIL",
+            detail: leftoverGold.length
+              ? leftoverGold.join(" | ")
+              : "no Settlement Gold tokens/hex",
+          });
+
+          const pink = await pinkMisuseSamples(page);
+          findings.push({
+            route: route.path,
+            viewport: vp.id,
+            theme,
+            check: "pink-scarcity",
+            status: pink.length === 0 ? "PASS" : "FAIL",
+            detail: pink.length
+              ? pink.join(" | ")
+              : "no eyebrow/pending pink offenders",
           });
 
           const fonts = await numericFontSamples(page);
@@ -422,7 +454,7 @@ async function main() {
       SKIP: findings.filter((f) => f.status === "SKIP").length,
     },
     findings,
-    note: "Post-submit Ticket requires authenticated staging credentials ΓÇö skipped when redirected to /login.",
+    note: "Post-submit Ticket requires authenticated staging credentials G?? skipped when redirected to /login.",
   };
 
   writeFileSync(join(OUT, "report.json"), JSON.stringify(summary, null, 2));
@@ -443,7 +475,7 @@ async function main() {
     "",
     ...findings.map(
       (f) =>
-        `- **${f.status}** \`${f.route}\` @ ${f.viewport}px ${f.theme} ┬╖ ${f.check}: ${f.detail}`,
+        `- **${f.status}** \`${f.route}\` @ ${f.viewport}px ${f.theme} -+ ${f.check}: ${f.detail}`,
     ),
     "",
     summary.note,
