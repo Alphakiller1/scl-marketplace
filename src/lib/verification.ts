@@ -85,6 +85,21 @@ export type StraightReceipt = {
   toWinUnits?: number;
   /** Honest move sub-line when selected ≠ captured (M5). */
   moveNote?: string;
+  /** Odds API bookmaker key at capture, when known. */
+  book?: string | null;
+};
+
+/** Bulk singles stack (M5 PR-4 / §6.2). */
+export type BulkSinglesReceipt = {
+  kind: "bulk";
+  picks: StraightReceipt[];
+  submittedCount: number;
+  attemptedCount: number;
+  suspendedCount: number;
+  suspendedMoveKeys: string[];
+  /** Keys of Plays that were written — slip drops these; others stay. */
+  writtenMoveKeys: string[];
+  summaryLine: string;
 };
 
 /** Payload returned by createParlay on success — rolled-up leg trust facts. */
@@ -103,7 +118,10 @@ export type ParlayReceipt = {
   moveNotes?: string[];
 };
 
-export type SubmissionReceipt = StraightReceipt | ParlayReceipt;
+export type SubmissionReceipt =
+  | StraightReceipt
+  | ParlayReceipt
+  | BulkSinglesReceipt;
 
 /** Presentation strings for the post-submit confirmation card. */
 export type ReceiptCopy = {
@@ -121,6 +139,24 @@ export type ReceiptCopy = {
 
 /** Trust-forward receipt copy from server return facts — no client-side tier guessing. */
 export function submissionReceiptCopy(receipt: SubmissionReceipt): ReceiptCopy {
+  if (receipt.kind === "bulk") {
+    const allVerified = receipt.picks.every((p) => isVerifiedTier(p.tier));
+    return {
+      headline:
+        receipt.submittedCount === 1
+          ? "Pick Verified"
+          : `${receipt.submittedCount} Picks Verified`,
+      summary: receipt.summaryLine,
+      context: null,
+      statusLine:
+        receipt.suspendedCount > 0
+          ? `${receipt.suspendedCount} line${receipt.suspendedCount === 1 ? "" : "s"} suspended — kept in your slip`
+          : "Odds captured pre-game",
+      gradingLine: "Graded automatically after final",
+      tone: allVerified ? "verified" : "muted",
+    };
+  }
+
   if (receipt.kind === "straight") {
     const verified = isVerifiedTier(receipt.tier);
     const odds =

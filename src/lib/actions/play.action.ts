@@ -2,24 +2,29 @@
 
 import { revalidatePath } from "next/cache";
 
-import { prisma } from "@/lib/prisma";
-import { getCurrentAccount } from "@/lib/session";
-import { playSchema, type PlayInput } from "@/lib/schemas/play.schema";
-import { isBookKey } from "@/lib/books";
 import {
-  decidePickIntegrity,
-  marketKeysForMarket,
-  type VerifyResult,
-} from "@/lib/odds-verify";
+  buildBulkSinglesReceipt,
+  shapeBulkSinglesOutcome,
+  type BulkLinePrep,
+} from "@/lib/bulk-plays";
+import { isBookKey } from "@/lib/books";
 import { fetchLiveLine, verifyPick } from "@/lib/odds-api";
-import { americanToDecimal } from "@/lib/odds";
 import {
   moveKey,
   resolveCaptureOdds,
   type AcceptedMove,
   type MovedLinePayload,
 } from "@/lib/odds-movement";
-import type { StraightReceipt } from "@/lib/verification";
+import {
+  decidePickIntegrity,
+  marketKeysForMarket,
+  type VerifyResult,
+} from "@/lib/odds-verify";
+import { americanToDecimal } from "@/lib/odds";
+import { prisma } from "@/lib/prisma";
+import { playSchema, type PlayInput } from "@/lib/schemas/play.schema";
+import { getCurrentAccount } from "@/lib/session";
+import type { BulkSinglesReceipt, StraightReceipt } from "@/lib/verification";
 
 export type PlayResult =
   | { ok: true; receipt: StraightReceipt }
@@ -27,12 +32,26 @@ export type PlayResult =
   | { ok: false; needsConfirm: MovedLinePayload[] }
   | { ok: false; unavailable: MovedLinePayload[] };
 
-export type { AcceptedMove, MovedLinePayload };
+export type CreatePlaysResult =
+  | {
+      ok: true;
+      receipt: BulkSinglesReceipt;
+      /** Present when some lines were suspended after a partial write. */
+      unavailable?: MovedLinePayload[];
+    }
+  | { ok: false; error: string }
+  | {
+      ok: false;
+      needsConfirm: MovedLinePayload[];
+      unavailable?: MovedLinePayload[];
+    }
+  | { ok: false; unavailable: MovedLinePayload[] };
 
-export async function createPlay(
-  input: PlayInput,
-  acceptedMoves?: AcceptedMove[],
-): Promise<PlayResult> {
+export type { AcceptedMove, MovedLinePayload, BulkSinglesReceipt };
+
+type AccountGate = { ok: true; userId: string } | { ok: false; error: string };
+
+async function requireActiveCapper(): Promise<AccountGate> {
   const account = await getCurrentAccount();
   if (!account) return { ok: false, error: "You must be logged in." };
   if (account.accountStatus !== "ACTIVE") {
@@ -47,32 +66,64 @@ export async function createPlay(
       error: "Accept the current terms before submitting plays.",
     };
   }
+  return { ok: true, userId: account.id };
+}
 
+type ReadyWrite = {
+  moveKey: string;
+  data: {
+    sport: string;
+    league: string | null;
+    market: string;
+    selection: string;
+    oddsAmerican: number;
+    selectedOddsAmerican: number;
+    oddsMovedAccepted: boolean;
+    units: number;
+    notes: string | null;
+    eventId: string;
+    eventStartsAt: Date;
+    side: string;
+    line: number | null;
+    book: string | null;
+    loggedPreGame: boolean;
+    oddsVerified: boolean;
+    verificationTier: "AUTO_VERIFIED" | "VERIFIED" | "SELF_REPORTED";
+  };
+  receiptBase: Omit<StraightReceipt, "capturedAt">;
+};
+
+/**
+ * Shared per-line verified + odds-guarded body (createPlay / createPlays).
+ * Does not write — caller persists ReadyWrite rows.
+ */
+async function preparePlayLine(
+  input: PlayInput,
+  opts: {
+    books: readonly string[];
+    acceptedMoves?: AcceptedMove[];
+    now: Date;
+  },
+): Promise<
+  | { status: "ready"; ready: ReadyWrite }
+  | { status: "needs_confirm"; moved: MovedLinePayload }
+  | { status: "unavailable"; moved: MovedLinePayload }
+  | { status: "error"; error: string }
+> {
   const parsed = playSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Please check the form and try again." };
+    return { status: "error", error: "Please check the form and try again." };
   }
-
-  const profile = await prisma.capperProfile.findUnique({
-    where: { userId: account.id },
-    select: { id: true, books: true },
-  });
-  if (!profile) return { ok: false, error: "No capper profile found." };
-
   const d = parsed.data;
 
-  // Verification is the universal standard (docs/SCL_PICK_INTEGRITY.md): every pick MUST be an
-  // event-bound board pick. Free-text entry is retired — reject anything lacking a real event +
-  // structured side here on the server, never trusting that the UI enforced it.
   if (!d.eventId || !d.eventStartsAt || !d.side) {
     return {
-      ok: false,
+      status: "error",
       error:
         "Pick a line from the board — manual free-text entry is no longer accepted.",
     };
   }
 
-  const now = new Date();
   const eventStartsAt = new Date(d.eventStartsAt);
   const marketKeys = marketKeysForMarket(d.market);
   const key = moveKey({
@@ -84,7 +135,6 @@ export async function createPlay(
   });
   const captureBook = d.book && isBookKey(d.book) ? d.book : null;
 
-  // M5 odds-movement guard: re-fetch live price before any write.
   const { event: liveEvent, liveAmerican } = await fetchLiveLine({
     sclSport: d.sport,
     eventId: d.eventId,
@@ -93,11 +143,11 @@ export async function createPlay(
     line: d.line,
     player: d.player,
     book: captureBook,
-    books: profile.books,
+    books: opts.books,
   });
   if (!liveEvent) {
     return {
-      ok: false,
+      status: "error",
       error: "Odds unavailable for this event — try again in a moment.",
     };
   }
@@ -105,7 +155,7 @@ export async function createPlay(
   const capture = resolveCaptureOdds({
     selectedAmerican: d.oddsAmerican,
     liveAmerican,
-    acceptedMoves,
+    acceptedMoves: opts.acceptedMoves,
     moveKey: key,
     eventId: d.eventId,
     eventLabel: d.selection,
@@ -115,17 +165,16 @@ export async function createPlay(
     line: d.line,
     player: d.player,
     book: captureBook,
-    verifiedAt: now,
+    verifiedAt: opts.now,
   });
 
   if (capture.status === "unavailable") {
-    return { ok: false, unavailable: [capture.moved] };
+    return { status: "unavailable", moved: capture.moved };
   }
   if (capture.status === "needs_confirm") {
-    return { ok: false, needsConfirm: [capture.moved] };
+    return { status: "needs_confirm", moved: capture.moved };
   }
 
-  // C1/C3 integrity against the odds we will persist (never the stale selected price alone).
   const verify: VerifyResult = await verifyPick({
     sclSport: d.sport,
     eventId: d.eventId,
@@ -134,39 +183,95 @@ export async function createPlay(
     line: d.line,
     player: d.player,
     claimedAmerican: capture.oddsAmerican,
-    books: profile.books,
+    books: opts.books,
   });
 
   const decision = decidePickIntegrity({
-    now,
+    now: opts.now,
     eventStartsAt,
     eventBound: true,
     verify,
     source: "MANUAL",
   });
-  if (!decision.accept) return { ok: false, error: decision.reason };
+  if (!decision.accept) {
+    return { status: "error", error: decision.reason };
+  }
+
+  return {
+    status: "ready",
+    ready: {
+      moveKey: key,
+      data: {
+        sport: d.sport,
+        league: d.league ?? null,
+        market: d.market,
+        selection: d.selection,
+        oddsAmerican: capture.oddsAmerican,
+        selectedOddsAmerican: capture.selectedOddsAmerican,
+        oddsMovedAccepted: capture.oddsMovedAccepted,
+        units: d.units,
+        notes: d.notes ?? null,
+        eventId: d.eventId,
+        eventStartsAt,
+        side: d.side,
+        line: d.line ?? null,
+        book: captureBook,
+        loggedPreGame: decision.loggedPreGame,
+        oddsVerified: decision.oddsVerified,
+        verificationTier: decision.tier,
+      },
+      receiptBase: {
+        kind: "straight",
+        selection: d.selection,
+        market: d.market,
+        oddsAmerican: capture.oddsAmerican,
+        loggedPreGame: decision.loggedPreGame,
+        oddsVerified: decision.oddsVerified,
+        tier: decision.tier,
+        units: d.units,
+        toWinUnits: d.units * (americanToDecimal(capture.oddsAmerican) - 1),
+        moveNote: capture.moveNote,
+        book: captureBook,
+      },
+    },
+  };
+}
+
+export async function createPlay(
+  input: PlayInput,
+  acceptedMoves?: AcceptedMove[],
+): Promise<PlayResult> {
+  const gate = await requireActiveCapper();
+  if (!gate.ok) return gate;
+
+  const profile = await prisma.capperProfile.findUnique({
+    where: { userId: gate.userId },
+    select: { id: true, books: true },
+  });
+  if (!profile) return { ok: false, error: "No capper profile found." };
+
+  const now = new Date();
+  const prep = await preparePlayLine(input, {
+    books: profile.books,
+    acceptedMoves,
+    now,
+  });
+
+  if (prep.status === "unavailable") {
+    return { ok: false, unavailable: [prep.moved] };
+  }
+  if (prep.status === "needs_confirm") {
+    return { ok: false, needsConfirm: [prep.moved] };
+  }
+  if (prep.status === "error") {
+    return { ok: false, error: prep.error };
+  }
 
   const play = await prisma.play.create({
     data: {
       capperId: profile.id,
-      sport: d.sport,
-      league: d.league ?? null,
-      market: d.market,
-      selection: d.selection,
-      oddsAmerican: capture.oddsAmerican,
-      selectedOddsAmerican: capture.selectedOddsAmerican,
-      oddsMovedAccepted: capture.oddsMovedAccepted,
-      units: d.units,
-      notes: d.notes ?? null,
-      eventId: d.eventId ?? null,
-      eventStartsAt,
-      side: d.side ?? null,
-      line: d.line ?? null,
-      book: captureBook,
+      ...prep.ready.data,
       source: "MANUAL",
-      loggedPreGame: decision.loggedPreGame,
-      oddsVerified: decision.oddsVerified,
-      verificationTier: decision.tier,
     },
     select: { createdAt: true },
   });
@@ -176,17 +281,119 @@ export async function createPlay(
   return {
     ok: true,
     receipt: {
-      kind: "straight",
-      selection: d.selection,
-      market: d.market,
-      oddsAmerican: capture.oddsAmerican,
+      ...prep.ready.receiptBase,
       capturedAt: play.createdAt.toISOString(),
-      loggedPreGame: decision.loggedPreGame,
-      oddsVerified: decision.oddsVerified,
-      tier: decision.tier,
-      units: d.units,
-      toWinUnits: d.units * (americanToDecimal(capture.oddsAmerican) - 1),
-      moveNote: capture.moveNote,
     },
+  };
+}
+
+/**
+ * Bulk singles submit (M5 PR-4). Each line is odds-guarded independently.
+ * needsConfirm blocks the whole write (Cancel writes nothing). Unavailable does
+ * not block clean lines — those write and suspended keys stay in the slip.
+ */
+export async function createPlays(
+  inputs: PlayInput[],
+  acceptedMoves?: AcceptedMove[],
+): Promise<CreatePlaysResult> {
+  const gate = await requireActiveCapper();
+  if (!gate.ok) return gate;
+
+  if (!Array.isArray(inputs) || inputs.length === 0) {
+    return { ok: false, error: "Add at least one pick to submit." };
+  }
+  if (inputs.length > 20) {
+    return { ok: false, error: "Too many picks in one submit." };
+  }
+
+  const profile = await prisma.capperProfile.findUnique({
+    where: { userId: gate.userId },
+    select: { id: true, books: true },
+  });
+  if (!profile) return { ok: false, error: "No capper profile found." };
+
+  const now = new Date();
+  const preps: BulkLinePrep[] = [];
+  const readyWrites: ReadyWrite[] = [];
+
+  for (const input of inputs) {
+    const prep = await preparePlayLine(input, {
+      books: profile.books,
+      acceptedMoves,
+      now,
+    });
+    if (prep.status === "ready") {
+      readyWrites.push(prep.ready);
+      preps.push({
+        status: "ready",
+        moveKey: prep.ready.moveKey,
+        // capturedAt filled after write
+        receipt: {
+          ...prep.ready.receiptBase,
+          capturedAt: now.toISOString(),
+        },
+      });
+    } else if (prep.status === "needs_confirm") {
+      preps.push({ status: "needs_confirm", moved: prep.moved });
+    } else if (prep.status === "unavailable") {
+      preps.push({ status: "unavailable", moved: prep.moved });
+    } else {
+      preps.push({ status: "error", error: prep.error });
+    }
+  }
+
+  const shaped = shapeBulkSinglesOutcome(preps);
+
+  if (shaped.phase === "error") {
+    return { ok: false, error: shaped.error };
+  }
+  if (shaped.phase === "needs_confirm") {
+    return {
+      ok: false,
+      needsConfirm: shaped.needsConfirm,
+      unavailable: shaped.unavailable.length ? shaped.unavailable : undefined,
+    };
+  }
+  if (shaped.phase === "unavailable_only") {
+    return { ok: false, unavailable: shaped.unavailable };
+  }
+
+  // Write every ready line independently (only shaped.ready — never stale/needsConfirm).
+  const readyByKey = new Map(readyWrites.map((r) => [r.moveKey, r]));
+  const writtenReceipts: StraightReceipt[] = [];
+  const writtenMoveKeys: string[] = [];
+  for (const row of shaped.ready) {
+    const ready = readyByKey.get(row.moveKey);
+    if (!ready) continue;
+    const play = await prisma.play.create({
+      data: {
+        capperId: profile.id,
+        ...ready.data,
+        source: "MANUAL",
+      },
+      select: { createdAt: true },
+    });
+    writtenMoveKeys.push(ready.moveKey);
+    writtenReceipts.push({
+      ...ready.receiptBase,
+      capturedAt: play.createdAt.toISOString(),
+    });
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/picks");
+
+  const suspendedMoveKeys = shaped.unavailable.map((u) => u.moveKey);
+  const receipt = buildBulkSinglesReceipt({
+    picks: writtenReceipts,
+    attemptedCount: inputs.length,
+    suspendedMoveKeys,
+    writtenMoveKeys,
+  });
+
+  return {
+    ok: true,
+    receipt,
+    unavailable: shaped.unavailable.length ? shaped.unavailable : undefined,
   };
 }

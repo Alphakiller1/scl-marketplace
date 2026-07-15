@@ -27,9 +27,8 @@ const PINK_CTA =
   "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)]";
 
 /**
- * Unified sportsbook-style bet slip (M5 PR-3).
- * Singles: per-row units. Parlay: one stake + combined odds + conflict prompt.
- * Bulk singles submit is gated until PR-4.
+ * Unified sportsbook-style bet slip (M5 PR-3 / PR-4).
+ * Singles: per-row units + bulk createPlays. Parlay: one stake + combined odds.
  */
 export function BetSlip({
   onSubmit,
@@ -37,6 +36,7 @@ export function BetSlip({
   movedLines,
   unavailableLines,
   onAcceptMoved,
+  onRemoveMovedLeg,
   onCancelMoved,
   onDismissUnavailable,
   className,
@@ -46,6 +46,7 @@ export function BetSlip({
   movedLines?: MovedLinePayload[] | null;
   unavailableLines?: MovedLinePayload[] | null;
   onAcceptMoved?: (lines: MovedLinePayload[]) => void;
+  onRemoveMovedLeg?: (line: MovedLinePayload) => void;
   onCancelMoved?: () => void;
   onDismissUnavailable?: () => void;
   className?: string;
@@ -86,9 +87,8 @@ export function BetSlip({
   const parlayBlockedByConflicts =
     mode === "parlay" && internalConflicts.length > 0;
   const parlayNeedLegs = mode === "parlay" && selections.length < 2;
-  const singlesBulkGated = mode === "singles" && selections.length >= 2;
   const singlesEmpty = mode === "singles" && selections.length === 0;
-  const canSubmitSingles = mode === "singles" && selections.length === 1;
+  const canSubmitSingles = mode === "singles" && selections.length >= 1;
   const canSubmitParlay =
     mode === "parlay" &&
     selections.length >= 2 &&
@@ -105,13 +105,12 @@ export function BetSlip({
   if (submitting) submitLabel = "Submitting…";
   else if (mode === "singles" && selections.length === 1)
     submitLabel = "Submit Play";
+  else if (mode === "singles" && selections.length > 1)
+    submitLabel = `Submit ${selections.length} Plays`;
   else if (mode === "parlay") submitLabel = "Submit parlay";
 
   let gateReason: string | null = null;
   if (singlesEmpty) gateReason = "Tap a line on the board to build your slip.";
-  else if (singlesBulkGated)
-    gateReason =
-      "Bulk singles submit is coming next — keep one line, or switch to Parlay.";
   else if (parlayNeedLegs)
     gateReason = "Add at least 2 legs, or switch to Singles.";
   else if (parlayBlockedByConflicts)
@@ -296,6 +295,7 @@ export function BetSlip({
         <LineMovedPrompt
           mode="blocked"
           lines={unavailableLines}
+          onRemoveLeg={(line) => onRemoveMovedLeg?.(line)}
           onCancel={() => onDismissUnavailable?.()}
         />
       ) : null}
@@ -304,6 +304,7 @@ export function BetSlip({
           mode="confirm"
           lines={movedLines}
           onAcceptAll={(lines) => onAcceptMoved?.(lines)}
+          onRemoveLeg={(line) => onRemoveMovedLeg?.(line)}
           onCancel={() => onCancelMoved?.()}
         />
       ) : null}

@@ -8,6 +8,11 @@ import { cn } from "@/lib/utils";
  * Straight / Parlay mode selector — SCL_M4_PICK_REDESIGN §4.1.
  * Cards route to existing entry URLs; active mode uses pink conviction fill.
  */
+/**
+ * #113 EntryModeCards — retired from routing by M5 unified slip (PR-3/PR-4).
+ * Kept as a dead module for reference; /new and /new/parlay are thin wrappers
+ * around UnifiedPickEntry. Do not re-wire this into the pick flow.
+ */
 export function EntryModeCards({
   mode,
   className,
