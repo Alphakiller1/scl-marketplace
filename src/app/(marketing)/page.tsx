@@ -29,6 +29,12 @@ export default async function Home() {
     failed: leagueActionFailed,
   } = await getLeagueActionReport();
   const topRoi = sortLeaderboard(cappers, "roi").slice(0, 3);
+  const roiGridClass =
+    topRoi.length <= 1
+      ? "grid gap-2"
+      : topRoi.length === 2
+        ? "grid gap-2 sm:grid-cols-2"
+        : "grid gap-2 sm:grid-cols-2 lg:grid-cols-3";
 
   return (
     <>
@@ -125,7 +131,7 @@ export default async function Home() {
             href="/cappers"
           />
           {topRoi.length ? (
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div className={roiGridClass}>
               {topRoi.map((capper, index) => (
                 <CapperCard
                   key={capper.id}

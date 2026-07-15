@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import type { CapperSummary } from "@/lib/mock";
 import { formatRecord, formatRoi, formatUnits, signTone } from "@/lib/format";
+import { isProvisional } from "@/lib/sample";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
 import { CapperIdentityLabel } from "@/components/scl/capper-identity-label";
 import { SportTag } from "@/components/scl/badges";
@@ -21,12 +22,16 @@ export function LeaderboardRow({
   /** Position within the current list; falls back to the global units rank. */
   rank?: number;
 }) {
+  const graded = capper.settledPicks ?? 0;
+  const provisional = isProvisional(graded);
+  const place = rank ?? capper.rank;
+
   return (
     <Link
       href={`/cappers/${capper.handle}`}
       className="group hover:bg-surface-2 focus-visible:bg-surface-2 focus-visible:ring-ring grid min-h-16 grid-cols-[3.25rem_minmax(13rem,1fr)_5.5rem_5.5rem_5.5rem_4.5rem_8rem] items-center gap-3 px-3 py-2.5 transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
     >
-      <RankBadge rank={rank ?? capper.rank} />
+      <RankBadge rank={place} settledPicks={graded} />
 
       <div className="flex min-w-0 items-center gap-3">
         <CapperAvatar name={capper.name} src={capper.avatarUrl} size="sm" />
@@ -44,18 +49,25 @@ export function LeaderboardRow({
       <StatValue tone="text" className="text-right font-semibold">
         {capper.winPct.toFixed(1)}%
       </StatValue>
-      <StatValue
-        tone={
-          signTone(capper.roi) === "pos"
-            ? "win"
-            : signTone(capper.roi) === "neg"
-              ? "loss"
-              : "text"
-        }
-        className="text-right font-semibold"
-      >
-        {formatRoi(capper.roi)}
-      </StatValue>
+      <div className="text-right">
+        <StatValue
+          tone={
+            signTone(capper.roi) === "pos"
+              ? "win"
+              : signTone(capper.roi) === "neg"
+                ? "loss"
+                : "text"
+          }
+          className="font-semibold"
+        >
+          {formatRoi(capper.roi)}
+        </StatValue>
+        {provisional ? (
+          <span className="text-muted-foreground mt-0.5 block text-[0.65rem] font-semibold tracking-wide uppercase">
+            Provisional
+          </span>
+        ) : null}
+      </div>
       <StatValue
         tone={
           signTone(capper.units) === "pos"
@@ -70,7 +82,7 @@ export function LeaderboardRow({
       </StatValue>
       <div className="text-right">
         <StatValue tone="data" className="text-sm font-semibold">
-          {(capper.settledPicks ?? 0).toLocaleString()}
+          {graded.toLocaleString()}
         </StatValue>
         {capper.verifiedShare != null && capper.verifiedShare > 0 ? (
           <div className="mt-0.5">
@@ -79,7 +91,10 @@ export function LeaderboardRow({
         ) : null}
       </div>
       <div className="flex justify-end">
-        <PerformanceSparkline points={capper.performanceTrend} />
+        <PerformanceSparkline
+          points={capper.performanceTrend}
+          gradedCount={graded}
+        />
       </div>
     </Link>
   );
@@ -112,7 +127,10 @@ export function LeaderboardMobileCard({
       className="border-border bg-card active:bg-surface-2 focus-visible:ring-ring flex min-h-40 flex-col gap-3 rounded-xl border p-3.5 focus-visible:ring-2 focus-visible:outline-none"
     >
       <div className="flex items-center gap-3">
-        <RankBadge rank={rank ?? capper.rank} />
+        <RankBadge
+          rank={rank ?? capper.rank}
+          settledPicks={capper.settledPicks}
+        />
         <CapperAvatar name={capper.name} src={capper.avatarUrl} size="md" />
         <div className="min-w-0 flex-1">
           <CapperIdentityLabel capper={capper} compact />

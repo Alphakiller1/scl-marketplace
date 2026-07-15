@@ -7,6 +7,7 @@ import { RankBadge } from "@/components/scl/rank-badge";
 import { StatValue } from "@/components/scl/stat-value";
 import { cn } from "@/lib/utils";
 import { formatRecord, formatRoi, formatUnits, signTone } from "@/lib/format";
+import { isProvisional } from "@/lib/sample";
 import type { CapperSummary } from "@/lib/mock";
 
 export function CompactCapperRow({
@@ -18,6 +19,8 @@ export function CompactCapperRow({
   rank: number | null | undefined;
   primaryMetric: "units" | "roi";
 }) {
+  const graded = capper.settledPicks ?? 0;
+  const provisional = isProvisional(graded);
   const primaryValue =
     primaryMetric === "units"
       ? formatUnits(capper.units)
@@ -39,7 +42,7 @@ export function CompactCapperRow({
       className="border-border bg-card active:bg-surface-2 focus-visible:ring-ring scl-interactive scl-elevated block min-h-24 rounded-xl border p-3 outline-none focus-visible:ring-2"
     >
       <div className="flex min-w-0 items-center gap-2.5">
-        <RankBadge rank={rank} className="size-9" />
+        <RankBadge rank={rank} settledPicks={graded} className="size-9" />
         <CapperAvatar name={capper.name} src={capper.avatarUrl} size="sm" />
 
         <div className="min-w-0 flex-1">
@@ -74,6 +77,7 @@ export function CompactCapperRow({
           </StatValue>
           <span className="text-muted-foreground text-[0.7rem] font-semibold uppercase">
             {primaryMetric === "units" ? "Units" : "ROI"}
+            {provisional ? " · Prov." : ""}
           </span>
         </div>
       </div>
@@ -99,7 +103,9 @@ export function CompactCapperRow({
           {secondaryValue}
         </StatValue>
         <StatValue tone="label" className="ml-auto truncate text-right">
-          {(capper.settledPicks ?? 0).toLocaleString()} Graded Picks
+          {provisional
+            ? `${graded.toLocaleString()} graded — provisional`
+            : `${graded.toLocaleString()} Graded Picks`}
         </StatValue>
       </div>
     </Link>

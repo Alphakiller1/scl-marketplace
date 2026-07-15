@@ -27,6 +27,14 @@ export function formatRecord(w: number, l: number, p = 0): string {
   return p > 0 ? `${w}-${l}-${p}` : `${w}-${l}`;
 }
 
+/** Public profile join date — e.g. "Jul 2026". */
+export function formatJoinedDate(date: Date): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
 /** Semantic tone for a signed number: positive=pos, negative=neg, else muted. */
 export function signTone(n: number): "pos" | "neg" | "muted" {
   if (n > 0) return "pos";

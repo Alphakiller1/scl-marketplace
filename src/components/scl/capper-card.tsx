@@ -10,6 +10,7 @@ import { RoiStat, UnitStat, WinRateStat } from "@/components/scl/stat";
 import { PerformanceSparkline } from "@/components/scl/performance-sparkline";
 import { RankBadge } from "@/components/scl/rank-badge";
 import { CompactCapperRow } from "@/components/scl/compact-capper-row";
+import { isProvisional } from "@/lib/sample";
 
 /** Discovery card — a capper's public résumé at a glance. */
 export function CapperCard({
@@ -35,7 +36,10 @@ export function CapperCard({
   return (
     <Card className="group scl-interactive hover:border-border-strong relative gap-0 overflow-hidden p-3.5 sm:p-4">
       <div className="flex items-start gap-3">
-        <RankBadge rank={rank ?? capper.rank} />
+        <RankBadge
+          rank={rank ?? capper.rank}
+          settledPicks={capper.settledPicks}
+        />
         <CapperAvatar name={capper.name} src={capper.avatarUrl} size="lg" />
         <div className="min-w-0 flex-1">
           <Link
@@ -46,7 +50,10 @@ export function CapperCard({
           </Link>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <SportTag sport={capper.topSport} />
-            <StreakChip streak={capper.streak} />
+            <StreakChip
+              streak={capper.streak}
+              gradedCount={capper.settledPicks ?? 0}
+            />
             {capper.isLegacy ? <LegacyBadge /> : null}
           </div>
         </div>
@@ -58,7 +65,14 @@ export function CapperCard({
           className="items-center text-center"
         />
         <UnitStat units={capper.units} className="items-center text-center" />
-        <RoiStat roi={capper.roi} className="items-center text-center" />
+        <div className="space-y-1">
+          <RoiStat roi={capper.roi} className="items-center text-center" />
+          {isProvisional(capper.settledPicks) ? (
+            <span className="text-muted-foreground block text-center text-[0.65rem] font-semibold tracking-wide uppercase">
+              Provisional
+            </span>
+          ) : null}
+        </div>
       </div>
 
       <div className="mt-3 flex min-h-10 items-center justify-between gap-3">
@@ -70,6 +84,7 @@ export function CapperCard({
         </div>
         <PerformanceSparkline
           points={capper.performanceTrend}
+          gradedCount={capper.settledPicks ?? 0}
           className="w-24"
         />
       </div>
