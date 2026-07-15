@@ -84,6 +84,7 @@ export function VerificationReceipt({
         stake={stake}
         toWin={toWin}
         capturedAt={receipt.capturedAt}
+        book={receipt.book}
         status={verifiedTone ? "verified" : "muted"}
         footerAction={
           <div className="space-y-3">

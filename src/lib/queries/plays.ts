@@ -23,6 +23,8 @@ export type PlayView = {
   side: string | null;
   /** Scheduled event start (C2) — drives the pre-game/live/awaiting-grade lifecycle. */
   eventStartsAt: Date | null;
+  /** Odds API bookmaker key at capture (M5 §4 source surfacing). */
+  book: string | null;
 };
 
 export type ParlayLegView = {
@@ -32,6 +34,7 @@ export type ParlayLegView = {
   selection: string;
   oddsAmerican: number;
   side: string | null;
+  book: string | null;
 };
 
 /** A capper's parlay as a single position of record, with its legs. */
@@ -98,6 +101,7 @@ export async function getCapperPlays(
     verificationTier: p.verificationTier,
     side: p.side,
     eventStartsAt: p.eventStartsAt,
+    book: p.book,
   }));
 }
 
@@ -137,6 +141,7 @@ export async function getCapperParlays(
           side: true,
           verificationTier: true,
           eventStartsAt: true,
+          book: true,
         },
       },
     },
@@ -162,6 +167,7 @@ export async function getCapperParlays(
       selection: l.selection,
       oddsAmerican: l.oddsAmerican,
       side: l.side,
+      book: l.book,
     })),
   }));
 }
@@ -210,6 +216,7 @@ export async function getPublicRecentPicksResult(
         verificationTier: true,
         side: true,
         eventStartsAt: true,
+        book: true,
       },
       orderBy: { createdAt: "desc" },
       take,

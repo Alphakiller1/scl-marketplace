@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 
 import { BettingTitle } from "@/components/scl/betting-title";
+import { formatOddsCaptureSourceLine } from "@/lib/books";
 import { cn } from "@/lib/utils";
 
 export type TicketStatus = "verified" | "win" | "loss" | "muted" | "pending";
@@ -15,6 +16,8 @@ export type TicketProps = {
   stake: string;
   toWin: string;
   capturedAt?: string | null;
+  /** Odds API bookmaker key — surfaces SOURCE: <BOOK> BOARD (M5 §4). */
+  book?: string | null;
   status?: TicketStatus;
   /** Hero settling sequence — capture fades in, then stamp drops (CSS; reduced-motion safe). */
   settling?: boolean;
@@ -30,29 +33,6 @@ function stampLabel(status: TicketStatus): string {
   return "Verified";
 }
 
-function formatCaptureLine(capturedAt?: string | null): string {
-  if (!capturedAt) return "ODDS CAPTURED · SOURCE: LIVE BOARD";
-  const date = new Date(capturedAt);
-  if (Number.isNaN(date.getTime())) return "ODDS CAPTURED · SOURCE: LIVE BOARD";
-
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York",
-    year: "2-digit",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).formatToParts(date);
-
-  const get = (type: Intl.DateTimeFormatPartTypes) =>
-    parts.find((p) => p.type === type)?.value ?? "";
-
-  const stamp = `${get("month")}·${get("day")}·${get("year")} ${get("hour")}:${get("minute")}:${get("second")} ET`;
-  return `ODDS CAPTURED ${stamp}`;
-}
-
 /**
  * Signature bet-ticket card — perforated tear, pink stamp, mono capture line.
  * Reference: scl-pick-flow-concept.html Exhibit B.
@@ -65,6 +45,7 @@ export function Ticket({
   stake,
   toWin,
   capturedAt,
+  book,
   status = "verified",
   settling = false,
   className,
@@ -72,6 +53,7 @@ export function Ticket({
 }: TicketProps) {
   const pinkStamp = status === "verified" || status === "win";
   const lossStamp = status === "loss";
+  const captureLine = formatOddsCaptureSourceLine({ capturedAt, book });
 
   return (
     <article
@@ -132,10 +114,17 @@ export function Ticket({
             settling && "opacity-0",
           )}
         >
-          {formatCaptureLine(capturedAt)}
-          <br />
-          Source: Live Board ·{" "}
-          <span className="text-pos font-semibold">Grades Automatically</span>
+          {captureLine.split(" · GRADES AUTOMATICALLY").length === 2 ? (
+            <>
+              {captureLine.replace(/ · GRADES AUTOMATICALLY$/, "")}
+              {" · "}
+              <span className="text-pos font-semibold">
+                Grades Automatically
+              </span>
+            </>
+          ) : (
+            captureLine
+          )}
         </p>
         <div className="scl-display shrink-0 text-right text-[0.8rem] font-semibold tracking-[0.06em] uppercase">
           <span className="text-muted-foreground block">To Win</span>

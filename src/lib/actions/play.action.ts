@@ -108,11 +108,23 @@ async function preparePlayLine(
   | { status: "ready"; ready: ReadyWrite }
   | { status: "needs_confirm"; moved: MovedLinePayload }
   | { status: "unavailable"; moved: MovedLinePayload }
-  | { status: "error"; error: string }
+  | {
+      status: "error";
+      error: string;
+      moveKey?: string;
+      selection?: string;
+      market?: string;
+    }
 > {
   const parsed = playSchema.safeParse(input);
   if (!parsed.success) {
-    return { status: "error", error: "Please check the form and try again." };
+    return {
+      status: "error",
+      error: "Please check the form and try again.",
+      selection:
+        typeof input.selection === "string" ? input.selection : undefined,
+      market: typeof input.market === "string" ? input.market : undefined,
+    };
   }
   const d = parsed.data;
 
@@ -121,6 +133,8 @@ async function preparePlayLine(
       status: "error",
       error:
         "Pick a line from the board — manual free-text entry is no longer accepted.",
+      selection: d.selection,
+      market: d.market,
     };
   }
 
@@ -149,6 +163,9 @@ async function preparePlayLine(
     return {
       status: "error",
       error: "Odds unavailable for this event — try again in a moment.",
+      moveKey: key,
+      selection: d.selection,
+      market: d.market,
     };
   }
 
@@ -194,7 +211,13 @@ async function preparePlayLine(
     source: "MANUAL",
   });
   if (!decision.accept) {
-    return { status: "error", error: decision.reason };
+    return {
+      status: "error",
+      error: decision.reason,
+      moveKey: key,
+      selection: d.selection,
+      market: d.market,
+    };
   }
 
   return {
@@ -338,7 +361,13 @@ export async function createPlays(
     } else if (prep.status === "unavailable") {
       preps.push({ status: "unavailable", moved: prep.moved });
     } else {
-      preps.push({ status: "error", error: prep.error });
+      preps.push({
+        status: "error",
+        error: prep.error,
+        moveKey: prep.moveKey,
+        selection: prep.selection,
+        market: prep.market,
+      });
     }
   }
 
@@ -355,6 +384,8 @@ export async function createPlays(
     };
   }
   if (shaped.phase === "unavailable_only") {
+    // Nothing to write — still return unavailable for the slip prompt path.
+    // Failed lines (if any) are not written either; client keeps them via no written keys.
     return { ok: false, unavailable: shaped.unavailable };
   }
 
@@ -383,12 +414,19 @@ export async function createPlays(
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/picks");
 
-  const suspendedMoveKeys = shaped.unavailable.map((u) => u.moveKey);
+  const suspended = shaped.unavailable.map((u) => ({
+    kind: "suspended" as const,
+    selection: u.selection,
+    reason: "line unavailable or suspended",
+    moveKey: u.moveKey,
+    market: u.market,
+  }));
   const receipt = buildBulkSinglesReceipt({
     picks: writtenReceipts,
     attemptedCount: inputs.length,
-    suspendedMoveKeys,
     writtenMoveKeys,
+    suspended,
+    failed: shaped.failed,
   });
 
   return {

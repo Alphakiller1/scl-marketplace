@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import {
   isVerifiedTier,
   submissionReceiptCopy,
+  type BulkReceiptIssue,
   type BulkSinglesReceipt,
   type StraightReceipt,
 } from "@/lib/verification";
@@ -44,6 +45,7 @@ function CompactPickTicket({ pick }: { pick: StraightReceipt }) {
         stake={stake}
         toWin={toWin}
         capturedAt={pick.capturedAt}
+        book={pick.book}
         status={verified ? "verified" : "muted"}
         className="shadow-none"
       />
@@ -51,9 +53,28 @@ function CompactPickTicket({ pick }: { pick: StraightReceipt }) {
   );
 }
 
+function IssueRow({ issue }: { issue: BulkReceiptIssue }) {
+  return (
+    <li
+      className="border-border rounded-[12px] border border-dashed bg-[color:var(--scl-ink-800)] px-4 py-3"
+      role="status"
+    >
+      <p className="scl-display text-muted-foreground text-sm font-semibold tracking-wide uppercase">
+        {issue.selection}
+      </p>
+      <p className="text-muted-foreground mt-1 text-xs">
+        {issue.kind === "suspended" ? "Suspended" : "Not submitted"}
+        {issue.market ? ` · ${issue.market}` : ""}
+        {" — "}
+        {issue.reason}
+      </p>
+    </li>
+  );
+}
+
 /**
  * Bulk-singles receipt stack (M5 §6.2) — header + N compact Tickets.
- * Partial batches show a muted suspended note; CTA still View My Picks.
+ * Partial batches show muted failed/suspended rows; CTA still View My Picks.
  */
 export function ReceiptStack({
   receipt,
@@ -65,6 +86,7 @@ export function ReceiptStack({
   className?: string;
 }) {
   const copy = submissionReceiptCopy(receipt);
+  const issues = [...receipt.failed, ...receipt.suspended];
 
   return (
     <div className={cn("mx-auto max-w-md space-y-4", className)}>
@@ -76,7 +98,7 @@ export function ReceiptStack({
           {copy.headline}
         </h2>
         <p className="scl-data text-muted-foreground text-sm">{copy.summary}</p>
-        {receipt.suspendedCount > 0 ? (
+        {issues.length > 0 ? (
           <p className="text-muted-foreground text-xs" role="status">
             {copy.statusLine}
           </p>
@@ -88,6 +110,12 @@ export function ReceiptStack({
           <li key={`${pick.selection}-${pick.capturedAt}-${i}`}>
             <CompactPickTicket pick={pick} />
           </li>
+        ))}
+        {issues.map((issue, i) => (
+          <IssueRow
+            key={`${issue.kind}-${issue.moveKey ?? issue.selection}-${i}`}
+            issue={issue}
+          />
         ))}
       </ul>
 

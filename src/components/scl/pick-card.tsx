@@ -116,6 +116,7 @@ export function PickCard({
       stake={formatUnits(pick.units, true, false)}
       toWin={toWin}
       capturedAt={pick.postedAt.toISOString()}
+      book={pick.book}
       status={ticketStatusFor(pick)}
       className={compact ? "rounded-[14px]" : undefined}
       footerAction={<CapperTicketFooter pick={pick} />}

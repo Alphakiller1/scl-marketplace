@@ -27,6 +27,7 @@ export type PublicPlayJoinRow = {
   verificationTier: VerificationTier;
   side: string | null;
   eventStartsAt: Date | null;
+  book?: string | null;
 };
 
 /**
@@ -75,6 +76,7 @@ export function joinPlaysToPublicPicks(
         side: play.side,
         market: play.market,
         profitUnits: play.profitUnits == null ? null : Number(play.profitUnits),
+        book: play.book ?? null,
       } satisfies TodayPick,
     ];
   });

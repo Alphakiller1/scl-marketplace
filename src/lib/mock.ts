@@ -99,6 +99,8 @@ export type TodayPick = {
   side?: string | null;
   market?: string;
   profitUnits?: number | null;
+  /** Odds API bookmaker key at capture — Ticket SOURCE line (M5 §4). */
+  book?: string | null;
 };
 
 const ago = (mins: number) => new Date(Date.now() - mins * 60_000);

@@ -21,6 +21,7 @@ import {
   decimalToAmerican,
 } from "@/lib/odds";
 import type { MovedLinePayload } from "@/lib/odds-movement";
+import { bookShort, isBookKey, type BookKey } from "@/lib/books";
 import { cn } from "@/lib/utils";
 
 const PINK_CTA =
@@ -116,6 +117,20 @@ export function BetSlip({
   else if (parlayBlockedByConflicts)
     gateReason = "Remove conflicting legs before submitting this parlay.";
 
+  const bookKeys = [
+    ...new Set(
+      selections
+        .map((s) => (s.book && isBookKey(s.book) ? s.book : null))
+        .filter((b): b is BookKey => b != null),
+    ),
+  ];
+  const activeBookLabel =
+    bookKeys.length === 1
+      ? bookShort(bookKeys[0]!)
+      : bookKeys.length > 1
+        ? "MIXED"
+        : null;
+
   if (selections.length === 0 && !hasPrompt) {
     return (
       <Card
@@ -148,6 +163,7 @@ export function BetSlip({
             {mode === "singles"
               ? `Singles · ${selections.length} pick${selections.length === 1 ? "" : "s"}`
               : `Parlay · ${selections.length}-leg${selections.length === 1 ? "" : "s"}`}
+            {activeBookLabel ? ` · ${activeBookLabel}` : ""}
           </p>
           {mode === "parlay" && combinedAmerican != null ? (
             <StatValue tone="pink" className="mt-0.5 text-lg font-bold">
@@ -220,6 +236,11 @@ export function BetSlip({
                   <span className="scl-data text-foreground font-semibold">
                     {formatOdds(s.oddsAmerican)}
                   </span>
+                  {s.book && isBookKey(s.book) ? (
+                    <span className="scl-data text-muted-foreground ml-1.5 tracking-[0.06em] uppercase">
+                      {bookShort(s.book)}
+                    </span>
+                  ) : null}
                 </p>
               </div>
               <button

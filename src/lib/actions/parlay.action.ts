@@ -200,6 +200,14 @@ export async function createParlay(
   const verifiedLegCount = tiers.filter(isVerifiedTier).length;
   const allLoggedPreGame = decided.every((x) => x.loggedPreGame);
   const moveNotes = decided.map((x) => x.moveNote).filter(Boolean) as string[];
+  const legBooks = [
+    ...new Set(
+      decided
+        .map((x) => (x.leg.book && isBookKey(x.leg.book) ? x.leg.book : null))
+        .filter((b): b is NonNullable<typeof b> => b != null),
+    ),
+  ];
+  const parlayBook = legBooks.length === 1 ? legBooks[0]! : null;
 
   const parlay = await prisma.parlay.create({
     data: {
@@ -256,6 +264,7 @@ export async function createParlay(
       units: d.units,
       toWinUnits: d.units * (combinedDecimal - 1),
       moveNotes: moveNotes.length ? moveNotes : undefined,
+      book: parlayBook,
     },
   };
 }
