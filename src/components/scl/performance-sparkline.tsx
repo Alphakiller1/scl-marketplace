@@ -1,14 +1,35 @@
 import { cn } from "@/lib/utils";
+import { hasSignal } from "@/lib/sample";
+
+const NO_TREND_TITLE = "Not enough graded picks for a trend";
 
 export function PerformanceSparkline({
   points,
+  gradedCount,
   className,
   label = "Cumulative unit trend",
 }: {
   points?: number[];
+  /** When set and below {@link hasSignal}, render an honest empty instead of a flat line. */
+  gradedCount?: number;
   className?: string;
   label?: string;
 }) {
+  if (gradedCount != null && !hasSignal(gradedCount)) {
+    return (
+      <span
+        className={cn(
+          "scl-data text-muted-foreground inline-flex h-9 min-w-[7.5rem] items-center justify-end text-sm tabular-nums",
+          className,
+        )}
+        title={NO_TREND_TITLE}
+        aria-label={NO_TREND_TITLE}
+      >
+        —
+      </span>
+    );
+  }
+
   const values = points?.length ? points : [0, 0];
   const min = Math.min(...values);
   const max = Math.max(...values);

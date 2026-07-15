@@ -10,10 +10,11 @@ import {
 } from "@/components/scl/stat";
 import { RecentFormStrip, StreakChip } from "@/components/scl/indicators";
 import { PerformanceSparkline } from "@/components/scl/performance-sparkline";
+import { hasSignal } from "@/lib/sample";
 
 /**
  * The capper's headline performance — trust metrics first, then record depth
- * and recent form. ROI + verified share lead; supporting stats stay scannable.
+ * and recent form. Small samples show honest empties (no fabricated trend/streak).
  */
 export function PerformanceSummary({
   capper,
@@ -23,6 +24,7 @@ export function PerformanceSummary({
   className?: string;
 }) {
   const graded = capper.settledPicks ?? 0;
+  const provisional = !hasSignal(graded);
   const verifiedPct =
     capper.verifiedShare != null && capper.verifiedShare > 0
       ? Math.round(capper.verifiedShare)
@@ -34,16 +36,32 @@ export function PerformanceSummary({
         <h2 className="text-muted-foreground text-[0.7rem] font-semibold tracking-wide uppercase">
           Performance
         </h2>
-        <StreakChip streak={capper.streak} />
+        <StreakChip streak={capper.streak} gradedCount={graded} />
       </div>
 
       {/* Trust hierarchy: ROI + units carry sign color; verified share is the integrity signal */}
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-        <RoiStat roi={capper.roi} />
+        <div className="space-y-1.5">
+          <RoiStat roi={capper.roi} />
+          {provisional ? (
+            <span
+              className="border-border text-muted-foreground inline-flex min-h-8 items-center rounded-md border px-2 text-[0.7rem] font-semibold tracking-wide uppercase"
+              title="Small graded sample — ROI is provisional"
+            >
+              Provisional
+            </span>
+          ) : null}
+        </div>
         <UnitStat units={capper.units} />
         <RecordStat record={capper.record} />
         <WinRateStat winPct={capper.winPct} />
       </div>
+
+      {provisional ? (
+        <p className="text-muted-foreground mt-3 text-xs" role="status">
+          {graded.toLocaleString()} graded — provisional record
+        </p>
+      ) : null}
 
       <div className="border-border mt-4 grid gap-3 border-t pt-4 sm:grid-cols-[1fr_auto] sm:items-center">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -67,7 +85,10 @@ export function PerformanceSummary({
             <RecentFormStrip form={capper.recentForm} />
           </div>
         </div>
-        <PerformanceSparkline points={capper.performanceTrend} />
+        <PerformanceSparkline
+          points={capper.performanceTrend}
+          gradedCount={graded}
+        />
       </div>
     </Card>
   );

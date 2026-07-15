@@ -46,7 +46,10 @@ export function CapperCard({
           </Link>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <SportTag sport={capper.topSport} />
-            <StreakChip streak={capper.streak} />
+            <StreakChip
+              streak={capper.streak}
+              gradedCount={capper.settledPicks ?? 0}
+            />
             {capper.isLegacy ? <LegacyBadge /> : null}
           </div>
         </div>
@@ -70,6 +73,7 @@ export function CapperCard({
         </div>
         <PerformanceSparkline
           points={capper.performanceTrend}
+          gradedCount={capper.settledPicks ?? 0}
           className="w-24"
         />
       </div>

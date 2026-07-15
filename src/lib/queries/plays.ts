@@ -4,6 +4,7 @@ import type { Outcome } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import type { CapperSummary, TodayPick } from "@/lib/mock";
+import { PUBLIC_LISTED_CAPPER_USER_WHERE } from "@/lib/public-capper";
 import { joinPlaysToPublicPicks } from "@/lib/public-picks";
 import { isVerifiedTier, type VerificationTier } from "@/lib/verification";
 
@@ -195,10 +196,7 @@ export async function getPublicRecentPicksResult(
     const plays = await prisma.play.findMany({
       where: {
         capper: {
-          user: {
-            accountStatus: "ACTIVE",
-            username: { not: null },
-          },
+          user: PUBLIC_LISTED_CAPPER_USER_WHERE,
         },
       },
       select: {

@@ -79,7 +79,10 @@ export function LeaderboardRow({
         ) : null}
       </div>
       <div className="flex justify-end">
-        <PerformanceSparkline points={capper.performanceTrend} />
+        <PerformanceSparkline
+          points={capper.performanceTrend}
+          gradedCount={capper.settledPicks ?? 0}
+        />
       </div>
     </Link>
   );

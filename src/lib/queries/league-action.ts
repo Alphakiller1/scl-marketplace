@@ -2,6 +2,7 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import { rankLeagueAction, type LeagueActionItem } from "@/lib/league-action";
+import { PUBLIC_LISTED_CAPPER_USER_WHERE } from "@/lib/public-capper";
 
 const DEFAULT_WINDOW_DAYS = 14;
 const DEFAULT_TAKE = 6;
@@ -10,6 +11,8 @@ export type LeagueActionReportResult = {
   leagues: LeagueActionItem[];
   windowDays: number;
   failed: boolean;
+  /** Volume uses public+listed cappers, including Building-a-Record places. */
+  includesUnranked: boolean;
 };
 
 export async function getLeagueActionReport({
@@ -26,10 +29,7 @@ export async function getLeagueActionReport({
       where: {
         createdAt: { gte: since },
         capper: {
-          user: {
-            accountStatus: "ACTIVE",
-            username: { not: null },
-          },
+          user: PUBLIC_LISTED_CAPPER_USER_WHERE,
         },
       },
       select: {
@@ -43,10 +43,16 @@ export async function getLeagueActionReport({
     return {
       leagues: rankLeagueAction(plays, take),
       windowDays,
+      includesUnranked: true,
       failed: false,
     };
   } catch (error) {
     console.error("[getLeagueActionReport] database unavailable:", error);
-    return { leagues: [], windowDays, failed: true };
+    return {
+      leagues: [],
+      windowDays,
+      includesUnranked: true,
+      failed: true,
+    };
   }
 }

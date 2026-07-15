@@ -8,6 +8,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import type { FormResult } from "@/lib/mock";
+import { hasSignal } from "@/lib/sample";
 
 /** Rank movement vs previous period. Motion-free, scan-fast. */
 export function RankMovementIndicator({
@@ -93,14 +94,17 @@ export function RecentFormStrip({
   );
 }
 
-/** Win/loss streak chip. */
+/** Win/loss streak chip — suppressed until graded sample clears the signal gate. */
 export function StreakChip({
   streak,
+  gradedCount,
   className,
 }: {
   streak: number;
+  gradedCount?: number;
   className?: string;
 }) {
+  if (gradedCount != null && !hasSignal(gradedCount)) return null;
   if (streak === 0) return null;
   const hot = streak > 0;
   return (

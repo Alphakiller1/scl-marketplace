@@ -9,6 +9,7 @@ import {
   partitionLeaderboard,
   type LeaderboardFilters,
 } from "@/lib/leaderboard";
+import { PUBLIC_LISTED_CAPPER_USER_WHERE } from "@/lib/public-capper";
 import { computeCapperStats } from "@/lib/stats";
 import { computeVerifiedShare } from "@/lib/verification";
 import type { CapperSummary, FormResult } from "@/lib/mock";
@@ -36,8 +37,7 @@ function fetchRankableProfiles(filters: LeaderboardFilters) {
   return prisma.capperProfile.findMany({
     where: {
       user: {
-        username: { not: null },
-        accountStatus: "ACTIVE",
+        ...PUBLIC_LISTED_CAPPER_USER_WHERE,
         ...(filters.verifiedOnly
           ? { emailVerified: { not: null } }
           : undefined),
