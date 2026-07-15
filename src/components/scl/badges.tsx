@@ -3,6 +3,10 @@ import { BadgeCheck, History, Trophy } from "lucide-react";
 import { LeagueMark } from "@/components/scl/league-mark";
 import { cn } from "@/lib/utils";
 import { SPORTS } from "@/lib/constants";
+import {
+  LIFECYCLE_CHIP_STYLES,
+  lifecycleChipAriaLabel,
+} from "@/lib/lifecycle-chip";
 import type { PickStatus } from "@/lib/mock";
 import {
   isVerifiedTier,
@@ -132,45 +136,6 @@ export function SportTag({
   );
 }
 
-const STATUS_STYLES: Record<
-  PickStatus,
-  { label: string; className: string; live?: boolean }
-> = {
-  "pre-game": {
-    label: "Pre-Game",
-    className: "bg-live/10 text-live ring-1 ring-live/25",
-  },
-  pending: {
-    label: "Pending",
-    className: "bg-muted/60 text-muted-foreground",
-  },
-  live: {
-    label: "Live",
-    className: "bg-live/15 text-live ring-1 ring-live/30",
-    live: true,
-  },
-  "awaiting-grade": {
-    label: "Awaiting Grade",
-    className: "bg-muted/50 text-muted-foreground",
-  },
-  win: {
-    label: "Won",
-    className: "bg-pos/15 text-pos ring-1 ring-pos/30",
-  },
-  loss: {
-    label: "Lost",
-    className: "bg-neg/15 text-neg ring-1 ring-neg/30",
-  },
-  push: {
-    label: "Push",
-    className: "border-border text-foreground border bg-transparent",
-  },
-  void: {
-    label: "Void",
-    className: "bg-muted/40 text-muted-foreground",
-  },
-};
-
 export function StatusBadge({
   status,
   className,
@@ -178,7 +143,7 @@ export function StatusBadge({
   status: PickStatus;
   className?: string;
 }) {
-  const s = STATUS_STYLES[status];
+  const s = LIFECYCLE_CHIP_STYLES[status];
   return (
     <span
       className={cn(
@@ -186,7 +151,7 @@ export function StatusBadge({
         s.className,
         className,
       )}
-      aria-label={`Result: ${s.label}`}
+      aria-label={lifecycleChipAriaLabel(status)}
     >
       {s.live ? (
         <span className="relative flex size-1.5">
