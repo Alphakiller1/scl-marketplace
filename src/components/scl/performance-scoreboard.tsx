@@ -65,6 +65,7 @@ export function PerformanceScoreboard({
         </div>
         <PerformanceSparkline
           points={performanceTrend}
+          gradedCount={settled}
           className="h-12 w-full sm:w-36"
           label="Your cumulative unit trend"
         />

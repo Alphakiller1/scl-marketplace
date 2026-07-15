@@ -1,5 +1,5 @@
 import type { CapperSummary } from "@/lib/mock";
-import { bookShort } from "@/lib/books";
+import { bookLabel, bookShort } from "@/lib/books";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
 import {
   LegacyBadge,
@@ -11,7 +11,9 @@ import { RankMovementIndicator } from "@/components/scl/indicators";
 import { RankBadge, BUILDING_RECORD_LABEL } from "@/components/scl/rank-badge";
 import { Button } from "@/components/ui/button";
 import { formatLastPickDate } from "@/lib/capper-activity";
+import { formatJoinedDate } from "@/lib/format";
 import { identityDisplayLinesFromCapper } from "@/lib/identity";
+import { isProvisional } from "@/lib/sample";
 
 /**
  * The public capper profile hero — full-bleed cover, then identity / trust
@@ -93,16 +95,20 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
 
         <div className="text-muted-foreground mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
           <span className="inline-flex items-center gap-2">
-            <RankBadge rank={capper.rank} />
+            <RankBadge rank={capper.rank} settledPicks={capper.settledPicks} />
             <span className="leading-tight">
               <span className="text-foreground block text-xs font-semibold tracking-wide uppercase">
-                {capper.rank > 0 ? "Rank" : "Standing"}
+                {capper.rank > 0
+                  ? isProvisional(capper.settledPicks)
+                    ? "Provisional Rank"
+                    : "Rank"
+                  : "Standing"}
               </span>
               <span className="inline-flex items-center gap-1 text-xs">
                 {capper.rank > 0 ? (
                   <>
                     #{capper.rank}
-                    {capper.rankDelta ? (
+                    {capper.rankDelta && !isProvisional(capper.settledPicks) ? (
                       <RankMovementIndicator delta={capper.rankDelta} />
                     ) : null}
                   </>
@@ -128,7 +134,7 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
             <>
               <span className="border-border h-7 border-l" aria-hidden />
               <span className="text-xs">
-                Since {capper.joinedAt.getFullYear()}
+                Joined {formatJoinedDate(capper.joinedAt)}
               </span>
             </>
           ) : null}
@@ -146,25 +152,36 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
           {activity ? (
             <>
               <span className="border-border h-7 border-l" aria-hidden />
-              <span
-                className="nums text-xs tabular-nums"
-                title="Tracked picks in the last 3 days, 14 days, and current calendar month"
-              >
-                <span className="text-foreground font-medium">
-                  {activity.last3Days}
+              {activity.last3Days === 0 &&
+              activity.last14Days === 0 &&
+              activity.month === 0 ? (
+                <span
+                  className="text-xs"
+                  title="Tracked picks in the last 3 days, 14 days, and current calendar month: 0/3d · 0/14d · 0/mo"
+                >
+                  No picks this week
                 </span>
-                <span className="text-muted-foreground">/3d</span>
-                <span className="text-muted-foreground mx-1">·</span>
-                <span className="text-foreground font-medium">
-                  {activity.last14Days}
+              ) : (
+                <span
+                  className="nums text-xs tabular-nums"
+                  title="Tracked picks in the last 3 days, 14 days, and current calendar month"
+                >
+                  <span className="text-foreground font-medium">
+                    {activity.last3Days}
+                  </span>
+                  <span className="text-muted-foreground">/3d</span>
+                  <span className="text-muted-foreground mx-1">·</span>
+                  <span className="text-foreground font-medium">
+                    {activity.last14Days}
+                  </span>
+                  <span className="text-muted-foreground">/14d</span>
+                  <span className="text-muted-foreground mx-1">·</span>
+                  <span className="text-foreground font-medium">
+                    {activity.month}
+                  </span>
+                  <span className="text-muted-foreground">/mo</span>
                 </span>
-                <span className="text-muted-foreground">/14d</span>
-                <span className="text-muted-foreground mx-1">·</span>
-                <span className="text-foreground font-medium">
-                  {activity.month}
-                </span>
-                <span className="text-muted-foreground">/mo</span>
-              </span>
+              )}
             </>
           ) : null}
         </div>
@@ -196,9 +213,22 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                 <p className="text-muted-foreground mb-1.5 text-[0.7rem] font-semibold tracking-wide uppercase">
                   Books
                 </p>
-                <p className="scl-data text-muted-foreground text-xs font-medium tracking-[0.04em]">
-                  {selectedBooks.map((key) => bookShort(key)).join(" · ")}
-                </p>
+                <div
+                  className="flex flex-wrap items-center gap-1.5"
+                  role="list"
+                  aria-label="Sportsbooks"
+                >
+                  {selectedBooks.map((key) => (
+                    <span
+                      key={key}
+                      role="listitem"
+                      title={bookLabel(key)}
+                      className="scl-data border-border text-muted-foreground inline-flex h-9 items-center justify-center rounded-[18px] border bg-[color:var(--scl-ink-800)] px-3 text-[11px] font-medium tracking-[0.08em] uppercase"
+                    >
+                      {bookShort(key)}
+                    </span>
+                  ))}
+                </div>
               </div>
             ) : null}
             {capper.specialties?.length ? (

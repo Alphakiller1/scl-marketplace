@@ -1,18 +1,24 @@
 import { Crown, Medal } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { isProvisional } from "@/lib/sample";
 
 /** Shared vocabulary for below-sample / unranked cappers (leaderboard + feed). */
 export const BUILDING_RECORD_LABEL = "Building a record";
 
 export function RankBadge({
   rank,
+  settledPicks,
   className,
 }: {
   /** Competition place. `0` / null / undefined = unranked (building a record). */
   rank: number | null | undefined;
+  /** When provisional (n&lt;10), suppress rank-1 crown and mark provisional. */
+  settledPicks?: number | null;
   className?: string;
 }) {
+  const provisional = isProvisional(settledPicks);
+
   if (rank == null || rank <= 0) {
     return (
       <span
@@ -25,6 +31,22 @@ export function RankBadge({
         title={BUILDING_RECORD_LABEL}
       >
         —
+      </span>
+    );
+  }
+
+  // Small samples: show place number without podium crown/medal.
+  if (provisional) {
+    return (
+      <span
+        className={cn(
+          "scl-data border-border bg-surface-2 text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-lg border text-sm font-bold tabular-nums",
+          className,
+        )}
+        aria-label={`Rank ${rank} (provisional)`}
+        title="Provisional — below minimum graded sample"
+      >
+        {rank}
       </span>
     );
   }

@@ -44,7 +44,13 @@ export function Leaderboard({
 
   return (
     <>
-      <div className="hidden md:block">
+      <div
+        className={
+          visible.length === 1
+            ? "border-border bg-card hidden overflow-hidden rounded-xl border md:block"
+            : "hidden md:block"
+        }
+      >
         <div className="text-muted-foreground grid grid-cols-[3.25rem_minmax(13rem,1fr)_5.5rem_5.5rem_5.5rem_4.5rem_8rem] items-center gap-3 border-b px-3 py-2 text-[0.7rem] font-semibold uppercase">
           <span>Rank</span>
           <span>Capper</span>
