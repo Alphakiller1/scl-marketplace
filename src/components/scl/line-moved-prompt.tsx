@@ -26,9 +26,11 @@ function formatCaptureEt(iso: string): string {
 function LineCard({
   line,
   onAccept,
+  onRemove,
 }: {
   line: MovedLinePayload;
   onAccept?: (line: MovedLinePayload) => void;
+  onRemove?: (line: MovedLinePayload) => void;
 }) {
   const unavailable = line.class === "unavailable";
   const book =
@@ -83,31 +85,46 @@ function LineCard({
 
       {unavailable ? (
         <p className="text-neg text-xs font-medium">
-          This line is unavailable or suspended — remove it before submitting.
+          This line is unavailable or suspended — remove it to continue.
         </p>
-      ) : onAccept ? (
-        <button
-          type="button"
-          onClick={() => onAccept(line)}
-          className="min-h-11 w-full rounded-[10px] border border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] px-4 text-sm font-semibold text-[color:var(--scl-pink-ink)] transition-colors hover:bg-[color:var(--scl-pink-deep)]"
-        >
-          Accept Updated Odds{" "}
-          {line.updatedOddsAmerican != null
-            ? formatOdds(line.updatedOddsAmerican)
-            : ""}
-        </button>
       ) : null}
+
+      <div className="flex flex-col gap-2 sm:flex-row">
+        {!unavailable && onAccept ? (
+          <button
+            type="button"
+            onClick={() => onAccept(line)}
+            className="min-h-11 flex-1 rounded-[10px] border border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] px-4 text-sm font-semibold text-[color:var(--scl-pink-ink)] transition-colors hover:bg-[color:var(--scl-pink-deep)]"
+          >
+            Accept Updated Odds{" "}
+            {line.updatedOddsAmerican != null
+              ? formatOdds(line.updatedOddsAmerican)
+              : ""}
+          </button>
+        ) : null}
+        {onRemove ? (
+          <button
+            type="button"
+            onClick={() => onRemove(line)}
+            className="border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 min-h-11 flex-1 rounded-[10px] border px-4 text-sm font-semibold transition-colors"
+          >
+            Remove leg
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }
 
 /**
  * Ticket-adjacent odds-movement prompt (M5 §3.2). Pink conviction CTAs; no blur/glass/gold.
+ * Supports multi-line accept / remove / cancel for bulk singles.
  */
 export function LineMovedPrompt({
   lines,
   mode = "confirm",
   onAcceptAll,
+  onRemoveLeg,
   onCancel,
   className,
 }: {
@@ -115,13 +132,16 @@ export function LineMovedPrompt({
   /** confirm = changed lines needing accept; blocked = unavailable only. */
   mode?: "confirm" | "blocked";
   onAcceptAll?: (accepted: MovedLinePayload[]) => void;
+  onRemoveLeg?: (line: MovedLinePayload) => void;
   onCancel: () => void;
   className?: string;
 }) {
   const title =
     mode === "blocked"
-      ? "Line unavailable — cannot submit"
+      ? "Line unavailable — review before submit"
       : "Line moved — review before submit";
+
+  const confirmable = lines.filter((l) => l.class === "changed");
 
   return (
     <div
@@ -142,8 +162,8 @@ export function LineMovedPrompt({
         </p>
         <p id="line-moved-desc" className="text-muted-foreground text-xs">
           {mode === "blocked"
-            ? "A selected line is no longer offered. Cancel and remove it from your slip — nothing was written."
-            : "Live odds changed beyond tolerance. Accept the updated price to continue, or cancel — nothing has been written yet."}
+            ? "A selected line is no longer offered. Remove it to submit the rest, or cancel — nothing has been written yet for pending lines."
+            : "Live odds changed beyond tolerance. Accept updated prices, remove a leg, or cancel — nothing has been written yet."}
         </p>
       </div>
 
@@ -157,14 +177,15 @@ export function LineMovedPrompt({
                 ? (l) => onAcceptAll([l])
                 : undefined
             }
+            onRemove={onRemoveLeg}
           />
         ))}
       </div>
 
-      {mode === "confirm" && lines.length > 1 && onAcceptAll ? (
+      {mode === "confirm" && confirmable.length > 1 && onAcceptAll ? (
         <button
           type="button"
-          onClick={() => onAcceptAll(lines)}
+          onClick={() => onAcceptAll(confirmable)}
           className="min-h-11 w-full rounded-[10px] border border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] px-4 text-sm font-semibold text-[color:var(--scl-pink-ink)] transition-colors hover:bg-[color:var(--scl-pink-deep)]"
         >
           Accept All Updated Odds

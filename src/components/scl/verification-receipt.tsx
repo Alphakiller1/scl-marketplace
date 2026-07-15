@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { PickTierBadge } from "@/components/scl/badges";
+import { ReceiptStack } from "@/components/scl/receipt-stack";
 import { Ticket } from "@/components/scl/ticket";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,16 @@ export function VerificationReceipt({
   picksHref?: string;
   className?: string;
 }) {
+  if (receipt.kind === "bulk") {
+    return (
+      <ReceiptStack
+        receipt={receipt}
+        picksHref={picksHref}
+        className={className}
+      />
+    );
+  }
+
   const copy = submissionReceiptCopy(receipt);
   const verifiedTone = copy.tone === "verified";
   const showTier =
