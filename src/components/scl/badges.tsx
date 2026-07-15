@@ -137,8 +137,11 @@ const STATUS_STYLES: Record<
   { label: string; className: string; live?: boolean }
 > = {
   "pre-game": {
+    // Informational blue OUTLINE — distinct from the filled + pulsing `live` state, and not
+    // wearing the `live` token. Pre-game is a lifecycle state, never a result.
     label: "Pre-Game",
-    className: "bg-live/10 text-live ring-1 ring-live/25",
+    className:
+      "border border-[color:var(--scl-blue)]/40 text-[color:var(--scl-blue)]",
   },
   pending: {
     label: "Pending",
@@ -179,6 +182,13 @@ export function StatusBadge({
   className?: string;
 }) {
   const s = STATUS_STYLES[status];
+  // Only graded outcomes are a "result"; lifecycle states are a "status" — never conflate
+  // the two (the M5 authenticity-vs-result split must hold at the aria layer too).
+  const isResult =
+    status === "win" ||
+    status === "loss" ||
+    status === "push" ||
+    status === "void";
   return (
     <span
       className={cn(
@@ -186,7 +196,7 @@ export function StatusBadge({
         s.className,
         className,
       )}
-      aria-label={`Result: ${s.label}`}
+      aria-label={`${isResult ? "Result" : "Status"}: ${s.label}`}
     >
       {s.live ? (
         <span className="relative flex size-1.5">

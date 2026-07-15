@@ -11,6 +11,7 @@ import { PerformanceSummary } from "@/components/scl/performance-summary";
 import { PlayListItem } from "@/components/scl/play-list-item";
 import { SectionHeader } from "@/components/scl/section";
 import { EmptyState } from "@/components/scl/states";
+import { VerificationLegend } from "@/components/scl/verification-legend";
 
 type ProfileParams = { params: Promise<{ handle: string }> };
 
@@ -62,11 +63,14 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
               subtitle="Latest tracked plays, newest first"
             />
             {plays.length ? (
-              <div className="mt-4 space-y-2">
-                {plays.map((play) => (
-                  <PlayListItem key={play.id} play={play} />
-                ))}
-              </div>
+              <>
+                <VerificationLegend className="mt-4" />
+                <div className="mt-3 space-y-2">
+                  {plays.map((play) => (
+                    <PlayListItem key={play.id} play={play} />
+                  ))}
+                </div>
+              </>
             ) : playsError ? (
               <EmptyState
                 className="mt-4"
