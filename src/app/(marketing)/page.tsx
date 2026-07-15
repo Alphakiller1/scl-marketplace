@@ -55,7 +55,7 @@ export default async function Home() {
           <SectionHeader
             icon={Activity}
             title="League Action Report"
-            subtitle={`Most active leagues by tracked pick volume over the last ${windowDays} days`}
+            subtitle={`Tracked pick volume across all active cappers — ranked and building a record — over the last ${windowDays} days`}
             href="/picks"
           />
           {leagues.length ? (
