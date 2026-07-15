@@ -6,7 +6,9 @@ import {
   bookLabel,
   bookShort,
   bookmakersQueryParam,
+  formatOddsCaptureSourceLine,
   isBookKey,
+  oddsSourceBoardLabel,
 } from "@/lib/books";
 
 describe("books", () => {
@@ -30,6 +32,36 @@ describe("books", () => {
     assert.equal(
       bookmakersQueryParam(["draftkings", "fanduel", "nope"]),
       "draftkings,fanduel",
+    );
+  });
+
+  it("oddsSourceBoardLabel: book set vs LIVE BOARD", () => {
+    assert.equal(oddsSourceBoardLabel(null), "LIVE BOARD");
+    assert.equal(oddsSourceBoardLabel(undefined), "LIVE BOARD");
+    assert.equal(oddsSourceBoardLabel(""), "LIVE BOARD");
+    assert.equal(oddsSourceBoardLabel("draftkings"), "DraftKings BOARD");
+    assert.equal(oddsSourceBoardLabel("fanduel"), "FanDuel BOARD");
+  });
+
+  it("formatOddsCaptureSourceLine includes SOURCE board", () => {
+    const withBook = formatOddsCaptureSourceLine({
+      capturedAt: "2026-07-14T16:00:00.000Z",
+      book: "draftkings",
+    });
+    assert.match(withBook, /^ODDS CAPTURED /);
+    assert.match(withBook, /SOURCE: DraftKings BOARD/);
+    assert.match(withBook, /GRADES AUTOMATICALLY$/);
+
+    const noBook = formatOddsCaptureSourceLine({
+      capturedAt: "2026-07-14T16:00:00.000Z",
+      book: null,
+    });
+    assert.match(noBook, /SOURCE: LIVE BOARD/);
+    assert.match(noBook, /GRADES AUTOMATICALLY$/);
+
+    assert.equal(
+      formatOddsCaptureSourceLine({ book: "fanduel" }),
+      "ODDS CAPTURED · SOURCE: FanDuel BOARD · GRADES AUTOMATICALLY",
     );
   });
 });

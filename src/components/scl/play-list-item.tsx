@@ -3,6 +3,7 @@ import { SportTag, StatusBadge } from "@/components/scl/badges";
 import { StatValue } from "@/components/scl/stat-value";
 import { VerifiedBadge } from "@/components/scl/verified-badge";
 import { TeamMark } from "@/components/scl/team-mark";
+import { oddsSourceBoardLabel } from "@/lib/books";
 import { deriveLifecycle } from "@/lib/lifecycle";
 import { pickContextLabel, teamIdentityFromSide } from "@/lib/pick-identity";
 import type { ParlayView, PlayView } from "@/lib/queries/plays";
@@ -15,6 +16,7 @@ export function PlayListItem({ play }: { play: PlayView }) {
     league: play.league,
     market: play.market,
   });
+  const source = oddsSourceBoardLabel(play.book);
 
   return (
     <div className="border-border bg-card overflow-hidden rounded-xl border p-3.5">
@@ -49,6 +51,9 @@ export function PlayListItem({ play }: { play: PlayView }) {
           <StatValue tone="data">
             {formatUnits(play.units, true, false)}
           </StatValue>
+          <span className="scl-data text-muted-foreground tracking-[0.06em] uppercase">
+            {source}
+          </span>
         </div>
         {hasResult ? (
           <StatValue
@@ -66,6 +71,15 @@ export function PlayListItem({ play }: { play: PlayView }) {
 /** A parlay as one record row: leg list + combined odds, stake, and settled result. */
 export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
   const hasResult = parlay.profitUnits != null;
+  const legBooks = [
+    ...new Set(
+      parlay.legs.map((l) => l.book).filter((b): b is string => Boolean(b)),
+    ),
+  ];
+  const source =
+    legBooks.length === 1
+      ? oddsSourceBoardLabel(legBooks[0]!)
+      : oddsSourceBoardLabel(null);
 
   return (
     <div className="border-border bg-card overflow-hidden rounded-xl border p-3.5">
@@ -111,6 +125,9 @@ export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
           <StatValue tone="data">
             {formatUnits(parlay.units, true, false)}
           </StatValue>
+          <span className="scl-data text-muted-foreground tracking-[0.06em] uppercase">
+            {source}
+          </span>
         </div>
         {hasResult ? (
           <StatValue

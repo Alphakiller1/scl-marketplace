@@ -135,14 +135,18 @@ function UnifiedPickEntryInner() {
     setUnavailableLines(null);
     setAcceptedSoFar([]);
     const written = new Set(bulk.writtenMoveKeys);
+    const failedKeys = new Set(
+      bulk.failed.map((f) => f.moveKey).filter((k): k is string => Boolean(k)),
+    );
     for (const s of selections) {
-      if (written.has(selectionMoveKey(s))) removeSelection(s.id);
+      const key = selectionMoveKey(s);
+      if (written.has(key) || failedKeys.has(key)) removeSelection(s.id);
     }
-    // If nothing left (or full batch wrote), clear any leftover slip state.
-    if (bulk.suspendedCount === 0 && written.size >= selections.length) {
+    // Suspended stay in the slip; otherwise clear leftover rows.
+    if (bulk.suspendedCount === 0) {
       clearSlip();
     }
-    if (bulk.suspendedCount > 0) {
+    if (bulk.suspendedCount > 0 || bulk.failedCount > 0) {
       toast.message(bulk.summaryLine);
     }
     setReceipt(bulk);

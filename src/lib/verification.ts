@@ -89,7 +89,16 @@ export type StraightReceipt = {
   book?: string | null;
 };
 
-/** Bulk singles stack (M5 PR-4 / §6.2). */
+/** One non-written line surfaced on a bulk receipt (PR-5 honesty). */
+export type BulkReceiptIssue = {
+  kind: "failed" | "suspended";
+  selection: string;
+  reason: string;
+  moveKey?: string;
+  market?: string;
+};
+
+/** Bulk singles stack (M5 PR-4 / §6.2 + PR-5 failed honesty). */
 export type BulkSinglesReceipt = {
   kind: "bulk";
   picks: StraightReceipt[];
@@ -99,6 +108,11 @@ export type BulkSinglesReceipt = {
   suspendedMoveKeys: string[];
   /** Keys of Plays that were written — slip drops these; others stay. */
   writtenMoveKeys: string[];
+  /** Integrity / prep rejects that did not write (distinct from suspended). */
+  failedCount: number;
+  failed: BulkReceiptIssue[];
+  /** Unavailable lines kept in the slip. */
+  suspended: BulkReceiptIssue[];
   summaryLine: string;
 };
 
@@ -116,6 +130,10 @@ export type ParlayReceipt = {
   toWinUnits?: number;
   /** Per-leg move notes when any leg auto-accepted or explicitly accepted a move. */
   moveNotes?: string[];
+  /**
+   * Book when every priced leg shares one key; null when mixed/unknown → LIVE BOARD.
+   */
+  book?: string | null;
 };
 
 export type SubmissionReceipt =
@@ -140,20 +158,31 @@ export type ReceiptCopy = {
 /** Trust-forward receipt copy from server return facts — no client-side tier guessing. */
 export function submissionReceiptCopy(receipt: SubmissionReceipt): ReceiptCopy {
   if (receipt.kind === "bulk") {
-    const allVerified = receipt.picks.every((p) => isVerifiedTier(p.tier));
+    const allVerified =
+      receipt.picks.length > 0 &&
+      receipt.picks.every((p) => isVerifiedTier(p.tier));
+    const issueBits: string[] = [];
+    if (receipt.failedCount > 0) {
+      issueBits.push(`${receipt.failedCount} couldn't be verified`);
+    }
+    if (receipt.suspendedCount > 0) {
+      issueBits.push(
+        `${receipt.suspendedCount} line${receipt.suspendedCount === 1 ? "" : "s"} suspended — kept in your slip`,
+      );
+    }
     return {
       headline:
         receipt.submittedCount === 1
           ? "Pick Verified"
-          : `${receipt.submittedCount} Picks Verified`,
+          : receipt.submittedCount === 0
+            ? "No Picks Submitted"
+            : `${receipt.submittedCount} Picks Verified`,
       summary: receipt.summaryLine,
       context: null,
       statusLine:
-        receipt.suspendedCount > 0
-          ? `${receipt.suspendedCount} line${receipt.suspendedCount === 1 ? "" : "s"} suspended — kept in your slip`
-          : "Odds captured pre-game",
+        issueBits.length > 0 ? issueBits.join(" · ") : "Odds captured pre-game",
       gradingLine: "Graded automatically after final",
-      tone: allVerified ? "verified" : "muted",
+      tone: allVerified && receipt.failedCount === 0 ? "verified" : "muted",
     };
   }
 
