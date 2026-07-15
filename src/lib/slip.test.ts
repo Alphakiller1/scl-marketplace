@@ -5,8 +5,12 @@ import {
   canAddLeg,
   conflictKey,
   findConflict,
+  findInternalParlayConflicts,
   pickKey,
+  seedSinglesUnitsFromParlayStake,
+  selectedKeysFromSelections,
   toSlipLeg,
+  toSlipSelection,
   type SlipPick,
 } from "@/lib/slip";
 
@@ -198,4 +202,91 @@ test("toSlipLeg carries sport + book from the board pick", () => {
   assert.equal(payload.sport, "NBA");
   assert.equal(payload.book, "draftkings");
   assert.equal(payload.selection, "Lakers");
+});
+
+test("findInternalParlayConflicts surfaces same-market pairs already on the slip", () => {
+  const over = leg({
+    market: "Total",
+    side: "Over",
+    line: 9.5,
+    oddsAmerican: -110,
+  });
+  const under = leg({
+    market: "Total",
+    side: "Under",
+    line: 9.5,
+    oddsAmerican: -110,
+  });
+  const conflicts = findInternalParlayConflicts([over, under]);
+  assert.equal(conflicts.length, 1);
+  assert.match(conflicts[0]!.message, /Total/i);
+});
+
+test("singles allow same-market Over/Under as separate selections (no add conflict)", () => {
+  // Multi-select singles: Over + Under is legal; only parlay findConflict blocks.
+  const over = leg({
+    market: "Total",
+    side: "Over",
+    line: 9.5,
+    oddsAmerican: -110,
+  });
+  const under = leg({
+    market: "Total",
+    side: "Under",
+    line: 9.5,
+    oddsAmerican: -110,
+  });
+  // findConflict still reports for parlay path:
+  assert.ok(findConflict([over], under));
+  // Internal helper used on mode switch:
+  assert.equal(findInternalParlayConflicts([over, under]).length, 1);
+});
+
+test("seedSinglesUnitsFromParlayStake copies parlay stake onto every row", () => {
+  const a = toSlipSelection(
+    {
+      eventId: "evt-1",
+      market: "Moneyline",
+      selection: "Lakers",
+      side: "Lakers",
+      oddsAmerican: -140,
+      eventStartsAt: "2026-07-14T23:00:00.000Z",
+      sport: "NBA",
+    },
+    0.5,
+  );
+  const b = toSlipSelection(
+    {
+      eventId: "evt-2",
+      market: "Moneyline",
+      selection: "Celtics",
+      side: "Celtics",
+      oddsAmerican: +120,
+      eventStartsAt: "2026-07-14T23:00:00.000Z",
+      sport: "NBA",
+    },
+    2,
+  );
+  const seeded = seedSinglesUnitsFromParlayStake([a, b], 1.5);
+  assert.equal(seeded[0]!.units, 1.5);
+  assert.equal(seeded[1]!.units, 1.5);
+  assert.equal(seeded[0]!.selection, "Lakers");
+});
+
+test("selectedKeysFromSelections mirrors pickKey set", () => {
+  const a = toSlipSelection(
+    {
+      eventId: "evt-1",
+      market: "Moneyline",
+      selection: "Lakers",
+      side: "Lakers",
+      oddsAmerican: -140,
+      eventStartsAt: "2026-07-14T23:00:00.000Z",
+      sport: "NBA",
+    },
+    1,
+  );
+  const keys = selectedKeysFromSelections([a]);
+  assert.equal(keys.size, 1);
+  assert.equal(keys.has(pickKey(a)), true);
 });

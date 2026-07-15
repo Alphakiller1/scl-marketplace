@@ -1,6 +1,6 @@
 /**
- * Shared parlay slip helpers — exact-leg identity + conflict keys.
- * Pure functions so React Hook Form (or any page state) can own the slip array.
+ * Shared slip helpers — exact-leg identity, conflict keys, mode-switch utilities.
+ * Pure functions so React state / context can own the slip array.
  */
 
 export type SlipPick = {
@@ -13,6 +13,19 @@ export type SlipPick = {
   selection?: string;
   book?: string;
 };
+
+/** Full board selection held in the unified slip (M5 PR-3). */
+export type SlipSelection = SlipPick & {
+  /** Stable row id — usually {@link pickKey}. */
+  id: string;
+  selection: string;
+  eventStartsAt: string;
+  sport: string;
+  /** Per-line stake in Singles mode (ignored for parlay submit). */
+  units: number;
+};
+
+export type SlipMode = "singles" | "parlay";
 
 export type SlipConflictKind =
   | "duplicate"
@@ -165,6 +178,7 @@ export function toSlipLeg(
 ) {
   return {
     sport: pick.sport,
+    league: undefined as string | undefined,
     market: pick.market,
     selection: pick.selection,
     oddsAmerican: pick.oddsAmerican,
@@ -175,4 +189,65 @@ export function toSlipLeg(
     player: pick.player,
     book: pick.book,
   };
+}
+
+/** Build a slip selection from a board OddsPick-shaped object. */
+export function toSlipSelection(
+  pick: SlipPick & {
+    selection: string;
+    eventStartsAt: string;
+    sport: string;
+  },
+  units: number,
+): SlipSelection {
+  return {
+    id: pickKey(pick),
+    sport: pick.sport,
+    market: pick.market,
+    selection: pick.selection,
+    oddsAmerican: pick.oddsAmerican,
+    eventId: pick.eventId,
+    eventStartsAt: pick.eventStartsAt,
+    side: pick.side,
+    line: pick.line,
+    player: pick.player,
+    book: pick.book,
+    units,
+  };
+}
+
+/**
+ * Same-market conflicts already present in the slip (for Singles→Parlay mode switch).
+ * Returns pairs of indices that share a conflictKey but are not exact duplicates.
+ */
+export function findInternalParlayConflicts(
+  selections: readonly SlipPick[],
+): Array<{ a: number; b: number; message: string }> {
+  const out: Array<{ a: number; b: number; message: string }> = [];
+  for (let i = 0; i < selections.length; i++) {
+    for (let j = i + 1; j < selections.length; j++) {
+      const a = selections[i]!;
+      const b = selections[j]!;
+      if (pickKey(a) === pickKey(b)) continue;
+      if (conflictKey(a) !== conflictKey(b)) continue;
+      const kind = conflictKindFor(b.market);
+      out.push({ a: i, b: j, message: conflictMessage(kind, b.market) });
+    }
+  }
+  return out;
+}
+
+/** Selected-chip keys for GamePicker sync. */
+export function selectedKeysFromSelections(
+  selections: readonly SlipPick[],
+): Set<string> {
+  return new Set(selections.map((s) => pickKey(s)));
+}
+
+/** Seed every singles row with the parlay stake (Parlay→Singles, §2.4). */
+export function seedSinglesUnitsFromParlayStake(
+  selections: readonly SlipSelection[],
+  parlayUnits: number,
+): SlipSelection[] {
+  return selections.map((s) => ({ ...s, units: parlayUnits }));
 }
