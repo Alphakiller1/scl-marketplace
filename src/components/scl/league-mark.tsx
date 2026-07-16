@@ -9,8 +9,14 @@ import {
   leagueMarkTextColor,
   type LeagueIdentity,
 } from "@/lib/leagues";
+import { leagueMarkSrc, normalizeLeagueKey } from "@/lib/mark-manifest";
 
-/** Compact league mark — self-hosted SVG when manifest lists it; color+initials fallback otherwise. */
+const SIZE_PX = { sm: 20, md: 28, lg: 44 } as const;
+
+/**
+ * Compact league mark — self-hosted SVG when manifest lists it (BookMark pattern);
+ * color + initials fallback otherwise. Always paints a visible tile (never empty).
+ */
 export function LeagueMark({
   league: leagueProp,
   leagueKey,
@@ -23,29 +29,29 @@ export function LeagueMark({
   size?: "sm" | "md" | "lg";
   className?: string;
 }) {
-  const league = leagueProp ?? getLeagueIdentity(leagueKey ?? "");
+  const rawKey = leagueKey ?? leagueProp?.key ?? "";
+  const league = leagueProp ?? getLeagueIdentity(rawKey);
+  const src =
+    league.logoUrl ??
+    leagueMarkSrc(rawKey) ??
+    leagueMarkSrc(league.key) ??
+    leagueMarkSrc(normalizeLeagueKey(rawKey));
   const [failed, setFailed] = useState(false);
-  const showLogo = Boolean(league.logoUrl) && !failed;
+  const showLogo = Boolean(src) && !failed;
+  const px = SIZE_PX[size];
+  const initials = leagueMarkInitials(league);
   const style = {
-    backgroundColor: showLogo ? "transparent" : league.primaryColor,
+    width: px,
+    height: px,
+    backgroundColor: league.primaryColor,
     color: leagueMarkTextColor(league),
+    fontSize: Math.max(8, Math.round(px * 0.34)),
   } satisfies CSSProperties;
-
-  const sizeClass =
-    size === "sm"
-      ? "size-5 text-[0.55rem]"
-      : size === "lg"
-        ? "size-11 text-sm"
-        : "size-7 text-[0.62rem]";
 
   return (
     <span
       className={cn(
-        "relative flex shrink-0 items-center justify-center overflow-hidden font-bold tracking-wide",
-        sizeClass,
-        showLogo
-          ? "rounded-md bg-transparent"
-          : "border-border/60 rounded-xl border shadow-xs",
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-md font-bold tracking-wide shadow-xs",
         className,
       )}
       style={style}
@@ -53,19 +59,23 @@ export function LeagueMark({
       aria-hidden
     >
       {showLogo ? (
-        // Local /marks SVG; plain img keeps onError fallback reliable.
+        // Local /marks SVG; plain img keeps onError fallback reliable (same as BookMark).
         // eslint-disable-next-line @next/next/no-img-element -- onError + tiny local SVG
         <img
-          src={league.logoUrl}
+          src={src}
           alt=""
-          className="size-full object-contain"
+          width={px}
+          height={px}
+          className="absolute inset-0 size-full object-contain"
           loading="lazy"
           decoding="async"
           onError={() => setFailed(true)}
         />
       ) : (
-        leagueMarkInitials(league)
+        initials
       )}
+      {/* If the SVG paints a blank tile, initials stay as a11y/backup under transparent art */}
+      {showLogo ? <span className="sr-only">{initials}</span> : null}
     </span>
   );
 }

@@ -7,7 +7,7 @@
 
 import { SPORTS, type SportKey } from "@/lib/constants";
 import { leagueInitials } from "@/lib/league-action";
-import { leagueMarkSrc } from "@/lib/mark-manifest";
+import { leagueMarkSrc, normalizeLeagueKey } from "@/lib/mark-manifest";
 import { readableTextColor } from "@/lib/teams";
 
 export type LeagueIdentity = {
@@ -52,19 +52,21 @@ export function getLeagueIdentity(keyOrName: string): LeagueIdentity {
       primaryColor: "#6d28d9",
     };
   }
-  const upper = raw.toUpperCase();
-  const byKey = LEAGUE_BY_KEY.get(upper);
+  const canonical = normalizeLeagueKey(raw);
+  const byKey = LEAGUE_BY_KEY.get(canonical);
   if (byKey) return byKey;
 
+  const upper = raw.toUpperCase();
   for (const league of LEAGUE_BY_KEY.values()) {
     if (league.name.toUpperCase() === upper) return league;
   }
 
   // Deterministic fallback for unknown leagues (e.g. free-text legacy rows).
   return {
-    key: upper.slice(0, 12),
+    key: (canonical || upper).slice(0, 12),
     name: raw,
     primaryColor: "#6d28d9",
+    logoUrl: leagueMarkSrc(canonical),
   };
 }
 
