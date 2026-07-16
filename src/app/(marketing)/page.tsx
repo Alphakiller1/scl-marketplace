@@ -104,7 +104,7 @@ export default async function Home() {
     failed: leagueActionFailed,
   } = await getLeagueActionReport();
 
-  const yesterdayWins = await getYesterdaysGradedWins();
+  const gradedWinsTicker = await getYesterdaysGradedWins();
 
   const topRoi = sortLeaderboard(cappers, "roi").slice(0, 3);
 
@@ -112,7 +112,10 @@ export default async function Home() {
     <>
       <CompetitionHero />
 
-      <YesterdayWinsTicker wins={yesterdayWins} />
+      <YesterdayWinsTicker
+        wins={gradedWinsTicker.wins}
+        label={gradedWinsTicker.label}
+      />
 
       <div className="mx-auto max-w-6xl space-y-10 px-4 py-10 sm:space-y-14 sm:px-6 sm:py-12">
         <FoundingCapperBanner />
