@@ -5,6 +5,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { appUrl } from "@/lib/app-url";
 
 const barlow = Barlow({
   variable: "--font-barlow",
@@ -25,6 +26,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(appUrl()),
   title: {
     default: "SCL — Sports Capper Leaderboard",
     template: "%s · SCL",
