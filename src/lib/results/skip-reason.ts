@@ -1,5 +1,9 @@
 import { RESULTS_LOOKBACK_DAYS } from "@/lib/results/lookback";
-import { isDeferredProp, type GradablePlay } from "@/lib/results/match";
+import {
+  findGame,
+  isDeferredProp,
+  type GradablePlay,
+} from "@/lib/results/match";
 import type { SettledGame } from "@/lib/results/settled-game";
 
 export type { SettledGame };
@@ -65,38 +69,5 @@ export function findSettledGame(
   play: GradablePlay,
   games: SettledGame[],
 ): SettledGame | null {
-  const sportGames = games.filter((g) => g.sport === play.sport);
-
-  if (play.eventId) {
-    const byId = sportGames.find((g) => g.eventId === play.eventId);
-    if (byId) return byId;
-  }
-
-  const norm = (s: string) =>
-    s
-      .toLowerCase()
-      .replace(/[^a-z0-9 ]/g, "")
-      .trim();
-  const mentions = (text: string, team: string) => {
-    const t = norm(text);
-    const parts = norm(team)
-      .split(" ")
-      .filter((p) => p.length > 2);
-    const nickname = parts.at(-1);
-    return (!!nickname && t.includes(nickname)) || t.includes(norm(team));
-  };
-
-  for (const g of sportGames) {
-    const pickedHome =
-      mentions(play.selection, g.home) || mentions(play.side ?? "", g.home);
-    const pickedAway =
-      mentions(play.selection, g.away) || mentions(play.side ?? "", g.away);
-    if (pickedHome !== pickedAway) return g;
-  }
-  for (const g of sportGames) {
-    if (mentions(play.market, g.home) || mentions(play.market, g.away)) {
-      return g;
-    }
-  }
-  return null;
+  return findGame(play, games);
 }

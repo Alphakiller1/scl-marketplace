@@ -20,11 +20,14 @@ export type GradablePlay = {
   awayTeam?: string | null;
 };
 
-/** Player props defer until a stats provider exists. */
+/** Player props / partial-game markets defer until a dedicated stats provider exists. */
 export function isDeferredProp(play: GradablePlay): boolean {
   const market = norm(play.market);
   const selection = norm(play.selection);
   if (market.includes("prop") || market.includes("player")) return true;
+  if (market.includes("inning") || selection.includes("first five"))
+    return true;
+  if (/\bf5\b/.test(selection) || selection.includes("innings")) return true;
   if (
     /\b(points|rebounds|assists|yards|touchdowns|strikeouts|hits)\b/.test(
       selection,
@@ -42,16 +45,55 @@ function norm(s: string): string {
     .trim();
 }
 
+/** Last tokens too generic to identify a club (e.g. American/National League). */
+const WEAK_NICKNAMES = new Set([
+  "league",
+  "team",
+  "club",
+  "fc",
+  "united",
+  "city",
+  "stars",
+]);
+
 function mentions(text: string, team: string): boolean {
   const t = norm(text);
-  const parts = norm(team)
+  const tn = norm(team);
+  if (!t || !tn) return false;
+  if (t.includes(tn) || (tn.includes(t) && t.length >= 4)) return true;
+  const parts = tn
     .split(" ")
-    .filter((p) => p.length > 2);
+    .filter((p) => p.length > 2 && !WEAK_NICKNAMES.has(p));
   const nickname = parts.at(-1);
-  return (!!nickname && t.includes(nickname)) || t.includes(norm(team));
+  return !!nickname && t.includes(nickname);
 }
 
-function findGame(
+/** Parse "Brewers vs Reds" / "PHI / PIT" style matchup prefixes. */
+function parseMatchupSides(text: string): { a: string; b: string } | null {
+  const vs = text.match(
+    /^(.+?)\s+vs\.?\s+(.+?)(?:\s+(?:over|under|o|u)\b.*)?$/i,
+  );
+  if (vs?.[1] && vs[2]) {
+    return { a: vs[1].trim(), b: vs[2].trim() };
+  }
+  const slash = text.match(
+    /^([A-Za-z .]{2,20})\s*\/\s*([A-Za-z .]{2,20})(?:\s|$)/,
+  );
+  if (slash?.[1] && slash[2]) {
+    return { a: slash[1].trim(), b: slash[2].trim() };
+  }
+  return null;
+}
+
+function teamsAreOpponents(a: string, b: string, game: SettledGame): boolean {
+  const aHome = mentions(a, game.home);
+  const aAway = mentions(a, game.away);
+  const bHome = mentions(b, game.home);
+  const bAway = mentions(b, game.away);
+  return (aHome && bAway) || (aAway && bHome);
+}
+
+export function findGame(
   play: GradablePlay,
   games: SettledGame[],
 ): SettledGame | null {
@@ -60,6 +102,14 @@ function findGame(
   if (play.eventId) {
     const byId = sportGames.find((g) => g.eventId === play.eventId);
     if (byId) return byId;
+  }
+
+  const matchup = parseMatchupSides(play.selection);
+  if (matchup) {
+    const both = sportGames.find((g) =>
+      teamsAreOpponents(matchup.a, matchup.b, g),
+    );
+    if (both) return both;
   }
 
   for (const g of sportGames) {
@@ -121,11 +171,12 @@ export function resolveOutcome(
   // ---- totals (over/under a number) ----
   const totalMatch = play.selection
     .toLowerCase()
-    .match(/(over|under)\D*(\d+(?:\.\d+)?)/);
+    .match(/\b(over|under|o|u)\b\D*(\d+(?:\.\d+)?)/);
   const isTotal =
     market.includes("total") || /\b(o|u|over|under)\b/.test(selection);
   if (totalMatch && isTotal) {
-    const side = totalMatch[1];
+    const sideRaw = totalMatch[1]!;
+    const side = sideRaw === "u" || sideRaw === "under" ? "under" : "over";
     const line = Number(totalMatch[2]);
     const total = game.homeScore + game.awayScore;
     if (total === line) return "PUSH";

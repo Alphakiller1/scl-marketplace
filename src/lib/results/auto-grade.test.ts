@@ -146,3 +146,52 @@ test("unmatched / ambiguous plays return null (stay pending)", () => {
     null,
   );
 });
+
+test("All-Star league moneylines resolve via American/National League labels", () => {
+  const asg: SettledGame[] = [
+    {
+      sport: "MLB",
+      home: "National League",
+      away: "American League",
+      homeScore: 0,
+      awayScore: 4,
+      completed: true,
+    },
+  ];
+  assert.equal(
+    resolveOutcome(
+      play({
+        sport: "MLB",
+        market: "Moneyline",
+        selection: "American League",
+      }),
+      asg,
+    ),
+    "WIN",
+  );
+  assert.equal(
+    resolveOutcome(
+      play({
+        sport: "MLB",
+        market: "Moneyline",
+        selection: "National League",
+      }),
+      asg,
+    ),
+    "LOSS",
+  );
+});
+
+test("first-five / innings markets stay deferred", () => {
+  assert.equal(
+    resolveOutcome(
+      play({
+        sport: "MLB",
+        market: "First Five Innings Total",
+        selection: "PHI / PIT u 4.5",
+      }),
+      GAMES,
+    ),
+    null,
+  );
+});
