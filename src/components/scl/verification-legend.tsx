@@ -1,13 +1,10 @@
-import { BadgeCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 /**
- * Short persistent legend clarifying the two pick trust tiers, so a "Verified" capper whose
- * picks read "Self-reported" doesn't look like a contradiction to a skeptical buyer.
- *
- * Verified = the pick's odds were captured pre-game and checked against the live market.
- * Self-reported = logged by the capper, not market-checked. Authenticity, not the result.
+ * Short persistent legend clarifying pick trust tiers (authenticity, not result).
+ * Account identity uses a separate pink "Verified" badge — do not conflate the two.
  */
 export function VerificationLegend({ className }: { className?: string }) {
   return (
@@ -18,13 +15,10 @@ export function VerificationLegend({ className }: { className?: string }) {
       )}
     >
       <span className="inline-flex items-center gap-1.5">
-        <BadgeCheck
-          className="size-3.5 text-[color:var(--scl-pink)]"
-          aria-hidden
-        />
+        <ShieldCheck className="text-live size-3.5" aria-hidden />
         <span>
-          <span className="text-foreground font-medium">Verified</span> — odds
-          captured pre-game &amp; checked against the live market
+          <span className="text-foreground font-medium">Board-verified</span> —
+          odds captured pre-game &amp; checked against the live market
         </span>
       </span>
       <span className="inline-flex items-center gap-1.5">
@@ -33,8 +27,8 @@ export function VerificationLegend({ className }: { className?: string }) {
           aria-hidden
         />
         <span>
-          <span className="text-foreground font-medium">Self-reported</span> —
-          logged by the capper, not market-checked
+          <span className="text-foreground font-medium">Logged</span> —
+          historical entry not board-checked
         </span>
       </span>
     </p>

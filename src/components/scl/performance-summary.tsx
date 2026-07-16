@@ -12,6 +12,7 @@ import {
 } from "@/components/scl/stat";
 import { RecentFormStrip, StreakChip } from "@/components/scl/indicators";
 import { PerformanceSparkline } from "@/components/scl/performance-sparkline";
+import { VerificationHelpLink } from "@/components/scl/verification-help-link";
 import { isProvisional, hasSignal } from "@/lib/sample";
 
 /**
@@ -110,6 +111,10 @@ export function PerformanceSummary({
       {signal ? (
         <ClvExplainer className="text-muted-foreground mt-3 text-xs leading-relaxed" />
       ) : null}
+
+      <div className="border-border mt-3 border-t pt-3">
+        <VerificationHelpLink />
+      </div>
     </Card>
   );
 }
