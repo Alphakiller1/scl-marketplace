@@ -20,6 +20,21 @@ export type GradablePlay = {
   awayTeam?: string | null;
 };
 
+/** Player props defer until a stats provider exists. */
+export function isDeferredProp(play: GradablePlay): boolean {
+  const market = norm(play.market);
+  const selection = norm(play.selection);
+  if (market.includes("prop") || market.includes("player")) return true;
+  if (
+    /\b(points|rebounds|assists|yards|touchdowns|strikeouts|hits)\b/.test(
+      selection,
+    )
+  ) {
+    return true;
+  }
+  return false;
+}
+
 function norm(s: string): string {
   return s
     .toLowerCase()
@@ -96,6 +111,8 @@ export function resolveOutcome(
   play: GradablePlay,
   games: SettledGame[],
 ): "WIN" | "LOSS" | "PUSH" | null {
+  if (isDeferredProp(play)) return null;
+
   const market = norm(play.market);
   const selection = norm(play.selection);
   const game = findGame(play, games);

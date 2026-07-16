@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 
 import { getCapperBooks } from "@/lib/capper-books";
-import { fetchUpcomingOdds, oddsApiKey } from "@/lib/odds-api";
+import {
+  buildOddsBoardMeta,
+  fetchUpcomingOdds,
+  getLastOddsApiRemaining,
+  oddsApiKey,
+} from "@/lib/odds-api";
+import { shouldCircuitBreak } from "@/lib/odds-budget";
 import { getCurrentUser } from "@/lib/session";
 
 /**
@@ -16,11 +22,21 @@ export async function GET(request: Request) {
   }
   const sport = new URL(request.url).searchParams.get("sport") ?? "";
   const books = await getCapperBooks(user.id);
-  const events = await fetchUpcomingOdds(sport, { books });
-  // `configured` lets the UI distinguish "no API key" from "no games right now".
+  const configured = Boolean(oddsApiKey());
+  const circuitBreak = shouldCircuitBreak(getLastOddsApiRemaining());
+  const events =
+    configured && !circuitBreak
+      ? await fetchUpcomingOdds(sport, { books })
+      : [];
+  const meta = buildOddsBoardMeta(sport, events.length, {
+    configured,
+    circuitBreak,
+  });
+
   return NextResponse.json({
     events,
-    configured: Boolean(oddsApiKey()),
+    configured,
     books,
+    meta,
   });
 }

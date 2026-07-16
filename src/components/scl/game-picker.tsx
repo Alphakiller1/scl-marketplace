@@ -327,9 +327,14 @@ export function GamePicker({
         </p>
       ) : slate?.configured === false ? (
         <p className="text-muted-foreground text-xs">
-          Live odds aren&apos;t enabled yet — add{" "}
+          Odds feed not configured — add{" "}
           <code className="text-foreground">ODDS_API_KEY</code> in Vercel and
           redeploy to turn on the board.
+        </p>
+      ) : events.length === 0 && slate?.configured ? (
+        <p className="text-muted-foreground text-xs">
+          No live board events for this slate right now — try another day or
+          sport, or check back closer to game time.
         </p>
       ) : (
         <p className="text-muted-foreground text-xs">

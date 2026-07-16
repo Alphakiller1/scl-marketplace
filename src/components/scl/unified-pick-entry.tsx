@@ -57,15 +57,17 @@ function selectionMoveKey(
 function selectionToPlayInput(
   s: ReturnType<typeof useSlipStore>["selections"][number],
   notes?: string,
+  notesPublic = true,
 ) {
   return {
     sport: s.sport as SportKey,
-    league: undefined,
+    league: s.league,
     market: s.market,
     selection: s.selection,
     oddsAmerican: s.oddsAmerican,
     units: s.units,
     notes: notes?.trim() || undefined,
+    notesPublic,
     eventId: s.eventId,
     eventStartsAt: s.eventStartsAt,
     side: s.side,
@@ -85,6 +87,7 @@ function UnifiedPickEntryInner() {
     clearSlip,
     removeSelection,
     slipNotes,
+    notesPublic,
   } = useSlipStore();
   const isLg = useIsLg();
   const [receipt, setReceipt] = useState<SubmissionReceipt | null>(null);
@@ -162,7 +165,7 @@ function UnifiedPickEntryInner() {
 
         if (selections.length === 1) {
           const res = await createPlay(
-            selectionToPlayInput(selections[0]!, slipNotes),
+            selectionToPlayInput(selections[0]!, slipNotes, notesPublic),
             acceptedMoves,
           );
           if (res.ok) {
@@ -186,7 +189,9 @@ function UnifiedPickEntryInner() {
         }
 
         const res = await createPlays(
-          selections.map((s) => selectionToPlayInput(s, slipNotes)),
+          selections.map((s) =>
+            selectionToPlayInput(s, slipNotes, notesPublic),
+          ),
           acceptedMoves,
         );
         if (res.ok) {

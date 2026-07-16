@@ -30,6 +30,7 @@ export type PublicPlayJoinRow = {
   eventStartsAt: Date | null;
   book?: string | null;
   notes?: string | null;
+  notesPublic?: boolean;
 };
 
 /**
@@ -80,7 +81,8 @@ export function joinPlaysToPublicPicks(
         market: play.market,
         profitUnits: play.profitUnits == null ? null : Number(play.profitUnits),
         book: play.book ?? null,
-        notes: play.notes ?? null,
+        notes: play.notesPublic === false ? null : (play.notes ?? null),
+        notesPublic: play.notesPublic ?? true,
       } satisfies TodayPick,
     ];
   });

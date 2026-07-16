@@ -82,6 +82,7 @@ type ReadyWrite = {
     oddsMovedAccepted: boolean;
     units: number;
     notes: string | null;
+    notesPublic: boolean;
     eventId: string;
     eventStartsAt: Date;
     side: string;
@@ -245,6 +246,7 @@ async function preparePlayLine(
         oddsMovedAccepted: capture.oddsMovedAccepted,
         units: d.units,
         notes: d.notes ?? null,
+        notesPublic: d.notesPublic ?? true,
         eventId: d.eventId,
         eventStartsAt,
         side: d.side,

@@ -2,44 +2,49 @@
 
 **Branch:** `fix/milestone-blockers-g0a-j`  
 **Spec:** `docs/qa/SCL_GPT_CLAUDE_DELIVERABLES.md`  
-**Verified:** `npm run typecheck` + `npm run test` (194+) green as of last local run.
+**SQL patches:** `docs/qa/SUPABASE_SQL_PATCHES.md` (owner runs in Supabase SQL Editor)
 
 ## Shipped on this branch
 
-| Area                                           | Status                                     |
-| ---------------------------------------------- | ------------------------------------------ |
-| Auto-grade cron `/api/cron/grade` every 30m    | Done — set `CRON_SECRET` in Vercel         |
-| Spread + eventId matching; sport-scoped scores | Done                                       |
-| Parlay auto-settle after legs grade            | Done                                       |
-| QA handle + &lt;0.25U public exclusion         | Done                                       |
-| Track Your Record / Start Tracking CTAs        | Done                                       |
-| 4U/5U chips; Pending label; Logged tier        | Done                                       |
-| Verified badge (no 100% text)                  | Done                                       |
-| Odds purpose logging + circuit-break helper    | Done                                       |
-| Pick analysis field + moderation               | Done (straight; parlay-level needs DB col) |
-| League Action categories                       | Done                                       |
-| Yesterday's Graded Wins ticker                 | Done (hides until real wins)               |
-| ROI Leaders horizontal layout                  | Done                                       |
-| Soccer league registry stub                    | Done (not wired into picker)               |
-| Book monogram SVGs + BookMark in rail/slip     | Done                                       |
+| Area                                                                   | Status                                   |
+| ---------------------------------------------------------------------- | ---------------------------------------- |
+| Auto-grade cron `/api/cron/grade` every 30m + CLV snapshot pass        | Done — set `CRON_SECRET` in Vercel       |
+| Spread + eventId matching; sport-scoped scores                         | Done                                     |
+| Parlay auto-settle after legs grade                                    | Done                                     |
+| Props auto-grade deferred (`props_deferred` log)                       | Done — left Pending until stats provider |
+| QA handle + &lt;0.25U public exclusion + dashboard invalid-stake badge | Done                                     |
+| Track Your Record / Start Tracking CTAs                                | Done                                     |
+| 4U/5U chips; Pending label; Logged tier                                | Done                                     |
+| Verified badge (no 100% text on leaderboard)                           | Done                                     |
+| Odds purpose logging + circuit-break + `OddsUsageDaily` upsert         | Done — needs SQL table                   |
+| Pick analysis + `notesPublic` toggle                                   | Done — needs SQL column                  |
+| Grading health honesty on public tickets                               | Done                                     |
+| CLV schema + compute + profile avg CLV + explainer                     | Done — needs SQL columns                 |
+| Soccer GamePicker (`SOCCER` + league fan-out)                          | Done                                     |
+| Odds board diagnostics meta on `GET /api/odds`                         | Done                                     |
+| BookMark on slip, list, ticket, market-chip, profile books             | Done                                     |
+| Leaderboard row declutter + Building A Record compact rows             | Done                                     |
+| Legal pages (no placeholder footer)                                    | Done                                     |
+| SEO templates (/, leaderboard, picks, capper profile)                  | Done                                     |
+| League Action + Yesterday ticker + ROI layout                          | Done                                     |
 
-## Deploy checklist (owner)
+## Owner deploy checklist
 
-1. Merge/PR this branch (do not push main directly).
-2. Vercel env: `CRON_SECRET=<strong secret>`, confirm `ODDS_API_KEY`.
-3. After deploy, manually `GET /api/cron/grade` with Bearer once to clear backlog, or wait for cron.
-4. Confirm GamePicker board populates (odds empty board was observed pre-fix — may be slate/key).
+1. Merge/PR this branch (do not push `main` directly).
+2. Run SQL in `docs/qa/SUPABASE_SQL_PATCHES.md` in Supabase SQL Editor.
+3. Vercel env: `CRON_SECRET`, confirm `ODDS_API_KEY`.
+4. After deploy, `GET /api/cron/grade` with Bearer once to clear backlog + warm CLV snapshots.
+5. Confirm GamePicker populates (empty board now distinguishes key vs slate vs circuit-break via `meta.warning`).
 
-## Still deferred
+## Still deferred / out of scope
 
-| Item                              | Why                                                      |
-| --------------------------------- | -------------------------------------------------------- |
-| CLV columns + closing snapshots   | Needs Supabase SQL additive columns + cron purpose=`clv` |
-| OddsUsageDaily DB table           | Optional persistence beyond console logs                 |
-| Real trademark book logos         | Monograms shipped; swap SVGs when legal OK               |
-| Soccer GamePicker enable          | Validate Odds API keys live first                        |
-| Parlay analysis column            | No `Parlay.notes` without migration                      |
-| Analysis immutability after grade | No update path today — add if edit UI appears            |
+| Item                            | Why                                              |
+| ------------------------------- | ------------------------------------------------ |
+| Rank-by-CLV leaderboard sort UI | Data stored; sort UI skipped per easy-path rule  |
+| Parlay-level analysis column    | No `Parlay.notes` without separate migration     |
+| Real trademark book logos       | Monograms shipped                                |
+| Soccer 3-way ML auto-grade      | Gated until draw/home/away settlement keys exist |
+| Analysis edit after grade       | No edit UI path today                            |
 
 ## Author note
 

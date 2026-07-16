@@ -35,7 +35,7 @@ export default async function MyPicksPage() {
             e.kind === "parlay" ? (
               <ParlayListItem key={`parlay-${e.id}`} parlay={e} />
             ) : (
-              <PlayListItem key={`play-${e.id}`} play={e} />
+              <PlayListItem key={`play-${e.id}`} play={e} dashboard />
             ),
           )}
         </div>

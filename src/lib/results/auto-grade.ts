@@ -3,13 +3,15 @@ import "server-only";
 import { settleParlay } from "@/lib/grading";
 import { profitUnitsForOutcome } from "@/lib/odds";
 import { prisma } from "@/lib/prisma";
-import { resolveOutcome } from "@/lib/results/match";
+import { clvPtsForGrade } from "@/lib/results/closing-snapshot";
+import { isDeferredProp, resolveOutcome } from "@/lib/results/match";
 import type { ResultsProvider } from "@/lib/results/provider";
 
 export type AutoGradeResult = {
   graded: number;
   skipped: number;
   parlaysGraded: number;
+  clvSnapshots?: number;
   provider: string;
 };
 
@@ -31,6 +33,7 @@ async function gradeStraightPlays(
         eventStartsAt: true,
         side: true,
         line: true,
+        closingOddsAmerican: true,
       },
       take: 500,
     })
@@ -53,6 +56,11 @@ async function gradeStraightPlays(
   let skipped = 0;
 
   for (const play of pending) {
+    if (isDeferredProp(play)) {
+      console.info(`[auto-grade] play ${play.id} skipped: props_deferred`);
+      skipped++;
+      continue;
+    }
     const outcome = resolveOutcome(play, games);
     if (!outcome) {
       skipped++;
@@ -63,10 +71,16 @@ async function gradeStraightPlays(
       play.oddsAmerican,
       play.units,
     );
+    const clvPts = clvPtsForGrade(play.oddsAmerican, play.closingOddsAmerican);
     await prisma.$transaction([
       prisma.play.update({
         where: { id: play.id },
-        data: { outcome, profitUnits, gradedAt: new Date() },
+        data: {
+          outcome,
+          profitUnits,
+          gradedAt: new Date(),
+          ...(clvPts != null ? { clvPts } : {}),
+        },
       }),
       prisma.gradingAudit.create({
         data: {
@@ -103,6 +117,7 @@ async function gradeParlayLegs(
         eventStartsAt: true,
         side: true,
         line: true,
+        closingOddsAmerican: true,
       },
       take: 500,
     })
@@ -125,6 +140,13 @@ async function gradeParlayLegs(
   let skipped = 0;
 
   for (const play of pending) {
+    if (isDeferredProp(play)) {
+      console.info(
+        `[auto-grade] parlay leg ${play.id} skipped: props_deferred`,
+      );
+      skipped++;
+      continue;
+    }
     const outcome = resolveOutcome(play, games);
     if (!outcome) {
       skipped++;
@@ -200,6 +222,7 @@ async function gradePendingParlays(): Promise<number> {
 
 /**
  * Grade confidently-resolvable pending plays and parlays from settled results.
+ * Call {@link snapshotClosingOdds} before this when invoked from cron.
  */
 export async function autoGradePending(
   provider: ResultsProvider,

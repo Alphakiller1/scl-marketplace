@@ -60,8 +60,8 @@ describe("books", () => {
     assert.match(noBook, /GRADES AUTOMATICALLY$/);
 
     assert.equal(
-      formatOddsCaptureSourceLine({ book: "fanduel" }),
-      "ODDS CAPTURED · SOURCE: FanDuel BOARD · GRADES AUTOMATICALLY",
+      formatOddsCaptureSourceLine({ book: "fanduel", gradingHealthy: false }),
+      "ODDS CAPTURED · SOURCE: FanDuel BOARD · GRADING DELAYED — CHECK BACK SOON",
     );
   });
 });

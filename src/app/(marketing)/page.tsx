@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Activity, ArrowRight, Flame, ShieldCheck, Trophy } from "lucide-react";
@@ -33,6 +34,12 @@ import { getYesterdaysGradedWins } from "@/lib/queries/yesterday-wins";
 import { LEAGUE_ACTION_CATEGORY_EMPTY } from "@/lib/league-action";
 
 export const revalidate = 60;
+
+export const metadata: Metadata = {
+  title: { absolute: "SCL — Sports Capper Leaderboard" },
+  description:
+    "Compare board-verified capper records by units, ROI, and sample size. No hype — inspectable performance.",
+};
 
 const PINK_CTA =
   "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)]";

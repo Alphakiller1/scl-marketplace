@@ -28,6 +28,7 @@ export type PlayView = {
   /** Odds API bookmaker key at capture (M5 §4 source surfacing). */
   book: string | null;
   notes: string | null;
+  notesPublic?: boolean;
 };
 
 export type ParlayLegView = {
@@ -106,6 +107,7 @@ export async function getCapperPlays(
     eventStartsAt: p.eventStartsAt,
     book: p.book,
     notes: p.notes,
+    notesPublic: p.notesPublic,
   }));
 }
 
@@ -224,6 +226,7 @@ export async function getPublicRecentPicksResult(
         eventStartsAt: true,
         book: true,
         notes: true,
+        notesPublic: true,
       },
       orderBy: { createdAt: "desc" },
       take,

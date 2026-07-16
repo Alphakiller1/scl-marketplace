@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { autoGradePending } from "@/lib/results/auto-grade";
+import { snapshotClosingOdds } from "@/lib/results/closing-snapshot";
 import { getResultsProvider } from "@/lib/results/provider";
 
 function authorizeCron(req: NextRequest): boolean {
@@ -36,8 +37,12 @@ async function runGrade(req: NextRequest) {
   }
 
   try {
+    const clv = await snapshotClosingOdds();
     const result = await autoGradePending(getResultsProvider());
-    return NextResponse.json(result);
+    return NextResponse.json({
+      ...result,
+      clvSnapshots: clv.snapshots,
+    });
   } catch (err) {
     console.error("[cron/grade] autoGradePending failed:", err);
     return NextResponse.json({ error: "Grade job failed" }, { status: 500 });

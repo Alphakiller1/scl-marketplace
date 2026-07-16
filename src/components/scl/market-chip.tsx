@@ -1,6 +1,7 @@
 "use client";
 
 import { BettingTitle } from "@/components/scl/betting-title";
+import { BookMark } from "@/components/scl/book-mark";
 import { bookShort } from "@/lib/books";
 import { cn } from "@/lib/utils";
 import { formatOdds } from "@/lib/format";
@@ -71,12 +72,13 @@ export function MarketChip({
       {bookTag ? (
         <span
           className={cn(
-            "scl-data text-[0.56rem] font-medium tracking-[0.08em] uppercase",
+            "scl-data inline-flex items-center gap-0.5 text-[0.56rem] font-medium tracking-[0.08em] uppercase",
             selected
               ? "text-[color:var(--scl-pink-ink)]/80"
               : "text-[color:var(--scl-muted-data)]",
           )}
         >
+          {book ? <BookMark bookKey={book} size={16} /> : null}
           {bookTag}
         </span>
       ) : null}

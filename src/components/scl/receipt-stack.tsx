@@ -3,9 +3,10 @@
 import Link from "next/link";
 
 import { StatusBadge } from "@/components/scl/badges";
+import { BookMark } from "@/components/scl/book-mark";
 import { Ticket } from "@/components/scl/ticket";
 import { Button } from "@/components/ui/button";
-import { bookLabel, bookShort } from "@/lib/books";
+import { bookLabel } from "@/lib/books";
 import { formatOdds, formatUnits } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
@@ -21,13 +22,7 @@ const PINK_CTA =
 
 function CompactPickTicket({ pick }: { pick: StraightReceipt }) {
   const verified = isVerifiedTier(pick.tier);
-  const book =
-    pick.book != null
-      ? `${bookShort(pick.book)} · ${bookLabel(pick.book)}`
-      : null;
-  const eventLine = [pick.market, book, pick.moveNote]
-    .filter(Boolean)
-    .join(" · ");
+  const eventLine = [pick.market, pick.moveNote].filter(Boolean).join(" · ");
   const stake = pick.units != null ? formatUnits(pick.units, true, false) : "—";
   const toWin =
     pick.toWinUnits != null ? formatUnits(pick.toWinUnits, true, false) : "—";
@@ -39,7 +34,17 @@ function CompactPickTicket({ pick }: { pick: StraightReceipt }) {
       </div>
       <Ticket
         selectionTitle={pick.selection}
-        eventLine={eventLine || null}
+        eventLine={
+          pick.book ? (
+            <span className="inline-flex items-center gap-1">
+              <BookMark bookKey={pick.book} size={16} />
+              {bookLabel(pick.book)} BOARD
+              {eventLine ? ` · ${eventLine}` : ""}
+            </span>
+          ) : (
+            eventLine || null
+          )
+        }
         legs={1}
         odds={formatOdds(pick.oddsAmerican)}
         stake={stake}

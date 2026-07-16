@@ -2,6 +2,8 @@ import "server-only";
 
 import { bookmakersQueryParam, isBookKey } from "@/lib/books";
 import { shouldCircuitBreak } from "@/lib/odds-budget";
+import { SOCCER_LEAGUES, soccerLeagueByKey } from "@/lib/soccer-leagues";
+import { prisma } from "@/lib/prisma";
 import {
   normalizeEventBoard,
   normalizeUpcomingEvent,
@@ -63,6 +65,18 @@ export function toOddsApiSport(sclKey: string): string | undefined {
   return SCL_TO_ODDS_API[sclKey];
 }
 
+/** Resolve Odds API sport key — soccer uses per-league keys. */
+export function resolveOddsApiSport(
+  sclSport: string,
+  league?: string | null,
+): string | undefined {
+  if (sclSport === "SOCCER") {
+    if (!league) return undefined;
+    return soccerLeagueByKey(league)?.oddsApiKey;
+  }
+  return toOddsApiSport(sclSport);
+}
+
 /** The Odds API key. Accepts the canonical name and the common `ODD_API_KEY` misspelling. */
 export function oddsApiKey(): string | undefined {
   return process.env.ODDS_API_KEY || process.env.ODD_API_KEY;
@@ -74,7 +88,7 @@ export function toSclSport(oddsApiKey: string): string | undefined {
 
 /** Sports we can odds-assist / auto-grade as game moneyline + totals. */
 export function oddsAssistSupported(sclKey: string): boolean {
-  return sclKey in SCL_TO_ODDS_API;
+  return sclKey in SCL_TO_ODDS_API || sclKey === "SOCCER";
 }
 
 /** regions=us when books empty; else bookmakers=<keys>. */
@@ -98,6 +112,7 @@ export function logOddsUsage(
   res: Response,
   label: string,
   purpose: OddsUsagePurpose = "board",
+  sport?: string,
 ): void {
   const remainingHeader = res.headers.get("x-requests-remaining");
   const last = res.headers.get("x-requests-last");
@@ -105,10 +120,143 @@ export function logOddsUsage(
     const parsed = Number(remainingHeader);
     if (!Number.isNaN(parsed)) lastOddsApiRemaining = parsed;
   }
+  const cost = last != null ? Number(last) : 0;
+  const remaining =
+    remainingHeader != null ? Number(remainingHeader) : undefined;
   if (remainingHeader !== null || last !== null) {
     console.info(
       `[odds] purpose=${purpose} ${label}: cost=${last ?? "?"} remaining=${remainingHeader ?? "?"}`,
     );
+  }
+  void persistOddsUsageDaily({
+    purpose,
+    sport: sport ?? null,
+    cost: Number.isFinite(cost) ? cost : 0,
+    remaining:
+      remaining != null && Number.isFinite(remaining) ? remaining : null,
+  }).catch(() => {});
+}
+
+async function persistOddsUsageDaily(opts: {
+  purpose: OddsUsagePurpose;
+  sport: string | null;
+  cost: number;
+  remaining: number | null;
+}): Promise<void> {
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const sportKey = opts.sport ?? "";
+  await prisma.oddsUsageDaily.upsert({
+    where: {
+      date_purpose_sport: {
+        date: today,
+        purpose: opts.purpose,
+        sport: sportKey,
+      },
+    },
+    create: {
+      date: today,
+      purpose: opts.purpose,
+      sport: sportKey,
+      calls: 1,
+      credits: opts.cost,
+      remaining: opts.remaining,
+    },
+    update: {
+      calls: { increment: 1 },
+      credits: { increment: opts.cost },
+      remaining: opts.remaining,
+    },
+  });
+}
+
+export type OddsBoardMeta = {
+  sport: string;
+  supported: boolean;
+  eventCount: number;
+  warning?: string;
+};
+
+/** Safe diagnostics for empty odds boards (no secrets). */
+export function buildOddsBoardMeta(
+  sport: string,
+  eventCount: number,
+  opts?: { configured?: boolean; circuitBreak?: boolean },
+): OddsBoardMeta {
+  const configured = opts?.configured ?? Boolean(oddsApiKey());
+  const supported = oddsAssistSupported(sport);
+  let warning: string | undefined;
+
+  if (!configured) {
+    warning = "no_api_key";
+  } else if (!supported) {
+    warning = "unsupported_sport";
+  } else if (opts?.circuitBreak) {
+    warning = "circuit_break";
+  } else if (eventCount === 0) {
+    warning = "no_upcoming_events";
+  }
+
+  return { sport, supported, eventCount, warning };
+}
+
+const SOCCER_FETCH_PARALLEL = 3;
+
+/** Soccer board — fans out across SOCCER_LEAGUES with capped parallelism. */
+export async function fetchSoccerBoard(
+  opts?: OddsBoardOpts,
+): Promise<OddsEvent[]> {
+  const apiKey = oddsApiKey();
+  if (!apiKey) return [];
+
+  if (shouldCircuitBreak(lastOddsApiRemaining)) {
+    console.warn(
+      `[odds] circuit-breaker active (remaining=${lastOddsApiRemaining}) — skipping soccer board`,
+    );
+    return [];
+  }
+
+  const preferred = opts?.books;
+  const fetchLeague = async (oddsApiKey: string, leagueKey: string) => {
+    const attempt = async (books: readonly string[] | undefined) => {
+      const url =
+        `https://api.the-odds-api.com/v4/sports/${oddsApiKey}/odds/` +
+        `?apiKey=${apiKey}&${oddsScopeQuery(books)}&markets=h2h,spreads,totals&oddsFormat=american`;
+      const res = await fetch(url, { next: { revalidate: 120 } });
+      logOddsUsage(res, `soccer ${leagueKey}`, "board", "SOCCER");
+      if (!res.ok) {
+        console.warn(`[odds] soccer ${leagueKey}: HTTP ${res.status}`);
+        return [] as OddsEvent[];
+      }
+      const events = (await res.json()) as Parameters<
+        typeof normalizeUpcomingEvent
+      >[1][];
+      return events
+        .map((e) => normalizeUpcomingEvent("SOCCER", e, preferred, leagueKey))
+        .filter((e) => e.selections.length > 0);
+    };
+
+    const board = await attempt(preferred);
+    if (board.length > 0) return board;
+    if (bookmakersQueryParam(preferred ?? [])) {
+      return await attempt(undefined);
+    }
+    return board;
+  };
+
+  const all: OddsEvent[] = [];
+  try {
+    for (let i = 0; i < SOCCER_LEAGUES.length; i += SOCCER_FETCH_PARALLEL) {
+      const batch = SOCCER_LEAGUES.slice(i, i + SOCCER_FETCH_PARALLEL);
+      const chunk = await Promise.all(
+        batch.map((l) => fetchLeague(l.oddsApiKey, l.key)),
+      );
+      all.push(...chunk.flat());
+    }
+    return all.slice(0, 80);
+  } catch (err) {
+    console.warn("[odds] soccer board fetch failed", err);
+    return [];
   }
 }
 
@@ -117,6 +265,8 @@ export async function fetchUpcomingOdds(
   sclSport: string,
   opts?: OddsBoardOpts,
 ): Promise<OddsEvent[]> {
+  if (sclSport === "SOCCER") return fetchSoccerBoard(opts);
+
   const apiKey = oddsApiKey();
   const apiSport = toOddsApiSport(sclSport);
   if (!apiKey || !apiSport) return [];
@@ -134,7 +284,7 @@ export async function fetchUpcomingOdds(
       `https://api.the-odds-api.com/v4/sports/${apiSport}/odds/` +
       `?apiKey=${apiKey}&${oddsScopeQuery(books)}&markets=h2h,spreads,totals&oddsFormat=american`;
     const res = await fetch(url, { next: { revalidate: 120 } });
-    logOddsUsage(res, `upcoming ${sclSport}`, "board");
+    logOddsUsage(res, `upcoming ${sclSport}`, "board", sclSport);
     if (!res.ok) {
       console.warn(`[odds] upcoming ${sclSport}: HTTP ${res.status}`);
       return [] as OddsEvent[];
@@ -176,12 +326,13 @@ export async function fetchUpcomingOdds(
 export async function fetchEventOddsForVerification(
   sclSport: string,
   eventId: string,
-  opts?: OddsBoardOpts,
+  opts?: OddsBoardOpts & { purpose?: OddsUsagePurpose; league?: string | null },
 ): Promise<RawEventOdds | null> {
   const apiKey = oddsApiKey();
-  const apiSport = toOddsApiSport(sclSport);
+  const apiSport = resolveOddsApiSport(sclSport, opts?.league);
   if (!apiKey || !apiSport) return null;
   const markets = verificationMarkets(sclSport).join(",");
+  const purpose = opts?.purpose ?? "verify";
 
   const attempt = async (books: readonly string[] | undefined) => {
     const url =
@@ -190,7 +341,7 @@ export async function fetchEventOddsForVerification(
     const res = await fetch(url, {
       next: { revalidate: VERIFY_TTL_SECONDS, tags: [`odds-event:${eventId}`] },
     });
-    logOddsUsage(res, `event ${eventId}`, "verify");
+    logOddsUsage(res, `event ${eventId}`, purpose, sclSport);
     if (!res.ok) return null;
     return (await res.json()) as RawEventOdds;
   };

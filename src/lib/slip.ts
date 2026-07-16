@@ -12,6 +12,7 @@ export type SlipPick = {
   player?: string;
   selection?: string;
   book?: string;
+  league?: string;
 };
 
 /** Full board selection held in the unified slip (M5 PR-3). */
@@ -21,6 +22,7 @@ export type SlipSelection = SlipPick & {
   selection: string;
   eventStartsAt: string;
   sport: string;
+  league?: string;
   /** Per-line stake in Singles mode (ignored for parlay submit). */
   units: number;
 };
@@ -178,7 +180,7 @@ export function toSlipLeg(
 ) {
   return {
     sport: pick.sport,
-    league: undefined as string | undefined,
+    league: pick.league,
     market: pick.market,
     selection: pick.selection,
     oddsAmerican: pick.oddsAmerican,
@@ -203,6 +205,7 @@ export function toSlipSelection(
   return {
     id: pickKey(pick),
     sport: pick.sport,
+    league: pick.league,
     market: pick.market,
     selection: pick.selection,
     oddsAmerican: pick.oddsAmerican,

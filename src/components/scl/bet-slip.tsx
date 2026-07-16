@@ -64,6 +64,8 @@ export function BetSlip({
     setSelectionUnits,
     slipNotes,
     setSlipNotes,
+    notesPublic,
+    setNotesPublic,
     removeSelection,
     resolveConflictReplace,
     resolveConflictCancel,
@@ -336,6 +338,15 @@ export function BetSlip({
               rows={3}
               className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring min-h-20 w-full resize-y rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
             />
+            <label className="flex min-h-10 cursor-pointer items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={notesPublic}
+                onChange={(e) => setNotesPublic(e.target.checked)}
+                className="size-4 rounded border-[color:var(--scl-line)]"
+              />
+              Show on my public pick card
+            </label>
             <p className="text-muted-foreground text-xs">
               Analysis locks when the pick grades.
             </p>

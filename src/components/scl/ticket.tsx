@@ -10,7 +10,7 @@ export type TicketStatus = "verified" | "win" | "loss" | "muted" | "pending";
 
 export type TicketProps = {
   selectionTitle: string;
-  eventLine?: string | null;
+  eventLine?: string | React.ReactNode | null;
   legs: number;
   odds: string;
   stake: string;
@@ -18,6 +18,8 @@ export type TicketProps = {
   capturedAt?: string | null;
   /** Odds API bookmaker key — surfaces SOURCE: <BOOK> BOARD (M5 §4). */
   book?: string | null;
+  /** When false, do not promise automatic grading (cron unhealthy / delayed). */
+  gradingHealthy?: boolean;
   status?: TicketStatus;
   /** Hero settling sequence — capture fades in, then stamp drops (CSS; reduced-motion safe). */
   settling?: boolean;
@@ -47,6 +49,7 @@ export function Ticket({
   toWin,
   capturedAt,
   book,
+  gradingHealthy,
   status = "verified",
   settling = false,
   className,
@@ -55,7 +58,12 @@ export function Ticket({
 }: TicketProps) {
   const pinkStamp = status === "verified" || status === "win";
   const lossStamp = status === "loss";
-  const captureLine = formatOddsCaptureSourceLine({ capturedAt, book });
+  const captureLine = formatOddsCaptureSourceLine({
+    capturedAt,
+    book,
+    gradingHealthy,
+  });
+  const gradeDelayed = captureLine.includes("GRADING DELAYED");
 
   return (
     <article
@@ -122,6 +130,14 @@ export function Ticket({
               {" · "}
               <span className="text-pos font-semibold">
                 Grades Automatically
+              </span>
+            </>
+          ) : gradeDelayed ? (
+            <>
+              {captureLine.replace(/ · GRADING DELAYED — CHECK BACK SOON$/, "")}
+              {" · "}
+              <span className="text-muted-foreground font-semibold">
+                Grading delayed — check back soon
               </span>
             </>
           ) : (

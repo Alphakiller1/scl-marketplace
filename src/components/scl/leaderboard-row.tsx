@@ -36,12 +36,24 @@ export function LeaderboardRow({
       <div className="flex min-w-0 items-center gap-3">
         <CapperAvatar name={capper.name} src={capper.avatarUrl} size="sm" />
         <div className="min-w-0">
-          <CapperIdentityLabel capper={capper} compact />
-          <div className="flex items-center gap-1.5">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <CapperIdentityLabel
+              capper={capper}
+              compact
+              verified={false}
+              primaryClassName="text-sm"
+            />
+            {capper.verifiedShare != null && capper.verifiedShare > 0 ? (
+              <VerifiedBadge verifiedShare={capper.verifiedShare} />
+            ) : null}
+          </div>
+          <div className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs">
             <SportTag sport={capper.topSport} />
-            <StatValue tone="label" className="text-xs">
+            <span>
               {formatRecord(capper.record.w, capper.record.l, capper.record.p)}
-            </StatValue>
+            </span>
+            <span aria-hidden>·</span>
+            <span>{graded.toLocaleString()} graded</span>
           </div>
         </div>
       </div>
@@ -84,11 +96,6 @@ export function LeaderboardRow({
         <StatValue tone="data" className="text-sm font-semibold">
           {graded.toLocaleString()}
         </StatValue>
-        {capper.verifiedShare != null && capper.verifiedShare > 0 ? (
-          <div className="mt-0.5">
-            <VerifiedBadge verifiedShare={capper.verifiedShare} />
-          </div>
-        ) : null}
       </div>
       <div className="flex justify-end">
         <PerformanceSparkline
@@ -107,7 +114,6 @@ export function LeaderboardMobileCard({
   compact = false,
 }: {
   capper: CapperSummary;
-  /** Position within the current list; falls back to the global units rank. */
   rank?: number;
   compact?: boolean;
 }) {
@@ -133,8 +139,13 @@ export function LeaderboardMobileCard({
         />
         <CapperAvatar name={capper.name} src={capper.avatarUrl} size="md" />
         <div className="min-w-0 flex-1">
-          <CapperIdentityLabel capper={capper} compact />
-          <div className="mt-1 flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <CapperIdentityLabel capper={capper} compact verified={false} />
+            {capper.verifiedShare != null && capper.verifiedShare > 0 ? (
+              <VerifiedBadge verifiedShare={capper.verifiedShare} />
+            ) : null}
+          </div>
+          <div className="text-muted-foreground mt-1 flex items-center gap-2 text-xs">
             <SportTag sport={capper.topSport} />
             <StatValue tone="label" className="text-xs">
               {formatRecord(capper.record.w, capper.record.l, capper.record.p)}
@@ -161,11 +172,6 @@ export function LeaderboardMobileCard({
             {(capper.settledPicks ?? 0).toLocaleString()}
           </StatValue>{" "}
           Graded Picks
-          {capper.verifiedShare != null && capper.verifiedShare > 0 ? (
-            <span className="ml-2 inline-flex">
-              <VerifiedBadge verifiedShare={capper.verifiedShare} />
-            </span>
-          ) : null}
         </span>
         <RecentFormStrip form={capper.recentForm.slice(-5)} />
       </div>
