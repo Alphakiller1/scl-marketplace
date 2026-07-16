@@ -30,7 +30,7 @@ function TickerItem({ win }: { win: YesterdayGradedWin }) {
       <span className="text-muted-foreground" aria-hidden>
         ·
       </span>
-      <span className="text-pos font-semibold tabular-nums">
+      <span className="scl-data text-pos font-semibold">
         {formatWinUnits(profit)}
       </span>
     </span>
@@ -38,20 +38,30 @@ function TickerItem({ win }: { win: YesterdayGradedWin }) {
 }
 
 /** Past-tense graded wins marquee — hidden when empty; pauses on hover/focus. */
-export function YesterdayWinsTicker({ wins }: { wins: YesterdayGradedWin[] }) {
+export function YesterdayWinsTicker({
+  wins,
+  label = "Yesterday's Graded Wins",
+}: {
+  wins: YesterdayGradedWin[];
+  label?: "Yesterday's Graded Wins" | "Recent Graded Wins";
+}) {
   if (wins.length === 0) return null;
 
   const staticItems = wins.slice(0, 8);
   const marqueeItems = wins.length > 1 ? [...wins, ...wins] : wins;
+  const aria =
+    label === "Recent Graded Wins"
+      ? "Recent graded wins"
+      : "Yesterday's graded wins";
 
   return (
     <section
-      aria-label="Yesterday's graded wins"
+      aria-label={aria}
       className="border-border border-b bg-[color:var(--scl-ink-900)]"
     >
       <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6">
         <p className="scl-eyebrow mb-2 text-[color:var(--scl-muted-label)]">
-          Yesterday&apos;s Graded Wins
+          {label}
         </p>
 
         <ul className="hidden gap-2 md:flex md:flex-col">

@@ -13,56 +13,82 @@ export type YesterdayGradedWin = {
   profitUnits: number;
 };
 
-export async function getYesterdaysGradedWins(
-  take = 20,
-): Promise<YesterdayGradedWin[]> {
-  const { start, end } = etDayBounds(-1);
+export type GradedWinsTickerResult = {
+  wins: YesterdayGradedWin[];
+  /** Eyebrow label — Yesterday when calendar-ET hits exist, else Recent. */
+  label: "Yesterday's Graded Wins" | "Recent Graded Wins";
+};
 
+async function queryWins(whereGradedAt: {
+  gte: Date;
+  lt?: Date;
+}): Promise<YesterdayGradedWin[]> {
+  const plays = await prisma.play.findMany({
+    where: {
+      outcome: "WIN",
+      parlayId: null,
+      units: { gte: UNIT_MIN },
+      gradedAt: whereGradedAt,
+      capper: {
+        user: {
+          accountStatus: "ACTIVE",
+          username: { not: null },
+          ...prismaExcludeTestHandles(),
+        },
+      },
+    },
+    select: {
+      id: true,
+      selection: true,
+      units: true,
+      profitUnits: true,
+      capper: {
+        select: {
+          user: { select: { username: true } },
+        },
+      },
+    },
+    orderBy: { profitUnits: "desc" },
+    take: 20,
+  });
+
+  return plays.flatMap((p) => {
+    const handle = p.capper.user.username;
+    if (!handle) return [];
+    return [
+      {
+        id: p.id,
+        handle,
+        selection: p.selection,
+        units: Number(p.units),
+        profitUnits: Number(p.profitUnits ?? 0),
+      },
+    ];
+  });
+}
+
+/**
+ * Public homepage ticker feed.
+ * Prefer yesterday ET (Fable Step 8). If that window is empty during cold start,
+ * fall back to graded wins from the last 7 days — still real past-tense results,
+ * never fabricated. Hide the module when both windows are empty.
+ */
+export async function getYesterdaysGradedWins(): Promise<GradedWinsTickerResult> {
   try {
-    const plays = await prisma.play.findMany({
-      where: {
-        outcome: "WIN",
-        parlayId: null,
-        units: { gte: UNIT_MIN },
-        gradedAt: { gte: start, lt: end },
-        capper: {
-          user: {
-            accountStatus: "ACTIVE",
-            username: { not: null },
-            ...prismaExcludeTestHandles(),
-          },
-        },
-      },
-      select: {
-        id: true,
-        selection: true,
-        units: true,
-        profitUnits: true,
-        capper: {
-          select: {
-            user: { select: { username: true } },
-          },
-        },
-      },
-      orderBy: { profitUnits: "desc" },
-      take,
-    });
+    const { start, end } = etDayBounds(-1);
+    const yesterday = await queryWins({ gte: start, lt: end });
+    if (yesterday.length > 0) {
+      return { wins: yesterday, label: "Yesterday's Graded Wins" };
+    }
 
-    return plays.flatMap((p) => {
-      const handle = p.capper.user.username;
-      if (!handle) return [];
-      return [
-        {
-          id: p.id,
-          handle,
-          selection: p.selection,
-          units: Number(p.units),
-          profitUnits: Number(p.profitUnits ?? 0),
-        },
-      ];
-    });
+    const weekAgo = new Date(Date.now() - 7 * 86_400_000);
+    const recent = await queryWins({ gte: weekAgo });
+    return {
+      wins: recent,
+      label: "Recent Graded Wins",
+    };
   } catch (error) {
     console.error("[getYesterdaysGradedWins] database unavailable:", error);
-    return [];
+    return { wins: [], label: "Yesterday's Graded Wins" };
   }
 }
