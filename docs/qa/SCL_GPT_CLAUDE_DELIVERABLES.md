@@ -136,7 +136,7 @@ Add Vercel Cron (or equivalent) invoking a **secured** route:
 
 - Path: `GET/POST /api/cron/grade`
 - Auth: `Authorization: Bearer ${CRON_SECRET}` (Vercel cron header)
-- Schedule: `*/30 * * * *` (every 30 minutes)
+- Schedule: Vercel Hobby → daily `0 8 * * *`; sub-daily cadence via GitHub Actions `grade-cron.yml` (`*/30`) calling Bearer `CRON_SECRET`
 - Body work: `autoGradePending` improved (below)
 - Logging: `{ graded, skipped, failed, provider, durationMs, sports[] }` to console + optional `GradeJobRun` table
 

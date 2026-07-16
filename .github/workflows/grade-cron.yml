@@ -1,0 +1,47 @@
+name: Grade pending picks
+
+# Vercel Hobby only allows one daily cron. This workflow restores the intended
+# ~30m cadence by calling production /api/cron/grade with CRON_SECRET.
+# Secrets: CRON_SECRET, CRON_GRADE_URL (default https://scl-marketplace.vercel.app/api/cron/grade)
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: grade-cron
+  cancel-in-progress: false
+
+jobs:
+  grade:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check secrets
+        id: cfg
+        run: |
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "CRON_SECRET not set — skipping grade ping." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Call grade endpoint
+        if: steps.cfg.outputs.ready == 'true'
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          CRON_GRADE_URL: ${{ secrets.CRON_GRADE_URL }}
+        run: |
+          URL="${CRON_GRADE_URL:-https://scl-marketplace.vercel.app/api/cron/grade}"
+          code=$(curl -sS -o /tmp/grade.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Accept: application/json" \
+            "$URL")
+          echo "HTTP $code from $URL"
+          cat /tmp/grade.json || true
+          echo "### Grade cron: HTTP $code" >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/grade.json >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          test "$code" = "200"
