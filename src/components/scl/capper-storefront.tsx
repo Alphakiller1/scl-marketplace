@@ -34,8 +34,8 @@ export function CapperStorefront({
             </p>
           </div>
         </div>
-        <span className="border-border bg-surface-2 text-muted-foreground inline-flex min-h-8 shrink-0 items-center self-start rounded-lg border px-2.5 text-xs font-medium">
-          Third-Party Checkout
+        <span className="border-border bg-card text-muted-foreground inline-flex min-h-8 shrink-0 items-center self-start rounded-lg border px-2.5 text-xs font-medium">
+          Leaves SCL
         </span>
       </div>
 
@@ -43,13 +43,12 @@ export function CapperStorefront({
         className="mt-4 py-8"
         icon={PackageOpen}
         title="Packages Not Listed Yet"
-        description={`${capperName} hasn't published packages on SCL. You can still review their tracked record and recent plays above.`}
+        description={`${capperName} hasn't published packages here. Their inspectable record and recent Tickets stay above.`}
       />
 
       <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
-        Purchases, subscriptions, and fulfillment are handled by the applicable
-        third-party storefront — SCL lists marketplace offers and does not
-        process payments.
+        Checkout and fulfillment happen on a third-party storefront. SCL does
+        not process payments — leaving this page means you&apos;re off SCL.
       </p>
     </section>
   );

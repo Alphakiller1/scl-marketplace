@@ -34,20 +34,20 @@ export function CompetitionHero() {
 
       <div className="relative mx-auto flex min-h-[31rem] max-w-6xl flex-col px-4 py-8 sm:min-h-[35rem] sm:justify-center sm:px-6 sm:py-14">
         <div className="max-w-xl">
-          <div className="scl-data inline-flex min-h-10 items-center gap-2 rounded-lg border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-900)] px-3 text-[0.625rem] font-semibold tracking-[0.16em] uppercase">
+          <div className="scl-eyebrow inline-flex min-h-10 items-center gap-2 rounded-lg border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-900)] px-3 font-semibold">
             <VerificationBadge size="xs" />
-            Public Performance Records
+            Board-verified records
           </div>
           <h1
             id="scl-hero-title"
             className="scl-display mt-4 max-w-lg text-3xl leading-[1.08] font-bold tracking-[0.02em] text-balance uppercase sm:mt-5 sm:text-5xl lg:text-6xl"
           >
             Sports Capper{" "}
-            <span className="text-[color:var(--scl-text)]">Leaderboard</span>
+            <span className="text-[color:var(--scl-pink)]">Leaderboard</span>
           </h1>
           <p className="mt-4 max-w-lg text-base leading-relaxed text-pretty text-[color:var(--scl-muted-data)] sm:text-lg">
-            Compare tracked records, evaluate long-term performance, and see
-            which handicappers are earning their rank.
+            Compare inspectable capper records by units, ROI, and sample size.
+            No hype — every public pick is a receipt you can check.
           </p>
           <div className="mt-6 grid gap-3 sm:mt-7 sm:flex sm:flex-wrap">
             <Button

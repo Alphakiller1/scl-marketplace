@@ -205,7 +205,7 @@ export function submissionReceiptCopy(receipt: SubmissionReceipt): ReceiptCopy {
       };
     }
     return {
-      headline: "Self-reported",
+      headline: "Logged",
       summary: `${receipt.selection} ${odds}`,
       context: receipt.market,
       statusLine:

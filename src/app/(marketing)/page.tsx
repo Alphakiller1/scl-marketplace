@@ -74,7 +74,7 @@ export default async function Home() {
           <SectionHeader
             icon={Trophy}
             title="Performance Leaderboard"
-            subtitle="Verified records ranked by net units"
+            subtitle="Board-verified graded plays ranked by net units"
             href="/leaderboard"
           />
 
@@ -83,7 +83,7 @@ export default async function Home() {
             failed={leaderboardFailed}
             limit={6}
             compactMobile
-            emptyDescription="Verified cappers will rank here after their first graded plays."
+            emptyDescription="Ranks appear after verified cappers build a graded sample. Cold start stays empty — we don't invent activity."
           />
         </section>
 
@@ -91,7 +91,7 @@ export default async function Home() {
           <SectionHeader
             icon={Activity}
             title="League Action Report"
-            subtitle={`Verified board activity from public cappers — last ${windowDays} days`}
+            subtitle={`Board-verified pick volume by league — last ${windowDays} days`}
             href="/picks"
           />
 
@@ -123,7 +123,8 @@ export default async function Home() {
                         </div>
 
                         <p className="text-muted-foreground mt-1 text-sm">
-                          Recent verified-board activity from public cappers.
+                          Public Tickets logged against this league&apos;s
+                          board.
                         </p>
                       </div>
                     </div>
@@ -196,7 +197,7 @@ export default async function Home() {
           <SectionHeader
             icon={Flame}
             title="ROI Leaders"
-            subtitle="Best return across each capper's tracked sample"
+            subtitle="Return on graded stake within each capper's sample"
             href="/cappers"
           />
 
@@ -206,7 +207,7 @@ export default async function Home() {
             <EmptyState
               icon={Flame}
               title="No ROI Leaders Yet"
-              description="ROI rankings appear after cappers build a graded sample."
+              description="ROI needs graded results. Leaders show once cappers clear a usable sample."
             />
           )}
         </section>
@@ -219,8 +220,9 @@ export default async function Home() {
               Build A Record People Can Inspect
             </h2>
 
-            <p className="text-muted-foreground mt-2">
-              Log board-verified plays. Earn a public rank others can check.
+            <p className="text-muted-foreground mt-2 text-sm leading-relaxed sm:text-base">
+              Log board-checked plays. Public rank follows graded results —
+              authenticity first, outcomes second.
             </p>
           </div>
 

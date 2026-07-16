@@ -40,11 +40,12 @@ export default async function DashboardPage() {
     <div className="space-y-7 sm:space-y-8">
       <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="scl-display text-2xl font-bold tracking-[0.04em] uppercase">
             Welcome{user?.name ? `, ${user.name}` : ""}
           </h1>
-          <p className="text-muted-foreground text-sm">
-            Your record builds as you log plays and they&apos;re graded.
+          <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+            Your public record updates as board-checked plays grade. Pending
+            Tickets are not wins.
           </p>
         </div>
         <Button

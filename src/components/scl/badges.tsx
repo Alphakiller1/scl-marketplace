@@ -134,41 +134,49 @@ export function SportTag({
 
 const STATUS_STYLES: Record<
   PickStatus,
-  { label: string; className: string; live?: boolean }
+  { label: string; className: string; title: string; live?: boolean }
 > = {
   "pre-game": {
     // Informational blue OUTLINE — public taxonomy uses "Pending" before tip.
     label: "Pending",
+    title: "Event has not started — pick is logged, not yet graded",
     className:
       "border border-[color:var(--scl-blue)]/40 text-[color:var(--scl-blue)]",
   },
   pending: {
     label: "Pending",
+    title: "Waiting for the event to start or settle",
     className: "bg-muted/60 text-muted-foreground",
   },
   live: {
     label: "Live",
+    title: "Event is in progress — grade follows the final",
     className: "bg-live/15 text-live ring-1 ring-live/30",
     live: true,
   },
   "awaiting-grade": {
     label: "Awaiting Grade",
+    title: "Event finished — automatic grade pending",
     className: "bg-muted/50 text-muted-foreground",
   },
   win: {
     label: "Won",
+    title: "Graded win",
     className: "bg-pos/15 text-pos ring-1 ring-pos/30",
   },
   loss: {
     label: "Lost",
+    title: "Graded loss",
     className: "bg-neg/15 text-neg ring-1 ring-neg/30",
   },
   push: {
     label: "Push",
+    title: "Graded push — stake returned",
     className: "border-border text-foreground border bg-transparent",
   },
   void: {
     label: "Void",
+    title: "Pick voided — not counted in the record",
     className: "bg-muted/40 text-muted-foreground",
   },
 };
@@ -191,11 +199,12 @@ export function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold",
+        "inline-flex min-h-8 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
         s.className,
         className,
       )}
-      aria-label={`${isResult ? "Result" : "Status"}: ${s.label}`}
+      title={s.title}
+      aria-label={`${isResult ? "Result" : "Status"}: ${s.label}. ${s.title}`}
     >
       {s.live ? (
         <span className="relative flex size-1.5">

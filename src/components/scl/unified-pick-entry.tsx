@@ -408,7 +408,7 @@ function UnifiedPickEntryInner() {
         </p>
         <SectionHeader
           title="Submit A Play"
-          subtitle="Tap lines into one slip — Singles or Parlay, without leaving the board"
+          subtitle="Pick a book, sport, and market — lines capture into your slip before tip. Singles or Parlay."
         />
       </div>
 

@@ -22,8 +22,8 @@ export function SectionHeader({
     <div className={cn("flex items-start justify-between gap-3", className)}>
       <div className="flex min-w-0 items-start gap-2.5">
         {Icon ? (
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[color:var(--scl-ink-700)] text-[color:var(--scl-muted-data)]">
-            <Icon className="size-4" />
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-700)] text-[color:var(--scl-pink)]">
+            <Icon className="size-4" aria-hidden />
           </span>
         ) : null}
         <div className="min-w-0 border-t border-[color:var(--scl-pink-deep)] pt-2.5">
@@ -31,7 +31,9 @@ export function SectionHeader({
             {title}
           </h2>
           {subtitle ? (
-            <p className="text-muted-foreground text-sm">{subtitle}</p>
+            <p className="text-muted-foreground mt-0.5 text-sm leading-relaxed">
+              {subtitle}
+            </p>
           ) : null}
         </div>
       </div>

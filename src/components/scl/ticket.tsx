@@ -122,7 +122,7 @@ export function Ticket({
       <div className="flex items-center justify-between gap-3 px-5 pt-3 pb-4">
         <p
           className={cn(
-            "scl-data scl-ticket-capture text-muted-foreground max-w-[14rem] text-[0.56rem] leading-[1.7] tracking-[0.1em] uppercase",
+            "scl-data scl-ticket-capture text-muted-foreground max-w-[16rem] text-[0.625rem] leading-relaxed tracking-[0.08em] uppercase",
             settling && "opacity-0",
           )}
         >

@@ -41,7 +41,7 @@ export function CompactCapperRow({
       href={`/cappers/${capper.handle}`}
       className="border-border bg-card active:bg-surface-2 focus-visible:ring-ring scl-interactive scl-elevated block min-h-24 rounded-xl border p-3 outline-none focus-visible:ring-2"
     >
-      <div className="flex min-w-0 items-center gap-2.5">
+      <div className="flex min-w-0 items-center gap-3">
         <RankBadge rank={rank} settledPicks={graded} className="size-9" />
         <CapperAvatar name={capper.name} src={capper.avatarUrl} size="sm" />
 
@@ -51,12 +51,12 @@ export function CompactCapperRow({
             compact
             primaryClassName="text-sm"
           />
-          <div className="mt-0.5 flex items-center gap-1.5">
+          <div className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
             <SportTag
               sport={capper.topSport}
               className="max-w-24 truncate whitespace-nowrap"
             />
-            <StatValue tone="label" className="truncate text-xs">
+            <StatValue tone="label" className="scl-data truncate text-xs">
               {formatRecord(capper.record.w, capper.record.l, capper.record.p)}
             </StatValue>
           </div>
