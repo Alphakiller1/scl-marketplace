@@ -411,6 +411,9 @@
     .scl-board-fade-in {
       animation: none;
     }
+    .scl-ticker-track {
+      animation: none !important;
+    }
   }
   @keyframes scl-reveal-in {
     from {
