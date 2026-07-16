@@ -11,6 +11,7 @@ import { PerformanceSummary } from "@/components/scl/performance-summary";
 import { PlayListItem } from "@/components/scl/play-list-item";
 import { SectionHeader } from "@/components/scl/section";
 import { EmptyState } from "@/components/scl/states";
+import { VerificationHelpLink } from "@/components/scl/verification-help-link";
 import { VerificationLegend } from "@/components/scl/verification-legend";
 
 type ProfileParams = { params: Promise<{ handle: string }> };
@@ -44,11 +45,14 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
 
         <div className="mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <section id="recent-picks" className="scroll-mt-20">
-            <SectionHeader
-              icon={ListChecks}
-              title="Recent Plays"
-              subtitle="Latest tracked plays, newest first"
-            />
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <SectionHeader
+                icon={ListChecks}
+                title="Recent Plays"
+                subtitle="Inspectable Tickets — newest first. Verified ≠ Won."
+              />
+              <VerificationHelpLink className="text-muted-foreground hover:text-foreground inline-flex min-h-11 shrink-0 gap-1.5 self-start px-2 text-xs font-medium" />
+            </div>
             {plays.length ? (
               <>
                 <VerificationLegend className="mt-4" />

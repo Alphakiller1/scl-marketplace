@@ -45,3 +45,20 @@ jobs:
           cat /tmp/grade.json >> "$GITHUB_STEP_SUMMARY" || true
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           test "$code" = "200"
+          # HTTP 200 alone hid total grading failure (#133). Fail the job when
+          # health is UNHEALTHY or every skip is permanent aged_out with zero grades.
+          node -e '
+            const d = require("/tmp/grade.json");
+            const health = d.health?.status || "UNKNOWN";
+            const aged = d.skippedByReason?.aged_out || 0;
+            const graded = d.graded || 0;
+            console.log("health=", health, "graded=", graded, "skippedByReason=", d.skippedByReason);
+            if (health === "UNHEALTHY") {
+              console.error("Grade health UNHEALTHY — pending plays past 24h");
+              process.exit(1);
+            }
+            if (graded === 0 && aged > 0 && (d.skipped || 0) === aged) {
+              console.error("All skips are aged_out — backlog permanently stuck");
+              process.exit(1);
+            }
+          '

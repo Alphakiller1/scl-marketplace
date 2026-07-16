@@ -58,12 +58,14 @@ export function Ticket({
 }: TicketProps) {
   const pinkStamp = status === "verified" || status === "win";
   const lossStamp = status === "loss";
+  const settled = status === "win" || status === "loss";
   const captureLine = formatOddsCaptureSourceLine({
     capturedAt,
     book,
-    gradingHealthy,
+    // Settled tickets must never claim grading is delayed.
+    gradingHealthy: settled ? true : gradingHealthy,
   });
-  const gradeDelayed = captureLine.includes("GRADING DELAYED");
+  const gradeDelayed = !settled && captureLine.includes("GRADING DELAYED");
 
   return (
     <article

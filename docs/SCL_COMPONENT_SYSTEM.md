@@ -18,8 +18,8 @@ Numbers are the product. These render performance consistently everywhere.
 - `VerificationBadge` — verified record marker (live/cyan). Sizes `xs|sm|md`.
 - `TrophyBadge` — gold award/status chip.
 - `SportTag` — uppercase sport label from the canonical taxonomy (optional `LeagueMark`).
-- `TeamMark` (`team-mark.tsx`) — team logo when `logoUrl` is set; color+abbr fallback on error.
-- `LeagueMark` (`league-mark.tsx`) — league logo when available; color+initials fallback on error.
+- `TeamMark` (`team-mark.tsx`) — self-hosted mark when listed in `mark-manifest`; color+abbr fallback otherwise.
+- `LeagueMark` (`league-mark.tsx`) — self-hosted mark when listed in `mark-manifest`; color+initials fallback otherwise.
 - `StatusBadge` — pick status (`pending|live|win|loss|push|void`); `live` animates a ping dot.
 - `Ticket` (`ticket.tsx`) — post-submit and verified-pick receipt (tear line, stamp, mono capture).
   Used where board-based verification or grading needs a clear trust receipt.

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { resolveOutcome, type GradablePlay } from "@/lib/results/match";
-import type { SettledGame } from "@/lib/results/provider";
+import type { SettledGame } from "@/lib/results/settled-game";
 
 const GAMES: SettledGame[] = [
   {
@@ -141,6 +141,55 @@ test("unmatched / ambiguous plays return null (stay pending)", () => {
   assert.equal(
     resolveOutcome(
       play({ market: "Player Props", selection: "Tatum over 25.5 pts" }),
+      GAMES,
+    ),
+    null,
+  );
+});
+
+test("All-Star league moneylines resolve via American/National League labels", () => {
+  const asg: SettledGame[] = [
+    {
+      sport: "MLB",
+      home: "National League",
+      away: "American League",
+      homeScore: 0,
+      awayScore: 4,
+      completed: true,
+    },
+  ];
+  assert.equal(
+    resolveOutcome(
+      play({
+        sport: "MLB",
+        market: "Moneyline",
+        selection: "American League",
+      }),
+      asg,
+    ),
+    "WIN",
+  );
+  assert.equal(
+    resolveOutcome(
+      play({
+        sport: "MLB",
+        market: "Moneyline",
+        selection: "National League",
+      }),
+      asg,
+    ),
+    "LOSS",
+  );
+});
+
+test("first-five / innings markets stay deferred", () => {
+  assert.equal(
+    resolveOutcome(
+      play({
+        sport: "MLB",
+        market: "First Five Innings Total",
+        selection: "PHI / PIT u 4.5",
+      }),
       GAMES,
     ),
     null,

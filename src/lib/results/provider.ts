@@ -7,6 +7,12 @@ import {
   toOddsApiSport,
   toSclSport,
 } from "@/lib/odds-api";
+import { espnHistoricalResultsProvider } from "@/lib/results/espn-scores";
+import { RESULTS_LOOKBACK_DAYS } from "@/lib/results/lookback";
+import type { SettledGame } from "@/lib/results/settled-game";
+
+export type { SettledGame };
+export { RESULTS_LOOKBACK_DAYS };
 
 /**
  * Results providers feed the auto-grader. A provider returns completed games with
@@ -17,16 +23,6 @@ import {
  * scores endpoint) and activates automatically once `ODDS_API_KEY` is set —
  * `getResultsProvider()` picks it over the mock when the key is present.
  */
-export type SettledGame = {
-  sport: string; // canonical SCL sport key (NBA, MLB, …)
-  home: string;
-  away: string;
-  homeScore: number;
-  awayScore: number;
-  completed: boolean;
-  /** Odds API event id when available — preferred join key for grading. */
-  eventId?: string;
-};
 
 export interface ResultsProvider {
   readonly name: string;
@@ -125,7 +121,7 @@ export function oddsApiResultsProvider(): ResultsProvider {
 
     const url =
       `https://api.the-odds-api.com/v4/sports/${apiSport}/scores/` +
-      `?daysFrom=3&apiKey=${apiKey}`;
+      `?daysFrom=${RESULTS_LOOKBACK_DAYS}&apiKey=${apiKey}`;
     try {
       const res = await fetch(url, { cache: "no-store" });
       logOddsUsage(res, `scores ${sclSport}`, "results");
@@ -170,11 +166,54 @@ type OddsApiScore = {
   scores?: { name: string; score: string }[];
 };
 
-/** Auto-select the live provider when a key exists; otherwise demo results. */
+/** Merge primary + secondary settled games; prefer primary eventId on collision. */
+export function mergeSettledGames(
+  primary: SettledGame[],
+  secondary: SettledGame[],
+): SettledGame[] {
+  const byKey = new Map<string, SettledGame>();
+  const keyOf = (g: SettledGame) =>
+    g.eventId ?? `${g.sport}|${g.home}|${g.away}|${g.homeScore}-${g.awayScore}`;
+  for (const g of secondary) byKey.set(keyOf(g), g);
+  for (const g of primary) byKey.set(keyOf(g), g);
+  return [...byKey.values()];
+}
+
+export function compositeResultsProvider(
+  primary: ResultsProvider,
+  secondary: ResultsProvider,
+): ResultsProvider {
+  return {
+    name: `${primary.name}+${secondary.name}`,
+    async fetchSettled() {
+      const [a, b] = await Promise.all([
+        primary.fetchSettled(),
+        secondary.fetchSettled(),
+      ]);
+      return mergeSettledGames(a, b);
+    },
+    async fetchSettledForSports(sports: string[]) {
+      const [a, b] = await Promise.all([
+        primary.fetchSettledForSports(sports),
+        secondary.fetchSettledForSports(sports),
+      ]);
+      return mergeSettledGames(a, b);
+    },
+  };
+}
+
+/**
+ * Odds API (≤3d) + ESPN scoreboard history (≤14d) so aged-out plays can still
+ * settle without paid Odds API historical credits.
+ */
 export function getResultsProvider(): ResultsProvider {
+  const espn = espnHistoricalResultsProvider();
   try {
-    return oddsApiKey() ? oddsApiResultsProvider() : new MockResultsProvider();
+    if (oddsApiKey()) {
+      return compositeResultsProvider(oddsApiResultsProvider(), espn);
+    }
   } catch {
-    return new MockResultsProvider();
+    /* fall through */
   }
+  return espn;
 }

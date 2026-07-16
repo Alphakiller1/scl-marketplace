@@ -7,6 +7,7 @@ import type { CapperSummary } from "@/lib/mock";
 
 /**
  * Capper profile SEO — templates stay keyword-natural without hype claims.
+ * Includes dynamic OG card from /api/og/capper/[handle].
  */
 export function buildCapperProfileMetadata(capper: CapperSummary): Metadata {
   const identity = identityDisplayLinesFromCapper(capper);
@@ -18,6 +19,7 @@ export function buildCapperProfileMetadata(capper: CapperSummary): Metadata {
   const bare = capper.handle.replace(/^@+/, "");
   const base = appUrl();
   const pageUrl = `${base}/cappers/${bare}`;
+  const ogImage = `${base}/api/og/capper/${bare}`;
   const building = isBuildingARecord({
     rank: capper.rank,
     settledPicks: capper.settledPicks,
@@ -44,11 +46,13 @@ export function buildCapperProfileMetadata(capper: CapperSummary): Metadata {
       description,
       url: pageUrl,
       type: "profile",
+      images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title,
       description,
+      images: [ogImage],
     },
   };
 }
