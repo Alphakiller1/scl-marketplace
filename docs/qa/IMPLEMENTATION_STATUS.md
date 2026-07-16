@@ -2,7 +2,7 @@
 
 **Spec:** `docs/qa/SCL_GPT_CLAUDE_DELIVERABLES.md`  
 **SQL patches:** `docs/qa/SUPABASE_SQL_PATCHES.md` (owner runs in Supabase SQL Editor)  
-**Main as of:** post `#142` ticker fallback + Rank-by-CLV / OG Inter
+**Main as of:** `#150` 3-slide hero (after `#143`–`#149` polish)
 
 ## Shipped on main
 
@@ -13,7 +13,7 @@
 | Parlay auto-settle after legs grade                            | Done                                               |
 | Props auto-grade deferred (`props_deferred` log)               | Done                                               |
 | QA handle + &lt;0.25U public exclusion + invalid-stake badge   | Done                                               |
-| Track Your Record / Start Tracking CTAs                        | Done                                               |
+| Track Your Record / Start Tracking CTAs                        | Done — hero/bottom; founding apply on hero slide 1 |
 | 4U/5U chips; Pending label; Logged tier                        | Done                                               |
 | Verified badge (no 100% text; pink at ~100% share)             | Done                                               |
 | Odds purpose logging + circuit-break + `OddsUsageDaily`        | Done — needs SQL table                             |
@@ -24,12 +24,15 @@
 | Soccer GamePicker (`SOCCER` + league fan-out)                  | Done                                               |
 | Odds board diagnostics meta on `GET /api/odds`                 | Done                                               |
 | BookMark monograms on slip/list/ticket/chips/profile           | Done                                               |
-| Leaderboard row declutter + Building A Record                  | Done                                               |
+| Leaderboard row declutter + league monograms                   | Done                                               |
 | Legal pages (no placeholder footer)                            | Done                                               |
 | SEO templates + cold-start founding copy                       | Done                                               |
 | Dynamic capper OG images (Inter tabular nums)                  | Done                                               |
-| League Action categories + ROI horizontal mobile               | Done                                               |
-| Yesterday / Recent graded wins ticker                          | Done — hide when empty; 7d fallback                |
+| League Action Report (volume board + tabs)                     | Done                                               |
+| ROI Leaders = Performance Leaderboard row chrome               | Done                                               |
+| Yesterday / Recent graded wins ticker (horizontal marquee)     | Done — hide when empty; 7d fallback                |
+| Homepage How Verification Works (top of content)               | Done                                               |
+| 3-slide clickable hero + extended trophy art                   | Done                                               |
 | UIX polish (empty states, BookRail taps, Ticket capture)       | Done                                               |
 | Inter tabular data face (app UI)                               | Done                                               |
 
