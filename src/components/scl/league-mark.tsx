@@ -31,13 +31,23 @@ export function LeagueMark({
 }) {
   const rawKey = leagueKey ?? leagueProp?.key ?? "";
   const league = leagueProp ?? getLeagueIdentity(rawKey);
+  // Prefer identity URL (ESPN CDN for majors), then self-hosted PNG/SVG.
   const src =
     league.logoUrl ??
     leagueMarkSrc(rawKey) ??
     leagueMarkSrc(league.key) ??
     leagueMarkSrc(normalizeLeagueKey(rawKey));
   const [failed, setFailed] = useState(false);
-  const showLogo = Boolean(src) && !failed;
+  const [srcIndex, setSrcIndex] = useState(0);
+  const candidates = [
+    league.logoUrl,
+    leagueMarkSrc(rawKey),
+    leagueMarkSrc(league.key),
+  ].filter((value, index, all): value is string =>
+    Boolean(value && all.indexOf(value) === index),
+  );
+  const activeSrc = candidates[srcIndex] ?? src;
+  const showLogo = Boolean(activeSrc) && !failed;
   const px = SIZE_PX[size];
   const initials = leagueMarkInitials(league);
   const style = {
@@ -59,10 +69,11 @@ export function LeagueMark({
       aria-hidden
     >
       {showLogo ? (
-        // Self-hosted PNG or ESPN CDN; plain img keeps onError → initials reliable.
+        // ESPN CDN or self-hosted PNG; try next candidate before initials.
         // eslint-disable-next-line @next/next/no-img-element -- onError + remote/local marks
         <img
-          src={src}
+          key={activeSrc}
+          src={activeSrc}
           alt=""
           width={px}
           height={px}
@@ -70,7 +81,13 @@ export function LeagueMark({
           loading="eager"
           decoding="async"
           referrerPolicy="no-referrer"
-          onError={() => setFailed(true)}
+          onError={() => {
+            if (srcIndex + 1 < candidates.length) {
+              setSrcIndex((i) => i + 1);
+              return;
+            }
+            setFailed(true);
+          }}
         />
       ) : (
         initials
