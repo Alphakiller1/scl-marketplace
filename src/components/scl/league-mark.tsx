@@ -41,9 +41,11 @@ export function LeagueMark({
   return (
     <span
       className={cn(
-        "border-border/60 relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl border font-bold tracking-wide shadow-xs",
+        "relative flex shrink-0 items-center justify-center overflow-hidden font-bold tracking-wide",
         sizeClass,
-        showLogo ? "bg-background" : null,
+        showLogo
+          ? "rounded-md bg-transparent"
+          : "border-border/60 rounded-xl border shadow-xs",
         className,
       )}
       style={style}
@@ -56,7 +58,7 @@ export function LeagueMark({
         <img
           src={league.logoUrl}
           alt=""
-          className="size-full object-contain p-0.5"
+          className="size-full object-contain"
           loading="lazy"
           decoding="async"
           onError={() => setFailed(true)}

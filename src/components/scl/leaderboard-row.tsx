@@ -33,10 +33,10 @@ export function LeaderboardRow({
     >
       <RankBadge rank={place} settledPicks={graded} />
 
-      <div className="flex min-w-0 items-center gap-3.5">
+      <div className="flex min-w-0 items-center gap-3">
         <CapperAvatar name={capper.name} src={capper.avatarUrl} size="sm" />
-        <div className="min-w-0">
-          <div className="flex min-w-0 items-center gap-2">
+        <div className="min-w-0 space-y-1">
+          <div className="flex min-w-0 items-center gap-1.5">
             <CapperIdentityLabel
               capper={capper}
               compact
@@ -50,8 +50,11 @@ export function LeaderboardRow({
               />
             ) : null}
           </div>
-          <div className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
-            <SportTag sport={capper.topSport} />
+          <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
+            <SportTag sport={capper.topSport} markOnly />
+            <span aria-hidden className="text-border">
+              ·
+            </span>
             <span className="scl-data tabular-nums">
               {formatRecord(capper.record.w, capper.record.l, capper.record.p)}
             </span>
@@ -157,8 +160,11 @@ export function LeaderboardMobileCard({
               <VerifiedBadge verifiedShare={capper.verifiedShare} />
             ) : null}
           </div>
-          <div className="text-muted-foreground mt-1 flex items-center gap-2 text-xs">
-            <SportTag sport={capper.topSport} />
+          <div className="text-muted-foreground mt-1 flex items-center gap-1.5 text-xs">
+            <SportTag sport={capper.topSport} markOnly />
+            <span aria-hidden className="text-border">
+              ·
+            </span>
             <StatValue tone="label" className="text-xs">
               {formatRecord(capper.record.w, capper.record.l, capper.record.p)}
             </StatValue>
