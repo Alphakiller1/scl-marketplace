@@ -8,8 +8,6 @@ import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/scl/section";
 
 import { CompetitionHero } from "@/components/scl/competition-hero";
-import { FoundingCapperBanner } from "@/components/scl/founding-capper-banner";
-
 import { Leaderboard } from "@/components/scl/leaderboard";
 
 import { EmptyState } from "@/components/scl/states";
@@ -138,7 +136,6 @@ export default async function Home() {
           <VerificationLegend />
         </section>
 
-        <FoundingCapperBanner />
         <section className="space-y-4">
           <SectionHeader
             icon={Trophy}
