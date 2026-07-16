@@ -13,9 +13,9 @@ import {
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 
 export const metadata: Metadata = {
-  title: { absolute: "Leaderboard · SCL" },
+  title: "Leaderboard",
   description:
-    "Board-verified capper rankings by units, ROI, and sample size. Provisional rows are still building a record.",
+    "Sports capper leaderboard records ranked by units, ROI, and win rate after sample thresholds. Inspect building records while the founding roster forms.",
 };
 
 // Live data, cached briefly so the public board stays fresh without hammering DB.

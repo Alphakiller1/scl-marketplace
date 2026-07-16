@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleHelp } from "lucide-react";
+import { BadgeCheck, ShieldCheck } from "lucide-react";
 
 import {
   Dialog,
@@ -10,74 +10,72 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import {
+  ACCOUNT_VERIFIED_TOOLTIP,
+  VERIFICATION_TIER_META,
+} from "@/lib/verification";
 
-/**
- * Mobile-friendly trust explainer (not hover-only).
- * Keeps Verified Account vs Board-verified Pick distinct.
- */
 export function VerificationHelpLink({ className }: { className?: string }) {
   return (
     <Dialog>
       <DialogTrigger
-        render={
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={
-              className ??
-              "text-muted-foreground hover:text-foreground inline-flex min-h-11 gap-1.5 px-2 text-xs font-medium"
-            }
-          />
-        }
+        className={`text-live hover:text-live/90 inline-flex min-h-10 items-center text-xs font-medium underline-offset-4 hover:underline ${className ?? ""}`}
       >
-        <CircleHelp className="size-4" aria-hidden />
         How verification works
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-md" showCloseButton>
         <DialogHeader>
-          <DialogTitle className="scl-display text-lg tracking-wide uppercase">
+          <DialogTitle className="scl-display text-base tracking-wide uppercase">
             How verification works
           </DialogTitle>
-          <DialogDescription>
-            Short definitions for account checks, board-verified picks, logged
-            picks, and small samples — authenticity, not results.
+          <DialogDescription className="text-muted-foreground text-sm">
+            Account trust and pick authenticity are separate signals.
           </DialogDescription>
         </DialogHeader>
-        <div className="text-muted-foreground space-y-3 text-sm leading-relaxed">
-          <p>
-            <span className="text-foreground font-medium">
-              Verified account
-            </span>{" "}
-            means the capper completed SCL identity checks. It is not a promise
-            that every pick wins.
-          </p>
-          <p>
-            <span className="text-foreground font-medium">
-              Board-verified pick
-            </span>{" "}
-            means the odds were captured before the event started and checked
-            against a live sportsbook board. Authenticity and timing — not the
-            final result.
-          </p>
-          <p>
-            <span className="text-foreground font-medium">Logged</span> means
-            the pick was recorded by the capper without a full board check.
-            Still inspectable; not the same trust tier.
-          </p>
-          <p>
-            <span className="text-foreground font-medium">
-              Provisional / Building a record
-            </span>{" "}
-            means the graded sample is still small. Rank and ROI can swing hard
-            until more results settle.
-          </p>
-          <p className="text-xs">
-            SCL does not process payments. Storefront checkouts leave SCL for a
-            third-party provider.
-          </p>
-        </div>
+        <ul className="space-y-4">
+          <li className="flex gap-3">
+            <span className="mt-0.5 shrink-0 text-[color:var(--scl-pink)]">
+              <BadgeCheck className="size-5" aria-hidden />
+            </span>
+            <div className="min-w-0 space-y-1">
+              <p className="text-foreground text-sm font-semibold">
+                Verified account
+              </p>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                {ACCOUNT_VERIFIED_TOOLTIP}
+              </p>
+            </div>
+          </li>
+          <li className="flex gap-3">
+            <span className="text-live mt-0.5 shrink-0">
+              <ShieldCheck className="size-5" aria-hidden />
+            </span>
+            <div className="min-w-0 space-y-1">
+              <p className="text-foreground text-sm font-semibold">
+                Board-verified pick
+              </p>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                {VERIFICATION_TIER_META.VERIFIED.description}
+              </p>
+            </div>
+          </li>
+          <li className="flex gap-3">
+            <span
+              className="border-border text-muted-foreground mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded border text-[0.6rem] font-bold"
+              aria-hidden
+            >
+              —
+            </span>
+            <div className="min-w-0 space-y-1">
+              <p className="text-foreground text-sm font-semibold">
+                {VERIFICATION_TIER_META.SELF_REPORTED.label}
+              </p>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                {VERIFICATION_TIER_META.SELF_REPORTED.description}
+              </p>
+            </div>
+          </li>
+        </ul>
       </DialogContent>
     </Dialog>
   );

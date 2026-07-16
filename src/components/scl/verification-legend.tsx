@@ -1,42 +1,36 @@
-import { BadgeCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 /**
- * Persistent legend for pick authenticity tiers (Verified ≠ Won).
- * "Logged" is the public string for non-board-verified picks.
+ * Short persistent legend clarifying pick trust tiers (authenticity, not result).
+ * Account identity uses a separate pink "Verified" badge — do not conflate the two.
  */
 export function VerificationLegend({ className }: { className?: string }) {
   return (
-    <div
+    <p
       className={cn(
-        "border-border bg-card text-muted-foreground flex flex-col gap-2 rounded-[var(--scl-radius-chip)] border px-3 py-2.5 text-xs leading-snug sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-5 sm:gap-y-1.5",
+        "text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs",
         className,
       )}
-      role="note"
     >
-      <span className="inline-flex min-h-10 items-center gap-2 sm:min-h-0">
-        <BadgeCheck
-          className="size-3.5 shrink-0 text-[color:var(--scl-pink)]"
-          aria-hidden
-        />
+      <span className="inline-flex items-center gap-1.5">
+        <ShieldCheck className="text-live size-3.5" aria-hidden />
         <span>
-          <span className="text-foreground font-medium">Board-verified</span>
-          {" — "}
-          odds captured before tip/pitch and checked against the live board
+          <span className="text-foreground font-medium">Board-verified</span> —
+          odds captured pre-game &amp; checked against the live market
         </span>
       </span>
-      <span className="inline-flex min-h-10 items-center gap-2 sm:min-h-0">
+      <span className="inline-flex items-center gap-1.5">
         <span
           className="border-border size-3 shrink-0 rounded-full border"
           aria-hidden
         />
         <span>
-          <span className="text-foreground font-medium">Logged</span>
-          {" — "}
-          posted by the capper; not board-checked (authenticity, not the result)
+          <span className="text-foreground font-medium">Logged</span> —
+          historical entry not board-checked
         </span>
       </span>
-    </div>
+    </p>
   );
 }

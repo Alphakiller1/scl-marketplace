@@ -1,7 +1,7 @@
 import type { CapperSummary } from "@/lib/mock";
 import { bookLabel, bookShort } from "@/lib/books";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
-import { BookMark } from "@/components/scl/book-mark";
+import { CapperBanner } from "@/components/scl/capper-banner";
 import {
   LegacyBadge,
   SportTag,
@@ -10,6 +10,7 @@ import {
 } from "@/components/scl/badges";
 import { RankMovementIndicator } from "@/components/scl/indicators";
 import { RankBadge, BUILDING_RECORD_LABEL } from "@/components/scl/rank-badge";
+import { ProvisionalRecordHelp } from "@/components/scl/provisional-record-help";
 import { Button } from "@/components/ui/button";
 import { formatLastPickDate } from "@/lib/capper-activity";
 import { formatJoinedDate } from "@/lib/format";
@@ -38,21 +39,7 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
     <article className="border-border bg-card border-b">
       {/* Full-bleed cover — breaks out of any ancestor max-width / horizontal pad. */}
       <div className="relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2">
-        <div className="bg-surface-2 relative h-28 w-full overflow-hidden sm:h-36 lg:h-40">
-          {capper.bannerUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={capper.bannerUrl}
-              alt=""
-              className="absolute inset-0 size-full object-cover"
-            />
-          ) : (
-            <div
-              aria-hidden
-              className="absolute inset-0 size-full bg-[color:var(--scl-ink-900)]"
-            />
-          )}
-        </div>
+        <CapperBanner src={capper.bannerUrl} priority />
       </div>
 
       <div className="mx-auto max-w-5xl px-4 sm:px-6">
@@ -63,7 +50,7 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
               name={avatarName}
               src={capper.avatarUrl}
               size="xl"
-              className="size-16 text-base sm:size-20 sm:text-xl"
+              priority
             />
           </span>
 
@@ -105,7 +92,7 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                     : "Rank"
                   : "Standing"}
               </span>
-              <span className="inline-flex items-center gap-1 text-xs">
+              <span className="inline-flex flex-wrap items-center gap-2 text-xs">
                 {capper.rank > 0 ? (
                   <>
                     #{capper.rank}
@@ -114,7 +101,10 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                     ) : null}
                   </>
                 ) : (
-                  BUILDING_RECORD_LABEL
+                  <>
+                    <span>{BUILDING_RECORD_LABEL}</span>
+                    <ProvisionalRecordHelp label="What this means" />
+                  </>
                 )}
               </span>
             </span>
@@ -224,9 +214,8 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                       key={key}
                       role="listitem"
                       title={bookLabel(key)}
-                      className="scl-data border-border text-muted-foreground inline-flex h-9 items-center justify-center gap-1.5 rounded-[18px] border bg-[color:var(--scl-ink-800)] px-3 text-[11px] font-medium tracking-[0.08em] uppercase"
+                      className="scl-data border-border text-muted-foreground inline-flex h-9 items-center justify-center rounded-[18px] border bg-[color:var(--scl-ink-800)] px-3 text-[11px] font-medium tracking-[0.08em] uppercase"
                     >
-                      <BookMark bookKey={key} size={16} />
                       {bookShort(key)}
                     </span>
                   ))}

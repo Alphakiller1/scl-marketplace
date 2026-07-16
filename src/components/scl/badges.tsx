@@ -5,12 +5,13 @@ import { cn } from "@/lib/utils";
 import { SPORTS } from "@/lib/constants";
 import type { PickStatus } from "@/lib/mock";
 import {
+  ACCOUNT_VERIFIED_TOOLTIP,
   isVerifiedTier,
   verificationTierMeta,
   type VerificationTier,
 } from "@/lib/verification";
 
-/** Verified handicapper marker — trust is the product. */
+/** Verified handicapper marker — account identity, not pick authenticity. */
 export function VerificationBadge({
   size = "sm",
   withLabel = false,
@@ -27,9 +28,9 @@ export function VerificationBadge({
         "inline-flex items-center gap-1 text-[color:var(--scl-pink)]",
         className,
       )}
-      title="Verified Record"
+      title={ACCOUNT_VERIFIED_TOOLTIP}
     >
-      <BadgeCheck className={px} aria-label="Verified" />
+      <BadgeCheck className={px} aria-label="Verified account" />
       {withLabel ? <span className="text-xs font-medium">Verified</span> : null}
     </span>
   );

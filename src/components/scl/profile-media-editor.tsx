@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
+import { CapperBanner } from "@/components/scl/capper-banner";
 import { uploadProfileMediaAction } from "@/lib/actions/profile-media.action";
 import type { ProfileMediaKind } from "@/lib/schemas/profile-media.schema";
 
@@ -65,55 +66,36 @@ export function ProfileMediaEditor({
       </div>
 
       <div className="relative">
-        <div className="bg-surface-2 relative h-28 w-full overflow-hidden sm:h-36">
-          {bannerUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={bannerUrl}
-              alt=""
-              className="absolute inset-0 size-full object-cover"
-            />
+        <CapperBanner src={bannerUrl} heightClass="h-28 w-full sm:h-36" />
+        <Button
+          type="button"
+          variant="secondary"
+          className="absolute right-3 bottom-3 z-10 min-h-11 gap-1.5 sm:min-h-10"
+          onClick={() => bannerInput.current?.click()}
+          disabled={uploading !== null}
+        >
+          {uploading === "banner" ? (
+            <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" />
           ) : (
-            <div
-              aria-hidden
-              className="absolute inset-0 size-full bg-[color:var(--scl-ink-900)]"
-            />
+            <ImagePlus className="size-4" />
           )}
-          <Button
-            type="button"
-            variant="secondary"
-            className="absolute right-3 bottom-3 min-h-11 gap-1.5 sm:min-h-10"
-            onClick={() => bannerInput.current?.click()}
-            disabled={uploading !== null}
-          >
-            {uploading === "banner" ? (
-              <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" />
-            ) : (
-              <ImagePlus className="size-4" />
-            )}
-            Cover
-          </Button>
-          <input
-            ref={bannerInput}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            aria-label="Upload cover image"
-            onChange={(event) => {
-              void upload("banner", event.target.files?.[0]);
-              event.target.value = "";
-            }}
-          />
-        </div>
+          Cover
+        </Button>
+        <input
+          ref={bannerInput}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          aria-label="Upload cover image"
+          onChange={(event) => {
+            void upload("banner", event.target.files?.[0]);
+            event.target.value = "";
+          }}
+        />
 
         <div className="flex items-end justify-between gap-3 px-4 pb-4 sm:px-5 sm:pb-5">
           <div className="bg-card -mt-8 rounded-xl p-1">
-            <CapperAvatar
-              name={name}
-              src={avatarUrl ?? undefined}
-              size="xl"
-              className="size-16 text-base sm:size-20 sm:text-xl"
-            />
+            <CapperAvatar name={name} src={avatarUrl ?? undefined} size="xl" />
           </div>
           <Button
             type="button"

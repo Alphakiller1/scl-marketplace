@@ -15,7 +15,7 @@ Automated: `BASE_URL=http://127.0.0.1:3010 npx tsx scripts/route-conformance-qa.
 
 ## Violations fixed in this PR
 
-1. **Parlay / units input ≥40px** — shared `Input` no longer shrinks to `md:h-8` (32px). Stays `h-11` / `min-h-10` at all breakpoints; numeric inputs use `scl-data` (IBM Plex Mono). `Select` trigger also raised to ≥40px.
+1. **Parlay / units input ≥40px** — shared `Input` no longer shrinks to `md:h-8` (32px). Stays `h-11` / `min-h-10` at all breakpoints; numeric inputs use `scl-data` (tabular Inter). `Select` trigger also raised to ≥40px.
 2. **Leaderboard search field** — `#q` was a 20px inner input inside a tall wrapper; now `h-11` so the control itself meets the tap-target rule.
 3. **Ticket / slip / chip numeric typography** — `BettingTitle` + `splitBettingTitle` wrap betting numbers (Over 170.5, spreads, odds, leg counts) in `scl-data` while keeping display type for team/market words. Applied on Ticket selection titles, single-play slip, parlay legs, and MarketChip labels.
 4. **Homepage blur** — already cleared by system PR #107; matrix `no-blur` PASS on `/` (and all scoped routes). No glass/glow replacements added.
@@ -25,7 +25,7 @@ Automated: `BASE_URL=http://127.0.0.1:3010 npx tsx scripts/route-conformance-qa.
 
 | Route                         | Overflow @375 | Taps ≥40 | Inputs ≥40 | No blur | Gold scarcity | Numeric mono              |
 | ----------------------------- | ------------- | -------- | ---------- | ------- | ------------- | ------------------------- |
-| `/`                           | PASS          | PASS     | PASS       | PASS    | PASS          | PASS (IBM Plex Mono)      |
+| `/`                           | PASS          | PASS     | PASS       | PASS    | PASS          | PASS (tabular Inter)      |
 | `/leaderboard`                | PASS          | PASS     | PASS       | PASS    | PASS          | PASS                      |
 | `/picks`                      | PASS          | PASS     | PASS       | PASS    | PASS          | WARN (empty board)        |
 | `/dashboard/picks/new`        | PASS          | PASS     | PASS       | PASS    | PASS          | WARN (empty / auth shell) |
@@ -50,7 +50,7 @@ Re-verify post-submit on staging with a disposable test account before Milestone
 ## Known remaining risk
 
 - Live board expand / chip select / sticky slip with 2 legs needs signed-in session + odds API.
-- WARN rows are empty-state numeric sampling, not font regressions (home/leaderboard already show IBM Plex Mono).
+- WARN rows are empty-state numeric sampling, not font regressions (home/leaderboard use tabular Inter via `.scl-data`).
 
 ## How to re-run
 

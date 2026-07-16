@@ -3,23 +3,27 @@
 Production visual assets live under `public/assets/scl/`. Generated artwork never contains UI
 text, metrics, controls, or logos; those remain accessible HTML and code-native components.
 
-Remote sports marks (team / league) are loaded from ESPN's public CDN with **graceful
-fallbacks** in `TeamMark` / `LeagueMark` — a missing or broken image never blanks the page.
+Remote sports marks are **self-hosted** (optional) under `public/marks/`, gated by a static
+manifest — never hotlinked. Missing marks always render the monogram/lettermark fallback.
 
 | Asset                             | Dimensions | Use                         | Treatment                                        |
 | --------------------------------- | ---------: | --------------------------- | ------------------------------------------------ |
 | `leaderboard-trophy-desktop.webp` | 1774 x 887 | Home hero at `sm` and above | Right-centered trophy with left copy space       |
 | `leaderboard-trophy-mobile.webp`  | 852 x 1846 | Home hero below `sm`        | Trophy in lower field with calm upper copy space |
 
-## Remote sports assets (CDN)
+## League / team marks (self-hosted)
 
-| Kind          | Source                                                         | Wired             | Fallback                        |
-| ------------- | -------------------------------------------------------------- | ----------------- | ------------------------------- |
-| Team logos    | `https://a.espncdn.com/i/teamlogos/{mlb\|wnba}/500/{abbr}.png` | Yes               | Deterministic color + abbr mark |
-| League logos  | `https://a.espncdn.com/i/teamlogos/leagues/500/{stem}.png`     | Yes               | Deterministic color + initials  |
-| Player images | ESPN headshots (see `src/lib/players.ts`)                      | **No — deferred** | Initials slot only when shipped |
+| Kind          | Path pattern                              | Gate                        | Fallback                        |
+| ------------- | ----------------------------------------- | --------------------------- | ------------------------------- |
+| League marks  | `public/marks/leagues/{key}.svg`          | `LEAGUE_MARKS` in manifest  | Deterministic color + initials  |
+| Team marks    | `public/marks/teams/{sport}/{abbr}.svg`   | `TEAM_MARKS` (`SPORT:ABBR`) | Deterministic color + abbr      |
+| Player images | ESPN headshots (see `src/lib/players.ts`) | **No — deferred**           | Initials slot only when shipped |
 
-Code maps: `src/lib/teams.ts`, `src/lib/leagues.ts`, `src/lib/players.ts` (slot only).
+To add a mark: drop the SVG into the path above, then add the key to
+`src/lib/mark-manifest.ts`. Do not add runtime `fs` checks.
+
+Code maps: `src/lib/mark-manifest.ts`, `src/lib/teams.ts`, `src/lib/leagues.ts`,
+`src/lib/players.ts` (slot only).
 
 ## Source and rights
 
@@ -27,8 +31,8 @@ Code maps: `src/lib/teams.ts`, `src/lib/leagues.ts`, `src/lib/players.ts` (slot 
 - The owner-provided concept image was used only as visual-direction reference.
 - No third-party logo, interface, text, statistic, athlete, league mark, or sportsbook mark is
   embedded in either **local** trophy asset.
-- Remote ESPN CDN marks are loaded at runtime for recognition; SCL does not redistribute
-  binary logo files in-repo. Always keep onError → color-mark fallbacks.
+- League/team SVGs in `public/marks/` must be rights-clear neutral artwork before listing in the
+  manifest. Always keep onError → color-mark fallbacks.
 
 ## Delivery rules
 

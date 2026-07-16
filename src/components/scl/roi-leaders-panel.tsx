@@ -54,17 +54,17 @@ function RoiLeaderRow({
       href={`/cappers/${capper.handle}`}
       className="hover:bg-surface-2 focus-visible:bg-surface-2 focus-visible:ring-ring grid min-h-14 grid-cols-[2.5rem_minmax(0,1fr)_5rem_5rem_4.5rem] items-center gap-3 px-3 py-2 transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
     >
-      <span className="text-muted-foreground text-sm font-bold tabular-nums">
+      <span className="scl-data text-muted-foreground text-sm font-bold">
         #{rank}
       </span>
       <span className="truncate font-semibold">@{capper.handle}</span>
-      <span className="text-right text-sm tabular-nums">
+      <span className="scl-data text-right text-sm font-semibold">
         {capper.roi.toFixed(1)}%
       </span>
-      <span className="text-right text-sm tabular-nums">
+      <span className="scl-data text-right text-sm font-semibold">
         {capper.units.toFixed(1)}u
       </span>
-      <span className="text-muted-foreground text-right text-xs tabular-nums">
+      <span className="scl-data text-muted-foreground text-right text-xs">
         {capper.settledPicks ?? 0} graded
       </span>
     </Link>

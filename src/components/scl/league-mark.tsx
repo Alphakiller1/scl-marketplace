@@ -10,7 +10,7 @@ import {
   type LeagueIdentity,
 } from "@/lib/leagues";
 
-/** Compact league mark — CDN logo when available, color+initials fallback on error/miss. */
+/** Compact league mark — self-hosted SVG when manifest lists it; color+initials fallback otherwise. */
 export function LeagueMark({
   league: leagueProp,
   leagueKey,
@@ -51,7 +51,8 @@ export function LeagueMark({
       aria-hidden
     >
       {showLogo ? (
-        // eslint-disable-next-line @next/next/no-img-element
+        // Local /marks SVG; plain img keeps onError fallback reliable.
+        // eslint-disable-next-line @next/next/no-img-element -- onError + tiny local SVG
         <img
           src={league.logoUrl}
           alt=""

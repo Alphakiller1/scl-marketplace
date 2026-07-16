@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ListChecks } from "lucide-react";
 
-import { formatHandle, identityDisplayLinesFromCapper } from "@/lib/identity";
+import { identityDisplayLinesFromCapper } from "@/lib/identity";
+import { buildCapperProfileMetadata } from "@/lib/capper-profile-seo";
 import { getPublicCapperByHandle } from "@/lib/queries/capper";
 import { CapperProfileHeader } from "@/components/scl/capper-profile-header";
 import { CapperStorefront } from "@/components/scl/capper-storefront";
@@ -23,15 +24,7 @@ export async function generateMetadata({
   const { handle } = await params;
   const data = await getPublicCapperByHandle(handle);
   if (!data) return { title: "Capper Not Found" };
-
-  const { capper } = data;
-  const handleLabel = formatHandle(capper.handle);
-  const description = `Tracked record, recent plays, and storefront links for ${handleLabel}. Past results do not guarantee future performance.`;
-
-  return {
-    title: { absolute: `${handleLabel} · Capper Profile · SCL` },
-    description,
-  };
+  return buildCapperProfileMetadata(data.capper);
 }
 
 export default async function CapperProfilePage({ params }: ProfileParams) {
@@ -81,20 +74,18 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
                 className="mt-4"
                 icon={ListChecks}
                 title="No Tracked Plays Yet"
-                description={`${identity.primary} hasn't posted inspectable plays yet. Records start when the first Ticket is logged.`}
+                description={`${identity.primary} hasn't posted any graded plays yet. Every new play will stay inspectable here — timestamps, lines, and results included.`}
               />
             )}
           </section>
 
-          {capper.storefront ? (
-            <aside className="border-border border-t pt-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
-              <CapperStorefront
-                className="mt-0"
-                storefront={capper.storefront}
-                capperName={identity.primary}
-              />
-            </aside>
-          ) : null}
+          <aside className="border-border border-t pt-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+            <CapperStorefront
+              className="mt-0"
+              storefront={capper.storefront}
+              capperName={identity.primary}
+            />
+          </aside>
         </div>
       </div>
     </div>

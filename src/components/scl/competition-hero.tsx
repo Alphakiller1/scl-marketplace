@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { VerificationBadge } from "@/components/scl/badges";
+import { HERO_HEADLINE, HERO_SUBHEAD } from "@/lib/cold-start-copy";
 
 const PINK_CTA =
   "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)]";
@@ -34,20 +35,18 @@ export function CompetitionHero() {
 
       <div className="relative mx-auto flex min-h-[31rem] max-w-6xl flex-col px-4 py-8 sm:min-h-[35rem] sm:justify-center sm:px-6 sm:py-14">
         <div className="max-w-xl">
-          <div className="scl-eyebrow inline-flex min-h-10 items-center gap-2 rounded-lg border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-900)] px-3 font-semibold">
+          <div className="scl-data inline-flex min-h-10 items-center gap-2 rounded-lg border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-900)] px-3 text-[0.625rem] font-semibold tracking-[0.16em] uppercase">
             <VerificationBadge size="xs" />
-            Board-verified records
+            Founding Roster Forming
           </div>
           <h1
             id="scl-hero-title"
             className="scl-display mt-4 max-w-lg text-3xl leading-[1.08] font-bold tracking-[0.02em] text-balance uppercase sm:mt-5 sm:text-5xl lg:text-6xl"
           >
-            Sports Capper{" "}
-            <span className="text-[color:var(--scl-pink)]">Leaderboard</span>
+            {HERO_HEADLINE}
           </h1>
           <p className="mt-4 max-w-lg text-base leading-relaxed text-pretty text-[color:var(--scl-muted-data)] sm:text-lg">
-            Compare inspectable capper records by units, ROI, and sample size.
-            No hype — every public pick is a receipt you can check.
+            {HERO_SUBHEAD}
           </p>
           <div className="mt-6 grid gap-3 sm:mt-7 sm:flex sm:flex-wrap">
             <Button
@@ -65,7 +64,7 @@ export function CompetitionHero() {
               variant="outline"
               className="min-h-11 w-full min-w-0 border-[color:var(--scl-line)] bg-[color:var(--scl-ink-900)] whitespace-normal sm:w-auto"
             >
-              Track Your Record
+              Apply As A Founding Capper
             </Button>
           </div>
         </div>

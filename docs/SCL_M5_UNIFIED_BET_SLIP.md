@@ -114,7 +114,7 @@ Unaffected lines submit as-is.
 ### 3.3 What the confirmation must show per line
 
 original selected odds · updated odds · event · market · line · book/source (when available) ·
-capture timestamp. All numerics in IBM Plex Mono.
+capture timestamp. All numerics in tabular Inter (`.scl-data`).
 
 ### 3.4 Server contract
 

@@ -1,11 +1,13 @@
 /**
- * Team identity + optional CDN logo URLs for seeded leagues (MLB, WNBA).
+ * Team identity + optional self-hosted marks from `public/marks/teams/`.
  *
- * Logos use ESPN's public team-logo CDN (`a.espncdn.com`). Missing/broken URLs
- * must never blank the UI — TeamMark falls back to the deterministic color mark.
+ * Marks are gated by `src/lib/mark-manifest.ts` — missing entries always render
+ * the deterministic color + abbr fallback in TeamMark.
  *
  * Player headshots: OUT OF SCOPE — see `src/lib/players.ts` for the deferred slot.
  */
+
+import { teamMarkSrc } from "@/lib/mark-manifest";
 
 export type TeamIdentity = {
   key: string;
@@ -14,49 +16,13 @@ export type TeamIdentity = {
   fullName: string;
   primaryColor: string;
   secondaryColor?: string;
-  /** Optional remote logo (ESPN CDN). Prefer TeamMark's onError color fallback. */
+  /** Self-hosted mark under /marks/teams/ when listed in the manifest. */
   logoUrl?: string;
 };
 
 type TeamRecord = TeamIdentity & { aliases: string[] };
 
 const FALLBACK_COLOR = "#3D4E6B";
-
-/** ESPN CDN slug for our sport key → path segment under /i/teamlogos/{slug}/500/. */
-const ESPN_SPORT_SLUG: Record<string, string> = {
-  MLB: "mlb",
-  WNBA: "wnba",
-};
-
-/**
- * Our internal abbr → ESPN CDN file stem when they differ.
- * Default is lowercase of our abbr (e.g. NYY → nyy).
- */
-const ESPN_ABBR_OVERRIDE: Record<string, Record<string, string>> = {
-  MLB: {
-    CWS: "chw",
-  },
-  WNBA: {
-    GSV: "gs",
-    LVA: "lv",
-    LAS: "la",
-    NYL: "ny",
-    PHO: "phx",
-    WAS: "wsh",
-  },
-};
-
-export function espnTeamLogoUrl(
-  sport: string,
-  abbr: string,
-): string | undefined {
-  const slug = ESPN_SPORT_SLUG[sport.toUpperCase()];
-  if (!slug) return undefined;
-  const stem =
-    ESPN_ABBR_OVERRIDE[sport.toUpperCase()]?.[abbr.toUpperCase()] ??
-    abbr.toLowerCase();
-  return `https://a.espncdn.com/i/teamlogos/${slug}/500/${stem}.png`;
-}
 
 const WNBA_TEAMS: TeamRecord[] = [
   team("WNBA", "ATL", "Dream", "Atlanta Dream", "#c8102e", ["Atlanta"]),
@@ -247,7 +213,7 @@ function team(
     fullName,
     primaryColor,
     secondaryColor,
-    logoUrl: espnTeamLogoUrl(sport, abbr),
+    logoUrl: teamMarkSrc(sport, abbr),
     aliases,
   };
 }

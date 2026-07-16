@@ -114,8 +114,9 @@ export function BuildingRecordSection({
 
   return (
     <section
+      id="building-a-record"
       aria-label="Building a record"
-      className="border-border bg-surface-2/40 mt-8 rounded-xl border border-dashed p-3 sm:mt-10 sm:p-4"
+      className="border-border bg-surface-2/40 mt-8 scroll-mt-20 rounded-xl border border-dashed p-3 sm:mt-10 sm:p-4"
     >
       <div className="mb-3 flex flex-col gap-1 sm:mb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -123,8 +124,9 @@ export function BuildingRecordSection({
             Building A Record
           </h2>
           <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
-            Zero graded picks, below the selected sample minimum, or
-            net-negative in this scope appear here without a rank number.
+            A provisional record is visible but not ranked yet. Zero graded
+            picks, below SCL’s minimum graded-pick sample, or net-negative in
+            this scope appear here — early history, not a leaderboard signal.
           </p>
         </div>
         <p className="scl-data text-muted-foreground text-xs tabular-nums">
