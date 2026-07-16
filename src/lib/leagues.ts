@@ -1,8 +1,9 @@
 /**
- * League identity + optional self-hosted marks from `public/marks/leagues/`.
+ * League identity + logos.
  *
- * Marks are gated by `src/lib/mark-manifest.ts` — missing entries always render
- * the deterministic color + initials fallback in LeagueMark.
+ * Prefer self-hosted PNGs under `public/marks/leagues/` (pulled from ESPN's
+ * public league-logo CDN for nominative UI attribution). Fall back to ESPN CDN
+ * URLs, then SVG sport-icons / color initials via LeagueMark onError.
  */
 
 import { SPORTS, type SportKey } from "@/lib/constants";
@@ -13,9 +14,20 @@ import { readableTextColor } from "@/lib/teams";
 export type LeagueIdentity = {
   key: string;
   name: string;
-  /** Self-hosted mark under /marks/leagues/ when listed in the manifest. */
+  /** Self-hosted mark or ESPN CDN league logo. */
   logoUrl?: string;
   primaryColor: string;
+};
+
+/** ESPN league logo stems under /i/teamlogos/leagues/500/{stem}.png */
+const ESPN_LEAGUE_STEM: Partial<Record<string, string>> = {
+  MLB: "mlb",
+  WNBA: "wnba",
+  NBA: "nba",
+  NFL: "nfl",
+  NHL: "nhl",
+  SOCCER: "mls",
+  MMA: "ufc",
 };
 
 const LEAGUE_COLORS: Partial<Record<string, string>> = {
@@ -30,6 +42,16 @@ const LEAGUE_COLORS: Partial<Record<string, string>> = {
   MMA: "#c0392b",
 };
 
+export function espnLeagueLogoUrl(key: string): string | undefined {
+  const stem = ESPN_LEAGUE_STEM[key.toUpperCase()];
+  if (!stem) return undefined;
+  return `https://a.espncdn.com/i/teamlogos/leagues/500/${stem}.png`;
+}
+
+function resolveLeagueLogoUrl(key: string): string | undefined {
+  return leagueMarkSrc(key) ?? espnLeagueLogoUrl(key);
+}
+
 const LEAGUE_BY_KEY = new Map<string, LeagueIdentity>();
 
 for (const sport of SPORTS) {
@@ -37,7 +59,7 @@ for (const sport of SPORTS) {
   LEAGUE_BY_KEY.set(key.toUpperCase(), {
     key,
     name: sport.label,
-    logoUrl: leagueMarkSrc(key),
+    logoUrl: resolveLeagueLogoUrl(key),
     primaryColor: LEAGUE_COLORS[key] ?? "#6d28d9",
   });
 }
@@ -61,12 +83,11 @@ export function getLeagueIdentity(keyOrName: string): LeagueIdentity {
     if (league.name.toUpperCase() === upper) return league;
   }
 
-  // Deterministic fallback for unknown leagues (e.g. free-text legacy rows).
   return {
     key: (canonical || upper).slice(0, 12),
     name: raw,
     primaryColor: "#6d28d9",
-    logoUrl: leagueMarkSrc(canonical),
+    logoUrl: resolveLeagueLogoUrl(canonical),
   };
 }
 

@@ -29,7 +29,14 @@ function supabaseImagePatterns(): NonNullable<
 
 const nextConfig: NextConfig = {
   images: {
-    remotePatterns: supabaseImagePatterns(),
+    remotePatterns: [
+      ...(supabaseImagePatterns() ?? []),
+      {
+        protocol: "https",
+        hostname: "a.espncdn.com",
+        pathname: "/i/teamlogos/**",
+      },
+    ],
   },
 };
 

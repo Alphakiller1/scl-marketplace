@@ -1,16 +1,29 @@
 /**
  * Static manifest of self-hosted league/team marks under `public/marks/`.
  *
- * Drop SVG files into:
- *   public/marks/leagues/{key}.svg   — e.g. mlb.svg
- *   public/marks/teams/{sport}/{abbr}.svg — e.g. mlb/lad.svg
+ * Prefer PNG league marks (pulled from ESPN public CDN for nominative UI use).
+ * SVG sport-icons remain as fallback for leagues without a PNG.
+ *
+ * Drop files into:
+ *   public/marks/leagues/{key}.png|.svg
+ *   public/marks/teams/{sport}/{abbr}.svg|.png
  *
  * Add the key here when a file is added — no runtime fs checks.
- * League marks are SCL monograms (nominative lettermarks), not trademark wordmarks.
  */
 
-/** Uppercase league/sport keys with a file in public/marks/leagues/ */
-export const LEAGUE_MARKS = new Set<string>([
+/** Uppercase keys with a PNG in public/marks/leagues/ */
+export const LEAGUE_PNG_MARKS = new Set<string>([
+  "MLB",
+  "NBA",
+  "NFL",
+  "NHL",
+  "WNBA",
+  "SOCCER",
+  "MMA",
+]);
+
+/** Uppercase keys with an SVG fallback in public/marks/leagues/ */
+export const LEAGUE_SVG_MARKS = new Set<string>([
   "MLB",
   "NBA",
   "NFL",
@@ -26,6 +39,12 @@ export const LEAGUE_MARKS = new Set<string>([
   "NASCAR",
   "PGA",
   "TENNIS",
+]);
+
+/** Any self-hosted league mark (png or svg). */
+export const LEAGUE_MARKS = new Set<string>([
+  ...LEAGUE_PNG_MARKS,
+  ...LEAGUE_SVG_MARKS,
 ]);
 
 /** Common free-text / synonym → canonical sport key. */
@@ -48,6 +67,7 @@ const LEAGUE_ALIASES: Record<string, string> = {
   "NCAA FOOTBALL": "NCAAF",
   "NCAA BASKETBALL": "NCAAB",
   SOCCER: "SOCCER",
+  MLS: "SOCCER",
   FOOTY: "SOCCER",
   FUTBOL: "SOCCER",
   UFC: "MMA",
@@ -62,7 +82,6 @@ export function normalizeLeagueKey(key: string): string {
   const upper = raw.toUpperCase();
   if (LEAGUE_MARKS.has(upper)) return upper;
   if (LEAGUE_ALIASES[upper]) return LEAGUE_ALIASES[upper];
-  // "MLB Baseball" / "NBA - East" → first token
   const token = upper.split(/[\s/_-]+/)[0] ?? "";
   if (LEAGUE_MARKS.has(token)) return token;
   if (LEAGUE_ALIASES[token]) return LEAGUE_ALIASES[token];
@@ -74,13 +93,19 @@ export const TEAM_MARKS = new Set<string>([
   // Example: "MLB:LAD", "WNBA:LAS"
 ]);
 
-/** Bump when regenerating league SVGs so CDN/browser caches refresh. */
-const LEAGUE_MARK_ASSET_VERSION = "2";
+/** Bump when replacing league mark binaries so CDN/browser caches refresh. */
+const LEAGUE_MARK_ASSET_VERSION = "3";
 
 export function leagueMarkSrc(key: string): string | undefined {
   const canonical = normalizeLeagueKey(key);
-  if (!canonical || !LEAGUE_MARKS.has(canonical)) return undefined;
-  return `/marks/leagues/${canonical.toLowerCase()}.svg?v=${LEAGUE_MARK_ASSET_VERSION}`;
+  if (!canonical) return undefined;
+  if (LEAGUE_PNG_MARKS.has(canonical)) {
+    return `/marks/leagues/${canonical.toLowerCase()}.png?v=${LEAGUE_MARK_ASSET_VERSION}`;
+  }
+  if (LEAGUE_SVG_MARKS.has(canonical)) {
+    return `/marks/leagues/${canonical.toLowerCase()}.svg?v=${LEAGUE_MARK_ASSET_VERSION}`;
+  }
+  return undefined;
 }
 
 export function teamMarkSrc(sport: string, abbr: string): string | undefined {
@@ -89,5 +114,5 @@ export function teamMarkSrc(sport: string, abbr: string): string | undefined {
   if (!sportUpper || !abbrUpper) return undefined;
   const manifestKey = `${sportUpper}:${abbrUpper}`;
   if (!TEAM_MARKS.has(manifestKey)) return undefined;
-  return `/marks/teams/${sportUpper.toLowerCase()}/${abbrUpper.toLowerCase()}.svg`;
+  return `/marks/teams/${sportUpper.toLowerCase()}/${abbrUpper.toLowerCase()}.png`;
 }
