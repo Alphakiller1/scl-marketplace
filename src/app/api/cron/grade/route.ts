@@ -52,6 +52,10 @@ async function runGrade(req: NextRequest) {
     });
   } catch (err) {
     console.error("[cron/grade] autoGradePending failed:", err);
-    return NextResponse.json({ error: "Grade job failed" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Grade job failed";
+    return NextResponse.json(
+      { error: "Grade job failed", message },
+      { status: 500 },
+    );
   }
 }
