@@ -43,7 +43,7 @@ export function LeagueMark({
   const style = {
     width: px,
     height: px,
-    backgroundColor: league.primaryColor,
+    backgroundColor: showLogo ? "#ffffff" : league.primaryColor,
     color: leagueMarkTextColor(league),
     fontSize: Math.max(8, Math.round(px * 0.34)),
   } satisfies CSSProperties;
@@ -51,7 +51,7 @@ export function LeagueMark({
   return (
     <span
       className={cn(
-        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-md font-bold tracking-wide shadow-xs",
+        "border-border/50 relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-md border font-bold tracking-wide shadow-xs",
         className,
       )}
       style={style}
@@ -59,22 +59,22 @@ export function LeagueMark({
       aria-hidden
     >
       {showLogo ? (
-        // Local /marks SVG; plain img keeps onError fallback reliable (same as BookMark).
-        // eslint-disable-next-line @next/next/no-img-element -- onError + tiny local SVG
+        // Self-hosted PNG or ESPN CDN; plain img keeps onError → initials reliable.
+        // eslint-disable-next-line @next/next/no-img-element -- onError + remote/local marks
         <img
           src={src}
           alt=""
           width={px}
           height={px}
-          className="absolute inset-0 size-full object-contain"
+          className="size-full object-contain p-0.5"
           loading="eager"
           decoding="async"
+          referrerPolicy="no-referrer"
           onError={() => setFailed(true)}
         />
       ) : (
         initials
       )}
-      {/* If the SVG paints a blank tile, initials stay as a11y/backup under transparent art */}
       {showLogo ? <span className="sr-only">{initials}</span> : null}
     </span>
   );

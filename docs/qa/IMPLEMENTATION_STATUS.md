@@ -46,12 +46,12 @@
 
 ## Still deferred / out of scope
 
-| Item                             | Why                                                                            |
-| -------------------------------- | ------------------------------------------------------------------------------ |
-| Real trademark league/book logos | SCL sport-icon / book monograms shipped; trademarks need licensed owner assets |
-| Soccer 3-way ML auto-grade       | Gated until draw/home/away settlement keys                                     |
-| Parlay-level analysis column     | Needs `Parlay.notes` migration                                                 |
-| Analysis edit after grade        | No edit UI path; immutability locked                                           |
+| Item                         | Why                                                                  |
+| ---------------------------- | -------------------------------------------------------------------- |
+| Real trademark book logos    | Book monograms shipped; league PNGs self-hosted from ESPN public CDN |
+| Soccer 3-way ML auto-grade   | Gated until draw/home/away settlement keys                           |
+| Parlay-level analysis column | Needs `Parlay.notes` migration                                       |
+| Analysis edit after grade    | No edit UI path; immutability locked                                 |
 
 ## Author note
 

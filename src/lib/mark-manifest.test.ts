@@ -7,9 +7,10 @@ import {
   teamMarkSrc,
 } from "@/lib/mark-manifest";
 
-test("leagueMarkSrc resolves manifest leagues", () => {
-  assert.equal(leagueMarkSrc("MLB"), "/marks/leagues/mlb.svg?v=2");
-  assert.equal(leagueMarkSrc("nba"), "/marks/leagues/nba.svg?v=2");
+test("leagueMarkSrc prefers self-hosted PNG league logos", () => {
+  assert.equal(leagueMarkSrc("MLB"), "/marks/leagues/mlb.png?v=3");
+  assert.equal(leagueMarkSrc("nba"), "/marks/leagues/nba.png?v=3");
+  assert.equal(leagueMarkSrc("NCAAF"), "/marks/leagues/ncaaf.svg?v=3");
   assert.equal(leagueMarkSrc(""), undefined);
   assert.equal(leagueMarkSrc("Quidditch"), undefined);
 });
@@ -18,6 +19,7 @@ test("normalizeLeagueKey maps aliases to canonical keys", () => {
   assert.equal(normalizeLeagueKey("Major League Baseball"), "MLB");
   assert.equal(normalizeLeagueKey("UFC"), "MMA");
   assert.equal(normalizeLeagueKey("college football"), "NCAAF");
+  assert.equal(normalizeLeagueKey("MLS"), "SOCCER");
 });
 
 test("teamMarkSrc returns undefined when manifest has no entry", () => {

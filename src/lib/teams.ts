@@ -1,8 +1,9 @@
 /**
- * Team identity + optional self-hosted marks from `public/marks/teams/`.
+ * Team identity + logos.
  *
- * Marks are gated by `src/lib/mark-manifest.ts` — missing entries always render
- * the deterministic color + abbr fallback in TeamMark.
+ * Prefer self-hosted marks from `public/marks/teams/` when listed in the
+ * manifest; otherwise use ESPN's public team-logo CDN. Missing/broken URLs
+ * fall back to the deterministic color mark in TeamMark.
  *
  * Player headshots: OUT OF SCOPE — see `src/lib/players.ts` for the deferred slot.
  */
@@ -16,13 +17,49 @@ export type TeamIdentity = {
   fullName: string;
   primaryColor: string;
   secondaryColor?: string;
-  /** Self-hosted mark under /marks/teams/ when listed in the manifest. */
+  /** Self-hosted mark or ESPN CDN team logo. */
   logoUrl?: string;
 };
 
 type TeamRecord = TeamIdentity & { aliases: string[] };
 
 const FALLBACK_COLOR = "#3D4E6B";
+
+/** ESPN CDN slug for our sport key → path segment under /i/teamlogos/{slug}/500/. */
+const ESPN_SPORT_SLUG: Record<string, string> = {
+  MLB: "mlb",
+  WNBA: "wnba",
+};
+
+/**
+ * Our internal abbr → ESPN CDN file stem when they differ.
+ * Default is lowercase of our abbr (e.g. NYY → nyy).
+ */
+const ESPN_ABBR_OVERRIDE: Record<string, Record<string, string>> = {
+  MLB: {
+    CWS: "chw",
+  },
+  WNBA: {
+    GSV: "gs",
+    LVA: "lv",
+    LAS: "la",
+    NYL: "ny",
+    PHO: "phx",
+    WAS: "wsh",
+  },
+};
+
+export function espnTeamLogoUrl(
+  sport: string,
+  abbr: string,
+): string | undefined {
+  const slug = ESPN_SPORT_SLUG[sport.toUpperCase()];
+  if (!slug) return undefined;
+  const stem =
+    ESPN_ABBR_OVERRIDE[sport.toUpperCase()]?.[abbr.toUpperCase()] ??
+    abbr.toLowerCase();
+  return `https://a.espncdn.com/i/teamlogos/${slug}/500/${stem}.png`;
+}
 
 const WNBA_TEAMS: TeamRecord[] = [
   team("WNBA", "ATL", "Dream", "Atlanta Dream", "#c8102e", ["Atlanta"]),
@@ -213,7 +250,7 @@ function team(
     fullName,
     primaryColor,
     secondaryColor,
-    logoUrl: teamMarkSrc(sport, abbr),
+    logoUrl: teamMarkSrc(sport, abbr) ?? espnTeamLogoUrl(sport, abbr),
     aliases,
   };
 }
