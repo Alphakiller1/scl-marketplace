@@ -7,6 +7,7 @@ import type { CapperSummary, TodayPick } from "@/lib/mock";
 import { UNIT_MIN } from "@/lib/constants";
 import { joinPlaysToPublicPicks } from "@/lib/public-picks";
 import { prismaExcludeTestHandles } from "@/lib/public-eligibility";
+import { hasNotesPublicColumn } from "@/lib/results/schema-features";
 import { isVerifiedTier, type VerificationTier } from "@/lib/verification";
 
 export type PlayView = {
@@ -84,11 +85,30 @@ export async function getCapperPlays(
   });
   if (!profile) return [];
 
+  const notesPublicReady = await hasNotesPublicColumn();
   const plays = await prisma.play.findMany({
     // Exclude parlay legs — the parlay is the position of record, not each leg.
     where: { capperId: profile.id, parlayId: null },
     orderBy: { createdAt: "desc" },
     take,
+    select: {
+      id: true,
+      sport: true,
+      league: true,
+      market: true,
+      selection: true,
+      oddsAmerican: true,
+      units: true,
+      outcome: true,
+      profitUnits: true,
+      createdAt: true,
+      verificationTier: true,
+      side: true,
+      eventStartsAt: true,
+      book: true,
+      notes: true,
+      ...(notesPublicReady ? { notesPublic: true } : {}),
+    },
   });
 
   return plays.map((p) => ({
@@ -107,7 +127,10 @@ export async function getCapperPlays(
     eventStartsAt: p.eventStartsAt,
     book: p.book,
     notes: p.notes,
-    notesPublic: p.notesPublic,
+    notesPublic:
+      "notesPublic" in p
+        ? ((p as { notesPublic?: boolean }).notesPublic ?? true)
+        : true,
   }));
 }
 
@@ -198,6 +221,7 @@ export async function getPublicRecentPicksResult(
   take = 8,
 ): Promise<{ picks: TodayPick[]; failed: boolean }> {
   try {
+    const notesPublicReady = await hasNotesPublicColumn();
     const plays = await prisma.play.findMany({
       where: {
         units: { gte: UNIT_MIN },
@@ -226,7 +250,7 @@ export async function getPublicRecentPicksResult(
         eventStartsAt: true,
         book: true,
         notes: true,
-        notesPublic: true,
+        ...(notesPublicReady ? { notesPublic: true } : {}),
       },
       orderBy: { createdAt: "desc" },
       take,

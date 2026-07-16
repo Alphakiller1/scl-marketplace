@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { clvPtsForGrade } from "@/lib/results/closing-snapshot";
 import { isDeferredProp, resolveOutcome } from "@/lib/results/match";
 import type { ResultsProvider } from "@/lib/results/provider";
+import { hasClvColumns } from "@/lib/results/schema-features";
 
 export type AutoGradeResult = {
   graded: number;
@@ -19,6 +20,7 @@ async function gradeStraightPlays(
   provider: ResultsProvider,
   now: Date,
 ): Promise<{ graded: number; skipped: number }> {
+  const clvReady = await hasClvColumns();
   const pending = (
     await prisma.play.findMany({
       where: { outcome: "PENDING", parlayId: null },
@@ -33,7 +35,7 @@ async function gradeStraightPlays(
         eventStartsAt: true,
         side: true,
         line: true,
-        closingOddsAmerican: true,
+        ...(clvReady ? { closingOddsAmerican: true } : {}),
       },
       take: 500,
     })
@@ -42,6 +44,11 @@ async function gradeStraightPlays(
       ...p,
       units: Number(p.units),
       line: p.line == null ? null : Number(p.line),
+      closingOddsAmerican:
+        "closingOddsAmerican" in p
+          ? ((p as { closingOddsAmerican?: number | null })
+              .closingOddsAmerican ?? null)
+          : null,
     }))
     .filter(
       (p) =>
@@ -71,7 +78,9 @@ async function gradeStraightPlays(
       play.oddsAmerican,
       play.units,
     );
-    const clvPts = clvPtsForGrade(play.oddsAmerican, play.closingOddsAmerican);
+    const clvPts = clvReady
+      ? clvPtsForGrade(play.oddsAmerican, play.closingOddsAmerican)
+      : null;
     await prisma.$transaction([
       prisma.play.update({
         where: { id: play.id },
@@ -117,7 +126,6 @@ async function gradeParlayLegs(
         eventStartsAt: true,
         side: true,
         line: true,
-        closingOddsAmerican: true,
       },
       take: 500,
     })

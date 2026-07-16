@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 import type { PlayView } from "@/lib/queries/plays";
 import type { CapperSummary } from "@/lib/mock";
+import {
+  hasClvColumns,
+  hasNotesPublicColumn,
+} from "@/lib/results/schema-features";
 
 export type PublicCapper = {
   capper: CapperSummary;
@@ -32,10 +36,29 @@ export async function getPublicCapperByHandle(
   let playsError = false;
   let avgClv: number | null = null;
   try {
+    const notesPublicReady = await hasNotesPublicColumn();
     const rows = await prisma.play.findMany({
       where: { capper: { user: { username: handle } } },
       orderBy: { createdAt: "desc" },
       take: 8,
+      select: {
+        id: true,
+        sport: true,
+        league: true,
+        market: true,
+        selection: true,
+        oddsAmerican: true,
+        units: true,
+        outcome: true,
+        profitUnits: true,
+        createdAt: true,
+        verificationTier: true,
+        side: true,
+        eventStartsAt: true,
+        book: true,
+        notes: true,
+        ...(notesPublicReady ? { notesPublic: true } : {}),
+      },
     });
     plays = rows.map((p) => ({
       id: p.id,
@@ -53,21 +76,26 @@ export async function getPublicCapperByHandle(
       eventStartsAt: p.eventStartsAt,
       book: p.book,
       notes: p.notes,
-      notesPublic: p.notesPublic,
+      notesPublic:
+        "notesPublic" in p
+          ? ((p as { notesPublic?: boolean }).notesPublic ?? true)
+          : true,
     }));
 
-    const clvAgg = await prisma.play.aggregate({
-      where: {
-        capperId: capper.id,
-        clvPts: { not: null },
-        verificationTier: { in: ["VERIFIED", "AUTO_VERIFIED"] },
-        outcome: { not: "PENDING" },
-      },
-      _avg: { clvPts: true },
-      _count: { clvPts: true },
-    });
-    if (clvAgg._count.clvPts > 0 && clvAgg._avg.clvPts != null) {
-      avgClv = Number(clvAgg._avg.clvPts);
+    if (await hasClvColumns()) {
+      const clvAgg = await prisma.play.aggregate({
+        where: {
+          capperId: capper.id,
+          clvPts: { not: null },
+          verificationTier: { in: ["VERIFIED", "AUTO_VERIFIED"] },
+          outcome: { not: "PENDING" },
+        },
+        _avg: { clvPts: true },
+        _count: { clvPts: true },
+      });
+      if (clvAgg._count.clvPts > 0 && clvAgg._avg.clvPts != null) {
+        avgClv = Number(clvAgg._avg.clvPts);
+      }
     }
   } catch (err) {
     console.error("[getPublicCapperByHandle] plays unavailable:", err);

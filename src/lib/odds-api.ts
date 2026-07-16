@@ -143,6 +143,10 @@ async function persistOddsUsageDaily(opts: {
   cost: number;
   remaining: number | null;
 }): Promise<void> {
+  const { hasOddsUsageDailyTable } =
+    await import("@/lib/results/schema-features");
+  if (!(await hasOddsUsageDailyTable())) return;
+
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
   const sportKey = opts.sport ?? "";
