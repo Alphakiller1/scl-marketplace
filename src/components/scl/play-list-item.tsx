@@ -64,6 +64,11 @@ export function PlayListItem({ play }: { play: PlayView }) {
           </StatValue>
         ) : null}
       </div>
+      {play.notes ? (
+        <p className="text-muted-foreground mt-2 line-clamp-3 text-xs leading-relaxed">
+          {play.notes}
+        </p>
+      ) : null}
     </div>
   );
 }

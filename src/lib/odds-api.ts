@@ -1,6 +1,7 @@
 import "server-only";
 
 import { bookmakersQueryParam, isBookKey } from "@/lib/books";
+import { shouldCircuitBreak } from "@/lib/odds-budget";
 import {
   normalizeEventBoard,
   normalizeUpcomingEvent,
@@ -32,6 +33,9 @@ export { getOddsForBookFromEvent as getOddsForBookEvent };
  * The Odds API client (odds-assist + auto-grade). Reads ODDS_API_KEY at runtime;
  * every function degrades gracefully to empty when the key or sport isn't available,
  * so the app works with or without a key configured.
+ *
+ * Monthly budget: 20,000 credits (board warm, verify, results cron, CLV).
+ * See docs/qa/SCL_GPT_CLAUDE_DELIVERABLES.md Step 5 and src/lib/odds-budget.ts.
  *
  * SCL sport keys (NBA, MLB, …) differ from The Odds API's (basketball_nba, …), so all
  * translation lives here and is shared with the auto-grade results provider.
@@ -80,13 +84,30 @@ function oddsScopeQuery(books?: readonly string[]): string {
   return `regions=${VERIFY_REGIONS}`;
 }
 
+export type OddsUsagePurpose = "board" | "verify" | "results" | "clv";
+
+let lastOddsApiRemaining: number | null = null;
+
+/** Last `x-requests-remaining` observed from an Odds API response. */
+export function getLastOddsApiRemaining(): number | null {
+  return lastOddsApiRemaining;
+}
+
 /** Log Odds API credit usage from a response so burn is observable vs. the plan cap. */
-function logOddsUsage(res: Response, label: string): void {
-  const remaining = res.headers.get("x-requests-remaining");
+export function logOddsUsage(
+  res: Response,
+  label: string,
+  purpose: OddsUsagePurpose = "board",
+): void {
+  const remainingHeader = res.headers.get("x-requests-remaining");
   const last = res.headers.get("x-requests-last");
-  if (remaining !== null || last !== null) {
+  if (remainingHeader !== null) {
+    const parsed = Number(remainingHeader);
+    if (!Number.isNaN(parsed)) lastOddsApiRemaining = parsed;
+  }
+  if (remainingHeader !== null || last !== null) {
     console.info(
-      `[odds] ${label}: cost=${last ?? "?"} remaining=${remaining ?? "?"}`,
+      `[odds] purpose=${purpose} ${label}: cost=${last ?? "?"} remaining=${remainingHeader ?? "?"}`,
     );
   }
 }
@@ -100,13 +121,20 @@ export async function fetchUpcomingOdds(
   const apiSport = toOddsApiSport(sclSport);
   if (!apiKey || !apiSport) return [];
 
+  if (shouldCircuitBreak(lastOddsApiRemaining)) {
+    console.warn(
+      `[odds] circuit-breaker active (remaining=${lastOddsApiRemaining}) — skipping uncached board fetch for ${sclSport}`,
+    );
+    return [];
+  }
+
   const preferred = opts?.books;
   const attempt = async (books: readonly string[] | undefined) => {
     const url =
       `https://api.the-odds-api.com/v4/sports/${apiSport}/odds/` +
       `?apiKey=${apiKey}&${oddsScopeQuery(books)}&markets=h2h,spreads,totals&oddsFormat=american`;
     const res = await fetch(url, { next: { revalidate: 120 } });
-    logOddsUsage(res, `upcoming ${sclSport}`);
+    logOddsUsage(res, `upcoming ${sclSport}`, "board");
     if (!res.ok) {
       console.warn(`[odds] upcoming ${sclSport}: HTTP ${res.status}`);
       return [] as OddsEvent[];
@@ -162,7 +190,7 @@ export async function fetchEventOddsForVerification(
     const res = await fetch(url, {
       next: { revalidate: VERIFY_TTL_SECONDS, tags: [`odds-event:${eventId}`] },
     });
-    logOddsUsage(res, `event ${eventId}`);
+    logOddsUsage(res, `event ${eventId}`, "verify");
     if (!res.ok) return null;
     return (await res.json()) as RawEventOdds;
   };

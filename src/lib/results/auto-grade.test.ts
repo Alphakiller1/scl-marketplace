@@ -6,15 +6,16 @@ import type { SettledGame } from "@/lib/results/provider";
 
 const GAMES: SettledGame[] = [
   {
-    sport: "basketball_nba",
+    sport: "NBA",
     home: "Boston Celtics",
     away: "Los Angeles Lakers",
     homeScore: 118,
     awayScore: 104,
     completed: true,
+    eventId: "evt-nba-1",
   },
   {
-    sport: "baseball_mlb",
+    sport: "MLB",
     home: "New York Yankees",
     away: "Boston Red Sox",
     homeScore: 3,
@@ -26,7 +27,7 @@ const GAMES: SettledGame[] = [
 function play(p: Partial<GradablePlay>): GradablePlay {
   return {
     id: "p",
-    sport: "basketball_nba",
+    sport: "NBA",
     market: "Moneyline",
     selection: "Celtics",
     oddsAmerican: -110,
@@ -41,16 +42,25 @@ test("moneyline: winning team → WIN, losing team → LOSS", () => {
 });
 
 test("moneyline resolves the correct sport's game", () => {
-  const p = play({ sport: "baseball_mlb", market: "ML", selection: "Red Sox" });
-  assert.equal(resolveOutcome(p, GAMES), "WIN"); // Red Sox 7 > Yankees 3
+  const p = play({ sport: "MLB", market: "ML", selection: "Red Sox" });
+  assert.equal(resolveOutcome(p, GAMES), "WIN");
+});
+
+test("moneyline prefers eventId join when both sides have it", () => {
+  const win = play({
+    eventId: "evt-nba-1",
+    selection: "Celtics",
+    side: "Boston Celtics",
+  });
+  assert.equal(resolveOutcome(win, GAMES), "WIN");
 });
 
 test("totals: over/under vs the combined score, with push on the number", () => {
-  const base = { sport: "basketball_nba", market: "Celtics/Lakers Total" };
+  const base = { sport: "NBA", market: "Celtics/Lakers Total" };
   assert.equal(
     resolveOutcome(play({ ...base, selection: "Over 210.5" }), GAMES),
     "WIN",
-  ); // 222 > 210.5
+  );
   assert.equal(
     resolveOutcome(play({ ...base, selection: "Under 210.5" }), GAMES),
     "LOSS",
@@ -58,11 +68,76 @@ test("totals: over/under vs the combined score, with push on the number", () => 
   assert.equal(
     resolveOutcome(play({ ...base, selection: "Over 222" }), GAMES),
     "PUSH",
-  ); // exactly 222
+  );
+});
+
+test("spreads: home favorite covers, dog loses", () => {
+  assert.equal(
+    resolveOutcome(
+      play({
+        market: "Spread",
+        selection: "Boston Celtics -4.5",
+        side: "Boston Celtics",
+        line: -4.5,
+      }),
+      GAMES,
+    ),
+    "WIN",
+  );
+  assert.equal(
+    resolveOutcome(
+      play({
+        market: "Spread",
+        selection: "Los Angeles Lakers +4.5",
+        side: "Los Angeles Lakers",
+        line: 4.5,
+      }),
+      GAMES,
+    ),
+    "LOSS",
+  );
+});
+
+test("spreads: push when margin lands exactly on the line", () => {
+  const pushGame: SettledGame[] = [
+    {
+      sport: "NBA",
+      home: "Boston Celtics",
+      away: "Los Angeles Lakers",
+      homeScore: 109,
+      awayScore: 104,
+      completed: true,
+    },
+  ];
+  assert.equal(
+    resolveOutcome(
+      play({
+        market: "Spread",
+        selection: "Boston Celtics -5",
+        side: "Boston Celtics",
+        line: -5,
+      }),
+      pushGame,
+    ),
+    "PUSH",
+  );
+});
+
+test("spreads: parse selection like Team -4.5 when line omitted", () => {
+  assert.equal(
+    resolveOutcome(
+      play({
+        market: "Spread",
+        selection: "Celtics -4.5",
+      }),
+      GAMES,
+    ),
+    "WIN",
+  );
 });
 
 test("unmatched / ambiguous plays return null (stay pending)", () => {
-  assert.equal(resolveOutcome(play({ selection: "Warriors" }), GAMES), null); // no such game
+  assert.equal(resolveOutcome(play({ selection: "Warriors" }), GAMES), null);
   assert.equal(
     resolveOutcome(
       play({ market: "Player Props", selection: "Tatum over 25.5 pts" }),

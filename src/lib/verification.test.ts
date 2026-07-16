@@ -16,11 +16,17 @@ test("isVerifiedTier: only VERIFIED and AUTO_VERIFIED clear the bar", () => {
   assert.equal(isVerifiedTier("SELF_REPORTED"), false);
 });
 
-test("verificationTierMeta: verified tones vs muted", () => {
+test("verificationTierMeta: verified tones vs muted; legacy tier is Logged", () => {
   assert.equal(verificationTierMeta("VERIFIED").tone, "verified");
   assert.equal(verificationTierMeta("AUTO_VERIFIED").tone, "verified");
   assert.equal(verificationTierMeta("SELF_REPORTED").tone, "muted");
   assert.equal(verificationTierMeta("VERIFIED").short, "Verified");
+  assert.equal(verificationTierMeta("SELF_REPORTED").short, "Logged");
+  assert.equal(verificationTierMeta("SELF_REPORTED").label, "Logged");
+  assert.match(
+    verificationTierMeta("SELF_REPORTED").description,
+    /not board-checked/i,
+  );
 });
 
 test("computeVerifiedShare: fraction of verified picks, as 0–100", () => {

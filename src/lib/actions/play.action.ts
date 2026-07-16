@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { assertAnalysisSafe } from "@/lib/analysis-moderation";
 import {
   buildBulkSinglesReceipt,
   shapeBulkSinglesOutcome,
@@ -127,6 +128,16 @@ async function preparePlayLine(
     };
   }
   const d = parsed.data;
+
+  const analysisError = assertAnalysisSafe(d.notes);
+  if (analysisError) {
+    return {
+      status: "error",
+      error: analysisError,
+      selection: d.selection,
+      market: d.market,
+    };
+  }
 
   if (!d.eventId || !d.eventStartsAt || !d.side) {
     return {

@@ -58,14 +58,20 @@ export function oddsSourceBoardLabel(book?: string | null): string {
 export function formatOddsCaptureSourceLine(opts: {
   capturedAt?: string | null;
   book?: string | null;
+  /** When false, do not promise automatic grading (cron unhealthy / delayed). */
+  gradingHealthy?: boolean;
 }): string {
   const source = oddsSourceBoardLabel(opts.book);
+  const gradeBit =
+    opts.gradingHealthy === false
+      ? "GRADING DELAYED — CHECK BACK SOON"
+      : "GRADES AUTOMATICALLY";
   if (!opts.capturedAt) {
-    return `ODDS CAPTURED · SOURCE: ${source} · GRADES AUTOMATICALLY`;
+    return `ODDS CAPTURED · SOURCE: ${source} · ${gradeBit}`;
   }
   const date = new Date(opts.capturedAt);
   if (Number.isNaN(date.getTime())) {
-    return `ODDS CAPTURED · SOURCE: ${source} · GRADES AUTOMATICALLY`;
+    return `ODDS CAPTURED · SOURCE: ${source} · ${gradeBit}`;
   }
 
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -83,5 +89,5 @@ export function formatOddsCaptureSourceLine(opts: {
     parts.find((p) => p.type === type)?.value ?? "";
 
   const stamp = `${get("month")}·${get("day")}·${get("year")} ${get("hour")}:${get("minute")}:${get("second")} ET`;
-  return `ODDS CAPTURED ${stamp} / SOURCE: ${source} · GRADES AUTOMATICALLY`;
+  return `ODDS CAPTURED ${stamp} / SOURCE: ${source} · ${gradeBit}`;
 }

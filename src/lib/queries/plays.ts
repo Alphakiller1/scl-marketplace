@@ -4,7 +4,9 @@ import type { Outcome } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import type { CapperSummary, TodayPick } from "@/lib/mock";
+import { UNIT_MIN } from "@/lib/constants";
 import { joinPlaysToPublicPicks } from "@/lib/public-picks";
+import { prismaExcludeTestHandles } from "@/lib/public-eligibility";
 import { isVerifiedTier, type VerificationTier } from "@/lib/verification";
 
 export type PlayView = {
@@ -25,6 +27,7 @@ export type PlayView = {
   eventStartsAt: Date | null;
   /** Odds API bookmaker key at capture (M5 §4 source surfacing). */
   book: string | null;
+  notes: string | null;
 };
 
 export type ParlayLegView = {
@@ -102,6 +105,7 @@ export async function getCapperPlays(
     side: p.side,
     eventStartsAt: p.eventStartsAt,
     book: p.book,
+    notes: p.notes,
   }));
 }
 
@@ -194,10 +198,12 @@ export async function getPublicRecentPicksResult(
   try {
     const plays = await prisma.play.findMany({
       where: {
+        units: { gte: UNIT_MIN },
         capper: {
           user: {
             accountStatus: "ACTIVE",
             username: { not: null },
+            ...prismaExcludeTestHandles(),
           },
         },
       },
@@ -217,6 +223,7 @@ export async function getPublicRecentPicksResult(
         side: true,
         eventStartsAt: true,
         book: true,
+        notes: true,
       },
       orderBy: { createdAt: "desc" },
       take,

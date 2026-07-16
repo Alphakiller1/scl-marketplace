@@ -51,6 +51,7 @@ export async function getPublicCapperByHandle(
       side: p.side,
       eventStartsAt: p.eventStartsAt,
       book: p.book,
+      notes: p.notes,
     }));
   } catch (err) {
     console.error("[getPublicCapperByHandle] plays unavailable:", err);

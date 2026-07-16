@@ -65,6 +65,14 @@ export function settleParlay(
       activeLegs: 0,
     };
   }
+  if (legs.length >= 2 && winners.length < 2) {
+    return {
+      outcome: "VOID",
+      profitUnits: 0,
+      effectiveOddsAmerican: null,
+      activeLegs: winners.length,
+    };
+  }
   const decimal = combineDecimalOdds(
     winners.map((l) => americanToDecimal(l.oddsAmerican)),
   );

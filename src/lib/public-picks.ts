@@ -1,6 +1,7 @@
 import { deriveLifecycle } from "@/lib/lifecycle";
 import type { CapperSummary, TodayPick } from "@/lib/mock";
 import { pickContextLabel } from "@/lib/pick-identity";
+import { isValidPublicStake } from "@/lib/public-eligibility";
 import type { VerificationTier } from "@/lib/verification";
 
 /** Ranked + building-a-record cappers for public recent-feed identity joins. */
@@ -28,6 +29,7 @@ export type PublicPlayJoinRow = {
   side: string | null;
   eventStartsAt: Date | null;
   book?: string | null;
+  notes?: string | null;
 };
 
 /**
@@ -43,6 +45,7 @@ export function joinPlaysToPublicPicks(
   return plays.flatMap((play) => {
     const capper = capperById.get(play.capperId);
     if (!capper) return [];
+    if (!isValidPublicStake(Number(play.units))) return [];
     return [
       {
         id: play.id,
@@ -77,6 +80,7 @@ export function joinPlaysToPublicPicks(
         market: play.market,
         profitUnits: play.profitUnits == null ? null : Number(play.profitUnits),
         book: play.book ?? null,
+        notes: play.notes ?? null,
       } satisfies TodayPick,
     ];
   });

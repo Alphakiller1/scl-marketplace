@@ -78,7 +78,7 @@ export async function SiteHeader() {
                 size="sm"
                 className="hidden min-h-11 border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)] sm:inline-flex md:h-11"
               >
-                Become A Capper
+                Track Your Record
               </Button>
             </>
           )}

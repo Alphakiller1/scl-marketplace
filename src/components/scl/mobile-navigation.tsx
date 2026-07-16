@@ -117,7 +117,7 @@ export function MobileSiteNav({ authed = false }: { authed?: boolean }) {
                 }
               >
                 <UserRoundPlus className="size-4" aria-hidden />
-                Become A Capper
+                Track Your Record
               </SheetClose>
               <SheetClose
                 nativeButton={false}

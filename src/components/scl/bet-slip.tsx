@@ -21,6 +21,7 @@ import {
   decimalToAmerican,
 } from "@/lib/odds";
 import type { MovedLinePayload } from "@/lib/odds-movement";
+import { BookMark } from "@/components/scl/book-mark";
 import { bookShort, isBookKey, type BookKey } from "@/lib/books";
 import { cn } from "@/lib/utils";
 
@@ -61,6 +62,8 @@ export function BetSlip({
     setMode,
     setParlayUnits,
     setSelectionUnits,
+    slipNotes,
+    setSlipNotes,
     removeSelection,
     resolveConflictReplace,
     resolveConflictCancel,
@@ -237,8 +240,11 @@ export function BetSlip({
                     {formatOdds(s.oddsAmerican)}
                   </span>
                   {s.book && isBookKey(s.book) ? (
-                    <span className="scl-data text-muted-foreground ml-1.5 tracking-[0.06em] uppercase">
-                      {bookShort(s.book)}
+                    <span className="ml-1.5 inline-flex items-center gap-1 align-middle">
+                      <BookMark bookKey={s.book} size={16} />
+                      <span className="scl-data text-muted-foreground tracking-[0.06em] uppercase">
+                        {bookShort(s.book)}
+                      </span>
                     </span>
                   ) : null}
                 </p>
@@ -310,6 +316,31 @@ export function BetSlip({
             Stake lives on the parlay; legs are components.
           </p>
         </div>
+      ) : null}
+
+      {mode === "singles" && selections.length > 0 ? (
+        <details className="rounded-[12px] border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] p-3">
+          <summary className="cursor-pointer text-sm font-semibold">
+            Analysis (optional)
+          </summary>
+          <div className="mt-3 space-y-2">
+            <Label htmlFor="slip-analysis" className="sr-only">
+              Analysis
+            </Label>
+            <textarea
+              id="slip-analysis"
+              value={slipNotes}
+              onChange={(e) => setSlipNotes(e.target.value)}
+              placeholder="Optional. Why this number — keep it factual."
+              maxLength={1000}
+              rows={3}
+              className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring min-h-20 w-full resize-y rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
+            />
+            <p className="text-muted-foreground text-xs">
+              Analysis locks when the pick grades.
+            </p>
+          </div>
+        </details>
       ) : null}
 
       {unavailableLines?.length ? (

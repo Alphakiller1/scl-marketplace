@@ -23,6 +23,7 @@ export type TicketProps = {
   settling?: boolean;
   className?: string;
   footerAction?: ReactNode;
+  analysis?: string | null;
 };
 
 function stampLabel(status: TicketStatus): string {
@@ -50,6 +51,7 @@ export function Ticket({
   settling = false,
   className,
   footerAction,
+  analysis,
 }: TicketProps) {
   const pinkStamp = status === "verified" || status === "win";
   const lossStamp = status === "loss";
@@ -133,6 +135,17 @@ export function Ticket({
           </span>
         </div>
       </div>
+
+      {analysis ? (
+        <div className="border-border border-t px-5 py-3">
+          <p className="text-muted-foreground text-[0.65rem] font-semibold tracking-wide uppercase">
+            Analysis
+          </p>
+          <p className="text-foreground mt-1 line-clamp-4 text-sm leading-relaxed">
+            {analysis}
+          </p>
+        </div>
+      ) : null}
 
       {footerAction ? (
         <div className="border-border border-t px-5 py-3">{footerAction}</div>

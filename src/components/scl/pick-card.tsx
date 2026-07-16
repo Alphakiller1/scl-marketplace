@@ -120,6 +120,7 @@ export function PickCard({
       status={ticketStatusFor(pick)}
       className={compact ? "rounded-[14px]" : undefined}
       footerAction={<CapperTicketFooter pick={pick} />}
+      analysis={pick.notes}
     />
   );
 }

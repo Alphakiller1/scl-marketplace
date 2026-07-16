@@ -65,7 +65,7 @@ export function CompetitionHero() {
               variant="outline"
               className="min-h-11 w-full min-w-0 border-[color:var(--scl-line)] bg-[color:var(--scl-ink-900)] whitespace-normal sm:w-auto"
             >
-              Become A Capper
+              Track Your Record
             </Button>
           </div>
         </div>

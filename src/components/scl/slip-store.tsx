@@ -39,6 +39,8 @@ type SlipStoreValue = {
   setMode: (mode: SlipMode) => void;
   setParlayUnits: (units: number) => void;
   setSelectionUnits: (id: string, units: number) => void;
+  slipNotes: string;
+  setSlipNotes: (notes: string) => void;
   addPick: (pick: OddsPick) => void;
   removeSelection: (id: string) => void;
   clearSlip: () => void;
@@ -61,6 +63,7 @@ export function SlipStoreProvider({
   const [pendingConflict, setPendingConflict] =
     useState<PendingConflict | null>(null);
   const [unitsDropWarned, setUnitsDropWarned] = useState(false);
+  const [slipNotes, setSlipNotes] = useState("");
 
   const selectedKeys = useMemo(
     () => selectedKeysFromSelections(selections),
@@ -164,6 +167,7 @@ export function SlipStoreProvider({
   const clearSlip = useCallback(() => {
     setSelections([]);
     setPendingConflict(null);
+    setSlipNotes("");
   }, []);
 
   const setSelectionUnits = useCallback((id: string, units: number) => {
@@ -183,6 +187,8 @@ export function SlipStoreProvider({
       setMode,
       setParlayUnits,
       setSelectionUnits,
+      slipNotes,
+      setSlipNotes,
       addPick,
       removeSelection,
       clearSlip,
@@ -198,6 +204,7 @@ export function SlipStoreProvider({
       internalConflicts,
       setMode,
       setSelectionUnits,
+      slipNotes,
       addPick,
       removeSelection,
       clearSlip,
