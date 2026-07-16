@@ -126,15 +126,21 @@ export function oddsApiResultsProvider(): ResultsProvider {
     const url =
       `https://api.the-odds-api.com/v4/sports/${apiSport}/scores/` +
       `?daysFrom=3&apiKey=${apiKey}`;
-    const res = await fetch(url, { cache: "no-store" });
-    logOddsUsage(res, `scores ${sclSport}`, "results");
-    if (!res.ok) {
-      throw new ResultsProviderUnavailable(
-        `scores fetch ${sclSport} ${res.status}`,
-      );
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      logOddsUsage(res, `scores ${sclSport}`, "results");
+      if (!res.ok) {
+        console.error(
+          `[results] scores fetch ${sclSport} failed: HTTP ${res.status}`,
+        );
+        return [];
+      }
+      const events = (await res.json()) as OddsApiScore[];
+      return mapOddsApiScores(events);
+    } catch (err) {
+      console.error(`[results] scores fetch ${sclSport} error:`, err);
+      return [];
     }
-    const events = (await res.json()) as OddsApiScore[];
-    return mapOddsApiScores(events);
   };
 
   return {
