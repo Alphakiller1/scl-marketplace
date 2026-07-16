@@ -8,12 +8,18 @@ import {
 import { CompactCapperRow } from "@/components/scl/compact-capper-row";
 import { EmptyState } from "@/components/scl/states";
 
+const TABLE_COLS =
+  "grid-cols-[3.25rem_minmax(13rem,1fr)_5.5rem_5.5rem_5.5rem_4.5rem_8rem]";
+
 export function Leaderboard({
   cappers,
   limit,
   failed = false,
   compactMobile = false,
   compactDesktop = false,
+  /** Use 1..n list position instead of each capper's global units rank. */
+  rankByPosition = false,
+  primaryMetric = "units",
   emptyDescription = "No cappers match this ranking scope yet.",
   emptyTitle,
 }: {
@@ -22,6 +28,8 @@ export function Leaderboard({
   failed?: boolean;
   compactMobile?: boolean;
   compactDesktop?: boolean;
+  rankByPosition?: boolean;
+  primaryMetric?: "units" | "roi";
   emptyDescription?: string;
   emptyTitle?: string;
 }) {
@@ -45,29 +53,28 @@ export function Leaderboard({
     );
   }
 
+  const place = (capper: CapperSummary, index: number) =>
+    rankByPosition ? index + 1 : (capper.rank ?? index + 1);
+
   return (
     <>
       {compactDesktop ? (
         <div className="space-y-2">
-          {visible.map((capper) => (
+          {visible.map((capper, index) => (
             <CompactCapperRow
               key={capper.id}
               capper={capper}
-              rank={capper.rank}
-              primaryMetric="units"
+              rank={place(capper, index)}
+              primaryMetric={primaryMetric}
             />
           ))}
         </div>
       ) : (
         <>
-          <div
-            className={
-              visible.length === 1
-                ? "border-border bg-card hidden overflow-hidden rounded-xl border md:block"
-                : "hidden md:block"
-            }
-          >
-            <div className="text-muted-foreground grid grid-cols-[3.25rem_minmax(13rem,1fr)_5.5rem_5.5rem_5.5rem_4.5rem_8rem] items-center gap-3 border-b px-3 py-2 text-[0.7rem] font-semibold uppercase">
+          <div className="border-border bg-card hidden overflow-hidden rounded-xl border md:block">
+            <div
+              className={`text-muted-foreground grid ${TABLE_COLS} items-center gap-3 border-b px-3 py-2 text-[0.7rem] font-semibold uppercase`}
+            >
               <span>Rank</span>
               <span>Capper</span>
               <span className="text-right">Win Rate</span>
@@ -77,22 +84,23 @@ export function Leaderboard({
               <span className="text-right">Trend</span>
             </div>
             <div className="divide-border divide-y">
-              {visible.map((capper) => (
+              {visible.map((capper, index) => (
                 <LeaderboardRow
                   key={capper.id}
                   capper={capper}
-                  rank={capper.rank}
+                  rank={place(capper, index)}
                 />
               ))}
             </div>
           </div>
           <div className="space-y-2 md:hidden">
-            {visible.map((capper) => (
+            {visible.map((capper, index) => (
               <LeaderboardMobileCard
                 key={capper.id}
                 capper={capper}
-                rank={capper.rank}
+                rank={place(capper, index)}
                 compact={compactMobile}
+                primaryMetric={primaryMetric}
               />
             ))}
           </div>

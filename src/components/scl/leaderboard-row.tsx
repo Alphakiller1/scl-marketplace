@@ -127,17 +127,19 @@ export function LeaderboardMobileCard({
   capper,
   rank,
   compact = false,
+  primaryMetric = "units",
 }: {
   capper: CapperSummary;
   rank?: number;
   compact?: boolean;
+  primaryMetric?: "units" | "roi";
 }) {
   if (compact) {
     return (
       <CompactCapperRow
         capper={capper}
         rank={rank ?? capper.rank}
-        primaryMetric="units"
+        primaryMetric={primaryMetric}
       />
     );
   }
