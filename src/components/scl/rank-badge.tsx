@@ -1,6 +1,7 @@
 import { Crown, Medal } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { PROVISIONAL_RECORD_HELP } from "@/lib/cold-start-copy";
 import { isProvisional } from "@/lib/sample";
 
 /** Shared vocabulary for below-sample / unranked cappers (leaderboard + feed). */
@@ -27,8 +28,8 @@ export function RankBadge({
           "border-border bg-surface-2",
           className,
         )}
-        aria-label="Unranked"
-        title={BUILDING_RECORD_LABEL}
+        aria-label={`Unranked — ${BUILDING_RECORD_LABEL}`}
+        title={PROVISIONAL_RECORD_HELP}
       >
         —
       </span>
@@ -44,7 +45,7 @@ export function RankBadge({
           className,
         )}
         aria-label={`Rank ${rank} (provisional)`}
-        title="Provisional — below minimum graded sample"
+        title={PROVISIONAL_RECORD_HELP}
       >
         {rank}
       </span>

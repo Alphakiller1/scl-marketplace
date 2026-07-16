@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     template: "%s · SCL",
   },
   description:
-    "The marketplace for sports cappers. Track plays, prove your record, and grow your audience.",
+    "Inspect verified sports capper records, public picks, and transparent leaderboard history. SCL tracks inspectable records — it does not process payments or guarantee outcomes.",
 };
 
 export default function RootLayout({

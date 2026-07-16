@@ -12,6 +12,7 @@ import {
 } from "@/components/scl/stat";
 import { RecentFormStrip, StreakChip } from "@/components/scl/indicators";
 import { PerformanceSparkline } from "@/components/scl/performance-sparkline";
+import { ProvisionalRecordHelp } from "@/components/scl/provisional-record-help";
 import { VerificationHelpLink } from "@/components/scl/verification-help-link";
 import { isProvisional, hasSignal } from "@/lib/sample";
 
@@ -38,11 +39,14 @@ export function PerformanceSummary({
 
   return (
     <Card className={cn("gap-0 p-4 sm:p-5", className)}>
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-muted-foreground text-[0.7rem] font-semibold tracking-wide uppercase">
           Performance
         </h2>
-        <StreakChip streak={capper.streak} gradedCount={graded} />
+        <div className="flex flex-wrap items-center gap-2">
+          {provisional ? <ProvisionalRecordHelp /> : null}
+          <StreakChip streak={capper.streak} gradedCount={graded} />
+        </div>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
@@ -112,8 +116,14 @@ export function PerformanceSummary({
         <ClvExplainer className="text-muted-foreground mt-3 text-xs leading-relaxed" />
       ) : null}
 
-      <div className="border-border mt-3 border-t pt-3">
+      <div className="border-border mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t pt-3">
         <VerificationHelpLink />
+        <a
+          href="/responsible-gaming"
+          className="text-muted-foreground hover:text-foreground inline-flex min-h-10 items-center text-xs underline-offset-4 hover:underline"
+        >
+          Responsible gaming
+        </a>
       </div>
     </Card>
   );
