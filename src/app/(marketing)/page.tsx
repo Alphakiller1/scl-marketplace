@@ -112,6 +112,29 @@ export default async function Home() {
       />
 
       <div className="mx-auto max-w-6xl space-y-10 px-4 py-10 sm:space-y-14 sm:px-6 sm:py-12">
+        <section
+          id="how-verification-works"
+          className="border-border scroll-mt-20 space-y-3 rounded-xl border p-4 sm:p-5"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="bg-surface-2 text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg">
+                <ShieldCheck className="size-4" aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <h2 className="text-sm font-bold tracking-wide uppercase">
+                  How Verification Works
+                </h2>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Account checks and pick authenticity are separate. Inspect
+                  every record before you follow anyone off-platform.
+                </p>
+              </div>
+            </div>
+          </div>
+          <VerificationLegend />
+        </section>
+
         <FoundingCapperBanner />
         <section className="space-y-4">
           <SectionHeader
@@ -179,29 +202,6 @@ export default async function Home() {
               }
             />
           )}
-        </section>
-
-        <section
-          id="how-verification-works"
-          className="border-border scroll-mt-20 space-y-3 rounded-xl border p-4 sm:p-5"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="bg-surface-2 text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg">
-                <ShieldCheck className="size-4" aria-hidden />
-              </span>
-              <div className="min-w-0">
-                <h2 className="text-sm font-bold tracking-wide uppercase">
-                  How Verification Works
-                </h2>
-                <p className="text-muted-foreground mt-1 text-sm">
-                  Account checks and pick authenticity are separate. Inspect
-                  every record before you follow anyone off-platform.
-                </p>
-              </div>
-            </div>
-          </div>
-          <VerificationLegend />
         </section>
 
         <section className="border-border flex flex-col items-stretch gap-5 border-y py-8 sm:flex-row sm:items-center sm:justify-between sm:py-10">
