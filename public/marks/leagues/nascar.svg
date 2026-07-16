@@ -1,4 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" role="img" aria-label="NAS">
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" role="img" aria-label="NASCAR">
   <rect width="40" height="40" rx="8" fill="#e10600"/>
-  <text x="20" y="25" text-anchor="middle" font-family="system-ui,Segoe UI,sans-serif" font-size="10" font-weight="700" fill="#ffffff">NAS</text>
+  <circle cx="12" cy="18" r="5" fill="none" stroke="#fff" stroke-width="1.6"/>
+  <circle cx="28" cy="18" r="5" fill="none" stroke="#fff" stroke-width="1.6"/>
+  <path d="M16.5 15h7l2 6H14.5z" fill="none" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/>
+  <text x="20" y="36" text-anchor="middle" font-family="system-ui,Segoe UI,sans-serif" font-size="6.5" font-weight="700" fill="#fff">NAS</text>
 </svg>
