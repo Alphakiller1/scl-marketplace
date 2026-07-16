@@ -1,31 +1,21 @@
 /**
- * League identity + optional CDN league logos.
+ * League identity + optional self-hosted marks from `public/marks/leagues/`.
  *
- * Logos use ESPN's public league-logo CDN. Missing/broken URLs must never blank
- * the UI — LeagueMark falls back to a deterministic color + initials mark.
+ * Marks are gated by `src/lib/mark-manifest.ts` — missing entries always render
+ * the deterministic color + initials fallback in LeagueMark.
  */
 
 import { SPORTS, type SportKey } from "@/lib/constants";
 import { leagueInitials } from "@/lib/league-action";
+import { leagueMarkSrc } from "@/lib/mark-manifest";
 import { readableTextColor } from "@/lib/teams";
 
 export type LeagueIdentity = {
   key: string;
   name: string;
-  /** Optional remote logo (ESPN CDN). Prefer LeagueMark's onError color fallback. */
+  /** Self-hosted mark under /marks/leagues/ when listed in the manifest. */
   logoUrl?: string;
   primaryColor: string;
-};
-
-/** ESPN league logo stems under /i/teamlogos/leagues/500/{stem}.png */
-const ESPN_LEAGUE_STEM: Partial<Record<string, string>> = {
-  MLB: "mlb",
-  WNBA: "wnba",
-  NBA: "nba",
-  NFL: "nfl",
-  NHL: "nhl",
-  NCAAF: "college-football",
-  NCAAB: "mens-college-basketball",
 };
 
 const LEAGUE_COLORS: Partial<Record<string, string>> = {
@@ -40,12 +30,6 @@ const LEAGUE_COLORS: Partial<Record<string, string>> = {
   MMA: "#c0392b",
 };
 
-function espnLeagueLogoUrl(key: string): string | undefined {
-  const stem = ESPN_LEAGUE_STEM[key.toUpperCase()];
-  if (!stem) return undefined;
-  return `https://a.espncdn.com/i/teamlogos/leagues/500/${stem}.png`;
-}
-
 const LEAGUE_BY_KEY = new Map<string, LeagueIdentity>();
 
 for (const sport of SPORTS) {
@@ -53,7 +37,7 @@ for (const sport of SPORTS) {
   LEAGUE_BY_KEY.set(key.toUpperCase(), {
     key,
     name: sport.label,
-    logoUrl: espnLeagueLogoUrl(key),
+    logoUrl: leagueMarkSrc(key),
     primaryColor: LEAGUE_COLORS[key] ?? "#6d28d9",
   });
 }

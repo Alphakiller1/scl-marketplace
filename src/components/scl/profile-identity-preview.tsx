@@ -1,13 +1,22 @@
 import { CapperAvatar } from "@/components/scl/capper-avatar";
+
+import { CapperBanner } from "@/components/scl/capper-banner";
+
 import { SportTag, VerificationBadge } from "@/components/scl/badges";
+
 import { identityDisplayLines } from "@/lib/identity";
 
 export type ProfileIdentityPreviewData = {
   username: string;
+
   headline?: string;
+
   avatarUrl?: string | null;
+
   bannerUrl?: string | null;
+
   sports: string[];
+
   verified: boolean;
 };
 
@@ -19,6 +28,7 @@ export function ProfileIdentityPreview({
   const identity = identityDisplayLines({
     handle: profile.username,
   });
+
   const avatarName =
     identity.primary.replace(/^@/, "") || profile.username || "scl";
 
@@ -34,25 +44,11 @@ export function ProfileIdentityPreview({
         >
           Public Identity Preview
         </h2>
+
         <span className="text-muted-foreground text-xs">Live</span>
       </div>
 
-      <div className="bg-surface-2 relative h-24 w-full overflow-hidden">
-        {profile.bannerUrl ? (
-          // Stored profile media is rendered directly so imported and Supabase URLs both work.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={profile.bannerUrl}
-            alt=""
-            className="absolute inset-0 size-full object-cover"
-          />
-        ) : (
-          <div
-            aria-hidden
-            className="absolute inset-0 size-full bg-[color:var(--scl-ink-900)]"
-          />
-        )}
-      </div>
+      <CapperBanner src={profile.bannerUrl} heightClass="h-24 w-full" />
 
       <div className="px-4 pb-4">
         <div className="relative z-10 -mt-7 flex items-end justify-between gap-3">
@@ -63,13 +59,16 @@ export function ProfileIdentityPreview({
               size="xl"
             />
           </span>
+
           {profile.verified ? <VerificationBadge size="sm" withLabel /> : null}
         </div>
 
         {/* Name below the cover overlap — matches public profile layout. */}
+
         <h3 className="mt-3 text-lg font-bold break-words">
           {identity.primary}
         </h3>
+
         {identity.secondary ? (
           <p className="text-muted-foreground text-sm break-all">
             {identity.secondary}
@@ -83,7 +82,9 @@ export function ProfileIdentityPreview({
         <div className="mt-3 flex min-h-6 flex-wrap gap-1.5">
           {profile.sports.length ? (
             profile.sports
+
               .slice(0, 4)
+
               .map((sport) => <SportTag key={sport} sport={sport} />)
           ) : (
             <span className="text-muted-foreground text-xs">
