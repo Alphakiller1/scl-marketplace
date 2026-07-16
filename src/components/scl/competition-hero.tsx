@@ -82,7 +82,7 @@ export function CompetitionHero() {
         }
       }}
     >
-      {/* Full-bleed art — centered cover fills the hero edge-to-edge */}
+      {/* Fit full trophy in-frame (contain) — cover was over-zooming/cropping */}
       <picture className="pointer-events-none absolute inset-0">
         <source
           media="(min-width: 640px)"
@@ -94,17 +94,20 @@ export function CompetitionHero() {
           width="852"
           height="1846"
           fetchPriority="high"
-          className="size-full object-cover object-center"
+          className="size-full object-contain object-right-bottom opacity-95 sm:object-right"
         />
       </picture>
-      {/* Even dim across the whole hero — no left wipe that blacks out the art */}
       <div
         aria-hidden
-        className="absolute inset-0 bg-[color:var(--scl-ink-950)]/40"
+        className="absolute inset-0 bg-[color:var(--scl-ink-950)]/35"
       />
       <div
         aria-hidden
-        className="absolute inset-0 bg-gradient-to-t from-[color:var(--scl-ink-950)]/65 via-transparent to-[color:var(--scl-ink-950)]/20"
+        className="absolute inset-0 bg-gradient-to-r from-[color:var(--scl-ink-950)]/55 via-[color:var(--scl-ink-950)]/20 to-transparent"
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-gradient-to-t from-[color:var(--scl-ink-950)]/50 via-transparent to-[color:var(--scl-ink-950)]/15"
       />
 
       <div className="relative mx-auto flex min-h-[31rem] max-w-6xl flex-col px-4 py-8 sm:min-h-[36rem] sm:justify-center sm:px-6 sm:py-14">
