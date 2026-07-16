@@ -49,4 +49,5 @@ export const LEADERBOARD_SORTS = [
   { key: "units", label: "Units" },
   { key: "roi", label: "ROI %" },
   { key: "winPct", label: "Win %" },
+  { key: "clv", label: "CLV" },
 ] as const;

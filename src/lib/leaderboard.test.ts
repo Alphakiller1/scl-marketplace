@@ -9,6 +9,7 @@ import {
   leaderboardWindowStart,
   parseLeaderboardFilters,
   partitionLeaderboard,
+  sortLeaderboard,
   summarizeLeaderboard,
 } from "@/lib/leaderboard";
 import type { CapperSummary } from "@/lib/mock";
@@ -31,6 +32,65 @@ test("leaderboard filters reject unsupported query values", () => {
       verifiedOnly: false,
       search: "edge",
     },
+  );
+});
+
+test("leaderboard filters accept clv sort", () => {
+  assert.equal(parseLeaderboardFilters({ sort: "clv" }).sort, "clv");
+});
+
+test("sortLeaderboard ranks by avgClv when sort=clv", () => {
+  const sorted = sortLeaderboard(
+    [
+      { id: "a", name: "A", avgClv: 0.01, settledPicks: 12 } as CapperSummary,
+      { id: "b", name: "B", avgClv: 0.05, settledPicks: 12 } as CapperSummary,
+      { id: "c", name: "C", avgClv: null, settledPicks: 12 } as CapperSummary,
+    ],
+    "clv",
+  );
+  assert.deepEqual(
+    sorted.map((c) => c.id),
+    ["b", "a", "c"],
+  );
+});
+
+test("CLV sort requires signal sample and avgClv", () => {
+  const filters = parseLeaderboardFilters({ sort: "clv", minPicks: "0" });
+  assert.equal(
+    isLeaderboardEligible(
+      {
+        settledPicks: 12,
+        units: 1,
+        roi: 1,
+        avgClv: 0.02,
+      } as CapperSummary,
+      filters,
+    ),
+    true,
+  );
+  assert.equal(
+    isLeaderboardEligible(
+      {
+        settledPicks: 12,
+        units: 1,
+        roi: 1,
+        avgClv: null,
+      } as CapperSummary,
+      filters,
+    ),
+    false,
+  );
+  assert.equal(
+    isLeaderboardEligible(
+      {
+        settledPicks: 5,
+        units: 1,
+        roi: 1,
+        avgClv: 0.02,
+      } as CapperSummary,
+      filters,
+    ),
+    false,
   );
 });
 

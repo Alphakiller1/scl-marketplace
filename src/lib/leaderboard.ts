@@ -2,6 +2,7 @@ import type { Outcome } from "@prisma/client";
 
 import { LEADERBOARD_SORTS, SPORT_KEYS } from "@/lib/constants";
 import type { CapperSummary } from "@/lib/mock";
+import { hasSignal } from "@/lib/sample";
 
 export const LEADERBOARD_WINDOWS = [
   { key: "all", label: "All Time" },
@@ -112,7 +113,10 @@ export function sortLeaderboard(
         ? b.roi - a.roi
         : sort === "winPct"
           ? b.winPct - a.winPct
-          : b.units - a.units;
+          : sort === "clv"
+            ? (b.avgClv ?? Number.NEGATIVE_INFINITY) -
+              (a.avgClv ?? Number.NEGATIVE_INFINITY)
+            : b.units - a.units;
     return (
       primary ||
       (b.settledPicks ?? 0) - (a.settledPicks ?? 0) ||
@@ -132,12 +136,17 @@ export function isLeaderboardEligible(
   filters: LeaderboardFilters,
 ): boolean {
   const settledPicks = capper.settledPicks ?? 0;
-  return (
+  const base =
     settledPicks > 0 &&
     settledPicks >= filters.minPicks &&
     capper.units >= 0 &&
-    capper.roi >= 0
-  );
+    capper.roi >= 0;
+  if (!base) return false;
+  // CLV rank: need signal-sized sample and at least one stored close.
+  if (filters.sort === "clv") {
+    return hasSignal(settledPicks) && capper.avgClv != null;
+  }
+  return true;
 }
 
 /**
