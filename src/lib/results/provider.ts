@@ -7,6 +7,7 @@ import {
   toOddsApiSport,
   toSclSport,
 } from "@/lib/odds-api";
+import { espnHistoricalResultsProvider } from "@/lib/results/espn-scores";
 import { RESULTS_LOOKBACK_DAYS } from "@/lib/results/lookback";
 import type { SettledGame } from "@/lib/results/settled-game";
 
@@ -165,11 +166,54 @@ type OddsApiScore = {
   scores?: { name: string; score: string }[];
 };
 
-/** Auto-select the live provider when a key exists; otherwise demo results. */
+/** Merge primary + secondary settled games; prefer primary eventId on collision. */
+export function mergeSettledGames(
+  primary: SettledGame[],
+  secondary: SettledGame[],
+): SettledGame[] {
+  const byKey = new Map<string, SettledGame>();
+  const keyOf = (g: SettledGame) =>
+    g.eventId ?? `${g.sport}|${g.home}|${g.away}|${g.homeScore}-${g.awayScore}`;
+  for (const g of secondary) byKey.set(keyOf(g), g);
+  for (const g of primary) byKey.set(keyOf(g), g);
+  return [...byKey.values()];
+}
+
+export function compositeResultsProvider(
+  primary: ResultsProvider,
+  secondary: ResultsProvider,
+): ResultsProvider {
+  return {
+    name: `${primary.name}+${secondary.name}`,
+    async fetchSettled() {
+      const [a, b] = await Promise.all([
+        primary.fetchSettled(),
+        secondary.fetchSettled(),
+      ]);
+      return mergeSettledGames(a, b);
+    },
+    async fetchSettledForSports(sports: string[]) {
+      const [a, b] = await Promise.all([
+        primary.fetchSettledForSports(sports),
+        secondary.fetchSettledForSports(sports),
+      ]);
+      return mergeSettledGames(a, b);
+    },
+  };
+}
+
+/**
+ * Odds API (≤3d) + ESPN scoreboard history (≤14d) so aged-out plays can still
+ * settle without paid Odds API historical credits.
+ */
 export function getResultsProvider(): ResultsProvider {
+  const espn = espnHistoricalResultsProvider();
   try {
-    return oddsApiKey() ? oddsApiResultsProvider() : new MockResultsProvider();
+    if (oddsApiKey()) {
+      return compositeResultsProvider(oddsApiResultsProvider(), espn);
+    }
   } catch {
-    return new MockResultsProvider();
+    /* fall through */
   }
+  return espn;
 }
