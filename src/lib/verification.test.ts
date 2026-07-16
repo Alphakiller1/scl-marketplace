@@ -69,7 +69,7 @@ test("submissionReceiptCopy: self-reported straight does not claim verified", ()
     oddsVerified: false,
     tier: "SELF_REPORTED",
   });
-  assert.equal(copy.headline, "Self-reported");
+  assert.equal(copy.headline, "Logged");
   assert.match(copy.statusLine, /not board-verified/i);
   assert.equal(copy.tone, "muted");
   assert.doesNotMatch(copy.headline, /verified/i);

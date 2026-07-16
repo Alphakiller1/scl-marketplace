@@ -356,7 +356,7 @@ export function GamePicker({
   );
 }
 
-/** Book rail — v1.1 recipe: 36px, radius 18px, mono abbr; active = BLUE (navigation). */
+/** Book rail — radius 18px, mono abbr; active = BLUE (navigation); ≥44px tap. */
 function BookRail({
   books,
   active,
@@ -380,8 +380,9 @@ function BookRail({
             type="button"
             onClick={() => onChange(key)}
             aria-pressed={isActive}
+            aria-label={`Sportsbook ${bookShort(key)}`}
             className={cn(
-              "scl-data flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-[18px] border px-3 text-[11px] font-medium tracking-[0.08em] uppercase transition-colors",
+              "scl-data flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-[18px] border px-3.5 text-[11px] font-medium tracking-[0.08em] uppercase transition-colors",
               isActive
                 ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
                 : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",

@@ -33,10 +33,10 @@ export function LeaderboardRow({
     >
       <RankBadge rank={place} settledPicks={graded} />
 
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3.5">
         <CapperAvatar name={capper.name} src={capper.avatarUrl} size="sm" />
         <div className="min-w-0">
-          <div className="flex min-w-0 items-center gap-1.5">
+          <div className="flex min-w-0 items-center gap-2">
             <CapperIdentityLabel
               capper={capper}
               compact
@@ -44,16 +44,17 @@ export function LeaderboardRow({
               primaryClassName="text-sm"
             />
             {capper.verifiedShare != null && capper.verifiedShare > 0 ? (
-              <VerifiedBadge verifiedShare={capper.verifiedShare} />
+              <VerifiedBadge
+                verifiedShare={capper.verifiedShare}
+                className="shrink-0"
+              />
             ) : null}
           </div>
-          <div className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs">
+          <div className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
             <SportTag sport={capper.topSport} />
-            <span>
+            <span className="scl-data tabular-nums">
               {formatRecord(capper.record.w, capper.record.l, capper.record.p)}
             </span>
-            <span aria-hidden>·</span>
-            <span>{graded.toLocaleString()} graded</span>
           </div>
         </div>
       </div>
@@ -75,7 +76,10 @@ export function LeaderboardRow({
           {formatRoi(capper.roi)}
         </StatValue>
         {provisional ? (
-          <span className="text-muted-foreground mt-0.5 block text-[0.65rem] font-semibold tracking-wide uppercase">
+          <span
+            className="text-muted-foreground mt-0.5 block text-[0.65rem] font-semibold tracking-wide uppercase"
+            title="Small graded sample — rank and ROI can swing until more results settle"
+          >
             Provisional
           </span>
         ) : null}

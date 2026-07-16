@@ -67,8 +67,12 @@ export function PerformanceSummary({
       </div>
 
       {provisional ? (
-        <p className="text-muted-foreground mt-3 text-xs" role="status">
-          {graded.toLocaleString()} graded — provisional record
+        <p
+          className="text-muted-foreground mt-3 text-xs leading-relaxed"
+          role="status"
+        >
+          {graded.toLocaleString()} graded — building a record. Rank and ROI can
+          swing until the sample grows.
         </p>
       ) : null}
 

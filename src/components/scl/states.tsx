@@ -18,18 +18,20 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "border-border bg-surface-2/40 flex flex-col items-center justify-center rounded-xl border border-dashed px-4 py-9 text-center sm:px-6 sm:py-12",
+        "border-border bg-card flex flex-col items-center justify-center rounded-[var(--scl-radius-card)] border px-4 py-9 text-center sm:px-6 sm:py-12",
         className,
       )}
     >
       {Icon ? (
-        <span className="bg-surface-3 text-muted-foreground mb-3 flex size-12 items-center justify-center rounded-xl">
-          <Icon className="size-6" />
+        <span className="mb-3 flex size-12 items-center justify-center rounded-xl border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-700)] text-[color:var(--scl-pink)]">
+          <Icon className="size-6" aria-hidden />
         </span>
       ) : null}
-      <h3 className="font-semibold">{title}</h3>
+      <h3 className="scl-display text-base font-semibold tracking-wide uppercase">
+        {title}
+      </h3>
       {description ? (
-        <p className="text-muted-foreground mt-1 max-w-sm text-sm">
+        <p className="text-muted-foreground mt-1.5 max-w-sm text-sm leading-relaxed">
           {description}
         </p>
       ) : null}

@@ -8,6 +8,7 @@ import {
 import type { LeaderboardSummary } from "@/lib/leaderboard";
 import { formatRoi } from "@/lib/format";
 import { StatValue } from "@/components/scl/stat-value";
+import { VerificationHelpLink } from "@/components/scl/verification-help-link";
 
 export function LeaderboardOverview({
   summary,
@@ -25,14 +26,18 @@ export function LeaderboardOverview({
           <h1 className="scl-display mt-2 text-3xl font-bold tracking-[0.04em] text-balance uppercase sm:text-4xl">
             Leaderboard
           </h1>
-          <p className="text-muted-foreground mt-2 max-w-2xl">
-            Compare tracked records by units, ROI, win rate, sport, time window,
-            and sample size.
+          <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-relaxed sm:text-base">
+            Ranked by net units on board-verified graded plays. Filter by sport,
+            window, and sample size — provisional rows are still building a
+            record.
           </p>
+          <div className="mt-2">
+            <VerificationHelpLink />
+          </div>
         </div>
-        <p className="text-muted-foreground max-w-sm text-sm sm:text-right">
-          Rankings recalculate from graded plays. Filter scope changes every
-          result on this page.
+        <p className="text-muted-foreground max-w-sm text-sm leading-relaxed sm:text-right">
+          Every row is an inspectable public record. Scope filters change who
+          ranks and what the totals show.
         </p>
       </div>
 

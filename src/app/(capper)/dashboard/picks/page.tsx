@@ -25,7 +25,11 @@ export default async function MyPicksPage() {
     <div className="space-y-4">
       <SectionHeader
         title="My Picks"
-        subtitle={`${entries.length} submitted ${entries.length === 1 ? "pick" : "picks"}`}
+        subtitle={
+          entries.length
+            ? `${entries.length} submitted ${entries.length === 1 ? "Ticket" : "Tickets"} — pending until graded`
+            : "Your public record is built from board-checked Tickets"
+        }
         href="/dashboard/picks/new"
         hrefLabel="Submit A Play"
       />
@@ -43,14 +47,14 @@ export default async function MyPicksPage() {
         <EmptyState
           icon={ClipboardList}
           title="No Plays Yet"
-          description="Your submitted plays will appear here."
+          description="Submit a board-checked play to start an inspectable record. Nothing appears here until you log a Ticket."
           action={
             <Button
               render={<Link href="/dashboard/picks/new" />}
               nativeButton={false}
-              className="gap-1.5"
+              className="min-h-11 gap-1.5"
             >
-              <Plus className="size-4" /> Submit A Play
+              <Plus className="size-4" aria-hidden /> Submit A Play
             </Button>
           }
         />

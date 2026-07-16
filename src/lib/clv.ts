@@ -35,7 +35,7 @@ export function computeClvPts(
 
 /** Short tooltip copy (deliverables Step 6). */
 export const CLV_TOOLTIP_SHORT =
-  "How your price compared to the market's closing price.";
+  "Price vs the same book's closing odds — positive means you beat the close.";
 
 /** Long explainer (≤120 words, deliverables Step 6). */
 export const CLV_EXPLAINER_LONG =
