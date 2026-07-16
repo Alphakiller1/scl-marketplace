@@ -82,7 +82,24 @@ export function CompetitionHero() {
         }
       }}
     >
-      {/* Fit full trophy in-frame (contain) — cover was over-zooming/cropping */}
+      {/*
+        Dual layer, same full-bleed art:
+        - cover fills letterbox edges so the left never goes matte-black
+        - contain keeps the whole trophy (including crown) in frame, no zoom crop
+      */}
+      <picture aria-hidden className="pointer-events-none absolute inset-0">
+        <source
+          media="(min-width: 640px)"
+          srcSet="/assets/scl/leaderboard-trophy-desktop.webp"
+        />
+        <img
+          src="/assets/scl/leaderboard-trophy-mobile.webp"
+          alt=""
+          width="1080"
+          height="1920"
+          className="size-full object-cover object-center opacity-90 sm:object-[center_right]"
+        />
+      </picture>
       <picture className="pointer-events-none absolute inset-0">
         <source
           media="(min-width: 640px)"
@@ -91,23 +108,24 @@ export function CompetitionHero() {
         <img
           src="/assets/scl/leaderboard-trophy-mobile.webp"
           alt=""
-          width="852"
-          height="1846"
+          width="1080"
+          height="1920"
           fetchPriority="high"
-          className="size-full object-contain object-right-bottom opacity-95 sm:object-right"
+          className="size-full object-contain object-center opacity-95 sm:object-right"
         />
       </picture>
+      {/* Light readability scrim only — do not wipe the left into flat black */}
       <div
         aria-hidden
-        className="absolute inset-0 bg-[color:var(--scl-ink-950)]/35"
+        className="absolute inset-0 bg-[color:var(--scl-ink-950)]/20"
       />
       <div
         aria-hidden
-        className="absolute inset-0 bg-gradient-to-r from-[color:var(--scl-ink-950)]/55 via-[color:var(--scl-ink-950)]/20 to-transparent"
+        className="absolute inset-0 bg-gradient-to-r from-[color:var(--scl-ink-950)]/35 via-[color:var(--scl-ink-950)]/10 to-transparent"
       />
       <div
         aria-hidden
-        className="absolute inset-0 bg-gradient-to-t from-[color:var(--scl-ink-950)]/50 via-transparent to-[color:var(--scl-ink-950)]/15"
+        className="absolute inset-0 bg-gradient-to-t from-[color:var(--scl-ink-950)]/35 via-transparent to-[color:var(--scl-ink-950)]/10"
       />
 
       <div className="relative mx-auto flex min-h-[31rem] max-w-6xl flex-col px-4 py-8 sm:min-h-[36rem] sm:justify-center sm:px-6 sm:py-14">

@@ -6,10 +6,10 @@ text, metrics, controls, or logos; those remain accessible HTML and code-native 
 Remote sports marks are **self-hosted** (optional) under `public/marks/`, gated by a static
 manifest — never hotlinked. Missing marks always render the monogram/lettermark fallback.
 
-| Asset                             | Dimensions | Use                         | Treatment                                        |
-| --------------------------------- | ---------: | --------------------------- | ------------------------------------------------ |
-| `leaderboard-trophy-desktop.webp` | 1774 x 887 | Home hero at `sm` and above | Right-centered trophy with left copy space       |
-| `leaderboard-trophy-mobile.webp`  | 852 x 1846 | Home hero below `sm`        | Trophy in lower field with calm upper copy space |
+| Asset                             |  Dimensions | Use                         | Treatment                                                                 |
+| --------------------------------- | ----------: | --------------------------- | ------------------------------------------------------------------------- |
+| `leaderboard-trophy-desktop.webp` | 1920 x 1280 | Home hero at `sm` and above | Full-bleed data-space; trophy right; atmosphere/grid/charts to both edges |
+| `leaderboard-trophy-mobile.webp`  | 1080 x 1920 | Home hero below `sm`        | Full-bleed portrait; trophy lower field; atmosphere through upper copy    |
 
 ## League / team marks (self-hosted)
 
@@ -49,12 +49,14 @@ Code maps: `src/lib/mark-manifest.ts`, `src/lib/teams.ts`, `src/lib/leagues.ts`,
 Desktop:
 
 > Original premium 3D championship trophy in a near-black violet data space, with controlled
-> magenta and electric-blue edge lighting, restrained grid and performance traces, a fully
-> visible trophy in the right-center third, and clean negative space for HTML copy. No text,
-> numbers, logos, UI, people, sportsbook imagery, or watermark.
+> magenta and electric-blue edge lighting. Perspective grid floor and glowing performance chart
+> traces MUST extend edge-to-edge across the full width — no flat black dead zone on the left.
+> Fully visible trophy in the right third; left two-thirds keep the same room atmosphere (dimmer
+> for copy, still textured). No text, numbers, logos, UI, people, sportsbook imagery, or watermark.
 
 Mobile:
 
-> Portrait companion preserving the desktop trophy and lighting, with calm negative space in the
-> upper third and the fully visible trophy in the lower-right/center field. No text, numbers,
-> logos, UI, people, sportsbook imagery, or watermark.
+> Portrait companion preserving the desktop trophy and lighting. Atmosphere (grid, chart traces,
+> volumetric purple/blue light) fills the entire frame including the upper third and left edge —
+> never a matte black panel. Fully visible trophy in the lower-right/center field. No text,
+> numbers, logos, UI, people, sportsbook imagery, or watermark.
