@@ -3,7 +3,6 @@ import test from "node:test";
 
 import {
   getTeamIdentity,
-  espnTeamLogoUrl,
   readableTextColor,
   resolveKnownTeam,
 } from "@/lib/teams";
@@ -17,26 +16,13 @@ test("getTeamIdentity resolves mapped teams and aliases", () => {
   assert.equal(getTeamIdentity("Oakland Athletics", "MLB").abbr, "ATH");
 });
 
-test("seeded MLB/WNBA teams expose ESPN CDN logoUrl", () => {
+test("seeded MLB/WNBA teams use monogram fallback until marks are manifest-listed", () => {
   const dodgers = getTeamIdentity("Los Angeles Dodgers", "MLB");
-  assert.equal(
-    dodgers.logoUrl,
-    "https://a.espncdn.com/i/teamlogos/mlb/500/lad.png",
-  );
+  assert.equal(dodgers.logoUrl, undefined);
   const sparks = getTeamIdentity("Los Angeles Sparks", "WNBA");
-  assert.equal(
-    sparks.logoUrl,
-    "https://a.espncdn.com/i/teamlogos/wnba/500/la.png",
-  );
+  assert.equal(sparks.logoUrl, undefined);
   const whiteSox = getTeamIdentity("Chicago White Sox", "MLB");
-  assert.equal(
-    whiteSox.logoUrl,
-    "https://a.espncdn.com/i/teamlogos/mlb/500/chw.png",
-  );
-});
-
-test("espnTeamLogoUrl returns undefined for unseeded sports", () => {
-  assert.equal(espnTeamLogoUrl("NFL", "DAL"), undefined);
+  assert.equal(whiteSox.logoUrl, undefined);
 });
 
 test("getTeamIdentity creates deterministic fallback marks without logos", () => {

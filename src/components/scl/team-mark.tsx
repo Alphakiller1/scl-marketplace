@@ -5,7 +5,7 @@ import { useState, type CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 import { readableTextColor, type TeamIdentity } from "@/lib/teams";
 
-/** Compact team mark: CDN logo when available, color+abbr fallback on error/miss. */
+/** Compact team mark: self-hosted SVG when manifest lists it; color+abbr fallback otherwise. */
 export function TeamMark({
   team,
   size = "md",
@@ -35,8 +35,8 @@ export function TeamMark({
       aria-hidden
     >
       {showLogo ? (
-        // External ESPN CDN; plain img keeps remotePatterns optional and onError reliable.
-        // eslint-disable-next-line @next/next/no-img-element
+        // Local /marks SVG; plain img keeps onError fallback reliable.
+        // eslint-disable-next-line @next/next/no-img-element -- onError + tiny local SVG
         <img
           src={team.logoUrl}
           alt=""
