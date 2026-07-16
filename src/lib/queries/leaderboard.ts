@@ -16,6 +16,7 @@ import { computeVerifiedShare } from "@/lib/verification";
 import type { CapperSummary, FormResult } from "@/lib/mock";
 import { resolveStorefrontIdentity } from "@/lib/storefront";
 import { computeCapperActivity } from "@/lib/capper-activity";
+import { hasClvColumns } from "@/lib/results/schema-features";
 
 /**
  * Live leaderboard data — computed from real plays, never fabricated. Only
@@ -32,7 +33,7 @@ const DEFAULT_FILTERS: LeaderboardFilters = {
   search: "",
 };
 
-function fetchRankableProfiles(filters: LeaderboardFilters) {
+function fetchRankableProfiles(filters: LeaderboardFilters, clvReady: boolean) {
   const windowStart = leaderboardWindowStart(filters.window);
 
   return prisma.capperProfile.findMany({
@@ -89,6 +90,7 @@ function fetchRankableProfiles(filters: LeaderboardFilters) {
           createdAt: true,
           gradedAt: true,
           verificationTier: true,
+          ...(clvReady ? { clvPts: true } : {}),
         },
         orderBy: { createdAt: "asc" },
       },
@@ -196,6 +198,16 @@ function summarize(p: ProfileRow): CapperSummary | null {
   const displayName = null; // dormant — public identity is username-only
   const activity = computeCapperActivity(positions.map((x) => x.createdAt));
 
+  const clvValues = p.plays
+    .map((pl) =>
+      "clvPts" in pl && pl.clvPts != null ? Number(pl.clvPts) : null,
+    )
+    .filter((v): v is number => v != null && Number.isFinite(v));
+  const avgClv =
+    clvValues.length > 0
+      ? clvValues.reduce((a, b) => a + b, 0) / clvValues.length
+      : null;
+
   return {
     id: p.id,
     name: username,
@@ -219,6 +231,7 @@ function summarize(p: ProfileRow): CapperSummary | null {
     trophies: [],
     settledPicks: stats.settled,
     verifiedShare: computeVerifiedShare(p.plays.map((x) => x.verificationTier)),
+    avgClv,
     stakedUnits: stats.stakedUnits,
     performanceTrend,
     lastPlayAt: positions.at(-1)?.createdAt,
@@ -260,7 +273,8 @@ export async function getLeaderboardResult(
   const filters = { ...DEFAULT_FILTERS, ...options };
   let profiles: ProfileRow[];
   try {
-    profiles = await fetchRankableProfiles(filters);
+    const clvReady = await hasClvColumns();
+    profiles = await fetchRankableProfiles(filters, clvReady);
   } catch (err) {
     console.error("[getLeaderboard] database unavailable:", err);
     return { cappers: [], unranked: [], failed: true };

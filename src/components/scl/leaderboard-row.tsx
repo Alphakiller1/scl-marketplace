@@ -75,7 +75,15 @@ export function LeaderboardRow({
         >
           {formatRoi(capper.roi)}
         </StatValue>
-        {provisional ? (
+        {capper.avgClv != null ? (
+          <span
+            className="text-muted-foreground mt-0.5 block text-[0.65rem] font-semibold tracking-wide"
+            title="Average closing-line value (pts) on board-verified plays with a recorded close"
+          >
+            CLV {capper.avgClv >= 0 ? "+" : ""}
+            {capper.avgClv.toFixed(2)}
+          </span>
+        ) : provisional ? (
           <span
             className="text-muted-foreground mt-0.5 block text-[0.65rem] font-semibold tracking-wide uppercase"
             title="Small graded sample — rank and ROI can swing until more results settle"

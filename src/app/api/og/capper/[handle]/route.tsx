@@ -11,27 +11,27 @@ export const runtime = "edge";
 
 const FONT_BARLOW =
   "https://cdn.jsdelivr.net/fontsource/fonts/barlow-condensed@5.2.5/latin-700-normal.ttf";
-const FONT_PLEX =
-  "https://cdn.jsdelivr.net/fontsource/fonts/ibm-plex-mono@5.2.5/latin-500-normal.ttf";
+const FONT_INTER =
+  "https://cdn.jsdelivr.net/fontsource/fonts/inter@5.2.5/latin-500-normal.ttf";
 
 const CACHE = "public, s-maxage=3600, stale-while-revalidate=86400";
 
 async function loadFonts() {
-  const [barlow, plex] = await Promise.all([
+  const [barlow, inter] = await Promise.all([
     fetch(FONT_BARLOW).then((r) => {
       if (!r.ok) {
         throw new Error(`Barlow Condensed font fetch failed: ${r.status}`);
       }
       return r.arrayBuffer();
     }),
-    fetch(FONT_PLEX).then((r) => {
+    fetch(FONT_INTER).then((r) => {
       if (!r.ok) {
-        throw new Error(`IBM Plex Mono font fetch failed: ${r.status}`);
+        throw new Error(`Inter font fetch failed: ${r.status}`);
       }
       return r.arrayBuffer();
     }),
   ]);
-  return { barlow, plex };
+  return { barlow, inter };
 }
 
 async function loadPayload(
@@ -69,8 +69,8 @@ export async function GET(req: Request, { params }: RouteParams) {
       weight: 700 as const,
     },
     {
-      name: "IBM Plex Mono",
-      data: fonts.plex,
+      name: "Inter",
+      data: fonts.inter,
       style: "normal" as const,
       weight: 500 as const,
     },

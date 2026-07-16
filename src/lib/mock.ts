@@ -44,6 +44,8 @@ export type CapperSummary = {
   trophies: string[];
   settledPicks?: number;
   verifiedShare?: number; // 0–100: share of tracked picks that are market-verified
+  /** Average CLV pts on board-verified graded plays with a close (null = unavailable). */
+  avgClv?: number | null;
   stakedUnits?: number;
   performanceTrend?: number[];
   lastPlayAt?: Date;

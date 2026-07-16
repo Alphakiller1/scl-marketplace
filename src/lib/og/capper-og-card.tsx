@@ -81,7 +81,7 @@ export function CapperOgCard({ data }: { data: CapperOgPayload }) {
             fontWeight: 700,
             letterSpacing: "0.08em",
             textTransform: "uppercase",
-            fontFamily: "IBM Plex Mono",
+            fontFamily: "Inter",
           }}
         >
           {data.topSport || "MULTI"}
@@ -120,7 +120,7 @@ export function CapperOgCard({ data }: { data: CapperOgPayload }) {
               color: OG.blue,
               fontSize: 22,
               fontWeight: 600,
-              fontFamily: "IBM Plex Mono",
+              fontFamily: "Inter",
             }}
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -187,7 +187,7 @@ export function CapperOgCard({ data }: { data: CapperOgPayload }) {
                 letterSpacing: "0.14em",
                 textTransform: "uppercase",
                 color: OG.muted,
-                fontFamily: "IBM Plex Mono",
+                fontFamily: "Inter",
               }}
             >
               Cumulative units
@@ -232,7 +232,7 @@ export function CapperOgCard({ data }: { data: CapperOgPayload }) {
               color: OG.mutedData,
               fontSize: 28,
               fontWeight: 600,
-              fontFamily: "IBM Plex Mono",
+              fontFamily: "Inter",
               letterSpacing: "0.02em",
             }}
           >
@@ -264,7 +264,7 @@ function Stat({
           letterSpacing: "0.14em",
           textTransform: "uppercase",
           color: OG.muted,
-          fontFamily: "IBM Plex Mono",
+          fontFamily: "Inter",
         }}
       >
         {label}
@@ -274,7 +274,7 @@ function Stat({
           fontSize: 48,
           fontWeight: 700,
           color: color ?? OG.text,
-          fontFamily: mono ? "IBM Plex Mono" : "Barlow Condensed",
+          fontFamily: mono ? "Inter" : "Barlow Condensed",
           letterSpacing: mono ? "-0.02em" : "-0.03em",
           lineHeight: 1,
         }}
