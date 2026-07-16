@@ -3,6 +3,7 @@ import { BadgeCheck, History, Trophy } from "lucide-react";
 import { LeagueMark } from "@/components/scl/league-mark";
 import { cn } from "@/lib/utils";
 import { SPORTS } from "@/lib/constants";
+import { getLeagueIdentity, leagueMarkInitials } from "@/lib/leagues";
 import type { PickStatus } from "@/lib/mock";
 import {
   ACCOUNT_VERIFIED_TOOLTIP,
@@ -111,24 +112,47 @@ export function SportTag({
   sport,
   className,
   withMark = true,
+  /** Dense surfaces: mark only (title carries the league name). */
+  markOnly = false,
 }: {
   sport: string;
   className?: string;
   /** When false, render the label chip without a LeagueMark (e.g. beside a larger mark). */
   withMark?: boolean;
+  markOnly?: boolean;
 }) {
+  const label = SPORT_LABEL.get(sport) ?? sport;
+  const league = getLeagueIdentity(sport);
+  const initials = leagueMarkInitials(league);
+  // Avoid "MLB" mark + "MLB" text (or monogram SVG + same acronym).
+  const labelRedundant =
+    label.replace(/[^a-zA-Z0-9]/g, "").toUpperCase() ===
+    initials.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  const showMark = withMark;
+  const showLabel = !markOnly && (!showMark || !labelRedundant);
+
+  if (showMark && !showLabel) {
+    return (
+      <span className={cn("inline-flex", className)} title={label}>
+        <LeagueMark leagueKey={sport} size="sm" className="rounded-md" />
+        <span className="sr-only">{label}</span>
+      </span>
+    );
+  }
+
   return (
     <span
       className={cn(
         "bg-surface-3 text-muted-foreground inline-flex items-center rounded-md text-[0.7rem] font-semibold tracking-wide uppercase",
-        withMark ? "gap-1 py-0.5 pr-2 pl-0.5" : "px-2 py-0.5",
+        showMark ? "gap-1 py-0.5 pr-2 pl-0.5" : "px-2 py-0.5",
         className,
       )}
+      title={label}
     >
-      {withMark ? (
+      {showMark ? (
         <LeagueMark leagueKey={sport} size="sm" className="rounded-md" />
       ) : null}
-      {SPORT_LABEL.get(sport) ?? sport}
+      {showLabel ? label : null}
     </span>
   );
 }

@@ -6,11 +6,26 @@
  *   public/marks/teams/{sport}/{abbr}.svg — e.g. mlb/lad.svg
  *
  * Add the key here when a file is added — no runtime fs checks.
+ * League marks are SCL monograms (nominative lettermarks), not trademark wordmarks.
  */
 
 /** Uppercase league/sport keys with a file in public/marks/leagues/ */
 export const LEAGUE_MARKS = new Set<string>([
-  // Example: "MLB", "WNBA", "NBA"
+  "MLB",
+  "NBA",
+  "NFL",
+  "NHL",
+  "WNBA",
+  "NCAAF",
+  "NCAAB",
+  "SOCCER",
+  "MMA",
+  "CFL",
+  "UFL",
+  "BOXING",
+  "NASCAR",
+  "PGA",
+  "TENNIS",
 ]);
 
 /** `${SPORT}:${ABBR}` keys with a file in public/marks/teams/{sport}/ */

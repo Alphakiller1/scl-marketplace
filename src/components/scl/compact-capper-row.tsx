@@ -51,11 +51,11 @@ export function CompactCapperRow({
             compact
             primaryClassName="text-sm"
           />
-          <div className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
-            <SportTag
-              sport={capper.topSport}
-              className="max-w-24 truncate whitespace-nowrap"
-            />
+          <div className="text-muted-foreground mt-0.5 flex items-center gap-1.5 text-xs">
+            <SportTag sport={capper.topSport} markOnly />
+            <span aria-hidden className="text-border">
+              ·
+            </span>
             <StatValue tone="label" className="scl-data truncate text-xs">
               {formatRecord(capper.record.w, capper.record.l, capper.record.p)}
             </StatValue>
