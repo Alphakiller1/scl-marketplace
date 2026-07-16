@@ -1,4 +1,4 @@
-import type { SettledGame } from "@/lib/results/provider";
+import type { SettledGame } from "@/lib/results/settled-game";
 
 /**
  * Pure play↔result matching (no DB, no server-only) so it's unit-testable.

@@ -7,20 +7,50 @@ import { clvPtsForGrade } from "@/lib/results/closing-snapshot";
 import { isDeferredProp, resolveOutcome } from "@/lib/results/match";
 import type { ResultsProvider } from "@/lib/results/provider";
 import { hasClvColumns } from "@/lib/results/schema-features";
+import {
+  classifySkipReason,
+  emptySkipCounts,
+  findSettledGame,
+  type SkipReasonCounts,
+} from "@/lib/results/skip-reason";
 
 export type AutoGradeResult = {
   graded: number;
+  /** Back-compat total of all skip reasons. */
   skipped: number;
+  skippedByReason: SkipReasonCounts;
   parlaysGraded: number;
   clvSnapshots?: number;
   provider: string;
 };
 
+type GradeBatch = {
+  graded: number;
+  skipped: number;
+  skippedByReason: SkipReasonCounts;
+};
+
+function logSkip(
+  kind: "play" | "parlay leg",
+  play: {
+    id: string;
+    sport: string;
+    eventId?: string | null;
+  },
+  reason: keyof SkipReasonCounts,
+) {
+  console.info(
+    `[auto-grade] ${kind} ${play.id} skipped: ${reason}` +
+      ` sport=${play.sport} eventId=${play.eventId ?? "null"}`,
+  );
+}
+
 async function gradeStraightPlays(
   provider: ResultsProvider,
   now: Date,
-): Promise<{ graded: number; skipped: number }> {
+): Promise<GradeBatch> {
   const clvReady = await hasClvColumns();
+  const skippedByReason = emptySkipCounts();
   const pending = (
     await prisma.play.findMany({
       where: { outcome: "PENDING", parlayId: null },
@@ -55,22 +85,30 @@ async function gradeStraightPlays(
         p.eventStartsAt == null || p.eventStartsAt.getTime() <= now.getTime(),
     );
 
-  if (pending.length === 0) return { graded: 0, skipped: 0 };
+  if (pending.length === 0) {
+    return { graded: 0, skipped: 0, skippedByReason };
+  }
 
   const sports = [...new Set(pending.map((p) => p.sport))];
   const games = await provider.fetchSettledForSports(sports);
   let graded = 0;
-  let skipped = 0;
 
   for (const play of pending) {
     if (isDeferredProp(play)) {
-      console.info(`[auto-grade] play ${play.id} skipped: props_deferred`);
-      skipped++;
+      skippedByReason.props_deferred++;
+      logSkip("play", play, "props_deferred");
       continue;
     }
+    const game = findSettledGame(play, games);
     const outcome = resolveOutcome(play, games);
     if (!outcome) {
-      skipped++;
+      const reason = classifySkipReason({
+        play,
+        gameFound: game != null,
+        now,
+      });
+      skippedByReason[reason]++;
+      logSkip("play", play, reason);
       continue;
     }
     const profitUnits = profitUnitsForOutcome(
@@ -106,13 +144,15 @@ async function gradeStraightPlays(
     graded++;
   }
 
-  return { graded, skipped };
+  const skipped = Object.values(skippedByReason).reduce((a, b) => a + b, 0);
+  return { graded, skipped, skippedByReason };
 }
 
 async function gradeParlayLegs(
   provider: ResultsProvider,
   now: Date,
-): Promise<{ graded: number; skipped: number }> {
+): Promise<GradeBatch> {
+  const skippedByReason = emptySkipCounts();
   const pending = (
     await prisma.play.findMany({
       where: { outcome: "PENDING", parlayId: { not: null } },
@@ -141,24 +181,30 @@ async function gradeParlayLegs(
         p.eventStartsAt == null || p.eventStartsAt.getTime() <= now.getTime(),
     );
 
-  if (pending.length === 0) return { graded: 0, skipped: 0 };
+  if (pending.length === 0) {
+    return { graded: 0, skipped: 0, skippedByReason };
+  }
 
   const sports = [...new Set(pending.map((p) => p.sport))];
   const games = await provider.fetchSettledForSports(sports);
   let graded = 0;
-  let skipped = 0;
 
   for (const play of pending) {
     if (isDeferredProp(play)) {
-      console.info(
-        `[auto-grade] parlay leg ${play.id} skipped: props_deferred`,
-      );
-      skipped++;
+      skippedByReason.props_deferred++;
+      logSkip("parlay leg", play, "props_deferred");
       continue;
     }
+    const game = findSettledGame(play, games);
     const outcome = resolveOutcome(play, games);
     if (!outcome) {
-      skipped++;
+      const reason = classifySkipReason({
+        play,
+        gameFound: game != null,
+        now,
+      });
+      skippedByReason[reason]++;
+      logSkip("parlay leg", play, reason);
       continue;
     }
     await prisma.$transaction([
@@ -185,7 +231,20 @@ async function gradeParlayLegs(
     graded++;
   }
 
-  return { graded, skipped };
+  const skipped = Object.values(skippedByReason).reduce((a, b) => a + b, 0);
+  return { graded, skipped, skippedByReason };
+}
+
+function mergeSkipCounts(
+  a: SkipReasonCounts,
+  b: SkipReasonCounts,
+): SkipReasonCounts {
+  return {
+    props_deferred: a.props_deferred + b.props_deferred,
+    event_not_found: a.event_not_found + b.event_not_found,
+    aged_out: a.aged_out + b.aged_out,
+    market_unhandled: a.market_unhandled + b.market_unhandled,
+  };
 }
 
 async function gradePendingParlays(): Promise<number> {
@@ -242,10 +301,15 @@ export async function autoGradePending(
   const straight = await gradeStraightPlays(provider, now);
   const legs = await gradeParlayLegs(provider, now);
   const parlaysGraded = await gradePendingParlays();
+  const skippedByReason = mergeSkipCounts(
+    straight.skippedByReason,
+    legs.skippedByReason,
+  );
 
   return {
     graded: straight.graded + legs.graded,
     skipped: straight.skipped + legs.skipped,
+    skippedByReason,
     parlaysGraded,
     provider: provider.name,
   };

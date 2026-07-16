@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getGradingHealthReport } from "@/lib/grading-health";
 import { autoGradePending } from "@/lib/results/auto-grade";
 import { snapshotClosingOdds } from "@/lib/results/closing-snapshot";
 import { getResultsProvider } from "@/lib/results/provider";
+import { listAgedOutPendingPlays } from "@/lib/results/stuck-plays";
 
 function authorizeCron(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET?.trim();
@@ -46,9 +48,23 @@ async function runGrade(req: NextRequest) {
 
   try {
     const result = await autoGradePending(getResultsProvider());
+    const health = await getGradingHealthReport();
+    const stuckPlays =
+      (result.skippedByReason.aged_out ?? 0) > 0
+        ? await listAgedOutPendingPlays()
+        : [];
+    if (health.status === "UNHEALTHY") {
+      console.warn(
+        `[cron/grade] health=UNHEALTHY pendingPast24h=${health.pendingPast24h}` +
+          ` cliffRisk=${health.cliffRisk}` +
+          ` skippedByReason=${JSON.stringify(result.skippedByReason)}`,
+      );
+    }
     return NextResponse.json({
       ...result,
       clvSnapshots,
+      health,
+      stuckPlays,
     });
   } catch (err) {
     console.error("[cron/grade] autoGradePending failed:", err);

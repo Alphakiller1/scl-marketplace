@@ -7,6 +7,11 @@ import {
   toOddsApiSport,
   toSclSport,
 } from "@/lib/odds-api";
+import { RESULTS_LOOKBACK_DAYS } from "@/lib/results/lookback";
+import type { SettledGame } from "@/lib/results/settled-game";
+
+export type { SettledGame };
+export { RESULTS_LOOKBACK_DAYS };
 
 /**
  * Results providers feed the auto-grader. A provider returns completed games with
@@ -17,16 +22,6 @@ import {
  * scores endpoint) and activates automatically once `ODDS_API_KEY` is set —
  * `getResultsProvider()` picks it over the mock when the key is present.
  */
-export type SettledGame = {
-  sport: string; // canonical SCL sport key (NBA, MLB, …)
-  home: string;
-  away: string;
-  homeScore: number;
-  awayScore: number;
-  completed: boolean;
-  /** Odds API event id when available — preferred join key for grading. */
-  eventId?: string;
-};
 
 export interface ResultsProvider {
   readonly name: string;
@@ -125,7 +120,7 @@ export function oddsApiResultsProvider(): ResultsProvider {
 
     const url =
       `https://api.the-odds-api.com/v4/sports/${apiSport}/scores/` +
-      `?daysFrom=3&apiKey=${apiKey}`;
+      `?daysFrom=${RESULTS_LOOKBACK_DAYS}&apiKey=${apiKey}`;
     try {
       const res = await fetch(url, { cache: "no-store" });
       logOddsUsage(res, `scores ${sclSport}`, "results");
