@@ -90,6 +90,7 @@ export async function snapshotClosingOdds(
         closingOddsAmerican: closing,
         closingCapturedAt: new Date(),
       },
+      select: { id: true },
     });
 
     if (closing != null) snapshots++;
