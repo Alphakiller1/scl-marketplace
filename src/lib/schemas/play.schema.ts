@@ -31,9 +31,10 @@ export const playSchema = z.object({
       (n) => Math.round(n * 100) % 25 === 0,
       "Units must be in 0.25 increments",
     ),
-  notes: optionalText(280),
+  notes: optionalText(1000),
+  notesPublic: z.boolean().optional().default(true),
 
-  // Pick-integrity binding (docs/SCL_PICK_INTEGRITY.md). All optional: the structured selector
+  // Pick-integrity binding
   // supplies them for the strict/verified path; a legacy free-text pick omits them and lands as
   // SELF_REPORTED. The server never trusts these — it re-derives the lock and re-fetches odds.
   eventId: optionalText(64),

@@ -10,6 +10,7 @@ import { EventDetail, type OddsPick } from "@/components/scl/odds-assist";
 import { LeagueMark } from "@/components/scl/league-mark";
 import { SkeletonCard } from "@/components/scl/states";
 import { TeamMark } from "@/components/scl/team-mark";
+import { BookMark } from "@/components/scl/book-mark";
 import { bookShort, isBookKey } from "@/lib/books";
 import {
   categoryCounts,
@@ -326,9 +327,14 @@ export function GamePicker({
         </p>
       ) : slate?.configured === false ? (
         <p className="text-muted-foreground text-xs">
-          Live odds aren&apos;t enabled yet — add{" "}
+          Odds feed not configured — add{" "}
           <code className="text-foreground">ODDS_API_KEY</code> in Vercel and
           redeploy to turn on the board.
+        </p>
+      ) : events.length === 0 && slate?.configured ? (
+        <p className="text-muted-foreground text-xs">
+          No live board events for this slate right now — try another day or
+          sport, or check back closer to game time.
         </p>
       ) : (
         <p className="text-muted-foreground text-xs">
@@ -375,12 +381,13 @@ function BookRail({
             onClick={() => onChange(key)}
             aria-pressed={isActive}
             className={cn(
-              "scl-data flex h-9 shrink-0 items-center justify-center rounded-[18px] border px-3 text-[11px] font-medium tracking-[0.08em] uppercase transition-colors",
+              "scl-data flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-[18px] border px-3 text-[11px] font-medium tracking-[0.08em] uppercase transition-colors",
               isActive
                 ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
                 : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",
             )}
           >
+            <BookMark bookKey={key} size={16} />
             {bookShort(key)}
           </button>
         );

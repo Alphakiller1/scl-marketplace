@@ -94,9 +94,11 @@ function CapperTicketFooter({ pick }: { pick: TodayPick }) {
 export function PickCard({
   pick,
   compact = false,
+  gradingHealthy = true,
 }: {
   pick: TodayPick;
   compact?: boolean;
+  gradingHealthy?: boolean;
 }) {
   const projected = pick.units * (americanToDecimal(pick.oddsAmerican) - 1);
   const toWin =
@@ -117,9 +119,11 @@ export function PickCard({
       toWin={toWin}
       capturedAt={pick.postedAt.toISOString()}
       book={pick.book}
+      gradingHealthy={gradingHealthy}
       status={ticketStatusFor(pick)}
       className={compact ? "rounded-[14px]" : undefined}
       footerAction={<CapperTicketFooter pick={pick} />}
+      analysis={pick.notesPublic === false ? null : (pick.notes ?? null)}
     />
   );
 }

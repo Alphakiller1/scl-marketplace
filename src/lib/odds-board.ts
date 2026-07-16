@@ -28,6 +28,8 @@ export type OddsSelection = {
 export type OddsEvent = {
   id: string;
   sport: string;
+  /** Soccer league key (EPL, MLS, …) when sport is SOCCER. */
+  league?: string;
   commenceTime: string;
   home: string;
   away: string;
@@ -279,6 +281,7 @@ export function normalizeUpcomingEvent(
   sclSport: string,
   event: RawUpcoming,
   preferredBooks?: readonly string[],
+  league?: string,
 ): OddsEvent {
   const groups = new Map<
     string,
@@ -394,6 +397,7 @@ export function normalizeUpcomingEvent(
   return {
     id: event.id,
     sport: sclSport,
+    league,
     commenceTime: event.commence_time,
     home: event.home_team,
     away: event.away_team,

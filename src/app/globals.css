@@ -385,6 +385,14 @@
   .scl-board-fade-in {
     animation: scl-board-fade-in 200ms ease-out both;
   }
+  @keyframes scl-ticker {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
   @media (prefers-reduced-motion: reduce) {
     .scl-ticket-settling .scl-ticket-capture,
     .scl-ticket-settling .scl-ticket-stamp {

@@ -116,7 +116,7 @@ export default async function DashboardPage() {
               e.kind === "parlay" ? (
                 <ParlayListItem key={`parlay-${e.id}`} parlay={e} />
               ) : (
-                <PlayListItem key={`play-${e.id}`} play={e} />
+                <PlayListItem key={e.id} play={e} dashboard />
               ),
             )}
           </div>

@@ -4,13 +4,15 @@ import { Zap } from "lucide-react";
 import { SectionHeader } from "@/components/scl/section";
 import { PickCard } from "@/components/scl/pick-card";
 import { EmptyState } from "@/components/scl/states";
+import { getGradingHealth } from "@/lib/grading-health";
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 import { getPublicRecentPicksResult } from "@/lib/queries/plays";
 import { publicFeedCappers } from "@/lib/public-picks";
 
 export const metadata: Metadata = {
-  title: "Today's Picks",
-  description: "Live and pending plays from active sports cappers.",
+  title: { absolute: "Today's Picks · SCL" },
+  description:
+    "Recent board-verified picks with sportsbook source attribution and grading status.",
 };
 
 export const revalidate = 60;
@@ -25,6 +27,7 @@ export default async function PicksPage() {
     publicFeedCappers(cappers, unranked),
     24,
   );
+  const gradingHealthy = await getGradingHealth();
   const failed = leaderboardFailed || picksFailed;
 
   return (
@@ -37,7 +40,11 @@ export default async function PicksPage() {
       {picks.length ? (
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {picks.map((pick) => (
-            <PickCard key={pick.id} pick={pick} />
+            <PickCard
+              key={pick.id}
+              pick={pick}
+              gradingHealthy={gradingHealthy}
+            />
           ))}
         </div>
       ) : (

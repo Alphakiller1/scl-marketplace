@@ -40,10 +40,10 @@ export const VERIFICATION_TIER_META: Record<
     tone: "verified",
   },
   SELF_REPORTED: {
-    label: "Self-reported",
-    short: "Self-reported",
+    label: "Logged",
+    short: "Logged",
     description:
-      "Entered manually and not matched to a live market — it counts on the profile but not toward the verified record.",
+      "Historical entry not board-checked; does not count toward verified rank.",
     tone: "muted",
   },
 };

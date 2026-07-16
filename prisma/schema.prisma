@@ -305,6 +305,12 @@ model Play {
   outcome      Outcome   @default(PENDING)
   profitUnits  Decimal?  @db.Decimal(10, 2)
   notes        String?
+  /// When false, analysis is hidden on public pick cards (dashboard always shows).
+  notesPublic  Boolean   @default(true)
+  /// Last same-book American price at/before event start (CLV v1).
+  closingOddsAmerican Int?
+  clvPts       Decimal?  @db.Decimal(10, 4)
+  closingCapturedAt DateTime?
   parlayId     String?
   createdAt    DateTime  @default(now())
   gradedAt     DateTime?
@@ -345,6 +351,21 @@ model Parlay {
   legs   Play[]
 
   @@index([capperId])
+}
+
+/// Daily Odds API credit usage rollup (purpose + sport scoped).
+model OddsUsageDaily {
+  id        String   @id @default(cuid())
+  date      DateTime @db.Date
+  purpose   String
+  sport     String   @default("")
+  calls     Int      @default(0)
+  credits   Int      @default(0)
+  remaining Int?
+  updatedAt DateTime @updatedAt
+
+  @@unique([date, purpose, sport])
+  @@index([date])
 }
 
 model GradingAudit {

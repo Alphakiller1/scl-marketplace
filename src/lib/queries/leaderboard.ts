@@ -9,6 +9,8 @@ import {
   partitionLeaderboard,
   type LeaderboardFilters,
 } from "@/lib/leaderboard";
+import { UNIT_MIN } from "@/lib/constants";
+import { prismaExcludeTestHandles } from "@/lib/public-eligibility";
 import { computeCapperStats } from "@/lib/stats";
 import { computeVerifiedShare } from "@/lib/verification";
 import type { CapperSummary, FormResult } from "@/lib/mock";
@@ -38,6 +40,7 @@ function fetchRankableProfiles(filters: LeaderboardFilters) {
       user: {
         username: { not: null },
         accountStatus: "ACTIVE",
+        ...prismaExcludeTestHandles(),
         ...(filters.verifiedOnly
           ? { emailVerified: { not: null } }
           : undefined),
@@ -74,6 +77,7 @@ function fetchRankableProfiles(filters: LeaderboardFilters) {
           // position of record. Excluding legs here keeps record/units/ROI from
           // double-counting once parlays land (parlay rows are added to stats then).
           parlayId: null,
+          units: { gte: UNIT_MIN },
           ...(filters.sport !== "ALL" ? { sport: filters.sport } : undefined),
           ...(windowStart ? { createdAt: { gte: windowStart } } : undefined),
         },
@@ -93,6 +97,7 @@ function fetchRankableProfiles(filters: LeaderboardFilters) {
       parlays: {
         where: {
           ...(windowStart ? { createdAt: { gte: windowStart } } : undefined),
+          units: { gte: UNIT_MIN },
           ...(filters.sport !== "ALL"
             ? { legs: { some: { sport: filters.sport } } }
             : undefined),

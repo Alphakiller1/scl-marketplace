@@ -1,6 +1,7 @@
 import type { CapperSummary } from "@/lib/mock";
 import { bookLabel, bookShort } from "@/lib/books";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
+import { BookMark } from "@/components/scl/book-mark";
 import {
   LegacyBadge,
   SportTag,
@@ -223,8 +224,9 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                       key={key}
                       role="listitem"
                       title={bookLabel(key)}
-                      className="scl-data border-border text-muted-foreground inline-flex h-9 items-center justify-center rounded-[18px] border bg-[color:var(--scl-ink-800)] px-3 text-[11px] font-medium tracking-[0.08em] uppercase"
+                      className="scl-data border-border text-muted-foreground inline-flex h-9 items-center justify-center gap-1.5 rounded-[18px] border bg-[color:var(--scl-ink-800)] px-3 text-[11px] font-medium tracking-[0.08em] uppercase"
                     >
+                      <BookMark bookKey={key} size={16} />
                       {bookShort(key)}
                     </span>
                   ))}

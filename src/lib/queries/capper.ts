@@ -8,9 +8,9 @@ import type { CapperSummary } from "@/lib/mock";
 export type PublicCapper = {
   capper: CapperSummary;
   plays: PlayView[];
-  /** True when the recent-plays query failed, so the page can show an error
-   * state instead of a misleading "no plays" empty state. */
   playsError: boolean;
+  /** Average CLV pts on verified graded plays with a recorded close. */
+  avgClv: number | null;
 };
 
 /**
@@ -30,6 +30,7 @@ export async function getPublicCapperByHandle(
 
   let plays: PlayView[] = [];
   let playsError = false;
+  let avgClv: number | null = null;
   try {
     const rows = await prisma.play.findMany({
       where: { capper: { user: { username: handle } } },
@@ -51,11 +52,27 @@ export async function getPublicCapperByHandle(
       side: p.side,
       eventStartsAt: p.eventStartsAt,
       book: p.book,
+      notes: p.notes,
+      notesPublic: p.notesPublic,
     }));
+
+    const clvAgg = await prisma.play.aggregate({
+      where: {
+        capperId: capper.id,
+        clvPts: { not: null },
+        verificationTier: { in: ["VERIFIED", "AUTO_VERIFIED"] },
+        outcome: { not: "PENDING" },
+      },
+      _avg: { clvPts: true },
+      _count: { clvPts: true },
+    });
+    if (clvAgg._count.clvPts > 0 && clvAgg._avg.clvPts != null) {
+      avgClv = Number(clvAgg._avg.clvPts);
+    }
   } catch (err) {
     console.error("[getPublicCapperByHandle] plays unavailable:", err);
     playsError = true;
   }
 
-  return { capper, plays, playsError };
+  return { capper, plays, playsError, avgClv };
 }

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { assertAnalysisSafe } from "@/lib/analysis-moderation";
 import {
   buildBulkSinglesReceipt,
   shapeBulkSinglesOutcome,
@@ -81,6 +82,7 @@ type ReadyWrite = {
     oddsMovedAccepted: boolean;
     units: number;
     notes: string | null;
+    notesPublic: boolean;
     eventId: string;
     eventStartsAt: Date;
     side: string;
@@ -127,6 +129,16 @@ async function preparePlayLine(
     };
   }
   const d = parsed.data;
+
+  const analysisError = assertAnalysisSafe(d.notes);
+  if (analysisError) {
+    return {
+      status: "error",
+      error: analysisError,
+      selection: d.selection,
+      market: d.market,
+    };
+  }
 
   if (!d.eventId || !d.eventStartsAt || !d.side) {
     return {
@@ -234,6 +246,7 @@ async function preparePlayLine(
         oddsMovedAccepted: capture.oddsMovedAccepted,
         units: d.units,
         notes: d.notes ?? null,
+        notesPublic: d.notesPublic ?? true,
         eventId: d.eventId,
         eventStartsAt,
         side: d.side,

@@ -137,9 +137,8 @@ const STATUS_STYLES: Record<
   { label: string; className: string; live?: boolean }
 > = {
   "pre-game": {
-    // Informational blue OUTLINE — distinct from the filled + pulsing `live` state, and not
-    // wearing the `live` token. Pre-game is a lifecycle state, never a result.
-    label: "Pre-Game",
+    // Informational blue OUTLINE — public taxonomy uses "Pending" before tip.
+    label: "Pending",
     className:
       "border border-[color:var(--scl-blue)]/40 text-[color:var(--scl-blue)]",
   },

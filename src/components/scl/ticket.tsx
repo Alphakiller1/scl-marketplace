@@ -10,7 +10,7 @@ export type TicketStatus = "verified" | "win" | "loss" | "muted" | "pending";
 
 export type TicketProps = {
   selectionTitle: string;
-  eventLine?: string | null;
+  eventLine?: string | React.ReactNode | null;
   legs: number;
   odds: string;
   stake: string;
@@ -18,11 +18,14 @@ export type TicketProps = {
   capturedAt?: string | null;
   /** Odds API bookmaker key — surfaces SOURCE: <BOOK> BOARD (M5 §4). */
   book?: string | null;
+  /** When false, do not promise automatic grading (cron unhealthy / delayed). */
+  gradingHealthy?: boolean;
   status?: TicketStatus;
   /** Hero settling sequence — capture fades in, then stamp drops (CSS; reduced-motion safe). */
   settling?: boolean;
   className?: string;
   footerAction?: ReactNode;
+  analysis?: string | null;
 };
 
 function stampLabel(status: TicketStatus): string {
@@ -46,14 +49,21 @@ export function Ticket({
   toWin,
   capturedAt,
   book,
+  gradingHealthy,
   status = "verified",
   settling = false,
   className,
   footerAction,
+  analysis,
 }: TicketProps) {
   const pinkStamp = status === "verified" || status === "win";
   const lossStamp = status === "loss";
-  const captureLine = formatOddsCaptureSourceLine({ capturedAt, book });
+  const captureLine = formatOddsCaptureSourceLine({
+    capturedAt,
+    book,
+    gradingHealthy,
+  });
+  const gradeDelayed = captureLine.includes("GRADING DELAYED");
 
   return (
     <article
@@ -122,6 +132,14 @@ export function Ticket({
                 Grades Automatically
               </span>
             </>
+          ) : gradeDelayed ? (
+            <>
+              {captureLine.replace(/ · GRADING DELAYED — CHECK BACK SOON$/, "")}
+              {" · "}
+              <span className="text-muted-foreground font-semibold">
+                Grading delayed — check back soon
+              </span>
+            </>
           ) : (
             captureLine
           )}
@@ -133,6 +151,17 @@ export function Ticket({
           </span>
         </div>
       </div>
+
+      {analysis ? (
+        <div className="border-border border-t px-5 py-3">
+          <p className="text-muted-foreground text-[0.65rem] font-semibold tracking-wide uppercase">
+            Analysis
+          </p>
+          <p className="text-foreground mt-1 line-clamp-4 text-sm leading-relaxed">
+            {analysis}
+          </p>
+        </div>
+      ) : null}
 
       {footerAction ? (
         <div className="border-border border-t px-5 py-3">{footerAction}</div>

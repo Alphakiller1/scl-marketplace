@@ -13,8 +13,9 @@ import {
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 
 export const metadata: Metadata = {
-  title: "Leaderboard",
-  description: "Verified sports cappers ranked by units, ROI, and win rate.",
+  title: { absolute: "Leaderboard · SCL" },
+  description:
+    "Ranked sports handicappers by units, ROI, and win rate. Filter by sport, window, and sample size.",
 };
 
 // Live data, cached briefly so the public board stays fresh without hammering DB.

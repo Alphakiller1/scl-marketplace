@@ -5,6 +5,7 @@ import {
   LeaderboardMobileCard,
   LeaderboardRow,
 } from "@/components/scl/leaderboard-row";
+import { CompactCapperRow } from "@/components/scl/compact-capper-row";
 import { EmptyState } from "@/components/scl/states";
 
 export function Leaderboard({
@@ -12,6 +13,7 @@ export function Leaderboard({
   limit,
   failed = false,
   compactMobile = false,
+  compactDesktop = false,
   emptyDescription = "No cappers match this ranking scope yet.",
   emptyTitle,
 }: {
@@ -19,6 +21,7 @@ export function Leaderboard({
   limit?: number;
   failed?: boolean;
   compactMobile?: boolean;
+  compactDesktop?: boolean;
   emptyDescription?: string;
   emptyTitle?: string;
 }) {
@@ -44,42 +47,57 @@ export function Leaderboard({
 
   return (
     <>
-      <div
-        className={
-          visible.length === 1
-            ? "border-border bg-card hidden overflow-hidden rounded-xl border md:block"
-            : "hidden md:block"
-        }
-      >
-        <div className="text-muted-foreground grid grid-cols-[3.25rem_minmax(13rem,1fr)_5.5rem_5.5rem_5.5rem_4.5rem_8rem] items-center gap-3 border-b px-3 py-2 text-[0.7rem] font-semibold uppercase">
-          <span>Rank</span>
-          <span>Capper</span>
-          <span className="text-right">Win Rate</span>
-          <span className="text-right">ROI</span>
-          <span className="text-right">Units</span>
-          <span className="text-right">Picks</span>
-          <span className="text-right">Trend</span>
-        </div>
-        <div className="divide-border divide-y">
+      {compactDesktop ? (
+        <div className="space-y-2">
           {visible.map((capper) => (
-            <LeaderboardRow
+            <CompactCapperRow
               key={capper.id}
               capper={capper}
               rank={capper.rank}
+              primaryMetric="units"
             />
           ))}
         </div>
-      </div>
-      <div className="space-y-2 md:hidden">
-        {visible.map((capper) => (
-          <LeaderboardMobileCard
-            key={capper.id}
-            capper={capper}
-            rank={capper.rank}
-            compact={compactMobile}
-          />
-        ))}
-      </div>
+      ) : (
+        <>
+          <div
+            className={
+              visible.length === 1
+                ? "border-border bg-card hidden overflow-hidden rounded-xl border md:block"
+                : "hidden md:block"
+            }
+          >
+            <div className="text-muted-foreground grid grid-cols-[3.25rem_minmax(13rem,1fr)_5.5rem_5.5rem_5.5rem_4.5rem_8rem] items-center gap-3 border-b px-3 py-2 text-[0.7rem] font-semibold uppercase">
+              <span>Rank</span>
+              <span>Capper</span>
+              <span className="text-right">Win Rate</span>
+              <span className="text-right">ROI</span>
+              <span className="text-right">Units</span>
+              <span className="text-right">Picks</span>
+              <span className="text-right">Trend</span>
+            </div>
+            <div className="divide-border divide-y">
+              {visible.map((capper) => (
+                <LeaderboardRow
+                  key={capper.id}
+                  capper={capper}
+                  rank={capper.rank}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2 md:hidden">
+            {visible.map((capper) => (
+              <LeaderboardMobileCard
+                key={capper.id}
+                capper={capper}
+                rank={capper.rank}
+                compact={compactMobile}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </>
   );
 }
@@ -116,6 +134,8 @@ export function BuildingRecordSection({
       </div>
       <Leaderboard
         cappers={cappers}
+        compactDesktop
+        compactMobile
         emptyTitle="No Cappers Building A Record"
         emptyDescription="Every matching capper currently meets the ranking sample."
       />

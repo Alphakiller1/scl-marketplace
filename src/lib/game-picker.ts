@@ -16,6 +16,7 @@ export const ODDS_BOARD_SPORTS = [
   { key: "NHL", label: "NHL" },
   { key: "WNBA", label: "WNBA" },
   { key: "CFL", label: "CFL" },
+  { key: "SOCCER", label: "Soccer" },
 ] as const;
 
 export type OddsBoardSportKey = (typeof ODDS_BOARD_SPORTS)[number]["key"];
@@ -23,6 +24,7 @@ export type OddsBoardSportKey = (typeof ODDS_BOARD_SPORTS)[number]["key"];
 export type GamePickerEvent = {
   id: string;
   sport: string;
+  league?: string;
   commenceTime: string;
   home: string;
   away: string;

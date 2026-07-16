@@ -4,30 +4,64 @@ import { cn } from "@/lib/utils";
 import { isVerifiedTier, type VerificationTier } from "@/lib/verification";
 
 /**
- * Single verification vocabulary per SCL-DESIGN-SPEC:
- * "Verified" (gold shield) | "Self-reported" (neutral outline) | "NN% Verified".
+ * Verification badge per SCL deliverables Step 3:
+ * 100% share → pink badge only; <100% → muted outline, no percent text on leaderboard.
  */
 export function VerifiedBadge({
   tier,
   verifiedShare,
+  showPercent = false,
   className,
 }: {
   tier?: VerificationTier | null;
-  /** When set, renders "NN% Verified" (never abbreviated). */
+  /** When set, drives share-based treatment (leaderboard/profile). */
   verifiedShare?: number | null;
+  /** Show percent text (profile meta only — default false for leaderboard). */
+  showPercent?: boolean;
   className?: string;
 }) {
-  if (verifiedShare != null && verifiedShare > 0) {
+  if (verifiedShare != null && verifiedShare >= 99.5) {
     return (
       <span
         className={cn(
-          "scl-data inline-flex items-center gap-1 text-[0.7rem] font-semibold text-[color:var(--scl-pink)]",
+          "inline-flex min-h-8 items-center rounded-md border border-[color:var(--scl-pink)] px-2 text-[color:var(--scl-pink)]",
           className,
         )}
-        title="Share of tracked picks market-verified"
+        aria-label="Fully board-verified record"
+        title="All picks on this record were board-verified."
       >
         <ShieldCheck className="size-3.5 shrink-0" aria-hidden />
-        {`${Math.round(verifiedShare)}% Verified`}
+      </span>
+    );
+  }
+
+  if (verifiedShare != null && verifiedShare > 0) {
+    const pct = Math.round(verifiedShare);
+    if (showPercent) {
+      return (
+        <span
+          className={cn(
+            "scl-data inline-flex items-center gap-1 text-[0.7rem] font-semibold text-[color:var(--scl-muted-label)]",
+            className,
+          )}
+          aria-label={`${pct} percent of picks board-verified`}
+          title={`${pct}% of this capper's picks were board-verified. Only verified picks count toward rank.`}
+        >
+          <ShieldCheck className="size-3.5 shrink-0" aria-hidden />
+          {`${pct}% board-verified`}
+        </span>
+      );
+    }
+    return (
+      <span
+        className={cn(
+          "inline-flex min-h-8 items-center rounded-md border border-[color:var(--scl-line)] px-2 text-[color:var(--scl-muted-label)]",
+          className,
+        )}
+        aria-label={`${pct} percent of picks board-verified`}
+        title={`${pct}% of this capper's picks were board-verified. Only verified picks count toward rank.`}
+      >
+        <ShieldCheck className="size-3.5 shrink-0" aria-hidden />
       </span>
     );
   }
@@ -44,11 +78,12 @@ export function VerifiedBadge({
           : "border border-[color:var(--scl-line)] text-[color:var(--scl-muted-label)]",
         className,
       )}
+      aria-label={verified ? "Board-verified pick" : "Logged pick"}
     >
       {verified ? (
         <ShieldCheck className="size-3.5 shrink-0" aria-hidden />
       ) : null}
-      {verified ? "Verified" : "Self-reported"}
+      {verified ? "Verified" : "Logged"}
     </span>
   );
 }

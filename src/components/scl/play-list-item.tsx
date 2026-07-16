@@ -1,14 +1,23 @@
-import { formatOdds, formatUnits, signTone } from "@/lib/format";
 import { SportTag, StatusBadge } from "@/components/scl/badges";
+import { BookMark } from "@/components/scl/book-mark";
 import { StatValue } from "@/components/scl/stat-value";
 import { VerifiedBadge } from "@/components/scl/verified-badge";
 import { TeamMark } from "@/components/scl/team-mark";
 import { oddsSourceBoardLabel } from "@/lib/books";
+import { UNIT_MIN } from "@/lib/constants";
+import { formatOdds, formatUnits, signTone } from "@/lib/format";
 import { deriveLifecycle } from "@/lib/lifecycle";
 import { pickContextLabel, teamIdentityFromSide } from "@/lib/pick-identity";
 import type { ParlayView, PlayView } from "@/lib/queries/plays";
 
-export function PlayListItem({ play }: { play: PlayView }) {
+export function PlayListItem({
+  play,
+  dashboard = false,
+}: {
+  play: PlayView;
+  /** Capper dashboard — always show notes; surface invalid-stake badge. */
+  dashboard?: boolean;
+}) {
   const hasResult = play.profitUnits != null;
   const team = teamIdentityFromSide(play.side, play.sport);
   const context = pickContextLabel({
@@ -17,6 +26,8 @@ export function PlayListItem({ play }: { play: PlayView }) {
     market: play.market,
   });
   const source = oddsSourceBoardLabel(play.book);
+  const invalidStake = dashboard && play.units < UNIT_MIN;
+  const showNotes = dashboard || play.notesPublic !== false ? play.notes : null;
 
   return (
     <div className="border-border bg-card overflow-hidden rounded-xl border p-3.5">
@@ -29,6 +40,11 @@ export function PlayListItem({ play }: { play: PlayView }) {
             </span>
           ) : null}
           <VerifiedBadge tier={play.verificationTier} />
+          {invalidStake ? (
+            <span className="text-muted-foreground border-border rounded-md border px-1.5 py-0.5 text-[0.65rem] font-medium tracking-wide uppercase">
+              Invalid stake
+            </span>
+          ) : null}
         </div>
         <StatusBadge
           status={deriveLifecycle({
@@ -51,7 +67,8 @@ export function PlayListItem({ play }: { play: PlayView }) {
           <StatValue tone="data">
             {formatUnits(play.units, true, false)}
           </StatValue>
-          <span className="scl-data text-muted-foreground tracking-[0.06em] uppercase">
+          <span className="scl-data text-muted-foreground inline-flex items-center gap-1 tracking-[0.06em] uppercase">
+            {play.book ? <BookMark bookKey={play.book} size={16} /> : null}
             {source}
           </span>
         </div>
@@ -64,6 +81,11 @@ export function PlayListItem({ play }: { play: PlayView }) {
           </StatValue>
         ) : null}
       </div>
+      {showNotes ? (
+        <p className="text-muted-foreground mt-2 line-clamp-3 text-xs leading-relaxed">
+          {showNotes}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -125,7 +147,10 @@ export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
           <StatValue tone="data">
             {formatUnits(parlay.units, true, false)}
           </StatValue>
-          <span className="scl-data text-muted-foreground tracking-[0.06em] uppercase">
+          <span className="scl-data text-muted-foreground inline-flex items-center gap-1 tracking-[0.06em] uppercase">
+            {legBooks.length === 1 ? (
+              <BookMark bookKey={legBooks[0]!} size={16} />
+            ) : null}
             {source}
           </span>
         </div>

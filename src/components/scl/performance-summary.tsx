@@ -1,6 +1,8 @@
 import { cn } from "@/lib/utils";
 import type { CapperSummary } from "@/lib/mock";
 import { Card } from "@/components/ui/card";
+import { ClvExplainer } from "@/components/scl/clv-explainer";
+import { CLV_TOOLTIP_SHORT } from "@/lib/clv";
 import {
   RecordStat,
   RoiStat,
@@ -10,7 +12,7 @@ import {
 } from "@/components/scl/stat";
 import { RecentFormStrip, StreakChip } from "@/components/scl/indicators";
 import { PerformanceSparkline } from "@/components/scl/performance-sparkline";
-import { isProvisional } from "@/lib/sample";
+import { isProvisional, hasSignal } from "@/lib/sample";
 
 /**
  * The capper's headline performance — trust metrics first, then record depth
@@ -18,13 +20,16 @@ import { isProvisional } from "@/lib/sample";
  */
 export function PerformanceSummary({
   capper,
+  avgClv,
   className,
 }: {
   capper: CapperSummary;
+  avgClv?: number | null;
   className?: string;
 }) {
   const graded = capper.settledPicks ?? 0;
   const provisional = isProvisional(graded);
+  const signal = hasSignal(graded);
   const verifiedPct =
     capper.verifiedShare != null && capper.verifiedShare > 0
       ? Math.round(capper.verifiedShare)
@@ -77,6 +82,19 @@ export function PerformanceSummary({
             value={graded.toLocaleString()}
             className="min-w-[4.5rem]"
           />
+          {signal ? (
+            <span title={CLV_TOOLTIP_SHORT}>
+              <StatBlock
+                label="Avg CLV"
+                value={
+                  avgClv != null
+                    ? `${avgClv >= 0 ? "+" : ""}${avgClv.toFixed(2)} pts`
+                    : "—"
+                }
+                className="min-w-[4.5rem]"
+              />
+            </span>
+          ) : null}
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <span className="text-muted-foreground text-[0.7rem] font-medium tracking-wide uppercase">
               Form
@@ -89,6 +107,9 @@ export function PerformanceSummary({
           gradedCount={graded}
         />
       </div>
+      {signal ? (
+        <ClvExplainer className="text-muted-foreground mt-3 text-xs leading-relaxed" />
+      ) : null}
     </Card>
   );
 }

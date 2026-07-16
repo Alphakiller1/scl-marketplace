@@ -182,7 +182,7 @@ export default function SignupPage() {
           className="min-h-11 w-full"
           disabled={isSubmitting}
         >
-          {isSubmitting ? "Creating Account…" : "Create Capper Account"}
+          {isSubmitting ? "Creating Account…" : "Start Tracking"}
         </Button>
       </form>
 
