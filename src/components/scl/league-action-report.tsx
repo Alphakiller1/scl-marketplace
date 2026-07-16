@@ -20,6 +20,10 @@ const LEAGUES_EMPTY = "No verified league activity in the last 14 days.";
 const FOOTNOTE =
   "Counts include ranked and building-a-record cappers. Test accounts are excluded.";
 
+/** Top Leagues list — keep header + rows on the same tracks. */
+const LEAGUE_LIST_COLS =
+  "grid-cols-[1.5rem_1.75rem_minmax(0,1fr)_4.5rem_4.5rem]";
+
 type TabKey = "leagues" | LeagueActionCategoryItem["key"];
 
 function Metric({
@@ -81,7 +85,7 @@ function CategoryPanel({
 
   return (
     <div className="space-y-4 py-2">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:max-w-md">
         <Metric label="Verified picks" value={cat.picks} emphasize />
         <Metric label="Active cappers" value={cat.cappers} />
       </div>
@@ -265,14 +269,23 @@ export function LeagueActionReport({
                 {LEAGUES_EMPTY}
               </p>
             ) : (
-              <ul className="divide-border divide-y">
-                {leagues.map((league, index) => (
-                  <li
-                    key={league.key}
-                    className="flex min-h-16 flex-col gap-3 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span className="scl-data text-muted-foreground w-6 shrink-0 text-sm font-semibold tabular-nums">
+              <div>
+                <div
+                  className={`text-muted-foreground mb-1 grid ${LEAGUE_LIST_COLS} items-end gap-3 pb-2 text-[0.7rem] font-semibold uppercase`}
+                >
+                  <span>#</span>
+                  <span aria-hidden />
+                  <span>League</span>
+                  <span className="text-right">Picks</span>
+                  <span className="text-right">Cappers</span>
+                </div>
+                <ul className="divide-border divide-y">
+                  {leagues.map((league, index) => (
+                    <li
+                      key={league.key}
+                      className={`grid min-h-14 ${LEAGUE_LIST_COLS} items-center gap-3 py-3 first:pt-0 last:pb-0`}
+                    >
+                      <span className="scl-data text-muted-foreground text-sm font-semibold tabular-nums">
                         {index + 1}
                       </span>
                       <LeagueMark
@@ -290,21 +303,29 @@ export function LeagueActionReport({
                             <SportTag sport={league.sport} withMark={false} />
                           ) : null}
                         </div>
-                        <div className="mt-1.5 w-40 max-w-full sm:w-52">
+                        <div className="mt-1.5 max-w-xs">
                           <VolumeBar
                             value={league.pickCount}
                             max={maxLeaguePicks || 1}
                           />
                         </div>
                       </div>
-                    </div>
-                    <div className="flex gap-4 pl-9 sm:pl-0">
-                      <Metric label="Picks" value={league.pickCount} />
-                      <Metric label="Cappers" value={league.activeCappers} />
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                      <StatValue
+                        tone="text"
+                        className="text-right text-sm font-bold tabular-nums"
+                      >
+                        {league.pickCount.toLocaleString()}
+                      </StatValue>
+                      <StatValue
+                        tone="text"
+                        className="text-right text-sm font-bold tabular-nums"
+                      >
+                        {league.activeCappers.toLocaleString()}
+                      </StatValue>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </TabsContent>
 

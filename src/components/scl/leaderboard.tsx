@@ -7,9 +7,10 @@ import {
 } from "@/components/scl/leaderboard-row";
 import { CompactCapperRow } from "@/components/scl/compact-capper-row";
 import { EmptyState } from "@/components/scl/states";
-
-const TABLE_COLS =
-  "grid-cols-[3.25rem_minmax(13rem,1fr)_5.5rem_5.5rem_5.5rem_4.5rem_8rem]";
+import {
+  LEADERBOARD_TABLE_COLS,
+  LEADERBOARD_TABLE_GAP,
+} from "@/components/scl/leaderboard-table";
 
 export function Leaderboard({
   cappers,
@@ -71,26 +72,28 @@ export function Leaderboard({
         </div>
       ) : (
         <>
-          <div className="border-border bg-card hidden overflow-hidden rounded-xl border md:block">
-            <div
-              className={`text-muted-foreground grid ${TABLE_COLS} items-center gap-3 border-b px-3 py-2 text-[0.7rem] font-semibold uppercase`}
-            >
-              <span>Rank</span>
-              <span>Capper</span>
-              <span className="text-right">Win Rate</span>
-              <span className="text-right">ROI</span>
-              <span className="text-right">Units</span>
-              <span className="text-right">Picks</span>
-              <span className="text-right">Trend</span>
-            </div>
-            <div className="divide-border divide-y">
-              {visible.map((capper, index) => (
-                <LeaderboardRow
-                  key={capper.id}
-                  capper={capper}
-                  rank={place(capper, index)}
-                />
-              ))}
+          <div className="border-border bg-card hidden overflow-x-auto overflow-y-hidden rounded-xl border md:block">
+            <div className="min-w-[52rem]">
+              <div
+                className={`text-muted-foreground grid ${LEADERBOARD_TABLE_COLS} ${LEADERBOARD_TABLE_GAP} items-end border-b py-2.5 text-[0.7rem] font-semibold uppercase`}
+              >
+                <span>Rank</span>
+                <span>Capper</span>
+                <span className="text-right">Win Rate</span>
+                <span className="text-right">ROI</span>
+                <span className="text-right">Units</span>
+                <span className="text-right">Picks</span>
+                <span className="text-right">Trend</span>
+              </div>
+              <div className="divide-border divide-y">
+                {visible.map((capper, index) => (
+                  <LeaderboardRow
+                    key={capper.id}
+                    capper={capper}
+                    rank={place(capper, index)}
+                  />
+                ))}
+              </div>
             </div>
           </div>
           <div className="space-y-2 md:hidden">
