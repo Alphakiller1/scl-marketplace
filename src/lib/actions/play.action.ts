@@ -23,9 +23,37 @@ import {
 } from "@/lib/odds-verify";
 import { americanToDecimal } from "@/lib/odds";
 import { prisma } from "@/lib/prisma";
+import { hasNotesPublicColumn } from "@/lib/results/schema-features";
 import { playSchema, type PlayInput } from "@/lib/schemas/play.schema";
 import { getCurrentAccount } from "@/lib/session";
 import type { BulkSinglesReceipt, StraightReceipt } from "@/lib/verification";
+
+type ReadyPlayData = {
+  sport: string;
+  league: string | null;
+  market: string;
+  selection: string;
+  oddsAmerican: number;
+  selectedOddsAmerican: number;
+  oddsMovedAccepted: boolean;
+  units: number;
+  notes: string | null;
+  notesPublic: boolean;
+  eventId: string;
+  eventStartsAt: Date;
+  side: string;
+  line: number | null;
+  book: string | null;
+  loggedPreGame: boolean;
+  oddsVerified: boolean;
+  verificationTier: StraightReceipt["tier"];
+};
+
+async function playCreateData(data: ReadyPlayData) {
+  if (await hasNotesPublicColumn()) return data;
+  const { notesPublic: _omit, ...rest } = data;
+  return rest;
+}
 
 export type PlayResult =
   | { ok: true; receipt: StraightReceipt }
@@ -306,7 +334,7 @@ export async function createPlay(
   const play = await prisma.play.create({
     data: {
       capperId: profile.id,
-      ...prep.ready.data,
+      ...(await playCreateData(prep.ready.data)),
       source: "MANUAL",
     },
     select: { createdAt: true },
@@ -412,7 +440,7 @@ export async function createPlays(
     const play = await prisma.play.create({
       data: {
         capperId: profile.id,
-        ...ready.data,
+        ...(await playCreateData(ready.data)),
         source: "MANUAL",
       },
       select: { createdAt: true },

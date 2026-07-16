@@ -1,7 +1,14 @@
 # Supabase SQL Patches — Owner Runbook
 
-Run these in the **Supabase SQL Editor** after merging the branch.  
+Run these in the **Supabase SQL Editor** (Production).  
 Additive only — no `prisma migrate deploy` in Vercel `buildCommand`.
+
+If `DATABASE_URL` uses `?schema=scl`, either set the search path first or
+qualify tables as `scl."Play"` / `scl."OddsUsageDaily"`.
+
+```sql
+SET search_path TO scl;
+```
 
 ## Play — CLV + analysis visibility
 
@@ -32,4 +39,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS "OddsUsageDaily_date_purpose_sport_key"
   ON "OddsUsageDaily" ("date", "purpose", "sport");
 ```
 
-After running SQL, redeploy or restart so Prisma client matches. No data backfill required — new columns default safely.
+Until this SQL runs, production soft-degrades: grading still works; CLV /
+`notesPublic` / usage table writes are skipped. After running SQL, redeploy or
+wait for the next cold start so process caches refresh.

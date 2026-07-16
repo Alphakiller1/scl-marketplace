@@ -36,12 +36,19 @@ async function runGrade(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  let clvSnapshots = 0;
   try {
     const clv = await snapshotClosingOdds();
+    clvSnapshots = clv.snapshots;
+  } catch (err) {
+    console.error("[cron/grade] CLV snapshot skipped:", err);
+  }
+
+  try {
     const result = await autoGradePending(getResultsProvider());
     return NextResponse.json({
       ...result,
-      clvSnapshots: clv.snapshots,
+      clvSnapshots,
     });
   } catch (err) {
     console.error("[cron/grade] autoGradePending failed:", err);

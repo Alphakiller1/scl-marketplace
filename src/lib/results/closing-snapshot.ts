@@ -5,6 +5,7 @@ import { marketKeysForMarket } from "@/lib/odds-verify";
 import { fetchEventOddsForVerification } from "@/lib/odds-api";
 import { liveLineAmerican } from "@/lib/odds-verify";
 import { prisma } from "@/lib/prisma";
+import { hasClvColumns } from "@/lib/results/schema-features";
 
 const PRE_START_WINDOW_MS = 90 * 60 * 1000;
 const RECENT_START_MS = 2 * 60 * 60 * 1000;
@@ -18,6 +19,10 @@ export type ClosingSnapshotResult = { snapshots: number; skipped: number };
 export async function snapshotClosingOdds(
   now = new Date(),
 ): Promise<ClosingSnapshotResult> {
+  if (!(await hasClvColumns())) {
+    return { snapshots: 0, skipped: 0 };
+  }
+
   const preStartEnd = new Date(now.getTime() + PRE_START_WINDOW_MS);
   const recentStart = new Date(now.getTime() - RECENT_START_MS);
 
