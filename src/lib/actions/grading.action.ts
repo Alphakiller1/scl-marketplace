@@ -69,6 +69,7 @@ export async function gradePlayAction(
     prisma.play.update({
       where: { id: play.id },
       data: { outcome, profitUnits, gradedAt: new Date() },
+      select: { id: true },
     }),
     prisma.gradingAudit.create({
       data: {

@@ -90,6 +90,7 @@ async function gradeStraightPlays(
           gradedAt: new Date(),
           ...(clvPts != null ? { clvPts } : {}),
         },
+        select: { id: true },
       }),
       prisma.gradingAudit.create({
         data: {
@@ -168,6 +169,7 @@ async function gradeParlayLegs(
           profitUnits: 0,
           gradedAt: new Date(),
         },
+        select: { id: true },
       }),
       prisma.gradingAudit.create({
         data: {
