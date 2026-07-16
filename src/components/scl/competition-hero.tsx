@@ -3,7 +3,11 @@ import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { VerificationBadge } from "@/components/scl/badges";
-import { HERO_HEADLINE, HERO_SUBHEAD } from "@/lib/cold-start-copy";
+import {
+  HERO_HEADLINE,
+  HERO_SUBHEAD,
+  TRACK_YOUR_RECORD_CTA,
+} from "@/lib/cold-start-copy";
 
 const PINK_CTA =
   "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)]";
@@ -64,7 +68,7 @@ export function CompetitionHero() {
               variant="outline"
               className="min-h-11 w-full min-w-0 border-[color:var(--scl-line)] bg-[color:var(--scl-ink-900)] whitespace-normal sm:w-auto"
             >
-              Apply As A Founding Capper
+              {TRACK_YOUR_RECORD_CTA}
             </Button>
           </div>
         </div>

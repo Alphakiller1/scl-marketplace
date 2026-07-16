@@ -52,3 +52,11 @@ export const HERO_HEADLINE = "Verified Records For Bettors And Cappers";
 
 export const HERO_SUBHEAD =
   "SCL helps bettors inspect capper history and helps serious cappers build trust with transparent, board-verified records.";
+
+/** Fable Step 2 — hero secondary / bottom band (not founding recruitment). */
+export const TRACK_YOUR_RECORD_CTA = "Track Your Record";
+
+export const BOTTOM_BAND_HEADLINE = "Build A Record People Can Inspect";
+
+export const BOTTOM_BAND_BODY =
+  "Log board-verified plays. Earn a public rank others can check.";
