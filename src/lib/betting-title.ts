@@ -1,5 +1,5 @@
 /**
- * Split a pick/selection string so numeric betting tokens can use tabular Barlow
+ * Split a pick/selection string so numeric betting tokens can use tabular Inter
  * while team/market words keep display type (SCL-DESIGN-SPEC data typography).
  */
 const BETTING_NUM_RE = /([+-]?\d+(?:\.\d+)?(?:u)?)/g;

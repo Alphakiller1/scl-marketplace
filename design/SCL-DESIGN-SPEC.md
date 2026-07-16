@@ -63,11 +63,12 @@ direction. Ink surfaces unchanged from v1.0.
 Display: "Barlow Condensed" 600/700 — headings, team names, big numbers,
 section titles. Uppercase for section heads, letter-spacing .06–.08em.
 UI/body: "Barlow" 400/500/600/700 — paragraphs, buttons, labels.
-Data: "Barlow" 500/600/700 with font-variant-numeric: tabular-nums
-(and tnum/lnum features) — EVERY odds figure, line, spread, total, unit
+Data: "Inter" 500/600/700 with font-variant-numeric: tabular-nums
+lining-nums (tnum/lnum) — EVERY odds figure, line, spread, total, unit
 count, ROI %, win %, record string, and timestamp. No exceptions.
-Do **not** use a monospaced face for ledger numbers (IBM Plex Mono and
-similar blocky monos read as generic AI-dashboard type).
+Inter is intentionally distinct from Barlow UI/display so ledger numbers
+read as a different face (not a mono, not the same as body copy).
+Do **not** use IBM Plex Mono or other blocky monos for ledger numbers.
 Eyebrows: Barlow UI, 9–10px, uppercase, letter-spacing .16–.18em.
 
 ## Conviction scarcity rule (the identity depends on this)

@@ -13,8 +13,8 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
-  /* Numerics use Barlow tabular — not a blocky mono (see --scl-font-data). */
-  --font-mono: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
+  /* Ledger nums use Inter tabular — not blocky mono, not Barlow UI. */
+  --font-mono: var(--font-inter-data), ui-sans-serif, system-ui, sans-serif;
   --font-heading: var(--font-barlow-condensed), var(--font-barlow), sans-serif;
 
   --color-card: var(--card);
@@ -103,8 +103,8 @@
   --scl-font-display:
     var(--font-barlow-condensed), "Barlow Condensed", sans-serif;
   --scl-font-ui: var(--font-barlow), "Barlow", sans-serif;
-  /* Tabular Barlow for odds/units/ROI — sports-ledger sans, not blocky mono. */
-  --scl-font-data: var(--font-barlow), "Barlow", ui-sans-serif, sans-serif;
+  /* Inter tabular for odds/units/ROI — distinct from Barlow UI/display. */
+  --scl-font-data: var(--font-inter-data), "Inter", ui-sans-serif, sans-serif;
   --scl-radius-card: 14px;
   --scl-radius-chip: 10px;
   --scl-shadow-card: 0 8px 24px rgba(0, 0, 0, 0.12);
@@ -304,10 +304,13 @@
   .scl-display {
     font-family: var(--scl-font-display);
   }
-  /* Numbers are the product ? default stats to tabular figures. */
+  /* Numbers are the product — always the ledger face + tabular figures. */
   .nums {
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: "tnum";
+    font-family: var(--scl-font-data);
+    font-variant-numeric: tabular-nums lining-nums;
+    font-feature-settings:
+      "tnum" 1,
+      "lnum" 1;
   }
   [data-slot="card"] {
     border-radius: var(--scl-radius-card);
@@ -322,14 +325,14 @@
 }
 
 @layer utilities {
-  /* Ledger data face — odds, lines, units, ROI, timestamps. Tabular sans. */
+  /* Ledger data face — odds, lines, units, ROI, timestamps. Inter tabular. */
   .scl-data {
     font-family: var(--scl-font-data);
-    font-variant-numeric: tabular-nums;
+    font-variant-numeric: tabular-nums lining-nums;
     font-feature-settings:
       "tnum" 1,
       "lnum" 1;
-    letter-spacing: 0.01em;
+    letter-spacing: -0.01em;
   }
   .scl-eyebrow {
     font-family: var(--scl-font-ui);
