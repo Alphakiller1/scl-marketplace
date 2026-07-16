@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { resolveOutcome, type GradablePlay } from "@/lib/results/match";
-import type { SettledGame } from "@/lib/results/provider";
+import type { SettledGame } from "@/lib/results/settled-game";
 
 const GAMES: SettledGame[] = [
   {

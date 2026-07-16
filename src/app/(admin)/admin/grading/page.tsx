@@ -8,23 +8,102 @@ import { PlayGradeControl } from "@/components/scl/play-grade-control";
 import { SectionHeader } from "@/components/scl/section";
 import { EmptyState } from "@/components/scl/states";
 import { formatOdds, formatUnits } from "@/lib/format";
+import { getGradingHealthReport } from "@/lib/grading-health";
 import {
   getGradingQueue,
   getParlayGradingQueue,
   getRecentGradingAudits,
 } from "@/lib/queries/grading";
+import { getSchemaStatusReport } from "@/lib/results/schema-status";
+import { listAgedOutPendingPlays } from "@/lib/results/stuck-plays";
 
 export const metadata = { title: "Grading" };
 
 export default async function AdminGradingPage() {
-  const [queue, parlays, audits] = await Promise.all([
+  const [queue, parlays, audits, health, schema, stuck] = await Promise.all([
     getGradingQueue(),
     getParlayGradingQueue(),
     getRecentGradingAudits(),
+    getGradingHealthReport(),
+    getSchemaStatusReport(),
+    listAgedOutPendingPlays(),
   ]);
 
   return (
     <div className="space-y-8">
+      <section className="border-border bg-card space-y-3 rounded-xl border p-4">
+        <SectionHeader
+          icon={History}
+          title="Pipeline diagnostics"
+          subtitle="Cron health, lookback cliff, and Supabase patch status"
+        />
+        <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <dt className="text-muted-foreground text-xs tracking-wide uppercase">
+              Health
+            </dt>
+            <dd className="scl-data mt-1 text-sm font-semibold tabular-nums">
+              {health.status}
+              <span className="text-muted-foreground ml-2 font-normal">
+                ({health.pendingPast24h} pending &gt;24h)
+              </span>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground text-xs tracking-wide uppercase">
+              Cliff risk
+            </dt>
+            <dd className="scl-data mt-1 text-sm font-semibold tabular-nums">
+              {health.cliffRisk}
+              <span className="text-muted-foreground ml-2 font-normal">
+                past {health.cliffWarningDays}d / lookback {health.lookbackDays}
+                d
+              </span>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground text-xs tracking-wide uppercase">
+              Schema patches
+            </dt>
+            <dd className="scl-data mt-1 text-sm font-semibold">
+              {schema.allReady ? "READY" : "INCOMPLETE"}
+              <span className="text-muted-foreground mt-1 block text-xs font-normal tracking-normal normal-case">
+                notesPublic={String(schema.notesPublic)} clv=
+                {String(schema.clvColumns)} usage=
+                {String(schema.oddsUsageDaily)}
+              </span>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground text-xs tracking-wide uppercase">
+              Aged-out stuck
+            </dt>
+            <dd className="scl-data mt-1 text-sm font-semibold tabular-nums">
+              {stuck.length}
+            </dd>
+          </div>
+        </dl>
+        {stuck.length ? (
+          <ul className="divide-border border-border max-h-64 divide-y overflow-auto rounded-lg border text-sm">
+            {stuck.map((p) => (
+              <li key={p.id} className="px-3 py-2">
+                <p className="font-medium break-words">
+                  {p.selection}{" "}
+                  <span className="text-muted-foreground font-normal">
+                    · {p.market} · {p.sport}
+                  </span>
+                </p>
+                <p className="text-muted-foreground scl-data text-xs tabular-nums">
+                  @{p.handle ?? "?"} · {p.oddsAmerican} · {p.units}U · event{" "}
+                  {p.eventId ?? "null"} · start {p.eventStartsAt ?? "null"} ·{" "}
+                  {p.id}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </section>
+
       <section className="space-y-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <SectionHeader
