@@ -82,7 +82,7 @@ export function CompetitionHero() {
         }
       }}
     >
-      {/* Trophy art extends under the prompt; left scrim keeps copy readable */}
+      {/* Full-bleed art — centered cover fills the hero edge-to-edge */}
       <picture className="pointer-events-none absolute inset-0">
         <source
           media="(min-width: 640px)"
@@ -94,21 +94,25 @@ export function CompetitionHero() {
           width="852"
           height="1846"
           fetchPriority="high"
-          className="size-full scale-105 object-cover object-[72%_center] opacity-95 sm:scale-100 sm:object-[58%_center] lg:object-[52%_center]"
+          className="size-full object-cover object-center"
         />
       </picture>
+      {/* Even dim across the whole hero — no left wipe that blacks out the art */}
       <div
         aria-hidden
-        className="absolute inset-0 bg-gradient-to-r from-[color:var(--scl-ink-950)] from-[12%] via-[color:var(--scl-ink-950)]/88 via-[42%] to-[color:var(--scl-ink-950)]/25 to-[78%] sm:from-[18%] sm:via-[38%] sm:to-transparent"
+        className="absolute inset-0 bg-[color:var(--scl-ink-950)]/40"
       />
       <div
         aria-hidden
-        className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[color:var(--scl-ink-950)] to-transparent"
+        className="absolute inset-0 bg-gradient-to-t from-[color:var(--scl-ink-950)]/65 via-transparent to-[color:var(--scl-ink-950)]/20"
       />
 
       <div className="relative mx-auto flex min-h-[31rem] max-w-6xl flex-col px-4 py-8 sm:min-h-[36rem] sm:justify-center sm:px-6 sm:py-14">
-        <div key={slide.id} className="scl-reveal max-w-xl">
-          <div className="scl-data inline-flex min-h-10 items-center gap-2 rounded-lg border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-900)]/90 px-3 text-[0.625rem] font-semibold tracking-[0.16em] uppercase backdrop-blur-sm">
+        <div
+          key={slide.id}
+          className="scl-reveal max-w-xl rounded-2xl border border-[color:var(--scl-line)]/50 bg-[color:var(--scl-ink-950)]/55 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-md sm:p-7"
+        >
+          <div className="scl-data inline-flex min-h-10 items-center gap-2 rounded-lg border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-900)]/80 px-3 text-[0.625rem] font-semibold tracking-[0.16em] uppercase">
             <VerificationBadge size="xs" />
             {slide.eyebrow}
           </div>
