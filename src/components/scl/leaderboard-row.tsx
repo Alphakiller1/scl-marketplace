@@ -12,6 +12,10 @@ import { RecentFormStrip } from "@/components/scl/indicators";
 import { PerformanceSparkline } from "@/components/scl/performance-sparkline";
 import { RankBadge } from "@/components/scl/rank-badge";
 import { CompactCapperRow } from "@/components/scl/compact-capper-row";
+import {
+  LEADERBOARD_TABLE_COLS,
+  LEADERBOARD_TABLE_GAP,
+} from "@/components/scl/leaderboard-table";
 
 /** Desktop leaderboard row — competitive, not administrative. */
 export function LeaderboardRow({
@@ -25,18 +29,26 @@ export function LeaderboardRow({
   const graded = capper.settledPicks ?? 0;
   const provisional = isProvisional(graded);
   const place = rank ?? capper.rank;
+  const roiNote =
+    capper.avgClv != null
+      ? `CLV ${capper.avgClv >= 0 ? "+" : ""}${capper.avgClv.toFixed(2)}`
+      : provisional
+        ? "Provisional"
+        : null;
 
   return (
     <Link
       href={`/cappers/${capper.handle}`}
-      className="group hover:bg-surface-2 focus-visible:bg-surface-2 focus-visible:ring-ring grid min-h-16 grid-cols-[3.25rem_minmax(13rem,1fr)_5.5rem_5.5rem_5.5rem_4.5rem_8rem] items-center gap-3 px-3 py-2.5 transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
+      className={`group hover:bg-surface-2 focus-visible:bg-surface-2 focus-visible:ring-ring grid min-h-[4.25rem] ${LEADERBOARD_TABLE_COLS} ${LEADERBOARD_TABLE_GAP} items-start py-2.5 transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset`}
     >
-      <RankBadge rank={place} settledPicks={graded} />
+      <div className="flex h-10 items-center">
+        <RankBadge rank={place} settledPicks={graded} />
+      </div>
 
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-w-0 items-start gap-3 pt-0.5">
         <CapperAvatar name={capper.name} src={capper.avatarUrl} size="sm" />
         <div className="min-w-0 space-y-1">
-          <div className="flex min-w-0 items-center gap-1.5">
+          <div className="flex min-h-5 min-w-0 items-center gap-1.5">
             <CapperIdentityLabel
               capper={capper}
               compact
@@ -50,7 +62,7 @@ export function LeaderboardRow({
               />
             ) : null}
           </div>
-          <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
+          <div className="text-muted-foreground flex min-h-5 items-center gap-1.5 text-xs">
             <SportTag sport={capper.topSport} markOnly className="shrink-0" />
             <span aria-hidden className="text-border">
               ·
@@ -62,10 +74,13 @@ export function LeaderboardRow({
         </div>
       </div>
 
-      <StatValue tone="text" className="text-right font-semibold">
+      <StatValue
+        tone="text"
+        className="pt-2 text-right text-sm font-semibold tabular-nums"
+      >
         {capper.winPct.toFixed(1)}%
       </StatValue>
-      <div className="text-right">
+      <div className="pt-2 text-right">
         <StatValue
           tone={
             signTone(capper.roi) === "pos"
@@ -74,26 +89,22 @@ export function LeaderboardRow({
                 ? "loss"
                 : "text"
           }
-          className="font-semibold"
+          className="text-sm font-semibold tabular-nums"
         >
           {formatRoi(capper.roi)}
         </StatValue>
-        {capper.avgClv != null ? (
-          <span
-            className="text-muted-foreground mt-0.5 block text-[0.65rem] font-semibold tracking-wide"
-            title="Average closing-line value (pts) on board-verified plays with a recorded close"
-          >
-            CLV {capper.avgClv >= 0 ? "+" : ""}
-            {capper.avgClv.toFixed(2)}
-          </span>
-        ) : provisional ? (
-          <span
-            className="text-muted-foreground mt-0.5 block text-[0.65rem] font-semibold tracking-wide uppercase"
-            title="Small graded sample — rank and ROI can swing until more results settle"
-          >
-            Provisional
-          </span>
-        ) : null}
+        <span
+          className="text-muted-foreground mt-0.5 block min-h-[1rem] truncate text-[0.65rem] font-semibold tracking-wide uppercase"
+          title={
+            capper.avgClv != null
+              ? "Average closing-line value (pts) on board-verified plays with a recorded close"
+              : provisional
+                ? "Small graded sample — rank and ROI can swing until more results settle"
+                : undefined
+          }
+        >
+          {roiNote ?? "\u00A0"}
+        </span>
       </div>
       <StatValue
         tone={
@@ -103,16 +114,17 @@ export function LeaderboardRow({
               ? "loss"
               : "text"
         }
-        className="text-right font-semibold"
+        className="pt-2 text-right text-sm font-semibold tabular-nums"
       >
         {formatUnits(capper.units)}
       </StatValue>
-      <div className="text-right">
-        <StatValue tone="data" className="text-sm font-semibold">
-          {graded.toLocaleString()}
-        </StatValue>
-      </div>
-      <div className="flex justify-end">
+      <StatValue
+        tone="data"
+        className="pt-2 text-right text-sm font-semibold tabular-nums"
+      >
+        {graded.toLocaleString()}
+      </StatValue>
+      <div className="flex justify-end pt-1">
         <PerformanceSparkline
           points={capper.performanceTrend}
           gradedCount={graded}
