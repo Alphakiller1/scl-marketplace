@@ -4,7 +4,7 @@ import { splitBettingTitle } from "@/lib/betting-title";
 import { cn } from "@/lib/utils";
 
 /**
- * Pick/selection title with IBM Plex Mono on numeric betting tokens
+ * Pick/selection title with tabular Barlow on numeric betting tokens
  * (lines, totals, odds, unit counts) while keeping display type for
  * team/market words — preserves Ticket receipt feel per SCL-DESIGN-SPEC.
  */

@@ -62,11 +62,13 @@ direction. Ink surfaces unchanged from v1.0.
 
 Display: "Barlow Condensed" 600/700 — headings, team names, big numbers,
 section titles. Uppercase for section heads, letter-spacing .06–.08em.
-UI/body: "Barlow" 400/500/600 — paragraphs, buttons, labels.
-Data: "IBM Plex Mono" 500/600 with font-variant-numeric: tabular-nums —
-EVERY odds figure, line, spread, total, unit count, ROI %, win %, record
-string, timestamp, and eyebrow label. No exceptions anywhere in the app.
-Eyebrows: mono, 9–10px, uppercase, letter-spacing .16–.2em.
+UI/body: "Barlow" 400/500/600/700 — paragraphs, buttons, labels.
+Data: "Barlow" 500/600/700 with font-variant-numeric: tabular-nums
+(and tnum/lnum features) — EVERY odds figure, line, spread, total, unit
+count, ROI %, win %, record string, and timestamp. No exceptions.
+Do **not** use a monospaced face for ledger numbers (IBM Plex Mono and
+similar blocky monos read as generic AI-dashboard type).
+Eyebrows: Barlow UI, 9–10px, uppercase, letter-spacing .16–.18em.
 
 ## Conviction scarcity rule (the identity depends on this)
 

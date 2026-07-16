@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Ledger data face — odds, lines, units, ROI, win%, records, timestamps.
- * Spec: IBM Plex Mono + tabular-nums. No exceptions.
+ * Spec: Barlow + tabular-nums (tnum). No exceptions.
  */
 export function StatValue({
   children,

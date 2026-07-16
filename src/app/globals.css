@@ -13,7 +13,8 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  /* Numerics use Barlow tabular — not a blocky mono (see --scl-font-data). */
+  --font-mono: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
   --font-heading: var(--font-barlow-condensed), var(--font-barlow), sans-serif;
 
   --color-card: var(--card);
@@ -102,7 +103,8 @@
   --scl-font-display:
     var(--font-barlow-condensed), "Barlow Condensed", sans-serif;
   --scl-font-ui: var(--font-barlow), "Barlow", sans-serif;
-  --scl-font-data: var(--font-plex-mono), "IBM Plex Mono", monospace;
+  /* Tabular Barlow for odds/units/ROI — sports-ledger sans, not blocky mono. */
+  --scl-font-data: var(--font-barlow), "Barlow", ui-sans-serif, sans-serif;
   --scl-radius-card: 14px;
   --scl-radius-chip: 10px;
   --scl-shadow-card: 0 8px 24px rgba(0, 0, 0, 0.12);
@@ -320,17 +322,20 @@
 }
 
 @layer utilities {
-  /* Ledger data face ? odds, lines, units, ROI, timestamps. No exceptions. */
+  /* Ledger data face — odds, lines, units, ROI, timestamps. Tabular sans. */
   .scl-data {
     font-family: var(--scl-font-data);
     font-variant-numeric: tabular-nums;
-    font-feature-settings: "tnum";
+    font-feature-settings:
+      "tnum" 1,
+      "lnum" 1;
+    letter-spacing: 0.01em;
   }
   .scl-eyebrow {
-    font-family: var(--scl-font-data);
+    font-family: var(--scl-font-ui);
     font-size: 0.625rem;
     font-weight: 600;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
   }
   /* Faint board scanlines ? pick-flow / odds board only. */
