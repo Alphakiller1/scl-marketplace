@@ -116,3 +116,27 @@ npm run build       # next build
 Read the actual files (especially `node_modules/next/dist/docs/` for Next 16 APIs and the
 existing `src/components/ui/*` for component APIs) before guessing. Match the patterns
 already in the repo.
+
+## Cursor Cloud specific instructions
+
+Dev environment runs against a **local PostgreSQL 16** (not Supabase). The `.env` file is
+gitignored but persists in the VM snapshot; it points `DATABASE_URL`/`DIRECT_URL` at
+`postgresql://postgres:postgres@localhost:5432/postgres?schema=scl` and has a generated
+`AUTH_SECRET`. Optional services (`RESEND_API_KEY`, `SUPABASE_*`, `ODDS_API_KEY`) are left
+empty and degrade gracefully.
+
+- **Start Postgres before anything DB-related** (it does not auto-start on boot):
+  `sudo pg_ctlcluster 16 main start`. The `scl` schema and seed data persist in the cluster,
+  so you normally do not need to recreate them. If the DB is empty, run `npm run db:push`
+  then `npm run db:seed`.
+- **Run the app:** `npm run dev` (Next.js 16 + Turbopack, http://localhost:3000). Standard
+  scripts are in `package.json` / README — `npm run typecheck`, `lint`, `test`, `build`.
+- **Seeded logins** (from `prisma/seed.ts`): `admin@scl.local` / `admin1234` (ADMIN),
+  `capper@scl.local` / `capper1234` (CAPPER), plus 5 demo cappers `@scl.demo` / `capper1234`.
+  New logins hit an "Accept and continue" terms gate before reaching the dashboard.
+- **Logging a play requires `ODDS_API_KEY`** (The Odds API). The pick board pulls live lines
+  and manual free-text entry is rejected on the server, so with no key the board is empty and
+  you cannot create picks through the UI. Login, onboarding, dashboard, leaderboard, capper
+  profiles, and the directory all work fully on seeded data without any external keys.
+- Email verification links are printed to the dev-server console when `RESEND_API_KEY` is
+  unset (no email is sent).
