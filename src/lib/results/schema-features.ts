@@ -8,49 +8,53 @@ let oddsUsageReady: boolean | null = null;
 
 /**
  * Detect additive columns/tables from SUPABASE_SQL_PATCHES.md.
- * Cached per process so missing SQL does not 500 every cron tick.
+ * Positive results are cached; negatives are re-probed so owner SQL
+ * can take effect without waiting for a full redeploy/cold start.
  */
 export async function hasClvColumns(): Promise<boolean> {
-  if (clvReady != null) return clvReady;
+  if (clvReady === true) return true;
   try {
     await prisma.$queryRaw`SELECT "closingOddsAmerican", "clvPts" FROM "Play" WHERE false`;
     clvReady = true;
+    return true;
   } catch (err) {
     clvReady = false;
     console.warn(
       "[schema] CLV columns missing — run docs/qa/SUPABASE_SQL_PATCHES.md",
       err instanceof Error ? err.message : err,
     );
+    return false;
   }
-  return clvReady;
 }
 
 export async function hasNotesPublicColumn(): Promise<boolean> {
-  if (notesPublicReady != null) return notesPublicReady;
+  if (notesPublicReady === true) return true;
   try {
     await prisma.$queryRaw`SELECT "notesPublic" FROM "Play" WHERE false`;
     notesPublicReady = true;
+    return true;
   } catch (err) {
     notesPublicReady = false;
     console.warn(
       "[schema] notesPublic column missing — run docs/qa/SUPABASE_SQL_PATCHES.md",
       err instanceof Error ? err.message : err,
     );
+    return false;
   }
-  return notesPublicReady;
 }
 
 export async function hasOddsUsageDailyTable(): Promise<boolean> {
-  if (oddsUsageReady != null) return oddsUsageReady;
+  if (oddsUsageReady === true) return true;
   try {
     await prisma.$queryRaw`SELECT 1 FROM "OddsUsageDaily" WHERE false`;
     oddsUsageReady = true;
+    return true;
   } catch (err) {
     oddsUsageReady = false;
     console.warn(
       "[schema] OddsUsageDaily missing — run docs/qa/SUPABASE_SQL_PATCHES.md",
       err instanceof Error ? err.message : err,
     );
+    return false;
   }
-  return oddsUsageReady;
 }
