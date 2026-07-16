@@ -30,9 +30,12 @@ import { getYesterdaysGradedWins } from "@/lib/queries/yesterday-wins";
 
 import { VerificationLegend } from "@/components/scl/verification-legend";
 import {
+  BOTTOM_BAND_BODY,
+  BOTTOM_BAND_HEADLINE,
   ROI_LEADERS_EMPTY_BODY,
   ROI_LEADERS_EMPTY_LABEL,
   ROI_LEADERS_EMPTY_TITLE,
+  TRACK_YOUR_RECORD_CTA,
 } from "@/lib/cold-start-copy";
 
 export const revalidate = 60;
@@ -209,14 +212,10 @@ export default async function Home() {
             <ShieldCheck className="size-8 text-[color:var(--scl-muted-data)]" />
 
             <h2 className="scl-display mt-4 text-2xl font-bold tracking-[0.04em] text-balance uppercase sm:text-3xl">
-              Build A Record People Can Inspect
+              {BOTTOM_BAND_HEADLINE}
             </h2>
 
-            <p className="text-muted-foreground mt-2">
-              Join the founding roster and give your audience a public,
-              timestamped record before sending them to your Whop, Winible,
-              DubClub, or community checkout. SCL does not process payments.
-            </p>
+            <p className="text-muted-foreground mt-2">{BOTTOM_BAND_BODY}</p>
           </div>
 
           <Button
@@ -225,7 +224,7 @@ export default async function Home() {
             size="lg"
             className={`min-h-11 w-full shrink-0 gap-2 sm:w-auto ${PINK_CTA}`}
           >
-            Apply As A Founding Capper{" "}
+            {TRACK_YOUR_RECORD_CTA}{" "}
             <ArrowRight className="size-4" aria-hidden />
           </Button>
         </section>
