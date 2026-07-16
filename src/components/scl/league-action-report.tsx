@@ -275,13 +275,18 @@ export function LeagueActionReport({
                       <span className="scl-data text-muted-foreground w-6 shrink-0 text-sm font-semibold tabular-nums">
                         {index + 1}
                       </span>
-                      <LeagueMark leagueKey={league.league} size="md" />
+                      <LeagueMark
+                        leagueKey={league.sport || league.league}
+                        size="md"
+                      />
                       <div className="min-w-0">
                         <div className="flex min-w-0 flex-wrap items-center gap-2">
                           <h3 className="scl-display truncate text-sm font-bold tracking-[0.04em] uppercase">
                             {league.league}
                           </h3>
-                          {league.sport !== league.league ? (
+                          {league.sport &&
+                          league.sport.toUpperCase() !==
+                            league.league.toUpperCase() ? (
                             <SportTag sport={league.sport} withMark={false} />
                           ) : null}
                         </div>

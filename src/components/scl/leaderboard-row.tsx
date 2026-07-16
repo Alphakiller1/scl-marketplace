@@ -51,7 +51,7 @@ export function LeaderboardRow({
             ) : null}
           </div>
           <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
-            <SportTag sport={capper.topSport} markOnly />
+            <SportTag sport={capper.topSport} markOnly className="shrink-0" />
             <span aria-hidden className="text-border">
               ·
             </span>
@@ -163,7 +163,7 @@ export function LeaderboardMobileCard({
             ) : null}
           </div>
           <div className="text-muted-foreground mt-1 flex items-center gap-1.5 text-xs">
-            <SportTag sport={capper.topSport} markOnly />
+            <SportTag sport={capper.topSport} markOnly className="shrink-0" />
             <span aria-hidden className="text-border">
               ·
             </span>
