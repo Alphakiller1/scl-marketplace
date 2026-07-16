@@ -14,15 +14,10 @@ import { Leaderboard } from "@/components/scl/leaderboard";
 
 import { EmptyState } from "@/components/scl/states";
 
-import { SportTag } from "@/components/scl/badges";
-
-import { LeagueMark } from "@/components/scl/league-mark";
-
-import { StatValue } from "@/components/scl/stat-value";
-
 import { YesterdayWinsTicker } from "@/components/scl/yesterday-wins-ticker";
 
 import { RoiLeadersPanel } from "@/components/scl/roi-leaders-panel";
+import { LeagueActionReport } from "@/components/scl/league-action-report";
 
 import { appUrl } from "@/lib/app-url";
 import { sortLeaderboard } from "@/lib/leaderboard";
@@ -33,7 +28,6 @@ import { getLeagueActionReport } from "@/lib/queries/league-action";
 
 import { getYesterdaysGradedWins } from "@/lib/queries/yesterday-wins";
 
-import { LEAGUE_ACTION_CATEGORY_EMPTY } from "@/lib/league-action";
 import { VerificationLegend } from "@/components/scl/verification-legend";
 import {
   ROI_LEADERS_EMPTY_BODY,
@@ -144,101 +138,12 @@ export default async function Home() {
             href="/picks"
           />
 
-          {leagues.length ? (
-            <div className="border-border bg-card overflow-hidden rounded-xl border">
-              <div className="divide-border divide-y">
-                {leagues.map((league, index) => (
-                  <div
-                    key={league.key}
-                    className="flex min-h-20 flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4"
-                  >
-                    <div className="flex min-w-0 items-center gap-3">
-                      <LeagueMark leagueKey={league.league} size="lg" />
-
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <StatValue
-                            tone="label"
-                            className="text-xs font-semibold"
-                          >
-                            #{index + 1}
-                          </StatValue>
-
-                          <h3 className="scl-display truncate font-bold tracking-[0.04em] uppercase">
-                            {league.league}
-                          </h3>
-
-                          <SportTag sport={league.sport} withMark={false} />
-                        </div>
-
-                        <p className="text-muted-foreground mt-1 text-sm">
-                          Recent verified-board activity from public cappers.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 sm:min-w-52">
-                      <LeagueActionMetric
-                        label="Picks"
-                        value={league.pickCount}
-                      />
-
-                      <LeagueActionMetric
-                        label="Cappers"
-                        value={league.activeCappers}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <EmptyState
-              icon={Activity}
-              title={
-                leagueActionFailed
-                  ? "Couldn't Load League Action"
-                  : "No League Action Yet"
-              }
-              description={
-                leagueActionFailed
-                  ? "Recent league activity is temporarily unavailable. Please try again shortly."
-                  : "Tracked pick volume will appear here as founding cappers submit board-verified plays."
-              }
-            />
-          )}
-
-          <div className="border-border bg-card overflow-hidden rounded-xl border">
-            <div className="divide-border grid gap-0 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-              {categories.map((cat) => (
-                <div
-                  key={cat.key}
-                  className="border-border min-h-24 border-b p-3 last:border-b-0 sm:border-r sm:last:border-r-0"
-                >
-                  <p className="text-foreground text-sm font-semibold">
-                    {cat.label}
-                  </p>
-
-                  {cat.picks > 0 ? (
-                    <div className="mt-2 grid grid-cols-2 gap-2">
-                      <LeagueActionMetric label="Picks" value={cat.picks} />
-
-                      <LeagueActionMetric label="Cappers" value={cat.cappers} />
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
-                      {LEAGUE_ACTION_CATEGORY_EMPTY[cat.key]}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <p className="text-muted-foreground border-border border-t px-3 py-2 text-xs">
-              Counts include ranked and building-a-record cappers. Test accounts
-              are excluded.
-            </p>
-          </div>
+          <LeagueActionReport
+            leagues={leagues}
+            categories={categories}
+            windowDays={windowDays}
+            failed={leagueActionFailed}
+          />
         </section>
 
         <section className="space-y-4">
@@ -326,27 +231,5 @@ export default async function Home() {
         </section>
       </div>
     </>
-  );
-}
-
-function LeagueActionMetric({
-  label,
-
-  value,
-}: {
-  label: string;
-
-  value: number;
-}) {
-  return (
-    <div className="bg-surface-2 flex min-h-11 flex-col justify-center rounded-lg px-3 py-2 text-right">
-      <StatValue tone="text" className="text-base font-bold">
-        {value.toLocaleString()}
-      </StatValue>
-
-      <span className="text-muted-foreground text-[0.7rem] font-semibold uppercase">
-        {label}
-      </span>
-    </div>
   );
 }
