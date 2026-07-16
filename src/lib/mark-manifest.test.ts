@@ -8,8 +8,8 @@ import {
 } from "@/lib/mark-manifest";
 
 test("leagueMarkSrc resolves manifest leagues", () => {
-  assert.equal(leagueMarkSrc("MLB"), "/marks/leagues/mlb.svg");
-  assert.equal(leagueMarkSrc("nba"), "/marks/leagues/nba.svg");
+  assert.equal(leagueMarkSrc("MLB"), "/marks/leagues/mlb.svg?v=2");
+  assert.equal(leagueMarkSrc("nba"), "/marks/leagues/nba.svg?v=2");
   assert.equal(leagueMarkSrc(""), undefined);
   assert.equal(leagueMarkSrc("Quidditch"), undefined);
 });

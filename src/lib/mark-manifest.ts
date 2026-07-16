@@ -74,10 +74,13 @@ export const TEAM_MARKS = new Set<string>([
   // Example: "MLB:LAD", "WNBA:LAS"
 ]);
 
+/** Bump when regenerating league SVGs so CDN/browser caches refresh. */
+const LEAGUE_MARK_ASSET_VERSION = "2";
+
 export function leagueMarkSrc(key: string): string | undefined {
   const canonical = normalizeLeagueKey(key);
   if (!canonical || !LEAGUE_MARKS.has(canonical)) return undefined;
-  return `/marks/leagues/${canonical.toLowerCase()}.svg`;
+  return `/marks/leagues/${canonical.toLowerCase()}.svg?v=${LEAGUE_MARK_ASSET_VERSION}`;
 }
 
 export function teamMarkSrc(sport: string, abbr: string): string | undefined {

@@ -9,13 +9,13 @@ test("getLeagueIdentity resolves seeded leagues with self-hosted monogram marks"
 
   assert.equal(mlb.name, "MLB");
 
-  assert.equal(mlb.logoUrl, "/marks/leagues/mlb.svg");
+  assert.equal(mlb.logoUrl, "/marks/leagues/mlb.svg?v=2");
 
   const wnba = getLeagueIdentity("wnba");
 
   assert.equal(wnba.key, "WNBA");
 
-  assert.equal(wnba.logoUrl, "/marks/leagues/wnba.svg");
+  assert.equal(wnba.logoUrl, "/marks/leagues/wnba.svg?v=2");
 });
 
 test("getLeagueIdentity falls back without crashing", () => {

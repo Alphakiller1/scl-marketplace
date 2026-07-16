@@ -67,7 +67,7 @@ export function LeagueMark({
           width={px}
           height={px}
           className="absolute inset-0 size-full object-contain"
-          loading="lazy"
+          loading="eager"
           decoding="async"
           onError={() => setFailed(true)}
         />
