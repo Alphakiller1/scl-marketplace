@@ -49,7 +49,9 @@ export function espnLeagueLogoUrl(key: string): string | undefined {
 }
 
 function resolveLeagueLogoUrl(key: string): string | undefined {
-  return leagueMarkSrc(key) ?? espnLeagueLogoUrl(key);
+  // ESPN CDN first (real league artwork). Self-hosted PNG next. Never prefer
+  // decorative SVG lettermarks for leagues that have a real logo source.
+  return espnLeagueLogoUrl(key) ?? leagueMarkSrc(key);
 }
 
 const LEAGUE_BY_KEY = new Map<string, LeagueIdentity>();

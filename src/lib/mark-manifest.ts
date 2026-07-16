@@ -1,14 +1,8 @@
 /**
  * Static manifest of self-hosted league/team marks under `public/marks/`.
  *
- * Prefer PNG league marks (pulled from ESPN public CDN for nominative UI use).
- * SVG sport-icons remain as fallback for leagues without a PNG.
- *
- * Drop files into:
- *   public/marks/leagues/{key}.png|.svg
- *   public/marks/teams/{sport}/{abbr}.svg|.png
- *
- * Add the key here when a file is added — no runtime fs checks.
+ * Major leagues: self-hosted PNGs pulled from ESPN public CDN.
+ * Remaining sports: SVG sport-icons only when no PNG exists.
  */
 
 /** Uppercase keys with a PNG in public/marks/leagues/ */
@@ -22,17 +16,10 @@ export const LEAGUE_PNG_MARKS = new Set<string>([
   "MMA",
 ]);
 
-/** Uppercase keys with an SVG fallback in public/marks/leagues/ */
+/** SVG-only keys (no real PNG available). */
 export const LEAGUE_SVG_MARKS = new Set<string>([
-  "MLB",
-  "NBA",
-  "NFL",
-  "NHL",
-  "WNBA",
   "NCAAF",
   "NCAAB",
-  "SOCCER",
-  "MMA",
   "CFL",
   "UFL",
   "BOXING",
@@ -94,7 +81,7 @@ export const TEAM_MARKS = new Set<string>([
 ]);
 
 /** Bump when replacing league mark binaries so CDN/browser caches refresh. */
-const LEAGUE_MARK_ASSET_VERSION = "3";
+const LEAGUE_MARK_ASSET_VERSION = "4";
 
 export function leagueMarkSrc(key: string): string | undefined {
   const canonical = normalizeLeagueKey(key);
