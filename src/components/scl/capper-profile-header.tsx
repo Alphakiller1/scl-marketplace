@@ -10,6 +10,7 @@ import {
 } from "@/components/scl/badges";
 import { RankMovementIndicator } from "@/components/scl/indicators";
 import { RankBadge, BUILDING_RECORD_LABEL } from "@/components/scl/rank-badge";
+import { ProvisionalRecordHelp } from "@/components/scl/provisional-record-help";
 import { Button } from "@/components/ui/button";
 import { formatLastPickDate } from "@/lib/capper-activity";
 import { formatJoinedDate } from "@/lib/format";
@@ -105,7 +106,7 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                     : "Rank"
                   : "Standing"}
               </span>
-              <span className="inline-flex items-center gap-1 text-xs">
+              <span className="inline-flex flex-wrap items-center gap-2 text-xs">
                 {capper.rank > 0 ? (
                   <>
                     #{capper.rank}
@@ -114,7 +115,10 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                     ) : null}
                   </>
                 ) : (
-                  BUILDING_RECORD_LABEL
+                  <>
+                    <span>{BUILDING_RECORD_LABEL}</span>
+                    <ProvisionalRecordHelp label="What this means" />
+                  </>
                 )}
               </span>
             </span>
