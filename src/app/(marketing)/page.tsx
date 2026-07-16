@@ -23,6 +23,7 @@ import { YesterdayWinsTicker } from "@/components/scl/yesterday-wins-ticker";
 
 import { RoiLeadersPanel } from "@/components/scl/roi-leaders-panel";
 
+import { appUrl } from "@/lib/app-url";
 import { sortLeaderboard } from "@/lib/leaderboard";
 
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
@@ -35,11 +36,48 @@ import { LEAGUE_ACTION_CATEGORY_EMPTY } from "@/lib/league-action";
 
 export const revalidate = 60;
 
-export const metadata: Metadata = {
-  title: { absolute: "SCL — Sports Capper Leaderboard" },
-  description:
-    "Compare board-verified capper records by units, ROI, and sample size. No hype — inspectable performance.",
-};
+const HOME_TITLE = "SCL — Sports Capper Leaderboard";
+const HOME_DESCRIPTION =
+  "Compare board-verified capper records by units, ROI, and sample size. No hype — inspectable performance.";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const base = appUrl();
+  const { cappers } = await getLeaderboardResult({ verifiedOnly: true });
+  const featured =
+    sortLeaderboard(cappers, "units")[0] ??
+    sortLeaderboard(cappers, "roi")[0] ??
+    null;
+  const ogHandle = featured?.handle.replace(/^@+/, "") || "demo_capper";
+  const ogImage = `${base}/api/og/capper/${ogHandle}`;
+
+  return {
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
+    alternates: { canonical: base },
+    openGraph: {
+      title: HOME_TITLE,
+      description: HOME_DESCRIPTION,
+      url: base,
+      type: "website",
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: featured
+            ? `${featured.handle} on SCL`
+            : "SCL Sports Capper Leaderboard",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: HOME_TITLE,
+      description: HOME_DESCRIPTION,
+      images: [ogImage],
+    },
+  };
+}
 
 const PINK_CTA =
   "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)]";

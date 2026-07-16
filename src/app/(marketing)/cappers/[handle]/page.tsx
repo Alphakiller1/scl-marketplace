@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ListChecks } from "lucide-react";
 
+import { appUrl } from "@/lib/app-url";
+import { formatRoi, formatUnits } from "@/lib/format";
 import { formatHandle, identityDisplayLinesFromCapper } from "@/lib/identity";
 import { getPublicCapperByHandle } from "@/lib/queries/capper";
 import { CapperProfileHeader } from "@/components/scl/capper-profile-header";
@@ -26,11 +28,37 @@ export async function generateMetadata({
   const { capper } = data;
   const identity = identityDisplayLinesFromCapper(capper);
   const handleLabel = formatHandle(capper.handle);
-  const description = `Tracked record, recent plays, and storefront links for ${handleLabel}. Past results do not guarantee future performance.`;
+  const description =
+    capper.headline ??
+    `${identity.primary} — ${capper.topSport} handicapper on SCL. ${capper.winPct.toFixed(1)}% win rate, ${formatUnits(capper.units)} (${formatRoi(capper.roi)} ROI).`;
+
+  const title =
+    handleLabel && identity.secondary
+      ? `${identity.primary} (${handleLabel})`
+      : identity.primary;
+
+  const base = appUrl();
+  const bare = capper.handle.replace(/^@+/, "");
+  const pageUrl = `${base}/cappers/${bare}`;
+  const ogImage = `${base}/api/og/capper/${bare}`;
 
   return {
-    title: { absolute: `${handleLabel} · Capper Profile · SCL` },
+    title,
     description,
+    alternates: { canonical: pageUrl },
+    openGraph: {
+      title,
+      description,
+      url: pageUrl,
+      type: "profile",
+      images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage],
+    },
   };
 }
 
