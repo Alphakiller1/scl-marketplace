@@ -113,23 +113,6 @@ export default async function Home() {
       />
 
       <div className="mx-auto max-w-6xl space-y-10 px-4 py-10 sm:space-y-14 sm:px-6 sm:py-12">
-        <section className="space-y-4">
-          <SectionHeader
-            icon={Trophy}
-            title="SCL Primary Leaderboard"
-            subtitle="Transparent records ranked when sample thresholds are met"
-            href="/leaderboard"
-          />
-
-          <Leaderboard
-            cappers={cappers}
-            failed={leaderboardFailed}
-            limit={6}
-            compactMobile
-            emptyDescription="The founding roster is forming. Verified cappers will appear here after they clear SCL’s ranking sample — early records stay inspectable under Building A Record."
-          />
-        </section>
-
         <section
           id="how-verification-works"
           className="border-border scroll-mt-20 space-y-3 rounded-xl border p-4 sm:p-5"
@@ -151,6 +134,23 @@ export default async function Home() {
             </div>
           </div>
           <VerificationLegend />
+        </section>
+
+        <section className="space-y-4">
+          <SectionHeader
+            icon={Trophy}
+            title="SCL Primary Leaderboard"
+            subtitle="Transparent records ranked when sample thresholds are met"
+            href="/leaderboard"
+          />
+
+          <Leaderboard
+            cappers={cappers}
+            failed={leaderboardFailed}
+            limit={6}
+            compactMobile
+            emptyDescription="The founding roster is forming. Verified cappers will appear here after they clear SCL’s ranking sample — early records stay inspectable under Building A Record."
+          />
         </section>
 
         <section className="space-y-4">
