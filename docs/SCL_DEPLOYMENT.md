@@ -20,7 +20,11 @@ the production deployment under the repo's _Deployments/Environments_, updating 
 5. After the first deploy, set `AUTH_URL` to the production URL Vercel gives you
    (e.g. `https://scl-marketplace.vercel.app`) and redeploy.
 
-That's it — every push to `main` now auto-deploys and the URL appears in GitHub.
+That's it — every push to `main` should auto-deploy.
+
+If the live URL stays on an old build after merges, check Vercel → **Settings** → **Git** →
+**Production Branch** is `main`, then use **Option B (Deploy Hook)** below. Do not rely on
+manually “promoting” deployments.
 
 ### Required environment variables (Vercel → Project → Settings → Environment Variables)
 
@@ -86,25 +90,37 @@ the isolated `scl` schema and must never reference `public`.
 
 ---
 
-## Option B — GitHub Actions → Vercel (deploy driven from GitHub)
+## Option B — Deploy Hook (simplest GitHub-driven live update)
 
-A workflow at `.github/workflows/deploy.yml` deploys to Vercel on push to `main`. It targets
-the GitHub Environment named **`Production`** (`environment: Production` in the workflow), so
-secrets must live under **Settings → Environments → Production → Environment secrets** — not
-only under the repo-wide Actions secrets list. (Vercel project env vars like `DATABASE_URL` /
-`AUTH_SECRET` are separate; those run the app, they do not authenticate the deploy CLI.)
+If merges to `main` do not show up on the live site, use a **Deploy Hook**. No “promote”
+step. One URL. Every push to `main` tells Vercel: “rebuild the live site from `main`.”
 
-1. Create the Vercel project once (Option A steps 1–4) to get its IDs.
-2. Generate a token at **https://vercel.com/account/tokens**.
-3. Add **Environment** secrets on GitHub → Settings → Environments → **Production**:
-   - `VERCEL_TOKEN`
-   - `VERCEL_ORG_ID` (from `.vercel/project.json` after `vercel link`, or the team settings)
-   - `VERCEL_PROJECT_ID` (same source)
-4. Push to `main` (or run **Deploy (Vercel)** → Run workflow) → the job deploys and prints the
-   URL in the run summary. If any of the three secrets are missing, the job **fails** (it no
-   longer reports a false-green skip).
+### One-time setup (~2 minutes)
 
-> Use **either** Option A **or** Option B, not both (they'd double-deploy). If you use the
-> native integration and it is promoting Production on every `main` push, you can delete
-> `deploy.yml`. If live stays stale after merges, Option B (or a manual Redeploy in Vercel) is
-> the fix — app env vars alone will not ship new builds.
+1. Open the Vercel project → **Settings** → **Git**.
+2. Scroll to **Deploy Hooks**.
+3. Create a hook:
+   - **Name:** `main-live` (any name is fine)
+   - **Branch:** `main`
+4. Click **Create Hook** and **copy the URL** (looks like
+   `https://api.vercel.com/v1/integrations/deploy/...`).
+5. In GitHub → **Settings** → **Environments** → **Production** → **Environment secrets**,
+   add:
+   - Name: `VERCEL_DEPLOY_HOOK_URL`
+   - Value: paste that URL
+6. Push to `main` (or Actions → **Deploy (Vercel)** → Run workflow). The job POSTs the hook;
+   Vercel builds; the live URL updates when the build finishes.
+
+That’s it. You do not need `VERCEL_TOKEN` / org / project IDs if the hook is set.
+
+### Fallback (CLI tokens)
+
+If you prefer not to use a hook, put all three under the same **Production** environment
+instead: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` (see older Option B notes /
+`vercel link`). The workflow uses the hook when present, otherwise the CLI path.
+
+### Important
+
+Vercel **project env vars** (`DATABASE_URL`, `AUTH_SECRET`, …) only configure the running app.
+They do **not** trigger builds. Without a working Option A auto-deploy or a Deploy Hook /
+CLI secrets, merges to `main` will not change the live site.
