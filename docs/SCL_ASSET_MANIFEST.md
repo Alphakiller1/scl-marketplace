@@ -6,10 +6,10 @@ text, metrics, controls, or logos; those remain accessible HTML and code-native 
 Remote sports marks are **self-hosted** (optional) under `public/marks/`, gated by a static
 manifest — never hotlinked. Missing marks always render the monogram/lettermark fallback.
 
-| Asset                             |  Dimensions | Use                         | Treatment                                                                                  |
-| --------------------------------- | ----------: | --------------------------- | ------------------------------------------------------------------------------------------ |
-| `leaderboard-trophy-desktop.webp` | 1920 x 1080 | Home hero at `sm` and above | Exact magenta + cobalt continuous scene (baseline grade); trophy right with crown headroom |
-| `leaderboard-trophy-mobile.webp`  | 1080 x 1920 | Home hero below `sm`        | Matching portrait; magenta chart + cobalt atmosphere (same baseline grade)                 |
+| Asset                             |  Dimensions | Use                         | Treatment                                                                                     |
+| --------------------------------- | ----------: | --------------------------- | --------------------------------------------------------------------------------------------- |
+| `leaderboard-trophy-desktop.webp` | 1920 x 1080 | Home hero at `sm` and above | Dark charcoal/navy + cobalt ambient; **gold crown** on chrome trophy (right). No purple wash. |
+| `leaderboard-trophy-mobile.webp`  | 1080 x 1920 | Home hero below `sm`        | Matching portrait; gold crown + cobalt atmosphere on dark data-room floor                     |
 
 ## League / team marks (self-hosted)
 
@@ -46,22 +46,22 @@ Code maps: `src/lib/mark-manifest.ts`, `src/lib/teams.ts`, `src/lib/leagues.ts`,
 
 ## Generation prompts
 
-Canonical art direction: **magenta chart/grid + cobalt trophy/ambient** on a continuous dark
-data room. Do not regenerate toward sky-blue grades or abandon cobalt metal.
+Canonical art direction: **gold crown + cobalt ambient on charcoal/navy** — not a purple or
+magenta full-frame wash. Magenta stays a scarce UI conviction color; it is not required in the
+hero WebP. Do not regenerate toward sky-cyan grades or violet backgrounds.
 
 Desktop:
 
-> One continuous dark data room. Magenta/pink neon chart line and perspective grid span the full
-> width. Cobalt-blue metallic trophy in the right third with clear margin above the crown. Soft
-> cobalt ambient only — not washed sky blue, not flat black left void. No collage, seam,
-> text/logos/UI/people/watermark.
+> One continuous dark data room (charcoal/navy). Soft cobalt volumetric light only — deep
+> #105FD9 family, not sky blue, not purple. Chrome trophy in the right third with a distinct
+> **gold** crown and clear margin above. Atmosphere reaches the left edge (soft navy haze, no
+> flat black void). No magenta/pink flood, no collage, seam, text/logos/UI/people/watermark.
 
 Mobile:
 
-> Portrait companion of the same magenta + cobalt continuous scene. Atmosphere fills the upper
-> third and edges. Fully visible cobalt-lit trophy with margin above the crown. No collage, seam,
+> Portrait companion of the same gold-crown + cobalt continuous scene. Atmosphere fills the
+> upper third and edges. Fully visible trophy with gold crown. No purple wash, collage, seam,
 > flat black void, text, logos, UI, people, or watermark.
 
-When owners ask to “lighten the blue,” keep the magenta + cobalt identity. Prefer an owner-
-approved art swap or a **tiny** token nudge — never a sky/electric regrade or a broad pixel
-lighten pass that washes the scene.
+Cache-bust hero `<picture>` URLs (`?v=…`) whenever these WebPs change so production browsers
+do not keep an old asset after deploy.
