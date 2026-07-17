@@ -73,16 +73,11 @@ async function main() {
     fail(`store-setup status ${storeSetup.status}`);
   }
   const storeHtml = await storeSetup.text();
-  for (const needle of [
-    "Store Setup Requests",
-    "Package name",
-    "Affiliate purchase link",
-    "Display order",
-    "Free trial",
-  ]) {
-    if (!storeHtml.includes(needle)) fail(`store-setup missing: ${needle}`);
+  if (!storeHtml.includes("Store Setup Requests")) {
+    fail("store-setup missing page header");
   }
 
+  // Capper submit + admin import/publish in one authenticated admin helper.
   const smoke = await fetch(`${BASE}/api/admin/store-smoke`, {
     method: "POST",
     headers: { cookie },
@@ -103,14 +98,24 @@ async function main() {
     headers: { cookie },
   });
   const storeHtml2 = await storeSetup2.text();
-  if (!storeHtml2.includes(TITLE)) {
-    fail("published package title not visible on Store Setup");
+  for (const needle of [
+    "Package name",
+    "Affiliate purchase link",
+    "Display order",
+    "Free trial",
+    TITLE,
+  ]) {
+    if (!storeHtml2.includes(needle)) fail(`store-setup missing: ${needle}`);
   }
 
   const monetization = await fetch(`${BASE}/dashboard/monetization`, {
     headers: { cookie },
   });
   if (monetization.status !== 200) fail("monetization not 200");
+  const monHtml = await monetization.text();
+  if (!monHtml.includes("Whop") && !monHtml.includes("Live")) {
+    console.warn("monetization page loaded but Whop/Live copy not found");
+  }
 
   const packagesPage = await fetch(`${BASE}/packages`);
   const packagesHtml = await packagesPage.text();
@@ -126,16 +131,6 @@ async function main() {
   if (body.profilePath) {
     const profile = await fetch(`${BASE}${body.profilePath}`);
     if (profile.status !== 200) fail(`profile ${body.profilePath} not 200`);
-    const profileHtml = await profile.text();
-    if (
-      !profileHtml.includes(TITLE) &&
-      !profileHtml.includes("Subscribe on Whop")
-    ) {
-      // profile may lazy-load packages; soft note only
-      console.warn(
-        "profile HTML did not include package title (may be client-rendered)",
-      );
-    }
   }
 
   const go = await fetch(`${BASE}${body.trackingPath}`, { redirect: "manual" });
