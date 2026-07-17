@@ -85,10 +85,10 @@ export function CompetitionHero() {
       <picture className="pointer-events-none absolute inset-0 block size-full">
         <source
           media="(min-width: 640px)"
-          srcSet="/assets/scl/leaderboard-trophy-desktop.webp?v=20260717b3"
+          srcSet="/assets/scl/leaderboard-trophy-desktop.webp?v=20260717a9"
         />
         <img
-          src="/assets/scl/leaderboard-trophy-mobile.webp?v=20260717b3"
+          src="/assets/scl/leaderboard-trophy-mobile.webp?v=20260717a9"
           alt=""
           width="1920"
           height="1080"
