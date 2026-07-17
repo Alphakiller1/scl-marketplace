@@ -46,15 +46,21 @@ Code maps: `src/lib/mark-manifest.ts`, `src/lib/teams.ts`, `src/lib/leagues.ts`,
 
 ## Generation prompts
 
+Canonical art direction: **magenta chart/grid + cobalt trophy/ambient** on a continuous dark
+data room. Do not regenerate toward sky-blue grades or abandon cobalt metal.
+
 Desktop:
 
-> One continuous near-black violet data room with magenta/pink-violet neon only (no blue half,
-> no color split-screen). Perspective grid and one unbroken chart line span the full width.
-> Fully visible trophy in the right third with clear margin above the crown. No collage, no seam,
-> no flat black left void, no text/logos/UI/people/watermark.
+> One continuous dark data room. Magenta/pink neon chart line and perspective grid span the full
+> width. Cobalt-blue metallic trophy in the right third with clear margin above the crown. Soft
+> cobalt ambient only — not washed sky blue, not flat black left void. No collage, seam,
+> text/logos/UI/people/watermark.
 
 Mobile:
 
-> Portrait companion of the same single continuous magenta data room. Atmosphere fills the upper
-> third and left edge. Fully visible trophy with margin above the crown. No collage, seam, flat
-> black void, text, logos, UI, people, or watermark.
+> Portrait companion of the same magenta + cobalt continuous scene. Atmosphere fills the upper
+> third and edges. Fully visible cobalt-lit trophy with margin above the crown. No collage, seam,
+> flat black void, text, logos, UI, people, or watermark.
+
+When owners ask to “lighten the blue,” apply a **slight** cobalt lift in pixels or a one-step
+token nudge (`docs/SCL_VISUAL_IMPLEMENTATION.md` design matrix). Do not regrade the whole scene.

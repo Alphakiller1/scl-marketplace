@@ -27,14 +27,17 @@ Defined in `src/app/globals.css`, dark-mode first. Every color has a job:
 | `pos`                                             | `text-pos`, `bg-pos/15`      | Positive performance (wins, +units, +ROI) — green                                                |
 | `neg`                                             | `text-neg`, `bg-neg/15`      | Negative performance (losses, −units) — red                                                      |
 | `gold`                                            | `text-gold`, `bg-gold/10`    | Rank, elite status, trophies, badges                                                             |
-| `live`                                            | `text-live`, `bg-live/15`    | Live/real-time + verification — cyan                                                             |
+| `live`                                            | `text-live`, `bg-live/15`    | Live/real-time chrome — **cobalt blue** (nav family; not a separate cyan)                        |
 | `push`                                            | —                            | Push/void neutral                                                                                |
 | `muted-foreground`                                | `text-muted-foreground`      | Secondary metadata, labels                                                                       |
 
 Rules: no random colors, no meaningless glow. Gradients are reserved for **brand identity
 only** — the pink→blue `.scl-brand-text` wordmark/heading fill and the restrained pink+blue
 `.scl-glow` radial / `.scl-card-gradient`. The trophy mark (`SclLogo`) carries the same
-pink→blue gradient. The page feels alive through **hierarchy, data, and status — not noise.**
+pink→blue gradient. Home hero bitmap atmosphere is **magenta chart + cobalt metal** (not
+sky-blue and not pink-only). Full layer stack + design matrix:
+`docs/SCL_VISUAL_IMPLEMENTATION.md`. The page feels alive through **hierarchy, data, and
+status — not noise.**
 
 ## Typography
 
