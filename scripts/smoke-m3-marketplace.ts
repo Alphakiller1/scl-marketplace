@@ -8,11 +8,34 @@ const SMOKE_SLUG = "m3-smoke-whop";
 const SMOKE_TITLE = "M3 Smoke Package";
 
 async function main() {
-  const capper = await prisma.capperProfile.findFirst({
-    where: { user: { username: "capper" } },
+  const user = await prisma.user.upsert({
+    where: { email: "m3-smoke@scl.local" },
+    update: {
+      username: "m3-smoke",
+      displayName: "M3 Smoke Capper",
+      role: "CAPPER",
+      accountStatus: "ACTIVE",
+      emailVerified: new Date(),
+    },
+    create: {
+      email: "m3-smoke@scl.local",
+      username: "m3-smoke",
+      displayName: "M3 Smoke Capper",
+      role: "CAPPER",
+      accountStatus: "ACTIVE",
+      emailVerified: new Date(),
+    },
+  });
+  const capper = await prisma.capperProfile.upsert({
+    where: { userId: user.id },
+    update: { storefrontEnabled: true },
+    create: {
+      userId: user.id,
+      storefrontEnabled: true,
+      storefrontTitle: "M3 Smoke Storefront",
+    },
     select: { id: true },
   });
-  assert(capper, "Seeded capper profile is required");
 
   await prisma.clickEvent.deleteMany({
     where: { trackingUrl: { slug: SMOKE_SLUG } },

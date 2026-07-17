@@ -83,8 +83,5 @@ jobs:
       - name: Apply migrations to isolated PostgreSQL
         run: npm run db:deploy
 
-      - name: Seed smoke-test accounts
-        run: npm run db:seed
-
       - name: Run Milestone 3 marketplace smoke
         run: npx tsx scripts/smoke-m3-marketplace.ts
