@@ -113,6 +113,8 @@ step. One URL. Every push to `main` tells Vercel: “rebuild the live site from 
 
 That’s it. You do not need `VERCEL_TOKEN` / org / project IDs if the hook is set.
 
+Once `VERCEL_DEPLOY_HOOK_URL` is saved under Environments → Production, every push to `main` rebuilds the live site automatically.
+
 ### Fallback (CLI tokens)
 
 If you prefer not to use a hook, put all three under the same **Production** environment
