@@ -1,10 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "if [ \"$VERCEL_ENV\" = \"production\" ]; then npx tsx scripts/repair-failed-odds-migration.ts && npx tsx scripts/ensure-owner-admin.ts && npm run db:deploy; fi && npm run build",
+  "buildCommand": "npm run build",
   "crons": [
-    {
-      "path": "/api/cron/grade",
-      "schedule": "0 8 * * *"
-    }
+    { "path": "/api/cron/grade", "schedule": "0 8 * * *" }
   ]
 }
