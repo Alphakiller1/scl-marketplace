@@ -126,3 +126,5 @@ instead: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` (see older Option 
 Vercel **project env vars** (`DATABASE_URL`, `AUTH_SECRET`, …) only configure the running app.
 They do **not** trigger builds. Without a working Option A auto-deploy or a Deploy Hook /
 CLI secrets, merges to `main` will not change the live site.
+
+<!-- deploy-hook check 2026-07-17T00:45:56Z -->
