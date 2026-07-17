@@ -81,22 +81,38 @@ export function CompetitionHero() {
         }
       }}
     >
-      {/* Soft fill so contain letterboxing blends with brand atmosphere */}
+      {/* Soft ink fallback under bitmaps */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(90%_80%_at_70%_55%,rgba(16,95,217,0.26),transparent_55%),radial-gradient(70%_70%_at_25%_45%,rgba(166,0,127,0.20),transparent_50%),linear-gradient(180deg,var(--scl-ink-950),var(--scl-ink-900))]"
       />
-      {/* Layer 1 — object-contain keeps the full trophy scene (no crop) */}
+      {/* Layer 1 — atmosphere stretches edge-to-edge (object-cover) */}
       <picture className="pointer-events-none absolute inset-0 block size-full">
         <source
           media="(min-width: 640px)"
-          srcSet="/assets/scl/leaderboard-trophy-desktop.webp?v=20260717f3"
+          srcSet="/assets/scl/leaderboard-hero-atmosphere-desktop.webp?v=20260717f4"
         />
         <img
-          src="/assets/scl/leaderboard-trophy-mobile.webp?v=20260717f3"
+          src="/assets/scl/leaderboard-hero-atmosphere-mobile.webp?v=20260717f4"
+          alt=""
+          width="2400"
+          height="1200"
+          fetchPriority="high"
+          decoding="async"
+          className="absolute inset-0 size-full max-w-none object-cover object-center"
+        />
+      </picture>
+      {/* Layer 2 — full trophy at contain size (transparent margins over atmosphere) */}
+      <picture className="pointer-events-none absolute inset-0 block size-full">
+        <source
+          media="(min-width: 640px)"
+          srcSet="/assets/scl/leaderboard-trophy-desktop.webp?v=20260717f4"
+        />
+        <img
+          src="/assets/scl/leaderboard-trophy-mobile.webp?v=20260717f4"
           alt=""
           width="1920"
-          height="1080"
+          height="1280"
           fetchPriority="high"
           decoding="async"
           className="absolute inset-0 size-full max-w-none object-contain object-center"

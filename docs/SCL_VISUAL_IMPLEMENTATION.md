@@ -67,29 +67,35 @@ Source of truth for roles remains `design/SCL-DESIGN-SPEC.md` v1.1; hexes above 
 - Canonical look: **magenta market chart + cobalt sports ambient** with a **simple solid trophy +
   gold crown** (see `docs/SCL_ASSET_MANIFEST.md`). Atmosphere reaches every edge of the hero.
 - Trophy stays solid and readable — not ornate/filigree, not a tight close-up.
-- Rejected treatments: padded letterbox canvases, dual-layer cover/contain stacks, flat black left
-  voids, over-light sky-cyan grades, purple-only washes with no cobalt.
+- Rejected treatments: flat black letterbox voids, over-light sky-cyan grades, purple-only washes
+  with no cobalt, single `object-cover` crops that clip the crown/base.
 
 ### Home hero compositing stack (back → front)
 
 Implemented in `src/components/scl/competition-hero.tsx`. Layers must stay in this order:
 
-| Z   | Layer                      | Purpose                                                                   |
-| --- | -------------------------- | ------------------------------------------------------------------------- |
-| 0   | Section ink-950 fallback   | Prevents flash / letterboxing                                             |
-| 1   | Single `<picture>` WebP    | Full-bleed scene (`object-cover`); **one** image, no dual scale stack     |
-| 2   | Flat ink scrim (~25%)      | Global copy contrast                                                      |
-| 3   | L→R ink gradient (~40%→0)  | Softens left copy zone without killing right-side trophy                  |
-| 4   | B→T ink gradient           | Anchors lower edge                                                        |
-| 5   | Slide panel (grid-stacked) | All slides share one cell; opacity crossfade only — no translateY remount |
-| 6   | Carousel controls          | Dots / prev-next outside the slide panel so height stays stable           |
+| Z   | Layer                       | Purpose                                                                   |
+| --- | --------------------------- | ------------------------------------------------------------------------- |
+| 0   | Section ink-950 fallback    | Prevents flash before bitmaps paint                                       |
+| 1   | Atmosphere `<picture>` WebP | Full-bleed magenta→cobalt field (`object-cover`) — spans the whole hero   |
+| 2   | Trophy `<picture>` WebP     | Silver trophy + crown with transparent margins (`object-contain`)         |
+| 3   | Flat ink scrim (~15%)       | Global copy contrast                                                      |
+| 4   | L→R ink gradient (~55%→0)   | Softens left copy zone without killing right-side trophy                  |
+| 5   | B→T ink gradient            | Anchors lower edge                                                        |
+| 6   | Slide panel (grid-stacked)  | All slides share one cell; opacity crossfade only — no translateY remount |
+| 7   | Carousel controls           | Dots / prev-next outside the slide panel so height stays stable           |
+
+**Why two bitmaps:** one `object-fit` cannot both stretch edge-to-edge and keep the full trophy at
+a stable size across short-wide heroes. Atmosphere covers; trophy contains; transparent trophy
+margins let the atmosphere show through (no black pillarbox).
 
 **Layer investigation notes (locked):**
 
 1. Scrims are ink overlays only — they must not hue-shift magenta/cobalt art toward pink or sky blue.
 2. Slide changes must not remount with `scl-reveal` translateY (that “rumbles” the page). Stack
    slides in one CSS grid cell and fade opacity.
-3. Never reintroduce cover+contain dual images (reads as a paste seam).
+3. Do not collapse back to a single cover crop of the trophy scene — that re-clips crown/base on
+   wide short viewports, or letterboxes if switched to contain.
 4. If art feels “too dark,” prefer a **tiny** pixel-level cobalt lift or owner review — never a
    full regrade to electric/sky blue, and never leave a programmatic lighten pass that changes
    the magenta/cobalt identity.
