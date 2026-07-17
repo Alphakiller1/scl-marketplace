@@ -85,16 +85,16 @@ export function CompetitionHero() {
       <picture className="pointer-events-none absolute inset-0 block size-full">
         <source
           media="(min-width: 640px)"
-          srcSet="/assets/scl/leaderboard-trophy-desktop.webp?v=20260717a9"
+          srcSet="/assets/scl/leaderboard-trophy-desktop.webp?v=20260717h4"
         />
         <img
-          src="/assets/scl/leaderboard-trophy-mobile.webp?v=20260717a9"
+          src="/assets/scl/leaderboard-trophy-mobile.webp?v=20260717h4"
           alt=""
           width="1920"
           height="1080"
           fetchPriority="high"
           decoding="async"
-          className="absolute inset-0 size-full max-w-none object-cover object-center"
+          className="absolute inset-0 size-full max-w-none object-cover object-[78%_32%]"
         />
       </picture>
       {/* Layers 2–4 — ink scrims for copy contrast only (no hue shift) */}
