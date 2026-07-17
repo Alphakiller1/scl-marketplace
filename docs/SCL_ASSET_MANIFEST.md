@@ -6,10 +6,10 @@ text, metrics, controls, or logos; those remain accessible HTML and code-native 
 Remote sports marks are **self-hosted** (optional) under `public/marks/`, gated by a static
 manifest — never hotlinked. Missing marks always render the monogram/lettermark fallback.
 
-| Asset                             |  Dimensions | Use                         | Treatment                                                                                        |
-| --------------------------------- | ----------: | --------------------------- | ------------------------------------------------------------------------------------------------ |
-| `leaderboard-trophy-desktop.webp` | 1920 x 1080 | Home hero at `sm` and above | Continuous magenta + cobalt scene; trophy right; blues lifted only slightly from the prior grade |
-| `leaderboard-trophy-mobile.webp`  | 1080 x 1920 | Home hero below `sm`        | Matching portrait; magenta chart + cobalt atmosphere (slightly lighter blues only)               |
+| Asset                             |  Dimensions | Use                         | Treatment                                                                                  |
+| --------------------------------- | ----------: | --------------------------- | ------------------------------------------------------------------------------------------ |
+| `leaderboard-trophy-desktop.webp` | 1920 x 1080 | Home hero at `sm` and above | Exact magenta + cobalt continuous scene (baseline grade); trophy right with crown headroom |
+| `leaderboard-trophy-mobile.webp`  | 1080 x 1920 | Home hero below `sm`        | Matching portrait; magenta chart + cobalt atmosphere (same baseline grade)                 |
 
 ## League / team marks (self-hosted)
 
@@ -62,5 +62,6 @@ Mobile:
 > third and edges. Fully visible cobalt-lit trophy with margin above the crown. No collage, seam,
 > flat black void, text, logos, UI, people, or watermark.
 
-When owners ask to “lighten the blue,” apply a **slight** cobalt lift in pixels or a one-step
-token nudge (`docs/SCL_VISUAL_IMPLEMENTATION.md` design matrix). Do not regrade the whole scene.
+When owners ask to “lighten the blue,” keep the magenta + cobalt identity. Prefer an owner-
+approved art swap or a **tiny** token nudge — never a sky/electric regrade or a broad pixel
+lighten pass that washes the scene.
