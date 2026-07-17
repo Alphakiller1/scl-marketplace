@@ -5,10 +5,12 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireCapperAccess } from "@/lib/session";
 import {
+  adminPackageActiveSchema,
   adminPackageSchema,
   adminUpdateStoreConnectionSchema,
   markInstructionsViewedSchema,
   submitStoreConnectionSchema,
+  type AdminPackageActiveInput,
   type AdminPackageInput,
   type AdminUpdateStoreConnectionInput,
   type SubmitStoreConnectionInput,
@@ -268,4 +270,44 @@ export async function adminSavePackageAction(
 
   await revalidateCommercePaths(capper.user.username);
   return { ok: true, packageId };
+}
+
+export async function adminSetPackageActiveAction(
+  input: AdminPackageActiveInput,
+): Promise<ActionResult> {
+  await requireAdmin();
+  const parsed = adminPackageActiveSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid request." };
+
+  const pkg = await prisma.package.findUnique({
+    where: { id: parsed.data.packageId },
+    select: {
+      id: true,
+      storeConnectionId: true,
+      capper: { select: { user: { select: { username: true } } } },
+    },
+  });
+  if (!pkg) return { ok: false, error: "Package not found." };
+
+  await prisma.$transaction(async (tx) => {
+    await tx.package.update({
+      where: { id: pkg.id },
+      data: { isActive: parsed.data.isActive },
+    });
+    if (pkg.storeConnectionId) {
+      const liveCount = await tx.package.count({
+        where: { storeConnectionId: pkg.storeConnectionId, isActive: true },
+      });
+      await tx.storeConnection.update({
+        where: { id: pkg.storeConnectionId },
+        data: {
+          packageImportStatus: liveCount > 0 ? "LIVE" : "IMPORTED",
+          status: liveCount > 0 ? "LIVE" : "PACKAGES_IMPORTED",
+        },
+      });
+    }
+  });
+
+  await revalidateCommercePaths(pkg.capper.user.username);
+  return { ok: true };
 }

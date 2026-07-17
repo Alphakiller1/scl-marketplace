@@ -45,3 +45,10 @@ export const adminPackageSchema = z.object({
 });
 
 export type AdminPackageInput = z.infer<typeof adminPackageSchema>;
+
+export const adminPackageActiveSchema = z.object({
+  packageId: z.string().min(1),
+  isActive: z.boolean(),
+});
+
+export type AdminPackageActiveInput = z.infer<typeof adminPackageActiveSchema>;

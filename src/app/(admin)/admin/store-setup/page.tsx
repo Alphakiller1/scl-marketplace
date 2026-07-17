@@ -14,10 +14,13 @@ import {
   providerLabel,
 } from "@/lib/store-connection";
 import { listStoreConnections } from "@/lib/queries/store";
+import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Store setup" };
 
-type Search = { searchParams: Promise<{ id?: string; provider?: string }> };
+type Search = {
+  searchParams: Promise<{ id?: string; provider?: string; packageId?: string }>;
+};
 
 export default async function AdminStoreSetupPage({ searchParams }: Search) {
   const sp = await searchParams;
@@ -32,6 +35,23 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
     ) ||
     rows[0] ||
     null;
+
+  const selectedPackage =
+    selected?.packages.find((p) => p.id === sp.packageId) ||
+    selected?.packages[0] ||
+    null;
+  const creatingNew = Boolean(selected && sp.packageId === "new");
+
+  function detailHref(opts: {
+    connectionId: string;
+    packageId?: string | null;
+  }) {
+    const params = new URLSearchParams();
+    params.set("id", opts.connectionId);
+    if (sp.provider) params.set("provider", sp.provider);
+    if (opts.packageId) params.set("packageId", opts.packageId);
+    return `/admin/store-setup?${params.toString()}`;
+  }
 
   return (
     <div className="space-y-6">
@@ -116,11 +136,7 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
                     variant="secondary"
                     className="min-h-10"
                     render={
-                      <Link
-                        href={`/admin/store-setup?id=${row.id}${
-                          sp.provider ? `&provider=${sp.provider}` : ""
-                        }`}
-                      />
+                      <Link href={detailHref({ connectionId: row.id })} />
                     }
                     nativeButton={false}
                   >
@@ -187,50 +203,98 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
           </section>
 
           <section className="border-border bg-card space-y-4 rounded-xl border p-5">
-            <h2 className="scl-display text-base font-bold tracking-[0.05em] uppercase">
-              Package object · {providerLabel(selected.provider)}
-            </h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="scl-display text-base font-bold tracking-[0.05em] uppercase">
+                Package object · {providerLabel(selected.provider)}
+              </h2>
+              <Button
+                size="sm"
+                variant="outline"
+                className="min-h-10"
+                render={
+                  <Link
+                    href={detailHref({
+                      connectionId: selected.id,
+                      packageId: "new",
+                    })}
+                  />
+                }
+                nativeButton={false}
+              >
+                New package
+              </Button>
+            </div>
+
+            {selected.packages.length ? (
+              <div className="space-y-2">
+                <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                  Packages on this connection
+                </p>
+                <div className="space-y-2">
+                  {selected.packages.map((pkg) => {
+                    const clicks = pkg.trackingUrls[0]?._count?.clicks ?? 0;
+                    const active =
+                      !creatingNew && selectedPackage?.id === pkg.id;
+                    return (
+                      <Link
+                        key={pkg.id}
+                        href={detailHref({
+                          connectionId: selected.id,
+                          packageId: pkg.id,
+                        })}
+                        className={cn(
+                          "border-border flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm transition-colors",
+                          active
+                            ? "border-brand/50 bg-brand/5"
+                            : "hover:bg-surface-2",
+                        )}
+                      >
+                        <span className="min-w-0 truncate font-medium">
+                          {pkg.title}
+                        </span>
+                        <span className="text-muted-foreground flex shrink-0 items-center gap-2 text-xs tabular-nums">
+                          <span>{clicks} clicks</span>
+                          <StoreStatusChip
+                            status={pkg.isActive ? "LIVE" : "NOT_STARTED"}
+                            label={pkg.isActive ? "Live" : "Draft"}
+                          />
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                No packages yet. Create the first package object below.
+              </p>
+            )}
+
             <AdminPackageForm
+              key={creatingNew ? "new" : selectedPackage?.id || "empty"}
               capperId={selected.capper.id}
               storeConnectionId={selected.id}
               provider={selected.provider}
               initial={
-                selected.packages[0]
-                  ? {
-                      id: selected.packages[0].id,
-                      title: selected.packages[0].title,
-                      description: selected.packages[0].description,
-                      promoOffer: selected.packages[0].promoOffer,
-                      checkoutUrl: selected.packages[0].checkoutUrl,
-                      priceCents: selected.packages[0].priceCents,
-                      billingPeriod: selected.packages[0].billingPeriod,
-                      sortOrder: selected.packages[0].sortOrder,
-                      isActive: selected.packages[0].isActive,
+                creatingNew || !selectedPackage
+                  ? null
+                  : {
+                      id: selectedPackage.id,
+                      title: selectedPackage.title,
+                      description: selectedPackage.description,
+                      promoOffer: selectedPackage.promoOffer,
+                      checkoutUrl: selectedPackage.checkoutUrl,
+                      priceCents: selectedPackage.priceCents,
+                      billingPeriod: selectedPackage.billingPeriod,
+                      sortOrder: selectedPackage.sortOrder,
+                      isActive: selectedPackage.isActive,
                       trackingSlug:
-                        selected.packages[0].trackingUrls[0]?.slug || null,
+                        selectedPackage.trackingUrls[0]?.slug || null,
+                      clickCount:
+                        selectedPackage.trackingUrls[0]?._count?.clicks ?? 0,
                     }
-                  : null
               }
             />
-            {selected.packages.length > 1 ? (
-              <div className="border-border space-y-2 border-t pt-4">
-                <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-                  Other packages
-                </p>
-                {selected.packages.slice(1).map((pkg) => (
-                  <div
-                    key={pkg.id}
-                    className="border-border flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm"
-                  >
-                    <span className="truncate font-medium">{pkg.title}</span>
-                    <StoreStatusChip
-                      status={pkg.isActive ? "LIVE" : "NOT_STARTED"}
-                      label={pkg.isActive ? "Live" : "Draft"}
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : null}
           </section>
         </div>
       ) : null}
