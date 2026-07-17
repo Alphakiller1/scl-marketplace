@@ -61,7 +61,7 @@ function VolumeBar({ value, max }: { value: number; max: number }) {
       aria-hidden
     >
       <div
-        className="h-full rounded-full bg-[color:var(--scl-pink)] transition-[width] duration-300"
+        className="h-full rounded-full bg-[color:var(--scl-blue)] transition-[width] duration-300"
         style={{ width: `${pct}%` }}
       />
     </div>
@@ -109,7 +109,7 @@ function ButtonishPicksLink({ label }: { label: string }) {
   return (
     <Link
       href="/picks"
-      className="inline-flex min-h-10 items-center gap-1.5 text-sm font-semibold text-[color:var(--scl-pink)] hover:underline"
+      className="inline-flex min-h-10 items-center gap-1.5 text-sm font-semibold text-[color:var(--scl-blue)] hover:underline"
     >
       {label}
       <ArrowRight className="size-3.5" aria-hidden />
@@ -233,7 +233,7 @@ export function LeagueActionReport({
           >
             <TabsTrigger
               value="leagues"
-              className="min-h-9 px-3 data-active:text-[color:var(--scl-pink)]"
+              className="min-h-9 px-3 data-active:text-[color:var(--scl-blue)]"
             >
               Top Leagues
               {leagues.length > 0 ? (
@@ -246,7 +246,7 @@ export function LeagueActionReport({
               <TabsTrigger
                 key={cat.key}
                 value={cat.key}
-                className="min-h-9 px-3 data-active:text-[color:var(--scl-pink)]"
+                className="min-h-9 px-3 data-active:text-[color:var(--scl-blue)]"
               >
                 {cat.label}
                 <span

@@ -29,19 +29,19 @@ export async function SiteHeader() {
         <nav className="text-muted-foreground hidden items-center gap-1 text-sm sm:flex">
           <Link
             href="/leaderboard"
-            className="hover:text-foreground inline-flex min-h-11 items-center px-3 transition-colors"
+            className="inline-flex min-h-11 items-center px-3 transition-colors hover:text-[color:var(--scl-blue)]"
           >
             Leaderboard
           </Link>
           <Link
             href="/cappers"
-            className="hover:text-foreground inline-flex min-h-11 items-center px-3 transition-colors"
+            className="inline-flex min-h-11 items-center px-3 transition-colors hover:text-[color:var(--scl-blue)]"
           >
             Cappers
           </Link>
           <Link
             href="/packages"
-            className="hover:text-foreground inline-flex min-h-11 items-center px-3 transition-colors"
+            className="inline-flex min-h-11 items-center px-3 transition-colors hover:text-[color:var(--scl-blue)]"
           >
             Packages
           </Link>

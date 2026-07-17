@@ -176,7 +176,7 @@ export function CompetitionHero() {
                 className={cn(
                   "focus-visible:ring-ring h-2 rounded-full transition-all focus-visible:ring-2 focus-visible:outline-none",
                   i === index
-                    ? "w-7 bg-[color:var(--scl-pink)]"
+                    ? "w-7 bg-[color:var(--scl-blue)]"
                     : "bg-muted-foreground/40 hover:bg-muted-foreground/70 w-2",
                 )}
               />

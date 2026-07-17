@@ -79,7 +79,7 @@ export function MobileSiteNav({ authed = false }: { authed?: boolean }) {
                 render={<Link href={item.href} className={navLinkClass} />}
               >
                 <Icon
-                  className="size-5 text-[color:var(--scl-muted-data)]"
+                  className="size-5 text-[color:var(--scl-blue)]"
                   aria-hidden
                 />
                 {item.label}
@@ -179,7 +179,7 @@ export function MobileAppNav({ area, nav }: { area: string; nav: NavItem[] }) {
                 render={<Link href={item.href} className={navLinkClass} />}
               >
                 <Icon
-                  className="size-5 text-[color:var(--scl-muted-data)]"
+                  className="size-5 text-[color:var(--scl-blue)]"
                   aria-hidden
                 />
                 {item.label}
