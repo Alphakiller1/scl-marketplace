@@ -10,12 +10,8 @@ import {
 } from "@/lib/bulk-plays";
 import { isBookKey } from "@/lib/books";
 import { fetchLiveLine, verifyPick } from "@/lib/odds-api";
-import {
-  moveKey,
-  resolveCaptureOdds,
-  type AcceptedMove,
-  type MovedLinePayload,
-} from "@/lib/odds-movement";
+import { moveKey, resolveCaptureOdds } from "@/lib/odds-movement";
+import type { AcceptedMove, MovedLinePayload } from "@/lib/odds-movement";
 import {
   decidePickIntegrity,
   marketKeysForMarket,
@@ -75,8 +71,6 @@ export type CreatePlaysResult =
       unavailable?: MovedLinePayload[];
     }
   | { ok: false; unavailable: MovedLinePayload[] };
-
-export type { AcceptedMove, MovedLinePayload, BulkSinglesReceipt };
 
 type AccountGate = { ok: true; userId: string } | { ok: false; error: string };
 
