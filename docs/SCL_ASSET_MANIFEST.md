@@ -6,10 +6,10 @@ text, metrics, controls, or logos; those remain accessible HTML and code-native 
 Remote sports marks are **self-hosted** (optional) under `public/marks/`, gated by a static
 manifest — never hotlinked. Missing marks always render the monogram/lettermark fallback.
 
-| Asset                             |  Dimensions | Use                         | Treatment                                                                                     |
-| --------------------------------- | ----------: | --------------------------- | --------------------------------------------------------------------------------------------- |
-| `leaderboard-trophy-desktop.webp` | 1920 x 1080 | Home hero at `sm` and above | Dark charcoal/navy + cobalt ambient; **gold crown** on chrome trophy (right). No purple wash. |
-| `leaderboard-trophy-mobile.webp`  | 1080 x 1920 | Home hero below `sm`        | Matching portrait; gold crown + cobalt atmosphere on dark data-room floor                     |
+| Asset                             |  Dimensions | Use                         | Treatment                                                                              |
+| --------------------------------- | ----------: | --------------------------- | -------------------------------------------------------------------------------------- |
+| `leaderboard-trophy-desktop.webp` | 1920 x 1080 | Home hero at `sm` and above | Wide establishing shot (trophy smaller in frame); gold crown + cobalt on charcoal/navy |
+| `leaderboard-trophy-mobile.webp`  | 1080 x 1920 | Home hero below `sm`        | Matching portrait establishing shot with crown headroom                                |
 
 ## League / team marks (self-hosted)
 
