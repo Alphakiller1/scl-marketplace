@@ -81,34 +81,39 @@ export function CompetitionHero() {
         }
       }}
     >
-      {/* Layer 1 — full-bleed banner: one picture stretched edge-to-edge */}
+      {/* Soft fill so contain letterboxing blends with brand atmosphere */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(90%_80%_at_70%_55%,rgba(16,95,217,0.26),transparent_55%),radial-gradient(70%_70%_at_25%_45%,rgba(166,0,127,0.20),transparent_50%),linear-gradient(180deg,var(--scl-ink-950),var(--scl-ink-900))]"
+      />
+      {/* Layer 1 — object-contain keeps the full trophy scene (no crop) */}
       <picture className="pointer-events-none absolute inset-0 block size-full">
         <source
           media="(min-width: 640px)"
-          srcSet="/assets/scl/leaderboard-trophy-desktop.webp?v=20260717h4"
+          srcSet="/assets/scl/leaderboard-trophy-desktop.webp?v=20260717f3"
         />
         <img
-          src="/assets/scl/leaderboard-trophy-mobile.webp?v=20260717h4"
+          src="/assets/scl/leaderboard-trophy-mobile.webp?v=20260717f3"
           alt=""
           width="1920"
           height="1080"
           fetchPriority="high"
           decoding="async"
-          className="absolute inset-0 size-full max-w-none object-cover object-[78%_32%]"
+          className="absolute inset-0 size-full max-w-none object-contain object-center"
         />
       </picture>
       {/* Layers 2–4 — ink scrims for copy contrast only (no hue shift) */}
       <div
         aria-hidden
-        className="absolute inset-0 bg-[color:var(--scl-ink-950)]/20"
+        className="absolute inset-0 bg-[color:var(--scl-ink-950)]/15"
       />
       <div
         aria-hidden
-        className="absolute inset-0 bg-gradient-to-r from-[color:var(--scl-ink-950)]/55 via-[color:var(--scl-ink-950)]/20 to-transparent"
+        className="absolute inset-0 bg-gradient-to-r from-[color:var(--scl-ink-950)]/55 via-[color:var(--scl-ink-950)]/15 to-transparent"
       />
       <div
         aria-hidden
-        className="absolute inset-0 bg-gradient-to-t from-[color:var(--scl-ink-950)]/40 via-transparent to-[color:var(--scl-ink-950)]/15"
+        className="absolute inset-0 bg-gradient-to-t from-[color:var(--scl-ink-950)]/35 via-transparent to-[color:var(--scl-ink-950)]/10"
       />
 
       <div className="relative mx-auto flex min-h-[31rem] w-full max-w-6xl flex-col px-4 py-8 sm:min-h-[36rem] sm:justify-center sm:px-6 sm:py-14">
