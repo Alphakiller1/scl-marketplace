@@ -81,19 +81,19 @@ export function CompetitionHero() {
         }
       }}
     >
-      {/* Layer 1 — single full-bleed scene (no cover/contain dual stack) */}
+      {/* Layer 1 — single full-bleed scene; artwork is a wider establishing shot */}
       <picture className="pointer-events-none absolute inset-0">
         <source
           media="(min-width: 640px)"
-          srcSet="/assets/scl/leaderboard-trophy-desktop.webp?v=20260717g"
+          srcSet="/assets/scl/leaderboard-trophy-desktop.webp?v=20260717z"
         />
         <img
-          src="/assets/scl/leaderboard-trophy-mobile.webp?v=20260717g"
+          src="/assets/scl/leaderboard-trophy-mobile.webp?v=20260717z"
           alt=""
           width="1080"
           height="1920"
           fetchPriority="high"
-          className="size-full object-cover object-center opacity-95"
+          className="size-full object-cover object-[70%_center] opacity-95 sm:object-[72%_45%]"
         />
       </picture>
       {/* Layers 2–4 — ink scrims for copy contrast only (no hue shift) */}
