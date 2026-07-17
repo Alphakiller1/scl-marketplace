@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { Activity, ArrowRight, Flame, ShieldCheck, Trophy } from "lucide-react";
+import {
+  Activity,
+  ArrowRight,
+  Flame,
+  ShieldCheck,
+  Trophy,
+  Zap,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -9,6 +16,7 @@ import { SectionHeader } from "@/components/scl/section";
 
 import { CompetitionHero } from "@/components/scl/competition-hero";
 import { Leaderboard } from "@/components/scl/leaderboard";
+import { PickCard } from "@/components/scl/pick-card";
 
 import { EmptyState } from "@/components/scl/states";
 
@@ -25,6 +33,9 @@ import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 import { getLeagueActionReport } from "@/lib/queries/league-action";
 
 import { getYesterdaysGradedWins } from "@/lib/queries/yesterday-wins";
+import { getPublicRecentPicksResult } from "@/lib/queries/plays";
+import { publicFeedCappers } from "@/lib/public-picks";
+import { getGradingHealth } from "@/lib/grading-health";
 
 import { VerificationLegend } from "@/components/scl/verification-legend";
 import {
@@ -85,7 +96,11 @@ const PINK_CTA =
   "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)]";
 
 export default async function Home() {
-  const { cappers, failed: leaderboardFailed } = await getLeaderboardResult({
+  const {
+    cappers,
+    unranked,
+    failed: leaderboardFailed,
+  } = await getLeaderboardResult({
     verifiedOnly: true,
   });
 
@@ -101,6 +116,12 @@ export default async function Home() {
 
   const gradedWinsTicker = await getYesterdaysGradedWins();
 
+  const { picks, failed: picksFailed } = await getPublicRecentPicksResult(
+    publicFeedCappers(cappers, unranked),
+    8,
+  );
+  const gradingHealthy = await getGradingHealth();
+
   const topRoi = sortLeaderboard(cappers, "roi").slice(0, 3);
 
   return (
@@ -113,6 +134,52 @@ export default async function Home() {
       />
 
       <div className="mx-auto max-w-6xl space-y-10 px-4 py-10 sm:space-y-14 sm:px-6 sm:py-12">
+        <section className="space-y-4">
+          <SectionHeader
+            icon={Zap}
+            title="Latest Picks"
+            subtitle="Recent public Tickets — inspect the receipt before you follow"
+            href="/picks"
+          />
+
+          {picks.length ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {picks.map((pick) => (
+                <PickCard
+                  key={pick.id}
+                  pick={pick}
+                  gradingHealthy={gradingHealthy}
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={Zap}
+              title={
+                picksFailed
+                  ? "Couldn't load public picks"
+                  : "No public picks yet"
+              }
+              description={
+                picksFailed
+                  ? "Recent tracked submissions are temporarily unavailable. Please try again shortly."
+                  : "Public Tickets appear here after cappers log board-checked plays. Nothing is fabricated to fill the feed."
+              }
+              action={
+                <Button
+                  render={<Link href="/leaderboard" />}
+                  nativeButton={false}
+                  variant="outline"
+                  className="min-h-11 gap-2"
+                >
+                  Explore Leaderboard
+                  <ArrowRight className="size-4" aria-hidden />
+                </Button>
+              }
+            />
+          )}
+        </section>
+
         <section
           id="how-verification-works"
           className="border-border scroll-mt-20 space-y-3 rounded-xl border p-4 sm:p-5"

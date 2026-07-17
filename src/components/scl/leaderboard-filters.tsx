@@ -102,6 +102,15 @@ function FilterForm({
             })),
           ]}
         />
+        <FilterPillGroup
+          label="Record Trust"
+          name="record"
+          value={filters.verifiedOnly ? "verified" : "all"}
+          options={[
+            { value: "verified", label: "Verified Only" },
+            { value: "all", label: "All Records" },
+          ]}
+        />
         <div className="grid gap-4 lg:grid-cols-2">
           <FilterPillGroup
             label="Window"
@@ -122,26 +131,15 @@ function FilterForm({
             }))}
           />
         </div>
-        <div className="grid gap-4 lg:grid-cols-2">
-          <FilterPillGroup
-            label="Minimum Sample"
-            name="minPicks"
-            value={String(filters.minPicks)}
-            options={LEADERBOARD_MIN_PICKS.map((count) => ({
-              value: String(count),
-              label: count === 0 ? "Any Sample" : `${count}+ Picks`,
-            }))}
-          />
-          <FilterPillGroup
-            label="Record"
-            name="record"
-            value={filters.verifiedOnly ? "verified" : "all"}
-            options={[
-              { value: "verified", label: "Verified Only" },
-              { value: "all", label: "All Records" },
-            ]}
-          />
-        </div>
+        <FilterPillGroup
+          label="Minimum Sample"
+          name="minPicks"
+          value={String(filters.minPicks)}
+          options={LEADERBOARD_MIN_PICKS.map((count) => ({
+            value: String(count),
+            label: count === 0 ? "Any Sample" : `${count}+ Picks`,
+          }))}
+        />
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <label className="min-w-0 flex-1">
             <span className="text-muted-foreground block text-[0.7rem] font-semibold uppercase">

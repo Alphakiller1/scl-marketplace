@@ -31,15 +31,22 @@ export function AppHeader({
             </span>
           </Link>
           <nav className="text-muted-foreground hidden items-center gap-1 text-sm sm:flex">
-            {nav.map((n) => (
-              <Link
-                key={n.href}
-                href={n.href}
-                className="hover:text-foreground inline-flex min-h-11 items-center px-3 transition-colors"
-              >
-                {n.label}
-              </Link>
-            ))}
+            {nav.map((n) => {
+              const primary = n.href.includes("/picks/new");
+              return (
+                <Link
+                  key={n.href}
+                  href={n.href}
+                  className={
+                    primary
+                      ? "inline-flex min-h-11 items-center rounded-lg border border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] px-3 font-semibold text-[color:var(--scl-pink-ink)] transition-colors hover:bg-[color:var(--scl-pink-deep)]"
+                      : "hover:text-foreground inline-flex min-h-11 items-center px-3 transition-colors"
+                  }
+                >
+                  {n.label}
+                </Link>
+              );
+            })}
           </nav>
         </div>
         <div className="flex shrink-0 items-center gap-1">

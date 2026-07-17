@@ -37,11 +37,22 @@ function LoginForm() {
 
   async function onSubmit(values: LoginInput) {
     try {
-      const result = await signIn("credentials", {
-        ...values,
-        redirect: false,
-      });
-      if (!result || result.error) {
+      const result = await Promise.race([
+        signIn("credentials", {
+          ...values,
+          redirect: false,
+        }),
+        new Promise<null>((resolve) => {
+          window.setTimeout(() => resolve(null), 15_000);
+        }),
+      ]);
+      if (!result) {
+        toast.error(
+          "Sign-in is taking too long. Check your connection and try again.",
+        );
+        return;
+      }
+      if (result.error) {
         toast.error("Unable to sign in with those credentials");
         return;
       }
@@ -57,9 +68,9 @@ function LoginForm() {
     <>
       <AuthHeader
         icon={LogIn}
-        eyebrow="Secure Access"
+        eyebrow="Capper Access"
         title="Welcome Back"
-        description="Open your capper workspace and verified record."
+        description="Open your dashboard to log picks, review graded results, and manage your public profile."
       />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>

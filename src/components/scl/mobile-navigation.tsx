@@ -7,10 +7,12 @@ import {
   LogIn,
   Menu,
   Package,
+  Plus,
   Trophy,
   UserRound,
   UserRoundPlus,
   Users,
+  Zap,
 } from "lucide-react";
 
 import { SclLogo } from "@/components/scl-logo";
@@ -33,6 +35,7 @@ type NavItem = {
 };
 
 const MARKETING_NAV = [
+  { href: "/picks", label: "Picks", icon: Zap },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/cappers", label: "Cappers", icon: Users },
   { href: "/packages", label: "Packages", icon: Package },
@@ -65,7 +68,7 @@ export function MobileSiteNav({ authed = false }: { authed?: boolean }) {
           <BrandLabel label="Explore SCL" />
           <SheetTitle className="mt-3 text-xl font-bold">Main Menu</SheetTitle>
           <SheetDescription>
-            Rankings, capper records, and marketplace access.
+            Latest picks, rankings, capper records, and marketplace access.
           </SheetDescription>
         </SheetHeader>
 
@@ -117,7 +120,7 @@ export function MobileSiteNav({ authed = false }: { authed?: boolean }) {
                 }
               >
                 <UserRoundPlus className="size-4" aria-hidden />
-                Track Your Record
+                Join SCL
               </SheetClose>
               <SheetClose
                 nativeButton={false}
@@ -172,14 +175,26 @@ export function MobileAppNav({ area, nav }: { area: string; nav: NavItem[] }) {
         <nav className="grid gap-2 px-4" aria-label={`${area} Navigation`}>
           {nav.map((item) => {
             const Icon = workspaceIcon(item.href);
+            const primary = item.href.includes("/picks/new");
             return (
               <SheetClose
                 key={item.href}
                 nativeButton={false}
-                render={<Link href={item.href} className={navLinkClass} />}
+                render={
+                  <Link
+                    href={item.href}
+                    className={
+                      primary
+                        ? "flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] px-4 font-semibold text-[color:var(--scl-pink-ink)]"
+                        : navLinkClass
+                    }
+                  />
+                }
               >
                 <Icon
-                  className="size-5 text-[color:var(--scl-blue)]"
+                  className={
+                    primary ? "size-5" : "size-5 text-[color:var(--scl-blue)]"
+                  }
                   aria-hidden
                 />
                 {item.label}
@@ -197,6 +212,7 @@ export function MobileAppNav({ area, nav }: { area: string; nav: NavItem[] }) {
 }
 
 function workspaceIcon(href: string) {
+  if (href.includes("/picks/new")) return Plus;
   if (href.endsWith("/picks")) return ClipboardList;
   if (href.endsWith("/profile")) return UserRound;
   return LayoutDashboard;

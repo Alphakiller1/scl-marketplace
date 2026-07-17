@@ -24,26 +24,26 @@ type HeroSlide = {
 
 const SLIDES: HeroSlide[] = [
   {
-    id: "founding",
-    eyebrow: "Founding Roster Forming",
-    title: "Apply As A Founding Capper",
-    body: "Build a public, inspectable record from day one — every pick, timestamp, line, and result visible before you send bettors anywhere.",
-    href: "/signup",
-    cta: "Apply As A Founding Capper",
+    id: "discover",
+    eyebrow: "Discover Performance",
+    title: "Find Cappers Whose Records Hold Up",
+    body: "Compare board-verified units, ROI, and sample size — then open today's picks and inspect the receipts before you follow anyone off-platform.",
+    href: "/picks",
+    cta: "View Latest Picks",
   },
   {
-    id: "discover",
-    eyebrow: "Discover Cappers",
-    title: "Find & Tail The Best Cappers In The World",
-    body: "Compare board-verified records by units, ROI, and sample size — then follow the cappers whose process holds up under inspection.",
+    id: "verify",
+    eyebrow: "Inspect Before You Follow",
+    title: "Every Pick, Timestamp, And Result Is Public",
+    body: "SCL ranks transparent records — not hype. Check verification tiers, graded history, and leaderboard sample thresholds before you trust a name.",
     href: "/leaderboard",
     cta: "Explore Leaderboard",
   },
   {
-    id: "verify",
-    eyebrow: "Track & Verify",
-    title: "Sell, Track, & Verify Your Predictions",
-    body: "Log board-verified plays, earn a public rank others can check, and keep payments on your own storefront. SCL does not process payments.",
+    id: "founding",
+    eyebrow: "For Serious Cappers",
+    title: "Build A Record People Can Inspect",
+    body: "Log board-verified plays from day one and earn a public rank others can check. Keep payments on your own storefront — SCL does not process them.",
     href: "/signup",
     cta: "Track Your Record",
   },
@@ -52,7 +52,6 @@ const SLIDES: HeroSlide[] = [
 export function CompetitionHero() {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
-  const slide = SLIDES[index] ?? SLIDES[0];
 
   const go = useCallback((next: number) => {
     setIndex((next + SLIDES.length) % SLIDES.length);
@@ -82,7 +81,7 @@ export function CompetitionHero() {
         }
       }}
     >
-      {/* Single full-bleed scene — one image, one scale (no cover/contain stack) */}
+      {/* Layer 1 — single full-bleed scene (no cover/contain dual stack) */}
       <picture className="pointer-events-none absolute inset-0">
         <source
           media="(min-width: 640px)"
@@ -97,7 +96,7 @@ export function CompetitionHero() {
           className="size-full object-cover object-center opacity-95"
         />
       </picture>
-      {/* Soft scrim for copy contrast only */}
+      {/* Layers 2–4 — ink scrims for copy contrast only (no hue shift) */}
       <div
         aria-hidden
         className="absolute inset-0 bg-[color:var(--scl-ink-950)]/25"
@@ -112,44 +111,68 @@ export function CompetitionHero() {
       />
 
       <div className="relative mx-auto flex min-h-[31rem] max-w-6xl flex-col px-4 py-8 sm:min-h-[36rem] sm:justify-center sm:px-6 sm:py-14">
-        <div
-          key={slide.id}
-          className="scl-reveal max-w-xl rounded-2xl border border-[color:var(--scl-line)]/50 bg-[color:var(--scl-ink-950)]/55 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-md sm:p-7"
-        >
-          <div className="scl-data inline-flex min-h-10 items-center gap-2 rounded-lg border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-900)]/80 px-3 text-[0.625rem] font-semibold tracking-[0.16em] uppercase">
-            <VerificationBadge size="xs" />
-            {slide.eyebrow}
-          </div>
+        {/*
+          Layer 5 — stack every slide in one grid cell so the tallest copy owns
+          height. Opacity-only swaps avoid translateY remount rumble.
+        */}
+        <div className="grid max-w-xl">
+          {SLIDES.map((slide, i) => {
+            const active = i === index;
+            return (
+              <div
+                key={slide.id}
+                className={cn(
+                  "col-start-1 row-start-1 rounded-2xl border border-[color:var(--scl-line)]/50 bg-[color:var(--scl-ink-950)]/55 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-md transition-opacity duration-300 ease-out motion-reduce:transition-none sm:p-7",
+                  active
+                    ? "z-10 opacity-100"
+                    : "pointer-events-none z-0 opacity-0",
+                )}
+                aria-hidden={!active}
+              >
+                <div className="scl-data inline-flex min-h-10 items-center gap-2 rounded-lg border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-900)]/80 px-3 text-[0.625rem] font-semibold tracking-[0.16em] uppercase">
+                  <VerificationBadge size="xs" />
+                  {slide.eyebrow}
+                </div>
 
-          <h1
-            id="scl-hero-title"
-            className="scl-display mt-4 max-w-lg text-3xl leading-[1.08] font-bold tracking-[0.02em] text-balance uppercase sm:mt-5 sm:text-5xl lg:text-6xl"
-          >
-            <Link
-              href={slide.href}
-              className="focus-visible:ring-ring rounded-sm transition-colors hover:text-[color:var(--scl-pink)] focus-visible:ring-2 focus-visible:outline-none"
-            >
-              {slide.title}
-            </Link>
-          </h1>
+                <h1
+                  id={active ? "scl-hero-title" : undefined}
+                  className="scl-display mt-4 max-w-lg text-3xl leading-[1.08] font-bold tracking-[0.02em] text-balance uppercase sm:mt-5 sm:text-5xl lg:text-6xl"
+                >
+                  <Link
+                    href={slide.href}
+                    tabIndex={active ? undefined : -1}
+                    className="focus-visible:ring-ring rounded-sm transition-colors hover:text-[color:var(--scl-pink)] focus-visible:ring-2 focus-visible:outline-none"
+                  >
+                    {slide.title}
+                  </Link>
+                </h1>
 
-          <p className="mt-4 max-w-lg text-base leading-relaxed text-pretty text-[color:var(--scl-muted-data)] sm:text-lg">
-            {slide.body}
-          </p>
+                <p className="mt-4 max-w-lg text-base leading-relaxed text-pretty text-[color:var(--scl-muted-data)] sm:text-lg">
+                  {slide.body}
+                </p>
 
-          <div className="mt-6 flex flex-wrap items-center gap-3 sm:mt-7">
-            <Button
-              render={<Link href={slide.href} />}
-              nativeButton={false}
-              size="lg"
-              className={`min-h-11 gap-2 ${PINK_CTA}`}
-            >
-              {slide.cta}
-              <ArrowRight className="size-4" aria-hidden />
-            </Button>
-          </div>
+                <div className="mt-6 flex flex-wrap items-center gap-3 sm:mt-7">
+                  <Button
+                    render={
+                      <Link
+                        href={slide.href}
+                        tabIndex={active ? undefined : -1}
+                      />
+                    }
+                    nativeButton={false}
+                    size="lg"
+                    className={`min-h-11 gap-2 ${PINK_CTA}`}
+                  >
+                    {slide.cta}
+                    <ArrowRight className="size-4" aria-hidden />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
+        {/* Layer 6 — controls outside the slide panel */}
         <div className="mt-8 flex items-center gap-3 sm:mt-10">
           <button
             type="button"
@@ -174,7 +197,7 @@ export function CompetitionHero() {
                 aria-label={`Show slide ${i + 1}: ${s.title}`}
                 onClick={() => setIndex(i)}
                 className={cn(
-                  "focus-visible:ring-ring h-2 rounded-full transition-all focus-visible:ring-2 focus-visible:outline-none",
+                  "focus-visible:ring-ring h-2 rounded-full transition-[width,background-color] duration-300 ease-out focus-visible:ring-2 focus-visible:outline-none motion-reduce:transition-none",
                   i === index
                     ? "w-7 bg-[color:var(--scl-blue)]"
                     : "bg-muted-foreground/40 hover:bg-muted-foreground/70 w-2",

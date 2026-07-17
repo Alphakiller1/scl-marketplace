@@ -1,6 +1,9 @@
 # SCL Design Specification — "The Ledger & The Board"
 
-Version 1.1 — This file is LAW. Models apply it; they do not reinterpret it.
+Version 1.1.1 — This file is LAW. Models apply it; they do not reinterpret it.
+
+v1.1.1: navigation blues slightly lifted (`#1C6AE6` dark / `#0A58C9` light) while staying
+cobalt. Hero atmosphere remains magenta + cobalt — see `docs/SCL_VISUAL_IMPLEMENTATION.md`.
 
 ## Identity thesis
 
@@ -39,8 +42,8 @@ direction. Ink surfaces unchanged from v1.0.
 --scl-pink:#BA008E; /_ conviction — darker pink _/
 --scl-pink-deep:#8D006A;
 --scl-pink-ink:#FFF3FC; /_ text on pink _/
---scl-blue:#105FD9; /_ navigation _/
---scl-blue-deep:#0043AC;
+--scl-blue:#1C6AE6; /_ navigation — slight lift from #105FD9; stay cobalt, not sky _/
+--scl-blue-deep:#0A58C9;
 --scl-blue-ink:#F1F9FF; /_ text on blue _/
 --scl-win:#2FBF7B;
 --scl-loss:#E5484D;
@@ -56,7 +59,7 @@ direction. Ink surfaces unchanged from v1.0.
 --scl-ink-700:#F5F3ED; --scl-ink-600:#E9E5DA; --scl-line:#D8D3C4;
 --scl-text:#161B26; --scl-muted-label:#6E7686; --scl-muted-data:#454E60;
 --scl-pink:#A6007F; /_ deepened for paper contrast _/
---scl-blue:#044CB6; /_ deepened for paper contrast _/
+--scl-blue:#0A58C9; /_ slight lift from #044CB6; stay cobalt on paper _/
 
 ## Typography (next/font/google)
 
