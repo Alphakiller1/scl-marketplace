@@ -82,24 +82,7 @@ export function CompetitionHero() {
         }
       }}
     >
-      {/*
-        Dual layer, same full-bleed art:
-        - cover fills letterbox edges so the left never goes matte-black
-        - contain keeps the whole trophy (including crown) in frame, no zoom crop
-      */}
-      <picture aria-hidden className="pointer-events-none absolute inset-0">
-        <source
-          media="(min-width: 640px)"
-          srcSet="/assets/scl/leaderboard-trophy-desktop.webp"
-        />
-        <img
-          src="/assets/scl/leaderboard-trophy-mobile.webp"
-          alt=""
-          width="1080"
-          height="1920"
-          className="size-full object-cover object-center opacity-90 sm:object-[center_right]"
-        />
-      </picture>
+      {/* Single full-bleed scene — one image, one scale (no cover/contain stack) */}
       <picture className="pointer-events-none absolute inset-0">
         <source
           media="(min-width: 640px)"
@@ -111,17 +94,17 @@ export function CompetitionHero() {
           width="1080"
           height="1920"
           fetchPriority="high"
-          className="size-full object-contain object-center opacity-95 sm:object-right"
+          className="size-full object-cover object-center opacity-95"
         />
       </picture>
-      {/* Light readability scrim only — do not wipe the left into flat black */}
+      {/* Soft scrim for copy contrast only */}
       <div
         aria-hidden
-        className="absolute inset-0 bg-[color:var(--scl-ink-950)]/20"
+        className="absolute inset-0 bg-[color:var(--scl-ink-950)]/25"
       />
       <div
         aria-hidden
-        className="absolute inset-0 bg-gradient-to-r from-[color:var(--scl-ink-950)]/35 via-[color:var(--scl-ink-950)]/10 to-transparent"
+        className="absolute inset-0 bg-gradient-to-r from-[color:var(--scl-ink-950)]/40 via-[color:var(--scl-ink-950)]/15 to-transparent"
       />
       <div
         aria-hidden
