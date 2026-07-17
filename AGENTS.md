@@ -116,3 +116,18 @@ npm run build       # next build
 Read the actual files (especially `node_modules/next/dist/docs/` for Next 16 APIs and the
 existing `src/components/ui/*` for component APIs) before guessing. Match the patterns
 already in the repo.
+
+## Cursor Cloud specific instructions
+
+- **Dev server:** `npm run dev` (Next on port 3000). Quality scripts are in the Quality bar above
+  and `package.json`.
+- **Postgres:** local Ubuntu cluster — `sudo pg_ctlcluster 16 main start` if queries fail.
+  Schema is `scl` only; use `npm run db:push` / `npm run db:seed` against local `.env`.
+- **Auth host gotcha:** `.env` sets `AUTH_URL=http://localhost:3000`. Browse and sign in via
+  `http://localhost:3000`, not `http://127.0.0.1:3000`, or Auth.js cookies/session will not
+  stick and login will look broken.
+- **Seed logins (local):** `admin@scl.local` / `admin1234`, `capper@scl.local` / `capper1234`.
+- **Pick entry:** board-verified logging needs `ODDS_API_KEY` in `.env`; without it the board
+  rejects free-text event entry.
+- **IA / structure notes:** see `docs/SCL_STRUCTURE_AUDIT.md` for the latest public + capper
+  workspace structure audit and roadmap.

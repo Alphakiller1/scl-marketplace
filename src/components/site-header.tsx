@@ -28,6 +28,12 @@ export async function SiteHeader() {
 
         <nav className="text-muted-foreground hidden items-center gap-1 text-sm sm:flex">
           <Link
+            href="/picks"
+            className="inline-flex min-h-11 items-center px-3 transition-colors hover:text-[color:var(--scl-blue)]"
+          >
+            Picks
+          </Link>
+          <Link
             href="/leaderboard"
             className="inline-flex min-h-11 items-center px-3 transition-colors hover:text-[color:var(--scl-blue)]"
           >
@@ -78,7 +84,7 @@ export async function SiteHeader() {
                 size="sm"
                 className="hidden min-h-11 border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)] sm:inline-flex md:h-11"
               >
-                Track Your Record
+                Join SCL
               </Button>
             </>
           )}

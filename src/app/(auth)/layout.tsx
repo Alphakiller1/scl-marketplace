@@ -5,9 +5,9 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { SclLogo } from "@/components/scl-logo";
 
 const trustSignals = [
-  { icon: LockKeyhole, label: "Access", value: "Role Protected" },
-  { icon: ShieldCheck, label: "Identity", value: "Email Verified" },
-  { icon: Scale, label: "Policies", value: "Version Recorded" },
+  { icon: ShieldCheck, label: "Records", value: "Board Timestamped" },
+  { icon: LockKeyhole, label: "Access", value: "Email Verified" },
+  { icon: Scale, label: "Payments", value: "Off-Platform" },
 ];
 
 export default function AuthLayout({
@@ -39,11 +39,12 @@ export default function AuthLayout({
               Sports Capper Leaderboard
             </p>
             <p className="scl-display mt-3 text-4xl font-bold tracking-[0.04em] uppercase">
-              The Identity Behind The Record
+              Trust Starts With A Visible Record
             </p>
             <p className="text-muted-foreground mt-4 max-w-sm">
-              Secure access, documented acceptance, and a public capper profile
-              built to earn trust.
+              Sign in to log board-verified picks, climb public rankings, and
+              keep your storefront payments where they already live. SCL does
+              not process payments.
             </p>
           </div>
 
