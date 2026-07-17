@@ -6,10 +6,10 @@ text, metrics, controls, or logos; those remain accessible HTML and code-native 
 Remote sports marks are **self-hosted** (optional) under `public/marks/`, gated by a static
 manifest — never hotlinked. Missing marks always render the monogram/lettermark fallback.
 
-| Asset                             |  Dimensions | Use                         | Treatment                                                                            |
-| --------------------------------- | ----------: | --------------------------- | ------------------------------------------------------------------------------------ |
-| `leaderboard-trophy-desktop.webp` | 1920 x 1080 | Home hero at `sm` and above | One continuous scene; soft pink→blue light balance; trophy right with crown headroom |
-| `leaderboard-trophy-mobile.webp`  | 1080 x 1920 | Home hero below `sm`        | Matching single continuous portrait with balanced pink/blue atmosphere               |
+| Asset                             |  Dimensions | Use                         | Treatment                                                                                        |
+| --------------------------------- | ----------: | --------------------------- | ------------------------------------------------------------------------------------------------ |
+| `leaderboard-trophy-desktop.webp` | 1920 x 1080 | Home hero at `sm` and above | Continuous magenta + cobalt scene; trophy right; blues lifted only slightly from the prior grade |
+| `leaderboard-trophy-mobile.webp`  | 1080 x 1920 | Home hero below `sm`        | Matching portrait; magenta chart + cobalt atmosphere (slightly lighter blues only)               |
 
 ## League / team marks (self-hosted)
 
@@ -46,15 +46,21 @@ Code maps: `src/lib/mark-manifest.ts`, `src/lib/teams.ts`, `src/lib/leagues.ts`,
 
 ## Generation prompts
 
+Canonical art direction: **magenta chart/grid + cobalt trophy/ambient** on a continuous dark
+data room. Do not regenerate toward sky-blue grades or abandon cobalt metal.
+
 Desktop:
 
-> One continuous near-black violet data room with magenta/pink-violet neon only (no blue half,
-> no color split-screen). Perspective grid and one unbroken chart line span the full width.
-> Fully visible trophy in the right third with clear margin above the crown. No collage, no seam,
-> no flat black left void, no text/logos/UI/people/watermark.
+> One continuous dark data room. Magenta/pink neon chart line and perspective grid span the full
+> width. Cobalt-blue metallic trophy in the right third with clear margin above the crown. Soft
+> cobalt ambient only — not washed sky blue, not flat black left void. No collage, seam,
+> text/logos/UI/people/watermark.
 
 Mobile:
 
-> Portrait companion of the same single continuous magenta data room. Atmosphere fills the upper
-> third and left edge. Fully visible trophy with margin above the crown. No collage, seam, flat
-> black void, text, logos, UI, people, or watermark.
+> Portrait companion of the same magenta + cobalt continuous scene. Atmosphere fills the upper
+> third and edges. Fully visible cobalt-lit trophy with margin above the crown. No collage, seam,
+> flat black void, text, logos, UI, people, or watermark.
+
+When owners ask to “lighten the blue,” apply a **slight** cobalt lift in pixels or a one-step
+token nudge (`docs/SCL_VISUAL_IMPLEMENTATION.md` design matrix). Do not regrade the whole scene.

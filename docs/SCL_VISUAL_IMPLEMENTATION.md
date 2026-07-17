@@ -2,7 +2,7 @@
 
 This document translates the approved trophy-led concept into production UI. The concept is
 art direction, not a screenshot to reproduce. SCL keeps its real navigation, real data, and
-existing brand source of truth.
+existing brand source of truth (`design/SCL-DESIGN-SPEC.md`, `docs/SCL_DESIGN_CONTRACT.md`).
 
 ## Product read
 
@@ -11,6 +11,30 @@ The experience should communicate three ideas within seconds:
 1. SCL is a public ranking system, not a picks feed with decorative stats.
 2. Performance is inspectable through record, win rate, units, ROI, sample size, and form.
 3. A capper earns status through tracked results.
+
+## Design matrix (color roles)
+
+| Role           | Token / hue                       | Used for                                                                | Never used for                                |
+| -------------- | --------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------- |
+| Conviction     | `--scl-pink` (magenta)            | Primary CTAs, verified stamps, selected odds, rank medals, slip accents | Nav chrome, passive filters, decorative fills |
+| Navigation     | `--scl-blue` (cobalt)             | Active nav/tabs/pills, focus rings, border-strong, chart-2, logo bridge | Primary CTAs, verified stamps                 |
+| Atmosphere art | Magenta chart + cobalt metal/glow | Home hero WebPs only                                                    | Data tables, cards, forms                     |
+| Settlement     | `--scl-win` / `--scl-loss`        | Graded W/L only                                                         | Decoration, CTAs, ambient lighting            |
+| Ink surfaces   | `--scl-ink-*`                     | Page/card/chip depth                                                    | Brand identity                                |
+
+**Balance rule:** pink is scarce (conviction). Cobalt blue carries chrome so the product does not
+read as all-magenta. Do **not** push hero or UI blues into washed sky/electric territory — cobalt
+stays deep; only a **slight** lift from the prior grade is allowed when owners ask for “lighter.”
+
+Current chrome blues (slight lift from v1.1 baseline):
+
+| Theme | Prior (`#165` era) | Current (slight lift) |
+| ----- | ------------------ | --------------------- |
+| Dark  | `#105FD9`          | `#1C6AE6`             |
+| Light | `#044CB6`          | `#0A58C9`             |
+
+Source of truth for roles remains `design/SCL-DESIGN-SPEC.md` v1.1; hexes above sync
+`src/app/globals.css`.
 
 ## Visual layers
 
@@ -32,23 +56,46 @@ The experience should communicate three ideas within seconds:
 ### Competition
 
 - Rank is the first scan target.
-- Gold is reserved for first place and earned honors.
+- Gold is reserved for first place and earned honors in **UI chrome** (not a requirement to
+  recolor the hero crown metal — hero metal stays cobalt-lit chrome unless owners revise art).
 - Second and third place receive distinct, restrained treatments.
 - Verification, sample size, recent form, and streaks stay visible near the result they qualify.
 
-### Atmosphere
+### Atmosphere (hero artwork)
 
-- The generated trophy artwork is limited to the home hero and campaign-scale surfaces.
-- Data routes favor density, speed, and clear comparisons.
-- Magenta and blue edge lighting supports brand identity without turning the interface into a
-  casino or crypto dashboard.
-- Decorative motion is excluded. Interaction and status changes may use subtle motion that
-  respects reduced-motion preferences.
+- Generated trophy artwork is limited to the home hero and campaign-scale surfaces.
+- Canonical look: **magenta performance chart + cobalt trophy / ambient** on a continuous dark
+  data-room floor (see `docs/SCL_ASSET_MANIFEST.md`).
+- Rejected treatments: dual-layer cover/contain stacks, flat black left voids, over-light sky-blue
+  grades, gold-crown regenerations that abandon the magenta/cobalt identity.
+
+### Home hero compositing stack (back → front)
+
+Implemented in `src/components/scl/competition-hero.tsx`. Layers must stay in this order:
+
+| Z   | Layer                      | Purpose                                                                   |
+| --- | -------------------------- | ------------------------------------------------------------------------- |
+| 0   | Section ink-950 fallback   | Prevents flash / letterboxing                                             |
+| 1   | Single `<picture>` WebP    | Full-bleed scene (`object-cover`); **one** image, no dual scale stack     |
+| 2   | Flat ink scrim (~25%)      | Global copy contrast                                                      |
+| 3   | L→R ink gradient (~40%→0)  | Softens left copy zone without killing right-side trophy                  |
+| 4   | B→T ink gradient           | Anchors lower edge                                                        |
+| 5   | Slide panel (grid-stacked) | All slides share one cell; opacity crossfade only — no translateY remount |
+| 6   | Carousel controls          | Dots / prev-next outside the slide panel so height stays stable           |
+
+**Layer investigation notes (locked):**
+
+1. Scrims are ink overlays only — they must not hue-shift magenta/cobalt art toward pink or sky blue.
+2. Slide changes must not remount with `scl-reveal` translateY (that “rumbles” the page). Stack
+   slides in one CSS grid cell and fade opacity.
+3. Never reintroduce cover+contain dual images (reads as a paste seam).
+4. If art feels “too dark,” prefer a **subtle** cobalt lift in the WebP or a 1-step token nudge —
+   not a full regrade to electric blue.
 
 ## Responsive composition
 
 - The home hero uses separate landscape and portrait artwork.
-- Mobile copy occupies the calm upper portion of the portrait asset.
+- Mobile copy occupies the calm upper / left portion of the portrait asset.
 - Leaderboards use full rows at `md` and purpose-built ranked cards below `md`.
 - Filters remain operable at 375px with 40px minimum controls and no horizontal page overflow.
 - Fixed chart and rank dimensions prevent data changes from shifting layout.
@@ -76,3 +123,4 @@ The experience should communicate three ideas within seconds:
 - Every displayed statistic is real or explicitly unavailable.
 - Desktop and mobile preserve the same decision hierarchy.
 - The experience remains fast and useful after the visual artwork is removed.
+- Hero still reads as **magenta + cobalt** after any “lighten blue” request.

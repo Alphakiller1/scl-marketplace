@@ -81,7 +81,7 @@ export function CompetitionHero() {
         }
       }}
     >
-      {/* Single full-bleed scene — one image, one scale (no cover/contain stack) */}
+      {/* Layer 1 — single full-bleed scene (no cover/contain dual stack) */}
       <picture className="pointer-events-none absolute inset-0">
         <source
           media="(min-width: 640px)"
@@ -96,7 +96,7 @@ export function CompetitionHero() {
           className="size-full object-cover object-center opacity-95"
         />
       </picture>
-      {/* Soft scrim for copy contrast only */}
+      {/* Layers 2–4 — ink scrims for copy contrast only (no hue shift) */}
       <div
         aria-hidden
         className="absolute inset-0 bg-[color:var(--scl-ink-950)]/25"
@@ -112,8 +112,8 @@ export function CompetitionHero() {
 
       <div className="relative mx-auto flex min-h-[31rem] max-w-6xl flex-col px-4 py-8 sm:min-h-[36rem] sm:justify-center sm:px-6 sm:py-14">
         {/*
-          Stack every slide in one grid cell so the tallest copy always owns
-          height. Opacity-only swaps avoid the translateY remount “rumble”.
+          Layer 5 — stack every slide in one grid cell so the tallest copy owns
+          height. Opacity-only swaps avoid translateY remount rumble.
         */}
         <div className="grid max-w-xl">
           {SLIDES.map((slide, i) => {
@@ -172,6 +172,7 @@ export function CompetitionHero() {
           })}
         </div>
 
+        {/* Layer 6 — controls outside the slide panel */}
         <div className="mt-8 flex items-center gap-3 sm:mt-10">
           <button
             type="button"
