@@ -14,7 +14,7 @@ Discover → evaluate → follow → view picks → track → rank → build rep
 | Finding                                                       | Severity | Status                                                                                |
 | ------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------- |
 | Picks missing from primary nav                                | High     | **Done** — Picks first in desktop + mobile nav                                        |
-| Hero buried discovery / founding-first                        | High     | **Done** — discover-first slides                                                      |
+| Hero buried discovery / founding-first                        | High     | **Reverted** — owner word-for-word slide copy restored (founding-first order)         |
 | Home should lead with primary leaderboard (not picks feed)    | High     | **Done** — SCL Primary Leaderboard first; Latest Picks removed from home              |
 | Capper cards missing sports / specialties / last-pick recency | High     | **Done** — `CapperCard` surfaces sports chips, specialties, last pick                 |
 | Packages empty state dead-end                                 | Medium   | **Done** — education + escape CTAs                                                    |
@@ -46,7 +46,7 @@ Discover → evaluate → follow → view picks → track → rank → build rep
 ## Verification checklist
 
 - [x] Picks-first marketing nav
-- [x] Discover-first hero + stable carousel
+- [x] Owner-approved hero slide copy (word-for-word; founding → discover → verify)
 - [x] Home = SCL Primary Leaderboard first (no Latest Picks block)
 - [x] Capper cards: sports + specialties + last pick + provisional help
 - [x] Leaderboard Record Trust + quick presets
