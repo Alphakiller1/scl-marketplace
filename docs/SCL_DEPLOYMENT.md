@@ -127,4 +127,4 @@ Vercel **project env vars** (`DATABASE_URL`, `AUTH_SECRET`, …) only configure 
 They do **not** trigger builds. Without a working Option A auto-deploy or a Deploy Hook /
 CLI secrets, merges to `main` will not change the live site.
 
-<!-- deploy-hook check 2026-07-17T20:55:00Z trophy headroom zoom-out -->
+<!-- deploy-hook check 2026-07-17T21:15:00Z hero full-frame centered contain -->
