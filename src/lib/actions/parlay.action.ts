@@ -11,12 +11,8 @@ import {
   combineDecimalOdds,
   decimalToAmerican,
 } from "@/lib/odds";
-import {
-  moveKey,
-  resolveCaptureOdds,
-  type AcceptedMove,
-  type MovedLinePayload,
-} from "@/lib/odds-movement";
+import { moveKey, resolveCaptureOdds } from "@/lib/odds-movement";
+import type { AcceptedMove, MovedLinePayload } from "@/lib/odds-movement";
 import { prisma } from "@/lib/prisma";
 import {
   createParlaySchema,
@@ -33,8 +29,6 @@ export type CreateParlayResult =
   | { ok: false; error: string }
   | { ok: false; needsConfirm: MovedLinePayload[] }
   | { ok: false; unavailable: MovedLinePayload[] };
-
-export type { AcceptedMove, MovedLinePayload };
 
 /** Capper logs a multi-leg parlay. Stake lives on the parlay; legs are components. */
 export async function createParlay(

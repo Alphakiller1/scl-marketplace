@@ -18,13 +18,18 @@ export async function getCapperProfileIdForUser(userId: string) {
 }
 
 export async function listConnectionsForCapper(capperId: string) {
-  return prisma.storeConnection.findMany({
-    where: { capperId },
-    orderBy: { updatedAt: "desc" },
-    include: {
-      _count: { select: { packages: true } },
-    },
-  });
+  try {
+    return await prisma.storeConnection.findMany({
+      where: { capperId },
+      orderBy: { updatedAt: "desc" },
+      include: {
+        _count: { select: { packages: true } },
+      },
+    });
+  } catch (error) {
+    console.error("[listConnectionsForCapper] database unavailable:", error);
+    return [];
+  }
 }
 
 export async function listStoreConnections(filters?: {
@@ -36,56 +41,61 @@ export async function listStoreConnections(filters?: {
       ? filters.provider
       : undefined;
 
-  return prisma.storeConnection.findMany({
-    where: {
-      ...(provider ? { provider } : {}),
-      ...(filters?.pendingOnly
-        ? {
-            status: {
-              in: ["PENDING_SCL_ACCEPTANCE", "PENDING_SCL_LINK_IMPORT"],
-            },
-          }
-        : {}),
-    },
-    orderBy: [{ submittedAt: "asc" }, { updatedAt: "desc" }],
-    include: {
-      capper: {
-        select: {
-          id: true,
-          storefrontTitle: true,
-          user: {
-            select: {
-              id: true,
-              email: true,
-              username: true,
-              displayName: true,
-            },
-          },
-          _count: { select: { packages: true } },
-        },
+  try {
+    return await prisma.storeConnection.findMany({
+      where: {
+        ...(provider ? { provider } : {}),
+        ...(filters?.pendingOnly
+          ? {
+              status: {
+                in: ["PENDING_SCL_ACCEPTANCE", "PENDING_SCL_LINK_IMPORT"],
+              },
+            }
+          : {}),
       },
-      packages: {
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          isActive: true,
-          checkoutUrl: true,
-          priceCents: true,
-          billingPeriod: true,
-          trackingUrls: {
-            select: {
-              id: true,
-              slug: true,
-              _count: { select: { clicks: true } },
+      orderBy: [{ submittedAt: "asc" }, { updatedAt: "desc" }],
+      include: {
+        capper: {
+          select: {
+            id: true,
+            storefrontTitle: true,
+            user: {
+              select: {
+                id: true,
+                email: true,
+                username: true,
+                displayName: true,
+              },
             },
-            take: 1,
+            _count: { select: { packages: true } },
           },
         },
-        orderBy: { createdAt: "desc" },
+        packages: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            isActive: true,
+            checkoutUrl: true,
+            priceCents: true,
+            billingPeriod: true,
+            trackingUrls: {
+              select: {
+                id: true,
+                slug: true,
+                _count: { select: { clicks: true } },
+              },
+              take: 1,
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        },
       },
-    },
-  });
+    });
+  } catch (error) {
+    console.error("[listStoreConnections] database unavailable:", error);
+    return [];
+  }
 }
 
 export async function getConnectionById(id: string) {
@@ -122,96 +132,105 @@ export type PublicPackageCard = {
   trackingPath: string;
 };
 
+const livePackageWhere = {
+  isActive: true,
+  checkoutUrl: { not: null },
+  trackingUrls: { some: {} },
+  OR: [
+    { storeConnection: { status: "LIVE" as const } },
+    { storeConnectionId: null },
+  ],
+};
+
 /** Live packages for a public capper profile — CTAs use /go/[slug] only. */
 export async function getLivePackagesForCapper(
   capperId: string,
 ): Promise<PublicPackageCard[]> {
-  const packages = await prisma.package.findMany({
-    where: {
-      capperId,
-      isActive: true,
-      checkoutUrl: { not: null },
-      trackingUrls: { some: {} },
-      OR: [
-        { storeConnection: { status: "LIVE" } },
-        { storeConnectionId: null },
-      ],
-    },
-    orderBy: { createdAt: "asc" },
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      priceCents: true,
-      billingPeriod: true,
-      affiliateProvider: true,
-      trackingUrls: {
-        select: { slug: true },
-        orderBy: { createdAt: "asc" },
-        take: 1,
+  try {
+    const packages = await prisma.package.findMany({
+      where: {
+        capperId,
+        ...livePackageWhere,
       },
-    },
-  });
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        priceCents: true,
+        billingPeriod: true,
+        affiliateProvider: true,
+        trackingUrls: {
+          select: { slug: true },
+          orderBy: { createdAt: "asc" },
+          take: 1,
+        },
+      },
+    });
 
-  return packages
-    .filter((p) => p.trackingUrls[0]?.slug)
-    .map((p) => ({
-      id: p.id,
-      title: p.title,
-      description: p.description,
-      priceLabel: formatPriceCents(p.priceCents, p.billingPeriod),
-      provider: p.affiliateProvider,
-      trackingPath: `/go/${p.trackingUrls[0]!.slug}`,
-    }));
+    return packages
+      .filter((p) => p.trackingUrls[0]?.slug)
+      .map((p) => ({
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        priceLabel: formatPriceCents(p.priceCents, p.billingPeriod),
+        provider: p.affiliateProvider,
+        trackingPath: `/go/${p.trackingUrls[0]!.slug}`,
+      }));
+  } catch (error) {
+    console.error("[getLivePackagesForCapper] database unavailable:", error);
+    return [];
+  }
 }
 
 export async function listActiveMarketplacePackages() {
-  const packages = await prisma.package.findMany({
-    where: {
-      isActive: true,
-      checkoutUrl: { not: null },
-      trackingUrls: { some: {} },
-      OR: [
-        { storeConnection: { status: "LIVE" } },
-        { storeConnectionId: null },
-      ],
-    },
-    orderBy: { updatedAt: "desc" },
-    take: 60,
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      priceCents: true,
-      billingPeriod: true,
-      affiliateProvider: true,
-      trackingUrls: {
-        select: { slug: true },
-        take: 1,
-        orderBy: { createdAt: "asc" },
-      },
-      capper: {
-        select: {
-          user: {
-            select: { username: true, displayName: true },
+  try {
+    const packages = await prisma.package.findMany({
+      where: livePackageWhere,
+      orderBy: { updatedAt: "desc" },
+      take: 60,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        priceCents: true,
+        billingPeriod: true,
+        affiliateProvider: true,
+        trackingUrls: {
+          select: { slug: true },
+          take: 1,
+          orderBy: { createdAt: "asc" },
+        },
+        capper: {
+          select: {
+            user: {
+              select: { username: true, displayName: true },
+            },
           },
         },
       },
-    },
-  });
+    });
 
-  return packages
-    .filter((p) => p.trackingUrls[0]?.slug && p.capper.user.username)
-    .map((p) => ({
-      id: p.id,
-      title: p.title,
-      description: p.description,
-      priceLabel: formatPriceCents(p.priceCents, p.billingPeriod),
-      provider: p.affiliateProvider,
-      trackingPath: `/go/${p.trackingUrls[0]!.slug}`,
-      capperHandle: p.capper.user.username!,
-      capperName:
-        p.capper.user.displayName?.trim() ||
-        `@${p.capper.user.username!.replace(/^@/, "")}`,
-    }));
+    return packages
+      .filter((p) => p.trackingUrls[0]?.slug && p.capper.user.username)
+      .map((p) => ({
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        priceLabel: formatPriceCents(p.priceCents, p.billingPeriod),
+        provider: p.affiliateProvider,
+        trackingPath: `/go/${p.trackingUrls[0]!.slug}`,
+        capperHandle: p.capper.user.username!,
+        capperName:
+          p.capper.user.displayName?.trim() ||
+          `@${p.capper.user.username!.replace(/^@/, "")}`,
+      }));
+  } catch (error) {
+    console.error(
+      "[listActiveMarketplacePackages] database unavailable:",
+      error,
+    );
+    return [];
+  }
 }

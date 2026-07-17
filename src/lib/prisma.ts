@@ -10,4 +10,5 @@ export const prisma =
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   });
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+// Reuse across warm serverless isolates so we do not open a new pool per invoke.
+globalForPrisma.prisma = prisma;

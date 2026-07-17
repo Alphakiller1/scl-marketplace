@@ -11,11 +11,7 @@ import { SectionHeader } from "@/components/scl/section";
 import { SlipStoreProvider, useSlipStore } from "@/components/scl/slip-store";
 import { VerificationReceipt } from "@/components/scl/verification-receipt";
 import { Button } from "@/components/ui/button";
-import {
-  createParlay,
-  type AcceptedMove,
-  type MovedLinePayload,
-} from "@/lib/actions/parlay.action";
+import { createParlay } from "@/lib/actions/parlay.action";
 import { createPlay, createPlays } from "@/lib/actions/play.action";
 import type { SportKey } from "@/lib/constants";
 import { formatOdds } from "@/lib/format";
@@ -25,6 +21,7 @@ import {
   decimalToAmerican,
 } from "@/lib/odds";
 import { moveKey } from "@/lib/odds-movement";
+import type { AcceptedMove, MovedLinePayload } from "@/lib/odds-movement";
 import { toSlipLeg, type SlipMode } from "@/lib/slip";
 import { useIsLg } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
