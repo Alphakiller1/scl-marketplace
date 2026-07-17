@@ -1,9 +1,9 @@
 name: Deploy (Vercel)
 
-# Deploys to Vercel on push to main. Guarded: it no-ops cleanly until the three
-# Vercel secrets are set, so it never fails before deployment is configured.
-# Prefer the native Vercel GitHub integration; use this only for GitHub-driven
-# deploys. See docs/SCL_DEPLOYMENT.md.
+# Deploys to Vercel on push to main. Reads VERCEL_* secrets from the GitHub
+# Environment named "Production" (Settings → Environments → Production).
+# Prefer the native Vercel GitHub integration when it is promoting Production;
+# this workflow is the GitHub-driven fallback. See docs/SCL_DEPLOYMENT.md.
 
 on:
   push:
@@ -17,18 +17,34 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Required so secrets stored under Environments → Production are available.
+    # Repo-level Actions secrets also work with this; Environment secrets do not
+    # without this line (that was why deploys were silently skipping).
+    environment: Production
     steps:
       - name: Check Vercel config
         id: cfg
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
+          missing=()
+          [ -z "$VERCEL_TOKEN" ] && missing+=("VERCEL_TOKEN")
+          [ -z "$VERCEL_ORG_ID" ] && missing+=("VERCEL_ORG_ID")
+          [ -z "$VERCEL_PROJECT_ID" ] && missing+=("VERCEL_PROJECT_ID")
           if [ "${{ github.ref }}" != "refs/heads/main" ]; then
             echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "Production deploys only run on main — skipping deploy for ${{ github.ref }}." >> "$GITHUB_STEP_SUMMARY"
-          elif [ -n "${{ secrets.VERCEL_TOKEN }}" ] && [ -n "${{ secrets.VERCEL_ORG_ID }}" ] && [ -n "${{ secrets.VERCEL_PROJECT_ID }}" ]; then
+          elif [ ${#missing[@]} -eq 0 ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "Vercel secrets not set — skipping deploy. See docs/SCL_DEPLOYMENT.md." >> "$GITHUB_STEP_SUMMARY"
+            echo "Vercel secrets missing in GitHub Environment **Production**: ${missing[*]}" >> "$GITHUB_STEP_SUMMARY"
+            echo "Add them under Settings → Environments → Production → Environment secrets." >> "$GITHUB_STEP_SUMMARY"
+            echo "See docs/SCL_DEPLOYMENT.md Option B." >> "$GITHUB_STEP_SUMMARY"
+            # Fail loudly so a green check never means "deploy skipped".
+            exit 1
           fi
 
       - uses: actions/checkout@v4

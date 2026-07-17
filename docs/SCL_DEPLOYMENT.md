@@ -88,16 +88,23 @@ the isolated `scl` schema and must never reference `public`.
 
 ## Option B — GitHub Actions → Vercel (deploy driven from GitHub)
 
-A guarded workflow at `.github/workflows/deploy.yml` deploys to Vercel on push to `main`. It
-**no-ops** until you add three repository secrets, so it won't fail before it's configured.
+A workflow at `.github/workflows/deploy.yml` deploys to Vercel on push to `main`. It targets
+the GitHub Environment named **`Production`** (`environment: Production` in the workflow), so
+secrets must live under **Settings → Environments → Production → Environment secrets** — not
+only under the repo-wide Actions secrets list. (Vercel project env vars like `DATABASE_URL` /
+`AUTH_SECRET` are separate; those run the app, they do not authenticate the deploy CLI.)
 
 1. Create the Vercel project once (Option A steps 1–4) to get its IDs.
 2. Generate a token at **https://vercel.com/account/tokens**.
-3. Add repo secrets (GitHub → Settings → Secrets and variables → Actions):
+3. Add **Environment** secrets on GitHub → Settings → Environments → **Production**:
    - `VERCEL_TOKEN`
    - `VERCEL_ORG_ID` (from `.vercel/project.json` after `vercel link`, or the team settings)
    - `VERCEL_PROJECT_ID` (same source)
-4. Push to `main` → the workflow deploys and prints the URL in the run summary.
+4. Push to `main` (or run **Deploy (Vercel)** → Run workflow) → the job deploys and prints the
+   URL in the run summary. If any of the three secrets are missing, the job **fails** (it no
+   longer reports a false-green skip).
 
 > Use **either** Option A **or** Option B, not both (they'd double-deploy). If you use the
-> native integration, you can delete `deploy.yml`.
+> native integration and it is promoting Production on every `main` push, you can delete
+> `deploy.yml`. If live stays stale after merges, Option B (or a manual Redeploy in Vercel) is
+> the fix — app env vars alone will not ship new builds.
