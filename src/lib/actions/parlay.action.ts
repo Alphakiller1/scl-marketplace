@@ -137,6 +137,7 @@ export async function createParlay(
       market: l.market,
       selection: l.selection,
       side: l.side,
+      sport: l.sport,
       line: l.line,
       player: l.player,
       book: captureBook,

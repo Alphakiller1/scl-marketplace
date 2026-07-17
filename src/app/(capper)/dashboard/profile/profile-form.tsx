@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { OnboardingProgress } from "@/components/scl/onboarding-progress";
 import { AccountTrustSummary } from "@/components/scl/account-trust";
+import { LeagueMark } from "@/components/scl/league-mark";
 import { ProfileCompletionPanel } from "@/components/scl/profile-completion";
 import { ProfileIdentityPreview } from "@/components/scl/profile-identity-preview";
 import { ProfileMediaEditor } from "@/components/scl/profile-media-editor";
@@ -262,6 +263,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
                     key={sport.key}
                     value={sport.key}
                     label={sport.label}
+                    withLeagueMark
                     {...register("sports")}
                   />
                 ))}
@@ -439,10 +441,12 @@ function Field({
 function Chip({
   value,
   label,
+  withLeagueMark = false,
   ...register
 }: {
   value: string;
   label: string;
+  withLeagueMark?: boolean;
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <label className="cursor-pointer">
@@ -452,7 +456,10 @@ function Chip({
         className="peer sr-only"
         {...register}
       />
-      <span className="border-border text-muted-foreground peer-checked:border-brand peer-checked:bg-brand/10 peer-checked:text-brand inline-flex min-h-11 items-center rounded-lg border px-3 text-sm font-medium transition-colors select-none md:min-h-9">
+      <span className="border-border text-muted-foreground peer-checked:border-brand peer-checked:bg-brand/10 peer-checked:text-brand inline-flex min-h-11 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition-colors select-none md:min-h-9">
+        {withLeagueMark ? (
+          <LeagueMark leagueKey={value} size="sm" className="rounded-md" />
+        ) : null}
         {label}
       </span>
     </label>

@@ -87,10 +87,13 @@ export default async function AdminGradingPage() {
           <ul className="divide-border border-border max-h-64 divide-y overflow-auto rounded-lg border text-sm">
             {stuck.map((p) => (
               <li key={p.id} className="px-3 py-2">
-                <p className="font-medium break-words">
-                  {p.selection}{" "}
-                  <span className="text-muted-foreground font-normal">
-                    · {p.market} · {p.sport}
+                <p className="flex flex-wrap items-center gap-2 font-medium break-words">
+                  <SportTag sport={p.sport} markOnly />
+                  <span>
+                    {p.selection}{" "}
+                    <span className="text-muted-foreground font-normal">
+                      · {p.market} · {p.sport}
+                    </span>
                   </span>
                 </p>
                 <p className="text-muted-foreground scl-data text-xs tabular-nums">

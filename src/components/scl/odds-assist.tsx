@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DayToggle } from "@/components/scl/day-toggle";
 import { MarketChip } from "@/components/scl/market-chip";
 import { SkeletonCard } from "@/components/scl/states";
+import { TeamMark } from "@/components/scl/team-mark";
 import { cn } from "@/lib/utils";
 import { formatOdds } from "@/lib/format";
 import { selectionForActiveBook } from "@/lib/game-picker";
@@ -425,13 +426,7 @@ function EventRow({
 function BoardTeamLine({ team, fav }: { team: TeamIdentity; fav?: boolean }) {
   return (
     <span className="flex min-w-0 items-center gap-2.5">
-      <span
-        className="scl-display flex size-[30px] shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white"
-        style={{ backgroundColor: team.primaryColor }}
-        aria-hidden
-      >
-        {team.abbr}
-      </span>
+      <TeamMark team={team} size="md" />
       <span className="scl-display truncate text-[19px] font-semibold tracking-[0.02em]">
         {team.shortName}
       </span>

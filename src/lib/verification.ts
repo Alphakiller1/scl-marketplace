@@ -77,6 +77,10 @@ export type StraightReceipt = {
   kind: "straight";
   selection: string;
   market: string;
+  /** SCL sport key — league mark on post-submit Ticket. */
+  sport?: string;
+  /** Board side when known — team mark on post-submit Ticket. */
+  side?: string | null;
   oddsAmerican: number;
   /** ISO timestamp from the persisted play row when the odds were locked. */
   capturedAt: string;

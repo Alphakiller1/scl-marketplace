@@ -29,6 +29,12 @@ const FALLBACK_COLOR = "#3D4E6B";
 const ESPN_SPORT_SLUG: Record<string, string> = {
   MLB: "mlb",
   WNBA: "wnba",
+  NFL: "nfl",
+  NBA: "nba",
+  NHL: "nhl",
+  NCAAF: "ncaa/football",
+  NCAAB: "ncaa/basketball",
+  CFL: "cfl",
 };
 
 /**
@@ -208,7 +214,7 @@ export function getTeamIdentity(name: string, sport?: string): TeamIdentity {
     const found = TEAM_INDEX.get(indexKey(s, name));
     if (found) return stripAliases(found);
   }
-  return fallbackTeam(name);
+  return fallbackTeam(name, sport);
 }
 
 /**
@@ -280,7 +286,7 @@ function normalize(value: string): string {
     .trim();
 }
 
-function fallbackTeam(name: string): TeamIdentity {
+function fallbackTeam(name: string, sport?: string): TeamIdentity {
   const words = name
     .replace(/[^a-zA-Z0-9 ]+/g, " ")
     .split(/\s+/)
@@ -293,12 +299,16 @@ function fallbackTeam(name: string): TeamIdentity {
           .join("")
           .toUpperCase()
       : (words[0] ?? name).slice(0, 3).toUpperCase();
+  const logoUrl = sport
+    ? (teamMarkSrc(sport, abbr) ?? espnTeamLogoUrl(sport, abbr))
+    : undefined;
   return {
     key: `fallback-${normalize(name)}`,
     abbr,
     shortName: words.at(-1) ?? name,
     fullName: name,
     primaryColor: FALLBACK_COLOR,
+    logoUrl,
   };
 }
 

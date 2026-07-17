@@ -3,6 +3,8 @@
 import { X } from "lucide-react";
 
 import { BettingTitle } from "@/components/scl/betting-title";
+import { BookMark } from "@/components/scl/book-mark";
+import { LeagueRef, TeamRef, isTeamSide } from "@/components/scl/entity-marks";
 import { LineMovedPrompt } from "@/components/scl/line-moved-prompt";
 import { SlipConflictPrompt } from "@/components/scl/slip-conflict-prompt";
 import { SlipModeToggle } from "@/components/scl/slip-mode-toggle";
@@ -21,7 +23,6 @@ import {
   decimalToAmerican,
 } from "@/lib/odds";
 import type { MovedLinePayload } from "@/lib/odds-movement";
-import { BookMark } from "@/components/scl/book-mark";
 import { bookShort, isBookKey, type BookKey } from "@/lib/books";
 import { cn } from "@/lib/utils";
 
@@ -229,27 +230,44 @@ export function BetSlip({
             className="border-border rounded-[12px] border bg-[color:var(--scl-ink-800)] p-3"
           >
             <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <BettingTitle
-                  as="p"
-                  text={s.selection}
-                  className="scl-display text-sm font-bold tracking-[0.02em] break-words uppercase"
-                />
-                <p className="text-muted-foreground mt-0.5 text-xs">
-                  {s.market}
-                  {s.sport ? ` · ${s.sport}` : ""} ·{" "}
-                  <span className="scl-data text-foreground font-semibold">
-                    {formatOdds(s.oddsAmerican)}
-                  </span>
-                  {s.book && isBookKey(s.book) ? (
-                    <span className="ml-1.5 inline-flex items-center gap-1 align-middle">
-                      <BookMark bookKey={s.book} size={16} />
-                      <span className="scl-data text-muted-foreground tracking-[0.06em] uppercase">
-                        {bookShort(s.book)}
+              <div className="flex min-w-0 items-start gap-2">
+                {isTeamSide(s.side) && s.sport ? (
+                  <TeamRef
+                    name={s.side}
+                    sport={s.sport}
+                    size="sm"
+                    className="mt-0.5"
+                  />
+                ) : null}
+                <div className="min-w-0">
+                  <BettingTitle
+                    as="p"
+                    text={s.selection}
+                    className="scl-display text-sm font-bold tracking-[0.02em] break-words uppercase"
+                  />
+                  <p className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
+                    <span>{s.market}</span>
+                    {s.sport ? (
+                      <LeagueRef sport={s.sport} league={s.league} markOnly />
+                    ) : null}
+                    {s.sport ? (
+                      <span className="scl-data tracking-[0.06em] uppercase">
+                        {s.league?.trim() || s.sport}
                       </span>
+                    ) : null}
+                    <span className="scl-data text-foreground font-semibold">
+                      {formatOdds(s.oddsAmerican)}
                     </span>
-                  ) : null}
-                </p>
+                    {s.book && isBookKey(s.book) ? (
+                      <span className="inline-flex items-center gap-1">
+                        <BookMark bookKey={s.book} size={16} />
+                        <span className="scl-data tracking-[0.06em] uppercase">
+                          {bookShort(s.book)}
+                        </span>
+                      </span>
+                    ) : null}
+                  </p>
+                </div>
               </div>
               <button
                 type="button"

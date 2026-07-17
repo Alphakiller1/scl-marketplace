@@ -124,6 +124,7 @@ export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
           const team = teamIdentityFromSide(leg.side, leg.sport);
           return (
             <li key={leg.id} className="flex min-w-0 items-start gap-2.5">
+              <SportTag sport={leg.sport} markOnly className="mt-0.5" />
               {team ? (
                 <TeamMark team={team} size="sm" className="mt-0.5" />
               ) : null}
