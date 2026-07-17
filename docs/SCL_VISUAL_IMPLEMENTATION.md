@@ -26,12 +26,12 @@ The experience should communicate three ideas within seconds:
 read as all-magenta. Do **not** push hero or UI blues into washed sky/electric territory — cobalt
 stays deep; only a **slight** lift from the prior grade is allowed when owners ask for “lighter.”
 
-Current chrome blues (slight lift from v1.1 baseline):
+Current chrome blues (exact cobalt baseline — do not drift toward sky/electric):
 
-| Theme | Prior (`#165` era) | Current (slight lift) |
-| ----- | ------------------ | --------------------- |
-| Dark  | `#105FD9`          | `#1C6AE6`             |
-| Light | `#044CB6`          | `#0A58C9`             |
+| Theme | Token     |
+| ----- | --------- |
+| Dark  | `#105FD9` |
+| Light | `#044CB6` |
 
 Source of truth for roles remains `design/SCL-DESIGN-SPEC.md` v1.1; hexes above sync
 `src/app/globals.css`.
@@ -89,8 +89,9 @@ Implemented in `src/components/scl/competition-hero.tsx`. Layers must stay in th
 2. Slide changes must not remount with `scl-reveal` translateY (that “rumbles” the page). Stack
    slides in one CSS grid cell and fade opacity.
 3. Never reintroduce cover+contain dual images (reads as a paste seam).
-4. If art feels “too dark,” prefer a **subtle** cobalt lift in the WebP or a 1-step token nudge —
-   not a full regrade to electric blue.
+4. If art feels “too dark,” prefer a **tiny** pixel-level cobalt lift or owner review — never a
+   full regrade to electric/sky blue, and never leave a programmatic lighten pass that changes
+   the magenta/cobalt identity.
 
 ## Responsive composition
 
