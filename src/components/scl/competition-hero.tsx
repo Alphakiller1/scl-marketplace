@@ -86,14 +86,14 @@ export function CompetitionHero() {
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(90%_80%_at_70%_55%,rgba(16,95,217,0.26),transparent_55%),radial-gradient(70%_70%_at_25%_45%,rgba(166,0,127,0.20),transparent_50%),linear-gradient(180deg,var(--scl-ink-950),var(--scl-ink-900))]"
       />
-      {/* Layer 1 — atmosphere stretches edge-to-edge (object-cover) */}
+      {/* Layer 1 — original-design bleed (object-cover) so the hero is edge-to-edge */}
       <picture className="pointer-events-none absolute inset-0 block size-full">
         <source
           media="(min-width: 640px)"
-          srcSet="/assets/scl/leaderboard-hero-atmosphere-desktop.webp?v=20260717f4"
+          srcSet="/assets/scl/leaderboard-hero-atmosphere-desktop.webp?v=20260717f5"
         />
         <img
-          src="/assets/scl/leaderboard-hero-atmosphere-mobile.webp?v=20260717f4"
+          src="/assets/scl/leaderboard-hero-atmosphere-mobile.webp?v=20260717f5"
           alt=""
           width="2400"
           height="1200"
@@ -102,14 +102,14 @@ export function CompetitionHero() {
           className="absolute inset-0 size-full max-w-none object-cover object-center"
         />
       </picture>
-      {/* Layer 2 — full trophy at contain size (transparent margins over atmosphere) */}
+      {/* Layer 2 — opaque original trophy scene (object-contain); leave framing as-designed */}
       <picture className="pointer-events-none absolute inset-0 block size-full">
         <source
           media="(min-width: 640px)"
-          srcSet="/assets/scl/leaderboard-trophy-desktop.webp?v=20260717f4"
+          srcSet="/assets/scl/leaderboard-trophy-desktop.webp?v=20260717f5"
         />
         <img
-          src="/assets/scl/leaderboard-trophy-mobile.webp?v=20260717f4"
+          src="/assets/scl/leaderboard-trophy-mobile.webp?v=20260717f5"
           alt=""
           width="1920"
           height="1280"
@@ -118,18 +118,14 @@ export function CompetitionHero() {
           className="absolute inset-0 size-full max-w-none object-contain object-center"
         />
       </picture>
-      {/* Layers 2–4 — ink scrims for copy contrast only (no hue shift) */}
+      {/* Ink scrims for copy contrast only — keep light so the original art stays solid */}
       <div
         aria-hidden
-        className="absolute inset-0 bg-[color:var(--scl-ink-950)]/15"
+        className="absolute inset-0 bg-gradient-to-r from-[color:var(--scl-ink-950)]/45 via-[color:var(--scl-ink-950)]/10 to-transparent"
       />
       <div
         aria-hidden
-        className="absolute inset-0 bg-gradient-to-r from-[color:var(--scl-ink-950)]/55 via-[color:var(--scl-ink-950)]/15 to-transparent"
-      />
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-gradient-to-t from-[color:var(--scl-ink-950)]/35 via-transparent to-[color:var(--scl-ink-950)]/10"
+        className="absolute inset-0 bg-gradient-to-t from-[color:var(--scl-ink-950)]/28 via-transparent to-[color:var(--scl-ink-950)]/8"
       />
 
       <div className="relative mx-auto flex min-h-[31rem] w-full max-w-6xl flex-col px-4 py-8 sm:min-h-[36rem] sm:justify-center sm:px-6 sm:py-14">

@@ -77,25 +77,23 @@ Implemented in `src/components/scl/competition-hero.tsx`. Layers must stay in th
 | Z   | Layer                       | Purpose                                                                   |
 | --- | --------------------------- | ------------------------------------------------------------------------- |
 | 0   | Section ink-950 fallback    | Prevents flash before bitmaps paint                                       |
-| 1   | Atmosphere `<picture>` WebP | Full-bleed magenta→cobalt field (`object-cover`) — spans the whole hero   |
-| 2   | Trophy `<picture>` WebP     | Silver trophy + crown with transparent margins (`object-contain`)         |
-| 3   | Flat ink scrim (~15%)       | Global copy contrast                                                      |
-| 4   | L→R ink gradient (~55%→0)   | Softens left copy zone without killing right-side trophy                  |
-| 5   | B→T ink gradient            | Anchors lower edge                                                        |
-| 6   | Slide panel (grid-stacked)  | All slides share one cell; opacity crossfade only — no translateY remount |
-| 7   | Carousel controls           | Dots / prev-next outside the slide panel so height stays stable           |
+| 1   | Atmosphere `<picture>` WebP | Original-design bleed (`object-cover`) — dense widen of `a9f20d3`         |
+| 2   | Trophy `<picture>` WebP     | Opaque original trophy scene (`object-contain`) — framing left as-is      |
+| 3   | L→R ink gradient (light)    | Softens left copy zone without washing out the solid art                  |
+| 4   | B→T ink gradient (light)    | Anchors lower edge                                                        |
+| 5   | Slide panel (grid-stacked)  | All slides share one cell; opacity crossfade only — no translateY remount |
+| 6   | Carousel controls           | Dots / prev-next outside the slide panel so height stays stable           |
 
-**Why two bitmaps:** one `object-fit` cannot both stretch edge-to-edge and keep the full trophy at
-a stable size across short-wide heroes. Atmosphere covers; trophy contains; transparent trophy
-margins let the atmosphere show through (no black pillarbox).
+**Why two bitmaps:** one `object-fit` cannot both stretch edge-to-edge and keep the full original
+trophy scene at a stable size. The bleed layer is derived from the same original art (not a sparse
+or translucent overlay). The trophy layer stays opaque RGB — never punched alpha.
 
 **Layer investigation notes (locked):**
 
 1. Scrims are ink overlays only — they must not hue-shift magenta/cobalt art toward pink or sky blue.
 2. Slide changes must not remount with `scl-reveal` translateY (that “rumbles” the page). Stack
    slides in one CSS grid cell and fade opacity.
-3. Do not collapse back to a single cover crop of the trophy scene — that re-clips crown/base on
-   wide short viewports, or letterboxes if switched to contain.
+3. Do not punch transparency into the trophy scene or invent sparse chart overlays on top of it.
 4. If art feels “too dark,” prefer a **tiny** pixel-level cobalt lift or owner review — never a
    full regrade to electric/sky blue, and never leave a programmatic lighten pass that changes
    the magenta/cobalt identity.
