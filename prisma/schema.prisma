@@ -253,12 +253,16 @@ model Package {
   storeConnectionId String?
   title             String
   description       String?
+  /// Free trial / intro offer microcopy shown on package cards (optional).
+  promoOffer        String?
   priceCents        Int            @default(0)
   billingPeriod     BillingPeriod  @default(MONTH)
   // Provider affiliate / product destination URL — admin-owned for M3.
   checkoutUrl       String?
   affiliateProvider StoreProvider?
   providerType      ProviderType   @default(PREMIUM)
+  /// Lower numbers appear first on profile + marketplace.
+  sortOrder         Int            @default(0)
   isActive          Boolean        @default(true)
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
@@ -270,6 +274,7 @@ model Package {
   @@index([capperId])
   @@index([storeConnectionId])
   @@index([isActive])
+  @@index([sortOrder])
 }
 
 model TrackingUrl {

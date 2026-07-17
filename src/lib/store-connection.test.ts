@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   formatPriceCents,
+  packageCtaLabel,
   pendingStatusForProvider,
   providerLabel,
   storeStatusTone,
@@ -23,6 +24,12 @@ describe("store-connection helpers", () => {
   it("labels providers", () => {
     assert.equal(providerLabel("WINIBLE"), "Winible");
     assert.equal(providerLabel("WHOP"), "Whop");
+  });
+
+  it("adapts purchase CTA by platform", () => {
+    assert.equal(packageCtaLabel("WHOP"), "Subscribe on Whop");
+    assert.equal(packageCtaLabel("WINIBLE"), "Subscribe on Winible");
+    assert.equal(packageCtaLabel(null), "Subscribe");
   });
 
   it("formats display prices", () => {

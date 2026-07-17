@@ -170,7 +170,7 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
                 [
                   "WHOP",
                   "Whop",
-                  "Add SCL as an affiliate. Links appear in SCL’s Whop dashboard — no acceptance email.",
+                  "Add SCL as an affiliate. Whop may email SCL; package links appear in our Whop dashboard either way.",
                 ],
                 [
                   "NONE",
@@ -269,9 +269,11 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
           {provider === "WHOP" ? (
             <div className="space-y-3 text-sm">
               <p className="border-border bg-surface-2 rounded-lg border p-3 leading-relaxed">
-                Unlike Winible, Whop does not send SCL an acceptance email.
-                After you add SCL, product affiliate links appear in our Whop
-                affiliate dashboard automatically.
+                Whop may send SCL an affiliate notification email in some cases.
+                Either way, once the relationship is established our Whop
+                dashboard shows affiliate percentage, individual package links,
+                checkout links, and the company storefront — enough to manage
+                Whop packages the same way as Winible.
               </p>
               <ol className="space-y-3">
                 <li className="border-border rounded-lg border p-3">

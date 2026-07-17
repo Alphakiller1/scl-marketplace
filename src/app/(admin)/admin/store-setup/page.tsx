@@ -38,7 +38,7 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
       <SectionHeader
         icon={Store}
         title="Store Setup Requests"
-        subtitle="Winible requires affiliate acceptance. Whop skips email — copy product links from the Whop dashboard."
+        subtitle="Winible requires affiliate acceptance. Whop may email SCL in some cases — either way, import from the Whop affiliate dashboard (%, package links, checkout, storefront)."
       />
 
       <div className="flex flex-wrap gap-2">
@@ -151,7 +151,7 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed">
               {selected.provider === "WHOP"
-                ? "No acceptance email. Log into the Whop affiliate dashboard, copy product-specific links, then save packages."
+                ? "Whop may send an affiliate notification email in some cases. Once the relationship is live, use the Whop dashboard (affiliate %, product links, checkout links, storefront) — same package fields as Winible."
                 : "Wait for Winible email → accept affiliate → copy package links → save packages."}
             </p>
             <ul className="space-y-2 text-sm">
@@ -200,9 +200,11 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
                       id: selected.packages[0].id,
                       title: selected.packages[0].title,
                       description: selected.packages[0].description,
+                      promoOffer: selected.packages[0].promoOffer,
                       checkoutUrl: selected.packages[0].checkoutUrl,
                       priceCents: selected.packages[0].priceCents,
                       billingPeriod: selected.packages[0].billingPeriod,
+                      sortOrder: selected.packages[0].sortOrder,
                       isActive: selected.packages[0].isActive,
                       trackingSlug:
                         selected.packages[0].trackingUrls[0]?.slug || null,

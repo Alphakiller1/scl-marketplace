@@ -24,15 +24,18 @@ export function AdminPackageForm({
     id: string;
     title: string;
     description: string | null;
+    promoOffer?: string | null;
     checkoutUrl: string | null;
     priceCents: number;
     billingPeriod: BillingPeriod;
+    sortOrder?: number;
     isActive: boolean;
     trackingSlug?: string | null;
   } | null;
 }) {
   const [title, setTitle] = useState(initial?.title || "");
   const [description, setDescription] = useState(initial?.description || "");
+  const [promoOffer, setPromoOffer] = useState(initial?.promoOffer || "");
   const [checkoutUrl, setCheckoutUrl] = useState(initial?.checkoutUrl || "");
   const [priceDollars, setPriceDollars] = useState(
     initial ? String((initial.priceCents / 100).toFixed(2)) : "",
@@ -40,6 +43,7 @@ export function AdminPackageForm({
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>(
     initial?.billingPeriod || "MONTH",
   );
+  const [sortOrder, setSortOrder] = useState(String(initial?.sortOrder ?? 0));
   const [isActive, setIsActive] = useState(initial?.isActive ?? false);
   const [packageId, setPackageId] = useState(initial?.id || "");
   const trackingSlug = initial?.trackingSlug || "";
@@ -47,6 +51,7 @@ export function AdminPackageForm({
 
   function save(publish: boolean) {
     const cents = Math.round(Number.parseFloat(priceDollars || "0") * 100);
+    const order = Number.parseInt(sortOrder || "0", 10);
     startTransition(async () => {
       const res = await adminSavePackageAction({
         id: packageId || undefined,
@@ -55,9 +60,11 @@ export function AdminPackageForm({
         affiliateProvider: provider,
         title,
         description,
+        promoOffer,
         checkoutUrl,
         priceCents: Number.isFinite(cents) ? Math.max(0, cents) : 0,
         billingPeriod,
+        sortOrder: Number.isFinite(order) ? Math.max(0, order) : 0,
         isActive: publish ? true : isActive,
       });
       if (!res.ok) {
@@ -80,13 +87,18 @@ export function AdminPackageForm({
         save(false);
       }}
     >
+      <p className="text-muted-foreground text-xs leading-relaxed">
+        Platform-agnostic package object. Fill these fields once — the public
+        card and CTA are generated automatically for {providerLabel(provider)}.
+      </p>
+
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="provider">Provider</Label>
+          <Label htmlFor="provider">Platform</Label>
           <Input id="provider" value={providerLabel(provider)} readOnly />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="billing">Billing period</Label>
+          <Label htmlFor="billing">Billing cadence</Label>
           <select
             id="billing"
             className="border-border bg-background h-10 w-full rounded-md border px-3 text-sm"
@@ -114,7 +126,7 @@ export function AdminPackageForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="desc">Description</Label>
+        <Label htmlFor="desc">Package description</Label>
         <textarea
           id="desc"
           value={description}
@@ -127,10 +139,20 @@ export function AdminPackageForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="dest">
-          Provider destination URL (
-          {provider === "WHOP" ? "product-specific" : "package"} affiliate link)
-        </Label>
+        <Label htmlFor="promo">Free trial / introductory offer</Label>
+        <Input
+          id="promo"
+          value={promoOffer}
+          onChange={(e) => setPromoOffer(e.target.value)}
+          placeholder="e.g. 7-day free trial · first month 50% off"
+        />
+        <p className="text-muted-foreground text-xs">
+          Optional. Shown on the standardized package card when set.
+        </p>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="dest">Affiliate purchase link</Label>
         <Input
           id="dest"
           type="url"
@@ -144,7 +166,7 @@ export function AdminPackageForm({
           required
         />
         <p className="text-muted-foreground text-xs">
-          Admin-only. Cappers never paste affiliate links.
+          Admin-only destination. Public CTAs always use the SCL tracking URL.
         </p>
       </div>
 
@@ -157,15 +179,25 @@ export function AdminPackageForm({
         />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-3">
         <div className="space-y-1.5">
-          <Label htmlFor="price">Display price (USD)</Label>
+          <Label htmlFor="price">Price (USD)</Label>
           <Input
             id="price"
             inputMode="decimal"
             value={priceDollars}
             onChange={(e) => setPriceDollars(e.target.value)}
             placeholder="99.00"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="order">Display order</Label>
+          <Input
+            id="order"
+            inputMode="numeric"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+            placeholder="0"
           />
         </div>
         <label className="flex items-end gap-2 pb-2 text-sm">
@@ -175,7 +207,7 @@ export function AdminPackageForm({
             onChange={(e) => setIsActive(e.target.checked)}
             className="size-4 accent-[color:var(--scl-pink)]"
           />
-          Live on profile
+          Active / live
         </label>
       </div>
 
