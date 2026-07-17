@@ -34,11 +34,13 @@ export const adminPackageSchema = z.object({
   affiliateProvider: storeProviderSchema,
   title: z.string().trim().min(2).max(120),
   description: z.string().trim().max(2000).optional().or(z.literal("")),
+  promoOffer: z.string().trim().max(160).optional().or(z.literal("")),
   checkoutUrl: z.string().trim().url("Enter a valid destination URL."),
   priceCents: z.number().int().min(0).max(1_000_000).default(0),
   billingPeriod: z
     .enum(["ONE_TIME", "DAY", "WEEK", "MONTH", "SEASON", "YEAR"])
     .default("MONTH"),
+  sortOrder: z.number().int().min(0).max(10_000).default(0),
   isActive: z.boolean().default(false),
 });
 

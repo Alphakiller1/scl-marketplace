@@ -75,10 +75,12 @@ export async function listStoreConnections(filters?: {
             id: true,
             title: true,
             description: true,
+            promoOffer: true,
             isActive: true,
             checkoutUrl: true,
             priceCents: true,
             billingPeriod: true,
+            sortOrder: true,
             trackingUrls: {
               select: {
                 id: true,
@@ -88,7 +90,7 @@ export async function listStoreConnections(filters?: {
               take: 1,
             },
           },
-          orderBy: { createdAt: "desc" },
+          orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
         },
       },
     });
@@ -117,7 +119,7 @@ export async function getConnectionById(id: string) {
             orderBy: { createdAt: "asc" },
           },
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
       },
     },
   });
@@ -127,6 +129,7 @@ export type PublicPackageCard = {
   id: string;
   title: string;
   description: string | null;
+  promoOffer: string | null;
   priceLabel: string | null;
   provider: StoreProvider | null;
   trackingPath: string;
@@ -152,11 +155,12 @@ export async function getLivePackagesForCapper(
         capperId,
         ...livePackageWhere,
       },
-      orderBy: { createdAt: "asc" },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
       select: {
         id: true,
         title: true,
         description: true,
+        promoOffer: true,
         priceCents: true,
         billingPeriod: true,
         affiliateProvider: true,
@@ -174,6 +178,7 @@ export async function getLivePackagesForCapper(
         id: p.id,
         title: p.title,
         description: p.description,
+        promoOffer: p.promoOffer,
         priceLabel: formatPriceCents(p.priceCents, p.billingPeriod),
         provider: p.affiliateProvider,
         trackingPath: `/go/${p.trackingUrls[0]!.slug}`,
@@ -188,12 +193,13 @@ export async function listActiveMarketplacePackages() {
   try {
     const packages = await prisma.package.findMany({
       where: livePackageWhere,
-      orderBy: { updatedAt: "desc" },
+      orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
       take: 60,
       select: {
         id: true,
         title: true,
         description: true,
+        promoOffer: true,
         priceCents: true,
         billingPeriod: true,
         affiliateProvider: true,
@@ -218,6 +224,7 @@ export async function listActiveMarketplacePackages() {
         id: p.id,
         title: p.title,
         description: p.description,
+        promoOffer: p.promoOffer,
         priceLabel: formatPriceCents(p.priceCents, p.billingPeriod),
         provider: p.affiliateProvider,
         trackingPath: `/go/${p.trackingUrls[0]!.slug}`,

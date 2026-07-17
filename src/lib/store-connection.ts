@@ -19,6 +19,21 @@ export function providerLabel(provider: StoreProvider): string {
   return provider === "WINIBLE" ? "Winible" : "Whop";
 }
 
+/**
+ * Platform-adaptive purchase CTA. Public cards never expose raw affiliate URLs —
+ * the button still points at `/go/[slug]`.
+ */
+export function packageCtaLabel(provider?: StoreProvider | null): string {
+  switch (provider) {
+    case "WHOP":
+      return "Subscribe on Whop";
+    case "WINIBLE":
+      return "Subscribe on Winible";
+    default:
+      return "Subscribe";
+  }
+}
+
 export function pendingStatusForProvider(
   provider: StoreProvider,
 ): StoreConnectionStatus {
@@ -99,9 +114,10 @@ export function adminChecklist(provider: StoreProvider): string[] {
   if (provider === "WHOP") {
     return [
       "Capper confirmed SCL added as Whop affiliate",
-      "Product-specific links visible in Whop affiliate dashboard",
-      "Recurring commission confirmed (not first payment only)",
-      "Package objects created with destination URLs",
+      "Whop notification email checked if received (not always sent)",
+      "Affiliate % + product/checkout links visible in Whop dashboard",
+      "Recurring commission confirmed when available",
+      "Package objects created (name, price, description, affiliate link, promo, order)",
       "SCL tracking URLs generated",
       "Packages marked Live on profile",
     ];
@@ -110,7 +126,7 @@ export function adminChecklist(provider: StoreProvider): string[] {
     "Winible affiliate invite email received",
     "Affiliate relationship accepted in Winible",
     "Package-level affiliate links available",
-    "Package objects created with destination URLs",
+    "Package objects created (name, price, description, affiliate link, promo, order)",
     "SCL tracking URLs generated",
     "Packages marked Live on profile",
   ];

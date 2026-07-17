@@ -5,12 +5,14 @@ import { ArrowUpRight } from "lucide-react";
 import { ProviderBadge } from "@/components/scl/provider-badge";
 import { Button } from "@/components/ui/button";
 import { STOREFRONT_OUTBOUND_MICROCOPY } from "@/lib/cold-start-copy";
+import { packageCtaLabel } from "@/lib/store-connection";
 import { cn } from "@/lib/utils";
 
 export type PackageCardData = {
   id: string;
   title: string;
   description?: string | null;
+  promoOffer?: string | null;
   priceLabel?: string | null;
   provider?: StoreProvider | null;
   trackingPath: string;
@@ -25,6 +27,8 @@ export function PackageCard({
   pkg: PackageCardData;
   className?: string;
 }) {
+  const cta = packageCtaLabel(pkg.provider);
+
   return (
     <article
       className={cn(
@@ -52,6 +56,11 @@ export function PackageCard({
             {pkg.description}
           </p>
         ) : null}
+        {pkg.promoOffer ? (
+          <p className="text-brand mt-2 text-xs font-semibold tracking-wide uppercase">
+            {pkg.promoOffer}
+          </p>
+        ) : null}
       </div>
       <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-1">
         {pkg.priceLabel ? (
@@ -72,7 +81,7 @@ export function PackageCard({
           nativeButton={false}
           className="min-h-11 gap-1.5 sm:min-h-9"
         >
-          View package
+          {cta}
           <ArrowUpRight className="size-4" aria-hidden />
         </Button>
       </div>

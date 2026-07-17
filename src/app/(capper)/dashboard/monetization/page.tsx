@@ -23,7 +23,7 @@ export default async function MonetizationPage() {
       <SectionHeader
         icon={Store}
         title="Set Up Your SCL Storefront"
-        subtitle="Connect Winible or Whop. You submit the affiliate relationship — SCL imports links and publishes packages."
+        subtitle="Connect Winible or Whop. You confirm the affiliate relationship — SCL imports links and publishes standardized packages."
       />
 
       <MonetizationWizard
