@@ -1,0 +1,32 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
+import {
+  formatPriceCents,
+  pendingStatusForProvider,
+  providerLabel,
+  storeStatusTone,
+} from "@/lib/store-connection";
+
+describe("store-connection helpers", () => {
+  it("maps pending status by provider", () => {
+    assert.equal(pendingStatusForProvider("WINIBLE"), "PENDING_SCL_ACCEPTANCE");
+    assert.equal(pendingStatusForProvider("WHOP"), "PENDING_SCL_LINK_IMPORT");
+  });
+
+  it("never treats pending as live tone", () => {
+    assert.equal(storeStatusTone("PENDING_SCL_ACCEPTANCE"), "pending");
+    assert.equal(storeStatusTone("PENDING_SCL_LINK_IMPORT"), "pending");
+    assert.equal(storeStatusTone("LIVE"), "live");
+  });
+
+  it("labels providers", () => {
+    assert.equal(providerLabel("WINIBLE"), "Winible");
+    assert.equal(providerLabel("WHOP"), "Whop");
+  });
+
+  it("formats display prices", () => {
+    assert.equal(formatPriceCents(9900, "MONTH"), "$99 / month");
+    assert.equal(formatPriceCents(0, "MONTH"), null);
+  });
+});

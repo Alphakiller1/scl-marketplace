@@ -183,12 +183,59 @@ model CapperProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plays    Play[]
-  parlays  Parlay[]
-  packages Package[]
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plays            Play[]
+  parlays          Parlay[]
+  packages         Package[]
+  storeConnections StoreConnection[]
 
   @@index([providerType])
+}
+
+// ---------- Store onboarding & affiliate packages (Milestone 3) ----------
+
+enum StoreProvider {
+  WINIBLE
+  WHOP
+}
+
+enum StoreConnectionStatus {
+  NOT_STARTED
+  INSTRUCTIONS_VIEWED
+  PENDING_SCL_ACCEPTANCE
+  PENDING_SCL_LINK_IMPORT
+  LINKS_RECEIVED
+  PACKAGES_IMPORTED
+  LIVE
+  NEEDS_ACTION
+  DISABLED
+}
+
+enum PackageImportStatus {
+  NOT_STARTED
+  LINKS_RECEIVED
+  IMPORTED
+  LIVE
+}
+
+model StoreConnection {
+  id                  String                @id @default(cuid())
+  capperId            String
+  provider            StoreProvider
+  status              StoreConnectionStatus @default(NOT_STARTED)
+  packageImportStatus PackageImportStatus   @default(NOT_STARTED)
+  submittedAt         DateTime?
+  acknowledgmentAt    DateTime?
+  adminNotes          String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  capper   CapperProfile @relation(fields: [capperId], references: [id], onDelete: Cascade)
+  packages Package[]
+
+  @@unique([capperId, provider])
+  @@index([status])
+  @@index([provider])
 }
 
 enum BillingPeriod {
@@ -201,23 +248,28 @@ enum BillingPeriod {
 }
 
 model Package {
-  id            String        @id @default(cuid())
-  capperId      String
-  title         String
-  description   String?
-  priceCents    Int           @default(0)
-  billingPeriod BillingPeriod @default(MONTH)
-  // External checkout (e.g. Winible) for Phase 1; native Stripe checkout in Phase 2.
-  checkoutUrl   String?
-  providerType  ProviderType  @default(PREMIUM)
-  isActive      Boolean       @default(true)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id                String         @id @default(cuid())
+  capperId          String
+  storeConnectionId String?
+  title             String
+  description       String?
+  priceCents        Int            @default(0)
+  billingPeriod     BillingPeriod  @default(MONTH)
+  // Provider affiliate / product destination URL — admin-owned for M3.
+  checkoutUrl       String?
+  affiliateProvider StoreProvider?
+  providerType      ProviderType   @default(PREMIUM)
+  isActive          Boolean        @default(true)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
-  capper       CapperProfile @relation(fields: [capperId], references: [id], onDelete: Cascade)
-  trackingUrls TrackingUrl[]
+  capper          CapperProfile    @relation(fields: [capperId], references: [id], onDelete: Cascade)
+  storeConnection StoreConnection? @relation(fields: [storeConnectionId], references: [id], onDelete: SetNull)
+  trackingUrls    TrackingUrl[]
 
   @@index([capperId])
+  @@index([storeConnectionId])
+  @@index([isActive])
 }
 
 model TrackingUrl {

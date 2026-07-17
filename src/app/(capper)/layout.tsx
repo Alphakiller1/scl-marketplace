@@ -6,6 +6,7 @@ const CAPPER_NAV = [
   { href: "/dashboard/picks/new", label: "New Pick" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/dashboard/picks", label: "My Picks" },
+  { href: "/dashboard/monetization", label: "Monetization" },
   { href: "/dashboard/profile", label: "Profile" },
 ];
 
