@@ -7,9 +7,26 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { adminSavePackageAction } from "@/lib/actions/store.action";
+import {
+  adminSavePackageAction,
+  adminSetPackageActiveAction,
+} from "@/lib/actions/store.action";
 import { providerLabel } from "@/lib/store-connection";
 import { cn } from "@/lib/utils";
+
+export type AdminPackageInitial = {
+  id: string;
+  title: string;
+  description: string | null;
+  promoOffer?: string | null;
+  checkoutUrl: string | null;
+  priceCents: number;
+  billingPeriod: BillingPeriod;
+  sortOrder?: number;
+  isActive: boolean;
+  trackingSlug?: string | null;
+  clickCount?: number;
+};
 
 export function AdminPackageForm({
   capperId,
@@ -20,18 +37,7 @@ export function AdminPackageForm({
   capperId: string;
   storeConnectionId?: string | null;
   provider: StoreProvider;
-  initial?: {
-    id: string;
-    title: string;
-    description: string | null;
-    promoOffer?: string | null;
-    checkoutUrl: string | null;
-    priceCents: number;
-    billingPeriod: BillingPeriod;
-    sortOrder?: number;
-    isActive: boolean;
-    trackingSlug?: string | null;
-  } | null;
+  initial?: AdminPackageInitial | null;
 }) {
   const [title, setTitle] = useState(initial?.title || "");
   const [description, setDescription] = useState(initial?.description || "");
@@ -47,6 +53,7 @@ export function AdminPackageForm({
   const [isActive, setIsActive] = useState(initial?.isActive ?? false);
   const [packageId, setPackageId] = useState(initial?.id || "");
   const trackingSlug = initial?.trackingSlug || "";
+  const clickCount = initial?.clickCount ?? 0;
   const [pending, startTransition] = useTransition();
 
   function save(publish: boolean) {
@@ -74,7 +81,26 @@ export function AdminPackageForm({
       if (res.packageId) setPackageId(res.packageId);
       if (publish) setIsActive(true);
       toast.success(publish ? "Package published" : "Package saved");
-      // Tracking slug is generated server-side; reload to refresh queue detail.
+      window.location.reload();
+    });
+  }
+
+  function setActive(next: boolean) {
+    if (!packageId) {
+      setIsActive(next);
+      return;
+    }
+    startTransition(async () => {
+      const res = await adminSetPackageActiveAction({
+        packageId,
+        isActive: next,
+      });
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      setIsActive(next);
+      toast.success(next ? "Package activated" : "Package deactivated");
       window.location.reload();
     });
   }
@@ -170,13 +196,24 @@ export function AdminPackageForm({
         </p>
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="track">SCL tracking URL</Label>
-        <Input
-          id="track"
-          readOnly
-          value={trackingSlug ? `/go/${trackingSlug}` : "Generated on save"}
-        />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="track">SCL tracking URL</Label>
+          <Input
+            id="track"
+            readOnly
+            value={trackingSlug ? `/go/${trackingSlug}` : "Generated on save"}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="clicks">Tracked clicks</Label>
+          <Input
+            id="clicks"
+            readOnly
+            value={packageId ? String(clickCount) : "—"}
+            className="tabular-nums"
+          />
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -204,7 +241,7 @@ export function AdminPackageForm({
           <input
             type="checkbox"
             checked={isActive}
-            onChange={(e) => setIsActive(e.target.checked)}
+            onChange={(e) => setActive(e.target.checked)}
             className="size-4 accent-[color:var(--scl-pink)]"
           />
           Active / live
@@ -224,6 +261,17 @@ export function AdminPackageForm({
         >
           Save & publish
         </Button>
+        {packageId ? (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending}
+            className="min-h-11"
+            onClick={() => setActive(false)}
+          >
+            Deactivate
+          </Button>
+        ) : null}
       </div>
     </form>
   );

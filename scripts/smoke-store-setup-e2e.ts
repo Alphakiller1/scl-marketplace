@@ -1,12 +1,14 @@
 /**
- * HTTP-only store-setup e2e against production.
+ * Read-only store-setup smoke against production.
  * Requires SCL_SMOKE_EMAIL + SCL_SMOKE_PASSWORD (account must be ADMIN).
+ *
+ * Does not create packages — the admin store-smoke API was removed.
+ * After deploy, ensure-owner-admin deactivates leftover "SCL Smoke E2E Package".
  */
 const EMAIL = process.env.SCL_SMOKE_EMAIL || "chase4sichi@gmail.com";
 const PASSWORD = process.env.SCL_SMOKE_PASSWORD;
 const BASE = process.env.SCL_SMOKE_BASE || "https://scl-marketplace.vercel.app";
-const TITLE = "SCL Smoke E2E Package";
-const AFFILIATE_URL = "https://whop.com/checkout/plan_scl_smoke_e2e";
+const SMOKE_TITLE = "SCL Smoke E2E Package";
 
 async function login(email: string, password: string) {
   const jar = new Map<string, string>();
@@ -77,66 +79,37 @@ async function main() {
     fail("store-setup missing page header");
   }
 
-  // Capper submit + admin import/publish in one authenticated admin helper.
-  const smoke = await fetch(`${BASE}/api/admin/store-smoke`, {
+  // Multi-package editor mounts whenever a connection is selected.
+  if (storeHtml.includes("Request detail")) {
+    for (const needle of [
+      "New package",
+      "Package name",
+      "Affiliate purchase link",
+      "Tracked clicks",
+      "Display order",
+    ]) {
+      if (!storeHtml.includes(needle)) fail(`store-setup missing: ${needle}`);
+    }
+  }
+
+  const smokeApi = await fetch(`${BASE}/api/admin/store-smoke`, {
     method: "POST",
     headers: { cookie },
   });
-  const body = (await smoke.json()) as {
-    ok?: boolean;
-    error?: string;
-    trackingPath?: string;
-    trackingSlug?: string;
-    profilePath?: string | null;
-    title?: string;
-  };
-  if (!smoke.ok || !body.ok) {
-    fail(`store-smoke API failed: ${smoke.status} ${body.error || ""}`);
-  }
-
-  const storeSetup2 = await fetch(`${BASE}/admin/store-setup?provider=WHOP`, {
-    headers: { cookie },
-  });
-  const storeHtml2 = await storeSetup2.text();
-  for (const needle of [
-    "Package name",
-    "Affiliate purchase link",
-    "Display order",
-    "Free trial",
-    TITLE,
-  ]) {
-    if (!storeHtml2.includes(needle)) fail(`store-setup missing: ${needle}`);
+  if (smokeApi.status !== 404) {
+    fail(`store-smoke API should be 404, got ${smokeApi.status}`);
   }
 
   const monetization = await fetch(`${BASE}/dashboard/monetization`, {
     headers: { cookie },
   });
   if (monetization.status !== 200) fail("monetization not 200");
-  const monHtml = await monetization.text();
-  if (!monHtml.includes("Whop") && !monHtml.includes("Live")) {
-    console.warn("monetization page loaded but Whop/Live copy not found");
-  }
 
   const packagesPage = await fetch(`${BASE}/packages`);
-  const packagesHtml = await packagesPage.text();
   if (packagesPage.status !== 200) fail("packages not 200");
-  if (!packagesHtml.includes(TITLE)) fail("packages missing smoke title");
-  if (!packagesHtml.includes("Subscribe on Whop")) {
-    fail("packages missing adaptive CTA");
-  }
-  if (!packagesHtml.includes("7-day free trial")) {
-    fail("packages missing promo offer");
-  }
-
-  if (body.profilePath) {
-    const profile = await fetch(`${BASE}${body.profilePath}`);
-    if (profile.status !== 200) fail(`profile ${body.profilePath} not 200`);
-  }
-
-  const go = await fetch(`${BASE}${body.trackingPath}`, { redirect: "manual" });
-  if (go.status !== 302) fail(`go status ${go.status}`);
-  if (go.headers.get("location") !== AFFILIATE_URL) {
-    fail(`go location mismatch: ${go.headers.get("location")}`);
+  const packagesHtml = await packagesPage.text();
+  if (packagesHtml.includes(SMOKE_TITLE)) {
+    fail("smoke package still live on /packages — redeploy ensure-owner-admin");
   }
 
   console.log(
@@ -145,11 +118,11 @@ async function main() {
         ok: true,
         role: session.user.role,
         storeSetup: storeSetup.status,
+        hasConnectionDetail: storeHtml.includes("Request detail"),
         monetization: monetization.status,
         packages: packagesPage.status,
-        go: go.status,
-        trackingPath: body.trackingPath,
-        title: body.title,
+        storeSmokeApi: smokeApi.status,
+        smokePackageLive: false,
       },
       null,
       2,
