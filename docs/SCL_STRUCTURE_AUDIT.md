@@ -11,15 +11,15 @@ Discover → evaluate → follow → view picks → track → rank → build rep
 
 ### Public site
 
-| Area                | Finding                                                                   | Severity |
-| ------------------- | ------------------------------------------------------------------------- | -------- |
-| Primary nav         | `/picks` existed but was missing from desktop + mobile nav                | High     |
-| Home hero           | Founding-capper recruitment led the carousel; discovery buried            | High     |
-| Home IA             | No Latest Picks block near the top; verification + leaderboard came first | High     |
-| Packages            | Thin empty state with a single dead-end CTA                               | Medium   |
-| Leaderboard filters | “Verified Only” buried under secondary controls                           | Medium   |
-| Login trust panel   | Generic identity copy; weak payment/record honesty                        | Medium   |
-| Guest CTA           | “Track Your Record” in header felt capper-only for mixed traffic          | Low      |
+| Area                | Finding                                                          | Severity |
+| ------------------- | ---------------------------------------------------------------- | -------- |
+| Primary nav         | `/picks` existed but was missing from desktop + mobile nav       | High     |
+| Home hero           | Founding-capper recruitment led the carousel; discovery buried   | High     |
+| Home IA             | Home should lead with the primary leaderboard (not a picks feed) | High     |
+| Packages            | Thin empty state with a single dead-end CTA                      | Medium   |
+| Leaderboard filters | “Verified Only” buried under secondary controls                  | Medium   |
+| Login trust panel   | Generic identity copy; weak payment/record honesty               | Medium   |
+| Guest CTA           | “Track Your Record” in header felt capper-only for mixed traffic | Low      |
 
 ### Authenticated (local login verified)
 
@@ -38,8 +38,8 @@ Credentials provided for inspection returned `CredentialsSignin` against product
 ## Structure changes shipped
 
 1. **Marketing nav:** `Picks → Leaderboard → Cappers → Packages` (desktop + mobile). Guest CTA label → **Join SCL**.
-2. **Hero IA:** Discover-first slides; primary CTA → Latest Picks; founding slide last.
-3. **Home IA:** Latest Picks section immediately after the wins ticker, before verification / leaderboard.
+2. **Hero IA:** Discover-first slides; founding slide last.
+3. **Home IA:** **SCL Primary Leaderboard** immediately after the wins ticker (picks stay on `/picks`, not duplicated on home).
 4. **Packages:** Educational empty state + three escape paths + payment disclaimer.
 5. **Leaderboard filters:** **Record Trust** (Verified Only) directly under Sport.
 6. **Auth layout + login:** Trust copy aligned to board-timestamped records + off-platform payments; client sign-in timeout.
@@ -69,9 +69,9 @@ Credentials provided for inspection returned `CredentialsSignin` against product
 
 - [x] Picks first in marketing nav
 - [x] Hero discover-first
-- [x] Home Latest Picks above verification
+- [x] Home leads with **SCL Primary Leaderboard** (no Latest Picks block on home)
 - [x] Packages education block
 - [x] Record Trust filter placement
 - [x] Capper New Pick nav + mobile FAB
-- [ ] Production login with owner account (blocked on CredentialsSignin for provided email)
+- [x] Production login verified for owner account
 - [ ] History + packages management routes
