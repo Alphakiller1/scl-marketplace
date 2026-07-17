@@ -53,7 +53,7 @@ export default async function DashboardPage() {
           nativeButton={false}
           className="min-h-11 w-full gap-1.5 sm:min-h-8 sm:w-auto"
         >
-          <Plus className="size-4" /> Submit A Play
+          <Plus className="size-4" /> New Pick
         </Button>
       </div>
 
@@ -131,7 +131,7 @@ export default async function DashboardPage() {
                 render={<Link href="/dashboard/picks/new" />}
                 nativeButton={false}
               >
-                Submit A Play
+                New Pick
               </Button>
             }
           />
