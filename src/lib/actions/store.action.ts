@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireCapperAccess } from "@/lib/session";
@@ -22,12 +23,52 @@ import {
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
+/** Statuses that package save/activate must never auto-override. */
+const LOCKED_STORE_STATUSES = new Set(["DISABLED", "NEEDS_ACTION"]);
+
 async function revalidateCommercePaths(username?: string | null) {
   revalidatePath("/dashboard/monetization");
   revalidatePath("/admin/store-setup");
   revalidatePath("/admin/packages");
   revalidatePath("/packages");
   if (username) revalidatePath(`/cappers/${username}`);
+}
+
+/**
+ * Keep import + connection status in sync with live package count,
+ * without clobbering admin-locked statuses (Disabled / Needs Action).
+ */
+async function syncConnectionFromLivePackages(
+  tx: Prisma.TransactionClient,
+  storeConnectionId: string,
+) {
+  const [liveCount, conn] = await Promise.all([
+    tx.package.count({
+      where: { storeConnectionId, isActive: true },
+    }),
+    tx.storeConnection.findUnique({
+      where: { id: storeConnectionId },
+      select: { status: true },
+    }),
+  ]);
+  if (!conn) return;
+
+  const packageImportStatus = liveCount > 0 ? "LIVE" : "IMPORTED";
+  if (LOCKED_STORE_STATUSES.has(conn.status)) {
+    await tx.storeConnection.update({
+      where: { id: storeConnectionId },
+      data: { packageImportStatus },
+    });
+    return;
+  }
+
+  await tx.storeConnection.update({
+    where: { id: storeConnectionId },
+    data: {
+      packageImportStatus,
+      status: liveCount > 0 ? "LIVE" : "PACKAGES_IMPORTED",
+    },
+  });
 }
 
 export async function markInstructionsViewedAction(input: {
@@ -253,16 +294,7 @@ export async function adminSavePackageAction(
     }
 
     if (storeConnectionId) {
-      const liveCount = await tx.package.count({
-        where: { storeConnectionId, isActive: true },
-      });
-      await tx.storeConnection.update({
-        where: { id: storeConnectionId },
-        data: {
-          packageImportStatus: liveCount > 0 ? "LIVE" : "IMPORTED",
-          status: liveCount > 0 ? "LIVE" : "PACKAGES_IMPORTED",
-        },
-      });
+      await syncConnectionFromLivePackages(tx, storeConnectionId);
     }
 
     return pkg.id;
@@ -295,16 +327,7 @@ export async function adminSetPackageActiveAction(
       data: { isActive: parsed.data.isActive },
     });
     if (pkg.storeConnectionId) {
-      const liveCount = await tx.package.count({
-        where: { storeConnectionId: pkg.storeConnectionId, isActive: true },
-      });
-      await tx.storeConnection.update({
-        where: { id: pkg.storeConnectionId },
-        data: {
-          packageImportStatus: liveCount > 0 ? "LIVE" : "IMPORTED",
-          status: liveCount > 0 ? "LIVE" : "PACKAGES_IMPORTED",
-        },
-      });
+      await syncConnectionFromLivePackages(tx, pkg.storeConnectionId);
     }
   });
 

@@ -283,7 +283,7 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
                       title: selectedPackage.title,
                       description: selectedPackage.description,
                       promoOffer: selectedPackage.promoOffer,
-                      checkoutUrl: selectedPackage.checkoutUrl,
+                      checkoutUrl: selectedPackage.checkoutUrl || "",
                       priceCents: selectedPackage.priceCents,
                       billingPeriod: selectedPackage.billingPeriod,
                       sortOrder: selectedPackage.sortOrder,
