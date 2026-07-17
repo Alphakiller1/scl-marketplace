@@ -6,12 +6,12 @@ text, metrics, controls, or logos; those remain accessible HTML and code-native 
 Remote sports marks are **self-hosted** (optional) under `public/marks/`, gated by a static
 manifest — never hotlinked. Missing marks always render the monogram/lettermark fallback.
 
-| Asset                                      |  Dimensions | Use                                | Treatment                                                                                                          |
-| ------------------------------------------ | ----------: | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `leaderboard-hero-atmosphere-desktop.webp` | 2400 x 1200 | Home hero bleed at `sm` and above  | Magenta→cobalt wash from `a9f20d3` edges; `object-cover` so art spans the full hero layer                          |
-| `leaderboard-hero-atmosphere-mobile.webp`  | 1200 x 1600 | Home hero bleed below `sm`         | Portrait companion for the atmosphere layer                                                                        |
-| `leaderboard-trophy-desktop.webp`          | 1920 x 1280 | Home hero trophy at `sm` and above | Silver trophy + gold crown (`a9f20d3`) with transparent margins; `object-contain` keeps full trophy at stable size |
-| `leaderboard-trophy-mobile.webp`           | 1080 x 1920 | Home hero trophy below `sm`        | Matching portrait trophy with transparent margins                                                                  |
+| Asset                                      |  Dimensions | Use                                | Treatment                                                                                            |
+| ------------------------------------------ | ----------: | ---------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `leaderboard-hero-atmosphere-desktop.webp` | 2400 x 1200 | Home hero bleed at `sm` and above  | Dense widen of the original `a9f20d3` scene (same design); `object-cover` for edge-to-edge fill      |
+| `leaderboard-hero-atmosphere-mobile.webp`  | 1200 x 1600 | Home hero bleed below `sm`         | Portrait companion derived the same way from the original mobile art                                 |
+| `leaderboard-trophy-desktop.webp`          | 1920 x 1280 | Home hero trophy at `sm` and above | Opaque original silver trophy + gold crown (`a9f20d3`); `object-contain` — leave framing as-designed |
+| `leaderboard-trophy-mobile.webp`           | 1080 x 1920 | Home hero trophy below `sm`        | Opaque matching portrait original                                                                    |
 
 ## League / team marks (self-hosted)
 
