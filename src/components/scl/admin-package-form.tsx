@@ -59,6 +59,7 @@ export function AdminPackageForm({
   function save(publish: boolean) {
     const cents = Math.round(Number.parseFloat(priceDollars || "0") * 100);
     const order = Number.parseInt(sortOrder || "0", 10);
+    const wasCreate = !packageId;
     startTransition(async () => {
       const res = await adminSavePackageAction({
         id: packageId || undefined,
@@ -81,6 +82,13 @@ export function AdminPackageForm({
       if (res.packageId) setPackageId(res.packageId);
       if (publish) setIsActive(true);
       toast.success(publish ? "Package published" : "Package saved");
+      // After create, leave ?packageId=new so the new package opens for edit.
+      if (wasCreate && res.packageId) {
+        const url = new URL(window.location.href);
+        url.searchParams.set("packageId", res.packageId);
+        window.location.assign(url.toString());
+        return;
+      }
       window.location.reload();
     });
   }
