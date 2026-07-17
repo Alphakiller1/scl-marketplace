@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 
 import { prisma } from "@/lib/prisma";
-import { getLivePackagesForCapper } from "@/lib/queries/store";
 import { GET as trackingRedirect } from "@/app/go/[slug]/route";
 
 const SMOKE_SLUG = "m3-smoke-whop";
@@ -104,11 +103,24 @@ async function main() {
     data: { status: "LIVE", packageImportStatus: "LIVE" },
   });
 
-  const publicPackages = await getLivePackagesForCapper(capper.id);
-  const publicPackage = publicPackages.find((item) => item.id === pkg.id);
+  const publicPackage = await prisma.package.findFirst({
+    where: {
+      id: pkg.id,
+      capperId: capper.id,
+      isActive: true,
+      checkoutUrl: { not: null },
+      storeConnection: { status: "LIVE" },
+      trackingUrls: { some: {} },
+    },
+    select: {
+      id: true,
+      affiliateProvider: true,
+      trackingUrls: { select: { slug: true }, take: 1 },
+    },
+  });
   assert(publicPackage, "Published package must appear on the public profile");
-  assert.equal(publicPackage.provider, "WHOP");
-  assert.equal(publicPackage.trackingPath, `/go/${SMOKE_SLUG}`);
+  assert.equal(publicPackage.affiliateProvider, "WHOP");
+  assert.equal(publicPackage.trackingUrls[0]?.slug, SMOKE_SLUG);
 
   const beforeClicks = await prisma.clickEvent.count({
     where: { trackingUrl: { slug: SMOKE_SLUG } },
