@@ -14,13 +14,13 @@ The experience should communicate three ideas within seconds:
 
 ## Design matrix (color roles)
 
-| Role           | Token / hue                       | Used for                                                                | Never used for                                |
-| -------------- | --------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------- |
-| Conviction     | `--scl-pink` (magenta)            | Primary CTAs, verified stamps, selected odds, rank medals, slip accents | Nav chrome, passive filters, decorative fills |
-| Navigation     | `--scl-blue` (cobalt)             | Active nav/tabs/pills, focus rings, border-strong, chart-2, logo bridge | Primary CTAs, verified stamps                 |
-| Atmosphere art | Magenta chart + cobalt metal/glow | Home hero WebPs only                                                    | Data tables, cards, forms                     |
-| Settlement     | `--scl-win` / `--scl-loss`        | Graded W/L only                                                         | Decoration, CTAs, ambient lighting            |
-| Ink surfaces   | `--scl-ink-*`                     | Page/card/chip depth                                                    | Brand identity                                |
+| Role           | Token / hue                                  | Used for                                                                | Never used for                                  |
+| -------------- | -------------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------- |
+| Conviction     | `--scl-pink` (magenta)                       | Primary CTAs, verified stamps, selected odds, rank medals, slip accents | Nav chrome, passive filters, decorative fills   |
+| Navigation     | `--scl-blue` (cobalt)                        | Active nav/tabs/pills, focus rings, border-strong, chart-2, logo bridge | Primary CTAs, verified stamps                   |
+| Atmosphere art | Gold crown + cobalt ambient on charcoal/navy | Home hero WebPs only                                                    | Purple/magenta full-frame wash; sky-cyan grades |
+| Settlement     | `--scl-win` / `--scl-loss`                   | Graded W/L only                                                         | Decoration, CTAs, ambient lighting              |
+| Ink surfaces   | `--scl-ink-*`                                | Page/card/chip depth                                                    | Brand identity                                  |
 
 **Balance rule:** pink is scarce (conviction). Cobalt blue carries chrome so the product does not
 read as all-magenta. Do **not** push hero or UI blues into washed sky/electric territory — cobalt
@@ -64,10 +64,10 @@ Source of truth for roles remains `design/SCL-DESIGN-SPEC.md` v1.1; hexes above 
 ### Atmosphere (hero artwork)
 
 - Generated trophy artwork is limited to the home hero and campaign-scale surfaces.
-- Canonical look: **magenta performance chart + cobalt trophy / ambient** on a continuous dark
-  data-room floor (see `docs/SCL_ASSET_MANIFEST.md`).
-- Rejected treatments: dual-layer cover/contain stacks, flat black left voids, over-light sky-blue
-  grades, gold-crown regenerations that abandon the magenta/cobalt identity.
+- Canonical look: **gold crown + cobalt ambient on charcoal/navy** (see `docs/SCL_ASSET_MANIFEST.md`).
+- Magenta is a UI conviction color — do not flood the hero WebP with purple/magenta wash.
+- Rejected treatments: dual-layer cover/contain stacks, flat black left voids, over-light sky-cyan
+  grades, violet/purple full-frame backgrounds.
 
 ### Home hero compositing stack (back → front)
 
