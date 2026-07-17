@@ -97,18 +97,18 @@ export function CompetitionHero() {
           className="size-full object-cover object-center opacity-95"
         />
       </picture>
-      {/* Soft scrim for copy contrast only — keep light so gold crown + lighter blues read */}
+      {/* Soft scrim for copy contrast only */}
       <div
         aria-hidden
-        className="absolute inset-0 bg-[color:var(--scl-ink-950)]/15"
+        className="absolute inset-0 bg-[color:var(--scl-ink-950)]/25"
       />
       <div
         aria-hidden
-        className="absolute inset-0 bg-gradient-to-r from-[color:var(--scl-ink-950)]/32 via-[color:var(--scl-ink-950)]/10 to-transparent"
+        className="absolute inset-0 bg-gradient-to-r from-[color:var(--scl-ink-950)]/40 via-[color:var(--scl-ink-950)]/15 to-transparent"
       />
       <div
         aria-hidden
-        className="absolute inset-0 bg-gradient-to-t from-[color:var(--scl-ink-950)]/28 via-transparent to-[color:var(--scl-ink-950)]/8"
+        className="absolute inset-0 bg-gradient-to-t from-[color:var(--scl-ink-950)]/35 via-transparent to-[color:var(--scl-ink-950)]/10"
       />
 
       <div className="relative mx-auto flex min-h-[31rem] max-w-6xl flex-col px-4 py-8 sm:min-h-[36rem] sm:justify-center sm:px-6 sm:py-14">
