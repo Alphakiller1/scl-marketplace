@@ -1,0 +1,84 @@
+import Link from "next/link";
+import type { StoreProvider } from "@prisma/client";
+import { ArrowUpRight } from "lucide-react";
+
+import { ProviderBadge } from "@/components/scl/provider-badge";
+import { Button } from "@/components/ui/button";
+import { STOREFRONT_OUTBOUND_MICROCOPY } from "@/lib/cold-start-copy";
+import { cn } from "@/lib/utils";
+
+export type PackageCardData = {
+  id: string;
+  title: string;
+  description?: string | null;
+  priceLabel?: string | null;
+  provider?: StoreProvider | null;
+  trackingPath: string;
+  capperName?: string;
+  capperHandle?: string;
+};
+
+export function PackageCard({
+  pkg,
+  className,
+}: {
+  pkg: PackageCardData;
+  className?: string;
+}) {
+  return (
+    <article
+      className={cn(
+        "border-border bg-card flex flex-col gap-3 rounded-xl border p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
+        className,
+      )}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        {pkg.provider ? <ProviderBadge provider={pkg.provider} /> : null}
+        {pkg.capperHandle ? (
+          <Link
+            href={`/cappers/${pkg.capperHandle}`}
+            className="text-muted-foreground text-xs font-semibold tracking-wide uppercase underline-offset-4 hover:underline"
+          >
+            {pkg.capperName || `@${pkg.capperHandle}`}
+          </Link>
+        ) : null}
+      </div>
+      <div className="min-w-0">
+        <h3 className="scl-display text-base font-bold tracking-[0.04em] uppercase">
+          {pkg.title}
+        </h3>
+        {pkg.description ? (
+          <p className="text-muted-foreground mt-1 line-clamp-2 text-sm leading-relaxed">
+            {pkg.description}
+          </p>
+        ) : null}
+      </div>
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-1">
+        {pkg.priceLabel ? (
+          <p className="nums text-sm font-semibold tabular-nums">
+            {pkg.priceLabel}
+          </p>
+        ) : (
+          <span />
+        )}
+        <Button
+          render={
+            <Link
+              href={pkg.trackingPath}
+              target="_blank"
+              rel="noopener noreferrer"
+            />
+          }
+          nativeButton={false}
+          className="min-h-11 gap-1.5 sm:min-h-9"
+        >
+          View package
+          <ArrowUpRight className="size-4" aria-hidden />
+        </Button>
+      </div>
+      <p className="text-muted-foreground text-[0.65rem] leading-relaxed">
+        {STOREFRONT_OUTBOUND_MICROCOPY}
+      </p>
+    </article>
+  );
+}

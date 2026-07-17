@@ -8,16 +8,20 @@ import {
   Users,
 } from "lucide-react";
 
+import { PackageCard } from "@/components/scl/package-card";
 import { SectionHeader } from "@/components/scl/section";
 import { EmptyState } from "@/components/scl/states";
 import { Button } from "@/components/ui/button";
 import { STOREFRONT_PAYMENT_DISCLAIMER } from "@/lib/cold-start-copy";
+import { listActiveMarketplacePackages } from "@/lib/queries/store";
 
 export const metadata: Metadata = {
   title: "Packages",
   description:
     "Browse approved capper packages published through SCL. Payments stay on each capper’s external storefront.",
 };
+
+export const revalidate = 60;
 
 const STEPS = [
   {
@@ -28,7 +32,7 @@ const STEPS = [
   {
     icon: Store,
     title: "Packages Link Out",
-    body: "Approved offers point to the capper’s own storefront (Whop, Winible, DubClub, or similar). SCL does not checkout.",
+    body: "Approved offers point to the capper’s own storefront (Whop, Winible, DubClub, or similar) through SCL tracking URLs.",
   },
   {
     icon: ShieldCheck,
@@ -37,7 +41,9 @@ const STEPS = [
   },
 ] as const;
 
-export default function PackagesPage() {
+export default async function PackagesPage() {
+  const packages = await listActiveMarketplacePackages();
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <SectionHeader
@@ -46,69 +52,78 @@ export default function PackagesPage() {
         subtitle="Approved capper offers — inspect the record, then leave SCL to pay"
       />
 
-      <EmptyState
-        className="mt-6"
-        icon={PackageOpen}
-        title="No Packages Live Yet"
-        description="The founding marketplace is still forming. When approved packages publish, they will appear here with a clear path to each capper’s external checkout."
-        action={
-          <div className="flex w-full max-w-md flex-col items-stretch gap-3 sm:items-center">
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+      {packages.length ? (
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {packages.map((pkg) => (
+            <PackageCard key={pkg.id} pkg={pkg} />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          className="mt-6"
+          icon={PackageOpen}
+          title="No Packages Live Yet"
+          description="The founding marketplace is still forming. When approved packages publish, they will appear here with a clear path to each capper’s external checkout."
+          action={
+            <div className="flex w-full max-w-md flex-col items-stretch gap-3 sm:items-center">
+              <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+                <Button
+                  render={<Link href="/cappers" />}
+                  nativeButton={false}
+                  className="min-h-11 gap-2"
+                >
+                  Browse Cappers
+                  <ArrowRight className="size-4" aria-hidden />
+                </Button>
+                <Button
+                  render={<Link href="/leaderboard" />}
+                  nativeButton={false}
+                  variant="outline"
+                  className="min-h-11"
+                >
+                  View Leaderboard
+                </Button>
+              </div>
               <Button
-                render={<Link href="/cappers" />}
+                render={<Link href="/picks" />}
                 nativeButton={false}
-                className="min-h-11 gap-2"
-              >
-                Browse Cappers
-                <ArrowRight className="size-4" aria-hidden />
-              </Button>
-              <Button
-                render={<Link href="/leaderboard" />}
-                nativeButton={false}
-                variant="outline"
+                variant="ghost"
                 className="min-h-11"
               >
-                View Leaderboard
+                See Latest Picks
               </Button>
             </div>
-            <Button
-              render={<Link href="/picks" />}
-              nativeButton={false}
-              variant="ghost"
-              className="min-h-11"
-            >
-              See Latest Picks
-            </Button>
-          </div>
-        }
-      />
+          }
+        />
+      )}
+
+      <p className="text-muted-foreground mt-6 text-xs leading-relaxed">
+        {STOREFRONT_PAYMENT_DISCLAIMER}
+      </p>
 
       <section className="mt-10 space-y-4" aria-labelledby="packages-how">
         <h2
           id="packages-how"
-          className="text-sm font-bold tracking-wide uppercase"
+          className="scl-display text-sm font-bold tracking-[0.08em] uppercase"
         >
-          How Packages Work On SCL
+          How packages work
         </h2>
-        <ul className="grid gap-3 sm:grid-cols-3">
-          {STEPS.map(({ icon: Icon, title, body }) => (
-            <li
-              key={title}
+        <div className="grid gap-3 sm:grid-cols-3">
+          {STEPS.map((step) => (
+            <article
+              key={step.title}
               className="border-border bg-card rounded-xl border p-4"
             >
-              <span className="bg-surface-2 text-muted-foreground flex size-9 items-center justify-center rounded-lg">
-                <Icon className="size-4" aria-hidden />
+              <span className="bg-surface-2 text-brand mb-3 inline-flex size-9 items-center justify-center rounded-lg">
+                <step.icon className="size-4" aria-hidden />
               </span>
-              <p className="mt-3 text-sm font-semibold">{title}</p>
+              <h3 className="font-semibold">{step.title}</h3>
               <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
-                {body}
+                {step.body}
               </p>
-            </li>
+            </article>
           ))}
-        </ul>
-        <p className="text-muted-foreground text-xs leading-relaxed">
-          {STOREFRONT_PAYMENT_DISCLAIMER}
-        </p>
+        </div>
       </section>
     </div>
   );
