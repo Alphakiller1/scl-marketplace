@@ -276,6 +276,13 @@ export function GamePicker({
                 zero && !active && "opacity-[0.42]",
               )}
             >
+              {p.key !== "all" ? (
+                <LeagueMark
+                  leagueKey={p.key}
+                  size="sm"
+                  className="rounded-md"
+                />
+              ) : null}
               {p.label}
               <span
                 className={cn(

@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { SportTag } from "@/components/scl/badges";
+import { TeamMark } from "@/components/scl/team-mark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { gradeParlayAction } from "@/lib/actions/parlay.action";
 import { formatOdds } from "@/lib/format";
+import { teamIdentityFromSide } from "@/lib/pick-identity";
 import type { ParlayQueueItem } from "@/lib/queries/grading";
 import { GRADEABLE_OUTCOMES } from "@/lib/schemas/grading.schema";
 
@@ -58,49 +60,57 @@ export function ParlayGradeControl({ parlay }: { parlay: ParlayQueueItem }) {
   return (
     <div className="space-y-3">
       <ul className="divide-border divide-y">
-        {parlay.legs.map((leg, i) => (
-          <li
-            key={leg.id}
-            className="flex flex-col gap-2 py-2.5 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <SportTag sport={leg.sport} />
-                <span className="text-muted-foreground text-xs">
-                  Leg {i + 1}
-                </span>
-              </div>
-              <p className="mt-1 text-sm font-medium break-words">
-                {leg.selection}
-              </p>
-              <p className="text-muted-foreground text-xs">
-                {leg.market} ·{" "}
-                <span className="nums tabular-nums">
-                  {formatOdds(leg.oddsAmerican)}
-                </span>
-              </p>
-            </div>
-            <select
-              aria-label={`Result for leg ${i + 1}`}
-              value={grades[leg.id] ?? ""}
-              disabled={pending}
-              onChange={(e) =>
-                setGrades((g) => ({
-                  ...g,
-                  [leg.id]: e.target.value as Gradeable | "",
-                }))
-              }
-              className={SELECT_CLASS}
+        {parlay.legs.map((leg, i) => {
+          const team = teamIdentityFromSide(leg.side, leg.sport);
+          return (
+            <li
+              key={leg.id}
+              className="flex flex-col gap-2 py-2.5 sm:flex-row sm:items-center sm:justify-between"
             >
-              <option value="">Result…</option>
-              {GRADEABLE_OUTCOMES.map((o) => (
-                <option key={o} value={o}>
-                  {OUTCOME_LABEL[o]}
-                </option>
-              ))}
-            </select>
-          </li>
-        ))}
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <SportTag sport={leg.sport} />
+                  <span className="text-muted-foreground text-xs">
+                    Leg {i + 1}
+                  </span>
+                </div>
+                <div className="mt-1 flex min-w-0 items-start gap-2">
+                  {team ? (
+                    <TeamMark team={team} size="sm" className="mt-0.5" />
+                  ) : null}
+                  <p className="min-w-0 text-sm font-medium break-words">
+                    {leg.selection}
+                  </p>
+                </div>
+                <p className="text-muted-foreground text-xs">
+                  {leg.market} ·{" "}
+                  <span className="nums tabular-nums">
+                    {formatOdds(leg.oddsAmerican)}
+                  </span>
+                </p>
+              </div>
+              <select
+                aria-label={`Result for leg ${i + 1}`}
+                value={grades[leg.id] ?? ""}
+                disabled={pending}
+                onChange={(e) =>
+                  setGrades((g) => ({
+                    ...g,
+                    [leg.id]: e.target.value as Gradeable | "",
+                  }))
+                }
+                className={SELECT_CLASS}
+              >
+                <option value="">Result…</option>
+                {GRADEABLE_OUTCOMES.map((o) => (
+                  <option key={o} value={o}>
+                    {OUTCOME_LABEL[o]}
+                  </option>
+                ))}
+              </select>
+            </li>
+          );
+        })}
       </ul>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <label className="sr-only" htmlFor={`parlay-reason-${parlay.id}`}>

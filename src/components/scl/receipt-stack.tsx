@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { StatusBadge } from "@/components/scl/badges";
 import { BookMark } from "@/components/scl/book-mark";
+import { LeagueRef, TeamRef } from "@/components/scl/entity-marks";
 import { Ticket } from "@/components/scl/ticket";
 import { Button } from "@/components/ui/button";
 import { bookLabel } from "@/lib/books";
@@ -22,10 +23,11 @@ const PINK_CTA =
 
 function CompactPickTicket({ pick }: { pick: StraightReceipt }) {
   const verified = isVerifiedTier(pick.tier);
-  const eventLine = [pick.market, pick.moveNote].filter(Boolean).join(" · ");
+  const metaBits = [pick.market, pick.moveNote].filter(Boolean);
   const stake = pick.units != null ? formatUnits(pick.units, true, false) : "—";
   const toWin =
     pick.toWinUnits != null ? formatUnits(pick.toWinUnits, true, false) : "—";
+  const sport = pick.sport?.trim() || "";
 
   return (
     <div className="space-y-2">
@@ -34,16 +36,26 @@ function CompactPickTicket({ pick }: { pick: StraightReceipt }) {
       </div>
       <Ticket
         selectionTitle={pick.selection}
+        leadingMark={
+          sport ? (
+            <TeamRef name={pick.side} sport={sport} size="md" knownOnly />
+          ) : null
+        }
         eventLine={
-          pick.book ? (
-            <span className="inline-flex items-center gap-1">
-              <BookMark bookKey={pick.book} size={16} />
-              {bookLabel(pick.book)} BOARD
-              {eventLine ? ` · ${eventLine}` : ""}
-            </span>
-          ) : (
-            eventLine || null
-          )
+          <span className="inline-flex flex-wrap items-center gap-1.5 tracking-normal normal-case">
+            {sport ? <LeagueRef sport={sport} /> : null}
+            {pick.book ? (
+              <span className="scl-data inline-flex items-center gap-1 tracking-[0.06em] uppercase">
+                <BookMark bookKey={pick.book} size={16} />
+                {bookLabel(pick.book)} BOARD
+                {metaBits.length ? ` · ${metaBits.join(" · ")}` : ""}
+              </span>
+            ) : metaBits.length ? (
+              <span className="scl-data tracking-[0.06em] uppercase">
+                {metaBits.join(" · ")}
+              </span>
+            ) : null}
+          </span>
         }
         legs={1}
         odds={formatOdds(pick.oddsAmerican)}

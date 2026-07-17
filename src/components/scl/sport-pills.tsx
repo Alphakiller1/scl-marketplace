@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { LeagueMark } from "@/components/scl/league-mark";
 import { cn } from "@/lib/utils";
 import { SPORTS } from "@/lib/constants";
 
@@ -98,6 +99,7 @@ export function SportPills({
               zero && !active && "opacity-[0.42]",
             )}
           >
+            <LeagueMark leagueKey={s.key} size="sm" className="rounded-md" />
             {s.label}
             {known ? (
               <span

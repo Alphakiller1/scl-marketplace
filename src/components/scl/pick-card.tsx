@@ -6,6 +6,7 @@ import type { TodayPick } from "@/lib/mock";
 import { formatOdds, formatRecord, formatUnits, timeAgo } from "@/lib/format";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
 import { CapperIdentityLabel } from "@/components/scl/capper-identity-label";
+import { LeagueRef, TeamRef } from "@/components/scl/entity-marks";
 import { StatValue } from "@/components/scl/stat-value";
 import { BUILDING_RECORD_LABEL, RankBadge } from "@/components/scl/rank-badge";
 import { Ticket, type TicketStatus } from "@/components/scl/ticket";
@@ -105,14 +106,25 @@ export function PickCard({
     pick.profitUnits != null
       ? formatUnits(pick.profitUnits)
       : formatUnits(projected, true, false);
-  const eventLine = [pickMarketLabel(pick), pick.gameTime]
-    .filter(Boolean)
-    .join(" · ");
+  const marketLabel = pickMarketLabel(pick);
+  const metaBits = [marketLabel, pick.gameTime].filter(Boolean);
 
   return (
     <Ticket
       selectionTitle={pick.selection}
-      eventLine={eventLine || pick.sport}
+      leadingMark={
+        <TeamRef name={pick.side} sport={pick.sport} size="md" knownOnly />
+      }
+      eventLine={
+        <span className="inline-flex flex-wrap items-center gap-1.5 tracking-normal normal-case">
+          <LeagueRef sport={pick.sport} />
+          {metaBits.length ? (
+            <span className="scl-data tracking-[0.06em] uppercase">
+              {metaBits.join(" · ")}
+            </span>
+          ) : null}
+        </span>
+      }
       legs={1}
       odds={formatOdds(pick.oddsAmerican)}
       stake={formatUnits(pick.units, true, false)}

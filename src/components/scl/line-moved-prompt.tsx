@@ -1,5 +1,6 @@
 "use client";
 
+import { LeagueRef, TeamRef, isTeamSide } from "@/components/scl/entity-marks";
 import { bookLabel, bookShort } from "@/lib/books";
 import { formatOdds } from "@/lib/format";
 import type { MovedLinePayload } from "@/lib/odds-movement";
@@ -41,18 +42,32 @@ function LineCard({
     line.line != null
       ? `${line.market} ${line.line > 0 ? `+${line.line}` : line.line}`
       : line.market;
+  const sport = line.sport?.trim() || "";
 
   return (
     <div className="border-border space-y-3 rounded-[14px] border bg-[color:var(--scl-ink-800)] p-3">
       <div className="space-y-1">
-        <p className="scl-display text-foreground text-sm font-semibold tracking-wide uppercase">
-          {line.selection}
-        </p>
-        <p className="text-muted-foreground text-xs">
-          {line.eventLabel}
-          {" · "}
-          {lineLabel}
-          {line.player ? ` · ${line.player}` : ""}
+        <div className="flex min-w-0 items-start gap-2">
+          {sport && isTeamSide(line.side) ? (
+            <TeamRef
+              name={line.side}
+              sport={sport}
+              size="sm"
+              className="mt-0.5"
+            />
+          ) : null}
+          <p className="scl-display text-foreground min-w-0 text-sm font-semibold tracking-wide uppercase">
+            {line.selection}
+          </p>
+        </div>
+        <p className="text-muted-foreground flex flex-wrap items-center gap-1.5 text-xs">
+          {sport ? <LeagueRef sport={sport} markOnly /> : null}
+          <span>
+            {line.eventLabel}
+            {" · "}
+            {lineLabel}
+            {line.player ? ` · ${line.player}` : ""}
+          </span>
         </p>
         <p className="scl-data text-muted-foreground text-[0.65rem] tracking-[0.08em] uppercase">
           {book}

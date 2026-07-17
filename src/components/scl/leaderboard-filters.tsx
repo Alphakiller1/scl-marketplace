@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { RotateCcw, Search, SlidersHorizontal } from "lucide-react";
 
+import { LeagueMark } from "@/components/scl/league-mark";
 import { Button } from "@/components/ui/button";
 import { SPORTS, LEADERBOARD_SORTS } from "@/lib/constants";
 import {
@@ -34,21 +35,42 @@ export function LeaderboardFilters({
         className="mt-5 flex flex-wrap gap-2 md:mt-6"
         aria-label="Quick leaderboard filters"
       >
-        {[
-          { href: "/leaderboard?record=verified", label: "Top Verified" },
-          { href: "/leaderboard?sport=NFL&record=verified", label: "NFL" },
-          { href: "/leaderboard?sport=NBA&record=verified", label: "NBA" },
-          { href: "/leaderboard?sport=MLB&record=verified", label: "MLB" },
-          {
-            href: "/leaderboard?window=L30&record=verified&sort=roi",
-            label: "Hot 30D ROI",
-          },
-        ].map((preset) => (
+        {(
+          [
+            { href: "/leaderboard?record=verified", label: "Top Verified" },
+            {
+              href: "/leaderboard?sport=NFL&record=verified",
+              label: "NFL",
+              sport: "NFL",
+            },
+            {
+              href: "/leaderboard?sport=NBA&record=verified",
+              label: "NBA",
+              sport: "NBA",
+            },
+            {
+              href: "/leaderboard?sport=MLB&record=verified",
+              label: "MLB",
+              sport: "MLB",
+            },
+            {
+              href: "/leaderboard?window=L30&record=verified&sort=roi",
+              label: "Hot 30D ROI",
+            },
+          ] as const
+        ).map((preset) => (
           <Link
             key={preset.href}
             href={preset.href}
-            className="border-border bg-card inline-flex min-h-10 items-center rounded-full border px-3 text-sm font-semibold transition-colors hover:border-[color:var(--scl-blue)] hover:text-[color:var(--scl-blue)]"
+            className="border-border bg-card inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3 text-sm font-semibold transition-colors hover:border-[color:var(--scl-blue)] hover:text-[color:var(--scl-blue)]"
           >
+            {"sport" in preset && preset.sport ? (
+              <LeagueMark
+                leagueKey={preset.sport}
+                size="sm"
+                className="rounded-md"
+              />
+            ) : null}
             {preset.label}
           </Link>
         ))}
@@ -63,7 +85,14 @@ export function LeaderboardFilters({
             />
             Filter Rankings
           </span>
-          <span className="text-muted-foreground truncate text-xs">
+          <span className="text-muted-foreground inline-flex min-w-0 items-center gap-1.5 truncate text-xs">
+            {filters.sport !== "ALL" ? (
+              <LeagueMark
+                leagueKey={filters.sport}
+                size="sm"
+                className="rounded-md"
+              />
+            ) : null}
             {sportLabel} · {windowLabel}
           </span>
         </summary>
@@ -118,6 +147,7 @@ function FilterForm({
           label="Sport"
           name="sport"
           value={filters.sport}
+          withLeagueMarks
           options={[
             { value: "ALL", label: "All Sports" },
             ...SPORTS.map((sport) => ({
@@ -212,11 +242,13 @@ function FilterPillGroup({
   name,
   value,
   options,
+  withLeagueMarks = false,
 }: {
   label: string;
   name: string;
   value: string;
   options: { value: string; label: string }[];
+  withLeagueMarks?: boolean;
 }) {
   return (
     <fieldset className="min-w-0">
@@ -228,7 +260,7 @@ function FilterPillGroup({
           <label
             key={option.value}
             className={cn(
-              "scl-display inline-flex min-h-11 cursor-pointer items-center rounded-[22px] border px-3.5 text-[15px] font-semibold tracking-[0.05em] transition-colors",
+              "scl-display inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-[22px] border px-3.5 text-[15px] font-semibold tracking-[0.05em] transition-colors",
               "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",
               "has-[:checked]:border-[color:var(--scl-blue)] has-[:checked]:bg-[color:var(--scl-blue)] has-[:checked]:text-[color:var(--scl-blue-ink)]",
             )}
@@ -240,6 +272,13 @@ function FilterPillGroup({
               defaultChecked={value === option.value}
               className="sr-only"
             />
+            {withLeagueMarks && option.value !== "ALL" ? (
+              <LeagueMark
+                leagueKey={option.value}
+                size="sm"
+                className="rounded-md"
+              />
+            ) : null}
             {option.label}
           </label>
         ))}

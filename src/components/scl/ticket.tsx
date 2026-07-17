@@ -10,6 +10,8 @@ export type TicketStatus = "verified" | "win" | "loss" | "muted" | "pending";
 
 export type TicketProps = {
   selectionTitle: string;
+  /** Team (or other) mark beside the selection title. */
+  leadingMark?: ReactNode;
   eventLine?: string | React.ReactNode | null;
   legs: number;
   odds: string;
@@ -42,6 +44,7 @@ function stampLabel(status: TicketStatus): string {
  */
 export function Ticket({
   selectionTitle,
+  leadingMark,
   eventLine,
   legs,
   odds,
@@ -93,15 +96,20 @@ export function Ticket({
         <p className="scl-eyebrow mb-1.5 pr-24 text-[color:var(--scl-muted-label)]">
           SCL · Pick Receipt
         </p>
-        <BettingTitle
-          as="h2"
-          text={selectionTitle}
-          className="scl-display text-foreground text-2xl leading-[1.05] font-bold tracking-tight text-balance whitespace-pre-line sm:text-[1.65rem]"
-        />
+        <div className="flex min-w-0 items-start gap-2.5 pr-20">
+          {leadingMark ? (
+            <span className="mt-1 shrink-0">{leadingMark}</span>
+          ) : null}
+          <BettingTitle
+            as="h2"
+            text={selectionTitle}
+            className="scl-display text-foreground min-w-0 flex-1 text-2xl leading-[1.05] font-bold tracking-tight text-balance whitespace-pre-line sm:text-[1.65rem]"
+          />
+        </div>
         {eventLine ? (
-          <p className="scl-data text-muted-foreground mt-1.5 text-[0.65rem] tracking-[0.06em] uppercase">
+          <div className="scl-data text-muted-foreground mt-1.5 text-[0.65rem] tracking-[0.06em] uppercase">
             {eventLine}
-          </p>
+          </div>
         ) : null}
       </div>
 

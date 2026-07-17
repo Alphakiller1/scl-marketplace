@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { ChevronDown, Trash2 } from "lucide-react";
 
 import { BettingTitle } from "@/components/scl/betting-title";
+import { LeagueRef } from "@/components/scl/entity-marks";
 import { StatValue } from "@/components/scl/stat-value";
 import { formatOdds } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -64,14 +65,13 @@ export function ParlayLegCard({
                   text={selection!}
                   className="block truncate text-sm font-semibold"
                 />
-                <span className="scl-data mt-0.5 block truncate text-[0.65rem] tracking-[0.08em] text-[color:var(--scl-muted-label)] uppercase">
+                <span className="scl-data mt-0.5 flex flex-wrap items-center gap-1.5 text-[0.65rem] tracking-[0.08em] text-[color:var(--scl-muted-label)] uppercase">
                   {oddsOk ? (
                     <StatValue tone="data" className="font-semibold">
                       {formatOdds(oddsAmerican!)}
                     </StatValue>
                   ) : null}
-                  {oddsOk && league ? " · " : null}
-                  {league ?? null}
+                  {league ? <LeagueRef sport={league} /> : null}
                 </span>
               </>
             ) : (
@@ -100,9 +100,7 @@ export function ParlayLegCard({
         ) : null}
       </div>
       {expanded ? (
-        <div className="border-t border-[color:var(--scl-line)] p-3">
-          {children}
-        </div>
+        <div className="border-border border-t px-3 py-3">{children}</div>
       ) : null}
     </div>
   );

@@ -70,6 +70,8 @@ export type MovedLinePayload = {
   market: string;
   selection: string;
   side: string;
+  /** SCL sport key when known — powers team/league marks on the move prompt. */
+  sport?: string;
   line?: number;
   player?: string;
   book?: string | null;
@@ -187,6 +189,7 @@ export function resolveCaptureOdds(params: {
   market: string;
   selection: string;
   side: string;
+  sport?: string;
   line?: number;
   player?: string;
   book?: string | null;
@@ -207,6 +210,7 @@ export function resolveCaptureOdds(params: {
     market: params.market,
     selection: params.selection,
     side: params.side,
+    sport: params.sport,
     line: params.line,
     player: params.player,
     book: params.book ?? null,

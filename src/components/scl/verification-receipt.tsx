@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { PickTierBadge } from "@/components/scl/badges";
+import { LeagueRef, TeamRef } from "@/components/scl/entity-marks";
 import { ReceiptStack } from "@/components/scl/receipt-stack";
 import { Ticket } from "@/components/scl/ticket";
 import { Button } from "@/components/ui/button";
@@ -56,10 +57,12 @@ export function VerificationReceipt({
     receipt.kind === "parlay"
       ? `${receipt.legCount}-Leg Parlay`
       : receipt.selection;
-  const eventLine =
+  const statusBits =
     receipt.kind === "parlay"
-      ? copy.statusLine
-      : [receipt.market, copy.statusLine].filter(Boolean).join(" · ");
+      ? [copy.statusLine]
+      : [receipt.market, copy.statusLine].filter(Boolean);
+  const sport = receipt.kind === "straight" ? receipt.sport?.trim() || "" : "";
+  const side = receipt.kind === "straight" ? receipt.side : null;
 
   const stake =
     receipt.units != null ? formatUnits(receipt.units, true, false) : "—";
@@ -78,7 +81,21 @@ export function VerificationReceipt({
     <div className={cn("mx-auto max-w-md space-y-3", className)}>
       <Ticket
         selectionTitle={selectionTitle}
-        eventLine={eventLine}
+        leadingMark={
+          sport ? (
+            <TeamRef name={side} sport={sport} size="md" knownOnly />
+          ) : null
+        }
+        eventLine={
+          <span className="inline-flex flex-wrap items-center gap-1.5 tracking-normal normal-case">
+            {sport ? <LeagueRef sport={sport} /> : null}
+            {statusBits.length ? (
+              <span className="scl-data tracking-[0.06em] uppercase">
+                {statusBits.join(" · ")}
+              </span>
+            ) : null}
+          </span>
+        }
         legs={legs}
         odds={formatOdds(oddsAmerican)}
         stake={stake}
