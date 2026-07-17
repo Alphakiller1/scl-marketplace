@@ -1,9 +1,9 @@
 name: Deploy (Vercel)
 
-# Deploys to Vercel on push to main. Reads VERCEL_* secrets from the GitHub
-# Environment named "Production" (Settings → Environments → Production).
-# Prefer the native Vercel GitHub integration when it is promoting Production;
-# this workflow is the GitHub-driven fallback. See docs/SCL_DEPLOYMENT.md.
+# On push to main, ask Vercel to rebuild the live site from main.
+# Preferred: one Deploy Hook URL (simplest). Fallback: Vercel CLI token trio.
+# Secrets live under GitHub → Environments → Production.
+# See docs/SCL_DEPLOYMENT.md.
 
 on:
   push:
@@ -17,13 +17,35 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # Required so secrets stored under Environments → Production are available.
-    # Repo-level Actions secrets also work with this; Environment secrets do not
-    # without this line (that was why deploys were silently skipping).
     environment: Production
     steps:
-      - name: Check Vercel config
+      - name: Trigger Vercel Deploy Hook
+        id: hook
+        env:
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$VERCEL_DEPLOY_HOOK_URL" ]; then
+            echo "hook=false" >> "$GITHUB_OUTPUT"
+            echo "No VERCEL_DEPLOY_HOOK_URL — will try CLI token fallback." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "hook=true" >> "$GITHUB_OUTPUT"
+          echo "Posting Deploy Hook to rebuild live site from main…"
+          HTTP=$(curl -sS -o /tmp/hook-body.txt -w "%{http_code}" -X POST "$VERCEL_DEPLOY_HOOK_URL")
+          echo "HTTP $HTTP"
+          cat /tmp/hook-body.txt || true
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$HTTP" -ge 200 ] && [ "$HTTP" -lt 300 ]; then
+            echo "### ✅ Deploy Hook accepted (HTTP $HTTP)" >> "$GITHUB_STEP_SUMMARY"
+            echo "Vercel is rebuilding the live site from \`main\`. Refresh the live URL when that build finishes." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### ❌ Deploy Hook failed (HTTP $HTTP)" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+      - name: Check CLI token fallback
         id: cfg
+        if: steps.hook.outputs.hook != 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -33,17 +55,23 @@ jobs:
           [ -z "$VERCEL_TOKEN" ] && missing+=("VERCEL_TOKEN")
           [ -z "$VERCEL_ORG_ID" ] && missing+=("VERCEL_ORG_ID")
           [ -z "$VERCEL_PROJECT_ID" ] && missing+=("VERCEL_PROJECT_ID")
-          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "Production deploys only run on main — skipping deploy for ${{ github.ref }}." >> "$GITHUB_STEP_SUMMARY"
-          elif [ ${#missing[@]} -eq 0 ]; then
+          if [ ${#missing[@]} -eq 0 ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "Vercel secrets missing in GitHub Environment **Production**: ${missing[*]}" >> "$GITHUB_STEP_SUMMARY"
-            echo "Add them under Settings → Environments → Production → Environment secrets." >> "$GITHUB_STEP_SUMMARY"
-            echo "See docs/SCL_DEPLOYMENT.md Option B." >> "$GITHUB_STEP_SUMMARY"
-            # Fail loudly so a green check never means "deploy skipped".
+            {
+              echo "### ❌ Nothing to deploy with"
+              echo ""
+              echo "Add **one** of these under GitHub → Settings → Environments → **Production** → Environment secrets:"
+              echo ""
+              echo "1. **Easiest:** \`VERCEL_DEPLOY_HOOK_URL\` — create at Vercel → Project → Settings → Git → Deploy Hooks (branch: \`main\`)"
+              echo "2. **Or** all three: \`VERCEL_TOKEN\`, \`VERCEL_ORG_ID\`, \`VERCEL_PROJECT_ID\`"
+              echo ""
+              echo "Missing CLI secrets: ${missing[*]}"
+              echo ""
+              echo "Note: Vercel app env vars (DATABASE_URL, AUTH_SECRET, …) do **not** count here."
+              echo "See docs/SCL_DEPLOYMENT.md."
+            } >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
 
@@ -55,7 +83,7 @@ jobs:
         with:
           node-version: 22
 
-      - name: Deploy to Vercel
+      - name: Deploy to Vercel (CLI fallback)
         if: steps.cfg.outputs.ready == 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
