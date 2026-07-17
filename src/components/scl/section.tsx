@@ -22,7 +22,7 @@ export function SectionHeader({
     <div className={cn("flex items-start justify-between gap-3", className)}>
       <div className="flex min-w-0 items-start gap-2.5">
         {Icon ? (
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-700)] text-[color:var(--scl-pink)]">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-700)] text-[color:var(--scl-blue)]">
             <Icon className="size-4" aria-hidden />
           </span>
         ) : null}

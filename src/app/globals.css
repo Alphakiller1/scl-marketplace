@@ -119,7 +119,7 @@
   --popover: var(--scl-ink-800);
   --popover-foreground: var(--scl-text);
 
-  /* Pink = conviction (CTAs, selection, verification, rank); blue = navigation */
+  /* Pink = conviction (CTAs, verified, selection). Blue = navigation / chrome. */
   --primary: var(--scl-pink);
   --primary-foreground: var(--scl-pink-ink);
   --brand: var(--scl-pink);
@@ -132,8 +132,13 @@
   --avatar-foreground: #ffffff;
   --avatar-start-lightness: 0.42;
   --avatar-chroma: 0.08;
-  --accent: color-mix(in srgb, var(--scl-pink) 16%, var(--scl-ink-700));
-  --accent-foreground: var(--scl-pink-deep);
+  /* Purple bridge — pink + blue, so accent surfaces aren't pink-only */
+  --accent: color-mix(
+    in srgb,
+    var(--scl-blue) 12%,
+    color-mix(in srgb, var(--scl-pink) 10%, var(--scl-ink-700))
+  );
+  --accent-foreground: var(--scl-blue-deep);
   --destructive: var(--scl-loss);
 
   --pos: var(--scl-win);
@@ -150,12 +155,13 @@
   --push: var(--scl-push);
 
   --border: var(--scl-line);
-  --border-strong: color-mix(in srgb, var(--scl-pink) 45%, var(--scl-line));
+  /* Strong borders lean blue (nav chrome) — pink stays on conviction hairlines */
+  --border-strong: color-mix(in srgb, var(--scl-blue) 42%, var(--scl-line));
   --input: var(--scl-line);
-  --ring: var(--scl-pink);
+  --ring: var(--scl-blue);
 
   --chart-1: var(--scl-pink);
-  --chart-2: var(--scl-pink-deep);
+  --chart-2: var(--scl-blue);
   --chart-3: var(--scl-win);
   --chart-4: var(--scl-muted-data);
   --chart-5: var(--scl-loss);
@@ -168,12 +174,12 @@
 
   --sidebar: var(--scl-ink-900);
   --sidebar-foreground: var(--scl-text);
-  --sidebar-primary: var(--scl-pink);
-  --sidebar-primary-foreground: var(--scl-pink-ink);
+  --sidebar-primary: var(--scl-blue);
+  --sidebar-primary-foreground: var(--scl-blue-ink);
   --sidebar-accent: var(--scl-ink-700);
   --sidebar-accent-foreground: var(--scl-text);
   --sidebar-border: var(--scl-line);
-  --sidebar-ring: var(--scl-pink);
+  --sidebar-ring: var(--scl-blue);
 }
 
 /* Alias for design-doc paste compatibility */
@@ -240,8 +246,13 @@
   --avatar-foreground: #ffffff;
   --avatar-start-lightness: 0.38;
   --avatar-chroma: 0.06;
-  --accent: color-mix(in srgb, var(--scl-pink) 14%, var(--scl-ink-700));
-  --accent-foreground: var(--scl-pink);
+  /* Purple bridge — pink + blue, so accent surfaces aren't pink-only */
+  --accent: color-mix(
+    in srgb,
+    var(--scl-blue) 14%,
+    color-mix(in srgb, var(--scl-pink) 10%, var(--scl-ink-700))
+  );
+  --accent-foreground: var(--scl-blue);
   --destructive: var(--scl-loss);
 
   --pos: var(--scl-win);
@@ -258,16 +269,13 @@
   --push: var(--scl-push);
 
   --border: var(--scl-line);
-  --border-strong: color-mix(
-    in srgb,
-    var(--scl-pink-deep) 55%,
-    var(--scl-line)
-  );
+  /* Strong borders lean blue (nav chrome) — pink stays on conviction hairlines */
+  --border-strong: color-mix(in srgb, var(--scl-blue) 48%, var(--scl-line));
   --input: var(--scl-line);
-  --ring: var(--scl-pink);
+  --ring: var(--scl-blue);
 
   --chart-1: var(--scl-pink);
-  --chart-2: var(--scl-pink-deep);
+  --chart-2: var(--scl-blue);
   --chart-3: var(--scl-win);
   --chart-4: var(--scl-muted-data);
   --chart-5: var(--scl-loss);
@@ -278,12 +286,12 @@
 
   --sidebar: var(--scl-ink-900);
   --sidebar-foreground: var(--scl-text);
-  --sidebar-primary: var(--scl-pink);
-  --sidebar-primary-foreground: var(--scl-pink-ink);
+  --sidebar-primary: var(--scl-blue);
+  --sidebar-primary-foreground: var(--scl-blue-ink);
   --sidebar-accent: var(--scl-ink-700);
   --sidebar-accent-foreground: var(--scl-text);
   --sidebar-border: var(--scl-line);
-  --sidebar-ring: var(--scl-pink);
+  --sidebar-ring: var(--scl-blue);
 }
 
 @layer base {
