@@ -69,7 +69,7 @@ export function CompetitionHero() {
 
   return (
     <section
-      className="border-border relative min-h-[31rem] overflow-hidden border-b bg-[color:var(--scl-ink-950)] text-[color:var(--scl-text)] sm:min-h-[36rem]"
+      className="border-border relative min-h-[31rem] w-full overflow-hidden border-b bg-[color:var(--scl-ink-950)] text-[color:var(--scl-text)] sm:min-h-[36rem]"
       aria-roledescription="carousel"
       aria-label="SCL highlights"
       onMouseEnter={() => setPaused(true)}
@@ -81,36 +81,37 @@ export function CompetitionHero() {
         }
       }}
     >
-      {/* Layer 1 — single full-bleed scene; artwork is a wider establishing shot */}
-      <picture className="pointer-events-none absolute inset-0">
+      {/* Layer 1 — full-bleed banner: one picture stretched edge-to-edge */}
+      <picture className="pointer-events-none absolute inset-0 block size-full">
         <source
           media="(min-width: 640px)"
-          srcSet="/assets/scl/leaderboard-trophy-desktop.webp?v=20260717z2"
+          srcSet="/assets/scl/leaderboard-trophy-desktop.webp?v=20260717b3"
         />
         <img
-          src="/assets/scl/leaderboard-trophy-mobile.webp?v=20260717z2"
+          src="/assets/scl/leaderboard-trophy-mobile.webp?v=20260717b3"
           alt=""
-          width="1080"
-          height="1920"
+          width="1920"
+          height="1080"
           fetchPriority="high"
-          className="size-full object-cover object-[70%_center] opacity-95 sm:object-[72%_45%]"
+          decoding="async"
+          className="absolute inset-0 size-full max-w-none object-cover object-center"
         />
       </picture>
       {/* Layers 2–4 — ink scrims for copy contrast only (no hue shift) */}
       <div
         aria-hidden
-        className="absolute inset-0 bg-[color:var(--scl-ink-950)]/25"
+        className="absolute inset-0 bg-[color:var(--scl-ink-950)]/20"
       />
       <div
         aria-hidden
-        className="absolute inset-0 bg-gradient-to-r from-[color:var(--scl-ink-950)]/40 via-[color:var(--scl-ink-950)]/15 to-transparent"
+        className="absolute inset-0 bg-gradient-to-r from-[color:var(--scl-ink-950)]/55 via-[color:var(--scl-ink-950)]/20 to-transparent"
       />
       <div
         aria-hidden
-        className="absolute inset-0 bg-gradient-to-t from-[color:var(--scl-ink-950)]/35 via-transparent to-[color:var(--scl-ink-950)]/10"
+        className="absolute inset-0 bg-gradient-to-t from-[color:var(--scl-ink-950)]/40 via-transparent to-[color:var(--scl-ink-950)]/15"
       />
 
-      <div className="relative mx-auto flex min-h-[31rem] max-w-6xl flex-col px-4 py-8 sm:min-h-[36rem] sm:justify-center sm:px-6 sm:py-14">
+      <div className="relative mx-auto flex min-h-[31rem] w-full max-w-6xl flex-col px-4 py-8 sm:min-h-[36rem] sm:justify-center sm:px-6 sm:py-14">
         {/*
           Layer 5 — stack every slide in one grid cell so the tallest copy owns
           height. Opacity-only swaps avoid translateY remount rumble.
