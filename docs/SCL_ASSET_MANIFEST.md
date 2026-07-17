@@ -6,10 +6,10 @@ text, metrics, controls, or logos; those remain accessible HTML and code-native 
 Remote sports marks are **self-hosted** (optional) under `public/marks/`, gated by a static
 manifest — never hotlinked. Missing marks always render the monogram/lettermark fallback.
 
-| Asset                             |  Dimensions | Use                         | Treatment                                                                              |
-| --------------------------------- | ----------: | --------------------------- | -------------------------------------------------------------------------------------- |
-| `leaderboard-trophy-desktop.webp` | 1920 x 1080 | Home hero at `sm` and above | Wide establishing shot (trophy smaller in frame); gold crown + cobalt on charcoal/navy |
-| `leaderboard-trophy-mobile.webp`  | 1080 x 1920 | Home hero below `sm`        | Matching portrait establishing shot with crown headroom                                |
+| Asset                             |  Dimensions | Use                         | Treatment                                                                                                    |
+| --------------------------------- | ----------: | --------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `leaderboard-trophy-desktop.webp` | 1920 x 1080 | Home hero at `sm` and above | Full-bleed magenta markets + cobalt stadium scene; **simple solid** trophy + gold crown (right, ~30% height) |
+| `leaderboard-trophy-mobile.webp`  | 1080 x 1920 | Home hero below `sm`        | Matching portrait; atmosphere to all edges; solid trophy + crown with copy headroom                          |
 
 ## League / team marks (self-hosted)
 
@@ -29,7 +29,7 @@ Code maps: `src/lib/mark-manifest.ts`, `src/lib/teams.ts`, `src/lib/leagues.ts`,
 
 - Both trophy files are original AI-generated production artwork created for SCL.
 - The owner-provided concept image was used only as visual-direction reference.
-- No third-party logo, interface, text, statistic, athlete, league mark, or sportsbook mark is
+- No third-party logo, interface text, statistic, athlete, league mark, or sportsbook mark is
   embedded in either **local** trophy asset.
 - League/team SVGs in `public/marks/` must be rights-clear neutral artwork before listing in the
   manifest. Always keep onError → color-mark fallbacks.
@@ -43,25 +43,27 @@ Code maps: `src/lib/mark-manifest.ts`, `src/lib/teams.ts`, `src/lib/leagues.ts`,
 - Do not place essential information inside either image.
 - Do not reuse the artwork as a full-page background on data-heavy routes.
 - Team/league `<img>` marks are decorative (`alt=""`); identity is conveyed by adjacent text.
+- Hero `<picture>` must be `absolute inset-0` + `object-cover object-center` so the banner
+  stretches the full hero width (no padded letterbox canvas, no right-biased crop that leaves a
+  void).
 
 ## Generation prompts
 
-Canonical art direction: **gold crown + cobalt ambient on charcoal/navy** — not a purple or
-magenta full-frame wash. Magenta stays a scarce UI conviction color; it is not required in the
-hero WebP. Do not regenerate toward sky-cyan grades or violet backgrounds.
+Canonical art direction: **magenta market chart + cobalt sports ambient** with a **simple solid
+trophy + gold crown**. Atmosphere must reach every edge. Trophy stays readable but small (~30% of
+frame height) — not a close-up, not ornate filigree.
 
 Desktop:
 
-> One continuous dark data room (charcoal/navy). Soft cobalt volumetric light only — deep
-> #105FD9 family, not sky blue, not purple. Chrome trophy in the right third with a distinct
-> **gold** crown and clear margin above. Atmosphere reaches the left edge (soft navy haze, no
-> flat black void). No magenta/pink flood, no collage, seam, text/logos/UI/people/watermark.
+> Full-bleed 16:9 dark sports-betting banner. Left/center: bold magenta neon odds/market chart
+> and soft candlesticks on a dark grid floor. Right: simple solid silver cup trophy with two plain
+> handles and a gold crown (~30% of frame height, clear headroom). Cobalt stadium ambient on the
+> right mixing with magenta on the left. Atmosphere to all four edges. No text/logos/UI/people.
 
 Mobile:
 
-> Portrait companion of the same gold-crown + cobalt continuous scene. Atmosphere fills the
-> upper third and edges. Fully visible trophy with gold crown. No purple wash, collage, seam,
-> flat black void, text, logos, UI, people, or watermark.
+> Portrait companion, full-bleed. Large atmospheric headroom for copy. Same magenta + cobalt
+> language and simple solid trophy + crown, smaller in frame. No text/logos/UI/people.
 
 Cache-bust hero `<picture>` URLs (`?v=…`) whenever these WebPs change so production browsers
 do not keep an old asset after deploy.
