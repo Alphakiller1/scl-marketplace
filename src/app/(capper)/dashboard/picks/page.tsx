@@ -31,7 +31,7 @@ export default async function MyPicksPage() {
             : "Your public record is built from board-checked Tickets"
         }
         href="/dashboard/picks/new"
-        hrefLabel="Submit A Play"
+        hrefLabel="New Pick"
       />
       {entries.length ? (
         <div className="space-y-2">
@@ -54,7 +54,7 @@ export default async function MyPicksPage() {
               nativeButton={false}
               className="min-h-11 gap-1.5"
             >
-              <Plus className="size-4" aria-hidden /> Submit A Play
+              <Plus className="size-4" aria-hidden /> New Pick
             </Button>
           }
         />

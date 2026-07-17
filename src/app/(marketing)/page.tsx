@@ -113,6 +113,27 @@ export default async function Home() {
       />
 
       <div className="mx-auto max-w-6xl space-y-10 px-4 py-10 sm:space-y-14 sm:px-6 sm:py-12">
+        <div
+          className="text-muted-foreground flex flex-wrap items-center gap-2 text-xs font-semibold tracking-wide uppercase sm:gap-3"
+          aria-label="Trust signals"
+        >
+          <span className="border-border bg-card inline-flex min-h-9 items-center rounded-lg border px-3">
+            Board verified
+          </span>
+          <span className="border-border bg-card inline-flex min-h-9 items-center rounded-lg border px-3">
+            Public records
+          </span>
+          <span className="border-border bg-card inline-flex min-h-9 items-center rounded-lg border px-3">
+            Sample thresholds
+          </span>
+          <Link
+            href="/#how-verification-works"
+            className="inline-flex min-h-9 items-center px-1 text-[color:var(--scl-blue)] hover:underline"
+          >
+            How it works
+          </Link>
+        </div>
+
         <section className="space-y-4">
           <SectionHeader
             icon={Trophy}

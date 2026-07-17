@@ -10,6 +10,8 @@ import { RoiStat, UnitStat, WinRateStat } from "@/components/scl/stat";
 import { PerformanceSparkline } from "@/components/scl/performance-sparkline";
 import { RankBadge } from "@/components/scl/rank-badge";
 import { CompactCapperRow } from "@/components/scl/compact-capper-row";
+import { ProvisionalRecordHelp } from "@/components/scl/provisional-record-help";
+import { formatLastPickDate } from "@/lib/capper-activity";
 import { isProvisional } from "@/lib/sample";
 
 /** Discovery card — a capper's public résumé at a glance. */
@@ -33,6 +35,12 @@ export function CapperCard({
     );
   }
 
+  const sports = (capper.sports?.length ? capper.sports : [capper.topSport])
+    .filter(Boolean)
+    .slice(0, 3);
+  const specialties = (capper.specialties ?? []).filter(Boolean).slice(0, 2);
+  const lastPick = formatLastPickDate(capper.lastPlayAt);
+
   return (
     <Card className="group scl-interactive hover:border-border-strong relative gap-0 overflow-hidden p-3.5 sm:p-4">
       <div className="flex items-start gap-3">
@@ -49,13 +57,32 @@ export function CapperCard({
             <CapperIdentityLabel capper={capper} compact className="relative" />
           </Link>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            <SportTag sport={capper.topSport} />
+            {sports.map((sport) => (
+              <SportTag key={sport} sport={sport} />
+            ))}
             <StreakChip
               streak={capper.streak}
               gradedCount={capper.settledPicks ?? 0}
             />
             {capper.isLegacy ? <LegacyBadge /> : null}
           </div>
+          {specialties.length || lastPick ? (
+            <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+              {specialties.map((specialty) => (
+                <span
+                  key={specialty}
+                  className="border-border bg-surface-2 inline-flex min-h-7 items-center rounded-md border px-2 font-medium"
+                >
+                  {specialty}
+                </span>
+              ))}
+              {lastPick ? (
+                <span className="scl-data tabular-nums">
+                  Last pick {lastPick}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -68,9 +95,9 @@ export function CapperCard({
         <div className="space-y-1">
           <RoiStat roi={capper.roi} className="items-center text-center" />
           {isProvisional(capper.settledPicks) ? (
-            <span className="text-muted-foreground block text-center text-[0.65rem] font-semibold tracking-wide uppercase">
-              Provisional
-            </span>
+            <div className="flex justify-center">
+              <ProvisionalRecordHelp label="Provisional" />
+            </div>
           ) : null}
         </div>
       </div>

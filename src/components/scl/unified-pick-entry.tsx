@@ -407,7 +407,7 @@ function UnifiedPickEntryInner() {
           Verified Board Entry
         </p>
         <SectionHeader
-          title="Submit A Play"
+          title="New Pick"
           subtitle="Pick a book, sport, and market — lines capture into your slip before tip. Singles or Parlay."
         />
       </div>

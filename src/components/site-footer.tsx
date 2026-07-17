@@ -7,6 +7,12 @@ export function SiteFooter() {
         <p>© {new Date().getFullYear()} Sports Capper Leaderboard</p>
         <nav className="flex flex-wrap gap-x-4">
           <Link
+            href="/#how-verification-works"
+            className="hover:text-foreground inline-flex min-h-11 items-center"
+          >
+            How Verification Works
+          </Link>
+          <Link
             href="/terms"
             className="hover:text-foreground inline-flex min-h-11 items-center"
           >

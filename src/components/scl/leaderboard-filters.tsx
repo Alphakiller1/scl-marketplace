@@ -30,7 +30,31 @@ export function LeaderboardFilters({
 
   return (
     <>
-      <details className="border-border bg-card mt-5 overflow-hidden rounded-xl border md:hidden">
+      <div
+        className="mt-5 flex flex-wrap gap-2 md:mt-6"
+        aria-label="Quick leaderboard filters"
+      >
+        {[
+          { href: "/leaderboard?record=verified", label: "Top Verified" },
+          { href: "/leaderboard?sport=NFL&record=verified", label: "NFL" },
+          { href: "/leaderboard?sport=NBA&record=verified", label: "NBA" },
+          { href: "/leaderboard?sport=MLB&record=verified", label: "MLB" },
+          {
+            href: "/leaderboard?window=L30&record=verified&sort=roi",
+            label: "Hot 30D ROI",
+          },
+        ].map((preset) => (
+          <Link
+            key={preset.href}
+            href={preset.href}
+            className="border-border bg-card inline-flex min-h-10 items-center rounded-full border px-3 text-sm font-semibold transition-colors hover:border-[color:var(--scl-blue)] hover:text-[color:var(--scl-blue)]"
+          >
+            {preset.label}
+          </Link>
+        ))}
+      </div>
+
+      <details className="border-border bg-card mt-3 overflow-hidden rounded-xl border md:hidden">
         <summary className="focus-visible:ring-ring flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 outline-none focus-visible:ring-2 focus-visible:ring-inset">
           <span className="flex items-center gap-2 font-semibold">
             <SlidersHorizontal
