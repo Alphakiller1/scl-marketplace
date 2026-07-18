@@ -3,33 +3,71 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
 
-import type { YesterdayGradedWin } from "@/lib/queries/yesterday-wins";
+import type { GradedTickerResult } from "@/lib/queries/yesterday-wins";
 import { cn } from "@/lib/utils";
 
-function formatWinUnits(units: number): string {
-  const rounded = Math.round(units * 100) / 100;
-  const text = rounded.toFixed(2).replace(/\.00$/, "");
-  return `+${text}U`;
+function formatResultUnits(
+  outcome: GradedTickerResult["outcome"],
+  profitUnits: number,
+  stakeUnits: number,
+): string {
+  if (outcome === "PUSH") return "0U";
+  const raw =
+    outcome === "WIN"
+      ? profitUnits > 0
+        ? profitUnits
+        : stakeUnits
+      : profitUnits < 0
+        ? profitUnits
+        : -stakeUnits;
+  const rounded = Math.round(raw * 100) / 100;
+  const text = Math.abs(rounded).toFixed(2).replace(/\.00$/, "");
+  if (rounded > 0) return `+${text}U`;
+  if (rounded < 0) return `−${text}U`;
+  return "0U";
 }
 
-/** Pad a short win list so the marquee fills wide viewports, then duplicate for seamless -50% loop. */
-function buildMarqueeItems(wins: YesterdayGradedWin[]): YesterdayGradedWin[] {
-  if (wins.length === 0) return [];
-  const unit: YesterdayGradedWin[] = [...wins];
+function outcomeLabel(outcome: GradedTickerResult["outcome"]): string {
+  switch (outcome) {
+    case "WIN":
+      return "Won";
+    case "LOSS":
+      return "Lost";
+    case "PUSH":
+      return "Push";
+  }
+}
+
+function outcomeTone(outcome: GradedTickerResult["outcome"]): string {
+  switch (outcome) {
+    case "WIN":
+      return "text-pos";
+    case "LOSS":
+      return "text-neg";
+    case "PUSH":
+      return "text-muted-foreground";
+  }
+}
+
+/** Pad a short list so the marquee fills wide viewports, then duplicate for seamless -50% loop. */
+function buildMarqueeItems(
+  results: GradedTickerResult[],
+): GradedTickerResult[] {
+  if (results.length === 0) return [];
+  const unit: GradedTickerResult[] = [...results];
   while (unit.length < 12) {
-    unit.push(...wins);
+    unit.push(...results);
   }
   return [...unit, ...unit];
 }
 
 function TickerItem({
-  win,
+  result,
   className,
 }: {
-  win: YesterdayGradedWin;
+  result: GradedTickerResult;
   className?: string;
 }) {
-  const profit = win.profitUnits > 0 ? win.profitUnits : win.units;
   return (
     <span
       className={cn(
@@ -38,49 +76,68 @@ function TickerItem({
       )}
     >
       <Link
-        href={`/cappers/${win.handle}`}
-        className="font-semibold text-[color:var(--scl-text)] underline decoration-[color:var(--scl-pink)] underline-offset-2 hover:decoration-[color:var(--scl-pink-deep)]"
+        href={`/cappers/${result.handle}`}
+        className="font-semibold text-[color:var(--scl-text)] underline decoration-[color:var(--scl-blue)] underline-offset-2 hover:decoration-[color:var(--scl-blue)]"
       >
-        @{win.handle}
+        @{result.handle}
       </Link>
       <span className="text-muted-foreground" aria-hidden>
         ·
       </span>
-      <span className="text-foreground max-w-[12rem] truncate font-medium sm:max-w-[16rem]">
-        {win.selection}
+      <span
+        className={cn(
+          "scl-data shrink-0 text-xs font-semibold tracking-wide uppercase",
+          outcomeTone(result.outcome),
+        )}
+      >
+        {outcomeLabel(result.outcome)}
       </span>
       <span className="text-muted-foreground" aria-hidden>
         ·
       </span>
-      <span className="scl-data text-pos font-semibold">
-        {formatWinUnits(profit)}
+      <span className="text-foreground max-w-[10rem] truncate font-medium sm:max-w-[14rem]">
+        {result.selection}
+      </span>
+      <span className="text-muted-foreground" aria-hidden>
+        ·
+      </span>
+      <span
+        className={cn(
+          "scl-data font-semibold tabular-nums",
+          outcomeTone(result.outcome),
+        )}
+      >
+        {formatResultUnits(result.outcome, result.profitUnits, result.units)}
       </span>
     </span>
   );
 }
 
-/** Past-tense graded wins marquee — hidden when empty; pauses on hover/focus. */
+/**
+ * Past-tense graded results marquee (W/L/P) — hidden when empty;
+ * pauses on hover/focus; static under reduced motion.
+ */
 export function YesterdayWinsTicker({
   wins,
-  label = "Yesterday's Graded Wins",
+  results,
+  label = "Yesterday's graded results",
 }: {
-  wins: YesterdayGradedWin[];
-  label?: "Yesterday's Graded Wins" | "Recent Graded Wins";
+  /** @deprecated Prefer `results`. */
+  wins?: GradedTickerResult[];
+  results?: GradedTickerResult[];
+  label?: "Yesterday's graded results" | "Recent graded results";
 }) {
-  if (wins.length === 0) return null;
+  const items = results ?? wins ?? [];
+  if (items.length === 0) return null;
 
-  const staticItems = wins.slice(0, 8);
-  const marqueeItems = buildMarqueeItems(wins);
+  const staticItems = items.slice(0, 8);
+  const marqueeItems = buildMarqueeItems(items);
   const halfCount = marqueeItems.length / 2;
   const durationSec = Math.max(28, Math.round(halfCount * 2.8));
-  const aria =
-    label === "Recent Graded Wins"
-      ? "Recent graded wins"
-      : "Yesterday's graded wins";
 
   return (
     <section
-      aria-label={aria}
+      aria-label={label}
       className="border-border border-b bg-[color:var(--scl-ink-900)]"
     >
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 sm:gap-4 sm:px-6">
@@ -88,7 +145,6 @@ export function YesterdayWinsTicker({
           {label}
         </p>
 
-        {/* Live marquee — all viewports; hidden under reduced motion */}
         <div
           className={cn(
             "group/ticker relative min-w-0 flex-1 overflow-hidden",
@@ -105,27 +161,29 @@ export function YesterdayWinsTicker({
             }
             aria-hidden="true"
           >
-            {marqueeItems.map((win, i) => (
-              <TickerItem key={`dup-${win.id}-${i}`} win={win} />
+            {marqueeItems.map((result, i) => (
+              <TickerItem key={`dup-${result.id}-${i}`} result={result} />
             ))}
           </div>
           <div className="sr-only">
-            {staticItems.map((win) => (
-              <span key={win.id}>
-                @{win.handle} · {win.selection} ·{" "}
-                {formatWinUnits(
-                  win.profitUnits > 0 ? win.profitUnits : win.units,
+            {staticItems.map((result) => (
+              <span key={result.id}>
+                @{result.handle} · {outcomeLabel(result.outcome)} ·{" "}
+                {result.selection} ·{" "}
+                {formatResultUnits(
+                  result.outcome,
+                  result.profitUnits,
+                  result.units,
                 )}
               </span>
             ))}
           </div>
         </div>
 
-        {/* Reduced motion: compact static row */}
         <ul className="hidden min-w-0 flex-1 flex-wrap items-center gap-2 motion-reduce:flex">
-          {staticItems.map((win) => (
-            <li key={`static-${win.id}`}>
-              <TickerItem win={win} />
+          {staticItems.map((result) => (
+            <li key={`static-${result.id}`}>
+              <TickerItem result={result} />
             </li>
           ))}
         </ul>

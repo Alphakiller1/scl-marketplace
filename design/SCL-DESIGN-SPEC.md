@@ -4,8 +4,9 @@
 
 Change from v1.x: numeric values gain a green→amber→red performance spectrum (distinct
 from discrete settlement colors); Settlement Gold stays removed; four named visual modes;
-mockup odds-chip; "Track Your Record" recruitment CTA; the owner-approved hero carousel is
-retained. See "Numeric color system" and "Visual modes" for the load-bearing changes.
+mockup odds-chip; "Track Your Record" recruitment CTA; homepage hero = rolling 3 slides,
+copy v2-aligned (not word-for-word locked), with a Track Your Record recruitment CTA.
+See "Numeric color system" and "Visual modes" for the load-bearing changes.
 
 ## Identity thesis
 
@@ -203,8 +204,9 @@ bio/coverage/social sit below proof history.
 - Nav: **Picks · Leaderboard · Discover**. Logo: the current `scl-logo.tsx` mark (do not vary).
 - Primary capper-recruitment CTA: **"Track Your Record"** (retires "Become a Capper"). Sign-in
   entry may remain "Log in / Join SCL".
-- Homepage hero = the existing owner-approved carousel, word-for-word. Evidence modules
-  sit around/below it as an asymmetric 12-col field (≥1024): Row1 Leaderboard snapshot (8) +
+- Homepage hero = rolling 3 slides, copy v2-aligned, Track Your Record recruitment CTA
+  (slide 1 CTA = "Track Your Record"; not word-for-word locked). Evidence modules sit
+  around/below it as an asymmetric 12-col field (≥1024): Row1 Leaderboard snapshot (8) +
   Featured Proof Receipt warm paper (4); Row2 What changed today full-width open strip;
   Row3 Top cappers by verified share (8) + verification context (4). Hairlines between
   regions — not one card wrapping the stack. Scanline only on live-board panes.

@@ -215,125 +215,158 @@ export function EvidenceBrief({
 
   const showClv = signal || lens === "analyst" || lens === "audit";
   const showAuditMeta = lens === "audit";
+  const showDeepAnalysis = lens === "analyst" || lens === "audit";
   const featured = plays[0] ?? null;
   const historyPlays = plays.slice(1);
 
+  const latestProof = (
+    <section aria-label="Featured proof receipt" className="space-y-2">
+      <div className="border-t border-[color:var(--scl-pink-deep)] pt-2 lg:border-t-0 lg:pt-0">
+        <h2 className="scl-display text-sm font-bold tracking-[0.05em] uppercase">
+          Latest proof
+        </h2>
+        <p className="text-muted-foreground mt-0.5 text-xs leading-snug">
+          Expanded paper receipt — inspectable capture, close, and CLV.
+        </p>
+      </div>
+      {featured ? (
+        playToProofReceipt(featured, "expanded-paper")
+      ) : playsError ? (
+        <EmptyState
+          icon={Receipt}
+          title="Couldn't load latest proof"
+          description="Try again shortly."
+        />
+      ) : (
+        <EmptyState
+          icon={Receipt}
+          title="No tracked plays yet"
+          description={`${emptyName} hasn't posted a graded play yet. When they do, the Proof Receipt appears here — timestamps, lines, and results included.`}
+        />
+      )}
+    </section>
+  );
+
   return (
-    <div className={cn("space-y-5", className)}>
-      <Card className="gap-0 p-3.5 sm:p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="scl-eyebrow text-[color:var(--scl-muted-label)]">
-            Evidence Brief
-          </h2>
-          <div className="flex flex-wrap items-center gap-2">
-            {provisional ? <ProvisionalRecordHelp /> : null}
+    <div className={cn("space-y-4 sm:space-y-5", className)}>
+      {/*
+        Brief metrics + Latest Proof stay co-anchored across lens switches.
+        CLV / cumulative charts render below the first receipt so Analyst
+        never pushes proof ~600px down.
+      */}
+      <div className="grid gap-4 lg:grid-cols-12 lg:items-start lg:gap-5">
+        <Card className="gap-0 p-3 sm:p-4 lg:col-span-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="scl-eyebrow text-[color:var(--scl-muted-label)]">
+              Evidence Brief
+            </h2>
+            <div className="flex flex-wrap items-center gap-2">
+              {provisional ? <ProvisionalRecordHelp /> : null}
+            </div>
           </div>
-        </div>
 
-        <Tabs value={lens} onValueChange={onLensChange} className="mt-2.5">
-          <TabsList
-            variant="line"
-            className="h-10 w-full max-w-md justify-start gap-1"
-            aria-label="Trust lens"
-          >
-            <TabsTrigger value="simple" className="min-h-9 px-3">
-              Simple
-            </TabsTrigger>
-            <TabsTrigger value="analyst" className="min-h-9 px-3">
-              Analyst
-            </TabsTrigger>
-            <TabsTrigger value="audit" className="min-h-9 px-3">
-              Audit
-            </TabsTrigger>
-          </TabsList>
+          <Tabs value={lens} onValueChange={onLensChange} className="mt-2">
+            <TabsList
+              variant="line"
+              className="h-9 w-full max-w-md justify-start gap-1 sm:h-10"
+              aria-label="Trust lens"
+            >
+              <TabsTrigger
+                value="simple"
+                className="min-h-8 px-2.5 sm:min-h-9 sm:px-3"
+              >
+                Simple
+              </TabsTrigger>
+              <TabsTrigger
+                value="analyst"
+                className="min-h-8 px-2.5 sm:min-h-9 sm:px-3"
+              >
+                Analyst
+              </TabsTrigger>
+              <TabsTrigger
+                value="audit"
+                className="min-h-8 px-2.5 sm:min-h-9 sm:px-3"
+              >
+                Audit
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="simple" className="mt-3 space-y-3">
-            <MetricRow
-              capper={capper}
-              graded={graded}
-              provisional={provisional}
-              verifiedPct={verifiedPct}
-              avgClv={avgClv}
-              clvScale={clvScale}
-              showClv={false}
-            />
-            <SampleMaturityMeter graded={graded} />
-          </TabsContent>
+            <TabsContent
+              value="simple"
+              className="mt-2.5 space-y-2.5 sm:mt-3 sm:space-y-3"
+            >
+              <MetricRow
+                capper={capper}
+                graded={graded}
+                provisional={provisional}
+                verifiedPct={verifiedPct}
+                avgClv={avgClv}
+                clvScale={clvScale}
+                showClv={false}
+              />
+              <SampleMaturityMeter graded={graded} />
+            </TabsContent>
 
-          <TabsContent value="analyst" className="mt-3 space-y-3">
-            <MetricRow
-              capper={capper}
-              graded={graded}
-              provisional={provisional}
-              verifiedPct={verifiedPct}
-              avgClv={displayAvgClv}
-              clvScale={clvScale}
-              showClv={showClv}
-            />
-            <SampleMaturityMeter graded={graded} showLegend />
-            <CumulativeUnitsChart points={cumulative} gradedCount={graded} />
-            <ClvTrackerPanel summary={clvTracker} />
-          </TabsContent>
+            <TabsContent
+              value="analyst"
+              className="mt-2.5 space-y-2.5 sm:mt-3 sm:space-y-3"
+            >
+              <MetricRow
+                capper={capper}
+                graded={graded}
+                provisional={provisional}
+                verifiedPct={verifiedPct}
+                avgClv={displayAvgClv}
+                clvScale={clvScale}
+                showClv={showClv}
+              />
+              <SampleMaturityMeter graded={graded} showLegend />
+            </TabsContent>
 
-          <TabsContent value="audit" className="mt-3 space-y-3">
-            <MetricRow
-              capper={capper}
-              graded={graded}
-              provisional={provisional}
-              verifiedPct={verifiedPct}
-              avgClv={displayAvgClv}
-              clvScale={clvScale}
-              showClv
-            />
-            <SampleMaturityMeter graded={graded} showLegend />
-            <CumulativeUnitsChart points={cumulative} gradedCount={graded} />
-            <ClvTrackerPanel summary={clvTracker} />
-            {showAuditMeta ? (
-              <p className="text-muted-foreground text-xs leading-relaxed">
-                Audit lens shows Evidence IDs and Close/CLV on each receipt.
-                Historical plays without a closing snapshot stay as em-dashes —
-                CLV only populates forward when a close is captured.
-              </p>
-            ) : null}
-          </TabsContent>
-        </Tabs>
+            <TabsContent
+              value="audit"
+              className="mt-2.5 space-y-2.5 sm:mt-3 sm:space-y-3"
+            >
+              <MetricRow
+                capper={capper}
+                graded={graded}
+                provisional={provisional}
+                verifiedPct={verifiedPct}
+                avgClv={displayAvgClv}
+                clvScale={clvScale}
+                showClv
+              />
+              <SampleMaturityMeter graded={graded} showLegend />
+              {showAuditMeta ? (
+                <p className="text-muted-foreground text-xs leading-relaxed">
+                  Audit lens shows Evidence IDs and Close/CLV on each receipt.
+                  Historical plays without a closing snapshot stay as em-dashes
+                  — CLV only populates forward when a close is captured.
+                </p>
+              ) : null}
+            </TabsContent>
+          </Tabs>
 
-        <div className="border-border mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t pt-2.5">
-          <VerificationHelpLink />
-          <a
-            href="/responsible-gaming"
-            className="text-muted-foreground hover:text-foreground inline-flex min-h-10 items-center text-xs underline-offset-4 hover:underline"
-          >
-            Responsible gaming
-          </a>
-        </div>
-      </Card>
+          <div className="border-border mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t pt-2 sm:mt-3 sm:pt-2.5">
+            <VerificationHelpLink />
+            <a
+              href="/responsible-gaming"
+              className="text-muted-foreground hover:text-foreground inline-flex min-h-10 items-center text-xs underline-offset-4 hover:underline"
+            >
+              Responsible gaming
+            </a>
+          </div>
+        </Card>
 
-      <section aria-label="Featured proof receipt" className="space-y-2">
-        <div className="border-t border-[color:var(--scl-pink-deep)] pt-2">
-          <h2 className="scl-display text-sm font-bold tracking-[0.05em] uppercase">
-            Latest proof
-          </h2>
-          <p className="text-muted-foreground mt-0.5 text-xs leading-snug">
-            Expanded paper receipt — inspectable capture, close, and CLV.
-          </p>
-        </div>
-        {featured ? (
-          playToProofReceipt(featured, "expanded-paper")
-        ) : playsError ? (
-          <EmptyState
-            icon={Receipt}
-            title="Couldn't load latest proof"
-            description="Try again shortly."
-          />
-        ) : (
-          <EmptyState
-            icon={Receipt}
-            title="No tracked plays yet"
-            description={`${emptyName} hasn't posted a graded play yet. When they do, the Proof Receipt appears here — timestamps, lines, and results included.`}
-          />
-        )}
-      </section>
+        <div className="lg:sticky lg:top-20 lg:col-span-7">{latestProof}</div>
+      </div>
+
+      {showDeepAnalysis ? (
+        <section aria-label="Analyst deep dive" className="space-y-3">
+          <CumulativeUnitsChart points={cumulative} gradedCount={graded} />
+          <ClvTrackerPanel summary={clvTracker} />
+        </section>
+      ) : null}
 
       <section id="recent-picks" className="scroll-mt-20">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">

@@ -112,7 +112,7 @@ export default async function Home() {
       <CompetitionHero />
 
       <YesterdayWinsTicker
-        wins={gradedWinsTicker.wins}
+        results={gradedWinsTicker.results}
         label={gradedWinsTicker.label}
       />
 

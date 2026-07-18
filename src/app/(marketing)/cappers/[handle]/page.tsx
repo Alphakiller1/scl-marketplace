@@ -37,7 +37,7 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
     <div className="overflow-x-hidden pb-6 sm:pb-8" data-visual-mode="proof">
       <CapperProfileHeader capper={capper} />
 
-      <div className="mx-auto mt-3 max-w-5xl px-4 sm:mt-4 sm:px-6">
+      <div className="mx-auto mt-2 max-w-5xl px-4 sm:mt-4 sm:px-6">
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-8">
           <div className="min-w-0 space-y-6">
             <EvidenceBrief
