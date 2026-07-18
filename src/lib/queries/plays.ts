@@ -6,10 +6,8 @@ import { prisma } from "@/lib/prisma";
 import type { CapperSummary, TodayPick } from "@/lib/mock";
 import { UNIT_MIN } from "@/lib/constants";
 import { joinPlaysToPublicPicks } from "@/lib/public-picks";
-import {
-  hasQaNoteMarker,
-  prismaExcludeTestHandles,
-} from "@/lib/public-eligibility";
+import { hasQaNoteMarker } from "@/lib/public-eligibility";
+import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 import { hasNotesPublicColumn } from "@/lib/results/schema-features";
 import { isVerifiedTier, type VerificationTier } from "@/lib/verification";
 
@@ -229,6 +227,7 @@ export async function getPublicRecentPicksResult(
 ): Promise<{ picks: TodayPick[]; failed: boolean }> {
   try {
     const notesPublicReady = await hasNotesPublicColumn();
+    const excludeTest = await prismaExcludeTestHandlesLive();
     const plays = await prisma.play.findMany({
       where: {
         units: { gte: UNIT_MIN },
@@ -236,7 +235,7 @@ export async function getPublicRecentPicksResult(
           user: {
             accountStatus: "ACTIVE",
             username: { not: null },
-            ...prismaExcludeTestHandles(),
+            ...excludeTest,
           },
         },
       },

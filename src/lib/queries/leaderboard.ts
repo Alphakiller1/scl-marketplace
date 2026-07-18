@@ -11,10 +11,8 @@ import {
   type LeaderboardFilters,
 } from "@/lib/leaderboard";
 import { UNIT_MIN } from "@/lib/constants";
-import {
-  hasQaNoteMarker,
-  prismaExcludeTestHandles,
-} from "@/lib/public-eligibility";
+import { hasQaNoteMarker } from "@/lib/public-eligibility";
+import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 import { computeCapperStats } from "@/lib/stats";
 import { computeVerifiedShare } from "@/lib/verification";
 import type { CapperSummary, FormResult } from "@/lib/mock";
@@ -38,15 +36,19 @@ const DEFAULT_FILTERS: LeaderboardFilters = {
   limit: DEFAULT_LEADERBOARD_LIMIT,
 };
 
-function fetchRankableProfiles(filters: LeaderboardFilters, clvReady: boolean) {
+async function fetchRankableProfiles(
+  filters: LeaderboardFilters,
+  clvReady: boolean,
+) {
   const windowStart = leaderboardWindowStart(filters.window);
+  const excludeTest = await prismaExcludeTestHandlesLive();
 
   return prisma.capperProfile.findMany({
     where: {
       user: {
         username: { not: null },
         accountStatus: "ACTIVE",
-        ...prismaExcludeTestHandles(),
+        ...excludeTest,
         ...(filters.verifiedOnly
           ? { emailVerified: { not: null } }
           : undefined),

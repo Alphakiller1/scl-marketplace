@@ -3,8 +3,10 @@ import { test } from "node:test";
 
 import {
   hasQaNoteMarker,
+  isExcludedFromPublicPublication,
   isTestHandle,
   isValidPublicStake,
+  prismaExcludeTestHandles,
   PUBLIC_EXCLUDED_HANDLES,
 } from "@/lib/public-eligibility";
 
@@ -52,4 +54,34 @@ test("isValidPublicStake enforces 0.25U minimum", () => {
   assert.equal(isValidPublicStake(0.25), true);
   assert.equal(isValidPublicStake(0.24), false);
   assert.equal(isValidPublicStake(1), true);
+});
+
+test("isExcludedFromPublicPublication honors isTest over handle alone", () => {
+  assert.equal(
+    isExcludedFromPublicPublication({ username: "legit_capper", isTest: true }),
+    true,
+  );
+  assert.equal(
+    isExcludedFromPublicPublication({
+      username: "legit_capper",
+      isTest: false,
+    }),
+    false,
+  );
+  assert.equal(
+    isExcludedFromPublicPublication({ username: "demo_capper", isTest: false }),
+    true,
+  );
+});
+
+test("prismaExcludeTestHandles adds isTest when column ready", () => {
+  const without = prismaExcludeTestHandles();
+  assert.ok("NOT" in without);
+  assert.equal("AND" in without, false);
+
+  const withCol = prismaExcludeTestHandles({ includeIsTestColumn: true });
+  assert.ok("AND" in withCol);
+  const and = withCol.AND as unknown[];
+  assert.deepEqual(and[0], { isTest: false });
+  assert.ok(and[1] && typeof and[1] === "object" && "NOT" in and[1]);
 });

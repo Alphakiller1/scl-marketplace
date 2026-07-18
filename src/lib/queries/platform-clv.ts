@@ -5,7 +5,7 @@ import type { VerificationTier } from "@prisma/client";
 import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
 import { UNIT_MIN } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
-import { prismaExcludeTestHandles } from "@/lib/public-eligibility";
+import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 import { hasClvColumns } from "@/lib/results/schema-features";
 
 const VERIFIED_TIERS: VerificationTier[] = ["VERIFIED", "AUTO_VERIFIED"];
@@ -38,7 +38,7 @@ export async function getPlatformClvSummary(): Promise<PlatformClvResult> {
           user: {
             accountStatus: "ACTIVE",
             username: { not: null },
-            ...prismaExcludeTestHandles(),
+            ...(await prismaExcludeTestHandlesLive()),
           },
         },
       },

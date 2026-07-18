@@ -36,6 +36,9 @@ model User {
   accountStatus AccountStatus @default(ACTIVE)
   emailVerified DateTime?
   image         String?
+  /// When true, excluded from public leaderboard / picks / discover / profile.
+  /// Toggle in Supabase without a code change; handle guards remain as backup.
+  isTest        Boolean       @default(false)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
