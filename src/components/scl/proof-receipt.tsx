@@ -104,7 +104,19 @@ export function ProofReceipt({
   const settlementTone = preferVerified ? proofStampTone(state) : null;
   const closingLine = formatClosingLine(closingOddsAmerican);
   const clv = formatClvPts(clvPts);
-  const evidence = formatEvidenceId(evidenceId);
+  /**
+   * Short face for dense feed rows; paper/share show a longer wrap-safe id
+   * so documentary Evidence never relies on ellipsis clip alone.
+   */
+  const evidence = (() => {
+    if (!evidenceId?.trim()) return "—";
+    if (paper) {
+      const clean = evidenceId.trim().toUpperCase();
+      if (clean.length <= 22) return clean;
+      return `${clean.slice(0, 10)}…${clean.slice(-8)}`;
+    }
+    return formatEvidenceId(evidenceId);
+  })();
   const emptyCloseClvTitle =
     closingLine === "—" || clv === "—"
       ? missingCloseOrClvTooltip(eventStartsAt)
