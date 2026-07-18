@@ -1,40 +1,34 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-
-import { Activity, ArrowRight, Flame, ShieldCheck, Trophy } from "lucide-react";
+import { Activity, ArrowRight, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-import { SectionHeader } from "@/components/scl/section";
-
 import { CompetitionHero } from "@/components/scl/competition-hero";
-import { Leaderboard } from "@/components/scl/leaderboard";
-
-import { EmptyState } from "@/components/scl/states";
-
+import { FeaturedProofReceipt } from "@/components/scl/featured-proof-receipt";
+import { HomeLiveBoard } from "@/components/scl/home-live-board";
+import { LeaderboardSnapshot } from "@/components/scl/leaderboard-snapshot";
+import { LeagueActionReport } from "@/components/scl/league-action-report";
+import { SectionHeader } from "@/components/scl/section";
+import { TopCappersLive } from "@/components/scl/top-cappers-live";
+import { VerificationLegend } from "@/components/scl/verification-legend";
+import { WhatChangedToday } from "@/components/scl/what-changed-today";
 import { YesterdayWinsTicker } from "@/components/scl/yesterday-wins-ticker";
 
-import { RoiLeadersPanel } from "@/components/scl/roi-leaders-panel";
-import { LeagueActionReport } from "@/components/scl/league-action-report";
-
 import { appUrl } from "@/lib/app-url";
-import { sortLeaderboard } from "@/lib/leaderboard";
-
-import { getLeaderboardResult } from "@/lib/queries/leaderboard";
-
-import { getLeagueActionReport } from "@/lib/queries/league-action";
-
-import { getYesterdaysGradedWins } from "@/lib/queries/yesterday-wins";
-
-import { VerificationLegend } from "@/components/scl/verification-legend";
 import {
   BOTTOM_BAND_BODY,
   BOTTOM_BAND_HEADLINE,
-  ROI_LEADERS_EMPTY_BODY,
-  ROI_LEADERS_EMPTY_LABEL,
-  ROI_LEADERS_EMPTY_TITLE,
   TRACK_YOUR_RECORD_CTA,
 } from "@/lib/cold-start-copy";
+import { sortLeaderboard } from "@/lib/leaderboard";
+import {
+  getFeaturedGradedPlay,
+  getTodaysGradedMoves,
+} from "@/lib/queries/home-live";
+import { getLeaderboardResult } from "@/lib/queries/leaderboard";
+import { getLeagueActionReport } from "@/lib/queries/league-action";
+import { getYesterdaysGradedWins } from "@/lib/queries/yesterday-wins";
 
 export const revalidate = 60;
 
@@ -85,23 +79,26 @@ const PINK_CTA =
   "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)]";
 
 export default async function Home() {
+  const updatedAt = new Date();
+
   const { cappers, failed: leaderboardFailed } = await getLeaderboardResult({
     verifiedOnly: true,
   });
 
   const {
     leagues,
-
     categories,
-
     windowDays,
-
     failed: leagueActionFailed,
   } = await getLeagueActionReport();
 
   const gradedWinsTicker = await getYesterdaysGradedWins();
+  const { moves, failed: movesFailed } = await getTodaysGradedMoves();
+  const { play: featuredPlay, failed: featuredFailed } =
+    await getFeaturedGradedPlay();
 
-  const topRoi = sortLeaderboard(cappers, "roi").slice(0, 3);
+  const snapshot = sortLeaderboard(cappers, "units").slice(0, 5);
+  const topCappers = sortLeaderboard(cappers, "units").slice(0, 5);
 
   return (
     <>
@@ -112,7 +109,19 @@ export default async function Home() {
         label={gradedWinsTicker.label}
       />
 
-      <div className="mx-auto max-w-6xl space-y-10 px-4 py-10 sm:space-y-14 sm:px-6 sm:py-12">
+      <div className="mx-auto max-w-6xl space-y-10 overflow-x-hidden px-4 py-10 sm:space-y-14 sm:px-6 sm:py-12">
+        <HomeLiveBoard>
+          <LeaderboardSnapshot
+            cappers={snapshot}
+            failed={leaderboardFailed}
+            updatedAt={updatedAt}
+            limit={5}
+          />
+          <WhatChangedToday moves={moves} failed={movesFailed} />
+          <TopCappersLive cappers={topCappers} failed={leaderboardFailed} />
+          <FeaturedProofReceipt play={featuredPlay} failed={featuredFailed} />
+        </HomeLiveBoard>
+
         <section
           id="how-verification-works"
           className="border-border scroll-mt-20 space-y-3 rounded-xl border p-4 sm:p-5"
@@ -123,8 +132,8 @@ export default async function Home() {
                 <ShieldCheck className="size-4" aria-hidden />
               </span>
               <div className="min-w-0">
-                <h2 className="text-sm font-bold tracking-wide uppercase">
-                  How Verification Works
+                <h2 className="text-sm font-bold tracking-wide">
+                  How verification works
                 </h2>
                 <p className="text-muted-foreground mt-1 text-sm">
                   Account checks and pick authenticity are separate. Inspect
@@ -138,29 +147,11 @@ export default async function Home() {
 
         <section className="space-y-4">
           <SectionHeader
-            icon={Trophy}
-            title="SCL Primary Leaderboard"
-            subtitle="Transparent records ranked when sample thresholds are met"
-            href="/leaderboard"
-          />
-
-          <Leaderboard
-            cappers={cappers}
-            failed={leaderboardFailed}
-            limit={6}
-            compactMobile
-            emptyDescription="The founding roster is forming. Verified cappers will appear here after they clear SCL’s ranking sample — early records stay inspectable under Building A Record."
-          />
-        </section>
-
-        <section className="space-y-4">
-          <SectionHeader
             icon={Activity}
-            title="League Action Report"
+            title="League action report"
             subtitle={`Verified board activity from public cappers — last ${windowDays} days`}
             href="/picks"
           />
-
           <LeagueActionReport
             leagues={leagues}
             categories={categories}
@@ -169,52 +160,14 @@ export default async function Home() {
           />
         </section>
 
-        <section className="space-y-4">
-          <SectionHeader
-            icon={Flame}
-            title="ROI Leaders"
-            subtitle="Return across each capper’s graded sample — after sample thresholds"
-            href="/cappers"
-          />
-
-          {topRoi.length ? (
-            <RoiLeadersPanel cappers={topRoi} />
-          ) : (
-            <EmptyState
-              icon={Flame}
-              title={ROI_LEADERS_EMPTY_TITLE}
-              description={ROI_LEADERS_EMPTY_BODY}
-              action={
-                <div className="flex w-full flex-col items-center gap-3">
-                  <p className="scl-data text-muted-foreground text-[0.65rem] font-semibold tracking-[0.12em] uppercase">
-                    {ROI_LEADERS_EMPTY_LABEL}
-                  </p>
-                  <Button
-                    render={<Link href="/leaderboard#building-a-record" />}
-                    nativeButton={false}
-                    variant="outline"
-                    className="min-h-11 gap-2"
-                  >
-                    View Building Records
-                    <ArrowRight className="size-4" aria-hidden />
-                  </Button>
-                </div>
-              }
-            />
-          )}
-        </section>
-
         <section className="border-border flex flex-col items-stretch gap-5 border-y py-8 sm:flex-row sm:items-center sm:justify-between sm:py-10">
           <div className="max-w-2xl">
             <ShieldCheck className="size-8 text-[color:var(--scl-muted-data)]" />
-
-            <h2 className="scl-display mt-4 text-2xl font-bold tracking-[0.04em] text-balance uppercase sm:text-3xl">
+            <h2 className="scl-display mt-4 text-2xl font-bold tracking-[0.04em] text-balance sm:text-3xl">
               {BOTTOM_BAND_HEADLINE}
             </h2>
-
             <p className="text-muted-foreground mt-2">{BOTTOM_BAND_BODY}</p>
           </div>
-
           <Button
             render={<Link href="/signup" />}
             nativeButton={false}
