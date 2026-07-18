@@ -398,7 +398,7 @@ export function EvidenceBrief({
             className={cn(
               "border-border hidden lg:block",
               // <1440: full-width band under peers; ≥1440: third column ≥320px
-              "max-[1440px]:col-span-2 max-[1440px]:mt-1 max-[1440px]:border-t max-[1440px]:pt-5",
+              "max-[1439px]:col-span-2 max-[1439px]:mt-1 max-[1439px]:border-t max-[1439px]:pt-5",
               "min-[1440px]:col-span-1 min-[1440px]:mt-0 min-[1440px]:min-w-[320px] min-[1440px]:border-t-0 min-[1440px]:border-l min-[1440px]:pt-0 min-[1440px]:pl-6",
             )}
           >
