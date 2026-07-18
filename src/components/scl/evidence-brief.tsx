@@ -371,33 +371,27 @@ export function EvidenceBrief({
   return (
     <div className={cn("space-y-3 sm:space-y-5", className)}>
       {/*
-        Desktop (lg–xl): Evidence | Latest Proof peers; Marketplace full-width
-        band below. xl+: Marketplace as third column (≥320px). Mobile: stacked
-        Evidence then Proof (unchanged). Storefront never injects above Meta
-        on mobile — page owns that band.
+        Desktop (lg–1439px): Evidence | Latest Proof peers; Marketplace
+        full-width band below. 1440px+: Marketplace as third column (≥320px).
+        Mobile: stacked Evidence then Proof (unchanged). Storefront never
+        injects above Meta on mobile — page owns that band.
       */}
       <div
         className={cn(
           "grid items-start gap-4 sm:gap-5",
           "lg:grid-cols-[minmax(280px,0.85fr)_minmax(460px,1.4fr)] lg:gap-6",
           desktopStorefront &&
-            "xl:grid-cols-[minmax(280px,0.85fr)_minmax(460px,1.4fr)_minmax(320px,22rem)]",
+            "min-[1440px]:grid-cols-[minmax(280px,0.85fr)_minmax(460px,1.4fr)_minmax(320px,22rem)]",
         )}
       >
         {evidenceRecord}
         <div className="min-w-0 lg:sticky lg:top-20">{latestProof}</div>
         {desktopStorefront ? (
-          <aside className="border-border hidden min-w-[320px] xl:block xl:border-l xl:pl-6">
+          <aside className="border-border hidden min-[1440px]:col-span-1 min-[1440px]:mt-0 min-[1440px]:min-w-[320px] min-[1440px]:border-t-0 min-[1440px]:border-l min-[1440px]:pt-0 min-[1440px]:pl-6 lg:col-span-2 lg:mt-1 lg:block lg:border-t lg:pt-5">
             {desktopStorefront}
           </aside>
         ) : null}
       </div>
-
-      {desktopStorefront ? (
-        <div className="border-border mt-1 hidden border-t pt-5 lg:block xl:hidden">
-          {desktopStorefront}
-        </div>
-      ) : null}
 
       {showDeepAnalysis ? (
         <section aria-label="Analyst deep dive" className="space-y-3">

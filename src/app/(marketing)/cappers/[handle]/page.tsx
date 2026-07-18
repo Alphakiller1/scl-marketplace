@@ -7,9 +7,9 @@ import { getPublicCapperByHandle } from "@/lib/queries/capper";
 import { getLivePackagesForCapper } from "@/lib/queries/store";
 import { CapperProfileHeader } from "@/components/scl/capper-profile-header";
 import { CapperProfileMeta } from "@/components/scl/capper-profile-meta";
-import { CapperStorefront } from "@/components/scl/capper-storefront";
 import { CompareTray } from "@/components/scl/compare-tray";
 import { EvidenceBrief } from "@/components/scl/evidence-brief";
+import { ResponsiveCapperStorefront } from "@/components/scl/responsive-capper-storefront";
 
 type ProfileParams = { params: Promise<{ handle: string }> };
 
@@ -33,15 +33,6 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
   const identity = identityDisplayLinesFromCapper(capper);
   const packages = await getLivePackagesForCapper(capper.id);
 
-  const storefront = (
-    <CapperStorefront
-      className="mt-0"
-      storefront={capper.storefront}
-      capperName={identity.primary}
-      packages={packages}
-    />
-  );
-
   return (
     <div className="overflow-x-hidden pb-6 sm:pb-8" data-visual-mode="proof">
       <CapperProfileHeader capper={capper} />
@@ -54,12 +45,26 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
           avgClv={avgClv}
           clvTracker={clvTracker}
           emptyName={identity.primary}
-          desktopStorefront={storefront}
+          desktopStorefront={
+            <ResponsiveCapperStorefront
+              viewport="desktop"
+              className="mt-0"
+              storefront={capper.storefront}
+              capperName={identity.primary}
+              packages={packages}
+            />
+          }
         />
         <CapperProfileMeta capper={capper} />
         {/* Mobile stack unchanged: EvidenceBrief → Meta → Marketplace */}
         <div className="border-border mt-6 border-t pt-5 lg:hidden">
-          {storefront}
+          <ResponsiveCapperStorefront
+            viewport="mobile"
+            className="mt-0"
+            storefront={capper.storefront}
+            capperName={identity.primary}
+            packages={packages}
+          />
         </div>
       </div>
       <CompareTray />
