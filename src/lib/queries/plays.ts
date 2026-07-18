@@ -30,6 +30,10 @@ export type PlayView = {
   book: string | null;
   notes: string | null;
   notesPublic?: boolean;
+  /** Closing American odds when snapshot exists — null → em-dash on Proof Receipt. */
+  closingOddsAmerican?: number | null;
+  /** CLV pts when computed — null → em-dash. */
+  clvPts?: number | null;
 };
 
 export type ParlayLegView = {

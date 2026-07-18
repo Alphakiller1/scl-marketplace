@@ -37,10 +37,11 @@ export async function getPublicCapperByHandle(
   let avgClv: number | null = null;
   try {
     const notesPublicReady = await hasNotesPublicColumn();
+    const clvReady = await hasClvColumns();
     const rows = await prisma.play.findMany({
       where: { capper: { user: { username: handle } } },
       orderBy: { createdAt: "desc" },
-      take: 8,
+      take: 24,
       select: {
         id: true,
         sport: true,
@@ -58,6 +59,7 @@ export async function getPublicCapperByHandle(
         book: true,
         notes: true,
         ...(notesPublicReady ? { notesPublic: true } : {}),
+        ...(clvReady ? { closingOddsAmerican: true, clvPts: true } : {}),
       },
     });
     plays = rows.map((p) => ({
@@ -80,9 +82,18 @@ export async function getPublicCapperByHandle(
         "notesPublic" in p
           ? ((p as { notesPublic?: boolean }).notesPublic ?? true)
           : true,
+      closingOddsAmerican:
+        "closingOddsAmerican" in p
+          ? ((p as { closingOddsAmerican?: number | null })
+              .closingOddsAmerican ?? null)
+          : null,
+      clvPts:
+        "clvPts" in p && (p as { clvPts?: unknown }).clvPts != null
+          ? Number((p as { clvPts: unknown }).clvPts)
+          : null,
     }));
 
-    if (await hasClvColumns()) {
+    if (clvReady) {
       const clvAgg = await prisma.play.aggregate({
         where: {
           capperId: capper.id,
