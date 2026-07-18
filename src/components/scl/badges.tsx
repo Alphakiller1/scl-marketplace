@@ -26,12 +26,15 @@ export function VerificationBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 text-[color:var(--scl-pink)]",
+        "inline-flex items-center gap-1 text-[color:var(--scl-text)]",
         className,
       )}
       title={ACCOUNT_VERIFIED_TOOLTIP}
     >
-      <BadgeCheck className={px} aria-label="Verified account" />
+      <BadgeCheck
+        className={cn(px, "text-[color:var(--scl-pink)]")}
+        aria-label="Verified account"
+      />
       {withLabel ? <span className="text-xs font-medium">Verified</span> : null}
     </span>
   );
@@ -55,7 +58,7 @@ export function PickTierBadge({
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.7rem] font-semibold",
         verified
-          ? "bg-[color:var(--scl-pink)]/15 text-[color:var(--scl-pink)] ring-1 ring-[color:var(--scl-pink)]/30"
+          ? "bg-[color:var(--scl-pink)]/15 text-[color:var(--scl-text)] ring-1 ring-[color:var(--scl-pink)]/30"
           : "border-border/80 text-muted-foreground border bg-transparent",
         className,
       )}
@@ -166,7 +169,7 @@ const STATUS_STYLES: Record<
     label: "Pending",
     title: "Event has not started — pick is logged, not yet graded",
     className:
-      "border border-[color:var(--scl-blue)]/40 text-[color:var(--scl-blue)]",
+      "border border-[color:var(--scl-blue)]/40 text-[color:var(--scl-text)]",
   },
   pending: {
     label: "Pending",

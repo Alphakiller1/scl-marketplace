@@ -38,7 +38,7 @@ export function TopCappersLive({
         </div>
         <Link
           href="/cappers"
-          className="inline-flex min-h-11 shrink-0 items-center gap-1 text-sm font-medium text-[color:var(--scl-blue)] hover:underline"
+          className="scl-link inline-flex min-h-11 shrink-0 items-center gap-1 text-sm font-medium"
         >
           Browse directory
           <ArrowRight className="size-3.5" aria-hidden />

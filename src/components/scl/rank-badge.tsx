@@ -59,15 +59,19 @@ export function RankBadge({
     <span
       className={cn(
         "scl-data flex size-10 shrink-0 items-center justify-center rounded-lg border text-sm font-bold tabular-nums",
-        rank === 1 && "border-pink/35 bg-pink/10 text-pink",
-        rank === 2 && "border-pink/25 bg-pink/5 text-pink",
-        rank === 3 && "border-pink/20 bg-pink/5 text-pink",
+        rank === 1 && "border-pink/35 bg-pink/10 text-foreground",
+        rank === 2 && "border-pink/25 bg-pink/5 text-foreground",
+        rank === 3 && "border-pink/20 bg-pink/5 text-foreground",
         !podium && "border-border bg-surface-2 text-muted-foreground",
         className,
       )}
       aria-label={`Rank ${rank}`}
     >
-      {podium ? <Icon className="size-4" aria-hidden /> : rank}
+      {podium ? (
+        <Icon className="size-4 text-[color:var(--scl-pink)]" aria-hidden />
+      ) : (
+        rank
+      )}
     </span>
   );
 }

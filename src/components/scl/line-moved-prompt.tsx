@@ -88,7 +88,7 @@ function LineCard({
           <p
             className={cn(
               "scl-data mt-0.5 text-lg font-semibold",
-              unavailable ? "text-muted-foreground" : "text-pink",
+              unavailable ? "text-muted-foreground" : "text-foreground",
             )}
           >
             {unavailable || line.updatedOddsAmerican == null

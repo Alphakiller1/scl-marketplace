@@ -122,10 +122,19 @@ Radius roles: receipt 6 · row/input 8 · control 10 · card 14 · marketing 20.
 data = hairline only · hover = lift · slip/tray = floating · receipt/modal = strongest. No
 stacking border+shadow+glow on routine objects.
 
-## Text-contrast tiers (dark)
+## Text-contrast tiers
 
-label `#7E8AA0` / supporting prose `#AAB6C9` / primary prose `#D8DFEA` / heading `#EDF1F7`.
-Never use the label color for full sentences.
+label `#7E8AA0` (dark) / `#6E7686` (light, large ≥18px/bold only) · supporting prose
+`#AAB6C9` (dark) / `#596273` (light) · primary prose `#D8DFEA` · heading `#EDF1F7` (dark) /
+`#161B26` (light). Never use the label color for full sentences.
+
+**Conviction/navigation hues (pink/blue) are for marks, fills, carets, focus, and
+underlines — never small text. Small text uses the text/supporting tiers. Every
+normal-size text/background pair must pass 4.5:1 in both themes.**
+
+Do not invent `--scl-blue-text` unless a genuine accessible blue text token (≥4.5:1 on
+ink) is required and documented here first. Prefer `--scl-text` + blue underline
+(`.scl-link`) for links.
 
 ## Component recipes
 
@@ -147,7 +156,8 @@ Never use the label color for full sentences.
   Line-moved → Live → Awaiting-grade → Won/Loss/Push/Void → Corrected/Disputed →
   Source-unavailable. One schema; recognizable in every state and in dark / paper / mobile /
   share-image / text-only.
-- **VERIFIED BADGE** — pink shield + "NN% Verified" meter in pink/neutral (never blue). Keep the %.
+- **VERIFIED BADGE** — pink shield + meter FILL in pink; the % numeral renders in the
+  text tier (`--scl-text`), never pink fill-as-text. Keep the %.
 - **STICKY SLIP BAR (mobile)** — fixed bottom, 56px, radius 14px, pink-deep border, the one
   permitted gradient, shadow-slip. Owns the bottom of the screen; the Compare tray yields to it.
 - **LEADERBOARD (Rank mode)** — columns: Rank · Capper · Sports · Record · ROI · Units ·

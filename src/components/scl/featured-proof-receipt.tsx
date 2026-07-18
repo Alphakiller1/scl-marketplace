@@ -40,7 +40,7 @@ export function FeaturedProofReceipt({
         {play ? (
           <Link
             href={`/cappers/${play.handle}`}
-            className="text-sm font-medium text-[color:var(--scl-blue)] hover:underline"
+            className="scl-link text-sm font-medium"
           >
             @{play.handle}
           </Link>
@@ -114,7 +114,7 @@ function FeaturedReceiptBody({ play }: { play: FeaturedGradedPlay }) {
       footerAction={
         <Link
           href={`/cappers/${play.handle}`}
-          className="text-xs font-semibold text-[color:var(--scl-blue)] hover:underline"
+          className="scl-link text-xs font-semibold"
         >
           View @{play.handle} record
         </Link>

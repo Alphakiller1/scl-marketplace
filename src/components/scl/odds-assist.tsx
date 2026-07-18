@@ -431,7 +431,7 @@ function BoardTeamLine({ team, fav }: { team: TeamIdentity; fav?: boolean }) {
         {team.shortName}
       </span>
       {fav ? (
-        <span className="scl-data shrink-0 rounded border border-[color:var(--scl-pink)] px-1.5 py-px text-[8.5px] tracking-[0.12em] text-[color:var(--scl-pink)] uppercase">
+        <span className="scl-data text-foreground shrink-0 rounded border border-[color:var(--scl-pink)] px-1.5 py-px text-[8.5px] tracking-[0.12em] uppercase">
           Fav
         </span>
       ) : null}

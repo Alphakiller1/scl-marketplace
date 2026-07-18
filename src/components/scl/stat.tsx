@@ -7,9 +7,10 @@ type Tone = "pos" | "neg" | "muted" | "pink" | "brand" | "live" | "default";
 const toneText: Record<Tone, string> = {
   pos: "text-pos",
   neg: "text-neg",
-  pink: "text-pink",
-  brand: "text-brand",
-  live: "text-live",
+  /* Pink tone = conviction emphasis via weight/context; fill stays text-tier for AA. */
+  pink: "text-foreground",
+  brand: "text-foreground",
+  live: "text-foreground",
   muted: "text-muted-foreground",
   default: "text-foreground",
 };

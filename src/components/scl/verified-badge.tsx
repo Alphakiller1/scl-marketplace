@@ -24,7 +24,7 @@ export function VerifiedBadge({
     return (
       <span
         className={cn(
-          "inline-flex min-h-8 items-center rounded-md border border-[color:var(--scl-pink)] px-2 text-[color:var(--scl-pink)]",
+          "inline-flex min-h-8 items-center rounded-md border border-[color:var(--scl-pink)] px-2 text-[color:var(--scl-text)]",
           className,
         )}
         aria-label="Fully board-verified record"
@@ -41,13 +41,16 @@ export function VerifiedBadge({
       return (
         <span
           className={cn(
-            "scl-data inline-flex items-center gap-1 text-[0.7rem] font-semibold text-[color:var(--scl-muted-label)]",
+            "scl-data text-muted-foreground inline-flex items-center gap-1 text-[0.7rem] font-semibold",
             className,
           )}
           aria-label={`${pct} percent of picks board-verified`}
           title={`${pct}% of this capper's picks were board-verified. Only verified picks count toward rank.`}
         >
-          <ShieldCheck className="size-3.5 shrink-0" aria-hidden />
+          <ShieldCheck
+            className="size-3.5 shrink-0 text-[color:var(--scl-pink)]"
+            aria-hidden
+          />
           {`${pct}% board-verified`}
         </span>
       );
@@ -74,14 +77,17 @@ export function VerifiedBadge({
       className={cn(
         "inline-flex min-h-8 items-center gap-1 rounded-md px-2 text-[0.7rem] font-semibold tracking-wide",
         verified
-          ? "border border-[color:var(--scl-pink)] text-[color:var(--scl-pink)]"
-          : "border border-[color:var(--scl-line)] text-[color:var(--scl-muted-label)]",
+          ? "border border-[color:var(--scl-pink)] text-[color:var(--scl-text)]"
+          : "text-muted-foreground border border-[color:var(--scl-line)]",
         className,
       )}
       aria-label={verified ? "Board-verified pick" : "Logged pick"}
     >
       {verified ? (
-        <ShieldCheck className="size-3.5 shrink-0" aria-hidden />
+        <ShieldCheck
+          className="size-3.5 shrink-0 text-[color:var(--scl-pink)]"
+          aria-hidden
+        />
       ) : null}
       {verified ? "Verified" : "Logged"}
     </span>

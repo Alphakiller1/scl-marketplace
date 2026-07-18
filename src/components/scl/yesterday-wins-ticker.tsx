@@ -39,7 +39,7 @@ function TickerItem({
     >
       <Link
         href={`/cappers/${win.handle}`}
-        className="font-semibold text-[color:var(--scl-pink)] hover:underline"
+        className="font-semibold text-[color:var(--scl-text)] underline decoration-[color:var(--scl-pink)] underline-offset-2 hover:decoration-[color:var(--scl-pink-deep)]"
       >
         @{win.handle}
       </Link>

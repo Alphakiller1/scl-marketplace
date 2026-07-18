@@ -41,7 +41,7 @@ export function VerifiedShareMeter({
           aria-hidden
         />
         <span
-          className="scl-data text-sm font-semibold text-[color:var(--scl-pink)] tabular-nums"
+          className="scl-data text-foreground text-sm font-semibold tabular-nums"
           aria-label={`${rounded} percent board-verified`}
         >
           {rounded}%

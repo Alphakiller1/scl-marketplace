@@ -50,7 +50,7 @@ function VerifiedMeter({ pct }: { pct: number | null }) {
           aria-hidden
         />
         <span
-          className="scl-data text-lg font-semibold text-[color:var(--scl-pink)] tabular-nums sm:text-xl"
+          className="scl-data text-foreground text-lg font-semibold tabular-nums sm:text-xl"
           aria-label={`${pct} percent board-verified`}
         >
           {pct}%

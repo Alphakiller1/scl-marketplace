@@ -256,7 +256,7 @@ export function ProofReceipt({
         </p>
         <div className="scl-display shrink-0 text-right text-[0.8rem] font-semibold tracking-[0.06em] uppercase">
           <span className="text-muted-foreground block">To Win</span>
-          <span className="scl-data text-pink text-[0.95rem] font-semibold tracking-normal normal-case">
+          <span className="scl-data text-foreground text-[0.95rem] font-semibold tracking-normal normal-case">
             {toWin}
           </span>
         </div>
@@ -289,25 +289,22 @@ export function ProofReceipt({
 function ProofCell({
   label,
   value,
-  accent,
+  accent: _accent,
   title,
   className,
 }: {
   label: string;
   value: string;
+  /** @deprecated Accent numerals no longer use pink text (AA). Kept for call-site compat. */
   accent?: boolean;
   title?: string;
   className?: string;
 }) {
+  void _accent;
   return (
     <div className={className} title={title}>
-      <div className="scl-eyebrow text-muted-foreground">{label}</div>
-      <div
-        className={cn(
-          "scl-data mt-0.5 text-base font-semibold tabular-nums",
-          accent ? "text-pink" : "text-foreground",
-        )}
-      >
+      <div className="scl-eyebrow">{label}</div>
+      <div className="scl-data text-foreground mt-0.5 text-base font-semibold tabular-nums">
         {value}
       </div>
     </div>

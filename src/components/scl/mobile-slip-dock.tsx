@@ -54,7 +54,7 @@ export function MobileSlipDock({
             {countLabel}
           </span>
           {oddsLabel ? (
-            <span className="scl-data shrink-0 text-[15px] font-semibold text-[color:var(--scl-pink)]">
+            <span className="scl-data text-foreground shrink-0 text-[15px] font-semibold">
               {oddsLabel}
             </span>
           ) : null}
