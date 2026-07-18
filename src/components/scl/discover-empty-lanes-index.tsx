@@ -9,9 +9,10 @@ import {
 import { cn } from "@/lib/utils";
 
 /**
- * Mobile-only index of empty Discover lanes — compact disclosures that preserve
- * every honest empty string. Desktop must render full lane sections as siblings
- * (never nest desktop bodies inside closed <details> — see #212).
+ * Compact index of empty Discover lanes — disclosures that preserve every
+ * honest empty string. Used on mobile always, and on desktop when ≥3 lanes
+ * are empty (see discover/page.tsx). Do not nest *filled* lane bodies inside
+ * closed <details> (see #212); empty-lane copy is safe here.
  */
 export function DiscoverEmptyLanesIndex({
   lanes,
@@ -26,7 +27,7 @@ export function DiscoverEmptyLanesIndex({
 
   return (
     <section
-      className={cn("space-y-3 lg:hidden", className)}
+      className={cn("space-y-3", className)}
       aria-labelledby="discover-empty-lanes"
       data-visual-mode="rank"
     >

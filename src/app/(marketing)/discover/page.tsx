@@ -55,7 +55,9 @@ export default async function DiscoverPage({
 
       {/*
         Mobile: filled lanes + compact empty-lane accordion.
-        Desktop: full lane sections as siblings (never inside closed <details>).
+        Desktop: filled lanes as full sections; when ≥3 lanes are empty, one
+        compact DiscoverEmptyLanesIndex (same component as mobile). Fewer than
+        3 empty stay as normal sections — never a wall of empty carousels.
       */}
       <div className="mt-8 space-y-10 lg:hidden">
         {filledLanes.map((lane) => (
@@ -64,9 +66,20 @@ export default async function DiscoverPage({
         <DiscoverEmptyLanesIndex lanes={emptyLanes} failed={lanesFailed} />
       </div>
       <div className="mt-8 hidden space-y-10 lg:block">
-        {lanes.map((lane) => (
+        {filledLanes.map((lane) => (
           <DiscoverLaneSection key={lane.id} lane={lane} failed={lanesFailed} />
         ))}
+        {emptyLanes.length >= 3 ? (
+          <DiscoverEmptyLanesIndex lanes={emptyLanes} failed={lanesFailed} />
+        ) : (
+          emptyLanes.map((lane) => (
+            <DiscoverLaneSection
+              key={lane.id}
+              lane={lane}
+              failed={lanesFailed}
+            />
+          ))
+        )}
       </div>
       <section className="mt-12 space-y-4" aria-labelledby="discover-browse">
         <div className="border-border border-t pt-6">
