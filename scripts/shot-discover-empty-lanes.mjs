@@ -25,7 +25,7 @@ const live = await page.evaluate(() => {
   const blocks = [...document.querySelectorAll(".mt-8.space-y-10")];
   const desktop = blocks.find((el) => getComputedStyle(el).display !== "none");
   const index = desktop?.querySelector(
-    '[aria-labelledby="discover-empty-lanes"]',
+    'section[data-visual-mode="rank"]:has(> ul details)',
   );
   return {
     desktopHeight: desktop
@@ -104,7 +104,7 @@ const mixedMeta = await page.evaluate(() => {
   const blocks = [...document.querySelectorAll(".mt-8.space-y-10")];
   const desktop = blocks.find((el) => getComputedStyle(el).display !== "none");
   const index = desktop?.querySelector(
-    '[aria-labelledby="discover-empty-lanes"]',
+    'section[data-visual-mode="rank"]:has(> ul details)',
   );
   return {
     desktopHeight: desktop
