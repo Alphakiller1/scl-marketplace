@@ -165,7 +165,7 @@ export function EvidenceBrief({
   avgClv?: number | null;
   clvTracker?: ClvTrackerSummary;
   emptyName: string;
-  /** Marketplace rail/band — rendered only from `lg` upward (never on mobile). */
+  /** Marketplace band under peers — rendered only from `lg` upward (never on mobile). */
   desktopStorefront?: ReactNode;
   className?: string;
 }) {
@@ -371,37 +371,22 @@ export function EvidenceBrief({
   return (
     <div className={cn("space-y-3 sm:space-y-5", className)}>
       {/*
-        Desktop (lg–<1536): Evidence | Latest Proof peers; Marketplace
-        full-width band below (approved 1280 layout through 1535).
-        ≥1536 only: Marketplace as third column (≥320px).
+        Desktop (lg+): Evidence | Latest Proof peers; Marketplace always a
+        full-width band under the peers (no 3-col rail — avoids squeezing
+        the evidence stats and reads cleaner than a sidebar ad).
         Mobile: stacked Evidence then Proof (unchanged). Storefront never
         injects above Meta on mobile — page owns that band.
       */}
       <div
         className={cn(
           "grid items-start gap-4 sm:gap-5 lg:gap-6",
-          // Exclusive ranges (not plain `lg:` + `min-[1536px]:`) — Tailwind
-          // emits `lg:grid-cols-*` after arbitrary min breakpoints, so the
-          // 2-col rule would otherwise win at the 3-col breakpoint.
-          desktopStorefront
-            ? [
-                "[@media(min-width:1024px)_and_(max-width:1535px)]:grid-cols-[minmax(280px,0.85fr)_minmax(460px,1.4fr)]",
-                "min-[1536px]:grid-cols-[minmax(280px,0.85fr)_minmax(460px,1.4fr)_minmax(320px,0.9fr)]",
-              ]
-            : "lg:grid-cols-[minmax(280px,0.85fr)_minmax(460px,1.4fr)]",
+          "lg:grid-cols-[minmax(280px,0.85fr)_minmax(460px,1.4fr)]",
         )}
       >
         {evidenceRecord}
         <div className="min-w-0 lg:sticky lg:top-20">{latestProof}</div>
         {desktopStorefront ? (
-          <aside
-            className={cn(
-              "border-border hidden lg:block",
-              // <1536: full-width band under peers; ≥1536: third column ≥320px
-              "max-[1536px]:col-span-2 max-[1536px]:mt-1 max-[1536px]:border-t max-[1536px]:pt-5",
-              "min-[1536px]:col-span-1 min-[1536px]:mt-0 min-[1536px]:min-w-[320px] min-[1536px]:border-t-0 min-[1536px]:border-l min-[1536px]:pt-0 min-[1536px]:pl-6",
-            )}
-          >
+          <aside className="border-border mt-1 hidden border-t pt-5 lg:col-span-2 lg:block">
             {desktopStorefront}
           </aside>
         ) : null}
