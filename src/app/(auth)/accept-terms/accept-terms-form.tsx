@@ -32,11 +32,11 @@ export function AcceptTermsForm() {
 
   return (
     <div className="space-y-5">
-      <div className="bg-live/15 text-live flex size-11 items-center justify-center rounded-xl">
-        <ShieldCheck className="size-5" />
+      <div className="bg-live/15 flex size-11 items-center justify-center rounded-xl text-[color:var(--scl-blue)]">
+        <ShieldCheck className="size-5" aria-hidden />
       </div>
       <div>
-        <p className="text-live text-xs font-semibold uppercase">
+        <p className="text-muted-foreground text-xs font-semibold uppercase">
           Policy version {CURRENT_POLICY_VERSION}
         </p>
         <h1 className="mt-1 text-2xl font-bold">Review Account Policies</h1>
@@ -54,17 +54,11 @@ export function AcceptTermsForm() {
         />
         <span className="text-muted-foreground">
           I accept the{" "}
-          <Link
-            href="/terms"
-            className="text-brand font-medium hover:underline"
-          >
+          <Link href="/terms" className="scl-link font-medium">
             Terms of Service
           </Link>{" "}
           and{" "}
-          <Link
-            href="/privacy"
-            className="text-brand font-medium hover:underline"
-          >
+          <Link href="/privacy" className="scl-link font-medium">
             Privacy Policy
           </Link>
           .

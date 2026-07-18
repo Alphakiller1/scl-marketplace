@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Compass, Users } from "lucide-react";
 
 import { CapperCard } from "@/components/scl/capper-card";
+import { DiscoverEmptyLanesIndex } from "@/components/scl/discover-empty-lanes-index";
 import { DiscoverLaneSection } from "@/components/scl/discover-lane-section";
 import { EmptyState } from "@/components/scl/states";
 import { LeaderboardFilters } from "@/components/scl/leaderboard-filters";
@@ -29,6 +30,8 @@ export default async function DiscoverPage({
   const [{ lanes, failed: lanesFailed }, { cappers, unranked, failed }] =
     await Promise.all([getDiscoverLanes(), getLeaderboardResult(filters)]);
   const results = [...cappers, ...unranked];
+  const filledLanes = lanes.filter((lane) => lane.entries.length > 0);
+  const emptyLanes = lanes.filter((lane) => lane.entries.length === 0);
 
   return (
     <div
@@ -50,12 +53,21 @@ export default async function DiscoverPage({
         </div>
       </header>
 
-      <div className="mt-8 space-y-10">
+      {/*
+        Mobile: filled lanes + compact empty-lane accordion.
+        Desktop: full lane sections as siblings (never inside closed <details>).
+      */}
+      <div className="mt-8 space-y-10 lg:hidden">
+        {filledLanes.map((lane) => (
+          <DiscoverLaneSection key={lane.id} lane={lane} failed={lanesFailed} />
+        ))}
+        <DiscoverEmptyLanesIndex lanes={emptyLanes} failed={lanesFailed} />
+      </div>
+      <div className="mt-8 hidden space-y-10 lg:block">
         {lanes.map((lane) => (
           <DiscoverLaneSection key={lane.id} lane={lane} failed={lanesFailed} />
         ))}
       </div>
-
       <section className="mt-12 space-y-4" aria-labelledby="discover-browse">
         <div className="border-border border-t pt-6">
           <h2

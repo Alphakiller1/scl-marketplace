@@ -57,7 +57,7 @@ export function PackageCard({
           </p>
         ) : null}
         {pkg.promoOffer ? (
-          <p className="text-brand mt-2 text-xs font-semibold tracking-wide uppercase">
+          <p className="text-foreground mt-2 text-xs font-semibold tracking-wide uppercase">
             {pkg.promoOffer}
           </p>
         ) : null}

@@ -40,7 +40,7 @@ export function AuthStatusNotice({
   const toneClass = {
     success: "border-pos/30 bg-pos/10 text-pos",
     error: "border-neg/30 bg-neg/10 text-neg",
-    info: "border-live/30 bg-live/10 text-live",
+    info: "border-live/30 bg-live/10 text-foreground",
   }[tone];
 
   return (

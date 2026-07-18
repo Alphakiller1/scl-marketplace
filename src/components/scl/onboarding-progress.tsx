@@ -44,7 +44,7 @@ export function OnboardingProgress({
                   step.complete
                     ? "border-brand bg-brand text-brand-foreground"
                     : active
-                      ? "border-brand bg-background text-brand"
+                      ? "border-brand bg-background text-foreground"
                       : "border-border bg-background text-muted-foreground",
                 )}
               >

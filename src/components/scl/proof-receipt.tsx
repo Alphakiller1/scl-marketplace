@@ -149,7 +149,7 @@ export function ProofReceipt({
   return (
     <article
       className={cn(
-        "bg-card border-border relative w-full max-w-full min-w-0 overflow-x-hidden overflow-y-hidden rounded-[var(--scl-radius-card)] border shadow-[var(--scl-shadow-card)]",
+        "bg-card border-border relative w-full max-w-full min-w-0 overflow-x-clip overflow-y-hidden rounded-[var(--scl-radius-card)] border shadow-[var(--scl-shadow-card)]",
         paper && "scl-proof-paper rounded-[var(--scl-radius-receipt)]",
         settling && "scl-ticket-settling",
         compact && "rounded-[12px]",
@@ -257,12 +257,17 @@ export function ProofReceipt({
         </div>
       ) : null}
 
+      {/*
+        Tear notches stay inside the receipt width: circles are centered on the
+        edge but painted only within this overflow-clipped strip so they never
+        expand scrollWidth (~9px) past the client on mobile.
+      */}
       <div
-        className="border-border relative border-t-[1.5px] border-dashed"
+        className="border-border relative overflow-x-clip border-t-[1.5px] border-dashed"
         aria-hidden
       >
-        <span className="bg-background border-border absolute top-[-9px] left-0 size-[18px] -translate-x-1/2 rounded-full border" />
-        <span className="bg-background border-border absolute top-[-9px] right-0 size-[18px] translate-x-1/2 rounded-full border" />
+        <span className="bg-background border-border pointer-events-none absolute top-[-9px] left-0 size-[18px] -translate-x-1/2 rounded-full border" />
+        <span className="bg-background border-border pointer-events-none absolute top-[-9px] right-0 size-[18px] translate-x-1/2 rounded-full border" />
       </div>
 
       <div

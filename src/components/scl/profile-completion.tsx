@@ -22,7 +22,7 @@ export function ProfileCompletionPanel({
             {completion.completed} of {completion.total} identity signals
           </p>
         </div>
-        <span className="nums text-brand text-xl font-bold tabular-nums">
+        <span className="nums text-foreground text-xl font-bold tabular-nums">
           {completion.percentage}%
         </span>
       </div>

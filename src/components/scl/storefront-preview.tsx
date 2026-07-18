@@ -30,7 +30,7 @@ export function StorefrontPreview({
       </div>
 
       <div className="p-4">
-        <span className="bg-surface-2 text-brand flex size-9 items-center justify-center rounded-lg">
+        <span className="bg-surface-2 flex size-9 items-center justify-center rounded-lg text-[color:var(--scl-blue)]">
           <Store className="size-4" aria-hidden />
         </span>
         <h3 className="mt-3 text-base font-semibold">{storefront.title}</h3>

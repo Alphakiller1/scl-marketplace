@@ -10,7 +10,7 @@ import { perfScale, perfToneClass } from "@/lib/perf-scale";
 import { cn } from "@/lib/utils";
 
 /**
- * Platform CLV summary — avg + % beat close across public listed /
+ * Platform CLV summary — avg + % beat close across publicly listed /
  * board-verified picks with a stored close. Honest empty at cold start.
  */
 export function PlatformClvSummary({
@@ -58,7 +58,7 @@ export function PlatformClvSummary({
             Platform CLV
           </h3>
           <p className="text-muted-foreground mt-1 text-sm">
-            Board-verified closing snapshots across public listed cappers.
+            Board-verified closing snapshots across publicly listed cappers.
           </p>
         </div>
         <p className="scl-data text-muted-foreground text-xs tabular-nums">

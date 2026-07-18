@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 const TONE_CLASS: Record<ReturnType<typeof storeStatusTone>, string> = {
   neutral: "border-border bg-surface-2 text-muted-foreground",
   pending: "border-amber-500/40 bg-amber-500/10 text-amber-200",
-  info: "border-live/40 bg-live/10 text-live",
+  info: "border-live/40 bg-live/10 text-foreground",
   live: "border-pos/40 bg-pos/10 text-pos",
   danger: "border-neg/40 bg-neg/10 text-neg",
   disabled: "border-border bg-surface-2 text-muted-foreground opacity-80",

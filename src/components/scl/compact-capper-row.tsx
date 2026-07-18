@@ -7,6 +7,7 @@ import { RankBadge } from "@/components/scl/rank-badge";
 import { StatValue } from "@/components/scl/stat-value";
 import { cn } from "@/lib/utils";
 import { formatRecord, formatRoi, formatUnits, signTone } from "@/lib/format";
+import { countLabel } from "@/lib/league-action";
 import { isProvisional } from "@/lib/sample";
 import type { CapperSummary } from "@/lib/mock";
 
@@ -115,7 +116,7 @@ export function CompactCapperRow({
           <StatValue tone="label" className="ml-auto truncate text-right">
             {provisional
               ? `${graded.toLocaleString()} graded — provisional`
-              : `${graded.toLocaleString()} Graded Picks`}
+              : countLabel(graded, "graded pick", "graded picks")}
           </StatValue>
         </div>
       ) : null}
