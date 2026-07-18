@@ -118,6 +118,7 @@ function playToProofReceipt(play: PlayView) {
       closingOddsAmerican={play.closingOddsAmerican ?? null}
       clvPts={play.clvPts ?? null}
       evidenceId={play.id}
+      eventStartsAt={play.eventStartsAt}
       analysis={play.notesPublic === false ? null : play.notes}
     />
   );

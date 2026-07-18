@@ -9,6 +9,7 @@ import {
   formatClosingLine,
   formatEvidenceId,
   isSettledProofState,
+  missingCloseOrClvTooltip,
   proofReceiptTextSummary,
   proofStampLabel,
   proofStampTone,
@@ -36,6 +37,8 @@ export type ProofReceiptProps = {
   clvPts?: number | null;
   /** Play id for Evidence ID. */
   evidenceId?: string | null;
+  /** Scheduled start — drives empty Close/CLV tooltip honesty. */
+  eventStartsAt?: Date | string | null;
   /** Hero settling sequence — capture fades in, then stamp drops. */
   settling?: boolean;
   className?: string;
@@ -73,6 +76,7 @@ export function ProofReceipt({
   closingOddsAmerican = null,
   clvPts = null,
   evidenceId = null,
+  eventStartsAt = null,
   settling = false,
   className,
   footerAction,
@@ -85,6 +89,12 @@ export function ProofReceipt({
   const closingLine = formatClosingLine(closingOddsAmerican);
   const clv = formatClvPts(clvPts);
   const evidence = formatEvidenceId(evidenceId);
+  const emptyCloseClvTitle =
+    closingLine === "—" || clv === "—"
+      ? missingCloseOrClvTooltip(eventStartsAt)
+      : undefined;
+  const closeTitle = closingLine === "—" ? emptyCloseClvTitle : undefined;
+  const clvTitle = clv === "—" ? emptyCloseClvTitle : undefined;
   const captureLine = formatOddsCaptureSourceLine({
     capturedAt,
     book,
@@ -193,8 +203,8 @@ export function ProofReceipt({
               : "grid-cols-2 px-5 py-3 sm:grid-cols-3",
           )}
         >
-          <ProofCell label="Close" value={closingLine} />
-          <ProofCell label="CLV" value={clv} />
+          <ProofCell label="Close" value={closingLine} title={closeTitle} />
+          <ProofCell label="CLV" value={clv} title={clvTitle} />
           <ProofCell
             label="Evidence"
             value={evidence}
