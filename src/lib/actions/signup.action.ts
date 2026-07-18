@@ -101,6 +101,7 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
             create: { policyVersion: CURRENT_POLICY_VERSION },
           },
         },
+        select: { id: true },
       });
     } else {
       await prisma.user.create({
@@ -115,6 +116,7 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
             create: { policyVersion: CURRENT_POLICY_VERSION },
           },
         },
+        select: { id: true },
       });
     }
   } catch (error) {
