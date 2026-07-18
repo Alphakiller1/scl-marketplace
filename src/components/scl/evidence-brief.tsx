@@ -387,7 +387,14 @@ export function EvidenceBrief({
         {evidenceRecord}
         <div className="min-w-0 lg:sticky lg:top-20">{latestProof}</div>
         {desktopStorefront ? (
-          <aside className="border-border hidden min-[1440px]:col-span-1 min-[1440px]:mt-0 min-[1440px]:min-w-[320px] min-[1440px]:border-t-0 min-[1440px]:border-l min-[1440px]:pt-0 min-[1440px]:pl-6 lg:col-span-2 lg:mt-1 lg:block lg:border-t lg:pt-5">
+          <aside
+            className={cn(
+              "border-border hidden lg:block",
+              // max-/min- pair avoids lg: winning over min-[1440px] in CSS order
+              "max-[1439px]:col-span-2 max-[1439px]:mt-1 max-[1439px]:border-t max-[1439px]:pt-5",
+              "min-[1440px]:col-span-1 min-[1440px]:mt-0 min-[1440px]:min-w-[320px] min-[1440px]:border-t-0 min-[1440px]:border-l min-[1440px]:pt-0 min-[1440px]:pl-6",
+            )}
+          >
             {desktopStorefront}
           </aside>
         ) : null}
