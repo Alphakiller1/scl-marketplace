@@ -38,10 +38,10 @@ export function TopCappersLive({
           </p>
         </div>
         <Link
-          href="/cappers"
+          href="/discover"
           className="scl-link inline-flex min-h-11 shrink-0 items-center gap-1 text-sm font-medium"
         >
-          Browse directory
+          Discover
           <ArrowRight className="size-3.5" aria-hidden />
         </Link>
       </div>

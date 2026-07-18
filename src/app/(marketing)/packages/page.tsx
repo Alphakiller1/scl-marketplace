@@ -68,7 +68,7 @@ export default async function PackagesPage() {
             <div className="flex w-full max-w-md flex-col items-stretch gap-3 sm:items-center">
               <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
                 <Button
-                  render={<Link href="/cappers" />}
+                  render={<Link href="/discover" />}
                   nativeButton={false}
                   className="min-h-11 gap-2"
                 >
