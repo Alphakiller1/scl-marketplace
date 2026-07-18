@@ -452,7 +452,6 @@ export function LeagueActionReport({
         ? "leagues"
         : "types",
   );
-
   if (failed) {
     return (
       <EmptyState
@@ -503,137 +502,188 @@ export function LeagueActionReport({
         </div>
       </div>
 
-      <Tabs
-        value={tab}
-        onValueChange={(v) => setTab(v as TabKey)}
-        className="gap-0"
-      >
-        <div className="border-border border-b px-2 py-2 pl-4 sm:px-3 sm:pl-5">
-          <TabsList
-            variant="line"
-            className="h-auto w-full flex-wrap justify-start gap-1"
-          >
-            <TabsTrigger
-              value="types"
-              className="data-active:text-foreground min-h-9 px-3 data-active:underline data-active:decoration-[color:var(--scl-blue)] data-active:underline-offset-4"
-            >
-              Bet types
-            </TabsTrigger>
-            <TabsTrigger
-              value="leagues"
-              className="data-active:text-foreground min-h-9 px-3 data-active:underline data-active:decoration-[color:var(--scl-blue)] data-active:underline-offset-4"
-            >
-              Top leagues
-              {leagues.length > 0 ? (
-                <span className="scl-data text-muted-foreground ml-1 text-[0.7rem]">
-                  {leagues.length}
-                </span>
-              ) : null}
-            </TabsTrigger>
-          </TabsList>
+      {/* Mobile: secondary breakdown collapsed; desktop forced open — single mount. */}
+      <details className="group border-border border-b">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 pl-5 outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--scl-blue)] focus-visible:ring-inset lg:hidden [&::-webkit-details-marker]:hidden">
+          <span className="min-w-0">
+            <span className="text-foreground block text-sm font-semibold">
+              Bet-type breakdown
+            </span>
+            <span className="text-muted-foreground mt-0.5 block text-xs leading-snug">
+              Shape, market, and top leagues — expand for full report
+            </span>
+          </span>
+          <span className="text-muted-foreground shrink-0 text-xs font-semibold tracking-wide uppercase group-open:hidden">
+            Show
+          </span>
+          <span className="text-muted-foreground hidden shrink-0 text-xs font-semibold tracking-wide uppercase group-open:inline">
+            Hide
+          </span>
+        </summary>
+        <div className="hidden group-open:block lg:block">
+          <PlatformReportTabs
+            tab={tab}
+            setTab={setTab}
+            shape={shape}
+            market={market}
+            leagues={leagues}
+            maxUnitsAbs={maxUnitsAbs}
+            maxLeaguePicks={maxLeaguePicks}
+          />
         </div>
-
-        <div className="px-4 py-4 pl-5 sm:px-5 sm:pl-6">
-          <TabsContent value="types" className="mt-0 space-y-6">
-            <BetTypeSection
-              title="Shape"
-              rows={shape}
-              maxUnitsAbs={maxUnitsAbs}
-            />
-            <BetTypeSection
-              title="Market"
-              rows={market}
-              maxUnitsAbs={maxUnitsAbs}
-            />
-            <ButtonishPicksLink label="Browse verified picks" />
-          </TabsContent>
-
-          <TabsContent value="leagues" className="mt-0">
-            {leagues.length === 0 ? (
-              <p className="text-muted-foreground py-6 text-sm leading-relaxed">
-                {LEAGUES_EMPTY}
-              </p>
-            ) : (
-              <>
-                {/* Mobile league cards */}
-                <ul className="border-border divide-border divide-y overflow-hidden rounded-lg border px-3 sm:hidden">
-                  {leagues.map((league, index) => (
-                    <LeagueMobileCard
-                      key={league.key}
-                      league={league}
-                      index={index}
-                      maxPicks={maxLeaguePicks || 1}
-                    />
-                  ))}
-                </ul>
-
-                {/* Desktop league list — open hairline rows */}
-                <div className="hidden sm:block">
-                  <div
-                    className={`text-muted-foreground mb-1 grid ${LEAGUE_LIST_COLS} items-end gap-3 pb-2 text-[0.7rem] font-semibold uppercase`}
-                  >
-                    <span>#</span>
-                    <span aria-hidden />
-                    <span>League</span>
-                    <span className="text-right">Picks</span>
-                    <span className="text-right">Cappers</span>
-                  </div>
-                  <ul className="divide-border divide-y">
-                    {leagues.map((league, index) => (
-                      <li
-                        key={league.key}
-                        className={`grid min-h-14 ${LEAGUE_LIST_COLS} items-center gap-3 py-3 first:pt-0 last:pb-0`}
-                      >
-                        <span className="scl-data text-muted-foreground text-sm font-semibold tabular-nums">
-                          {index + 1}
-                        </span>
-                        <LeagueMark
-                          leagueKey={league.sport || league.league}
-                          size="md"
-                        />
-                        <div className="min-w-0">
-                          <div className="flex min-w-0 flex-wrap items-center gap-2">
-                            <h3 className="scl-display truncate text-sm font-bold tracking-[0.04em] uppercase">
-                              {league.league}
-                            </h3>
-                            {league.sport &&
-                            league.sport.toUpperCase() !==
-                              league.league.toUpperCase() ? (
-                              <SportTag sport={league.sport} withMark={false} />
-                            ) : null}
-                          </div>
-                          <div className="mt-1.5 max-w-xs">
-                            <SampleVolumeBar
-                              value={league.pickCount}
-                              max={maxLeaguePicks || 1}
-                            />
-                          </div>
-                        </div>
-                        <StatValue
-                          tone="text"
-                          className="text-right text-sm font-bold tabular-nums"
-                        >
-                          {league.pickCount.toLocaleString()}
-                        </StatValue>
-                        <StatValue
-                          tone="text"
-                          className="text-right text-sm font-bold tabular-nums"
-                        >
-                          {league.activeCappers.toLocaleString()}
-                        </StatValue>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </>
-            )}
-          </TabsContent>
-        </div>
-      </Tabs>
+      </details>
 
       <p className="text-muted-foreground border-border border-t px-4 py-2.5 pl-5 text-xs leading-relaxed sm:px-5 sm:pl-6">
         {PLATFORM_REPORT_ELIGIBILITY_FOOTNOTE}
       </p>
     </div>
+  );
+}
+
+function PlatformReportTabs({
+  tab,
+  setTab,
+  shape,
+  market,
+  leagues,
+  maxUnitsAbs,
+  maxLeaguePicks,
+}: {
+  tab: TabKey;
+  setTab: (v: TabKey) => void;
+  shape: LeagueActionCategoryItem[];
+  market: LeagueActionCategoryItem[];
+  leagues: LeagueActionItem[];
+  maxUnitsAbs: number;
+  maxLeaguePicks: number;
+}) {
+  return (
+    <Tabs
+      value={tab}
+      onValueChange={(v) => setTab(v as TabKey)}
+      className="gap-0"
+    >
+      <div className="border-border border-b px-2 py-2 pl-4 sm:px-3 sm:pl-5">
+        <TabsList
+          variant="line"
+          className="h-auto w-full flex-wrap justify-start gap-1"
+        >
+          <TabsTrigger
+            value="types"
+            className="data-active:text-foreground min-h-9 px-3 data-active:underline data-active:decoration-[color:var(--scl-blue)] data-active:underline-offset-4"
+          >
+            Bet types
+          </TabsTrigger>
+          <TabsTrigger
+            value="leagues"
+            className="data-active:text-foreground min-h-9 px-3 data-active:underline data-active:decoration-[color:var(--scl-blue)] data-active:underline-offset-4"
+          >
+            Top leagues
+            {leagues.length > 0 ? (
+              <span className="scl-data text-muted-foreground ml-1 text-[0.7rem]">
+                {leagues.length}
+              </span>
+            ) : null}
+          </TabsTrigger>
+        </TabsList>
+      </div>
+
+      <div className="px-4 py-4 pl-5 sm:px-5 sm:pl-6">
+        <TabsContent value="types" className="mt-0 space-y-6">
+          <BetTypeSection
+            title="Shape"
+            rows={shape}
+            maxUnitsAbs={maxUnitsAbs}
+          />
+          <BetTypeSection
+            title="Market"
+            rows={market}
+            maxUnitsAbs={maxUnitsAbs}
+          />
+          <ButtonishPicksLink label="Browse verified picks" />
+        </TabsContent>
+
+        <TabsContent value="leagues" className="mt-0">
+          {leagues.length === 0 ? (
+            <p className="text-muted-foreground py-6 text-sm leading-relaxed">
+              {LEAGUES_EMPTY}
+            </p>
+          ) : (
+            <>
+              {/* Mobile league cards */}
+              <ul className="border-border divide-border divide-y overflow-hidden rounded-lg border px-3 sm:hidden">
+                {leagues.map((league, index) => (
+                  <LeagueMobileCard
+                    key={league.key}
+                    league={league}
+                    index={index}
+                    maxPicks={maxLeaguePicks || 1}
+                  />
+                ))}
+              </ul>
+
+              {/* Desktop league list — open hairline rows */}
+              <div className="hidden sm:block">
+                <div
+                  className={`text-muted-foreground mb-1 grid ${LEAGUE_LIST_COLS} items-end gap-3 pb-2 text-[0.7rem] font-semibold uppercase`}
+                >
+                  <span>#</span>
+                  <span aria-hidden />
+                  <span>League</span>
+                  <span className="text-right">Picks</span>
+                  <span className="text-right">Cappers</span>
+                </div>
+                <ul className="divide-border divide-y">
+                  {leagues.map((league, index) => (
+                    <li
+                      key={league.key}
+                      className={`grid min-h-14 ${LEAGUE_LIST_COLS} items-center gap-3 py-3 first:pt-0 last:pb-0`}
+                    >
+                      <span className="scl-data text-muted-foreground text-sm font-semibold tabular-nums">
+                        {index + 1}
+                      </span>
+                      <LeagueMark
+                        leagueKey={league.sport || league.league}
+                        size="md"
+                      />
+                      <div className="min-w-0">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <h3 className="scl-display truncate text-sm font-bold tracking-[0.04em] uppercase">
+                            {league.league}
+                          </h3>
+                          {league.sport &&
+                          league.sport.toUpperCase() !==
+                            league.league.toUpperCase() ? (
+                            <SportTag sport={league.sport} withMark={false} />
+                          ) : null}
+                        </div>
+                        <div className="mt-1.5 max-w-xs">
+                          <SampleVolumeBar
+                            value={league.pickCount}
+                            max={maxLeaguePicks || 1}
+                          />
+                        </div>
+                      </div>
+                      <StatValue
+                        tone="text"
+                        className="text-right text-sm font-bold tabular-nums"
+                      >
+                        {league.pickCount.toLocaleString()}
+                      </StatValue>
+                      <StatValue
+                        tone="text"
+                        className="text-right text-sm font-bold tabular-nums"
+                      >
+                        {league.activeCappers.toLocaleString()}
+                      </StatValue>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
+        </TabsContent>
+      </div>
+    </Tabs>
   );
 }

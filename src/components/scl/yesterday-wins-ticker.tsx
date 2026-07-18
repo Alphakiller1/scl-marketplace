@@ -3,33 +3,79 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
 
-import type { YesterdayGradedWin } from "@/lib/queries/yesterday-wins";
+import type { GradedTickerResult } from "@/lib/queries/yesterday-wins";
 import { cn } from "@/lib/utils";
 
-function formatWinUnits(units: number): string {
-  const rounded = Math.round(units * 100) / 100;
-  const text = rounded.toFixed(2).replace(/\.00$/, "");
-  return `+${text}U`;
+function formatResultUnits(
+  outcome: GradedTickerResult["outcome"],
+  profitUnits: number | null,
+): string {
+  if (outcome === "PUSH") return "0U";
+  if (profitUnits == null || !Number.isFinite(profitUnits)) return "—";
+  const rounded = Math.round(profitUnits * 100) / 100;
+  const text = Math.abs(rounded).toFixed(2).replace(/\.00$/, "");
+  if (rounded > 0) return `+${text}U`;
+  if (rounded < 0) return `−${text}U`;
+  return "0U";
 }
 
-/** Pad a short win list so the marquee fills wide viewports, then duplicate for seamless -50% loop. */
-function buildMarqueeItems(wins: YesterdayGradedWin[]): YesterdayGradedWin[] {
-  if (wins.length === 0) return [];
-  const unit: YesterdayGradedWin[] = [...wins];
+function outcomeLabel(outcome: GradedTickerResult["outcome"]): string {
+  switch (outcome) {
+    case "WIN":
+      return "Won";
+    case "LOSS":
+      return "Lost";
+    case "PUSH":
+      return "Pushed";
+  }
+}
+
+function outcomeTone(outcome: GradedTickerResult["outcome"]): string {
+  switch (outcome) {
+    case "WIN":
+      return "text-pos";
+    case "LOSS":
+      return "text-neg";
+    case "PUSH":
+      return "text-muted-foreground";
+  }
+}
+
+/** Pad a short list so the marquee fills wide viewports, then duplicate for seamless -50% loop. */
+function buildMarqueeItems(
+  results: GradedTickerResult[],
+): GradedTickerResult[] {
+  if (results.length === 0) return [];
+  const unit: GradedTickerResult[] = [...results];
   while (unit.length < 12) {
-    unit.push(...wins);
+    unit.push(...results);
   }
   return [...unit, ...unit];
 }
 
 function TickerItem({
-  win,
+  result,
   className,
+  interactive,
 }: {
-  win: YesterdayGradedWin;
+  result: GradedTickerResult;
   className?: string;
+  /** When false, handle is plain text (decorative marquee / aria-hidden track). */
+  interactive: boolean;
 }) {
-  const profit = win.profitUnits > 0 ? win.profitUnits : win.units;
+  const handle = interactive ? (
+    <Link
+      href={`/cappers/${result.handle}`}
+      className="font-semibold text-[color:var(--scl-text)] underline decoration-[color:var(--scl-blue)] underline-offset-2 hover:decoration-[color:var(--scl-blue)]"
+    >
+      @{result.handle}
+    </Link>
+  ) : (
+    <span className="font-semibold text-[color:var(--scl-text)]">
+      @{result.handle}
+    </span>
+  );
+
   return (
     <span
       className={cn(
@@ -37,50 +83,63 @@ function TickerItem({
         className,
       )}
     >
-      <Link
-        href={`/cappers/${win.handle}`}
-        className="font-semibold text-[color:var(--scl-text)] underline decoration-[color:var(--scl-pink)] underline-offset-2 hover:decoration-[color:var(--scl-pink-deep)]"
+      {handle}
+      <span className="text-muted-foreground" aria-hidden>
+        ·
+      </span>
+      <span
+        className={cn(
+          "scl-data shrink-0 text-xs font-semibold tracking-wide uppercase",
+          outcomeTone(result.outcome),
+        )}
       >
-        @{win.handle}
-      </Link>
-      <span className="text-muted-foreground" aria-hidden>
-        ·
-      </span>
-      <span className="text-foreground max-w-[12rem] truncate font-medium sm:max-w-[16rem]">
-        {win.selection}
+        {outcomeLabel(result.outcome)}
       </span>
       <span className="text-muted-foreground" aria-hidden>
         ·
       </span>
-      <span className="scl-data text-pos font-semibold">
-        {formatWinUnits(profit)}
+      <span className="text-foreground max-w-[10rem] truncate font-medium sm:max-w-[14rem]">
+        {result.selection}
+      </span>
+      <span className="text-muted-foreground" aria-hidden>
+        ·
+      </span>
+      <span
+        className={cn(
+          "scl-data font-semibold tabular-nums",
+          outcomeTone(result.outcome),
+        )}
+      >
+        {formatResultUnits(result.outcome, result.profitUnits)}
       </span>
     </span>
   );
 }
 
-/** Past-tense graded wins marquee — hidden when empty; pauses on hover/focus. */
+/**
+ * Past-tense graded results marquee (W/L/P) — hidden when empty;
+ * pauses on hover/focus; static under reduced motion.
+ */
 export function YesterdayWinsTicker({
   wins,
-  label = "Yesterday's Graded Wins",
+  results,
+  label = "Yesterday's graded results",
 }: {
-  wins: YesterdayGradedWin[];
-  label?: "Yesterday's Graded Wins" | "Recent Graded Wins";
+  /** @deprecated Prefer `results`. */
+  wins?: GradedTickerResult[];
+  results?: GradedTickerResult[];
+  label?: "Yesterday's graded results" | "Recent graded results";
 }) {
-  if (wins.length === 0) return null;
+  const items = results ?? wins ?? [];
+  if (items.length === 0) return null;
 
-  const staticItems = wins.slice(0, 8);
-  const marqueeItems = buildMarqueeItems(wins);
+  const marqueeItems = buildMarqueeItems(items);
   const halfCount = marqueeItems.length / 2;
   const durationSec = Math.max(28, Math.round(halfCount * 2.8));
-  const aria =
-    label === "Recent Graded Wins"
-      ? "Recent graded wins"
-      : "Yesterday's graded wins";
 
   return (
     <section
-      aria-label={aria}
+      aria-label={label}
       className="border-border border-b bg-[color:var(--scl-ink-900)]"
     >
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 sm:gap-4 sm:px-6">
@@ -88,7 +147,6 @@ export function YesterdayWinsTicker({
           {label}
         </p>
 
-        {/* Live marquee — all viewports; hidden under reduced motion */}
         <div
           className={cn(
             "group/ticker relative min-w-0 flex-1 overflow-hidden",
@@ -97,7 +155,7 @@ export function YesterdayWinsTicker({
           )}
         >
           <div
-            className="scl-ticker-track flex w-max items-center gap-2.5 group-focus-within/ticker:[animation-play-state:paused] group-hover/ticker:[animation-play-state:paused]"
+            className="scl-ticker-track flex w-max items-center gap-2.5 group-hover/ticker:[animation-play-state:paused]"
             style={
               {
                 animation: `scl-ticker ${durationSec}s linear infinite`,
@@ -105,27 +163,30 @@ export function YesterdayWinsTicker({
             }
             aria-hidden="true"
           >
-            {marqueeItems.map((win, i) => (
-              <TickerItem key={`dup-${win.id}-${i}`} win={win} />
+            {marqueeItems.map((result, i) => (
+              <TickerItem
+                key={`dup-${result.id}-${i}`}
+                result={result}
+                interactive={false}
+              />
             ))}
           </div>
-          <div className="sr-only">
-            {staticItems.map((win) => (
-              <span key={win.id}>
-                @{win.handle} · {win.selection} ·{" "}
-                {formatWinUnits(
-                  win.profitUnits > 0 ? win.profitUnits : win.units,
-                )}
-              </span>
+          <ul className="sr-only">
+            {items.map((result) => (
+              <li key={result.id}>
+                <Link href={`/cappers/${result.handle}`}>@{result.handle}</Link>
+                {" · "}
+                {outcomeLabel(result.outcome)} · {result.selection} ·{" "}
+                {formatResultUnits(result.outcome, result.profitUnits)}
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
 
-        {/* Reduced motion: compact static row */}
         <ul className="hidden min-w-0 flex-1 flex-wrap items-center gap-2 motion-reduce:flex">
-          {staticItems.map((win) => (
-            <li key={`static-${win.id}`}>
-              <TickerItem win={win} />
+          {items.map((result) => (
+            <li key={`static-${result.id}`}>
+              <TickerItem result={result} interactive />
             </li>
           ))}
         </ul>

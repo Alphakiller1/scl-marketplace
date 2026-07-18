@@ -25,8 +25,8 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
 
   return (
     <header className="border-border bg-card border-b">
-      <div className="mx-auto max-w-5xl px-4 py-3 sm:px-6 sm:py-3.5">
-        <div className="flex flex-wrap items-start gap-3 sm:gap-4">
+      <div className="mx-auto max-w-5xl px-4 py-2 sm:px-6 sm:py-3.5">
+        <div className="flex flex-wrap items-start gap-2.5 sm:gap-4">
           <span className="bg-card ring-border shrink-0 rounded-xl p-0.5 ring-1">
             <CapperAvatar
               name={avatarName}
@@ -38,7 +38,7 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
 
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <h1 className="scl-display min-w-0 text-xl font-bold tracking-[0.03em] break-words sm:text-2xl">
+              <h1 className="scl-display min-w-0 text-lg font-bold tracking-[0.03em] break-words sm:text-2xl">
                 {identity.primary}
               </h1>
               {capper.verified ? (
@@ -52,7 +52,7 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
               </span>
             ) : null}
 
-            <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs">
+            <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs sm:mt-2">
               <span className="inline-flex items-center gap-1.5">
                 <RankBadge
                   rank={capper.rank}
@@ -103,7 +103,10 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
               ) : null}
             </div>
 
-            <ProfileActionGroup handle={capper.handle} className="mt-3" />
+            <ProfileActionGroup
+              handle={capper.handle}
+              className="mt-2 sm:mt-3"
+            />
           </div>
         </div>
       </div>
