@@ -20,21 +20,24 @@ export function CompactCapperRow({
   primaryMetric: "units" | "roi";
 }) {
   const graded = capper.settledPicks ?? 0;
+  const hasGradedResult = graded > 0;
   const provisional = isProvisional(graded);
-  const primaryValue =
-    primaryMetric === "units"
+  const primaryValue = hasGradedResult
+    ? primaryMetric === "units"
       ? formatUnits(capper.units)
-      : formatRoi(capper.roi);
-  const primaryTone = signTone(
-    primaryMetric === "units" ? capper.units : capper.roi,
-  );
-  const secondaryValue =
-    primaryMetric === "units"
+      : formatRoi(capper.roi)
+    : "—";
+  const primaryTone = hasGradedResult
+    ? signTone(primaryMetric === "units" ? capper.units : capper.roi)
+    : "muted";
+  const secondaryValue = hasGradedResult
+    ? primaryMetric === "units"
       ? `${formatRoi(capper.roi)} ROI`
-      : `${formatUnits(capper.units)} Units`;
-  const secondaryTone = signTone(
-    primaryMetric === "units" ? capper.roi : capper.units,
-  );
+      : `${formatUnits(capper.units)} Units`
+    : "—";
+  const secondaryTone = hasGradedResult
+    ? signTone(primaryMetric === "units" ? capper.roi : capper.units)
+    : "muted";
 
   return (
     <Link
@@ -57,7 +60,13 @@ export function CompactCapperRow({
               ·
             </span>
             <StatValue tone="label" className="scl-data truncate text-xs">
-              {formatRecord(capper.record.w, capper.record.l, capper.record.p)}
+              {hasGradedResult
+                ? formatRecord(
+                    capper.record.w,
+                    capper.record.l,
+                    capper.record.p,
+                  )
+                : "—"}
             </StatValue>
           </div>
         </div>
@@ -85,7 +94,7 @@ export function CompactCapperRow({
       <div className="border-border text-muted-foreground mt-2 flex min-w-0 items-center gap-2 border-t pt-2 text-xs">
         <span className="shrink-0">
           <StatValue tone="text" className="font-semibold">
-            {capper.winPct.toFixed(1)}%
+            {hasGradedResult ? `${capper.winPct.toFixed(1)}%` : "—"}
           </StatValue>{" "}
           Win
         </span>
