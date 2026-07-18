@@ -371,17 +371,24 @@ export function EvidenceBrief({
   return (
     <div className={cn("space-y-3 sm:space-y-5", className)}>
       {/*
-        Desktop (lg–1439px): Evidence | Latest Proof peers; Marketplace
-        full-width band below. 1440px+: Marketplace as third column (≥320px).
+        Desktop (lg–<1440): Evidence | Latest Proof peers; Marketplace
+        full-width band below. ≥1440: Marketplace as third column (≥320px).
         Mobile: stacked Evidence then Proof (unchanged). Storefront never
         injects above Meta on mobile — page owns that band.
       */}
       <div
         className={cn(
-          "grid items-start gap-4 sm:gap-5",
-          "lg:grid-cols-[minmax(280px,0.85fr)_minmax(460px,1.4fr)] lg:gap-6",
-          desktopStorefront &&
-            "min-[1440px]:grid-cols-[minmax(280px,0.85fr)_minmax(460px,1.4fr)_minmax(320px,22rem)]",
+          "grid items-start gap-4 sm:gap-5 lg:gap-6",
+          // Exclusive ranges (not `lg:` + `min-[1440px]:`) — Tailwind emits
+          // `lg:grid-cols-*` after arbitrary min breakpoints, so the 2-col
+          // rule would otherwise win at ≥1440. Stacked `lg:max-*` also drops
+          // the lg floor in this Tailwind 4 build.
+          desktopStorefront
+            ? [
+                "[@media(min-width:1024px)_and_(max-width:1439px)]:grid-cols-[minmax(280px,0.85fr)_minmax(460px,1.4fr)]",
+                "min-[1440px]:grid-cols-[minmax(280px,0.85fr)_minmax(460px,1.4fr)_minmax(320px,0.9fr)]",
+              ]
+            : "lg:grid-cols-[minmax(280px,0.85fr)_minmax(460px,1.4fr)]",
         )}
       >
         {evidenceRecord}
@@ -390,8 +397,8 @@ export function EvidenceBrief({
           <aside
             className={cn(
               "border-border hidden lg:block",
-              // max-/min- pair avoids lg: winning over min-[1440px] in CSS order
-              "max-[1439px]:col-span-2 max-[1439px]:mt-1 max-[1439px]:border-t max-[1439px]:pt-5",
+              // <1440: full-width band under peers; ≥1440: third column ≥320px
+              "max-[1440px]:col-span-2 max-[1440px]:mt-1 max-[1440px]:border-t max-[1440px]:pt-5",
               "min-[1440px]:col-span-1 min-[1440px]:mt-0 min-[1440px]:min-w-[320px] min-[1440px]:border-t-0 min-[1440px]:border-l min-[1440px]:pt-0 min-[1440px]:pl-6",
             )}
           >
