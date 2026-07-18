@@ -341,15 +341,17 @@ function UnifiedPickEntryInner() {
   }
 
   if (receipt && (receipt.kind !== "bulk" || receipt.suspendedCount === 0)) {
-    const title =
-      receipt.kind === "parlay"
-        ? "Parlay Logged"
-        : receipt.kind === "bulk"
-          ? "Plays Logged"
-          : "Play Logged";
     return (
-      <div className="mx-auto max-w-xl space-y-5">
-        <SectionHeader title={title} subtitle="Confirmation for your record" />
+      <div className="mx-auto max-w-md space-y-4">
+        <div className="space-y-1">
+          <p className="scl-eyebrow text-[color:var(--scl-muted-label)]">
+            Pick submitted
+          </p>
+          <SectionHeader
+            title="Proof Receipt"
+            subtitle="Your slip is now an inspectable receipt — odds captured, board-checked when verified."
+          />
+        </div>
         {receipt.kind === "bulk" ? (
           <ReceiptStack receipt={receipt} />
         ) : (

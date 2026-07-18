@@ -78,13 +78,13 @@ function LineCard({
 
       <div className="grid grid-cols-2 gap-2">
         <div className="rounded-lg border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-700)] px-3 py-2">
-          <p className="scl-eyebrow text-muted-foreground">You selected</p>
+          <p className="scl-eyebrow text-muted-foreground">Old</p>
           <p className="scl-data text-foreground mt-0.5 text-lg font-semibold">
             {formatOdds(line.selectedOddsAmerican)}
           </p>
         </div>
         <div className="rounded-lg border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-700)] px-3 py-2">
-          <p className="scl-eyebrow text-muted-foreground">Now</p>
+          <p className="scl-eyebrow text-muted-foreground">New</p>
           <p
             className={cn(
               "scl-data mt-0.5 text-lg font-semibold",
@@ -100,7 +100,7 @@ function LineCard({
 
       {unavailable ? (
         <p className="text-neg text-xs font-medium">
-          This line is unavailable or suspended — remove it to continue.
+          This line is unavailable or suspended — choose another to continue.
         </p>
       ) : null}
 
@@ -111,7 +111,7 @@ function LineCard({
             onClick={() => onAccept(line)}
             className="min-h-11 flex-1 rounded-[10px] border border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] px-4 text-sm font-semibold text-[color:var(--scl-pink-ink)] transition-colors hover:bg-[color:var(--scl-pink-deep)]"
           >
-            Accept Updated Odds{" "}
+            Accept{" "}
             {line.updatedOddsAmerican != null
               ? formatOdds(line.updatedOddsAmerican)
               : ""}
@@ -123,7 +123,7 @@ function LineCard({
             onClick={() => onRemove(line)}
             className="border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 min-h-11 flex-1 rounded-[10px] border px-4 text-sm font-semibold transition-colors"
           >
-            Remove leg
+            Choose another
           </button>
         ) : null}
       </div>
@@ -203,7 +203,7 @@ export function LineMovedPrompt({
           onClick={() => onAcceptAll(confirmable)}
           className="min-h-11 w-full rounded-[10px] border border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] px-4 text-sm font-semibold text-[color:var(--scl-pink-ink)] transition-colors hover:bg-[color:var(--scl-pink-deep)]"
         >
-          Accept All Updated Odds
+          Accept all
         </button>
       ) : null}
 
@@ -212,7 +212,7 @@ export function LineMovedPrompt({
         onClick={onCancel}
         className="border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 min-h-11 w-full rounded-[10px] border px-4 text-sm font-semibold transition-colors"
       >
-        Cancel submission
+        Choose another
       </button>
     </div>
   );
