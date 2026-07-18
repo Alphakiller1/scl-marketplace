@@ -2,10 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  classifyMarketCategory,
   leagueInitials,
+  marketCategories,
+  platformTrackedPicks,
   rankLeagueAction,
   rankLeagueActionCategories,
+  shapeCategories,
 } from "@/lib/league-action";
+import { MIN_GRADED_FOR_SIGNAL } from "@/lib/sample";
 
 test("rankLeagueAction groups by league fallback and ranks by pick volume", () => {
   const leagues = rankLeagueAction([
@@ -41,7 +46,21 @@ test("rankLeagueAction groups by league fallback and ranks by pick volume", () =
   ]);
 });
 
-test("rankLeagueActionCategories buckets singles, sides, totals, and parlays", () => {
+test("classifyMarketCategory maps sides / totals / props / futures", () => {
+  assert.equal(classifyMarketCategory("Moneyline"), "sides");
+  assert.equal(classifyMarketCategory("Spread"), "sides");
+  assert.equal(classifyMarketCategory("Run Line"), "sides");
+  assert.equal(classifyMarketCategory("Total"), "totals");
+  assert.equal(classifyMarketCategory("Player Props"), "props");
+  assert.equal(classifyMarketCategory("Futures"), "futures");
+  assert.equal(classifyMarketCategory("Season Outright"), "futures");
+  assert.equal(classifyMarketCategory("Custom Exotic"), null);
+});
+
+test("rankLeagueActionCategories: shape vs market without double-counting parlays", () => {
+  const now = new Date("2026-07-10T12:00:00.000Z");
+  const start = new Date("2026-07-10T18:00:00.000Z");
+
   const categories = rankLeagueActionCategories(
     [
       {
@@ -50,6 +69,11 @@ test("rankLeagueActionCategories buckets singles, sides, totals, and parlays", (
         capperId: "c1",
         market: "Moneyline",
         parlayId: null,
+        outcome: "WIN",
+        units: 1,
+        profitUnits: 0.91,
+        createdAt: now,
+        eventStartsAt: start,
       },
       {
         sport: "NBA",
@@ -57,6 +81,11 @@ test("rankLeagueActionCategories buckets singles, sides, totals, and parlays", (
         capperId: "c1",
         market: "Spread",
         parlayId: null,
+        outcome: "LOSS",
+        units: 1,
+        profitUnits: -1,
+        createdAt: now,
+        eventStartsAt: start,
       },
       {
         sport: "NBA",
@@ -64,6 +93,11 @@ test("rankLeagueActionCategories buckets singles, sides, totals, and parlays", (
         capperId: "c2",
         market: "Total",
         parlayId: null,
+        outcome: "PENDING",
+        units: 1,
+        profitUnits: null,
+        createdAt: now,
+        eventStartsAt: start,
       },
       {
         sport: "NBA",
@@ -71,24 +105,103 @@ test("rankLeagueActionCategories buckets singles, sides, totals, and parlays", (
         capperId: "c2",
         market: "Player Props",
         parlayId: null,
+        outcome: "PUSH",
+        units: 1,
+        profitUnits: 0,
+        createdAt: now,
+        eventStartsAt: start,
       },
       {
         sport: "MLB",
         league: "MLB",
         capperId: "c3",
+        market: "Futures",
+        parlayId: null,
+        outcome: "PENDING",
+        units: 1,
+        profitUnits: null,
+        createdAt: now,
+        eventStartsAt: null,
+      },
+      // Parlay leg — must NOT inflate singles/sides
+      {
+        sport: "MLB",
+        league: "MLB",
+        capperId: "c4",
         market: "Moneyline",
         parlayId: "parlay-1",
+        outcome: "WIN",
+        units: 1,
+        profitUnits: 0.9,
+        createdAt: now,
+        eventStartsAt: start,
       },
     ],
-    [{ capperId: "c4" }, { capperId: "c4" }],
+    [
+      {
+        capperId: "c4",
+        outcome: "WIN",
+        units: 1,
+        profitUnits: 2.5,
+        createdAt: now,
+        eventStartsAt: start,
+      },
+      {
+        capperId: "c4",
+        outcome: "PENDING",
+        units: 1,
+        profitUnits: null,
+        createdAt: now,
+        eventStartsAt: start,
+      },
+    ],
   );
 
   const byKey = Object.fromEntries(categories.map((c) => [c.key, c]));
+
+  assert.equal(byKey.singles?.picks, 5);
+  assert.equal(byKey.parlays?.picks, 2);
+  assert.equal(byKey.parlays?.cappers, 1);
   assert.equal(byKey.sides?.picks, 2);
   assert.equal(byKey.totals?.picks, 1);
   assert.equal(byKey.props?.picks, 1);
-  assert.equal(byKey.parlays?.picks, 2);
-  assert.equal(byKey.parlays?.cappers, 1);
+  assert.equal(byKey.futures?.picks, 1);
+
+  // Tracked volume = shape only (no market double-count, no flattened legs)
+  assert.equal(platformTrackedPicks(categories), 7);
+  assert.equal(shapeCategories(categories).length, 2);
+  assert.equal(marketCategories(categories).length, 4);
+
+  // Below signal → null ROI/units
+  assert.ok((byKey.singles?.graded ?? 0) < MIN_GRADED_FOR_SIGNAL);
+  assert.equal(byKey.singles?.roi, null);
+  assert.equal(byKey.singles?.units, null);
+
+  // Pre-game timing when createdAt < eventStartsAt
+  assert.equal(byKey.sides?.preGame, 2);
+  assert.equal(byKey.sides?.live, 0);
+});
+
+test("rankLeagueActionCategories surfaces ROI/units only at signal sample", () => {
+  const rows = Array.from({ length: MIN_GRADED_FOR_SIGNAL }, (_, i) => ({
+    sport: "NBA",
+    league: "NBA",
+    capperId: `c${i % 3}`,
+    market: "Moneyline",
+    parlayId: null,
+    outcome: i % 2 === 0 ? "WIN" : "LOSS",
+    units: 1,
+    profitUnits: i % 2 === 0 ? 0.91 : -1,
+    createdAt: new Date("2026-07-01T12:00:00.000Z"),
+    eventStartsAt: new Date("2026-07-01T18:00:00.000Z"),
+  }));
+
+  const categories = rankLeagueActionCategories(rows, []);
+  const sides = categories.find((c) => c.key === "sides");
+  assert.ok(sides);
+  assert.equal(sides.graded, MIN_GRADED_FOR_SIGNAL);
+  assert.ok(sides.roi != null);
+  assert.ok(sides.units != null);
 });
 
 test("leagueInitials creates compact temporary marks", () => {

@@ -88,6 +88,7 @@ export default async function Home() {
   const {
     leagues,
     categories,
+    trackedPicks,
     windowDays,
     failed: leagueActionFailed,
   } = await getLeagueActionReport();
@@ -148,13 +149,14 @@ export default async function Home() {
         <section className="space-y-4">
           <SectionHeader
             icon={Activity}
-            title="League action report"
-            subtitle={`Verified board activity from public cappers — last ${windowDays} days`}
+            title="Platform activity report"
+            subtitle={`Most successful bet types from public listed cappers — last ${windowDays} days`}
             href="/picks"
           />
           <LeagueActionReport
             leagues={leagues}
             categories={categories}
+            trackedPicks={trackedPicks}
             windowDays={windowDays}
             failed={leagueActionFailed}
           />

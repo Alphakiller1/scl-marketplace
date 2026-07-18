@@ -5,26 +5,35 @@ import { useMemo, useState } from "react";
 import { Activity, ArrowRight } from "lucide-react";
 
 import { LeagueMark } from "@/components/scl/league-mark";
+import { SampleMaturityMeter } from "@/components/scl/sample-maturity-meter";
 import { SportTag } from "@/components/scl/badges";
 import { StatValue } from "@/components/scl/stat-value";
 import { EmptyState } from "@/components/scl/states";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { formatRoi, formatUnits } from "@/lib/format";
 import {
   LEAGUE_ACTION_CATEGORY_EMPTY,
+  PLATFORM_REPORT_ELIGIBILITY_FOOTNOTE,
+  marketCategories,
+  platformTrackedPicks,
+  shapeCategories,
   type LeagueActionCategoryItem,
   type LeagueActionItem,
 } from "@/lib/league-action";
+import { perfScale, perfToneClass } from "@/lib/perf-scale";
+import { hasSignal } from "@/lib/sample";
 import { cn } from "@/lib/utils";
 
 const LEAGUES_EMPTY = "No verified league activity in the last 14 days.";
-const FOOTNOTE =
-  "Counts include ranked and building-a-record cappers. Test accounts are excluded.";
 
 /** Top Leagues list — keep header + rows on the same tracks. */
 const LEAGUE_LIST_COLS =
   "grid-cols-[1.5rem_1.75rem_minmax(0,1fr)_4.5rem_4.5rem]";
 
-type TabKey = "leagues" | LeagueActionCategoryItem["key"];
+const BET_TYPE_COLS =
+  "grid-cols-[minmax(0,1.1fr)_minmax(5.5rem,0.7fr)_4.25rem_4.25rem_4.5rem]";
+
+type TabKey = "types" | "leagues";
 
 function Metric({
   label,
@@ -68,40 +77,114 @@ function VolumeBar({ value, max }: { value: number; max: number }) {
   );
 }
 
-function CategoryPanel({
-  cat,
-  maxPicks,
+function PerfCell({
+  metric,
+  value,
+  graded,
 }: {
-  cat: LeagueActionCategoryItem;
-  maxPicks: number;
+  metric: "roi" | "units";
+  value: number | null;
+  graded: number;
 }) {
+  if (value == null || !hasSignal(graded)) {
+    return (
+      <span
+        className="block text-right"
+        title="Not available — sample below signal threshold"
+      >
+        <StatValue tone="data" className="text-sm font-semibold">
+          —
+        </StatValue>
+      </span>
+    );
+  }
+  const scale = perfScale(metric, value, { gradedCount: graded });
+  return (
+    <span className="block text-right" title={scale.ariaLabel}>
+      <StatValue
+        tone="text"
+        className={cn(
+          "text-sm font-bold tabular-nums",
+          perfToneClass(scale.tone),
+        )}
+      >
+        {metric === "roi" ? formatRoi(value) : formatUnits(value)}
+      </StatValue>
+    </span>
+  );
+}
+
+function BetTypeRow({ cat }: { cat: LeagueActionCategoryItem }) {
   if (cat.picks <= 0) {
     return (
-      <p className="text-muted-foreground py-6 text-sm leading-relaxed">
-        {LEAGUE_ACTION_CATEGORY_EMPTY[cat.key]}
-      </p>
+      <li className="border-border border-b py-3 last:border-b-0">
+        <p className="scl-eyebrow text-muted-foreground mb-1">{cat.label}</p>
+        <p className="text-muted-foreground text-sm leading-relaxed">
+          {LEAGUE_ACTION_CATEGORY_EMPTY[cat.key]}
+        </p>
+      </li>
     );
   }
 
+  const timing =
+    cat.preGame != null && cat.live != null
+      ? `${cat.preGame.toLocaleString()} pre-game · ${cat.live.toLocaleString()} live`
+      : null;
+
   return (
-    <div className="space-y-4 py-2">
-      <div className="grid grid-cols-2 gap-4 sm:max-w-md">
-        <Metric label="Verified picks" value={cat.picks} emphasize />
-        <Metric label="Active cappers" value={cat.cappers} />
+    <li
+      className={`border-border grid min-h-14 ${BET_TYPE_COLS} items-center gap-2 border-b py-3 last:border-b-0 sm:gap-3`}
+    >
+      <div className="min-w-0">
+        <h3 className="scl-display text-sm font-bold tracking-[0.04em] uppercase">
+          {cat.label}
+        </h3>
+        <p className="text-muted-foreground mt-0.5 text-xs">
+          {cat.picks.toLocaleString()} tracked · {cat.cappers.toLocaleString()}{" "}
+          cappers
+          {timing ? ` · ${timing}` : ""}
+        </p>
       </div>
-      <div className="space-y-1.5">
-        <div className="text-muted-foreground flex items-center justify-between text-[0.7rem] font-semibold tracking-wide uppercase">
-          <span>Share of category volume</span>
-          <span className="scl-data">
-            {maxPicks > 0
-              ? `${Math.round((cat.picks / maxPicks) * 100)}% of top segment`
-              : "—"}
-          </span>
+      <SampleMaturityMeter graded={cat.graded} compact />
+      <StatValue
+        tone="text"
+        className="text-right text-sm font-bold tabular-nums"
+      >
+        {cat.graded.toLocaleString()}
+      </StatValue>
+      <PerfCell metric="roi" value={cat.roi} graded={cat.graded} />
+      <PerfCell metric="units" value={cat.units} graded={cat.graded} />
+    </li>
+  );
+}
+
+function BetTypeSection({
+  title,
+  rows,
+}: {
+  title: string;
+  rows: LeagueActionCategoryItem[];
+}) {
+  return (
+    <section className="space-y-2">
+      <h3 className="scl-eyebrow text-muted-foreground">{title}</h3>
+      <div className="border-border overflow-x-auto rounded-lg border">
+        <div
+          className={`text-muted-foreground hidden min-w-[28rem] ${BET_TYPE_COLS} items-end gap-2 border-b px-3 py-2 text-[0.7rem] font-semibold uppercase sm:grid sm:gap-3`}
+        >
+          <span>Type</span>
+          <span className="text-right">Sample</span>
+          <span className="text-right">Graded</span>
+          <span className="text-right">ROI</span>
+          <span className="text-right">Units</span>
         </div>
-        <VolumeBar value={cat.picks} max={maxPicks} />
+        <ul className="min-w-[28rem] px-3">
+          {rows.map((cat) => (
+            <BetTypeRow key={cat.key} cat={cat} />
+          ))}
+        </ul>
       </div>
-      <ButtonishPicksLink label={`Browse ${cat.label.toLowerCase()}`} />
-    </div>
+    </section>
   );
 }
 
@@ -121,104 +204,68 @@ export function LeagueActionReport({
   leagues,
   categories,
   windowDays,
+  trackedPicks: trackedPicksProp,
   failed = false,
 }: {
   leagues: LeagueActionItem[];
   categories: LeagueActionCategoryItem[];
   windowDays: number;
+  trackedPicks?: number;
   failed?: boolean;
 }) {
-  const totalPicks = useMemo(
-    () => categories.reduce((sum, c) => sum + c.picks, 0),
-    [categories],
-  );
-  const maxCategoryPicks = useMemo(
-    () => Math.max(0, ...categories.map((c) => c.picks)),
-    [categories],
-  );
+  const trackedPicks = trackedPicksProp ?? platformTrackedPicks(categories);
+  const shape = useMemo(() => shapeCategories(categories), [categories]);
+  const market = useMemo(() => marketCategories(categories), [categories]);
+  const liveSegments = categories.filter((c) => c.picks > 0).length;
   const maxLeaguePicks = useMemo(
     () => Math.max(0, ...leagues.map((l) => l.pickCount)),
     [leagues],
   );
-  const liveSegments = categories.filter((c) => c.picks > 0).length;
 
-  const defaultTab = useMemo<TabKey>(() => {
-    if (leagues.length > 0) return "leagues";
-    const hottest = [...categories].sort((a, b) => b.picks - a.picks)[0];
-    if (hottest && hottest.picks > 0) return hottest.key;
-    return "leagues";
-  }, [categories, leagues]);
-
-  const [tab, setTab] = useState<TabKey>(defaultTab);
+  const [tab, setTab] = useState<TabKey>(
+    trackedPicks > 0 || categories.some((c) => c.picks > 0)
+      ? "types"
+      : leagues.length > 0
+        ? "leagues"
+        : "types",
+  );
 
   if (failed) {
     return (
       <EmptyState
         icon={Activity}
-        title="Couldn't Load League Action"
-        description="Recent league activity is temporarily unavailable. Please try again shortly."
+        title="Couldn't load platform activity"
+        description="Recent bet-type activity is temporarily unavailable. Please try again shortly."
       />
     );
   }
 
-  if (totalPicks === 0 && leagues.length === 0) {
+  if (trackedPicks === 0 && leagues.length === 0) {
     return (
       <EmptyState
         icon={Activity}
-        title="No League Action Yet"
-        description="Tracked pick volume will appear here as founding cappers submit board-verified plays."
+        title="No platform activity yet"
+        description="Tracked bet-type volume will appear here as founding cappers submit board-verified plays."
       />
     );
   }
 
   return (
-    <div className="border-border bg-card overflow-hidden rounded-xl border">
+    <div
+      className="border-border bg-card overflow-hidden rounded-xl border"
+      data-visual-mode="live"
+    >
       <div className="border-border flex flex-wrap items-end justify-between gap-4 border-b bg-gradient-to-br from-[color:var(--scl-ink-800)] to-[color:var(--scl-ink-900)] px-4 py-4 sm:px-5">
         <div className="flex flex-wrap gap-6 sm:gap-8">
           <Metric
-            label={`${windowDays}d verified picks`}
-            value={totalPicks}
+            label={`${windowDays}d board-verified`}
+            value={trackedPicks}
             emphasize
           />
-          <Metric label="Leagues ranked" value={leagues.length} />
           <Metric label="Live segments" value={liveSegments} />
+          <Metric label="Leagues ranked" value={leagues.length} />
         </div>
         <ButtonishPicksLink label="Open pick feed" />
-      </div>
-
-      {/* At-a-glance volume — replaces the old empty five-column wall */}
-      <div className="border-border grid grid-cols-2 gap-px border-b bg-[color:var(--scl-line)] sm:grid-cols-5">
-        {categories.map((cat) => {
-          const active = tab === cat.key;
-          const hasVolume = cat.picks > 0;
-          return (
-            <button
-              key={cat.key}
-              type="button"
-              onClick={() => setTab(cat.key)}
-              className={cn(
-                "bg-card hover:bg-surface-2 focus-visible:ring-ring flex min-h-[4.5rem] flex-col items-start justify-between gap-2 p-3 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset",
-                active && "bg-surface-2",
-                !hasVolume && "opacity-55",
-              )}
-            >
-              <span className="text-muted-foreground text-[0.65rem] font-semibold tracking-wide uppercase">
-                {cat.label}
-              </span>
-              <div className="w-full space-y-1.5">
-                <span
-                  className={cn(
-                    "scl-data block text-lg font-bold tabular-nums",
-                    hasVolume ? "text-foreground" : "text-muted-foreground",
-                  )}
-                >
-                  {cat.picks.toLocaleString()}
-                </span>
-                <VolumeBar value={cat.picks} max={maxCategoryPicks || 1} />
-              </div>
-            </button>
-          );
-        })}
       </div>
 
       <Tabs
@@ -232,37 +279,32 @@ export function LeagueActionReport({
             className="h-auto w-max min-w-full justify-start gap-1"
           >
             <TabsTrigger
+              value="types"
+              className="min-h-9 px-3 data-active:text-[color:var(--scl-blue)]"
+            >
+              Bet types
+            </TabsTrigger>
+            <TabsTrigger
               value="leagues"
               className="min-h-9 px-3 data-active:text-[color:var(--scl-blue)]"
             >
-              Top Leagues
+              Top leagues
               {leagues.length > 0 ? (
                 <span className="scl-data text-muted-foreground ml-1 text-[0.7rem]">
                   {leagues.length}
                 </span>
               ) : null}
             </TabsTrigger>
-            {categories.map((cat) => (
-              <TabsTrigger
-                key={cat.key}
-                value={cat.key}
-                className="min-h-9 px-3 data-active:text-[color:var(--scl-blue)]"
-              >
-                {cat.label}
-                <span
-                  className={cn(
-                    "scl-data ml-1 text-[0.7rem]",
-                    cat.picks > 0 ? "text-foreground" : "text-muted-foreground",
-                  )}
-                >
-                  {cat.picks}
-                </span>
-              </TabsTrigger>
-            ))}
           </TabsList>
         </div>
 
         <div className="px-4 py-4 sm:px-5">
+          <TabsContent value="types" className="mt-0 space-y-6">
+            <BetTypeSection title="Shape" rows={shape} />
+            <BetTypeSection title="Market" rows={market} />
+            <ButtonishPicksLink label="Browse verified picks" />
+          </TabsContent>
+
           <TabsContent value="leagues" className="mt-0">
             {leagues.length === 0 ? (
               <p className="text-muted-foreground py-6 text-sm leading-relaxed">
@@ -328,17 +370,11 @@ export function LeagueActionReport({
               </div>
             )}
           </TabsContent>
-
-          {categories.map((cat) => (
-            <TabsContent key={cat.key} value={cat.key} className="mt-0">
-              <CategoryPanel cat={cat} maxPicks={maxCategoryPicks || 1} />
-            </TabsContent>
-          ))}
         </div>
       </Tabs>
 
       <p className="text-muted-foreground border-border border-t px-4 py-2.5 text-xs sm:px-5">
-        {FOOTNOTE}
+        {PLATFORM_REPORT_ELIGIBILITY_FOOTNOTE}
       </p>
     </div>
   );
