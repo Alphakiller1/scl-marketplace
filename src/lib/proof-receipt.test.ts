@@ -6,6 +6,7 @@ import {
   formatClvPts,
   formatClosingLine,
   formatEvidenceId,
+  missingCloseOrClvTooltip,
   proofStampLabel,
   proofStampTone,
 } from "@/lib/proof-receipt";
@@ -107,6 +108,15 @@ describe("honest closing / CLV / evidence", () => {
   it("shortens evidence id", () => {
     assert.equal(formatEvidenceId(null), "—");
     assert.equal(formatEvidenceId("abcdefghijkl"), "ABCD…IJKL");
+  });
+
+  it("empty Close/CLV tooltips stay honest", () => {
+    assert.equal(missingCloseOrClvTooltip(null), "Not available");
+    assert.equal(missingCloseOrClvTooltip(undefined), "Not available");
+    const past = new Date(Date.now() - 60_000).toISOString();
+    assert.equal(missingCloseOrClvTooltip(past), "Not available");
+    const future = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    assert.equal(missingCloseOrClvTooltip(future), "Not captured yet");
   });
 });
 

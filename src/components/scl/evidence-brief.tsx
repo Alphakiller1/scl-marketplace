@@ -29,39 +29,54 @@ import { pickContextLabel } from "@/lib/pick-identity";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
 import { deriveProofReceiptState } from "@/lib/proof-receipt";
 import type { PlayView } from "@/lib/queries/plays";
-import { MIN_GRADED_FOR_SIGNAL, hasSignal, isProvisional } from "@/lib/sample";
+import {
+  MATURITY,
+  MATURITY_LEGEND,
+  hasSignal,
+  isProvisional,
+  maturityBucket,
+  maturityLabel,
+} from "@/lib/sample";
+import { missingCloseOrClvTooltip } from "@/lib/proof-receipt";
 import { cn } from "@/lib/utils";
 
 const LENS_KEY = "scl-trust-lens";
 type TrustLens = "simple" | "analyst" | "audit";
 
 function SampleMaturityMeter({ graded }: { graded: number }) {
-  const pct = Math.min(100, Math.round((graded / MIN_GRADED_FOR_SIGNAL) * 100));
+  const bucket = maturityBucket(graded);
+  const label = maturityLabel(graded);
+  const pct = Math.min(100, Math.round((graded / MATURITY.ESTABLISHED) * 100));
   return (
     <div className="space-y-1.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="scl-eyebrow text-muted-foreground">Sample maturity</p>
         <p className="scl-data text-muted-foreground text-xs tabular-nums">
-          {graded}/{MIN_GRADED_FOR_SIGNAL} graded
+          {label} · {graded} graded
         </p>
       </div>
       <div
         className="bg-surface-2 border-border h-2 overflow-hidden rounded-full border"
         role="meter"
         aria-valuemin={0}
-        aria-valuemax={MIN_GRADED_FOR_SIGNAL}
-        aria-valuenow={Math.min(graded, MIN_GRADED_FOR_SIGNAL)}
-        aria-label="Sample maturity toward signal threshold"
+        aria-valuemax={MATURITY.ESTABLISHED}
+        aria-valuenow={Math.min(graded, MATURITY.ESTABLISHED)}
+        aria-label={`Sample maturity: ${label}`}
       >
         <div
-          className="h-full rounded-full bg-[color:var(--scl-pink)]"
+          className={cn(
+            "h-full rounded-full",
+            bucket === "established"
+              ? "bg-[color:var(--scl-perf-strong)]"
+              : bucket === "developing"
+                ? "bg-[color:var(--scl-perf-mid)]"
+                : "bg-[color:var(--scl-perf-mid)] opacity-80",
+          )}
           style={{ width: `${pct}%` }}
         />
       </div>
       <p className="text-muted-foreground text-xs leading-relaxed">
-        {hasSignal(graded)
-          ? "Sample clears the signal threshold — trend and CLV averages are meaningful."
-          : "Building a record. ROI and rank can swing until the sample grows."}
+        {MATURITY_LEGEND}
       </p>
     </div>
   );
@@ -149,6 +164,7 @@ function playToProofReceipt(play: PlayView) {
       closingOddsAmerican={play.closingOddsAmerican ?? null}
       clvPts={play.clvPts ?? null}
       evidenceId={play.id}
+      eventStartsAt={play.eventStartsAt}
       analysis={play.notesPublic === false ? null : play.notes}
     />
   );
@@ -224,7 +240,7 @@ export function EvidenceBrief({
       <Card className="gap-0 p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-muted-foreground text-[0.7rem] font-semibold tracking-wide uppercase">
-            Evidence Brief
+            Evidence Brief · Trust Lens
           </h2>
           <div className="flex flex-wrap items-center gap-2">
             {provisional ? <ProvisionalRecordHelp /> : null}
@@ -235,7 +251,7 @@ export function EvidenceBrief({
           <TabsList
             variant="line"
             className="h-11 w-full max-w-md justify-start gap-1"
-            aria-label="Trust lens"
+            aria-label="Trust Lens"
           >
             <TabsTrigger value="simple" className="min-h-10 px-3">
               Simple
@@ -384,17 +400,21 @@ function MetricRow({
       />
       <VerifiedMeter pct={verifiedPct} />
       {showClv ? (
-        <StatBlock
-          label="CLV"
-          value={
-            avgClv != null
-              ? `${avgClv >= 0 ? "+" : ""}${avgClv.toFixed(2)} pts`
-              : "—"
-          }
-          valueClassName={perfToneClass(clvScale.tone)}
-          aria-label={clvScale.ariaLabel}
-          className="min-w-[4.5rem]"
-        />
+        <span
+          title={avgClv == null ? missingCloseOrClvTooltip(null) : undefined}
+        >
+          <StatBlock
+            label="CLV"
+            value={
+              avgClv != null
+                ? `${avgClv >= 0 ? "+" : ""}${avgClv.toFixed(2)} pts`
+                : "—"
+            }
+            valueClassName={perfToneClass(clvScale.tone)}
+            aria-label={clvScale.ariaLabel}
+            className="min-w-[4.5rem]"
+          />
+        </span>
       ) : (
         <WinRateStat winPct={capper.winPct} gradedCount={graded} />
       )}

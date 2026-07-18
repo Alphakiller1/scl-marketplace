@@ -36,14 +36,14 @@ export const VERIFICATION_TIER_META: Record<
     label: "Verified",
     short: "Verified",
     description:
-      "Logged pre-game against a real event, with the claimed odds checked against the live market.",
+      "Board pick — logged before tip with odds checked against the market.",
     tone: "verified",
   },
   SELF_REPORTED: {
     label: "Logged",
     short: "Logged",
     description:
-      "Historical entry not board-checked; does not count toward verified rank.",
+      "Historical non-board entry. Not part of the verified leaderboard.",
     tone: "muted",
   },
 };

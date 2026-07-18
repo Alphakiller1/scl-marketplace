@@ -164,44 +164,44 @@ const STATUS_STYLES: Record<
   "pre-game": {
     // Informational blue OUTLINE — public taxonomy uses "Pending" before tip.
     label: "Pending",
-    title: "Event has not started — pick is logged, not yet graded",
+    title: "Event has not started. Grade locks after the final.",
     className:
       "border border-[color:var(--scl-blue)]/40 text-[color:var(--scl-blue)]",
   },
   pending: {
     label: "Pending",
-    title: "Waiting for the event to start or settle",
+    title: "Event has not started. Grade locks after the final.",
     className: "bg-muted/60 text-muted-foreground",
   },
   live: {
     label: "Live",
-    title: "Event is in progress — grade follows the final",
+    title: "Event is in progress.",
     className: "bg-live/15 text-live ring-1 ring-live/30",
     live: true,
   },
   "awaiting-grade": {
     label: "Awaiting Grade",
-    title: "Event finished — automatic grade pending",
+    title: "Event is final. Settlement is running.",
     className: "bg-muted/50 text-muted-foreground",
   },
   win: {
     label: "Won",
-    title: "Graded win",
+    title: "Graded win. Past result — not a prediction.",
     className: "bg-pos/15 text-pos ring-1 ring-pos/30",
   },
   loss: {
     label: "Lost",
-    title: "Graded loss",
+    title: "Graded loss.",
     className: "bg-neg/15 text-neg ring-1 ring-neg/30",
   },
   push: {
     label: "Push",
-    title: "Graded push — stake returned",
+    title: "Graded push — stake returned.",
     className: "border-border text-foreground border bg-transparent",
   },
   void: {
     label: "Void",
-    title: "Pick voided — not counted in the record",
+    title: "Graded void — removed from record math per rules.",
     className: "bg-muted/40 text-muted-foreground",
   },
 };

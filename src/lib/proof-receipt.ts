@@ -168,6 +168,24 @@ export function formatClvPts(clvPts: number | null | undefined): string {
   return `${sign}${clvPts.toFixed(2)} pts`;
 }
 
+/**
+ * Tooltip for empty Close / CLV fields.
+ * Future event → "Not captured yet"; otherwise "Not available"
+ * (never claim the event window is still open for historical plays).
+ */
+export function missingCloseOrClvTooltip(
+  eventStartsAt?: Date | string | null,
+  now: Date = new Date(),
+): string {
+  if (eventStartsAt != null) {
+    const start = new Date(eventStartsAt);
+    if (!Number.isNaN(start.getTime()) && start.getTime() > now.getTime()) {
+      return "Not captured yet";
+    }
+  }
+  return "Not available";
+}
+
 /** Short Evidence ID for the face; full id in title/aria. */
 export function formatEvidenceId(id: string | null | undefined): string {
   if (!id) return "—";

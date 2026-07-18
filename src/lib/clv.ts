@@ -33,10 +33,10 @@ export function computeClvPts(
   return Math.round((delta + Number.EPSILON) * 10_000) / 10_000;
 }
 
-/** Short tooltip copy (deliverables Step 6). */
+/** Short tooltip copy (GPT deliverables Step 6). */
 export const CLV_TOOLTIP_SHORT =
-  "Price vs the same book's closing odds — positive means you beat the close.";
+  "How your price compared to the market’s closing price.";
 
-/** Long explainer (≤120 words, deliverables Step 6). */
+/** Long explainer (≤120 words, GPT deliverables Step 6). */
 export const CLV_EXPLAINER_LONG =
   "Closing Line Value (CLV) measures whether the odds on your pick were better or worse than the same book's price at event start. A positive CLV means you captured a better number than the close; a negative CLV means the close was better. CLV is a pricing metric used by serious handicappers to evaluate process — it is not a prediction of future wins, and it does not guarantee profit. SCL only shows CLV on board-verified picks with a recorded closing price. If a close is unavailable, we show an em dash rather than an estimate.";

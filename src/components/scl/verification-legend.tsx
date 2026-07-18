@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Short persistent legend clarifying pick trust tiers (authenticity, not result).
- * Account identity uses a separate pink "Verified" badge — do not conflate the two.
+ * GPT Step 1 locked copy.
  */
 export function VerificationLegend({ className }: { className?: string }) {
   return (
@@ -15,10 +15,13 @@ export function VerificationLegend({ className }: { className?: string }) {
       )}
     >
       <span className="inline-flex items-center gap-1.5">
-        <ShieldCheck className="text-live size-3.5" aria-hidden />
+        <ShieldCheck
+          className="size-3.5 text-[color:var(--scl-pink)]"
+          aria-hidden
+        />
         <span>
-          <span className="text-foreground font-medium">Board-verified</span> —
-          odds captured pre-game &amp; checked against the live market
+          <span className="text-foreground font-medium">Verified</span> — odds
+          captured on the board before tip and checked against the market.
         </span>
       </span>
       <span className="inline-flex items-center gap-1.5">
@@ -28,7 +31,8 @@ export function VerificationLegend({ className }: { className?: string }) {
         />
         <span>
           <span className="text-foreground font-medium">Logged</span> —
-          historical entry not board-checked
+          historical entry not board-checked; does not count toward verified
+          rank.
         </span>
       </span>
     </p>

@@ -23,9 +23,13 @@ test("verificationTierMeta: verified tones vs muted; legacy tier is Logged", () 
   assert.equal(verificationTierMeta("VERIFIED").short, "Verified");
   assert.equal(verificationTierMeta("SELF_REPORTED").short, "Logged");
   assert.equal(verificationTierMeta("SELF_REPORTED").label, "Logged");
-  assert.match(
+  assert.equal(
+    verificationTierMeta("VERIFIED").description,
+    "Board pick — logged before tip with odds checked against the market.",
+  );
+  assert.equal(
     verificationTierMeta("SELF_REPORTED").description,
-    /not board-checked/i,
+    "Historical non-board entry. Not part of the verified leaderboard.",
   );
 });
 
