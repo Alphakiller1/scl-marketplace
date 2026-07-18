@@ -31,6 +31,13 @@ export type ProofReceiptProps = {
   gradingHealthy?: boolean;
   state: ProofReceiptState;
   density?: ProofReceiptDensity;
+  /**
+   * When true and the pick is board-verified, pink VERIFIED stays the dominant
+   * stamp even after settlement — result renders as a secondary settlement mark.
+   */
+  verificationDominant?: boolean;
+  /** Board-verified (VERIFIED / AUTO_VERIFIED). Required for verificationDominant. */
+  boardVerified?: boolean;
   /** Closing American odds — null → em-dash. */
   closingOddsAmerican?: number | null;
   /** CLV pts — null → em-dash. */
@@ -73,6 +80,8 @@ export function ProofReceipt({
   gradingHealthy,
   state,
   density = "feed",
+  verificationDominant = false,
+  boardVerified = false,
   closingOddsAmerican = null,
   clvPts = null,
   evidenceId = null,
@@ -83,9 +92,13 @@ export function ProofReceipt({
   analysis,
   statusNote,
 }: ProofReceiptProps) {
-  const tone = proofStampTone(state);
-  const stamp = proofStampLabel(state);
   const settled = isSettledProofState(state);
+  const preferVerified =
+    verificationDominant && boardVerified && (settled || state === "captured");
+  const tone = preferVerified ? "pink" : proofStampTone(state);
+  const stamp = preferVerified ? "Verified" : proofStampLabel(state);
+  const settlementLabel = preferVerified ? proofStampLabel(state) : null;
+  const settlementTone = preferVerified ? proofStampTone(state) : null;
   const closingLine = formatClosingLine(closingOddsAmerican);
   const clv = formatClvPts(clvPts);
   const evidence = formatEvidenceId(evidenceId);
@@ -126,19 +139,29 @@ export function ProofReceipt({
     );
   }
 
+  const settlementBar =
+    settlementTone === "win"
+      ? "border-[color:var(--scl-win)]"
+      : settlementTone === "loss"
+        ? "border-[color:var(--scl-loss)]"
+        : settlementTone === "push"
+          ? "border-[color:var(--scl-push)]"
+          : "border-border";
+
   return (
     <article
       className={cn(
         "bg-card border-border relative overflow-hidden rounded-[var(--scl-radius-card)] border shadow-[var(--scl-shadow-card)]",
-        paper && "scl-proof-paper",
+        paper && "scl-proof-paper rounded-[var(--scl-radius-receipt)]",
         settling && "scl-ticket-settling",
         compact && "rounded-[12px]",
         density === "share-image" && "max-w-md",
+        preferVerified && settled && cn("border-l-[3px]", settlementBar),
         className,
       )}
       data-density={density}
       data-state={state}
-      aria-label={`Proof receipt: ${selectionTitle}. ${stamp}. Evidence ${evidenceId || "unavailable"}`}
+      aria-label={`Proof receipt: ${selectionTitle}. ${stamp}${settlementLabel && settlementLabel !== stamp ? `, ${settlementLabel}` : ""}. Evidence ${evidenceId || "unavailable"}`}
     >
       <div
         className={cn(
@@ -151,6 +174,8 @@ export function ProofReceipt({
             "scl-display scl-ticket-stamp absolute origin-center rounded-md border-2 px-2.5 py-1 text-[0.8rem] font-bold tracking-[0.16em] uppercase",
             compact ? "top-3 right-3" : "top-4 right-4",
             STAMP_CLASS[tone],
+            preferVerified &&
+              "shadow-[0_0_0_1px_color-mix(in_oklab,var(--scl-pink)_35%,transparent)]",
             settling ? "rotate-12 opacity-0" : "rotate-6 opacity-100",
           )}
           aria-hidden={settling ? true : undefined}
@@ -180,6 +205,21 @@ export function ProofReceipt({
           <div className="scl-data text-muted-foreground mt-1.5 text-[0.65rem] tracking-[0.06em] uppercase">
             {eventLine}
           </div>
+        ) : null}
+        {settlementLabel && settlementLabel !== "Verified" ? (
+          <p
+            className={cn(
+              "scl-data mt-2 text-[0.7rem] font-semibold tracking-[0.1em] uppercase",
+              settlementTone === "win" && "text-[color:var(--scl-win)]",
+              settlementTone === "loss" && "text-[color:var(--scl-loss)]",
+              settlementTone === "push" && "text-[color:var(--scl-push)]",
+              !settlementTone || settlementTone === "muted"
+                ? "text-muted-foreground"
+                : null,
+            )}
+          >
+            Result · {settlementLabel}
+          </p>
         ) : null}
       </div>
 

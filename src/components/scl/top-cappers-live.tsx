@@ -4,17 +4,18 @@ import { ArrowRight, Users } from "lucide-react";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
 import { CapperIdentityLabel } from "@/components/scl/capper-identity-label";
 import { SportTag } from "@/components/scl/badges";
-import { RankBadge } from "@/components/scl/rank-badge";
 import { SampleMaturityMeter } from "@/components/scl/sample-maturity-meter";
 import { EmptyState } from "@/components/scl/states";
 import { VerifiedShareMeter } from "@/components/scl/verified-share-meter";
-import { formatRecord, formatRoi, formatUnits } from "@/lib/format";
+import { formatUnits } from "@/lib/format";
 import type { CapperSummary } from "@/lib/mock";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
 import { cn } from "@/lib/utils";
 
 /**
- * Live Top Cappers — compact rows reusing PR-1 meters + perf-scale.
+ * Live Top Cappers — who is worth inspecting (verified share primary).
+ * Distinct from Leaderboard snapshot (board place by units).
+ * Units remain the only money metric — no dollar handle.
  */
 export function TopCappersLive({
   cappers,
@@ -33,7 +34,7 @@ export function TopCappersLive({
             Top cappers
           </h2>
           <p className="text-muted-foreground text-sm">
-            Ranked by units in this verified scope
+            Worth inspecting — board-verified share, then units
           </p>
         </div>
         <Link
@@ -54,13 +55,9 @@ export function TopCappersLive({
           description="No capper has enough graded volume to surface here yet. SCL only ranks after a minimum sample."
         />
       ) : (
-        <ul className="border-border bg-card divide-border divide-y overflow-hidden rounded-[14px] border">
-          {cappers.map((capper, index) => {
+        <ul className="divide-border border-border divide-y border-y">
+          {cappers.map((capper) => {
             const graded = capper.settledPicks ?? 0;
-            const place = capper.rank || index + 1;
-            const roiScale = perfScale("roi", capper.roi, {
-              gradedCount: graded,
-            });
             const unitsScale = perfScale("units", capper.units, {
               gradedCount: graded,
             });
@@ -68,14 +65,9 @@ export function TopCappersLive({
               <li key={capper.id}>
                 <Link
                   href={`/cappers/${capper.handle}`}
-                  className="hover:bg-surface-2 focus-visible:ring-ring flex flex-col gap-3 px-3 py-3 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset sm:flex-row sm:items-center sm:gap-4"
+                  className="hover:bg-surface-2/60 focus-visible:ring-ring flex flex-col gap-2.5 py-3 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset sm:flex-row sm:items-center sm:gap-4"
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <RankBadge
-                      rank={place}
-                      settledPicks={graded}
-                      className="size-9"
-                    />
                     <CapperAvatar
                       name={capper.name}
                       src={capper.avatarUrl}
@@ -98,25 +90,18 @@ export function TopCappersLive({
                           ·
                         </span>
                         <span className="scl-data tabular-nums">
-                          {formatRecord(
-                            capper.record.w,
-                            capper.record.l,
-                            capper.record.p,
-                          )}
+                          {graded} graded
                         </span>
                       </div>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center justify-end gap-3 sm:gap-4">
-                    <span
-                      className={cn(
-                        "scl-data text-sm font-semibold tabular-nums",
-                        perfToneClass(roiScale.tone),
-                      )}
-                      title={roiScale.ariaLabel}
-                    >
-                      {formatRoi(capper.roi)}
-                    </span>
+                    <VerifiedShareMeter pct={capper.verifiedShare} />
+                    <SampleMaturityMeter
+                      graded={graded}
+                      compact
+                      className="w-[4.5rem]"
+                    />
                     <span
                       className={cn(
                         "scl-data text-sm font-bold tabular-nums",
@@ -126,12 +111,6 @@ export function TopCappersLive({
                     >
                       {formatUnits(capper.units)}
                     </span>
-                    <SampleMaturityMeter
-                      graded={graded}
-                      compact
-                      className="w-[4.5rem]"
-                    />
-                    <VerifiedShareMeter pct={capper.verifiedShare} />
                   </div>
                 </Link>
               </li>

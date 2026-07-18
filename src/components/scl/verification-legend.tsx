@@ -15,7 +15,10 @@ export function VerificationLegend({ className }: { className?: string }) {
       )}
     >
       <span className="inline-flex items-center gap-1.5">
-        <ShieldCheck className="text-live size-3.5" aria-hidden />
+        <ShieldCheck
+          className="size-3.5 text-[color:var(--scl-pink)]"
+          aria-hidden
+        />
         <span>
           <span className="text-foreground font-medium">Board-verified</span> —
           odds captured pre-game &amp; checked against the live market

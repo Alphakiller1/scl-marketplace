@@ -34,6 +34,9 @@ export function LeaderboardSnapshot({
           <h2 className="scl-display text-lg font-semibold tracking-[0.04em]">
             Leaderboard snapshot
           </h2>
+          <p className="text-muted-foreground mt-0.5 text-sm">
+            Board standings — ranked by net units
+          </p>
           <p className="scl-data text-muted-foreground mt-0.5 text-xs tabular-nums">
             {formatUpdatedAgo(updatedAt)}
           </p>
@@ -63,6 +66,8 @@ export function LeaderboardSnapshot({
           limit={limit}
           failed={failed}
           compactMobile
+          compactDesktop
+          flush
           primaryMetric="units"
           emptyDescription="The founding roster is forming. Verified cappers will appear here after they clear SCL’s ranking sample."
         />

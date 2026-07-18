@@ -14,10 +14,13 @@ export function CompactCapperRow({
   capper,
   rank,
   primaryMetric,
+  variant = "card",
 }: {
   capper: CapperSummary;
   rank: number | null | undefined;
   primaryMetric: "units" | "roi";
+  /** Flush hairline row for live evidence panes (no nested card). */
+  variant?: "card" | "flush";
 }) {
   const graded = capper.settledPicks ?? 0;
   const provisional = isProvisional(graded);
@@ -35,11 +38,17 @@ export function CompactCapperRow({
   const secondaryTone = signTone(
     primaryMetric === "units" ? capper.roi : capper.units,
   );
+  const flush = variant === "flush";
 
   return (
     <Link
       href={`/cappers/${capper.handle}`}
-      className="border-border bg-card active:bg-surface-2 focus-visible:ring-ring scl-interactive scl-elevated block min-h-24 rounded-xl border p-3 outline-none focus-visible:ring-2"
+      className={cn(
+        "focus-visible:ring-ring block outline-none focus-visible:ring-2",
+        flush
+          ? "hover:bg-surface-2/60 min-h-16 py-2.5 focus-visible:ring-inset"
+          : "border-border bg-card active:bg-surface-2 scl-interactive scl-elevated min-h-24 rounded-xl border p-3",
+      )}
     >
       <div className="flex min-w-0 items-center gap-3">
         <RankBadge rank={rank} settledPicks={graded} className="size-9" />
@@ -82,32 +91,34 @@ export function CompactCapperRow({
         </div>
       </div>
 
-      <div className="border-border text-muted-foreground mt-2 flex min-w-0 items-center gap-2 border-t pt-2 text-xs">
-        <span className="shrink-0">
-          <StatValue tone="text" className="font-semibold">
-            {capper.winPct.toFixed(1)}%
-          </StatValue>{" "}
-          Win
-        </span>
-        <span aria-hidden>·</span>
-        <StatValue
-          tone={
-            secondaryTone === "pos"
-              ? "win"
-              : secondaryTone === "neg"
-                ? "loss"
-                : "data"
-          }
-          className={cn("shrink-0 font-semibold")}
-        >
-          {secondaryValue}
-        </StatValue>
-        <StatValue tone="label" className="ml-auto truncate text-right">
-          {provisional
-            ? `${graded.toLocaleString()} graded — provisional`
-            : `${graded.toLocaleString()} Graded Picks`}
-        </StatValue>
-      </div>
+      {!flush ? (
+        <div className="border-border text-muted-foreground mt-2 flex min-w-0 items-center gap-2 border-t pt-2 text-xs">
+          <span className="shrink-0">
+            <StatValue tone="text" className="font-semibold">
+              {capper.winPct.toFixed(1)}%
+            </StatValue>{" "}
+            Win
+          </span>
+          <span aria-hidden>·</span>
+          <StatValue
+            tone={
+              secondaryTone === "pos"
+                ? "win"
+                : secondaryTone === "neg"
+                  ? "loss"
+                  : "data"
+            }
+            className={cn("shrink-0 font-semibold")}
+          >
+            {secondaryValue}
+          </StatValue>
+          <StatValue tone="label" className="ml-auto truncate text-right">
+            {provisional
+              ? `${graded.toLocaleString()} graded — provisional`
+              : `${graded.toLocaleString()} Graded Picks`}
+          </StatValue>
+        </div>
+      ) : null}
     </Link>
   );
 }
