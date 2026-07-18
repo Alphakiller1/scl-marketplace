@@ -32,7 +32,7 @@ export function DiscoverLaneSection({
           <div className="min-w-0">
             <h2
               id={`discover-lane-${lane.id}`}
-              className="scl-display text-base font-bold tracking-[0.04em] uppercase sm:text-lg"
+              className="scl-display text-base font-bold tracking-[0.04em] sm:text-lg"
             >
               {lane.title}
             </h2>

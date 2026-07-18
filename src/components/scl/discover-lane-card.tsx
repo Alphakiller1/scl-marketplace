@@ -14,14 +14,15 @@ import { cn } from "@/lib/utils";
 /**
  * Lane-aware Discover strip — primary metric changes per lane.
  * ROI/Units/CLV via perf-scale; pink verified meter; units never dollars.
+ * Maturity + units tone follow the sample behind this lane's primary.
  */
 export function DiscoverLaneCard({ entry }: { entry: DiscoverLaneEntry }) {
   const { capper, primaryKind, primaryValue, primaryLabel, gradedSample } =
     entry;
-  const graded = capper.settledPicks ?? gradedSample;
+  const sampleForScale = gradedSample;
 
   const unitsScale = perfScale("units", capper.units, {
-    gradedCount: graded,
+    gradedCount: sampleForScale,
   });
 
   let primaryDisplay = "—";
@@ -29,13 +30,15 @@ export function DiscoverLaneCard({ entry }: { entry: DiscoverLaneEntry }) {
   let primaryAria = `${primaryLabel} unavailable`;
 
   if (primaryKind === "roi" && primaryValue != null) {
-    const scale = perfScale("roi", primaryValue, { gradedCount: gradedSample });
+    const scale = perfScale("roi", primaryValue, {
+      gradedCount: sampleForScale,
+    });
     primaryDisplay = formatRoi(primaryValue);
     primaryClass = perfToneClass(scale.tone);
     primaryAria = scale.ariaLabel;
   } else if (primaryKind === "clv" && primaryValue != null) {
     const scale = perfScale("clv", primaryValue, {
-      gradedCount: gradedSample,
+      gradedCount: sampleForScale,
     });
     primaryDisplay = formatClvPts(primaryValue);
     primaryClass = perfToneClass(scale.tone);
@@ -84,7 +87,11 @@ export function DiscoverLaneCard({ entry }: { entry: DiscoverLaneEntry }) {
 
       <div className="flex flex-wrap items-center justify-end gap-3 sm:gap-4">
         <VerifiedShareMeter pct={capper.verifiedShare} />
-        <SampleMaturityMeter graded={graded} compact className="w-[4.5rem]" />
+        <SampleMaturityMeter
+          graded={sampleForScale}
+          compact
+          className="w-[4.5rem]"
+        />
         <span
           className={cn(
             "scl-data text-sm font-bold tabular-nums",

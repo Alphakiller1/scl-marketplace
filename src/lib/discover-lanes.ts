@@ -285,10 +285,20 @@ export function buildMarketBeatersLane(
   const entries: DiscoverLaneEntry[] = [];
   for (const { summary, plays } of inputs) {
     const snapshots = plays
-      .map((p) => p.clvPts)
-      .filter((v): v is number => v != null && Number.isFinite(v));
+      .filter(
+        (p) =>
+          isVerifiedTier(p.verificationTier) &&
+          (p.outcome === "WIN" ||
+            p.outcome === "LOSS" ||
+            p.outcome === "PUSH") &&
+          p.clvPts != null &&
+          Number.isFinite(p.clvPts),
+      )
+      .map((p) => p.clvPts as number);
     if (!hasSignal(snapshots.length)) continue;
     const avg = snapshots.reduce((a, b) => a + b, 0) / snapshots.length;
+    // “Compared favorably” = beat the close on average (pricing, not prediction).
+    if (!(avg > 0)) continue;
     entries.push({
       capper: { ...summary, avgClv: avg },
       primaryKind: "clv",

@@ -8,6 +8,7 @@ import {
   buildProvenLane,
   buildSpecialistsLane,
   buildVerifiedMonthLane,
+  DISCOVER_LANES,
   DISCOVER_SIGNAL_FLOOR,
   NEWLY_CREDIBLE_MIN_VERIFIED_SHARE,
   pickSpecialty,
@@ -181,19 +182,65 @@ test("newly credible requires developing sample + high verified share", () => {
   assert.equal(lane[0].primaryKind, "verifiedShare");
 });
 
-test("market beaters stay empty without enough CLV snapshots", () => {
-  const input: DiscoverCapperInput = {
+test("market beaters require verified graded positive avg CLV", () => {
+  const selfReported: DiscoverCapperInput = {
     summary: baseCapper({ settledPicks: 20 }),
-    plays: nPlays(20, { clvPts: 0.02 }),
+    plays: nPlays(12, {
+      verificationTier: "SELF_REPORTED",
+      clvPts: 0.05,
+    }),
   };
-  // Only 20 plays but clv on all — should qualify
-  assert.equal(buildMarketBeatersLane([input]).length, 1);
+  assert.equal(buildMarketBeatersLane([selfReported]).length, 0);
 
-  const thin: DiscoverCapperInput = {
+  const negative: DiscoverCapperInput = {
     summary: baseCapper({ settledPicks: 20 }),
-    plays: nPlays(5, { clvPts: 0.05 }),
+    plays: nPlays(12, {
+      verificationTier: "VERIFIED",
+      clvPts: -0.02,
+    }),
   };
-  assert.equal(buildMarketBeatersLane([thin]).length, 0);
+  assert.equal(buildMarketBeatersLane([negative]).length, 0);
+
+  const ok: DiscoverCapperInput = {
+    summary: baseCapper({ settledPicks: 20, handle: "beater" }),
+    plays: nPlays(12, {
+      verificationTier: "VERIFIED",
+      clvPts: 0.02,
+    }),
+  };
+  const lane = buildMarketBeatersLane([ok]);
+  assert.equal(lane.length, 1);
+  assert.equal(lane[0].capper.handle, "beater");
+  assert.ok((lane[0].primaryValue ?? 0) > 0);
+});
+
+test("DISCOVER_LANES locks exact titles and empty copy", () => {
+  const expected = [
+    [
+      "Proven over time",
+      "No capper currently meets the long-window sample requirement.",
+    ],
+    [
+      "Best verified ROI this month",
+      "No capper has enough verified, graded picks in the current 30-day window.",
+    ],
+    [
+      "Consistent specialists",
+      "No capper has a large enough sport or market sample to qualify.",
+    ],
+    [
+      "Newly credible",
+      "No newer capper currently meets both the verification and sample requirements.",
+    ],
+    [
+      "Market beaters",
+      "No capper has enough closing-line snapshots to qualify.",
+    ],
+  ] as const;
+  for (let i = 0; i < expected.length; i++) {
+    assert.equal(DISCOVER_LANES[i].title, expected[i][0]);
+    assert.equal(DISCOVER_LANES[i].empty, expected[i][1]);
+  }
 });
 
 test("buildAllDiscoverLanes never fabricates entries on empty input", () => {
