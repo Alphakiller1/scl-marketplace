@@ -47,11 +47,7 @@ export default async function CappersPage({
           {results.length === 1 ? "Result" : "Results"}
         </p>
       </header>
-      <LeaderboardFilters
-        filters={filters}
-        action="/cappers"
-        label="Discovery Filters"
-      />
+      <LeaderboardFilters filters={filters} action="/cappers" />
       {results.length === 0 ? (
         <EmptyState
           className="mt-6"

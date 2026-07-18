@@ -8,13 +8,16 @@ mockup odds-chip; "Track Your Record" recruitment CTA; the owner-approved hero c
 retained. See "Numeric color system" and "Visual modes" for the load-bearing changes.
 
 ## Identity thesis
+
 SCL is a verified capper marketplace. Its visual world is the bet ticket, the settlement
 ledger, and the odds board. Everything a capper does becomes inspectable evidence — records,
 receipts, CLV, samples, movement. Commerce is downstream of proof. The signature component is
 the Proof Receipt: a bet-receipt with a perforated tear line and a pink VERIFIED stamp.
 
 ## Visual modes (every surface declares one)
+
 Modes share tokens; they differ in composition, density, and texture.
+
 - **Live** — home, odds board, pick stream. Scanline texture, cobalt time rails, minimal
   cards, timestamps/market status prominent.
 - **Proof** — receipts, verification history, audit. Warm ticket paper, tear lines, stamps,
@@ -25,6 +28,7 @@ Modes share tokens; they differ in composition, density, and texture.
   action summary, preview/evidence always visible.
 
 ## Color role rules
+
 - **Pink = conviction** — primary CTA, selected odds chips, VERIFIED badge/stamp + the
   verified-% meter, rank 1–3 medals, combined-odds figures, section-head hairlines, slip
   accents, logo mark.
@@ -35,6 +39,7 @@ Modes share tokens; they differ in composition, density, and texture.
 - Never mix pink fill + blue fill on one control. Off-role pink/blue is a spec violation.
 
 ## Numeric color system (v2 core change) — two orthogonal systems, never conflated
+
 **A. Settlement semantic (discrete, result-only).** `--scl-win`/`--scl-loss`/`--scl-push`
 appear ONLY on graded outcomes: Win/Loss/Push pills, a single graded play's unit delta,
 W/L/P form dots, and the PRE-GAME ✓ verify chip (win-green). This is the scarce, trusted
@@ -43,6 +48,7 @@ signal — it means a real result settled.
 **B. Performance spectrum (continuous, magnitude).** ROI, Units, CLV, win% render on a
 green→amber→red ramp keyed to magnitude (`--scl-perf-strong/-mid/-weak`). Strong = green,
 mid = amber, weak/negative = red.
+
 - Thresholds live in ONE shared module (`lib/perf-scale.ts`), never hardcoded per component.
 - Color is never the only signal — the number itself is always shown (WCAG 1.4.1); ramp is
   luminance-stepped for deuteran/protan safety; test forced-colors.
@@ -52,6 +58,7 @@ mid = amber, weak/negative = red.
   but Early caps at amber, never red — immaturity is not failure.
 
 ## Tokens (globals.css :root / .dark) — unchanged from v1 except the perf ramp
+
 ```
 --scl-ink-950:#07090F; --scl-ink-900:#0C111B; --scl-ink-800:#121A28;
 --scl-ink-700:#1B2536; --scl-ink-600:#26334A; --scl-line:#243045;
@@ -63,10 +70,12 @@ mid = amber, weak/negative = red.
 --scl-radius-card:14px; --scl-radius-chip:10px; --scl-radius-receipt:6px;
 --scl-shadow-card:0 8px 24px rgba(0,0,0,.35); --scl-shadow-slip:0 12px 30px rgba(0,0,0,.55);
 ```
+
 Light theme is "Ticket Paper" (page `#F3F1EA`, card `#FFFFFF`, ink `#161B26`, rules `#D8D3C4`,
 pink `#A6007F`, blue `#044CB6`). Perf-mid deepens to ~`#B5791E` on paper.
 
 ## Typography
+
 Families: **Barlow Condensed** 600/700 (display — headings, team names, big numbers, section
 titles). **Barlow** 400–700 (UI/body — copy, buttons, labels). **Inter** 500/600/700 with
 `tabular-nums lining-nums` for EVERY odds/line/unit/ROI/%/record/timestamp — no exceptions,
@@ -84,10 +93,12 @@ card 16/22; body 16/24 @ 58–66ch; label 11/14 uppercase ls .10; metrics Inter 
 unit precision per column; en-dash records (`18‑12‑1`); CLV states its basis; timestamps carry ET.
 
 ## Conviction scarcity rule
+
 Pink only on conviction surfaces; blue only on navigation surfaces; everything else uses
 ink/text/muted tokens or the performance ramp. Off-role pink/blue is a violation.
 
 ## Texture
+
 - **Scanline** — board/pick-flow containers only:
   `repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0 1px, transparent 1px 4px)`.
 - **Ticket paper** — the warm light surface, used for Proof Receipts and expanded proof even
@@ -96,12 +107,14 @@ ink/text/muted tokens or the performance ramp. Off-role pink/blue is a violation
   sanctioned until prototyped and versioned.)
 
 ## Grid & alignment
+
 12-col desktop, 8/4 primary+rail, max 1200px, gutters 16/24/32. Right-align every comparable
 number; numeric columns fixed-width, identity flexible; rank in a fixed 48px left column;
 consistent decimals per column; labels align to their values. Vertical rhythm: title→content
 32, section 64/40, label→value 4, row padding 18–20/14–16.
 
 ## Border / shadow / radius grammar
+
 A border must answer one of: region-end (structural hairline) · interactive (rest→hover→focus
 ring) · conviction (pink, one primary per region) · evidence (receipt solid + dashed + notches)
 · settlement (win/loss/push 3px left rule on resolved cards — never flood the whole card).
@@ -110,13 +123,15 @@ data = hairline only · hover = lift · slip/tray = floating · receipt/modal = 
 stacking border+shadow+glow on routine objects.
 
 ## Text-contrast tiers (dark)
+
 label `#7E8AA0` / supporting prose `#AAB6C9` / primary prose `#D8DFEA` / heading `#EDF1F7`.
 Never use the label color for full sentences.
 
 ## Component recipes
+
 - **CARD** — bg ink-800, 1px line, radius-card, shadow-card.
 - **CHIP (odds)** — bg ink-700, 1px line, radius-chip, min-height 44px; single row: selection
-  + odds. SELECTED: pink fill, pink border, pink-ink text, ring 0 0 0 2px ink-950.
+  - odds. SELECTED: pink fill, pink border, pink-ink text, ring 0 0 0 2px ink-950.
 - **SEGMENTED CONTROL** — track ink-800 + line, radius 10px; active segment blue (navigation).
 - **SPORT PILL** — 44px, radius 22px, ink-800; active blue. Zero-count opacity .42, still tappable.
 - **BOOK RAIL** — sport-pill geometry; profile multi-select blue; board head single-select drives odds.
@@ -153,17 +168,20 @@ Never use the label color for full sentences.
 - **COMPARE TRAY** — pin ≤3 cappers; aligned, identically-scoped columns; subordinate to the mobile slip.
 
 ## Motion (complete list — nothing else animates; all gated behind prefers-reduced-motion)
+
 Chip select 150ms · Verified stamp scale1.15→1/rotate12→6° 400ms · Board sport-switch crossfade
 200ms · Reveal-in (opacity/8px translate) 440ms · Interactive hover-lift translateY(-2px) 200ms
 (hover devices only) · Ticker marquee (paused on hover/focus) · Row expand 180–240ms · Tray/sheet
 slide 180–240ms · Trust-Lens tab change · Line-moved sheet. Reduced-motion renders final state.
 
 ## One-question-per-page
+
 Each surface answers one question in ~5s and promotes that answer above all else — Home: who's
 worth inspecting + why trust SCL; Leaderboard: who ranks highest in this scope + how credible;
 Profile: is this record credible + relevant; New Pick: what am I committing to + what proof is preserved.
 
 ## Navigation, copy & brand
+
 - Nav: **Picks · Leaderboard · Discover**. Logo: the current `scl-logo.tsx` mark (do not vary).
 - Primary capper-recruitment CTA: **"Track Your Record"** (retires "Become a Capper"). Sign-in
   entry may remain "Log in / Join SCL".
@@ -172,11 +190,13 @@ Profile: is this record credible + relevant; New Pick: what am I committing to +
   do not replace it.
 
 ## Data honesty rule
+
 The mockups depict a mature-data state. Every component MUST also render honest-empty (em-dash),
 provisional, early-sample, and awaiting-grade states. No metric is ever fabricated or implied —
 specifically no dollar "handle," no invented volume, no green number without a real graded result
 behind it. Data absent → labeled em-dash, never a zero styled as data.
 
 ## Voice
+
 Sentence-case buttons. Errors name the fix. Empty states always route somewhere. No
 "lock/guaranteed/risk-free." Responsible-gaming access persistent in footer and near commerce.

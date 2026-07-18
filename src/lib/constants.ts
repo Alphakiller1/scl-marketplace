@@ -44,10 +44,13 @@ export const LEADERBOARD_TIMEFRAMES = [
   { key: "year", label: "Current Year", days: null },
 ] as const;
 
-// How leaderboards can be ranked.
+// How leaderboards can be ranked (metric columns are click-to-sort).
 export const LEADERBOARD_SORTS = [
   { key: "units", label: "Units" },
-  { key: "roi", label: "ROI %" },
-  { key: "winPct", label: "Win %" },
+  { key: "roi", label: "ROI" },
+  { key: "winPct", label: "Record" },
+  { key: "sample", label: "Sample" },
+  { key: "verified", label: "Verified" },
+  { key: "form", label: "Form" },
   { key: "clv", label: "CLV" },
 ] as const;

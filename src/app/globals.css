@@ -100,6 +100,9 @@
   --scl-win: #2fbf7b;
   --scl-loss: #e5484d;
   --scl-push: #8b97ab;
+  --scl-perf-strong: #2fbf7b;
+  --scl-perf-mid: #b5791e;
+  --scl-perf-weak: #e5484d;
   --scl-font-display:
     var(--font-barlow-condensed), "Barlow Condensed", sans-serif;
   --scl-font-ui: var(--font-barlow), "Barlow", sans-serif;
@@ -222,6 +225,9 @@
   --scl-win: #2fbf7b;
   --scl-loss: #e5484d;
   --scl-push: #8b97ab;
+  --scl-perf-strong: #2fbf7b;
+  --scl-perf-mid: #e6a93c;
+  --scl-perf-weak: #e5484d;
   --scl-shadow-card: 0 8px 24px rgba(0, 0, 0, 0.35);
   --scl-shadow-slip: 0 12px 30px rgba(0, 0, 0, 0.55);
 
@@ -452,6 +458,28 @@
     to {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+  @keyframes scl-rank-delta {
+    from {
+      opacity: 0.35;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    @keyframes scl-rank-delta {
+      from {
+        opacity: 1;
+        transform: none;
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
     }
   }
   .scl-reveal {

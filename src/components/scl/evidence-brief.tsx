@@ -17,6 +17,7 @@ import {
   UnitStat,
   WinRateStat,
 } from "@/components/scl/stat";
+import { SampleMaturityMeter } from "@/components/scl/sample-maturity-meter";
 import { EmptyState } from "@/components/scl/states";
 import { VerificationHelpLink } from "@/components/scl/verification-help-link";
 import { VerificationLegend } from "@/components/scl/verification-legend";
@@ -29,43 +30,11 @@ import { pickContextLabel } from "@/lib/pick-identity";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
 import { deriveProofReceiptState } from "@/lib/proof-receipt";
 import type { PlayView } from "@/lib/queries/plays";
-import { MIN_GRADED_FOR_SIGNAL, hasSignal, isProvisional } from "@/lib/sample";
+import { hasSignal, isProvisional } from "@/lib/sample";
 import { cn } from "@/lib/utils";
 
 const LENS_KEY = "scl-trust-lens";
 type TrustLens = "simple" | "analyst" | "audit";
-
-function SampleMaturityMeter({ graded }: { graded: number }) {
-  const pct = Math.min(100, Math.round((graded / MIN_GRADED_FOR_SIGNAL) * 100));
-  return (
-    <div className="space-y-1.5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="scl-eyebrow text-muted-foreground">Sample maturity</p>
-        <p className="scl-data text-muted-foreground text-xs tabular-nums">
-          {graded}/{MIN_GRADED_FOR_SIGNAL} graded
-        </p>
-      </div>
-      <div
-        className="bg-surface-2 border-border h-2 overflow-hidden rounded-full border"
-        role="meter"
-        aria-valuemin={0}
-        aria-valuemax={MIN_GRADED_FOR_SIGNAL}
-        aria-valuenow={Math.min(graded, MIN_GRADED_FOR_SIGNAL)}
-        aria-label="Sample maturity toward signal threshold"
-      >
-        <div
-          className="h-full rounded-full bg-[color:var(--scl-pink)]"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <p className="text-muted-foreground text-xs leading-relaxed">
-        {hasSignal(graded)
-          ? "Sample clears the signal threshold — trend and CLV averages are meaningful."
-          : "Building a record. ROI and rank can swing until the sample grows."}
-      </p>
-    </div>
-  );
-}
 
 function VerifiedMeter({ pct }: { pct: number | null }) {
   if (pct == null) {
@@ -258,7 +227,7 @@ export function EvidenceBrief({
               clvScale={clvScale}
               showClv={false}
             />
-            <SampleMaturityMeter graded={graded} />
+            <SampleMaturityMeter graded={graded} showLegend />
           </TabsContent>
 
           <TabsContent value="analyst" className="mt-4 space-y-4">
@@ -271,7 +240,7 @@ export function EvidenceBrief({
               clvScale={clvScale}
               showClv={showClv}
             />
-            <SampleMaturityMeter graded={graded} />
+            <SampleMaturityMeter graded={graded} showLegend />
             <CumulativeUnitsChart points={cumulative} gradedCount={graded} />
           </TabsContent>
 
@@ -285,7 +254,7 @@ export function EvidenceBrief({
               clvScale={clvScale}
               showClv
             />
-            <SampleMaturityMeter graded={graded} />
+            <SampleMaturityMeter graded={graded} showLegend />
             <CumulativeUnitsChart points={cumulative} gradedCount={graded} />
             {showAuditMeta ? (
               <p className="text-muted-foreground text-xs leading-relaxed">
