@@ -20,16 +20,17 @@ import {
   type LeagueActionCategoryItem,
   type LeagueActionItem,
 } from "@/lib/league-action";
-import { perfScale, perfToneClass } from "@/lib/perf-scale";
+import { perfScale, perfToneClass, type PerfTone } from "@/lib/perf-scale";
 import { hasSignal } from "@/lib/sample";
 import { cn } from "@/lib/utils";
 
 const LEAGUES_EMPTY = "No verified league activity in the last 14 days.";
 
-/** Top Leagues list — keep header + rows on the same tracks. */
+/** Desktop Top Leagues tracks. */
 const LEAGUE_LIST_COLS =
   "grid-cols-[1.5rem_1.75rem_minmax(0,1fr)_4.5rem_4.5rem]";
 
+/** Desktop bet-type tracks — never applied under sm (mobile uses cards). */
 const BET_TYPE_COLS =
   "grid-cols-[minmax(0,1.1fr)_minmax(5.5rem,0.7fr)_4.25rem_4.25rem_4.5rem]";
 
@@ -55,14 +56,13 @@ function Metric({
       >
         {value.toLocaleString()}
       </StatValue>
-      <span className="text-muted-foreground text-[0.7rem] font-semibold tracking-wide uppercase">
-        {label}
-      </span>
+      <span className="scl-eyebrow mt-1 block">{label}</span>
     </div>
   );
 }
 
-function VolumeBar({ value, max }: { value: number; max: number }) {
+/** Sample-volume bar — neutral muted fill (never blue). No animated width. */
+function SampleVolumeBar({ value, max }: { value: number; max: number }) {
   const pct = max > 0 ? Math.max(value > 0 ? 8 : 0, (value / max) * 100) : 0;
   return (
     <div
@@ -70,7 +70,59 @@ function VolumeBar({ value, max }: { value: number; max: number }) {
       aria-hidden
     >
       <div
-        className="h-full rounded-full bg-[color:var(--scl-blue)] transition-[width] duration-300"
+        className="h-full rounded-full bg-[color:var(--scl-muted-label)]/55"
+        style={{ width: `${pct}%` }}
+      />
+    </div>
+  );
+}
+
+function perfBarFill(tone: PerfTone): string {
+  switch (tone) {
+    case "pos":
+      return "bg-[color:var(--scl-perf-strong)]";
+    case "neg":
+      return "bg-[color:var(--scl-perf-weak)]";
+    case "amber":
+      return "bg-[color:var(--scl-perf-mid)]";
+    case "muted":
+    default:
+      return "bg-[color:var(--scl-muted-label)]/55";
+  }
+}
+
+/**
+ * Performance magnitude bar — fill from perf-scale tone (never blue).
+ * Static width (not on the sanctioned motion list).
+ */
+function PerfMagnitudeBar({
+  metric,
+  value,
+  graded,
+  maxAbs,
+}: {
+  metric: "roi" | "units";
+  value: number | null;
+  graded: number;
+  maxAbs: number;
+}) {
+  if (value == null || !hasSignal(graded) || maxAbs <= 0) {
+    return (
+      <div
+        className="bg-surface-3 h-1.5 w-full overflow-hidden rounded-full"
+        aria-hidden
+      />
+    );
+  }
+  const scale = perfScale(metric, value, { gradedCount: graded });
+  const pct = Math.max(8, Math.min(100, (Math.abs(value) / maxAbs) * 100));
+  return (
+    <div
+      className="bg-surface-3 h-1.5 w-full overflow-hidden rounded-full"
+      aria-hidden
+    >
+      <div
+        className={cn("h-full rounded-full", perfBarFill(scale.tone))}
         style={{ width: `${pct}%` }}
       />
     </div>
@@ -81,15 +133,18 @@ function PerfCell({
   metric,
   value,
   graded,
+  align = "right",
 }: {
   metric: "roi" | "units";
   value: number | null;
   graded: number;
+  align?: "left" | "right";
 }) {
+  const alignClass = align === "right" ? "text-right" : "text-left";
   if (value == null || !hasSignal(graded)) {
     return (
       <span
-        className="block text-right"
+        className={cn("block", alignClass)}
         title="Not available — sample below signal threshold"
       >
         <StatValue tone="data" className="text-sm font-semibold">
@@ -100,7 +155,7 @@ function PerfCell({
   }
   const scale = perfScale(metric, value, { gradedCount: graded });
   return (
-    <span className="block text-right" title={scale.ariaLabel}>
+    <span className={cn("block", alignClass)} title={scale.ariaLabel}>
       <StatValue
         tone="text"
         className={cn(
@@ -114,11 +169,23 @@ function PerfCell({
   );
 }
 
-function BetTypeRow({ cat }: { cat: LeagueActionCategoryItem }) {
+function betTypeTiming(cat: LeagueActionCategoryItem): string | null {
+  if (cat.preGame == null || cat.live == null) return null;
+  return `${cat.preGame.toLocaleString()} pre-game · ${cat.live.toLocaleString()} live`;
+}
+
+/** Mobile card — stacks metrics; no horizontal min-width. */
+function BetTypeMobileCard({
+  cat,
+  maxUnitsAbs,
+}: {
+  cat: LeagueActionCategoryItem;
+  maxUnitsAbs: number;
+}) {
   if (cat.picks <= 0) {
     return (
-      <li className="border-border border-b py-3 last:border-b-0">
-        <p className="scl-eyebrow text-muted-foreground mb-1">{cat.label}</p>
+      <li className="border-border border-b border-[color:var(--scl-line)] py-3 last:border-b-0">
+        <p className="scl-eyebrow mb-1">{cat.label}</p>
         <p className="text-muted-foreground text-sm leading-relaxed">
           {LEAGUE_ACTION_CATEGORY_EMPTY[cat.key]}
         </p>
@@ -126,14 +193,86 @@ function BetTypeRow({ cat }: { cat: LeagueActionCategoryItem }) {
     );
   }
 
-  const timing =
-    cat.preGame != null && cat.live != null
-      ? `${cat.preGame.toLocaleString()} pre-game · ${cat.live.toLocaleString()} live`
-      : null;
+  const timing = betTypeTiming(cat);
+
+  return (
+    <li className="border-border space-y-3 border-b border-[color:var(--scl-line)] py-3 last:border-b-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="scl-display text-sm font-bold tracking-[0.04em] uppercase">
+            {cat.label}
+          </h3>
+          <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
+            {cat.picks.toLocaleString()} tracked ·{" "}
+            {cat.cappers.toLocaleString()} cappers
+            {timing ? ` · ${timing}` : ""}
+          </p>
+        </div>
+        <SampleMaturityMeter graded={cat.graded} compact />
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <p className="scl-eyebrow">Graded</p>
+          <StatValue tone="text" className="mt-0.5 text-sm font-bold">
+            {cat.graded.toLocaleString()}
+          </StatValue>
+        </div>
+        <div>
+          <p className="scl-eyebrow">ROI</p>
+          <div className="mt-0.5">
+            <PerfCell
+              metric="roi"
+              value={cat.roi}
+              graded={cat.graded}
+              align="left"
+            />
+          </div>
+        </div>
+        <div>
+          <p className="scl-eyebrow">Units</p>
+          <div className="mt-0.5">
+            <PerfCell
+              metric="units"
+              value={cat.units}
+              graded={cat.graded}
+              align="left"
+            />
+          </div>
+        </div>
+      </div>
+      <PerfMagnitudeBar
+        metric="units"
+        value={cat.units}
+        graded={cat.graded}
+        maxAbs={maxUnitsAbs || 1}
+      />
+    </li>
+  );
+}
+
+function BetTypeDesktopRow({
+  cat,
+  maxUnitsAbs,
+}: {
+  cat: LeagueActionCategoryItem;
+  maxUnitsAbs: number;
+}) {
+  if (cat.picks <= 0) {
+    return (
+      <li className="border-border border-b py-3 last:border-b-0">
+        <p className="scl-eyebrow mb-1">{cat.label}</p>
+        <p className="text-muted-foreground text-sm leading-relaxed">
+          {LEAGUE_ACTION_CATEGORY_EMPTY[cat.key]}
+        </p>
+      </li>
+    );
+  }
+
+  const timing = betTypeTiming(cat);
 
   return (
     <li
-      className={`border-border grid min-h-14 ${BET_TYPE_COLS} items-center gap-2 border-b py-3 last:border-b-0 sm:gap-3`}
+      className={`border-border grid min-h-14 ${BET_TYPE_COLS} items-center gap-3 border-b py-3 last:border-b-0`}
     >
       <div className="min-w-0">
         <h3 className="scl-display text-sm font-bold tracking-[0.04em] uppercase">
@@ -144,6 +283,14 @@ function BetTypeRow({ cat }: { cat: LeagueActionCategoryItem }) {
           cappers
           {timing ? ` · ${timing}` : ""}
         </p>
+        <div className="mt-1.5 max-w-[12rem]">
+          <PerfMagnitudeBar
+            metric="units"
+            value={cat.units}
+            graded={cat.graded}
+            maxAbs={maxUnitsAbs || 1}
+          />
+        </div>
       </div>
       <SampleMaturityMeter graded={cat.graded} compact />
       <StatValue
@@ -161,16 +308,31 @@ function BetTypeRow({ cat }: { cat: LeagueActionCategoryItem }) {
 function BetTypeSection({
   title,
   rows,
+  maxUnitsAbs,
 }: {
   title: string;
   rows: LeagueActionCategoryItem[];
+  maxUnitsAbs: number;
 }) {
   return (
     <section className="space-y-2">
-      <h3 className="scl-eyebrow text-muted-foreground">{title}</h3>
-      <div className="border-border overflow-x-auto rounded-lg border">
+      <h3 className="scl-eyebrow">{title}</h3>
+
+      {/* Mobile cards — no min-width, no page h-scroll at 375 */}
+      <ul className="border-border divide-border divide-y overflow-hidden rounded-lg border px-3 sm:hidden">
+        {rows.map((cat) => (
+          <BetTypeMobileCard
+            key={cat.key}
+            cat={cat}
+            maxUnitsAbs={maxUnitsAbs}
+          />
+        ))}
+      </ul>
+
+      {/* Desktop grid */}
+      <div className="border-border hidden overflow-hidden rounded-lg border sm:block">
         <div
-          className={`text-muted-foreground hidden min-w-[28rem] ${BET_TYPE_COLS} items-end gap-2 border-b px-3 py-2 text-[0.7rem] font-semibold uppercase sm:grid sm:gap-3`}
+          className={`text-muted-foreground ${BET_TYPE_COLS} items-end gap-3 border-b px-3 py-2 text-[0.7rem] font-semibold uppercase sm:grid`}
         >
           <span>Type</span>
           <span className="text-right">Sample</span>
@@ -178,13 +340,66 @@ function BetTypeSection({
           <span className="text-right">ROI</span>
           <span className="text-right">Units</span>
         </div>
-        <ul className="min-w-[28rem] px-3">
+        <ul className="px-3">
           {rows.map((cat) => (
-            <BetTypeRow key={cat.key} cat={cat} />
+            <BetTypeDesktopRow
+              key={cat.key}
+              cat={cat}
+              maxUnitsAbs={maxUnitsAbs}
+            />
           ))}
         </ul>
       </div>
     </section>
+  );
+}
+
+function LeagueMobileCard({
+  league,
+  index,
+  maxPicks,
+}: {
+  league: LeagueActionItem;
+  index: number;
+  maxPicks: number;
+}) {
+  return (
+    <li className="border-border space-y-2 border-b border-[color:var(--scl-line)] py-3 last:border-b-0">
+      <div className="flex items-center gap-3">
+        <span className="scl-data text-muted-foreground w-5 text-sm font-semibold tabular-nums">
+          {index + 1}
+        </span>
+        <LeagueMark leagueKey={league.sport || league.league} size="md" />
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <h3 className="scl-display truncate text-sm font-bold tracking-[0.04em] uppercase">
+              {league.league}
+            </h3>
+            {league.sport &&
+            league.sport.toUpperCase() !== league.league.toUpperCase() ? (
+              <SportTag sport={league.sport} withMark={false} />
+            ) : null}
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3 pl-8">
+        <div>
+          <p className="scl-eyebrow">Picks</p>
+          <StatValue tone="text" className="mt-0.5 text-sm font-bold">
+            {league.pickCount.toLocaleString()}
+          </StatValue>
+        </div>
+        <div>
+          <p className="scl-eyebrow">Cappers</p>
+          <StatValue tone="text" className="mt-0.5 text-sm font-bold">
+            {league.activeCappers.toLocaleString()}
+          </StatValue>
+        </div>
+      </div>
+      <div className="pl-8">
+        <SampleVolumeBar value={league.pickCount} max={maxPicks || 1} />
+      </div>
+    </li>
   );
 }
 
@@ -221,6 +436,12 @@ export function LeagueActionReport({
     () => Math.max(0, ...leagues.map((l) => l.pickCount)),
     [leagues],
   );
+  const maxUnitsAbs = useMemo(() => {
+    const vals = categories
+      .map((c) => c.units)
+      .filter((v): v is number => v != null && Number.isFinite(v));
+    return vals.length ? Math.max(...vals.map(Math.abs)) : 0;
+  }, [categories]);
 
   const [tab, setTab] = useState<TabKey>(
     trackedPicks > 0 || categories.some((c) => c.picks > 0)
@@ -252,10 +473,17 @@ export function LeagueActionReport({
 
   return (
     <div
-      className="border-border bg-card overflow-hidden rounded-xl border"
+      className="border-border relative overflow-hidden rounded-xl border bg-[color:var(--scl-ink-800)]"
       data-visual-mode="live"
     >
-      <div className="border-border flex flex-wrap items-end justify-between gap-4 border-b bg-gradient-to-br from-[color:var(--scl-ink-800)] to-[color:var(--scl-ink-900)] px-4 py-4 sm:px-5">
+      {/* Live cobalt rail */}
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-[color:var(--scl-blue)]"
+        aria-hidden
+      />
+
+      {/* Flat ink-800 header + structural hairline (no gradient) */}
+      <div className="border-border flex flex-wrap items-end justify-between gap-4 border-b px-4 py-4 pl-5 sm:px-5 sm:pl-6">
         <div className="flex flex-wrap gap-6 sm:gap-8">
           <Metric
             label={`${windowDays}d board-verified`}
@@ -265,7 +493,12 @@ export function LeagueActionReport({
           <Metric label="Live segments" value={liveSegments} />
           <Metric label="Leagues ranked" value={leagues.length} />
         </div>
-        <ButtonishPicksLink label="Open pick feed" />
+        <div className="flex flex-col items-end gap-1">
+          <p className="scl-eyebrow text-right">
+            Last {windowDays} days · board clock
+          </p>
+          <ButtonishPicksLink label="Open pick feed" />
+        </div>
       </div>
 
       <Tabs
@@ -273,10 +506,10 @@ export function LeagueActionReport({
         onValueChange={(v) => setTab(v as TabKey)}
         className="gap-0"
       >
-        <div className="border-border overflow-x-auto border-b px-2 py-2 sm:px-3">
+        <div className="border-border border-b px-2 py-2 pl-4 sm:px-3 sm:pl-5">
           <TabsList
             variant="line"
-            className="h-auto w-max min-w-full justify-start gap-1"
+            className="h-auto w-full flex-wrap justify-start gap-1"
           >
             <TabsTrigger
               value="types"
@@ -298,10 +531,18 @@ export function LeagueActionReport({
           </TabsList>
         </div>
 
-        <div className="px-4 py-4 sm:px-5">
+        <div className="px-4 py-4 pl-5 sm:px-5 sm:pl-6">
           <TabsContent value="types" className="mt-0 space-y-6">
-            <BetTypeSection title="Shape" rows={shape} />
-            <BetTypeSection title="Market" rows={market} />
+            <BetTypeSection
+              title="Shape"
+              rows={shape}
+              maxUnitsAbs={maxUnitsAbs}
+            />
+            <BetTypeSection
+              title="Market"
+              rows={market}
+              maxUnitsAbs={maxUnitsAbs}
+            />
             <ButtonishPicksLink label="Browse verified picks" />
           </TabsContent>
 
@@ -311,69 +552,84 @@ export function LeagueActionReport({
                 {LEAGUES_EMPTY}
               </p>
             ) : (
-              <div>
-                <div
-                  className={`text-muted-foreground mb-1 grid ${LEAGUE_LIST_COLS} items-end gap-3 pb-2 text-[0.7rem] font-semibold uppercase`}
-                >
-                  <span>#</span>
-                  <span aria-hidden />
-                  <span>League</span>
-                  <span className="text-right">Picks</span>
-                  <span className="text-right">Cappers</span>
-                </div>
-                <ul className="divide-border divide-y">
+              <>
+                {/* Mobile league cards */}
+                <ul className="border-border divide-border divide-y overflow-hidden rounded-lg border px-3 sm:hidden">
                   {leagues.map((league, index) => (
-                    <li
+                    <LeagueMobileCard
                       key={league.key}
-                      className={`grid min-h-14 ${LEAGUE_LIST_COLS} items-center gap-3 py-3 first:pt-0 last:pb-0`}
-                    >
-                      <span className="scl-data text-muted-foreground text-sm font-semibold tabular-nums">
-                        {index + 1}
-                      </span>
-                      <LeagueMark
-                        leagueKey={league.sport || league.league}
-                        size="md"
-                      />
-                      <div className="min-w-0">
-                        <div className="flex min-w-0 flex-wrap items-center gap-2">
-                          <h3 className="scl-display truncate text-sm font-bold tracking-[0.04em] uppercase">
-                            {league.league}
-                          </h3>
-                          {league.sport &&
-                          league.sport.toUpperCase() !==
-                            league.league.toUpperCase() ? (
-                            <SportTag sport={league.sport} withMark={false} />
-                          ) : null}
-                        </div>
-                        <div className="mt-1.5 max-w-xs">
-                          <VolumeBar
-                            value={league.pickCount}
-                            max={maxLeaguePicks || 1}
-                          />
-                        </div>
-                      </div>
-                      <StatValue
-                        tone="text"
-                        className="text-right text-sm font-bold tabular-nums"
-                      >
-                        {league.pickCount.toLocaleString()}
-                      </StatValue>
-                      <StatValue
-                        tone="text"
-                        className="text-right text-sm font-bold tabular-nums"
-                      >
-                        {league.activeCappers.toLocaleString()}
-                      </StatValue>
-                    </li>
+                      league={league}
+                      index={index}
+                      maxPicks={maxLeaguePicks || 1}
+                    />
                   ))}
                 </ul>
-              </div>
+
+                {/* Desktop league list — open hairline rows */}
+                <div className="hidden sm:block">
+                  <div
+                    className={`text-muted-foreground mb-1 grid ${LEAGUE_LIST_COLS} items-end gap-3 pb-2 text-[0.7rem] font-semibold uppercase`}
+                  >
+                    <span>#</span>
+                    <span aria-hidden />
+                    <span>League</span>
+                    <span className="text-right">Picks</span>
+                    <span className="text-right">Cappers</span>
+                  </div>
+                  <ul className="divide-border divide-y">
+                    {leagues.map((league, index) => (
+                      <li
+                        key={league.key}
+                        className={`grid min-h-14 ${LEAGUE_LIST_COLS} items-center gap-3 py-3 first:pt-0 last:pb-0`}
+                      >
+                        <span className="scl-data text-muted-foreground text-sm font-semibold tabular-nums">
+                          {index + 1}
+                        </span>
+                        <LeagueMark
+                          leagueKey={league.sport || league.league}
+                          size="md"
+                        />
+                        <div className="min-w-0">
+                          <div className="flex min-w-0 flex-wrap items-center gap-2">
+                            <h3 className="scl-display truncate text-sm font-bold tracking-[0.04em] uppercase">
+                              {league.league}
+                            </h3>
+                            {league.sport &&
+                            league.sport.toUpperCase() !==
+                              league.league.toUpperCase() ? (
+                              <SportTag sport={league.sport} withMark={false} />
+                            ) : null}
+                          </div>
+                          <div className="mt-1.5 max-w-xs">
+                            <SampleVolumeBar
+                              value={league.pickCount}
+                              max={maxLeaguePicks || 1}
+                            />
+                          </div>
+                        </div>
+                        <StatValue
+                          tone="text"
+                          className="text-right text-sm font-bold tabular-nums"
+                        >
+                          {league.pickCount.toLocaleString()}
+                        </StatValue>
+                        <StatValue
+                          tone="text"
+                          className="text-right text-sm font-bold tabular-nums"
+                        >
+                          {league.activeCappers.toLocaleString()}
+                        </StatValue>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </>
             )}
           </TabsContent>
         </div>
       </Tabs>
 
-      <p className="text-muted-foreground border-border border-t px-4 py-2.5 text-xs sm:px-5">
+      <p className="text-muted-foreground border-border border-t px-4 py-2.5 pl-5 text-xs leading-relaxed sm:px-5 sm:pl-6">
         {PLATFORM_REPORT_ELIGIBILITY_FOOTNOTE}
       </p>
     </div>
