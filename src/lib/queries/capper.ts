@@ -5,6 +5,7 @@ import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 import type { PlayView } from "@/lib/queries/plays";
 import type { CapperSummary } from "@/lib/mock";
+import { hasQaNoteMarker } from "@/lib/public-eligibility";
 import {
   hasClvColumns,
   hasNotesPublicColumn,
@@ -45,7 +46,8 @@ export async function getPublicCapperByHandle(
     const rows = await prisma.play.findMany({
       where: { capper: { user: { username: handle } } },
       orderBy: { createdAt: "desc" },
-      take: 24,
+      // Over-fetch so QA-noted plays filtered below don't thin the record.
+      take: 48,
       select: {
         id: true,
         sport: true,
@@ -66,36 +68,39 @@ export async function getPublicCapperByHandle(
         ...(clvReady ? { closingOddsAmerican: true, clvPts: true } : {}),
       },
     });
-    plays = rows.map((p) => ({
-      id: p.id,
-      sport: p.sport,
-      league: p.league,
-      market: p.market,
-      selection: p.selection,
-      oddsAmerican: p.oddsAmerican,
-      units: Number(p.units),
-      outcome: p.outcome,
-      profitUnits: p.profitUnits == null ? null : Number(p.profitUnits),
-      createdAt: p.createdAt,
-      verificationTier: p.verificationTier,
-      side: p.side,
-      eventStartsAt: p.eventStartsAt,
-      book: p.book,
-      notes: p.notes,
-      notesPublic:
-        "notesPublic" in p
-          ? ((p as { notesPublic?: boolean }).notesPublic ?? true)
-          : true,
-      closingOddsAmerican:
-        "closingOddsAmerican" in p
-          ? ((p as { closingOddsAmerican?: number | null })
-              .closingOddsAmerican ?? null)
-          : null,
-      clvPts:
-        "clvPts" in p && (p as { clvPts?: unknown }).clvPts != null
-          ? Number((p as { clvPts: unknown }).clvPts)
-          : null,
-    }));
+    plays = rows
+      .filter((p) => !hasQaNoteMarker(p.notes))
+      .slice(0, 24)
+      .map((p) => ({
+        id: p.id,
+        sport: p.sport,
+        league: p.league,
+        market: p.market,
+        selection: p.selection,
+        oddsAmerican: p.oddsAmerican,
+        units: Number(p.units),
+        outcome: p.outcome,
+        profitUnits: p.profitUnits == null ? null : Number(p.profitUnits),
+        createdAt: p.createdAt,
+        verificationTier: p.verificationTier,
+        side: p.side,
+        eventStartsAt: p.eventStartsAt,
+        book: p.book,
+        notes: p.notes,
+        notesPublic:
+          "notesPublic" in p
+            ? ((p as { notesPublic?: boolean }).notesPublic ?? true)
+            : true,
+        closingOddsAmerican:
+          "closingOddsAmerican" in p
+            ? ((p as { closingOddsAmerican?: number | null })
+                .closingOddsAmerican ?? null)
+            : null,
+        clvPts:
+          "clvPts" in p && (p as { clvPts?: unknown }).clvPts != null
+            ? Number((p as { clvPts: unknown }).clvPts)
+            : null,
+      }));
 
     if (clvReady) {
       const clvRows = await prisma.play.findMany({

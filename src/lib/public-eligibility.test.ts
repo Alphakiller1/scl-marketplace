@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  hasQaNoteMarker,
   isTestHandle,
   isValidPublicStake,
   PUBLIC_EXCLUDED_HANDLES,
@@ -21,6 +22,30 @@ test("isTestHandle excludes known public fixture handles", () => {
     assert.equal(isTestHandle(handle.toUpperCase()), true);
   }
   assert.equal(isTestHandle("demo_capper_real"), false);
+});
+
+test("hasQaNoteMarker flags QA fixtures, not genuine analysis", () => {
+  // The exact leak this guard was written for.
+  assert.equal(
+    hasQaNoteMarker(
+      "DISPOSABLE QA TEST - post-submit Ticket receipt verification - 2026-07-14",
+    ),
+    true,
+  );
+  assert.equal(hasQaNoteMarker("qa test"), true);
+  assert.equal(hasQaNoteMarker("QA fixture — ignore"), true);
+  assert.equal(hasQaNoteMarker("do not publish"), true);
+  // Must NOT false-positive on plausible capper notes.
+  assert.equal(hasQaNoteMarker("only bet disposable income"), false);
+  assert.equal(hasQaNoteMarker("testing the waters on this line"), false);
+  assert.equal(hasQaNoteMarker("sharp line, key number"), false);
+  assert.equal(hasQaNoteMarker(null), false);
+  assert.equal(hasQaNoteMarker(undefined), false);
+});
+
+test("solpickz QA fixture is excluded from public surfaces", () => {
+  assert.equal(isTestHandle("solpickz"), true);
+  assert.equal(isTestHandle("@solpickz"), true);
 });
 
 test("isValidPublicStake enforces 0.25U minimum", () => {

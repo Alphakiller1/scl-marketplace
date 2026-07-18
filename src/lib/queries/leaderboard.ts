@@ -11,7 +11,10 @@ import {
   type LeaderboardFilters,
 } from "@/lib/leaderboard";
 import { UNIT_MIN } from "@/lib/constants";
-import { prismaExcludeTestHandles } from "@/lib/public-eligibility";
+import {
+  hasQaNoteMarker,
+  prismaExcludeTestHandles,
+} from "@/lib/public-eligibility";
 import { computeCapperStats } from "@/lib/stats";
 import { computeVerifiedShare } from "@/lib/verification";
 import type { CapperSummary, FormResult } from "@/lib/mock";
@@ -92,6 +95,7 @@ function fetchRankableProfiles(filters: LeaderboardFilters, clvReady: boolean) {
           createdAt: true,
           gradedAt: true,
           verificationTier: true,
+          notes: true,
           ...(clvReady ? { clvPts: true } : {}),
         },
         orderBy: { createdAt: "asc" },
@@ -154,10 +158,14 @@ function summarize(p: ProfileRow): CapperSummary | null {
   const username = p.user.username;
   if (!username) return null;
 
+  // Drop QA-noted plays so a stray test note never counts toward a public
+  // record, units, ROI, or CLV. The capper's private dashboard is unfiltered.
+  const plays = p.plays.filter((pl) => !hasQaNoteMarker(pl.notes));
+
   // Straight plays + parlays are the capper's positions of record (legs are already
-  // excluded from p.plays). Merge them, oldest → newest, for all aggregations.
+  // excluded from plays). Merge them, oldest → newest, for all aggregations.
   const positions = [
-    ...p.plays.map((pl) => ({
+    ...plays.map((pl) => ({
       outcome: pl.outcome,
       units: Number(pl.units),
       profitUnits: pl.profitUnits == null ? null : Number(pl.profitUnits),
@@ -200,7 +208,7 @@ function summarize(p: ProfileRow): CapperSummary | null {
   const displayName = null; // dormant — public identity is username-only
   const activity = computeCapperActivity(positions.map((x) => x.createdAt));
 
-  const clvValues = p.plays
+  const clvValues = plays
     .map((pl) =>
       "clvPts" in pl && pl.clvPts != null ? Number(pl.clvPts) : null,
     )
@@ -219,7 +227,7 @@ function summarize(p: ProfileRow): CapperSummary | null {
     bannerUrl: p.bannerUrl ?? undefined,
     verified: p.user.emailVerified != null,
     topSport: topSport(
-      p.plays.map((x) => x.sport),
+      plays.map((x) => x.sport),
       p.sports[0],
     ),
     rank: 0, // assigned after sort
@@ -232,7 +240,7 @@ function summarize(p: ProfileRow): CapperSummary | null {
     recentForm,
     trophies: [],
     settledPicks: stats.settled,
-    verifiedShare: computeVerifiedShare(p.plays.map((x) => x.verificationTier)),
+    verifiedShare: computeVerifiedShare(plays.map((x) => x.verificationTier)),
     avgClv,
     stakedUnits: stats.stakedUnits,
     performanceTrend,
