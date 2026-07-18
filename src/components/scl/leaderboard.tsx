@@ -50,6 +50,7 @@ export function Leaderboard({
   failed = false,
   compactMobile = false,
   compactDesktop = false,
+  flush = false,
   rankByPosition = false,
   primaryMetric = "units",
   emptyDescription = "No cappers match this ranking scope yet.",
@@ -63,6 +64,8 @@ export function Leaderboard({
   failed?: boolean;
   compactMobile?: boolean;
   compactDesktop?: boolean;
+  /** Hairline rows instead of nested cards (live evidence field). */
+  flush?: boolean;
   rankByPosition?: boolean;
   primaryMetric?: "units" | "roi";
   emptyDescription?: string;
@@ -100,13 +103,18 @@ export function Leaderboard({
 
   if (compactDesktop) {
     return (
-      <div className="space-y-2">
+      <div
+        className={
+          flush ? "border-border divide-border divide-y border-y" : "space-y-2"
+        }
+      >
         {visible.map((capper, index) => (
           <CompactCapperRow
             key={capper.id}
             capper={capper}
             rank={place(capper, index)}
             primaryMetric={primaryMetric}
+            variant={flush ? "flush" : "card"}
           />
         ))}
       </div>

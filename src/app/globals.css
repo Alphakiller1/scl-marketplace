@@ -112,6 +112,7 @@
   --scl-font-data: var(--font-inter-data), "Inter", ui-sans-serif, sans-serif;
   --scl-radius-card: 14px;
   --scl-radius-chip: 10px;
+  --scl-radius-receipt: 6px;
   --scl-shadow-card: 0 8px 24px rgba(0, 0, 0, 0.12);
   --scl-shadow-slip: 0 12px 30px rgba(0, 0, 0, 0.18);
 

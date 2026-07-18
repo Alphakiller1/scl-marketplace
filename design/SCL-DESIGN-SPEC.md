@@ -204,8 +204,10 @@ bio/coverage/social sit below proof history.
 - Primary capper-recruitment CTA: **"Track Your Record"** (retires "Become a Capper"). Sign-in
   entry may remain "Log in / Join SCL".
 - Homepage hero = the existing owner-approved carousel, word-for-word. Evidence modules
-  (leaderboard snapshot, featured Proof Receipt, "What changed today") sit around/below it — they
-  do not replace it.
+  sit around/below it as an asymmetric 12-col field (≥1024): Row1 Leaderboard snapshot (8) +
+  Featured Proof Receipt warm paper (4); Row2 What changed today full-width open strip;
+  Row3 Top cappers by verified share (8) + verification context (4). Hairlines between
+  regions — not one card wrapping the stack. Scanline only on live-board panes.
 
 ## Data honesty rule
 

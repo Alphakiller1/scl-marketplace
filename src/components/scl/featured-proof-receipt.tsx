@@ -9,10 +9,12 @@ import { americanToDecimal } from "@/lib/odds";
 import { pickContextLabel } from "@/lib/pick-identity";
 import { deriveProofReceiptState } from "@/lib/proof-receipt";
 import type { FeaturedGradedPlay } from "@/lib/queries/home-live";
+import { isVerifiedTier } from "@/lib/verification";
 import { cn } from "@/lib/utils";
 
 /**
- * Homepage Featured Proof Receipt — one real graded pick, feed density.
+ * Homepage Featured Proof Receipt — warm expanded-paper artifact.
+ * Pink verification stamp stays dominant over settlement result.
  */
 export function FeaturedProofReceipt({
   play,
@@ -34,7 +36,7 @@ export function FeaturedProofReceipt({
             Featured proof
           </h2>
           <p className="text-muted-foreground text-sm">
-            One recent graded, inspectable receipt
+            Warm paper receipt — verification first
           </p>
         </div>
         {play ? (
@@ -82,6 +84,7 @@ function FeaturedReceiptBody({ play }: { play: FeaturedGradedPlay }) {
     league: play.league,
     market: play.market,
   });
+  const boardVerified = isVerifiedTier(play.verificationTier);
 
   return (
     <ProofReceipt
@@ -106,7 +109,9 @@ function FeaturedReceiptBody({ play }: { play: FeaturedGradedPlay }) {
       capturedAt={play.createdAt.toISOString()}
       book={play.book}
       state={state}
-      density="feed"
+      density="expanded-paper"
+      verificationDominant
+      boardVerified={boardVerified}
       closingOddsAmerican={play.closingOddsAmerican ?? null}
       clvPts={play.clvPts ?? null}
       evidenceId={play.id}
