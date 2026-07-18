@@ -1,9 +1,7 @@
-"use client";
-
 import type { ComponentProps } from "react";
 
 import { CapperStorefront } from "@/components/scl/capper-storefront";
-import { useIsLg } from "@/lib/use-media-query";
+import { cn } from "@/lib/utils";
 
 type ResponsiveCapperStorefrontProps = ComponentProps<
   typeof CapperStorefront
@@ -15,10 +13,13 @@ export function ResponsiveCapperStorefront({
   viewport,
   ...storefrontProps
 }: ResponsiveCapperStorefrontProps) {
-  const isLg = useIsLg();
-  const shouldRender =
-    isLg !== null &&
-    ((viewport === "desktop" && isLg) || (viewport === "mobile" && !isLg));
-
-  return shouldRender ? <CapperStorefront {...storefrontProps} /> : null;
+  return (
+    <CapperStorefront
+      {...storefrontProps}
+      className={cn(
+        viewport === "desktop" ? "hidden lg:block" : "lg:hidden",
+        storefrontProps.className,
+      )}
+    />
+  );
 }
