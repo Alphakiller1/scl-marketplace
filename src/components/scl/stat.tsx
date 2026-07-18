@@ -27,6 +27,8 @@ export function StatBlock({
   className,
   align = "start",
   valueClassName,
+  /** When false, values wrap/scale instead of ellipsis (profile Evidence Brief). */
+  truncateValue = true,
   "aria-label": ariaLabel,
 }: {
   label: string;
@@ -37,12 +39,13 @@ export function StatBlock({
   align?: "start" | "center" | "end";
   /** Override value color (e.g. perf-scale amber). */
   valueClassName?: string;
+  truncateValue?: boolean;
   "aria-label"?: string;
 }) {
   return (
     <div
       className={cn(
-        "flex flex-col gap-0.5",
+        "flex min-w-0 flex-col gap-0.5",
         align === "center" && "items-center text-center",
         align === "end" && "items-end text-right",
         className,
@@ -50,14 +53,17 @@ export function StatBlock({
     >
       <span
         className={cn(
-          "scl-data max-w-full truncate text-lg font-semibold tracking-tight tabular-nums sm:text-xl",
+          "scl-data max-w-full text-lg font-semibold tracking-tight tabular-nums sm:text-xl",
+          truncateValue
+            ? "truncate"
+            : "min-w-[3.5ch] overflow-visible break-words whitespace-normal",
           valueClassName ?? toneText[tone],
         )}
         aria-label={ariaLabel}
       >
         {value}
       </span>
-      <span className="text-muted-foreground max-w-full truncate text-[0.65rem] font-medium tracking-wide uppercase sm:text-[0.7rem]">
+      <span className="text-muted-foreground max-w-full text-[0.65rem] font-medium tracking-wide uppercase sm:text-[0.7rem]">
         {label}
       </span>
       {sub ? (
@@ -111,12 +117,14 @@ export function RoiStat({
   gradedCount,
   variant = "block",
   className,
+  truncateValue,
 }: {
   roi: number;
   /** Graded sample size — provisional caps soft/weak at amber, never red. */
   gradedCount?: number | null;
   variant?: "block" | "pill";
   className?: string;
+  truncateValue?: boolean;
 }) {
   const scale = perfScale("roi", roi, { gradedCount });
   const valueClass = perfValueClass(scale.tone);
@@ -137,6 +145,7 @@ export function RoiStat({
       valueClassName={valueClass}
       aria-label={scale.ariaLabel}
       className={className}
+      truncateValue={truncateValue}
     />
   );
 }
@@ -146,11 +155,13 @@ export function UnitStat({
   gradedCount,
   variant = "block",
   className,
+  truncateValue,
 }: {
   units: number;
   gradedCount?: number | null;
   variant?: "block" | "pill";
   className?: string;
+  truncateValue?: boolean;
 }) {
   const scale = perfScale("units", units, { gradedCount });
   const valueClass = perfValueClass(scale.tone);
@@ -171,6 +182,7 @@ export function UnitStat({
       valueClassName={valueClass}
       aria-label={scale.ariaLabel}
       className={className}
+      truncateValue={truncateValue}
     />
   );
 }
@@ -181,12 +193,14 @@ export function WinRateStat({
   gradedCount,
   variant = "block",
   className,
+  truncateValue,
 }: {
   winPct: number;
   record?: { w: number; l: number; p: number };
   gradedCount?: number | null;
   variant?: "block" | "pill";
   className?: string;
+  truncateValue?: boolean;
 }) {
   const scale = perfScale("winPct", winPct, { gradedCount });
   const valueClass = perfValueClass(scale.tone);
@@ -209,6 +223,7 @@ export function WinRateStat({
       aria-label={scale.ariaLabel}
       sub={record ? formatRecord(record.w, record.l, record.p) : undefined}
       className={className}
+      truncateValue={truncateValue}
     />
   );
 }
@@ -216,15 +231,18 @@ export function WinRateStat({
 export function RecordStat({
   record,
   className,
+  truncateValue,
 }: {
   record: { w: number; l: number; p: number };
   className?: string;
+  truncateValue?: boolean;
 }) {
   return (
     <StatBlock
       label="Record"
       value={formatRecord(record.w, record.l, record.p)}
       className={className}
+      truncateValue={truncateValue}
     />
   );
 }

@@ -45,17 +45,24 @@ type TrustLens = "simple" | "analyst" | "audit";
 
 function VerifiedMeter({ pct }: { pct: number | null }) {
   if (pct == null) {
-    return <StatBlock label="Verified" value="—" className="min-w-[4.5rem]" />;
+    return (
+      <StatBlock
+        label="Verified"
+        value="—"
+        className="min-w-[4.5rem]"
+        truncateValue={false}
+      />
+    );
   }
   return (
     <div className="flex min-w-[5.5rem] flex-col gap-1">
       <div className="flex items-center gap-1.5">
         <ShieldCheck
-          className="size-4 text-[color:var(--scl-pink)]"
+          className="size-4 shrink-0 text-[color:var(--scl-pink)]"
           aria-hidden
         />
         <span
-          className="scl-data text-foreground text-lg font-semibold tabular-nums sm:text-xl"
+          className="scl-data text-foreground min-w-[3.5ch] text-lg font-semibold break-words whitespace-normal tabular-nums sm:text-xl"
           aria-label={`${pct} percent board-verified`}
         >
           {pct}%
@@ -137,8 +144,10 @@ function playToProofReceipt(
 }
 
 /**
- * Capper profile Evidence Brief — Trust Lens + metrics + featured paper receipt
- * + Proof history. Proof-first: brief and paper artifact belong in the first viewport.
+ * Capper profile Evidence Brief — Trust Lens metrics + Latest Proof as peers,
+ * then deep-dive charts and Proof history. Desktop storefront is composed by
+ * the page via `desktopStorefront` (lg+ only); mobile storefront stays after
+ * CapperProfileMeta so stacked order is unchanged.
  */
 export function EvidenceBrief({
   capper,
@@ -147,6 +156,7 @@ export function EvidenceBrief({
   avgClv,
   clvTracker: clvTrackerProp,
   emptyName,
+  desktopStorefront,
   className,
 }: {
   capper: CapperSummary;
@@ -155,6 +165,8 @@ export function EvidenceBrief({
   avgClv?: number | null;
   clvTracker?: ClvTrackerSummary;
   emptyName: string;
+  /** Marketplace rail/band — rendered only from `lg` upward (never on mobile). */
+  desktopStorefront?: ReactNode;
   className?: string;
 }) {
   const graded = capper.settledPicks ?? 0;
@@ -220,7 +232,7 @@ export function EvidenceBrief({
   const historyPlays = plays.slice(1);
 
   const latestProof = (
-    <section aria-label="Featured proof receipt" className="space-y-2">
+    <section aria-label="Featured proof receipt" className="min-w-0 space-y-2">
       <div className="border-t border-[color:var(--scl-pink-deep)] pt-2 lg:border-t-0 lg:pt-0">
         <h2 className="scl-display text-sm font-bold tracking-[0.05em] uppercase">
           Latest proof
@@ -247,127 +259,145 @@ export function EvidenceBrief({
     </section>
   );
 
+  const evidenceRecord = (
+    <Card className="min-w-0 gap-0 p-2.5 sm:p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="scl-eyebrow text-[color:var(--scl-muted-label)]">
+          Evidence Brief
+        </h2>
+        <div className="flex flex-wrap items-center gap-2">
+          {provisional ? <ProvisionalRecordHelp /> : null}
+        </div>
+      </div>
+
+      <Tabs
+        value={lens}
+        onValueChange={onLensChange}
+        className="mt-1.5 sm:mt-2"
+      >
+        <TabsList
+          variant="line"
+          className="h-8 w-full max-w-md justify-start gap-1 sm:h-10"
+          aria-label="Trust lens"
+        >
+          <TabsTrigger
+            value="simple"
+            className="min-h-8 px-2.5 sm:min-h-9 sm:px-3"
+          >
+            Simple
+          </TabsTrigger>
+          <TabsTrigger
+            value="analyst"
+            className="min-h-8 px-2.5 sm:min-h-9 sm:px-3"
+          >
+            Analyst
+          </TabsTrigger>
+          <TabsTrigger
+            value="audit"
+            className="min-h-8 px-2.5 sm:min-h-9 sm:px-3"
+          >
+            Audit
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent
+          value="simple"
+          className="mt-2 space-y-2 sm:mt-3 sm:space-y-3"
+        >
+          <MetricRow
+            capper={capper}
+            graded={graded}
+            provisional={provisional}
+            verifiedPct={verifiedPct}
+            avgClv={avgClv}
+            clvScale={clvScale}
+            showClv={false}
+          />
+          <SampleMaturityMeter graded={graded} className="hidden sm:block" />
+        </TabsContent>
+
+        <TabsContent
+          value="analyst"
+          className="mt-2 space-y-2 sm:mt-3 sm:space-y-3"
+        >
+          <MetricRow
+            capper={capper}
+            graded={graded}
+            provisional={provisional}
+            verifiedPct={verifiedPct}
+            avgClv={displayAvgClv}
+            clvScale={clvScale}
+            showClv={showClv}
+          />
+          <SampleMaturityMeter graded={graded} showLegend />
+        </TabsContent>
+
+        <TabsContent
+          value="audit"
+          className="mt-2 space-y-2 sm:mt-3 sm:space-y-3"
+        >
+          <MetricRow
+            capper={capper}
+            graded={graded}
+            provisional={provisional}
+            verifiedPct={verifiedPct}
+            avgClv={displayAvgClv}
+            clvScale={clvScale}
+            showClv
+          />
+          <SampleMaturityMeter graded={graded} showLegend />
+          {showAuditMeta ? (
+            <p className="text-muted-foreground text-xs leading-relaxed">
+              Audit lens shows Evidence IDs and Close/CLV on each receipt.
+              Historical plays without a closing snapshot stay as em-dashes —
+              CLV only populates forward when a close is captured.
+            </p>
+          ) : null}
+        </TabsContent>
+      </Tabs>
+
+      <div className="border-border mt-2 hidden flex-wrap items-center gap-x-4 gap-y-1.5 border-t pt-2 sm:mt-3 sm:flex sm:pt-2.5">
+        <VerificationHelpLink />
+        <a
+          href="/responsible-gaming"
+          className="text-muted-foreground hover:text-foreground inline-flex min-h-10 items-center text-xs underline-offset-4 hover:underline"
+        >
+          Responsible gaming
+        </a>
+      </div>
+    </Card>
+  );
+
   return (
     <div className={cn("space-y-3 sm:space-y-5", className)}>
       {/*
-        Brief metrics + Latest Proof stay co-anchored across lens switches.
-        CLV / cumulative charts render below the first receipt so Analyst
-        never pushes proof ~600px down. Mobile: tighter brief so ~40–80px of
-        the paper receipt peeks before the first fold.
+        Desktop (lg–xl): Evidence | Latest Proof peers; Marketplace full-width
+        band below. xl+: Marketplace as third column (≥320px). Mobile: stacked
+        Evidence then Proof (unchanged). Storefront never injects above Meta
+        on mobile — page owns that band.
       */}
-      <div className="grid gap-2 sm:gap-4 lg:grid-cols-12 lg:items-start lg:gap-5">
-        <Card className="gap-0 p-2.5 sm:p-4 lg:col-span-5">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="scl-eyebrow text-[color:var(--scl-muted-label)]">
-              Evidence Brief
-            </h2>
-            <div className="flex flex-wrap items-center gap-2">
-              {provisional ? <ProvisionalRecordHelp /> : null}
-            </div>
-          </div>
-
-          <Tabs
-            value={lens}
-            onValueChange={onLensChange}
-            className="mt-1.5 sm:mt-2"
-          >
-            <TabsList
-              variant="line"
-              className="h-8 w-full max-w-md justify-start gap-1 sm:h-10"
-              aria-label="Trust lens"
-            >
-              <TabsTrigger
-                value="simple"
-                className="min-h-8 px-2.5 sm:min-h-9 sm:px-3"
-              >
-                Simple
-              </TabsTrigger>
-              <TabsTrigger
-                value="analyst"
-                className="min-h-8 px-2.5 sm:min-h-9 sm:px-3"
-              >
-                Analyst
-              </TabsTrigger>
-              <TabsTrigger
-                value="audit"
-                className="min-h-8 px-2.5 sm:min-h-9 sm:px-3"
-              >
-                Audit
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent
-              value="simple"
-              className="mt-2 space-y-2 sm:mt-3 sm:space-y-3"
-            >
-              <MetricRow
-                capper={capper}
-                graded={graded}
-                provisional={provisional}
-                verifiedPct={verifiedPct}
-                avgClv={avgClv}
-                clvScale={clvScale}
-                showClv={false}
-              />
-              <SampleMaturityMeter
-                graded={graded}
-                className="hidden sm:block"
-              />
-            </TabsContent>
-
-            <TabsContent
-              value="analyst"
-              className="mt-2 space-y-2 sm:mt-3 sm:space-y-3"
-            >
-              <MetricRow
-                capper={capper}
-                graded={graded}
-                provisional={provisional}
-                verifiedPct={verifiedPct}
-                avgClv={displayAvgClv}
-                clvScale={clvScale}
-                showClv={showClv}
-              />
-              <SampleMaturityMeter graded={graded} showLegend />
-            </TabsContent>
-
-            <TabsContent
-              value="audit"
-              className="mt-2 space-y-2 sm:mt-3 sm:space-y-3"
-            >
-              <MetricRow
-                capper={capper}
-                graded={graded}
-                provisional={provisional}
-                verifiedPct={verifiedPct}
-                avgClv={displayAvgClv}
-                clvScale={clvScale}
-                showClv
-              />
-              <SampleMaturityMeter graded={graded} showLegend />
-              {showAuditMeta ? (
-                <p className="text-muted-foreground text-xs leading-relaxed">
-                  Audit lens shows Evidence IDs and Close/CLV on each receipt.
-                  Historical plays without a closing snapshot stay as em-dashes
-                  — CLV only populates forward when a close is captured.
-                </p>
-              ) : null}
-            </TabsContent>
-          </Tabs>
-
-          <div className="border-border mt-2 hidden flex-wrap items-center gap-x-4 gap-y-1.5 border-t pt-2 sm:mt-3 sm:flex sm:pt-2.5">
-            <VerificationHelpLink />
-            <a
-              href="/responsible-gaming"
-              className="text-muted-foreground hover:text-foreground inline-flex min-h-10 items-center text-xs underline-offset-4 hover:underline"
-            >
-              Responsible gaming
-            </a>
-          </div>
-        </Card>
-
-        <div className="lg:sticky lg:top-20 lg:col-span-7">{latestProof}</div>
+      <div
+        className={cn(
+          "grid items-start gap-4 sm:gap-5",
+          "lg:grid-cols-[minmax(280px,0.85fr)_minmax(460px,1.4fr)] lg:gap-6",
+          desktopStorefront &&
+            "xl:grid-cols-[minmax(280px,0.85fr)_minmax(460px,1.4fr)_minmax(320px,22rem)]",
+        )}
+      >
+        {evidenceRecord}
+        <div className="min-w-0 lg:sticky lg:top-20">{latestProof}</div>
+        {desktopStorefront ? (
+          <aside className="border-border hidden min-w-[320px] xl:block xl:border-l xl:pl-6">
+            {desktopStorefront}
+          </aside>
+        ) : null}
       </div>
+
+      {desktopStorefront ? (
+        <div className="border-border mt-1 hidden border-t pt-5 lg:block xl:hidden">
+          {desktopStorefront}
+        </div>
+      ) : null}
 
       {showDeepAnalysis ? (
         <section aria-label="Analyst deep dive" className="space-y-3">
@@ -439,20 +469,30 @@ function MetricRow({
 }) {
   return (
     <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-      <RecordStat record={capper.record} />
-      <div className="space-y-1.5">
-        <RoiStat roi={capper.roi} gradedCount={graded} />
+      <RecordStat
+        record={capper.record}
+        className="min-w-[4.5rem]"
+        truncateValue={false}
+      />
+      <div className="min-w-[4.5rem] space-y-1.5">
+        <RoiStat roi={capper.roi} gradedCount={graded} truncateValue={false} />
         {provisional ? (
           <span className="border-border text-muted-foreground inline-flex min-h-8 items-center rounded-md border px-2 text-[0.7rem] font-semibold tracking-wide uppercase">
             Provisional
           </span>
         ) : null}
       </div>
-      <UnitStat units={capper.units} gradedCount={graded} />
+      <UnitStat
+        units={capper.units}
+        gradedCount={graded}
+        className="min-w-[4.5rem]"
+        truncateValue={false}
+      />
       <StatBlock
         label="Sample"
         value={graded.toLocaleString()}
         className="min-w-[4.5rem]"
+        truncateValue={false}
       />
       <VerifiedMeter pct={verifiedPct} />
       {showClv ? (
@@ -462,9 +502,15 @@ function MetricRow({
           valueClassName={perfToneClass(clvScale.tone)}
           aria-label={clvScale.ariaLabel}
           className="min-w-[4.5rem]"
+          truncateValue={false}
         />
       ) : (
-        <WinRateStat winPct={capper.winPct} gradedCount={graded} />
+        <WinRateStat
+          winPct={capper.winPct}
+          gradedCount={graded}
+          className="min-w-[4.5rem]"
+          truncateValue={false}
+        />
       )}
     </div>
   );
