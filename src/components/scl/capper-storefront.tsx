@@ -47,7 +47,7 @@ export function CapperStorefront({
         <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
           <a
             href="/responsible-gaming"
-            className="text-live underline-offset-4 hover:underline"
+            className="text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
           >
             Responsible gaming
           </a>
@@ -104,7 +104,7 @@ export function CapperStorefront({
       <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
         <a
           href="/responsible-gaming"
-          className="text-live underline-offset-4 hover:underline"
+          className="text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
         >
           Responsible gaming
         </a>
