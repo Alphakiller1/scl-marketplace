@@ -97,7 +97,7 @@ export function LeaderboardRankView({
 
   return (
     <>
-      <div className="border-border bg-card hidden overflow-x-auto rounded-[var(--scl-radius-card)] border md:block">
+      <div className="border-border bg-card relative hidden overflow-x-auto rounded-[var(--scl-radius-card)] border md:block">
         <table className="w-full min-w-[68rem] table-fixed border-collapse text-sm">
           <caption className="sr-only">
             Read-only capper rankings for the selected scope. Select a metric
