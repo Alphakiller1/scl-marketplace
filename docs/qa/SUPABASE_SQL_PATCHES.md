@@ -42,3 +42,22 @@ CREATE UNIQUE INDEX IF NOT EXISTS "OddsUsageDaily_date_purpose_sport_key"
 Until this SQL runs, production soft-degrades: grading still works; CLV /
 `notesPublic` / usage table writes are skipped. After running SQL, redeploy or
 wait for the next cold start so process caches refresh.
+
+## User — publication eligibility (`isTest`)
+
+```sql
+ALTER TABLE "User"
+  ADD COLUMN IF NOT EXISTS "isTest" BOOLEAN NOT NULL DEFAULT false;
+
+UPDATE "User"
+SET "isTest" = true
+WHERE lower(coalesce("username", '')) IN (
+  'demo_capper', 'beetbot', 'media', 'ericlikestotest', 'solpickz'
+)
+OR lower(coalesce("username", '')) LIKE 'qa%'
+OR lower(coalesce("username", '')) LIKE 'sclqa%';
+```
+
+Owner toggles `isTest` in Supabase to exclude/restore a handle without a code
+change. App still keeps handle-prefix + `PUBLIC_EXCLUDED_HANDLES` + QA-note
+guards as belt-and-suspenders (`hasIsTestColumn()` soft-degrades until SQL runs).

@@ -2,7 +2,7 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import { UNIT_MIN } from "@/lib/constants";
-import { prismaExcludeTestHandles } from "@/lib/public-eligibility";
+import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 import { hasClvColumns } from "@/lib/results/schema-features";
 import { computeCapperStats } from "@/lib/stats";
 import {
@@ -59,12 +59,13 @@ export async function getDiscoverLanes(): Promise<{
 }> {
   try {
     const clvReady = await hasClvColumns();
+    const excludeTest = await prismaExcludeTestHandlesLive();
     const profiles = await prisma.capperProfile.findMany({
       where: {
         user: {
           username: { not: null },
           accountStatus: "ACTIVE",
-          ...prismaExcludeTestHandles(),
+          ...excludeTest,
         },
       },
       select: {

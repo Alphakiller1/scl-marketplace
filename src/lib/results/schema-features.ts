@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 let clvReady: boolean | null = null;
 let notesPublicReady: boolean | null = null;
 let oddsUsageReady: boolean | null = null;
+let isTestReady: boolean | null = null;
 
 /**
  * Detect additive columns/tables from SUPABASE_SQL_PATCHES.md.
@@ -37,6 +38,22 @@ export async function hasNotesPublicColumn(): Promise<boolean> {
     notesPublicReady = false;
     console.warn(
       "[schema] notesPublic column missing — run docs/qa/SUPABASE_SQL_PATCHES.md",
+      err instanceof Error ? err.message : err,
+    );
+    return false;
+  }
+}
+
+export async function hasIsTestColumn(): Promise<boolean> {
+  if (isTestReady === true) return true;
+  try {
+    await prisma.$queryRaw`SELECT "isTest" FROM "User" WHERE false`;
+    isTestReady = true;
+    return true;
+  } catch (err) {
+    isTestReady = false;
+    console.warn(
+      "[schema] User.isTest column missing — run docs/qa/SUPABASE_SQL_PATCHES.md",
       err instanceof Error ? err.message : err,
     );
     return false;
