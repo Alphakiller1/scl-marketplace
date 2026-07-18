@@ -130,8 +130,7 @@ Never use the label color for full sentences.
 ## Component recipes
 
 - **CARD** — bg ink-800, 1px line, radius-card, shadow-card.
-- **CHIP (odds)** — bg ink-700, 1px line, radius-chip, min-height 44px; single row: selection
-  - odds. SELECTED: pink fill, pink border, pink-ink text, ring 0 0 0 2px ink-950.
+- **CHIP (odds)** — bg ink-700, 1px line, radius-chip, min-height 44px; single row shows selection then odds. SELECTED: pink fill, pink border, pink-ink text, ring 0 0 0 2px ink-950.
 - **SEGMENTED CONTROL** — track ink-800 + line, radius 10px; active segment blue (navigation).
 - **SPORT PILL** — 44px, radius 22px, ink-800; active blue. Zero-count opacity .42, still tappable.
 - **BOOK RAIL** — sport-pill geometry; profile multi-select blue; board head single-select drives odds.
