@@ -121,11 +121,12 @@ export function preferredThenAll(
   };
 }
 
-/** Normalized matchup key for board dedupe (home + away + commence). */
+/** Normalized matchup key for board dedupe (sport + home + away + commence). */
 export function oddsEventMatchupKey(
-  event: Pick<OddsEvent, "home" | "away" | "commenceTime">,
+  event: Pick<OddsEvent, "sport" | "home" | "away" | "commenceTime">,
 ): string {
   return [
+    event.sport.trim().toLowerCase(),
     event.away.trim().toLowerCase(),
     event.home.trim().toLowerCase(),
     event.commenceTime.trim(),

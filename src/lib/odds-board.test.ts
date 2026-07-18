@@ -135,7 +135,7 @@ test("isExtremeAmericanOdds flags longshots and heavy favorites only", () => {
   assert.equal(isExtremeAmericanOdds(150), false);
 });
 
-test("dedupeOddsEvents keeps one row per matchup, preferring most-complete", () => {
+test("dedupeOddsEvents keeps one row per sport matchup, preferring most-complete", () => {
   const thin: OddsEvent = {
     id: "thin",
     sport: "MLB",
@@ -192,11 +192,17 @@ test("dedupeOddsEvents keeps one row per matchup, preferring most-complete", () 
     away: "Boston Red Sox",
     selections: thin.selections,
   };
+  const otherSport: OddsEvent = {
+    ...thin,
+    id: "other-sport",
+    sport: "NBA",
+  };
 
-  const deduped = dedupeOddsEvents([thin, rich, other, thin]);
-  assert.equal(deduped.length, 2);
+  const deduped = dedupeOddsEvents([thin, rich, other, otherSport, thin]);
+  assert.equal(deduped.length, 3);
   assert.equal(deduped[0]!.id, "rich");
   assert.equal(deduped[1]!.id, "other");
+  assert.equal(deduped[2]!.id, "other-sport");
 });
 
 test("normalizeEventBoard attaches bookmaker last_update as oddsCapturedAt", () => {
