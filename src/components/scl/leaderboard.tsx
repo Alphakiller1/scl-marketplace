@@ -126,26 +126,26 @@ export function Leaderboard({
             Ranked cappers for the selected scope. Metric columns are sortable.
           </caption>
           <thead>
-            <tr className="text-muted-foreground border-border border-b text-[0.7rem] font-semibold tracking-wide uppercase">
+            <tr className="text-muted-foreground border-border border-b text-[0.65rem] font-semibold tracking-wide uppercase">
               <th
                 scope="col"
-                className="w-12 px-2 py-2.5 text-left font-semibold"
+                className="w-10 px-1.5 py-2 text-left font-semibold"
               >
                 <span className="sr-only">Compare</span>
               </th>
               <th
                 scope="col"
-                className="w-14 px-2 py-2.5 text-left font-semibold"
+                className="w-16 px-1.5 py-2 text-left font-semibold"
               >
                 Rank
               </th>
               <th
                 scope="col"
-                className="min-w-[12rem] px-2 py-2.5 text-left font-semibold"
+                className="min-w-[9.5rem] px-1.5 py-2 text-left font-semibold"
               >
                 Capper
               </th>
-              <th scope="col" className="px-2 py-2.5 text-left font-semibold">
+              <th scope="col" className="px-1.5 py-2 text-left font-semibold">
                 Sports
               </th>
               {METRIC_SORTS.map((col) => (
@@ -211,7 +211,7 @@ function SortableTh({
       scope="col"
       aria-sort={active ? "descending" : "none"}
       className={cn(
-        "px-2 py-2.5 font-semibold",
+        "px-1.5 py-2 font-semibold",
         align === "right" ? "text-right" : "text-left",
       )}
     >
@@ -292,8 +292,8 @@ function LeaderboardTableRow({
   const compareDisabled = !selected && !canAdd;
 
   return (
-    <tr className="hover:bg-surface-2/80 group">
-      <td className="px-2 py-3 align-middle">
+    <tr className="hover:bg-surface-2/80 group h-[72px]">
+      <td className="px-1.5 py-2 align-middle">
         <input
           type="checkbox"
           className="size-4 accent-[color:var(--scl-blue)]"
@@ -303,23 +303,29 @@ function LeaderboardTableRow({
           onChange={() => toggle(capper.handle)}
         />
       </td>
-      <td className="px-2 py-3 align-middle">
-        <div className="flex flex-col items-start gap-0.5">
-          <RankBadge rank={rank} settledPicks={graded} />
-          <RankMovementIndicator delta={capper.rankDelta} />
-          {provisional ? (
-            <span className="text-muted-foreground text-[0.6rem] font-semibold tracking-wide uppercase">
-              Early
-            </span>
-          ) : null}
+      <td className="px-1.5 py-2 align-middle">
+        <div className="flex items-center gap-1.5">
+          <RankBadge
+            rank={rank}
+            settledPicks={graded}
+            className="size-8 text-xs"
+          />
+          <div className="flex min-w-0 flex-col items-start leading-none">
+            <RankMovementIndicator delta={capper.rankDelta} />
+            {provisional ? (
+              <span className="text-muted-foreground mt-0.5 text-[0.55rem] font-semibold tracking-wide uppercase">
+                Early
+              </span>
+            ) : null}
+          </div>
         </div>
       </td>
-      <td className="px-2 py-3 align-middle">
-        <div className="flex min-w-0 items-center gap-3">
+      <td className="px-1.5 py-2 align-middle">
+        <div className="flex min-w-0 items-center gap-2">
           <CapperAvatar name={capper.name} src={capper.avatarUrl} size="sm" />
           <Link
             href={`/cappers/${capper.handle}`}
-            className="focus-visible:ring-ring min-w-0 rounded-sm focus-visible:ring-2 focus-visible:outline-none"
+            className="focus-visible:ring-ring min-h-11 min-w-0 rounded-sm focus-visible:ring-2 focus-visible:outline-none sm:min-h-0"
           >
             <CapperIdentityLabel
               capper={capper}
@@ -330,19 +336,19 @@ function LeaderboardTableRow({
           </Link>
         </div>
       </td>
-      <td className="px-2 py-3 align-middle">
+      <td className="px-1.5 py-2 align-middle">
         <div className="flex flex-wrap items-center gap-1">
           {sports.map((sport) => (
             <SportTag key={sport} sport={sport} markOnly className="shrink-0" />
           ))}
         </div>
       </td>
-      <td className="px-2 py-3 text-right align-middle">
+      <td className="px-1.5 py-2 text-right align-middle">
         <StatValue tone="text" className="text-sm font-semibold tabular-nums">
           {formatRecord(capper.record.w, capper.record.l, capper.record.p)}
         </StatValue>
       </td>
-      <td className="px-2 py-3 text-right align-middle">
+      <td className="px-1.5 py-2 text-right align-middle">
         <span
           className={cn(
             "scl-data text-sm font-semibold tabular-nums",
@@ -353,7 +359,7 @@ function LeaderboardTableRow({
           {formatRoi(capper.roi)}
         </span>
       </td>
-      <td className="px-2 py-3 text-right align-middle">
+      <td className="px-1.5 py-2 text-right align-middle">
         <span
           className={cn(
             "scl-data text-sm font-semibold tabular-nums",
@@ -364,15 +370,15 @@ function LeaderboardTableRow({
           {formatUnits(capper.units)}
         </span>
       </td>
-      <td className="px-2 py-3 text-right align-middle">
+      <td className="px-1.5 py-2 text-right align-middle">
         <div className="ml-auto max-w-[5.5rem]">
           <SampleMaturityMeter graded={graded} compact />
         </div>
       </td>
-      <td className="px-2 py-3 text-right align-middle">
+      <td className="px-1.5 py-2 text-right align-middle">
         <VerifiedShareMeter pct={capper.verifiedShare} />
       </td>
-      <td className="px-2 py-3 text-right align-middle">
+      <td className="px-1.5 py-2 text-right align-middle">
         {capper.recentForm.length ? (
           <div className="flex justify-end">
             <RecentFormStrip form={capper.recentForm.slice(-5)} />

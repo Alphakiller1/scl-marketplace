@@ -32,10 +32,13 @@ export function VerifiedShareMeter({
 
   return (
     <div
-      className={cn("flex min-w-[4.5rem] flex-col items-end gap-1", className)}
+      className={cn(
+        "flex min-w-[4.5rem] items-center justify-end gap-1.5",
+        className,
+      )}
       title={`${rounded}% of this capper's picks were board-verified.`}
     >
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5">
         <ShieldCheck
           className="size-3.5 shrink-0 text-[color:var(--scl-pink)]"
           aria-hidden
@@ -48,7 +51,7 @@ export function VerifiedShareMeter({
         </span>
       </div>
       <div
-        className="bg-surface-2 border-border h-1.5 w-full overflow-hidden rounded-full border"
+        className="bg-surface-2 border-border h-1 w-10 shrink-0 overflow-hidden rounded-full border"
         role="meter"
         aria-valuemin={0}
         aria-valuemax={100}

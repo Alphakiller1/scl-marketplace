@@ -34,14 +34,15 @@ export default async function LeaderboardPage({
 
   return (
     <div
-      className="mx-auto max-w-[1200px] px-4 py-7 sm:px-6 sm:py-10"
+      className="mx-auto max-w-[1400px] px-4 py-4 sm:px-6 sm:py-5"
       data-visual-mode="rank"
     >
       <LeaderboardOverview summary={summary} />
       <LeaderboardFilters filters={filters} />
 
-      <div className="mt-5 grid gap-6 lg:mt-6 lg:grid-cols-12 lg:gap-8">
-        <section aria-label="Ranked cappers" className="min-w-0 lg:col-span-8">
+      {/* Wide desktop: ~10/2 — main board + ~236px explanation rail */}
+      <div className="mt-3 grid gap-4 lg:mt-4 lg:grid-cols-[minmax(0,1fr)_14.75rem] lg:gap-5">
+        <section aria-label="Ranked cappers" className="min-w-0">
           <Leaderboard
             cappers={cappers}
             filters={filters}
@@ -50,7 +51,7 @@ export default async function LeaderboardPage({
             emptyDescription="No cappers match these ranking filters yet. Cappers below the sample threshold or net-negative in this scope appear under Building a Record."
           />
         </section>
-        <div className="lg:col-span-4">
+        <div className="min-w-0">
           <LeaderboardRankingRail className="lg:sticky lg:top-24" />
         </div>
       </div>
