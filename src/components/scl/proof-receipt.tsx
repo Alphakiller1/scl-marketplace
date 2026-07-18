@@ -57,8 +57,8 @@ export type ProofReceiptProps = {
 
 const STAMP_CLASS: Record<ReturnType<typeof proofStampTone>, string> = {
   pink: "border-pink text-pink",
-  win: "border-[color:var(--scl-win)] text-[color:var(--scl-win)]",
-  loss: "border-[color:var(--scl-loss)] text-[color:var(--scl-loss)]",
+  win: "border-[color:var(--scl-win)] text-[color:var(--scl-win-text)]",
+  loss: "border-[color:var(--scl-loss)] text-[color:var(--scl-loss-text)]",
   push: "border-[color:var(--scl-push)] text-[color:var(--scl-push)]",
   muted: "border-border text-muted-foreground",
 };
@@ -208,11 +208,11 @@ export function ProofReceipt({
             className={cn(
               "scl-data mt-2 inline-flex items-center rounded border px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-[0.1em] uppercase",
               settlementTone === "win" &&
-                "border-[color:var(--scl-win)]/40 text-[color:var(--scl-win)]",
+                "border-[color:var(--scl-win)]/40 text-[color:var(--scl-win-text)]",
               settlementTone === "loss" &&
-                "border-[color:var(--scl-loss)]/40 text-[color:var(--scl-loss)]",
+                "border-[color:var(--scl-loss)]/40 text-[color:var(--scl-loss-text)]",
               settlementTone === "push" &&
-                "border-[color:var(--scl-push)]/40 text-[color:var(--scl-push)]",
+                "border-[color:var(--scl-push)]/40 text-[color:var(--scl-push-text)]",
               (!settlementTone ||
                 settlementTone === "muted" ||
                 settlementTone === "pink") &&

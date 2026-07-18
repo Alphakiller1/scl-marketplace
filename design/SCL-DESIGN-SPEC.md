@@ -47,12 +47,16 @@ W/L/P form dots, and the PRE-GAME ✓ verify chip (win-green). This is the scarc
 signal — it means a real result settled.
 
 **B. Performance spectrum (continuous, magnitude).** ROI, Units, CLV, win% render on a
-green→amber→red ramp keyed to magnitude (`--scl-perf-strong/-mid/-weak`). Strong = green,
-mid = amber, weak/negative = red.
+green→amber→red ramp keyed to magnitude (`--scl-perf-strong/-mid/-weak` for marks;
+`--scl-perf-*-text` for numeric text). Strong = green, mid = amber, weak/negative = red.
 
 - Thresholds live in ONE shared module (`lib/perf-scale.ts`), never hardcoded per component.
 - Color is never the only signal — the number itself is always shown (WCAG 1.4.1); ramp is
   luminance-stepped for deuteran/protan safety; test forced-colors.
+- **Colored performance/settlement values use AA-safe _text_ variants
+  (`--scl-win-text` / `--scl-loss-text` / `--scl-perf-*-text`). Bright `--scl-win` /
+  `--scl-loss` / `--scl-perf-*` hues are marks-only** (dots, meters, icons, rules, large
+  fills). Never paint small numeric text with the bright mark tokens.
 - Amber is a data-magnitude color only — never rank, status, honor, or decoration. This is
   what keeps it distinct from the removed Settlement Gold (a status color).
 - Sample maturity (Established/Developing/Early) uses the same ramp for "more picks = greener,"
@@ -67,7 +71,8 @@ mid = amber, weak/negative = red.
 --scl-pink:#BA008E; --scl-pink-deep:#8D006A; --scl-pink-ink:#FFF3FC;
 --scl-blue:#105FD9; --scl-blue-deep:#0043AC; --scl-blue-ink:#F1F9FF;
 --scl-win:#2FBF7B; --scl-loss:#E5484D; --scl-push:#8B97AB;
---scl-perf-strong:#2FBF7B; --scl-perf-mid:#E6A93C; --scl-perf-weak:#E5484D; /* tune in review */
+--scl-perf-strong:#2FBF7B; --scl-perf-mid:#E6A93C; --scl-perf-weak:#E5484D; /* marks */
+--scl-win-text / --scl-loss-text / --scl-perf-*-text /* AA ≥4.5:1 numeric text */;
 --scl-radius-card:14px; --scl-radius-chip:10px; --scl-radius-receipt:6px;
 --scl-shadow-card:0 8px 24px rgba(0,0,0,.35); --scl-shadow-slip:0 12px 30px rgba(0,0,0,.55);
 ```
@@ -130,11 +135,18 @@ stacking border+shadow+glow on routine objects.
 
 label `#7E8AA0` (dark) / `#6E7686` (light, large ≥18px/bold only) · supporting prose
 `#AAB6C9` (dark) / `#596273` (light) · primary prose `#D8DFEA` · heading `#EDF1F7` (dark) /
-`#161B26` (light). Never use the label color for full sentences.
+`#161B26` (light). Never use the label color for full sentences. **10px eyebrows
+(`.scl-eyebrow`) use the supporting tier** so they clear 4.5:1 in both themes.
 
 **Conviction/navigation hues (pink/blue) are for marks, fills, carets, focus, and
 underlines — never small text. Small text uses the text/supporting tiers. Every
 normal-size text/background pair must pass 4.5:1 in both themes.**
+
+**Performance/settlement numeric text** uses `--scl-win-text` / `--scl-loss-text` /
+`--scl-perf-strong-text` / `--scl-perf-mid-text` / `--scl-perf-weak-text` (and
+`--pos`/`--neg` aliases). Bright `--scl-win`/`--scl-loss`/`--scl-perf-*` stay
+marks-only. Links: prefer `--scl-text` + colored underline (`.scl-link`), not blue/pink
+fill-as-text.
 
 Do not invent `--scl-blue-text` unless a genuine accessible blue text token (≥4.5:1 on
 ink) is required and documented here first. Prefer `--scl-text` + blue underline

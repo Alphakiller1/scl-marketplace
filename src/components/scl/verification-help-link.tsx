@@ -19,7 +19,7 @@ export function VerificationHelpLink({ className }: { className?: string }) {
   return (
     <Dialog>
       <DialogTrigger
-        className={`text-live hover:text-live/90 inline-flex min-h-10 items-center text-xs font-medium underline-offset-4 hover:underline ${className ?? ""}`}
+        className={`scl-link inline-flex min-h-10 items-center text-xs font-medium ${className ?? ""}`}
       >
         How verification works
       </DialogTrigger>

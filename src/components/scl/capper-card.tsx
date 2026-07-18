@@ -6,7 +6,12 @@ import { CapperAvatar } from "@/components/scl/capper-avatar";
 import { CapperIdentityLabel } from "@/components/scl/capper-identity-label";
 import { SportTag, TrophyBadge, LegacyBadge } from "@/components/scl/badges";
 import { RecentFormStrip, StreakChip } from "@/components/scl/indicators";
-import { RoiStat, UnitStat, WinRateStat } from "@/components/scl/stat";
+import {
+  RoiStat,
+  UnitStat,
+  WinRateStat,
+  StatBlock,
+} from "@/components/scl/stat";
 import { PerformanceSparkline } from "@/components/scl/performance-sparkline";
 import { RankBadge } from "@/components/scl/rank-badge";
 import { CompactCapperRow } from "@/components/scl/compact-capper-row";
@@ -40,6 +45,8 @@ export function CapperCard({
     .slice(0, 3);
   const specialties = (capper.specialties ?? []).filter(Boolean).slice(0, 2);
   const lastPick = formatLastPickDate(capper.lastPlayAt);
+  const graded = capper.settledPicks ?? 0;
+  const provisional = isProvisional(graded);
 
   return (
     <Card className="group scl-interactive hover:border-border-strong relative gap-0 overflow-hidden p-3.5 sm:p-4">
@@ -60,10 +67,7 @@ export function CapperCard({
             {sports.map((sport) => (
               <SportTag key={sport} sport={sport} />
             ))}
-            <StreakChip
-              streak={capper.streak}
-              gradedCount={capper.settledPicks ?? 0}
-            />
+            <StreakChip streak={capper.streak} gradedCount={graded} />
             {capper.isLegacy ? <LegacyBadge /> : null}
           </div>
           {specialties.length || lastPick ? (
@@ -87,31 +91,60 @@ export function CapperCard({
       </div>
 
       <div className="bg-surface-2 mt-4 grid grid-cols-3 gap-2 rounded-lg p-3">
-        <WinRateStat
-          winPct={capper.winPct}
-          className="items-center text-center"
-        />
-        <UnitStat units={capper.units} className="items-center text-center" />
-        <div className="space-y-1">
-          <RoiStat roi={capper.roi} className="items-center text-center" />
-          {isProvisional(capper.settledPicks) ? (
-            <div className="flex justify-center">
-              <ProvisionalRecordHelp label="Provisional" />
+        {provisional ? (
+          <>
+            <StatBlock
+              label="Win %"
+              value="—"
+              className="items-center text-center"
+            />
+            <StatBlock
+              label="Units"
+              value="—"
+              className="items-center text-center"
+            />
+            <div className="space-y-1">
+              <StatBlock
+                label="ROI"
+                value="—"
+                className="items-center text-center"
+              />
+              <div className="flex justify-center">
+                <ProvisionalRecordHelp label="Provisional" />
+              </div>
             </div>
-          ) : null}
-        </div>
+          </>
+        ) : (
+          <>
+            <WinRateStat
+              winPct={capper.winPct}
+              gradedCount={graded}
+              className="items-center text-center"
+            />
+            <UnitStat
+              units={capper.units}
+              gradedCount={graded}
+              className="items-center text-center"
+            />
+            <RoiStat
+              roi={capper.roi}
+              gradedCount={graded}
+              className="items-center text-center"
+            />
+          </>
+        )}
       </div>
 
       <div className="mt-3 flex min-h-10 items-center justify-between gap-3">
         <div>
           <span className="text-muted-foreground block text-[0.7rem] font-semibold uppercase">
-            {(capper.settledPicks ?? 0).toLocaleString()} Graded Picks
+            {graded.toLocaleString()} Graded Picks
           </span>
           <RecentFormStrip form={capper.recentForm} className="mt-1" />
         </div>
         <PerformanceSparkline
           points={capper.performanceTrend}
-          gradedCount={capper.settledPicks ?? 0}
+          gradedCount={graded}
           className="w-24"
         />
       </div>

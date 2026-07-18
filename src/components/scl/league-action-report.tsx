@@ -502,9 +502,9 @@ export function LeagueActionReport({
         </div>
       </div>
 
-      {/* Mobile: secondary breakdown collapsed; desktop forced open — single mount. */}
-      <details className="group border-border border-b">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 pl-5 outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--scl-blue)] focus-visible:ring-inset lg:hidden [&::-webkit-details-marker]:hidden">
+      {/* Mobile-only disclosure — closed by default. Desktop is a sibling, not a child. */}
+      <details className="group border-border border-b lg:hidden">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 pl-5 outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--scl-blue)] focus-visible:ring-inset [&::-webkit-details-marker]:hidden">
           <span className="min-w-0">
             <span className="text-foreground block text-sm font-semibold">
               Bet-type breakdown
@@ -520,18 +520,29 @@ export function LeagueActionReport({
             Hide
           </span>
         </summary>
-        <div className="hidden group-open:block lg:block">
-          <PlatformReportTabs
-            tab={tab}
-            setTab={setTab}
-            shape={shape}
-            market={market}
-            leagues={leagues}
-            maxUnitsAbs={maxUnitsAbs}
-            maxLeaguePicks={maxLeaguePicks}
-          />
-        </div>
+        <PlatformReportTabs
+          tab={tab}
+          setTab={setTab}
+          shape={shape}
+          market={market}
+          leagues={leagues}
+          maxUnitsAbs={maxUnitsAbs}
+          maxLeaguePicks={maxLeaguePicks}
+        />
       </details>
+
+      {/* Desktop: always visible — independent of mobile <details> open state. */}
+      <div className="hidden lg:block">
+        <PlatformReportTabs
+          tab={tab}
+          setTab={setTab}
+          shape={shape}
+          market={market}
+          leagues={leagues}
+          maxUnitsAbs={maxUnitsAbs}
+          maxLeaguePicks={maxLeaguePicks}
+        />
+      </div>
 
       <p className="text-muted-foreground border-border border-t px-4 py-2.5 pl-5 text-xs leading-relaxed sm:px-5 sm:pl-6">
         {PLATFORM_REPORT_ELIGIBILITY_FOOTNOTE}
