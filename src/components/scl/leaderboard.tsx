@@ -533,9 +533,9 @@ export function BuildingRecordSection({
         <div>
           <h2 className="text-sm font-bold tracking-wide">Building a record</h2>
           <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
-            A provisional record is visible but not ranked yet. Zero graded
-            picks, below SCL’s minimum graded-pick sample, or net-negative in
-            this scope appear here — early history, not a leaderboard signal.
+            These records remain public but unranked. They have no graded picks,
+            do not meet the selected minimum sample, or have negative ROI or
+            units in this scope.
           </p>
         </div>
         <p className="scl-data text-muted-foreground text-xs tabular-nums">

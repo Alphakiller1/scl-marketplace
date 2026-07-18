@@ -16,7 +16,7 @@ export type PlatformClvResult = {
 };
 
 /**
- * Platform CLV — READ stored clvPts only, same public listed + board-verified
+ * Platform CLV — READ stored clvPts only, same publicly listed + board-verified
  * gate as the leaderboard / platform activity report.
  */
 export async function getPlatformClvSummary(): Promise<PlatformClvResult> {

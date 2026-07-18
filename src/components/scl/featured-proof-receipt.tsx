@@ -36,7 +36,7 @@ export function FeaturedProofReceipt({
             Featured proof
           </h2>
           <p className="text-muted-foreground text-sm">
-            Warm paper receipt — verification first
+            An inspectable receipt for a recent graded pick.
           </p>
         </div>
         {play ? (
@@ -58,7 +58,7 @@ export function FeaturedProofReceipt({
           description={
             failed
               ? "Try again shortly."
-              : "When board-verified picks settle, a Proof Receipt will appear here."
+              : "A proof receipt appears here after a board-verified pick is graded."
           }
         />
       ) : (

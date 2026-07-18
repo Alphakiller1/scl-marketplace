@@ -65,10 +65,10 @@ export const BOTTOM_BAND_BODY =
 export const HOW_RANKING_WORKS_TITLE = "How ranking works";
 
 export const HOW_RANKING_WORKS_BULLETS = [
-  "A public place requires graded picks in the selected scope, at or above the minimum sample, and a non-negative units and ROI total in that scope.",
-  "Net-negative or below-sample records stay inspectable under Building a Record — they do not receive a competition place.",
-  "Sorting by CLV additionally requires a signal-sized sample and at least one stored closing line.",
+  "Within the selected scope, a public rank requires the minimum graded sample and non-negative ROI and units.",
+  "Records below the sample threshold or with negative ROI or units remain visible under Building a Record and are not ranked.",
+  "CLV sorting requires the minimum sample and at least one stored closing line.",
 ] as const;
 
 export const HOW_RANKING_VERIFIED_NOTE =
-  "Verified share is the percent of tracked picks that were board-checked. Only board-verified picks feed the verified leaderboard signal.";
+  "Verified share is the percentage of tracked picks checked against the board at submission. It does not describe pick outcomes.";

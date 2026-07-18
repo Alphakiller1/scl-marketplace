@@ -14,9 +14,10 @@ import { formatRoi, formatUnits } from "@/lib/format";
 import {
   LEAGUE_ACTION_CATEGORY_EMPTY,
   PLATFORM_REPORT_ELIGIBILITY_FOOTNOTE,
-  PLATFORM_REPORT_SEGMENT_LABEL,
   countLabel,
   marketCategories,
+  platformReportLeagueLabel,
+  platformReportSegmentLabel,
   platformTrackedPicks,
   shapeCategories,
   type LeagueActionCategoryItem,
@@ -26,7 +27,8 @@ import { perfScale, perfToneClass, type PerfTone } from "@/lib/perf-scale";
 import { hasSignal } from "@/lib/sample";
 import { cn } from "@/lib/utils";
 
-const LEAGUES_EMPTY = "No verified league activity in the last 14 days.";
+const LEAGUES_EMPTY =
+  "No board-verified league activity was tracked in the last 14 days.";
 
 /** Desktop Top Leagues tracks. */
 const LEAGUE_LIST_COLS =
@@ -147,7 +149,7 @@ function PerfCell({
     return (
       <span
         className={cn("block", alignClass)}
-        title="Not available — sample below signal threshold"
+        title="Not available — below the minimum graded sample."
       >
         <StatValue tone="data" className="text-sm font-semibold">
           —
@@ -466,8 +468,8 @@ export function LeagueActionReport({
     return (
       <EmptyState
         icon={Activity}
-        title="No platform activity yet"
-        description="Tracked bet-type volume will appear here as founding cappers submit board-verified plays."
+        title="No tracked activity in this window"
+        description="No board-verified bet types or leagues were tracked in the last 14 days."
       />
     );
   }
@@ -486,18 +488,18 @@ export function LeagueActionReport({
       {/* Flat ink-800 header + structural hairline (no gradient) */}
       <div className="border-border flex flex-wrap items-end justify-between gap-4 border-b px-4 py-4 pl-5 sm:px-5 sm:pl-6">
         <div className="flex flex-wrap gap-6 sm:gap-8">
+          <Metric label="Board-verified picks" value={trackedPicks} emphasize />
           <Metric
-            label={`${windowDays}d board-verified`}
-            value={trackedPicks}
-            emphasize
+            label={platformReportSegmentLabel(liveSegments)}
+            value={liveSegments}
           />
-          <Metric label={PLATFORM_REPORT_SEGMENT_LABEL} value={liveSegments} />
-          <Metric label="Leagues ranked" value={leagues.length} />
+          <Metric
+            label={platformReportLeagueLabel(leagues.length)}
+            value={leagues.length}
+          />
         </div>
         <div className="flex flex-col items-end gap-1">
-          <p className="scl-eyebrow text-right">
-            Last {windowDays} days · board clock
-          </p>
+          <p className="scl-eyebrow text-right">Last {windowDays} days</p>
           <ButtonishPicksLink label="Open pick feed" />
         </div>
       </div>

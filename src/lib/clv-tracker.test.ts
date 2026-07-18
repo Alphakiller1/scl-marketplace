@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { CLV_HISTOGRAM_EDGES, summarizeClvTracker } from "@/lib/clv-tracker";
+import {
+  CLV_HISTOGRAM_EDGES,
+  CLV_TRACKER_EMPTY_BODY,
+  CLV_TRACKER_PROVISIONAL_BODY,
+  PLATFORM_CLV_EMPTY_BODY,
+  summarizeClvTracker,
+} from "@/lib/clv-tracker";
 import { MIN_GRADED_FOR_SIGNAL } from "@/lib/sample";
 
 describe("summarizeClvTracker", () => {
@@ -14,6 +20,10 @@ describe("summarizeClvTracker", () => {
     assert.equal(s.beatCloseCount, 0);
     assert.equal(s.bins.length, CLV_HISTOGRAM_EDGES.length - 1);
     assert.ok(s.bins.every((b) => b.count === 0));
+    assert.equal(
+      s.distributionSummary,
+      "No closing snapshots are recorded. CLV distribution is unavailable.",
+    );
   });
 
   it("gates avg and beat% below MIN_GRADED_FOR_SIGNAL snapshots", () => {
@@ -26,6 +36,10 @@ describe("summarizeClvTracker", () => {
     assert.equal(s.avgClv, null);
     assert.equal(s.beatClosePct, null);
     assert.ok(s.beatCloseCount > 0);
+    assert.equal(
+      s.distributionSummary,
+      `CLV distribution unavailable — ${MIN_GRADED_FOR_SIGNAL - 1} of ${MIN_GRADED_FOR_SIGNAL} required snapshots recorded.`,
+    );
   });
 
   it("computes avg and beat% at signal size — reads values only", () => {
@@ -53,5 +67,22 @@ describe("summarizeClvTracker", () => {
       7,
     );
     assert.ok(s.bins.some((b) => b.from < 0 && b.to > 0));
+  });
+});
+
+describe("CLV zero-state copy (GPT P2)", () => {
+  it("locks empty / provisional / platform empty strings", () => {
+    assert.equal(
+      CLV_TRACKER_EMPTY_BODY,
+      "No closing snapshots are available for this record. CLV appears after SCL captures a closing line for a board-verified pick. Historical picks without a close remain em dashes.",
+    );
+    assert.equal(
+      CLV_TRACKER_PROVISIONAL_BODY,
+      `CLV distribution requires ${MIN_GRADED_FOR_SIGNAL} closing snapshots. Until then, the distribution remains unavailable.`,
+    );
+    assert.equal(
+      PLATFORM_CLV_EMPTY_BODY,
+      "No board-verified closing snapshots are available across publicly listed cappers. Platform CLV remains unavailable until SCL captures closing lines for future board-verified picks.",
+    );
   });
 });

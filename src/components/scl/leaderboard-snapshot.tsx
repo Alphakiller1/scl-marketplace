@@ -53,11 +53,13 @@ export function LeaderboardSnapshot({
       {cappers.length === 0 ? (
         <EmptyState
           icon={Trophy}
-          title={failed ? "Couldn't load the leaderboard" : "Board is forming"}
+          title={
+            failed ? "Couldn't load the leaderboard" : "No ranked cappers yet"
+          }
           description={
             failed
               ? "Performance data is temporarily unavailable. Please try again shortly."
-              : "Verified cappers will appear here after they clear SCL’s ranking sample — early records stay inspectable under Building a Record."
+              : "Cappers appear here after meeting the minimum graded sample and verification filters. Earlier records remain visible under Building a Record."
           }
         />
       ) : (

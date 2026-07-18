@@ -18,7 +18,7 @@ const DEFAULT_TAKE = 6;
 
 const VERIFIED_TIERS: VerificationTier[] = ["VERIFIED", "AUTO_VERIFIED"];
 
-/** Same public listed + board-verified gate as the leaderboard feed filters. */
+/** Same publicly listed + board-verified gate as the leaderboard feed filters. */
 const PUBLIC_PLAY_FILTER = {
   units: { gte: UNIT_MIN },
   verificationTier: { in: VERIFIED_TIERS },

@@ -48,7 +48,7 @@ export default async function LeaderboardPage({
             filters={filters}
             showExpand
             failed={failed}
-            emptyDescription="No cappers match these ranking filters yet. Cappers below the sample threshold or net-negative in this scope appear under Building a Record."
+            emptyDescription="No cappers meet the selected ranking filters. Records below the sample threshold or with negative ROI or units remain visible under Building a Record."
           />
         </section>
         <div className="min-w-0">

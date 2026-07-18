@@ -8,6 +8,7 @@ import {
   CLV_TRACKER_EMPTY_TITLE,
   type ClvTrackerSummary,
 } from "@/lib/clv-tracker";
+import { countLabel } from "@/lib/league-action";
 import { formatClvPts, missingCloseOrClvTooltip } from "@/lib/proof-receipt";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
 import { cn } from "@/lib/utils";
@@ -49,7 +50,7 @@ export function ClvTrackerPanel({
           </p>
         </div>
         <p className="scl-data text-muted-foreground text-xs tabular-nums">
-          {summary.snapshotCount.toLocaleString()} snapshots
+          {countLabel(summary.snapshotCount, "snapshot", "snapshots")}
         </p>
       </div>
 
