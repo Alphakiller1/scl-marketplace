@@ -34,7 +34,7 @@ export default async function LeaderboardPage({
       <LeaderboardOverview summary={summary} />
       <LeaderboardFilters filters={filters} />
       <div className="mt-5 grid items-start gap-4 sm:mt-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <section aria-label="Ranked cappers">
+        <section aria-label="Ranked cappers" className="min-w-0">
           <LeaderboardRankView
             cappers={cappers}
             filters={filters}

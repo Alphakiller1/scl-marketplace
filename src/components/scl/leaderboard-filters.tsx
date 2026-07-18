@@ -40,7 +40,7 @@ export function LeaderboardFilters({
   return (
     <section
       aria-label="Leaderboard scope"
-      className="border-border bg-card mt-5 rounded-[var(--scl-radius-card)] border p-2.5 sm:mt-6"
+      className="border-border bg-card mt-5 rounded-[var(--scl-radius-card)] border p-2 sm:mt-6"
     >
       <div className="flex flex-col gap-2.5 xl:flex-row xl:items-end">
         <fieldset className="shrink-0">
