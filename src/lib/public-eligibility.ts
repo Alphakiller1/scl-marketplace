@@ -5,10 +5,27 @@ import { UNIT_MIN } from "@/lib/constants";
  * from leaderboard aggregates and public feeds without a schema migration.
  */
 
-/** True when the handle is a QA/test account (qa* or sclqa*). */
+/**
+ * Exact public handles that are staging/demo fixtures — never surface in
+ * Discover, leaderboard, or other public directories.
+ */
+export const PUBLIC_EXCLUDED_HANDLES = [
+  "demo_capper",
+  "beetbot",
+  "media",
+  "ericlikestotest",
+] as const;
+
+function normalizeHandle(username: string): string {
+  return username.replace(/^@+/, "").trim().toLowerCase();
+}
+
+/** True when the handle is a QA/test account (qa… / sclqa… prefixes or known fixtures). */
 export function isTestHandle(username: string | null | undefined): boolean {
   if (!username) return false;
-  return /^(qa|sclqa)/i.test(username);
+  const clean = normalizeHandle(username);
+  if (/^(qa|sclqa)/i.test(clean)) return true;
+  return (PUBLIC_EXCLUDED_HANDLES as readonly string[]).includes(clean);
 }
 
 /** True when stake meets the public minimum (0.25U). */
@@ -23,6 +40,9 @@ export function prismaExcludeTestHandles() {
       OR: [
         { username: { startsWith: "qa", mode: "insensitive" as const } },
         { username: { startsWith: "sclqa", mode: "insensitive" as const } },
+        ...PUBLIC_EXCLUDED_HANDLES.map((handle) => ({
+          username: { equals: handle, mode: "insensitive" as const },
+        })),
       ],
     },
   };

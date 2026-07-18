@@ -154,7 +154,7 @@ export function CompetitionHero() {
 
                 <h1
                   id={active ? "scl-hero-title" : undefined}
-                  className="scl-display mt-4 max-w-lg text-3xl leading-[1.08] font-bold tracking-[0.02em] text-balance uppercase sm:mt-5 sm:text-5xl lg:text-6xl"
+                  className="scl-display mt-4 max-w-lg text-3xl leading-[1.08] font-bold tracking-[0.02em] text-balance normal-case sm:mt-5 sm:text-5xl lg:text-6xl"
                 >
                   <Link
                     href={slide.href}

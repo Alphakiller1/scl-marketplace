@@ -37,12 +37,12 @@ export default async function DiscoverPage({
     >
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold tracking-wide text-[color:var(--scl-blue)] uppercase">
-            <Compass className="size-4" aria-hidden />
+          <h1 className="scl-display flex items-center gap-2.5 text-3xl font-bold tracking-[0.03em] text-balance sm:text-4xl">
+            <Compass
+              className="size-7 shrink-0 text-[color:var(--scl-blue)] sm:size-8"
+              aria-hidden
+            />
             Discover
-          </div>
-          <h1 className="scl-display mt-2 text-3xl font-bold tracking-[0.03em] text-balance sm:text-4xl">
-            Evidence-based views
           </h1>
           <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-relaxed sm:text-base">
             {INTRO}
