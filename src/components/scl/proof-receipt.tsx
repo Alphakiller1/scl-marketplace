@@ -59,7 +59,7 @@ const STAMP_CLASS: Record<ReturnType<typeof proofStampTone>, string> = {
   pink: "border-pink text-pink",
   win: "border-[color:var(--scl-win)] text-[color:var(--scl-win-text)]",
   loss: "border-[color:var(--scl-loss)] text-[color:var(--scl-loss-text)]",
-  push: "border-[color:var(--scl-push)] text-[color:var(--scl-push)]",
+  push: "border-[color:var(--scl-push)] text-[color:var(--scl-push-text)]",
   muted: "border-border text-muted-foreground",
 };
 
