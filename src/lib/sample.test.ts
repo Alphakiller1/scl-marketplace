@@ -1,10 +1,36 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { hasSignal, isProvisional, MIN_GRADED_FOR_SIGNAL } from "@/lib/sample";
+import {
+  MATURITY,
+  MATURITY_LABELS,
+  MATURITY_LEGEND,
+  MIN_GRADED_FOR_SIGNAL,
+  hasSignal,
+  isProvisional,
+  maturityBucket,
+  maturityLabel,
+} from "@/lib/sample";
 
 test("MIN_GRADED_FOR_SIGNAL is 10", () => {
   assert.equal(MIN_GRADED_FOR_SIGNAL, 10);
+  assert.equal(MATURITY.DEVELOPING, 10);
+  assert.equal(MATURITY.ESTABLISHED, 50);
+});
+
+test("maturity buckets Early / Developing / Established", () => {
+  assert.equal(maturityBucket(0), "early");
+  assert.equal(maturityBucket(9), "early");
+  assert.equal(maturityBucket(10), "developing");
+  assert.equal(maturityBucket(49), "developing");
+  assert.equal(maturityBucket(50), "established");
+  assert.equal(maturityLabel(3), MATURITY_LABELS.early);
+  assert.equal(maturityLabel(25), MATURITY_LABELS.developing);
+  assert.equal(maturityLabel(50), MATURITY_LABELS.established);
+  assert.equal(
+    MATURITY_LEGEND,
+    "Established 50+ · Developing 10–49 · Early 0–9",
+  );
 });
 
 test("hasSignal: below threshold is false", () => {

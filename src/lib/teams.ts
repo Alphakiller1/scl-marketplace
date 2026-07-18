@@ -299,9 +299,8 @@ function fallbackTeam(name: string, sport?: string): TeamIdentity {
           .join("")
           .toUpperCase()
       : (words[0] ?? name).slice(0, 3).toUpperCase();
-  const logoUrl = sport
-    ? (teamMarkSrc(sport, abbr) ?? espnTeamLogoUrl(sport, abbr))
-    : undefined;
+  // Never invent ESPN CDN URLs for unknown names — only self-hosted marks if present.
+  const logoUrl = sport ? teamMarkSrc(sport, abbr) : undefined;
   return {
     key: `fallback-${normalize(name)}`,
     abbr,

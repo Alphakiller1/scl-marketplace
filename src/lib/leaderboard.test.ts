@@ -23,6 +23,7 @@ test("leaderboard filters reject unsupported query values", () => {
       minPicks: "13",
       record: "all",
       q: "  edge  ",
+      limit: "99",
     }),
     {
       sport: "ALL",
@@ -31,12 +32,17 @@ test("leaderboard filters reject unsupported query values", () => {
       minPicks: 0,
       verifiedOnly: false,
       search: "edge",
+      limit: 10,
     },
   );
 });
 
-test("leaderboard filters accept clv sort", () => {
+test("leaderboard filters accept clv sort and limit", () => {
   assert.equal(parseLeaderboardFilters({ sort: "clv" }).sort, "clv");
+  assert.equal(parseLeaderboardFilters({ limit: "20" }).limit, 20);
+  assert.equal(parseLeaderboardFilters({ sort: "sample" }).sort, "sample");
+  assert.equal(parseLeaderboardFilters({ sort: "verified" }).sort, "verified");
+  assert.equal(parseLeaderboardFilters({ sort: "form" }).sort, "form");
 });
 
 test("sortLeaderboard ranks by avgClv when sort=clv", () => {
@@ -51,6 +57,54 @@ test("sortLeaderboard ranks by avgClv when sort=clv", () => {
   assert.deepEqual(
     sorted.map((c) => c.id),
     ["b", "a", "c"],
+  );
+});
+
+test("sortLeaderboard ranks by sample / verified / form", () => {
+  const sortedSample = sortLeaderboard(
+    [
+      { id: "a", name: "A", settledPicks: 12 } as CapperSummary,
+      { id: "b", name: "B", settledPicks: 40 } as CapperSummary,
+    ],
+    "sample",
+  );
+  assert.deepEqual(
+    sortedSample.map((c) => c.id),
+    ["b", "a"],
+  );
+
+  const sortedVerified = sortLeaderboard(
+    [
+      {
+        id: "a",
+        name: "A",
+        verifiedShare: 40,
+        settledPicks: 12,
+      } as CapperSummary,
+      {
+        id: "b",
+        name: "B",
+        verifiedShare: 90,
+        settledPicks: 12,
+      } as CapperSummary,
+    ],
+    "verified",
+  );
+  assert.deepEqual(
+    sortedVerified.map((c) => c.id),
+    ["b", "a"],
+  );
+
+  const sortedForm = sortLeaderboard(
+    [
+      { id: "a", name: "A", streak: 1, settledPicks: 12 } as CapperSummary,
+      { id: "b", name: "B", streak: 4, settledPicks: 12 } as CapperSummary,
+    ],
+    "form",
+  );
+  assert.deepEqual(
+    sortedForm.map((c) => c.id),
+    ["b", "a"],
   );
 });
 

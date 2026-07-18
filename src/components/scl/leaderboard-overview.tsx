@@ -23,7 +23,7 @@ export function LeaderboardOverview({
             <Trophy className="size-4" aria-hidden />
             Public Rankings
           </div>
-          <h1 className="scl-display mt-2 text-3xl font-bold tracking-[0.04em] text-balance uppercase sm:text-4xl">
+          <h1 className="scl-display mt-2 text-3xl font-bold tracking-[0.04em] text-balance sm:text-4xl">
             Leaderboard
           </h1>
           <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-relaxed sm:text-base">

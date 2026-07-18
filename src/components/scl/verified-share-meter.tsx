@@ -1,0 +1,65 @@
+import { ShieldCheck } from "lucide-react";
+
+import { cn } from "@/lib/utils";
+
+/**
+ * Rank-mode Verified column — pink shield + % meter (never blue).
+ * Keeps the percent visible per design v2.0 Leaderboard recipe.
+ */
+export function VerifiedShareMeter({
+  pct,
+  className,
+}: {
+  pct: number | null | undefined;
+  className?: string;
+}) {
+  if (pct == null || !Number.isFinite(pct) || pct <= 0) {
+    return (
+      <span
+        className={cn(
+          "scl-data text-muted-foreground text-sm tabular-nums",
+          className,
+        )}
+        title="Not available"
+      >
+        —
+      </span>
+    );
+  }
+
+  const rounded = Math.round(pct);
+  const fill = Math.min(100, Math.max(0, rounded));
+
+  return (
+    <div
+      className={cn("flex min-w-[4.5rem] flex-col items-end gap-1", className)}
+      title={`${rounded}% of this capper's picks were board-verified.`}
+    >
+      <div className="flex items-center gap-1">
+        <ShieldCheck
+          className="size-3.5 shrink-0 text-[color:var(--scl-pink)]"
+          aria-hidden
+        />
+        <span
+          className="scl-data text-sm font-semibold text-[color:var(--scl-pink)] tabular-nums"
+          aria-label={`${rounded} percent board-verified`}
+        >
+          {rounded}%
+        </span>
+      </div>
+      <div
+        className="bg-surface-2 border-border h-1.5 w-full overflow-hidden rounded-full border"
+        role="meter"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={fill}
+        aria-label={`Verified share ${rounded} percent`}
+      >
+        <div
+          className="h-full rounded-full bg-[color:var(--scl-pink)]"
+          style={{ width: `${fill}%` }}
+        />
+      </div>
+    </div>
+  );
+}

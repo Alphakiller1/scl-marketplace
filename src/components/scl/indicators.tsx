@@ -1,16 +1,10 @@
-import {
-  Flame,
-  Minus,
-  Snowflake,
-  TrendingDown,
-  TrendingUp,
-} from "lucide-react";
+import { Flame, Snowflake } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { FormResult } from "@/lib/mock";
 import { hasSignal } from "@/lib/sample";
 
-/** Rank movement vs previous period. Motion-free, scan-fast. */
+/** Rank movement vs previous period. Honest — when no snapshot (delta 0). */
 export function RankMovementIndicator({
   delta,
   className,
@@ -22,29 +16,25 @@ export function RankMovementIndicator({
     return (
       <span
         className={cn(
-          "text-muted-foreground inline-flex items-center gap-0.5 text-xs",
+          "text-muted-foreground inline-flex items-center text-xs tabular-nums",
           className,
         )}
-        aria-label="No rank change"
+        aria-label="No rank change recorded"
       >
-        <Minus className="size-3" />
+        —
       </span>
     );
   const up = delta > 0;
   return (
     <span
       className={cn(
-        "scl-data inline-flex items-center gap-0.5 text-xs font-semibold tabular-nums",
+        "scl-data inline-flex items-center gap-0.5 text-xs font-semibold tabular-nums motion-safe:animate-[scl-rank-delta_240ms_ease-out]",
         up ? "text-pos" : "text-neg",
         className,
       )}
       aria-label={`${up ? "Up" : "Down"} ${Math.abs(delta)} ${Math.abs(delta) === 1 ? "place" : "places"}`}
     >
-      {up ? (
-        <TrendingUp className="size-3" />
-      ) : (
-        <TrendingDown className="size-3" />
-      )}
+      <span aria-hidden>{up ? "↑" : "↓"}</span>
       {Math.abs(delta)}
     </span>
   );

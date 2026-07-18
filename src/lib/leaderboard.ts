@@ -4,15 +4,25 @@ import { LEADERBOARD_SORTS, SPORT_KEYS } from "@/lib/constants";
 import type { CapperSummary } from "@/lib/mock";
 import { hasSignal } from "@/lib/sample";
 
+/** Compact Rank-mode time scopes (year kept for URL back-compat only). */
 export const LEADERBOARD_WINDOWS = [
-  { key: "all", label: "All Time" },
-  { key: "7d", label: "Past 7 Days" },
-  { key: "30d", label: "Past 30 Days" },
-  { key: "90d", label: "Past 90 Days" },
-  { key: "year", label: "This Year" },
+  { key: "7d", label: "7D", longLabel: "Past 7 Days" },
+  { key: "30d", label: "30D", longLabel: "Past 30 Days" },
+  { key: "90d", label: "90D", longLabel: "Past 90 Days" },
+  { key: "all", label: "All", longLabel: "All Time" },
+  { key: "year", label: "Year", longLabel: "This Year" },
 ] as const;
 
+/** Windows shown in the compact scope bar (excludes year). */
+export const LEADERBOARD_SCOPE_WINDOWS = LEADERBOARD_WINDOWS.filter(
+  (w) => w.key !== "year",
+);
+
 export const LEADERBOARD_MIN_PICKS = [0, 10, 25, 50] as const;
+
+export const LEADERBOARD_LIMITS = [10, 20, 50] as const;
+export type LeaderboardLimit = (typeof LEADERBOARD_LIMITS)[number];
+export const DEFAULT_LEADERBOARD_LIMIT: LeaderboardLimit = 10;
 
 export type LeaderboardWindow = (typeof LEADERBOARD_WINDOWS)[number]["key"];
 export type LeaderboardSort = (typeof LEADERBOARD_SORTS)[number]["key"];
@@ -24,6 +34,7 @@ export type LeaderboardFilters = {
   minPicks: number;
   verifiedOnly: boolean;
   search: string;
+  limit: LeaderboardLimit;
 };
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -38,6 +49,7 @@ export function parseLeaderboardFilters(
   const requestedWindow = first(params.window);
   const requestedSort = first(params.sort);
   const requestedMinPicks = Number(first(params.minPicks));
+  const requestedLimit = Number(first(params.limit));
 
   return {
     sport:
@@ -55,7 +67,38 @@ export function parseLeaderboardFilters(
       : 0,
     verifiedOnly: first(params.record) !== "all",
     search: (first(params.q) ?? "").trim().slice(0, 40),
+    limit: LEADERBOARD_LIMITS.includes(requestedLimit as never)
+      ? (requestedLimit as LeaderboardLimit)
+      : DEFAULT_LEADERBOARD_LIMIT,
   };
+}
+
+/** Build a leaderboard href preserving current filters with overrides. */
+export function leaderboardHref(
+  filters: LeaderboardFilters,
+  overrides: Partial<{
+    sport: string;
+    window: string;
+    sort: string;
+    minPicks: number;
+    verifiedOnly: boolean;
+    search: string;
+    limit: number;
+  }> = {},
+): string {
+  const next = { ...filters, ...overrides };
+  const params = new URLSearchParams();
+  if (next.sport !== "ALL") params.set("sport", next.sport);
+  if (next.window !== "all") params.set("window", next.window);
+  if (next.sort !== "units") params.set("sort", next.sort);
+  if (next.minPicks !== 0) params.set("minPicks", String(next.minPicks));
+  if (!next.verifiedOnly) params.set("record", "all");
+  if (next.search) params.set("q", next.search);
+  if (next.limit !== DEFAULT_LEADERBOARD_LIMIT) {
+    params.set("limit", String(next.limit));
+  }
+  const qs = params.toString();
+  return qs ? `/leaderboard?${qs}` : "/leaderboard";
 }
 
 export function leaderboardWindowStart(
@@ -102,21 +145,36 @@ export function buildPerformanceTrend(
   return sampled;
 }
 
+function primarySortValue(
+  capper: CapperSummary,
+  sort: LeaderboardSort,
+): number {
+  switch (sort) {
+    case "roi":
+      return capper.roi;
+    case "winPct":
+      return capper.winPct;
+    case "clv":
+      return capper.avgClv ?? Number.NEGATIVE_INFINITY;
+    case "sample":
+      return capper.settledPicks ?? 0;
+    case "verified":
+      return capper.verifiedShare ?? Number.NEGATIVE_INFINITY;
+    case "form":
+      return capper.streak;
+    case "units":
+    default:
+      return capper.units;
+  }
+}
+
 export function sortLeaderboard(
   cappers: CapperSummary[],
   sort: LeaderboardSort,
 ): CapperSummary[] {
   const ranked = [...cappers];
   ranked.sort((a, b) => {
-    const primary =
-      sort === "roi"
-        ? b.roi - a.roi
-        : sort === "winPct"
-          ? b.winPct - a.winPct
-          : sort === "clv"
-            ? (b.avgClv ?? Number.NEGATIVE_INFINITY) -
-              (a.avgClv ?? Number.NEGATIVE_INFINITY)
-            : b.units - a.units;
+    const primary = primarySortValue(b, sort) - primarySortValue(a, sort);
     return (
       primary ||
       (b.settledPicks ?? 0) - (a.settledPicks ?? 0) ||

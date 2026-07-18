@@ -5,6 +5,7 @@ import type { Outcome } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   buildPerformanceTrend,
+  DEFAULT_LEADERBOARD_LIMIT,
   leaderboardWindowStart,
   partitionLeaderboard,
   type LeaderboardFilters,
@@ -31,6 +32,7 @@ const DEFAULT_FILTERS: LeaderboardFilters = {
   minPicks: 0,
   verifiedOnly: false,
   search: "",
+  limit: DEFAULT_LEADERBOARD_LIMIT,
 };
 
 function fetchRankableProfiles(filters: LeaderboardFilters, clvReady: boolean) {

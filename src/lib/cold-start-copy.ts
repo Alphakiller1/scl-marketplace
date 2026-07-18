@@ -60,3 +60,15 @@ export const BOTTOM_BAND_HEADLINE = "Build A Record People Can Inspect";
 
 export const BOTTOM_BAND_BODY =
   "Log board-verified plays. Earn a public rank others can check.";
+
+/** Rank-mode right rail — factual eligibility copy (GPT review welcome). */
+export const HOW_RANKING_WORKS_TITLE = "How ranking works";
+
+export const HOW_RANKING_WORKS_BULLETS = [
+  "A public place requires graded picks in the selected scope, at or above the minimum sample, and a non-negative units and ROI total in that scope.",
+  "Net-negative or below-sample records stay inspectable under Building a Record — they do not receive a competition place.",
+  "Sorting by CLV additionally requires a signal-sized sample and at least one stored closing line.",
+] as const;
+
+export const HOW_RANKING_VERIFIED_NOTE =
+  "Verified share is the percent of tracked picks that were board-checked. Only board-verified picks feed the verified leaderboard signal.";
