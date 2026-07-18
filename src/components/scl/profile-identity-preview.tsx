@@ -48,22 +48,24 @@ export function ProfileIdentityPreview({
         <span className="text-muted-foreground text-xs">Live</span>
       </div>
 
-      <CapperBanner src={profile.bannerUrl} heightClass="h-24 w-full" />
+      <CapperBanner
+        src={profile.bannerUrl}
+        heightClass="h-24 w-full"
+        collapseWhenEmpty
+      />
 
       <div className="px-4 pb-4">
-        <div className="relative z-10 -mt-7 flex items-end justify-between gap-3">
-          <span className="bg-card ring-card rounded-xl p-1 ring-4">
+        <div className="relative z-10 flex items-end justify-between gap-3 pt-3">
+          <span className="bg-card ring-border rounded-xl p-1 ring-1">
             <CapperAvatar
               name={avatarName}
               src={profile.avatarUrl ?? undefined}
-              size="xl"
+              size="md"
             />
           </span>
 
           {profile.verified ? <VerificationBadge size="sm" withLabel /> : null}
         </div>
-
-        {/* Name below the cover overlap — matches public profile layout. */}
 
         <h3 className="mt-3 text-lg font-bold break-words">
           {identity.primary}

@@ -102,7 +102,8 @@ ink/text/muted tokens or the performance ramp. Off-role pink/blue is a violation
 - **Scanline** — board/pick-flow containers only:
   `repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0 1px, transparent 1px 4px)`.
 - **Ticket paper** — the warm light surface, used for Proof Receipts and expanded proof even
-  inside dark UI (≤1.5% mono grain). The signature contrast artifact.
+  inside dark UI (≤1.5% mono grain). The signature contrast artifact. `.scl-proof-paper`
+  always renders warm stock with dark ink text tokens — never a near-black “paper.”
 - **Marketing surfaces** may add ≤3% noise. Nothing else. (Ledger-grid is Explore — not
   sanctioned until prototyped and versioned.)
 
@@ -192,7 +193,10 @@ slide 180–240ms · Trust-Lens tab change · Line-moved sheet. Reduced-motion r
 
 Each surface answers one question in ~5s and promotes that answer above all else — Home: who's
 worth inspecting + why trust SCL; Leaderboard: who ranks highest in this scope + how credible;
-Profile: is this record credible + relevant; New Pick: what am I committing to + what proof is preserved.
+Profile: is this record credible + relevant — Proof-first composition: compact identity
+(≤~200px, no broken/empty cover band), Evidence Brief by ~250px, warm expanded-paper
+Proof Receipt in the first viewport, Follow/Compare/View offers as one action group;
+bio/coverage/social sit below proof history.
 
 ## Navigation, copy & brand
 

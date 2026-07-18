@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { ListChecks, ShieldCheck } from "lucide-react";
+import { useMemo, useState, type ReactNode } from "react";
+import { ListChecks, Receipt, ShieldCheck } from "lucide-react";
 
 import {
   CumulativeUnitsChart,
@@ -30,7 +30,11 @@ import type { CapperSummary } from "@/lib/mock";
 import { americanToDecimal } from "@/lib/odds";
 import { pickContextLabel } from "@/lib/pick-identity";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
-import { deriveProofReceiptState, formatClvPts } from "@/lib/proof-receipt";
+import {
+  deriveProofReceiptState,
+  formatClvPts,
+  type ProofReceiptDensity,
+} from "@/lib/proof-receipt";
 import type { PlayView } from "@/lib/queries/plays";
 import { hasSignal, isProvisional } from "@/lib/sample";
 import { cn } from "@/lib/utils";
@@ -56,7 +60,7 @@ function VerifiedMeter({ pct }: { pct: number | null }) {
           {pct}%
         </span>
       </div>
-      <span className="text-muted-foreground text-[0.7rem] font-medium tracking-wide uppercase">
+      <span className="scl-eyebrow text-[color:var(--scl-muted-label)]">
         Verified
       </span>
       <div
@@ -76,7 +80,10 @@ function VerifiedMeter({ pct }: { pct: number | null }) {
   );
 }
 
-function playToProofReceipt(play: PlayView) {
+function playToProofReceipt(
+  play: PlayView,
+  density: ProofReceiptDensity,
+): ReactNode {
   const state = deriveProofReceiptState({
     outcome: play.outcome,
     eventStartsAt: play.eventStartsAt,
@@ -94,7 +101,7 @@ function playToProofReceipt(play: PlayView) {
   });
   return (
     <ProofReceipt
-      key={play.id}
+      key={`${play.id}-${density}`}
       selectionTitle={play.selection}
       leadingMark={
         <TeamRef name={play.side} sport={play.sport} size="md" knownOnly />
@@ -116,7 +123,7 @@ function playToProofReceipt(play: PlayView) {
       capturedAt={play.createdAt.toISOString()}
       book={play.book}
       state={state}
-      density="feed"
+      density={density}
       closingOddsAmerican={play.closingOddsAmerican ?? null}
       clvPts={play.clvPts ?? null}
       evidenceId={play.id}
@@ -127,7 +134,8 @@ function playToProofReceipt(play: PlayView) {
 }
 
 /**
- * Capper profile Evidence Brief — Trust Lens + metrics + chart + Proof history.
+ * Capper profile Evidence Brief — Trust Lens + metrics + featured paper receipt
+ * + Proof history. Proof-first: brief and paper artifact belong in the first viewport.
  */
 export function EvidenceBrief({
   capper,
@@ -204,12 +212,14 @@ export function EvidenceBrief({
 
   const showClv = signal || lens === "analyst" || lens === "audit";
   const showAuditMeta = lens === "audit";
+  const featured = plays[0] ?? null;
+  const historyPlays = plays.slice(1);
 
   return (
-    <div className={cn("space-y-6", className)}>
-      <Card className="gap-0 p-4 sm:p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-muted-foreground text-[0.7rem] font-semibold tracking-wide uppercase">
+    <div className={cn("space-y-5", className)}>
+      <Card className="gap-0 p-3.5 sm:p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="scl-eyebrow text-[color:var(--scl-muted-label)]">
             Evidence Brief
           </h2>
           <div className="flex flex-wrap items-center gap-2">
@@ -217,24 +227,24 @@ export function EvidenceBrief({
           </div>
         </div>
 
-        <Tabs value={lens} onValueChange={onLensChange} className="mt-3">
+        <Tabs value={lens} onValueChange={onLensChange} className="mt-2.5">
           <TabsList
             variant="line"
-            className="h-11 w-full max-w-md justify-start gap-1"
+            className="h-10 w-full max-w-md justify-start gap-1"
             aria-label="Trust lens"
           >
-            <TabsTrigger value="simple" className="min-h-10 px-3">
+            <TabsTrigger value="simple" className="min-h-9 px-3">
               Simple
             </TabsTrigger>
-            <TabsTrigger value="analyst" className="min-h-10 px-3">
+            <TabsTrigger value="analyst" className="min-h-9 px-3">
               Analyst
             </TabsTrigger>
-            <TabsTrigger value="audit" className="min-h-10 px-3">
+            <TabsTrigger value="audit" className="min-h-9 px-3">
               Audit
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="simple" className="mt-4 space-y-4">
+          <TabsContent value="simple" className="mt-3 space-y-3">
             <MetricRow
               capper={capper}
               graded={graded}
@@ -244,10 +254,10 @@ export function EvidenceBrief({
               clvScale={clvScale}
               showClv={false}
             />
-            <SampleMaturityMeter graded={graded} showLegend />
+            <SampleMaturityMeter graded={graded} />
           </TabsContent>
 
-          <TabsContent value="analyst" className="mt-4 space-y-4">
+          <TabsContent value="analyst" className="mt-3 space-y-3">
             <MetricRow
               capper={capper}
               graded={graded}
@@ -262,7 +272,7 @@ export function EvidenceBrief({
             <ClvTrackerPanel summary={clvTracker} />
           </TabsContent>
 
-          <TabsContent value="audit" className="mt-4 space-y-4">
+          <TabsContent value="audit" className="mt-3 space-y-3">
             <MetricRow
               capper={capper}
               graded={graded}
@@ -285,7 +295,7 @@ export function EvidenceBrief({
           </TabsContent>
         </Tabs>
 
-        <div className="border-border mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t pt-3">
+        <div className="border-border mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t pt-2.5">
           <VerificationHelpLink />
           <a
             href="/responsible-gaming"
@@ -295,6 +305,32 @@ export function EvidenceBrief({
           </a>
         </div>
       </Card>
+
+      <section aria-label="Featured proof receipt" className="space-y-2">
+        <div className="border-t border-[color:var(--scl-pink-deep)] pt-2">
+          <h2 className="scl-display text-sm font-bold tracking-[0.05em] uppercase">
+            Latest proof
+          </h2>
+          <p className="text-muted-foreground mt-0.5 text-xs leading-snug">
+            Expanded paper receipt — inspectable capture, close, and CLV.
+          </p>
+        </div>
+        {featured ? (
+          playToProofReceipt(featured, "expanded-paper")
+        ) : playsError ? (
+          <EmptyState
+            icon={Receipt}
+            title="Couldn't load latest proof"
+            description="Try again shortly."
+          />
+        ) : (
+          <EmptyState
+            icon={Receipt}
+            title="No tracked plays yet"
+            description={`${emptyName} hasn't posted a graded play yet. When they do, the Proof Receipt appears here — timestamps, lines, and results included.`}
+          />
+        )}
+      </section>
 
       <section id="recent-picks" className="scroll-mt-20">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -309,13 +345,17 @@ export function EvidenceBrief({
           <VerificationHelpLink className="text-muted-foreground hover:text-foreground inline-flex min-h-11 shrink-0 gap-1.5 self-start px-2 text-xs font-medium" />
         </div>
 
-        {plays.length ? (
+        {historyPlays.length ? (
           <>
             <VerificationLegend className="mt-4" />
             <div className="mt-3 space-y-3">
-              {plays.map((play) => playToProofReceipt(play))}
+              {historyPlays.map((play) => playToProofReceipt(play, "feed"))}
             </div>
           </>
+        ) : featured ? (
+          <p className="text-muted-foreground mt-4 text-sm leading-relaxed">
+            Additional receipts will stack here as more plays settle.
+          </p>
         ) : playsError ? (
           <EmptyState
             className="mt-4"
@@ -354,7 +394,7 @@ function MetricRow({
   showClv: boolean;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
       <RecordStat record={capper.record} />
       <div className="space-y-1.5">
         <RoiStat roi={capper.roi} gradedCount={graded} />

@@ -416,26 +416,29 @@
   .scl-ticket-settling .scl-ticket-stamp {
     animation: scl-ticket-stamp-in 400ms ease-out 720ms both;
   }
-  /* Proof Receipt expanded-paper / share-image — ≤3% noise, warm stock feel */
+  /*
+    Proof Receipt expanded-paper / share-image — warm ticket paper even inside
+    dark UI (design signature contrast). ≤1.5% mono grain. Scoped text tokens
+    keep numerals/prose readable on the light stock.
+  */
   .scl-proof-paper {
+    --scl-text: #161b26;
+    --scl-muted-label: #6e7686;
+    --scl-muted-data: #596273;
+    --foreground: #161b26;
+    --muted-foreground: #596273;
+    --card-foreground: #161b26;
+    --border: color-mix(in oklab, #161b26 14%, #f5f3ed);
+    --background: #f3f1ea;
+    color: #161b26;
+    background-color: #f5f3ed;
     background-image:
-      radial-gradient(rgba(255, 255, 255, 0.03) 0.6px, transparent 0.6px),
-      linear-gradient(
-        180deg,
-        color-mix(in oklab, var(--scl-ink-800) 96%, #f3f1ea 4%),
-        var(--scl-ink-800)
-      );
-    background-size:
-      3px 3px,
-      auto;
-  }
-  .light .scl-proof-paper {
-    background-image:
-      radial-gradient(rgba(22, 27, 38, 0.03) 0.6px, transparent 0.6px),
+      radial-gradient(rgba(22, 27, 38, 0.025) 0.55px, transparent 0.55px),
       linear-gradient(180deg, #ffffff, #f5f3ed);
     background-size:
       3px 3px,
       auto;
+    box-shadow: var(--scl-shadow-card);
   }
   @keyframes scl-board-fade-in {
     from {
