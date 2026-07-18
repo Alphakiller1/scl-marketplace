@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -8,14 +11,50 @@ type CapperBannerProps = {
   priority?: boolean;
   className?: string;
   heightClass?: string;
+  /**
+   * When true, render nothing if the cover is missing or fails to load —
+   * avoids an empty reserved band (trust regression on Proof profiles).
+   */
+  collapseWhenEmpty?: boolean;
 };
 
+/**
+ * Capper cover band. Never leaves a broken/empty reserved strip when
+ * `collapseWhenEmpty` is set — load failures collapse to null.
+ */
 export function CapperBanner({
   src,
   priority = false,
   className,
   heightClass = "h-28 w-full sm:h-36 lg:h-40",
+  collapseWhenEmpty = false,
 }: CapperBannerProps) {
+  const [failed, setFailed] = useState(false);
+  const usable = Boolean(src?.trim()) && !failed;
+
+  if (!usable) {
+    if (collapseWhenEmpty) return null;
+    return (
+      <div
+        className={cn(
+          "bg-surface-2 relative overflow-hidden",
+          heightClass,
+          className,
+        )}
+        aria-hidden
+      >
+        <div className="absolute inset-0 bg-[color:var(--scl-ink-900)]" />
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.35]"
+          style={{
+            backgroundImage:
+              "radial-gradient(ellipse at 20% 40%, color-mix(in oklab, var(--scl-pink) 18%, transparent), transparent 55%), radial-gradient(ellipse at 80% 60%, color-mix(in oklab, var(--scl-blue) 14%, transparent), transparent 50%)",
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -24,21 +63,15 @@ export function CapperBanner({
         className,
       )}
     >
-      {src ? (
-        <Image
-          src={src}
-          alt=""
-          fill
-          sizes="100vw"
-          priority={priority}
-          className="object-cover"
-        />
-      ) : (
-        <div
-          aria-hidden
-          className="absolute inset-0 size-full bg-[color:var(--scl-ink-900)]"
-        />
-      )}
+      <Image
+        src={src!}
+        alt=""
+        fill
+        sizes="100vw"
+        priority={priority}
+        className="object-cover"
+        onError={() => setFailed(true)}
+      />
     </div>
   );
 }

@@ -6,7 +6,9 @@ import { buildCapperProfileMetadata } from "@/lib/capper-profile-seo";
 import { getPublicCapperByHandle } from "@/lib/queries/capper";
 import { getLivePackagesForCapper } from "@/lib/queries/store";
 import { CapperProfileHeader } from "@/components/scl/capper-profile-header";
+import { CapperProfileMeta } from "@/components/scl/capper-profile-meta";
 import { CapperStorefront } from "@/components/scl/capper-storefront";
+import { CompareTray } from "@/components/scl/compare-tray";
 import { EvidenceBrief } from "@/components/scl/evidence-brief";
 
 type ProfileParams = { params: Promise<{ handle: string }> };
@@ -32,21 +34,24 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
   const packages = await getLivePackagesForCapper(capper.id);
 
   return (
-    <div className="overflow-x-hidden pb-6 sm:pb-8">
+    <div className="overflow-x-hidden pb-6 sm:pb-8" data-visual-mode="proof">
       <CapperProfileHeader capper={capper} />
 
-      <div className="mx-auto mt-5 max-w-5xl px-4 sm:px-6">
-        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
-          <EvidenceBrief
-            capper={capper}
-            plays={plays}
-            playsError={playsError}
-            avgClv={avgClv}
-            clvTracker={clvTracker}
-            emptyName={identity.primary}
-          />
+      <div className="mx-auto mt-3 max-w-5xl px-4 sm:mt-4 sm:px-6">
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-8">
+          <div className="min-w-0 space-y-6">
+            <EvidenceBrief
+              capper={capper}
+              plays={plays}
+              playsError={playsError}
+              avgClv={avgClv}
+              clvTracker={clvTracker}
+              emptyName={identity.primary}
+            />
+            <CapperProfileMeta capper={capper} />
+          </div>
 
-          <aside className="border-border border-t pt-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+          <aside className="border-border border-t pt-5 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
             <CapperStorefront
               className="mt-0"
               storefront={capper.storefront}
@@ -56,6 +61,8 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
           </aside>
         </div>
       </div>
+      <CompareTray />
+      <div className="h-16" aria-hidden />
     </div>
   );
 }
