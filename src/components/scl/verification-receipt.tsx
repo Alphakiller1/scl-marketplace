@@ -4,12 +4,13 @@ import Link from "next/link";
 
 import { PickTierBadge } from "@/components/scl/badges";
 import { LeagueRef, TeamRef } from "@/components/scl/entity-marks";
+import { ProofReceipt } from "@/components/scl/proof-receipt";
 import { ReceiptStack } from "@/components/scl/receipt-stack";
-import { Ticket } from "@/components/scl/ticket";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatOdds, formatUnits } from "@/lib/format";
 import { americanToDecimal } from "@/lib/odds";
+import { deriveProofReceiptState } from "@/lib/proof-receipt";
 import {
   isVerifiedTier,
   submissionReceiptCopy,
@@ -20,7 +21,7 @@ const PINK_CTA =
   "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)]";
 
 /**
- * Post-submit confirmation — signature Ticket performing SCL's trust model.
+ * Post-submit confirmation — canonical ProofReceipt in expanded-paper density.
  */
 export function VerificationReceipt({
   receipt,
@@ -77,9 +78,20 @@ export function VerificationReceipt({
           )
         : "—";
 
+  const state = deriveProofReceiptState({
+    outcome: "PENDING",
+    verified: verifiedTone,
+    capturing: false,
+  });
+
+  const moveNote =
+    receipt.kind === "straight"
+      ? receipt.moveNote
+      : receipt.moveNotes?.join(" · ");
+
   return (
     <div className={cn("mx-auto max-w-md space-y-3", className)}>
-      <Ticket
+      <ProofReceipt
         selectionTitle={selectionTitle}
         leadingMark={
           sport ? (
@@ -102,7 +114,10 @@ export function VerificationReceipt({
         toWin={toWin}
         capturedAt={receipt.capturedAt}
         book={receipt.book}
-        status={verifiedTone ? "verified" : "muted"}
+        state={state}
+        density="expanded-paper"
+        settling
+        statusNote={copy.gradingLine}
         footerAction={
           <div className="space-y-3">
             {showTier ? (
@@ -113,23 +128,10 @@ export function VerificationReceipt({
                 ))}
               </div>
             ) : null}
-            <p className="text-muted-foreground text-sm">{copy.gradingLine}</p>
-            {receipt.kind === "straight" && receipt.moveNote ? (
+            {moveNote ? (
               <p className="scl-data text-muted-foreground text-[0.65rem] tracking-[0.08em] uppercase">
-                {receipt.moveNote}
+                {moveNote}
               </p>
-            ) : null}
-            {receipt.kind === "parlay" && receipt.moveNotes?.length ? (
-              <ul className="space-y-1">
-                {receipt.moveNotes.map((note) => (
-                  <li
-                    key={note}
-                    className="scl-data text-muted-foreground text-[0.65rem] tracking-[0.08em] uppercase"
-                  >
-                    {note}
-                  </li>
-                ))}
-              </ul>
             ) : null}
             <Button
               className={`min-h-12 w-full text-base ${PINK_CTA}`}

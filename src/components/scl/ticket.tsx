@@ -2,15 +2,14 @@
 
 import type { ReactNode } from "react";
 
-import { BettingTitle } from "@/components/scl/betting-title";
-import { formatOddsCaptureSourceLine } from "@/lib/books";
-import { cn } from "@/lib/utils";
+import { ProofReceipt } from "@/components/scl/proof-receipt";
+import type { ProofReceiptState } from "@/lib/proof-receipt";
 
+/** @deprecated Prefer ProofReceiptState — kept for PickCard / feed callers. */
 export type TicketStatus = "verified" | "win" | "loss" | "muted" | "pending";
 
 export type TicketProps = {
   selectionTitle: string;
-  /** Team (or other) mark beside the selection title. */
   leadingMark?: ReactNode;
   eventLine?: string | React.ReactNode | null;
   legs: number;
@@ -18,29 +17,28 @@ export type TicketProps = {
   stake: string;
   toWin: string;
   capturedAt?: string | null;
-  /** Odds API bookmaker key — surfaces SOURCE: <BOOK> BOARD (M5 §4). */
   book?: string | null;
-  /** When false, do not promise automatic grading (cron unhealthy / delayed). */
   gradingHealthy?: boolean;
   status?: TicketStatus;
-  /** Hero settling sequence — capture fades in, then stamp drops (CSS; reduced-motion safe). */
   settling?: boolean;
   className?: string;
   footerAction?: ReactNode;
   analysis?: string | null;
+  closingOddsAmerican?: number | null;
+  clvPts?: number | null;
+  evidenceId?: string | null;
 };
 
-function stampLabel(status: TicketStatus): string {
-  if (status === "win") return "Win";
-  if (status === "loss") return "Loss";
-  if (status === "muted") return "Logged";
-  if (status === "pending") return "Pending";
-  return "Verified";
+function ticketStatusToProofState(status: TicketStatus): ProofReceiptState {
+  if (status === "win") return "won";
+  if (status === "loss") return "loss";
+  if (status === "verified") return "captured";
+  if (status === "pending") return "pending";
+  return "pending";
 }
 
 /**
- * Signature bet-ticket card — perforated tear, pink stamp, mono capture line.
- * Reference: scl-pick-flow-concept.html Exhibit B.
+ * Compatibility shim — canonical surface is ProofReceipt (`density="feed"`).
  */
 export function Ticket({
   selectionTitle,
@@ -58,148 +56,31 @@ export function Ticket({
   className,
   footerAction,
   analysis,
+  closingOddsAmerican,
+  clvPts,
+  evidenceId,
 }: TicketProps) {
-  const pinkStamp = status === "verified" || status === "win";
-  const lossStamp = status === "loss";
-  const settled = status === "win" || status === "loss";
-  const captureLine = formatOddsCaptureSourceLine({
-    capturedAt,
-    book,
-    // Settled tickets must never claim grading is delayed.
-    gradingHealthy: settled ? true : gradingHealthy,
-  });
-  const gradeDelayed = !settled && captureLine.includes("GRADING DELAYED");
-
   return (
-    <article
-      className={cn(
-        "bg-card border-border relative overflow-hidden rounded-[var(--scl-radius-card)] border shadow-[var(--scl-shadow-card)]",
-        settling && "scl-ticket-settling",
-        className,
-      )}
-      aria-label="Pick receipt"
-    >
-      <div className="border-border relative border-b border-dashed px-5 pt-[18px] pb-3.5">
-        <div
-          className={cn(
-            "scl-display scl-ticket-stamp absolute top-4 right-4 origin-center rounded-md border-2 px-2.5 py-1 text-[0.8rem] font-bold tracking-[0.16em] uppercase",
-            pinkStamp && "border-pink text-pink",
-            lossStamp && "border-neg text-neg",
-            !pinkStamp && !lossStamp && "border-border text-muted-foreground",
-            settling ? "rotate-12 opacity-0" : "rotate-6 opacity-100",
-          )}
-          aria-hidden={settling ? true : undefined}
-        >
-          {stampLabel(status)}
-        </div>
-
-        <p className="scl-eyebrow mb-1.5 pr-24 text-[color:var(--scl-muted-label)]">
-          SCL · Pick Receipt
-        </p>
-        <div className="flex min-w-0 items-start gap-2.5 pr-20">
-          {leadingMark ? (
-            <span className="mt-1 shrink-0">{leadingMark}</span>
-          ) : null}
-          <BettingTitle
-            as="h2"
-            text={selectionTitle}
-            className="scl-display text-foreground min-w-0 flex-1 text-2xl leading-[1.05] font-bold tracking-tight text-balance whitespace-pre-line sm:text-[1.65rem]"
-          />
-        </div>
-        {eventLine ? (
-          <div className="scl-data text-muted-foreground mt-1.5 text-[0.65rem] tracking-[0.06em] uppercase">
-            {eventLine}
-          </div>
-        ) : null}
-      </div>
-
-      <div className="grid grid-cols-3 gap-2.5 px-5 py-3.5">
-        <TicketCell label="Legs" value={String(legs)} />
-        <TicketCell label="Odds" value={odds} accent />
-        <TicketCell label="Stake" value={stake} />
-      </div>
-
-      <div
-        className="border-border relative mx-[-1px] border-t-[1.5px] border-dashed"
-        aria-hidden
-      >
-        <span className="bg-background border-border absolute top-[-9px] left-[-10px] size-[18px] rounded-full border" />
-        <span className="bg-background border-border absolute top-[-9px] right-[-10px] size-[18px] rounded-full border" />
-      </div>
-
-      <div className="flex items-center justify-between gap-3 px-5 pt-3 pb-4">
-        <p
-          className={cn(
-            "scl-data scl-ticket-capture text-muted-foreground max-w-[16rem] text-[0.625rem] leading-relaxed tracking-[0.08em] uppercase",
-            settling && "opacity-0",
-          )}
-        >
-          {captureLine.split(" · GRADES AUTOMATICALLY").length === 2 ? (
-            <>
-              {captureLine.replace(/ · GRADES AUTOMATICALLY$/, "")}
-              {" · "}
-              <span className="text-pos font-semibold">
-                Grades Automatically
-              </span>
-            </>
-          ) : gradeDelayed ? (
-            <>
-              {captureLine.replace(/ · GRADING DELAYED — CHECK BACK SOON$/, "")}
-              {" · "}
-              <span className="text-muted-foreground font-semibold">
-                Grading delayed — check back soon
-              </span>
-            </>
-          ) : (
-            captureLine
-          )}
-        </p>
-        <div className="scl-display shrink-0 text-right text-[0.8rem] font-semibold tracking-[0.06em] uppercase">
-          <span className="text-muted-foreground block">To Win</span>
-          <span className="scl-data text-pink text-[0.95rem] font-semibold tracking-normal normal-case">
-            {toWin}
-          </span>
-        </div>
-      </div>
-
-      {analysis ? (
-        <div className="border-border border-t px-5 py-3">
-          <p className="text-muted-foreground text-[0.65rem] font-semibold tracking-wide uppercase">
-            Analysis
-          </p>
-          <p className="text-foreground mt-1 line-clamp-4 text-sm leading-relaxed">
-            {analysis}
-          </p>
-        </div>
-      ) : null}
-
-      {footerAction ? (
-        <div className="border-border border-t px-5 py-3">{footerAction}</div>
-      ) : null}
-    </article>
-  );
-}
-
-function TicketCell({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: string;
-  accent?: boolean;
-}) {
-  return (
-    <div>
-      <div className="scl-eyebrow text-muted-foreground">{label}</div>
-      <div
-        className={cn(
-          "scl-data mt-0.5 text-base font-semibold",
-          accent ? "text-pink" : "text-foreground",
-        )}
-      >
-        {value}
-      </div>
-    </div>
+    <ProofReceipt
+      selectionTitle={selectionTitle}
+      leadingMark={leadingMark}
+      eventLine={eventLine}
+      legs={legs}
+      odds={odds}
+      stake={stake}
+      toWin={toWin}
+      capturedAt={capturedAt}
+      book={book}
+      gradingHealthy={gradingHealthy}
+      state={settling ? "capturing" : ticketStatusToProofState(status)}
+      density="feed"
+      closingOddsAmerican={closingOddsAmerican}
+      clvPts={clvPts}
+      evidenceId={evidenceId}
+      settling={settling}
+      className={className}
+      footerAction={footerAction}
+      analysis={analysis}
+    />
   );
 }
