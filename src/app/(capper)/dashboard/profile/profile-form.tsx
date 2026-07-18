@@ -184,7 +184,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
             className="border-border bg-card space-y-4 rounded-xl border p-4 sm:p-5"
           >
             <div className="flex items-start gap-3">
-              <span className="bg-surface-2 text-brand flex size-9 shrink-0 items-center justify-center rounded-lg">
+              <span className="bg-surface-2 flex size-9 shrink-0 items-center justify-center rounded-lg text-[color:var(--scl-blue)]">
                 <Store className="size-4" aria-hidden />
               </span>
               <div>
@@ -456,7 +456,7 @@ function Chip({
         className="peer sr-only"
         {...register}
       />
-      <span className="border-border text-muted-foreground peer-checked:border-brand peer-checked:bg-brand/10 peer-checked:text-brand inline-flex min-h-11 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition-colors select-none md:min-h-9">
+      <span className="border-border text-muted-foreground peer-checked:border-brand peer-checked:bg-brand/10 peer-checked:text-foreground inline-flex min-h-11 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition-colors select-none md:min-h-9">
         {withLeagueMark ? (
           <LeagueMark leagueKey={value} size="sm" className="rounded-md" />
         ) : null}

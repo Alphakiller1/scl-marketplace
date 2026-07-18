@@ -159,14 +159,14 @@ export default function SignupPage() {
             I accept the{" "}
             <Link
               href="/terms"
-              className="text-brand inline-flex min-h-11 items-center align-middle hover:underline"
+              className="scl-link inline-flex min-h-11 items-center align-middle"
             >
               Terms Of Service
             </Link>{" "}
             and{" "}
             <Link
               href="/privacy"
-              className="text-brand inline-flex min-h-11 items-center align-middle hover:underline"
+              className="scl-link inline-flex min-h-11 items-center align-middle"
             >
               Privacy Policy
             </Link>
@@ -190,7 +190,7 @@ export default function SignupPage() {
         Already registered?{" "}
         <Link
           href="/login"
-          className="text-brand inline-flex min-h-11 items-center font-medium hover:underline"
+          className="scl-link inline-flex min-h-11 items-center font-medium"
         >
           Log In
         </Link>

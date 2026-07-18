@@ -2,15 +2,26 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  PLATFORM_REPORT_ELIGIBILITY_FOOTNOTE,
   classifyMarketCategory,
+  countLabel,
   leagueInitials,
   marketCategories,
+  platformReportSubtitle,
   platformTrackedPicks,
   rankLeagueAction,
   rankLeagueActionCategories,
   shapeCategories,
 } from "@/lib/league-action";
 import { MIN_GRADED_FOR_SIGNAL } from "@/lib/sample";
+
+test("platform report copy uses publicly listed + singular-aware counts", () => {
+  assert.match(platformReportSubtitle(30), /publicly listed cappers/);
+  assert.match(PLATFORM_REPORT_ELIGIBILITY_FOOTNOTE, /publicly listed cappers/);
+  assert.equal(countLabel(1, "graded pick", "graded picks"), "1 graded pick");
+  assert.equal(countLabel(2, "graded pick", "graded picks"), "2 graded picks");
+  assert.equal(countLabel(1, "capper", "cappers"), "1 capper");
+});
 
 test("rankLeagueAction groups by league fallback and ranks by pick volume", () => {
   const leagues = rankLeagueAction([

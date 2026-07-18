@@ -17,6 +17,7 @@ import { RankBadge } from "@/components/scl/rank-badge";
 import { CompactCapperRow } from "@/components/scl/compact-capper-row";
 import { ProvisionalRecordHelp } from "@/components/scl/provisional-record-help";
 import { formatLastPickDate } from "@/lib/capper-activity";
+import { countLabel } from "@/lib/league-action";
 import { isProvisional } from "@/lib/sample";
 
 /** Discovery card — a capper's public résumé at a glance. */
@@ -90,24 +91,24 @@ export function CapperCard({
         </div>
       </div>
 
-      <div className="bg-surface-2 mt-4 grid grid-cols-3 gap-2 rounded-lg p-3">
+      <div className="bg-surface-2 mt-4 grid min-w-0 grid-cols-3 gap-1.5 rounded-lg p-2 sm:gap-2 sm:p-3">
         {provisional ? (
           <>
             <StatBlock
               label="Win %"
               value="—"
-              className="items-center text-center"
+              className="min-w-0 items-center text-center [&_.scl-data]:text-base sm:[&_.scl-data]:text-lg"
             />
             <StatBlock
               label="Units"
               value="—"
-              className="items-center text-center"
+              className="min-w-0 items-center text-center [&_.scl-data]:text-base sm:[&_.scl-data]:text-lg"
             />
-            <div className="space-y-1">
+            <div className="min-w-0 space-y-1">
               <StatBlock
                 label="ROI"
                 value="—"
-                className="items-center text-center"
+                className="min-w-0 items-center text-center [&_.scl-data]:text-base sm:[&_.scl-data]:text-lg"
               />
               <div className="flex justify-center">
                 <ProvisionalRecordHelp label="Provisional" />
@@ -119,26 +120,26 @@ export function CapperCard({
             <WinRateStat
               winPct={capper.winPct}
               gradedCount={graded}
-              className="items-center text-center"
+              className="min-w-0 items-center text-center [&_.scl-data]:text-base sm:[&_.scl-data]:text-lg"
             />
             <UnitStat
               units={capper.units}
               gradedCount={graded}
-              className="items-center text-center"
+              className="min-w-0 items-center text-center [&_.scl-data]:text-base sm:[&_.scl-data]:text-lg"
             />
             <RoiStat
               roi={capper.roi}
               gradedCount={graded}
-              className="items-center text-center"
+              className="min-w-0 items-center text-center [&_.scl-data]:text-base sm:[&_.scl-data]:text-lg"
             />
           </>
         )}
       </div>
 
       <div className="mt-3 flex min-h-10 items-center justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <span className="text-muted-foreground block text-[0.7rem] font-semibold uppercase">
-            {graded.toLocaleString()} Graded Picks
+            {countLabel(graded, "graded pick", "graded picks")}
           </span>
           <RecentFormStrip form={capper.recentForm} className="mt-1" />
         </div>

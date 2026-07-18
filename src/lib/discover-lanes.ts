@@ -34,6 +34,21 @@ export type DiscoverLaneMeta = {
   empty: string;
 };
 
+/**
+ * Supporting empty-state body for a lane — honest cold-start / CLV copy.
+ * Kept in one place so mobile accordion + desktop EmptyState stay in sync.
+ */
+export function discoverLaneEmptyDescription(laneId: DiscoverLaneId): string {
+  if (laneId === "market_beaters") {
+    return "Avg CLV is a pricing metric (submitted vs market close), not a prediction. Snapshots populate forward as closes are captured.";
+  }
+  return "Cold-start boards stay empty until cappers clear the sample gate — SCL does not invent rows.";
+}
+
+export const DISCOVER_LANE_LOAD_FAILED_TITLE = "Couldn't load this lane";
+export const DISCOVER_LANE_LOAD_FAILED_BODY =
+  "Public records are temporarily unavailable. Please try again shortly.";
+
 export const DISCOVER_LANES: readonly DiscoverLaneMeta[] = [
   {
     id: "proven",

@@ -127,7 +127,7 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
             className={cn(
               "flex items-center gap-2 text-xs font-semibold tracking-wide uppercase",
               i === step
-                ? "text-brand"
+                ? "text-foreground"
                 : i < step
                   ? "text-foreground"
                   : "text-muted-foreground",

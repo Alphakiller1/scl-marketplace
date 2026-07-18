@@ -47,7 +47,7 @@ export function VerificationHelpLink({ className }: { className?: string }) {
             </div>
           </li>
           <li className="flex gap-3">
-            <span className="text-live mt-0.5 shrink-0">
+            <span className="mt-0.5 shrink-0 text-[color:var(--scl-blue)]">
               <ShieldCheck className="size-5" aria-hidden />
             </span>
             <div className="min-w-0 space-y-1">

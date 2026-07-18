@@ -179,7 +179,7 @@ const STATUS_STYLES: Record<
   live: {
     label: "Live",
     title: "Event is in progress — grade follows the final",
-    className: "bg-live/15 text-live ring-1 ring-live/30",
+    className: "bg-live/15 text-foreground ring-1 ring-live/30",
     live: true,
   },
   "awaiting-grade": {

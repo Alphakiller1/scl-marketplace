@@ -2,7 +2,12 @@ import { Compass, Users } from "lucide-react";
 
 import { DiscoverLaneCard } from "@/components/scl/discover-lane-card";
 import { EmptyState } from "@/components/scl/states";
-import type { DiscoverLaneResult } from "@/lib/discover-lanes";
+import {
+  DISCOVER_LANE_LOAD_FAILED_BODY,
+  DISCOVER_LANE_LOAD_FAILED_TITLE,
+  discoverLaneEmptyDescription,
+  type DiscoverLaneResult,
+} from "@/lib/discover-lanes";
 import { cn } from "@/lib/utils";
 
 /**
@@ -46,13 +51,11 @@ export function DiscoverLaneSection({
       {!lane.entries.length ? (
         <EmptyState
           icon={Users}
-          title={failed ? "Couldn't load this lane" : lane.empty}
+          title={failed ? DISCOVER_LANE_LOAD_FAILED_TITLE : lane.empty}
           description={
             failed
-              ? "Public records are temporarily unavailable. Please try again shortly."
-              : lane.id === "market_beaters"
-                ? "Avg CLV is a pricing metric (submitted vs market close), not a prediction. Snapshots populate forward as closes are captured."
-                : "Cold-start boards stay empty until cappers clear the sample gate — SCL does not invent rows."
+              ? DISCOVER_LANE_LOAD_FAILED_BODY
+              : discoverLaneEmptyDescription(lane.id)
           }
         />
       ) : (

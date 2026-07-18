@@ -6,6 +6,8 @@
  */
 
 import assert from "node:assert/strict";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 
 import axe from "axe-core";
@@ -169,6 +171,63 @@ describe("a11y contrast — conviction/nav hues must NOT be small-text fills", (
   it("dark muted-label is for labels only — supporting prose uses muted-data", () => {
     assert.ok(
       contrast(DARK.mutedData, DARK.ink) > contrast(DARK.mutedLabel, DARK.ink),
+    );
+  });
+});
+
+describe("a11y contrast — ban blue/pink/live as text fills in source", () => {
+  /**
+   * Regression guard for the storefront Responsible-gaming `text-live` slip:
+   * conviction/nav hues are marks/icons only. Links use `.scl-link`; labels and
+   * values use AA text tokens (`text-foreground`, `--scl-*-text`, etc.).
+   */
+  it("flags text-live / text-brand / raw blue|pink on text hosts", () => {
+    const root = join(process.cwd(), "src");
+    const files: string[] = [];
+
+    function walk(dir: string) {
+      for (const name of readdirSync(dir)) {
+        const p = join(dir, name);
+        const st = statSync(p);
+        if (st.isDirectory()) walk(p);
+        else if (/\.(tsx|ts)$/.test(name) && !name.includes(".test.")) {
+          files.push(p);
+        }
+      }
+    }
+    walk(root);
+
+    const textHost =
+      /<(?:Link|a|p|label|h[1-6]|button)\b[^>]*\b(?:text-live|text-brand|text-\[color:var\(--scl-(?:blue|pink)\)\])\b/;
+    const bareTextLive =
+      /\b(?:className|class)=\{?["'`][^"'`]*\btext-live\b[^"'`]*["'`]/;
+    const bareTextBrand =
+      /\b(?:className|class)=\{?["'`][^"'`]*\btext-brand\b(?!-foreground)[^"'`]*["'`]/;
+    const offenses: string[] = [];
+
+    for (const file of files) {
+      const src = readFileSync(file, "utf8");
+      const rel = file.slice(process.cwd().length + 1).replace(/\\/g, "/");
+      if (textHost.test(src)) {
+        offenses.push(`${rel}: text host uses live/brand/raw blue|pink fill`);
+      }
+      // Remaining text-live / text-brand are text fills — icons use raw --scl-blue|pink.
+      if (bareTextLive.test(src)) {
+        offenses.push(
+          `${rel}: text-live used (prefer .scl-link or AA text token)`,
+        );
+      }
+      if (bareTextBrand.test(src)) {
+        offenses.push(
+          `${rel}: text-brand used as text fill (prefer .scl-link or AA text token)`,
+        );
+      }
+    }
+
+    assert.deepEqual(
+      offenses,
+      [],
+      `Blue/pink/live text fills:\n${offenses.join("\n")}`,
     );
   });
 });

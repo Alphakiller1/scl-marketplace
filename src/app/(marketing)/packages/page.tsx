@@ -114,7 +114,7 @@ export default async function PackagesPage() {
               key={step.title}
               className="border-border bg-card rounded-xl border p-4"
             >
-              <span className="bg-surface-2 text-brand mb-3 inline-flex size-9 items-center justify-center rounded-lg">
+              <span className="bg-surface-2 mb-3 inline-flex size-9 items-center justify-center rounded-lg text-[color:var(--scl-blue)]">
                 <step.icon className="size-4" aria-hidden />
               </span>
               <h3 className="font-semibold">{step.title}</h3>

@@ -137,4 +137,4 @@ export const CLV_TRACKER_EMPTY_BODY =
 export const CLV_TRACKER_PROVISIONAL_BODY = `CLV unlocks after ${MIN_GRADED_FOR_SIGNAL} closing snapshots. Showing an honest empty, not a fabricated 0.0.`;
 
 export const PLATFORM_CLV_EMPTY_BODY =
-  "No board-verified closing snapshots across public listed cappers yet. Platform CLV will populate as forward picks capture closes.";
+  "No board-verified closing snapshots across publicly listed cappers yet. Platform CLV will populate as forward picks capture closes.";

@@ -99,7 +99,7 @@ function LoginForm() {
         <div className="flex justify-end">
           <Link
             href="/forgot-password"
-            className="text-brand inline-flex min-h-11 items-center text-sm font-medium hover:underline"
+            className="scl-link inline-flex min-h-11 items-center text-sm font-medium"
           >
             Forgot Password?
           </Link>
@@ -118,7 +118,7 @@ function LoginForm() {
         New to SCL?{" "}
         <Link
           href="/signup"
-          className="text-brand inline-flex min-h-11 items-center font-medium hover:underline"
+          className="scl-link inline-flex min-h-11 items-center font-medium"
         >
           Create An Account
         </Link>

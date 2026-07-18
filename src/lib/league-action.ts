@@ -91,11 +91,11 @@ export const LEAGUE_ACTION_CATEGORY_EMPTY: Record<
 
 /** Matches leaderboard public-surface eligibility tone (ranked + building). */
 export const PLATFORM_REPORT_ELIGIBILITY_FOOTNOTE =
-  "Board-verified picks from public listed cappers (ranked and building-a-record). Test accounts are excluded. ROI and units appear only after a signal-sized graded sample.";
+  "Board-verified picks from publicly listed cappers (ranked and building-a-record). Test accounts are excluded. ROI and units appear only after a signal-sized graded sample.";
 
 /** Homepage section subtitle (GPT-locked voice — no “most successful” hype). */
 export function platformReportSubtitle(windowDays: number): string {
-  return `Board-verified bet types from public listed cappers — last ${windowDays} days`;
+  return `Board-verified bet types from publicly listed cappers — last ${windowDays} days`;
 }
 
 /** Metric label for categories with tracked volume. */

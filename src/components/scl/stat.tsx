@@ -50,14 +50,14 @@ export function StatBlock({
     >
       <span
         className={cn(
-          "scl-data text-lg font-semibold tracking-tight tabular-nums sm:text-xl",
+          "scl-data max-w-full truncate text-lg font-semibold tracking-tight tabular-nums sm:text-xl",
           valueClassName ?? toneText[tone],
         )}
         aria-label={ariaLabel}
       >
         {value}
       </span>
-      <span className="text-muted-foreground text-[0.7rem] font-medium tracking-wide uppercase">
+      <span className="text-muted-foreground max-w-full truncate text-[0.65rem] font-medium tracking-wide uppercase sm:text-[0.7rem]">
         {label}
       </span>
       {sub ? (
