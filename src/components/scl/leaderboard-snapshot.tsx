@@ -30,7 +30,7 @@ export function LeaderboardSnapshot({
     >
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0 border-t border-[color:var(--scl-pink-deep)] pt-2.5">
-          <p className="scl-eyebrow text-[color:var(--scl-blue)]">Live board</p>
+          <p className="scl-eyebrow">Live board</p>
           <h2 className="scl-display text-lg font-semibold tracking-[0.04em]">
             Leaderboard snapshot
           </h2>
@@ -40,7 +40,7 @@ export function LeaderboardSnapshot({
         </div>
         <Link
           href="/leaderboard"
-          className="inline-flex min-h-11 shrink-0 items-center gap-1 text-sm font-medium text-[color:var(--scl-blue)] hover:underline"
+          className="scl-link inline-flex min-h-11 shrink-0 items-center gap-1 text-sm font-medium"
         >
           View full leaderboard
           <ArrowRight className="size-3.5" aria-hidden />

@@ -159,7 +159,7 @@ export function CompetitionHero() {
                   <Link
                     href={slide.href}
                     tabIndex={active ? undefined : -1}
-                    className="focus-visible:ring-ring rounded-sm transition-colors hover:text-[color:var(--scl-pink)] focus-visible:ring-2 focus-visible:outline-none"
+                    className="focus-visible:ring-ring rounded-sm text-[color:var(--scl-text)] underline-offset-4 transition-colors hover:underline hover:decoration-[color:var(--scl-pink)] focus-visible:ring-2 focus-visible:outline-none"
                   >
                     {slide.title}
                   </Link>

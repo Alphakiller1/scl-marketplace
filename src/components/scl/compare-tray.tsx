@@ -41,7 +41,7 @@ export function CompareTray({ className }: { className?: string }) {
                 <span className="border-border bg-surface-2 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold">
                   <Link
                     href={`/cappers/${handle}`}
-                    className="text-foreground hover:text-[color:var(--scl-blue)]"
+                    className="text-foreground underline-offset-2 hover:underline hover:decoration-[color:var(--scl-blue)]"
                   >
                     @{handle}
                   </Link>

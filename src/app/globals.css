@@ -88,8 +88,10 @@
   --scl-ink-600: #e9e5da;
   --scl-line: #d8d3c4;
   --scl-text: #161b26;
+  /* Label tone — eyebrows / large (≥18px bold) only. Not normal prose. */
   --scl-muted-label: #6e7686;
-  --scl-muted-data: #454e60;
+  /* Supporting prose — WCAG AA 5.43:1 on paper (#F3F1EA). */
+  --scl-muted-data: #596273;
   --scl-pink: #a6007f;
   --scl-pink-deep: #8d006a;
   --scl-pink-ink: #fff3fc;
@@ -131,7 +133,8 @@
   --secondary: var(--scl-ink-700);
   --secondary-foreground: var(--scl-text);
   --muted: var(--scl-ink-700);
-  --muted-foreground: var(--scl-muted-label);
+  /* Prose / sentences — supporting tier. Labels use --scl-muted-label via .scl-eyebrow. */
+  --muted-foreground: var(--scl-muted-data);
   --avatar-foreground: #ffffff;
   --avatar-start-lightness: 0.42;
   --avatar-chroma: 0.08;
@@ -194,8 +197,10 @@
   --scl-ink-600: #e9e5da;
   --scl-line: #d8d3c4;
   --scl-text: #161b26;
+  /* Label tone — eyebrows / large (≥18px bold) only. Not normal prose. */
   --scl-muted-label: #6e7686;
-  --scl-muted-data: #454e60;
+  /* Supporting prose — WCAG AA 5.43:1 on paper (#F3F1EA). */
+  --scl-muted-data: #596273;
   --scl-pink: #a6007f;
   --scl-pink-deep: #8d006a;
   --scl-pink-ink: #fff3fc;
@@ -248,7 +253,8 @@
   --secondary: var(--scl-ink-700);
   --secondary-foreground: var(--scl-text);
   --muted: var(--scl-ink-700);
-  --muted-foreground: var(--scl-muted-label);
+  /* Prose / sentences — supporting tier. Labels use --scl-muted-label via .scl-eyebrow. */
+  --muted-foreground: var(--scl-muted-data);
   --avatar-foreground: #ffffff;
   --avatar-start-lightness: 0.38;
   --avatar-chroma: 0.06;
@@ -354,6 +360,20 @@
     font-weight: 600;
     letter-spacing: 0.16em;
     text-transform: uppercase;
+    color: var(--scl-muted-label);
+  }
+  /**
+   * Accessible text link — text fill uses the text tier; blue is underline/hover only.
+   * Conviction/nav hues are never small-text fills (WCAG 2.2 AA).
+   */
+  .scl-link {
+    color: var(--scl-text);
+    text-decoration-line: underline;
+    text-decoration-color: var(--scl-blue);
+    text-underline-offset: 0.2em;
+  }
+  .scl-link:hover {
+    text-decoration-color: var(--scl-blue-deep);
   }
   /* Faint board scanlines ? pick-flow / odds board only. */
   .scl-scanline {

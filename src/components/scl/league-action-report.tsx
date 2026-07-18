@@ -192,7 +192,7 @@ function ButtonishPicksLink({ label }: { label: string }) {
   return (
     <Link
       href="/picks"
-      className="inline-flex min-h-10 items-center gap-1.5 text-sm font-semibold text-[color:var(--scl-blue)] hover:underline"
+      className="scl-link inline-flex min-h-10 items-center gap-1.5 text-sm font-semibold"
     >
       {label}
       <ArrowRight className="size-3.5" aria-hidden />
@@ -280,13 +280,13 @@ export function LeagueActionReport({
           >
             <TabsTrigger
               value="types"
-              className="min-h-9 px-3 data-active:text-[color:var(--scl-blue)]"
+              className="data-active:text-foreground min-h-9 px-3 data-active:underline data-active:decoration-[color:var(--scl-blue)] data-active:underline-offset-4"
             >
               Bet types
             </TabsTrigger>
             <TabsTrigger
               value="leagues"
-              className="min-h-9 px-3 data-active:text-[color:var(--scl-blue)]"
+              className="data-active:text-foreground min-h-9 px-3 data-active:underline data-active:decoration-[color:var(--scl-blue)] data-active:underline-offset-4"
             >
               Top leagues
               {leagues.length > 0 ? (

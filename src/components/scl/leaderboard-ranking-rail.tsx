@@ -43,8 +43,11 @@ export function LeaderboardRankingRail({ className }: { className?: string }) {
       </div>
 
       <div className="border-border space-y-1.5 border-t pt-4">
-        <p className="scl-eyebrow flex items-center gap-1.5 text-[color:var(--scl-pink)]">
-          <ShieldCheck className="size-3.5" aria-hidden />
+        <p className="scl-eyebrow flex items-center gap-1.5">
+          <ShieldCheck
+            className="size-3.5 text-[color:var(--scl-pink)]"
+            aria-hidden
+          />
           Verified share
         </p>
         <p className="text-muted-foreground text-sm leading-relaxed">

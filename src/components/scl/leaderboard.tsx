@@ -218,13 +218,19 @@ function SortableTh({
       <Link
         href={href}
         className={cn(
-          "hover:text-foreground inline-flex items-center gap-0.5",
+          "hover:text-foreground text-foreground inline-flex items-center gap-0.5",
           align === "right" && "justify-end",
-          active && "text-[color:var(--scl-blue)]",
+          active &&
+            "underline decoration-[color:var(--scl-blue)] underline-offset-4",
         )}
       >
         {label}
-        {active ? <ChevronDown className="size-3.5" aria-hidden /> : null}
+        {active ? (
+          <ChevronDown
+            className="size-3.5 text-[color:var(--scl-blue)]"
+            aria-hidden
+          />
+        ) : null}
       </Link>
     </th>
   );
@@ -256,7 +262,7 @@ function ExpandControls({
               "inline-flex min-h-9 items-center rounded-[10px] border px-3 text-sm font-semibold tabular-nums",
               active
                 ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
-                : "border-border bg-card text-muted-foreground hover:border-[color:var(--scl-blue)] hover:text-[color:var(--scl-blue)]",
+                : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-[color:var(--scl-blue)]",
             )}
           >
             {n}

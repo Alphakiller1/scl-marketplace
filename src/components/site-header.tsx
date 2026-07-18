@@ -29,25 +29,25 @@ export async function SiteHeader() {
         <nav className="text-muted-foreground hidden items-center gap-1 text-sm sm:flex">
           <Link
             href="/picks"
-            className="inline-flex min-h-11 items-center px-3 transition-colors hover:text-[color:var(--scl-blue)]"
+            className="inline-flex min-h-11 items-center px-3 text-[color:var(--scl-text)] underline-offset-4 transition-colors hover:underline hover:decoration-[color:var(--scl-blue)]"
           >
             Picks
           </Link>
           <Link
             href="/leaderboard"
-            className="inline-flex min-h-11 items-center px-3 transition-colors hover:text-[color:var(--scl-blue)]"
+            className="inline-flex min-h-11 items-center px-3 text-[color:var(--scl-text)] underline-offset-4 transition-colors hover:underline hover:decoration-[color:var(--scl-blue)]"
           >
             Leaderboard
           </Link>
           <Link
             href="/cappers"
-            className="inline-flex min-h-11 items-center px-3 transition-colors hover:text-[color:var(--scl-blue)]"
+            className="inline-flex min-h-11 items-center px-3 text-[color:var(--scl-text)] underline-offset-4 transition-colors hover:underline hover:decoration-[color:var(--scl-blue)]"
           >
             Cappers
           </Link>
           <Link
             href="/packages"
-            className="inline-flex min-h-11 items-center px-3 transition-colors hover:text-[color:var(--scl-blue)]"
+            className="inline-flex min-h-11 items-center px-3 text-[color:var(--scl-text)] underline-offset-4 transition-colors hover:underline hover:decoration-[color:var(--scl-blue)]"
           >
             Packages
           </Link>
