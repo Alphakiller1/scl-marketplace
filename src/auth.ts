@@ -48,6 +48,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const user = await prisma.user.findUnique({
           where: { email: email.toLowerCase() },
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            passwordHash: true,
+            image: true,
+            role: true,
+            accountStatus: true,
+            emailVerified: true,
+          },
         });
         const passwordMatches = await bcrypt.compare(
           password,
