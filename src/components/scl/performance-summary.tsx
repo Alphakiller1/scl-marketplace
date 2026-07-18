@@ -14,6 +14,7 @@ import { RecentFormStrip, StreakChip } from "@/components/scl/indicators";
 import { PerformanceSparkline } from "@/components/scl/performance-sparkline";
 import { ProvisionalRecordHelp } from "@/components/scl/provisional-record-help";
 import { VerificationHelpLink } from "@/components/scl/verification-help-link";
+import { perfScale, perfToneClass } from "@/lib/perf-scale";
 import { isProvisional, hasSignal } from "@/lib/sample";
 
 /**
@@ -36,6 +37,7 @@ export function PerformanceSummary({
     capper.verifiedShare != null && capper.verifiedShare > 0
       ? Math.round(capper.verifiedShare)
       : null;
+  const clvScale = perfScale("clv", avgClv, { gradedCount: graded });
 
   return (
     <Card className={cn("gap-0 p-4 sm:p-5", className)}>
@@ -51,7 +53,7 @@ export function PerformanceSummary({
 
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         <div className="space-y-1.5">
-          <RoiStat roi={capper.roi} />
+          <RoiStat roi={capper.roi} gradedCount={graded} />
           {provisional ? (
             <span
               className="border-border text-muted-foreground inline-flex min-h-8 items-center rounded-md border px-2 text-[0.7rem] font-semibold tracking-wide uppercase"
@@ -61,9 +63,9 @@ export function PerformanceSummary({
             </span>
           ) : null}
         </div>
-        <UnitStat units={capper.units} />
+        <UnitStat units={capper.units} gradedCount={graded} />
         <RecordStat record={capper.record} />
-        <WinRateStat winPct={capper.winPct} />
+        <WinRateStat winPct={capper.winPct} gradedCount={graded} />
       </div>
 
       {provisional ? (
@@ -100,6 +102,8 @@ export function PerformanceSummary({
                     ? `${avgClv >= 0 ? "+" : ""}${avgClv.toFixed(2)} pts`
                     : "—"
                 }
+                valueClassName={perfToneClass(clvScale.tone)}
+                aria-label={clvScale.ariaLabel}
                 className="min-w-[4.5rem]"
               />
             </span>

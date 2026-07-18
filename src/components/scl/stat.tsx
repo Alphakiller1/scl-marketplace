@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
-import { formatRecord, formatRoi, formatUnits, signTone } from "@/lib/format";
+import { formatRecord, formatRoi, formatUnits } from "@/lib/format";
+import { perfScale, perfToneClass, type PerfTone } from "@/lib/perf-scale";
 
 type Tone = "pos" | "neg" | "muted" | "pink" | "brand" | "live" | "default";
 
@@ -24,6 +25,8 @@ export function StatBlock({
   sub,
   className,
   align = "start",
+  valueClassName,
+  "aria-label": ariaLabel,
 }: {
   label: string;
   value: React.ReactNode;
@@ -31,6 +34,9 @@ export function StatBlock({
   sub?: React.ReactNode;
   className?: string;
   align?: "start" | "center" | "end";
+  /** Override value color (e.g. perf-scale amber). */
+  valueClassName?: string;
+  "aria-label"?: string;
 }) {
   return (
     <div
@@ -44,8 +50,9 @@ export function StatBlock({
       <span
         className={cn(
           "scl-data text-lg font-semibold tracking-tight tabular-nums sm:text-xl",
-          toneText[tone],
+          valueClassName ?? toneText[tone],
         )}
+        aria-label={ariaLabel}
       >
         {value}
       </span>
@@ -65,19 +72,24 @@ export function StatPill({
   value,
   tone = "default",
   className,
+  valueClassName,
+  "aria-label": ariaLabel,
 }: {
   label?: string;
   value: React.ReactNode;
   tone?: Tone;
   className?: string;
+  valueClassName?: string;
+  "aria-label"?: string;
 }) {
   return (
     <span
       className={cn(
         "scl-data bg-surface-2 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-sm font-semibold tabular-nums",
-        toneText[tone],
+        valueClassName ?? toneText[tone],
         className,
       )}
+      aria-label={ariaLabel}
     >
       {label ? (
         <span className="text-muted-foreground text-[0.7rem] font-medium uppercase">
@@ -89,22 +101,31 @@ export function StatPill({
   );
 }
 
+function perfValueClass(tone: PerfTone): string {
+  return perfToneClass(tone);
+}
+
 export function RoiStat({
   roi,
+  gradedCount,
   variant = "block",
   className,
 }: {
   roi: number;
+  /** Graded sample size — provisional caps soft/weak at amber, never red. */
+  gradedCount?: number | null;
   variant?: "block" | "pill";
   className?: string;
 }) {
-  const tone = signTone(roi);
+  const scale = perfScale("roi", roi, { gradedCount });
+  const valueClass = perfValueClass(scale.tone);
   if (variant === "pill")
     return (
       <StatPill
         label="ROI"
         value={formatRoi(roi)}
-        tone={tone}
+        valueClassName={valueClass}
+        aria-label={scale.ariaLabel}
         className={className}
       />
     );
@@ -112,7 +133,8 @@ export function RoiStat({
     <StatBlock
       label="ROI"
       value={formatRoi(roi)}
-      tone={tone}
+      valueClassName={valueClass}
+      aria-label={scale.ariaLabel}
       className={className}
     />
   );
@@ -120,20 +142,24 @@ export function RoiStat({
 
 export function UnitStat({
   units,
+  gradedCount,
   variant = "block",
   className,
 }: {
   units: number;
+  gradedCount?: number | null;
   variant?: "block" | "pill";
   className?: string;
 }) {
-  const tone = signTone(units);
+  const scale = perfScale("units", units, { gradedCount });
+  const valueClass = perfValueClass(scale.tone);
   if (variant === "pill")
     return (
       <StatPill
         label="Units"
         value={formatUnits(units)}
-        tone={tone}
+        valueClassName={valueClass}
+        aria-label={scale.ariaLabel}
         className={className}
       />
     );
@@ -141,7 +167,8 @@ export function UnitStat({
     <StatBlock
       label="Units"
       value={formatUnits(units)}
-      tone={tone}
+      valueClassName={valueClass}
+      aria-label={scale.ariaLabel}
       className={className}
     />
   );
@@ -150,21 +177,35 @@ export function UnitStat({
 export function WinRateStat({
   winPct,
   record,
+  gradedCount,
   variant = "block",
   className,
 }: {
   winPct: number;
   record?: { w: number; l: number; p: number };
+  gradedCount?: number | null;
   variant?: "block" | "pill";
   className?: string;
 }) {
+  const scale = perfScale("winPct", winPct, { gradedCount });
+  const valueClass = perfValueClass(scale.tone);
   const value = `${winPct.toFixed(1)}%`;
   if (variant === "pill")
-    return <StatPill label="Win" value={value} className={className} />;
+    return (
+      <StatPill
+        label="Win"
+        value={value}
+        valueClassName={valueClass}
+        aria-label={scale.ariaLabel}
+        className={className}
+      />
+    );
   return (
     <StatBlock
       label="Win %"
       value={value}
+      valueClassName={valueClass}
+      aria-label={scale.ariaLabel}
       sub={record ? formatRecord(record.w, record.l, record.p) : undefined}
       className={className}
     />
