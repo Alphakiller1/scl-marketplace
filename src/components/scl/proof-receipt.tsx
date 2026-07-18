@@ -93,8 +93,11 @@ export function ProofReceipt({
   statusNote,
 }: ProofReceiptProps) {
   const settled = isSettledProofState(state);
+  const paper = density === "expanded-paper" || density === "share-image";
+  const compact = density === "mobile";
+  /** Pink VERIFIED is the dominant mark on expanded paper whenever board-verified. */
   const preferVerified =
-    verificationDominant && boardVerified && (settled || state === "captured");
+    boardVerified && (verificationDominant || density === "expanded-paper");
   const tone = preferVerified ? "pink" : proofStampTone(state);
   const stamp = preferVerified ? "Verified" : proofStampLabel(state);
   const settlementLabel = preferVerified ? proofStampLabel(state) : null;
@@ -114,9 +117,8 @@ export function ProofReceipt({
     gradingHealthy: settled ? true : gradingHealthy,
   });
   const gradeDelayed = !settled && captureLine.includes("GRADING DELAYED");
-  const paper = density === "expanded-paper" || density === "share-image";
-  const compact = density === "mobile";
   const showProofMeta = density !== "feed" || evidenceId != null;
+  const padX = compact || paper ? "px-3.5 sm:px-5" : "px-5";
 
   if (density === "text-only") {
     const text = proofReceiptTextSummary({
@@ -139,40 +141,35 @@ export function ProofReceipt({
     );
   }
 
-  const settlementBar =
-    settlementTone === "win"
-      ? "border-[color:var(--scl-win)]"
-      : settlementTone === "loss"
-        ? "border-[color:var(--scl-loss)]"
-        : settlementTone === "push"
-          ? "border-[color:var(--scl-push)]"
-          : "border-border";
+  const showSettlementLine =
+    Boolean(settlementLabel) &&
+    settlementLabel !== "Verified" &&
+    settlementLabel !== stamp;
 
   return (
     <article
       className={cn(
-        "bg-card border-border relative overflow-hidden rounded-[var(--scl-radius-card)] border shadow-[var(--scl-shadow-card)]",
+        "bg-card border-border relative w-full max-w-full min-w-0 overflow-x-hidden overflow-y-hidden rounded-[var(--scl-radius-card)] border shadow-[var(--scl-shadow-card)]",
         paper && "scl-proof-paper rounded-[var(--scl-radius-receipt)]",
         settling && "scl-ticket-settling",
         compact && "rounded-[12px]",
         density === "share-image" && "max-w-md",
-        preferVerified && settled && cn("border-l-[3px]", settlementBar),
         className,
       )}
       data-density={density}
       data-state={state}
-      aria-label={`Proof receipt: ${selectionTitle}. ${stamp}${settlementLabel && settlementLabel !== stamp ? `, ${settlementLabel}` : ""}. Evidence ${evidenceId || "unavailable"}`}
+      aria-label={`Proof receipt: ${selectionTitle}. ${stamp}${showSettlementLine ? `, ${settlementLabel}` : ""}. Evidence ${evidenceId || "unavailable"}`}
     >
       <div
         className={cn(
           "border-border relative border-b border-dashed",
-          compact ? "px-4 pt-3.5 pb-3" : "px-5 pt-[18px] pb-3.5",
+          compact ? "px-3.5 pt-3.5 pb-3 sm:px-4" : `${padX} pt-[18px] pb-3.5`,
         )}
       >
         <div
           className={cn(
-            "scl-display scl-ticket-stamp absolute origin-center rounded-md border-2 px-2.5 py-1 text-[0.8rem] font-bold tracking-[0.16em] uppercase",
-            compact ? "top-3 right-3" : "top-4 right-4",
+            "scl-display scl-ticket-stamp absolute origin-center rounded-md border-2 px-2 py-0.5 text-[0.7rem] font-bold tracking-[0.14em] uppercase sm:px-2.5 sm:py-1 sm:text-[0.8rem] sm:tracking-[0.16em]",
+            compact ? "top-3 right-3" : "top-3.5 right-3.5 sm:top-4 sm:right-4",
             STAMP_CLASS[tone],
             preferVerified &&
               "shadow-[0_0_0_1px_color-mix(in_oklab,var(--scl-pink)_35%,transparent)]",
@@ -183,10 +180,10 @@ export function ProofReceipt({
           {stamp}
         </div>
 
-        <p className="scl-eyebrow mb-1.5 pr-24 text-[color:var(--scl-muted-label)]">
+        <p className="scl-eyebrow mb-1.5 pr-20 text-[color:var(--scl-muted-label)] sm:pr-24">
           SCL · Pick Receipt
         </p>
-        <div className="flex min-w-0 items-start gap-2.5 pr-20">
+        <div className="flex min-w-0 items-start gap-2.5 pr-16 sm:pr-20">
           {leadingMark ? (
             <span className="mt-1 shrink-0">{leadingMark}</span>
           ) : null}
@@ -194,10 +191,10 @@ export function ProofReceipt({
             as="h2"
             text={selectionTitle}
             className={cn(
-              "scl-display text-foreground min-w-0 flex-1 font-bold tracking-tight text-balance whitespace-pre-line",
+              "scl-display text-foreground min-w-0 flex-1 font-bold tracking-tight text-balance break-words whitespace-pre-line",
               compact
                 ? "text-xl leading-[1.1]"
-                : "text-2xl leading-[1.05] sm:text-[1.65rem]",
+                : "text-xl leading-[1.1] sm:text-2xl sm:leading-[1.05] md:text-[1.65rem]",
             )}
           />
         </div>
@@ -206,16 +203,20 @@ export function ProofReceipt({
             {eventLine}
           </div>
         ) : null}
-        {settlementLabel && settlementLabel !== "Verified" ? (
+        {showSettlementLine ? (
           <p
             className={cn(
-              "scl-data mt-2 text-[0.7rem] font-semibold tracking-[0.1em] uppercase",
-              settlementTone === "win" && "text-[color:var(--scl-win)]",
-              settlementTone === "loss" && "text-[color:var(--scl-loss)]",
-              settlementTone === "push" && "text-[color:var(--scl-push)]",
-              !settlementTone || settlementTone === "muted"
-                ? "text-muted-foreground"
-                : null,
+              "scl-data mt-2 inline-flex items-center rounded border px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-[0.1em] uppercase",
+              settlementTone === "win" &&
+                "border-[color:var(--scl-win)]/40 text-[color:var(--scl-win)]",
+              settlementTone === "loss" &&
+                "border-[color:var(--scl-loss)]/40 text-[color:var(--scl-loss)]",
+              settlementTone === "push" &&
+                "border-[color:var(--scl-push)]/40 text-[color:var(--scl-push)]",
+              (!settlementTone ||
+                settlementTone === "muted" ||
+                settlementTone === "pink") &&
+                "border-border text-muted-foreground",
             )}
           >
             Result · {settlementLabel}
@@ -225,8 +226,10 @@ export function ProofReceipt({
 
       <div
         className={cn(
-          "grid gap-2.5",
-          compact ? "grid-cols-3 px-4 py-3" : "grid-cols-3 px-5 py-3.5",
+          "grid min-w-0 gap-2.5",
+          compact
+            ? "grid-cols-3 px-3.5 py-3 sm:px-4"
+            : `grid-cols-3 ${padX} py-3.5`,
         )}
       >
         <ProofCell label="Legs" value={String(legs)} />
@@ -237,10 +240,10 @@ export function ProofReceipt({
       {showProofMeta ? (
         <div
           className={cn(
-            "border-border grid gap-2 border-t border-dashed",
+            "border-border grid min-w-0 gap-2 border-t border-dashed",
             compact
-              ? "grid-cols-2 px-4 py-2.5"
-              : "grid-cols-2 px-5 py-3 sm:grid-cols-3",
+              ? "grid-cols-2 px-3.5 py-2.5 sm:px-4"
+              : `grid-cols-2 ${padX} py-3 sm:grid-cols-3`,
           )}
         >
           <ProofCell label="Close" value={closingLine} title={closeTitle} />
@@ -249,23 +252,23 @@ export function ProofReceipt({
             label="Evidence"
             value={evidence}
             title={evidenceId || undefined}
-            className="col-span-2 sm:col-span-1"
+            className="col-span-2 min-w-0 sm:col-span-1"
           />
         </div>
       ) : null}
 
       <div
-        className="border-border relative mx-[-1px] border-t-[1.5px] border-dashed"
+        className="border-border relative border-t-[1.5px] border-dashed"
         aria-hidden
       >
-        <span className="bg-background border-border absolute top-[-9px] left-[-10px] size-[18px] rounded-full border" />
-        <span className="bg-background border-border absolute top-[-9px] right-[-10px] size-[18px] rounded-full border" />
+        <span className="bg-background border-border absolute top-[-9px] left-0 size-[18px] -translate-x-1/2 rounded-full border" />
+        <span className="bg-background border-border absolute top-[-9px] right-0 size-[18px] translate-x-1/2 rounded-full border" />
       </div>
 
       <div
         className={cn(
-          "flex items-center justify-between gap-3",
-          compact ? "px-4 pt-2.5 pb-3" : "px-5 pt-3 pb-4",
+          "flex min-w-0 items-center justify-between gap-3",
+          compact ? "px-3.5 pt-2.5 pb-3 sm:px-4" : `${padX} pt-3 pb-4`,
         )}
       >
         <p
@@ -303,13 +306,13 @@ export function ProofReceipt({
       </div>
 
       {statusNote ? (
-        <div className="border-border border-t px-5 py-2.5">
+        <div className={cn("border-border border-t py-2.5", padX)}>
           <p className="text-muted-foreground text-sm">{statusNote}</p>
         </div>
       ) : null}
 
       {analysis ? (
-        <div className="border-border border-t px-5 py-3">
+        <div className={cn("border-border border-t py-3", padX)}>
           <p className="text-muted-foreground text-[0.65rem] font-semibold tracking-wide uppercase">
             Analysis
           </p>
@@ -320,7 +323,9 @@ export function ProofReceipt({
       ) : null}
 
       {footerAction && density !== "share-image" ? (
-        <div className="border-border border-t px-5 py-3">{footerAction}</div>
+        <div className={cn("border-border border-t py-3", padX)}>
+          {footerAction}
+        </div>
       ) : null}
     </article>
   );
@@ -344,7 +349,7 @@ function ProofCell({
   return (
     <div className={className} title={title}>
       <div className="scl-eyebrow">{label}</div>
-      <div className="scl-data text-foreground mt-0.5 text-base font-semibold tabular-nums">
+      <div className="scl-data text-foreground mt-0.5 truncate text-base font-semibold tabular-nums">
         {value}
       </div>
     </div>

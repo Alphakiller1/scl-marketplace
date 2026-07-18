@@ -14,6 +14,8 @@ import { formatRoi, formatUnits } from "@/lib/format";
 import {
   LEAGUE_ACTION_CATEGORY_EMPTY,
   PLATFORM_REPORT_ELIGIBILITY_FOOTNOTE,
+  PLATFORM_REPORT_SEGMENT_LABEL,
+  countLabel,
   marketCategories,
   platformTrackedPicks,
   shapeCategories,
@@ -203,8 +205,8 @@ function BetTypeMobileCard({
             {cat.label}
           </h3>
           <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
-            {cat.picks.toLocaleString()} tracked ·{" "}
-            {cat.cappers.toLocaleString()} cappers
+            {countLabel(cat.picks, "pick", "picks")} tracked ·{" "}
+            {countLabel(cat.cappers, "capper", "cappers")}
             {timing ? ` · ${timing}` : ""}
           </p>
         </div>
@@ -279,8 +281,8 @@ function BetTypeDesktopRow({
           {cat.label}
         </h3>
         <p className="text-muted-foreground mt-0.5 text-xs">
-          {cat.picks.toLocaleString()} tracked · {cat.cappers.toLocaleString()}{" "}
-          cappers
+          {countLabel(cat.picks, "pick", "picks")} tracked ·{" "}
+          {countLabel(cat.cappers, "capper", "cappers")}
           {timing ? ` · ${timing}` : ""}
         </p>
         <div className="mt-1.5 max-w-[12rem]">
@@ -490,7 +492,7 @@ export function LeagueActionReport({
             value={trackedPicks}
             emphasize
           />
-          <Metric label="Live segments" value={liveSegments} />
+          <Metric label={PLATFORM_REPORT_SEGMENT_LABEL} value={liveSegments} />
           <Metric label="Leagues ranked" value={leagues.length} />
         </div>
         <div className="flex flex-col items-end gap-1">
