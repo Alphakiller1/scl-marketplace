@@ -27,7 +27,7 @@ export function StatBlock({
   className,
   align = "start",
   valueClassName,
-  /** When false, values wrap/scale instead of ellipsis (profile Evidence Brief). */
+  /** When false, never ellipsis — keep number+% / number+U atomic (nowrap). */
   truncateValue = true,
   "aria-label": ariaLabel,
 }: {
@@ -56,7 +56,7 @@ export function StatBlock({
           "scl-data max-w-full text-lg font-semibold tracking-tight tabular-nums sm:text-xl",
           truncateValue
             ? "truncate"
-            : "min-w-[3.5ch] overflow-visible break-words whitespace-normal",
+            : "min-w-[3.5ch] overflow-visible whitespace-nowrap",
           valueClassName ?? toneText[tone],
         )}
         aria-label={ariaLabel}
