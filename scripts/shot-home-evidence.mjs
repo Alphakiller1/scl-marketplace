@@ -34,7 +34,7 @@ for (const t of targets) {
   if (await field.count()) {
     await field.scrollIntoViewIfNeeded();
     await page.waitForTimeout(400);
-    const box = await field.boundingBox();
+    const box = await field.locator(":scope > *").first().boundingBox();
     if (box) {
       await page.screenshot({
         path: `${outDir}/home-evidence-row1-${t.label}-1280.png`,
@@ -42,8 +42,7 @@ for (const t of targets) {
           x: Math.max(0, box.x - 8),
           y: Math.max(0, box.y - 8),
           width: Math.min(1280, box.width + 16),
-          // Row 1 only — clip to ~first band height
-          height: Math.min(720, Math.max(420, box.height * 0.42)),
+          height: box.height + 16,
         },
       });
     } else {
