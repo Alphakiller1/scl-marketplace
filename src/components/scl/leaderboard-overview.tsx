@@ -17,31 +17,25 @@ export function LeaderboardOverview({
 }) {
   return (
     <header>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="border-t border-[color:var(--scl-pink-deep)] pt-2.5">
-          <div className="scl-eyebrow flex items-center gap-2 text-[color:var(--scl-muted-label)]">
-            <Trophy className="size-4" aria-hidden />
-            Public Rankings
-          </div>
-          <h1 className="scl-display mt-2 text-3xl font-bold tracking-[0.04em] text-balance sm:text-4xl">
+      <div className="border-t border-[color:var(--scl-pink-deep)] pt-2">
+        <div className="scl-eyebrow flex items-center gap-2 text-[color:var(--scl-muted-label)]">
+          <Trophy className="size-3.5" aria-hidden />
+          Public Rankings
+        </div>
+        <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h1 className="scl-display text-2xl font-bold tracking-[0.04em] sm:text-3xl">
             Leaderboard
           </h1>
-          <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-relaxed sm:text-base">
-            Ranked by net units on board-verified graded plays. Filter by sport,
-            window, and sample size — provisional rows are still building a
-            record.
-          </p>
-          <div className="mt-2">
-            <VerificationHelpLink />
-          </div>
+          <VerificationHelpLink />
         </div>
-        <p className="text-muted-foreground max-w-sm text-sm leading-relaxed sm:text-right">
-          Every row is an inspectable public record. Scope filters change who
-          ranks and what the totals show.
+        <p className="text-muted-foreground mt-1.5 max-w-3xl text-sm leading-snug">
+          Ranked by net units on board-verified graded plays. Filter by sport,
+          window, and sample size — provisional rows are still building a
+          record.
         </p>
       </div>
 
-      <dl className="border-border mt-6 grid grid-cols-2 border-y sm:grid-cols-4">
+      <dl className="border-border mt-3 grid grid-cols-2 border-y sm:grid-cols-4">
         <OverviewMetric
           icon={Trophy}
           label="Ranked Cappers"
@@ -77,16 +71,16 @@ function OverviewMetric({
   value: string;
 }) {
   return (
-    <div className="border-border flex min-h-20 items-center gap-2.5 border-r px-2.5 py-3 last:border-r-0 sm:min-h-24 sm:gap-3 sm:px-5 sm:py-4">
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[color:var(--scl-ink-700)] text-[color:var(--scl-muted-data)] sm:size-9">
-        <Icon className="size-4" aria-hidden />
+    <div className="border-border flex min-h-14 items-center gap-2 border-r px-2.5 py-2 last:border-r-0 sm:min-h-16 sm:gap-2.5 sm:px-4 sm:py-2.5">
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[color:var(--scl-ink-700)] text-[color:var(--scl-muted-data)] sm:size-8">
+        <Icon className="size-3.5" aria-hidden />
       </span>
       <div className="min-w-0">
-        <dt className="text-muted-foreground truncate text-[0.7rem] font-semibold uppercase">
+        <dt className="scl-eyebrow truncate text-[color:var(--scl-muted-label)]">
           {label}
         </dt>
         <dd>
-          <StatValue tone="text" className="text-xl font-bold sm:text-2xl">
+          <StatValue tone="text" className="text-lg font-bold sm:text-xl">
             {value}
           </StatValue>
         </dd>

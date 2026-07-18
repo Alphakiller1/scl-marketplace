@@ -32,7 +32,7 @@ export function LeaderboardFilters({
     filters.window;
 
   return (
-    <div className="mt-4 space-y-2 sm:mt-5">
+    <div className="mt-3 space-y-2">
       <details className="border-border bg-card overflow-hidden rounded-[10px] border md:hidden">
         <summary className="focus-visible:ring-ring flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 outline-none focus-visible:ring-2 focus-visible:ring-inset">
           <span className="flex items-center gap-2 text-sm font-semibold">
@@ -193,7 +193,7 @@ function ScopeForm({
         <Button
           type="submit"
           size="sm"
-          className="h-9 border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)]"
+          className="h-9 min-h-11 border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)] hover:bg-[color:var(--scl-blue)]/90 sm:min-h-9"
         >
           Apply
         </Button>

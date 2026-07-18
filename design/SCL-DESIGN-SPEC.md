@@ -108,10 +108,12 @@ ink/text/muted tokens or the performance ramp. Off-role pink/blue is a violation
 
 ## Grid & alignment
 
-12-col desktop, 8/4 primary+rail, max 1200px, gutters 16/24/32. Right-align every comparable
-number; numeric columns fixed-width, identity flexible; rank in a fixed 48px left column;
-consistent decimals per column; labels align to their values. Vertical rhythm: title→content
-32, section 64/40, label→value 4, row padding 18–20/14–16.
+12-col desktop; Rank leaderboard uses ~10/2 (main + ~236px explanation rail), max ~1400px;
+other surfaces may use 8/4. Gutters 16/24/32. Right-align every comparable number; numeric
+columns fixed-width, identity flexible; rank in a fixed left column; consistent decimals per
+column; labels align to their values. Vertical rhythm: title→content tight on Rank boards
+(first ranked row ~400–420px), section 64/40 elsewhere, label→value 4, leaderboard rows
+68–76px (44px tap targets preserved).
 
 ## Border / shadow / radius grammar
 
@@ -161,11 +163,14 @@ ink) is required and documented here first. Prefer `--scl-text` + blue underline
 - **STICKY SLIP BAR (mobile)** — fixed bottom, 56px, radius 14px, pink-deep border, the one
   permitted gradient, shadow-slip. Owns the bottom of the screen; the Compare tray yields to it.
 - **LEADERBOARD (Rank mode)** — columns: Rank · Capper · Sports · Record · ROI · Units ·
-  Sample(maturity meter) · Verified(pink) · Form(W/L dots). Every metric column is click-to-sort
-  (active sort = blue caret). Expand 10 → 20 → 50. Persistent time-scope (7D/30D/90D/All) +
-  sport/rank-by/min-sample/verified-only filters in a compact scope bar (never taller than the
-  results). ROI/Units on the perf ramp. **Rank rail:** current rank, Δ vs previous (↑/↓/—) with
-  magnitude, provisional marker; animate only on a real change (240ms).
+  Sample(maturity meter) · Verified(pink) · Form(W/L dots). All nine columns visible with no
+  horizontal scroll at ≥1280px beside the explanation rail. Every metric column is
+  click-to-sort (active sort = blue caret). Expand 10 → 20 → 50. Persistent time-scope
+  (7D/30D/90D/All) + sport/rank-by/min-sample/verified-only filters in a compact scope bar
+  (never taller than the results); **Apply is blue** (navigation). ROI/Units on the perf ramp.
+  Dense inline meters (not stacked tall blocks). **Rank cell:** place + Δ vs previous (↑/↓/—)
+  with magnitude + provisional marker; animate only on a real change (240ms). Cold-start:
+  provisional cappers, em-dashes, no fabricated rows or podium reward.
 - **PLATFORM REPORT** — "most successful bet types": aggregate across active cappers by shape
   (Singles/Parlays) and market (Sides/Totals/Props/Futures), each with sample + performance on
   the ramp; honest per-category empties; eligibility footnote matching the leaderboard predicate.
