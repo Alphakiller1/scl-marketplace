@@ -81,10 +81,10 @@ export function CompetitionHero() {
         }
       }}
     >
-      {/* Soft ink fallback under bitmaps */}
+      {/* Soft ink fallback under bitmaps — bloom ~18% quieter than prior */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(90%_80%_at_70%_55%,rgba(16,95,217,0.26),transparent_55%),radial-gradient(70%_70%_at_25%_45%,rgba(166,0,127,0.20),transparent_50%),linear-gradient(180deg,var(--scl-ink-950),var(--scl-ink-900))]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(90%_80%_at_70%_55%,rgba(16,95,217,0.21),transparent_55%),radial-gradient(70%_70%_at_25%_45%,rgba(166,0,127,0.16),transparent_50%),linear-gradient(180deg,var(--scl-ink-950),var(--scl-ink-900))]"
       />
       {/* Layer 1 — original-design bleed (object-cover) so the hero is edge-to-edge */}
       <picture className="pointer-events-none absolute inset-0 block size-full">
@@ -99,7 +99,7 @@ export function CompetitionHero() {
           height="1200"
           fetchPriority="high"
           decoding="async"
-          className="absolute inset-0 size-full max-w-none object-cover object-center"
+          className="absolute inset-0 size-full max-w-none object-cover object-center opacity-[0.84]"
         />
       </picture>
       {/* Layer 2 — opaque original trophy scene (object-contain); leave framing as-designed */}
@@ -115,17 +115,17 @@ export function CompetitionHero() {
           height="1280"
           fetchPriority="high"
           decoding="async"
-          className="absolute inset-0 size-full max-w-none object-contain object-center"
+          className="absolute inset-0 size-full max-w-none object-contain object-center opacity-[0.88]"
         />
       </picture>
-      {/* Ink scrims for copy contrast only — keep light so the original art stays solid */}
+      {/* Ink scrims for copy contrast — slightly stronger so the panel reads first */}
       <div
         aria-hidden
-        className="absolute inset-0 bg-gradient-to-r from-[color:var(--scl-ink-950)]/45 via-[color:var(--scl-ink-950)]/10 to-transparent"
+        className="absolute inset-0 bg-gradient-to-r from-[color:var(--scl-ink-950)]/55 via-[color:var(--scl-ink-950)]/14 to-transparent"
       />
       <div
         aria-hidden
-        className="absolute inset-0 bg-gradient-to-t from-[color:var(--scl-ink-950)]/28 via-transparent to-[color:var(--scl-ink-950)]/8"
+        className="absolute inset-0 bg-gradient-to-t from-[color:var(--scl-ink-950)]/32 via-transparent to-[color:var(--scl-ink-950)]/10"
       />
 
       <div className="relative mx-auto flex min-h-[31rem] w-full max-w-6xl flex-col px-4 py-8 sm:min-h-[36rem] sm:justify-center sm:px-6 sm:py-14">
@@ -140,21 +140,21 @@ export function CompetitionHero() {
               <div
                 key={slide.id}
                 className={cn(
-                  "col-start-1 row-start-1 rounded-2xl border border-[color:var(--scl-line)]/50 bg-[color:var(--scl-ink-950)]/55 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-md transition-opacity duration-300 ease-out motion-reduce:transition-none sm:p-7",
+                  "col-start-1 row-start-1 rounded-2xl border border-[color:var(--scl-line)]/70 bg-[color:var(--scl-ink-950)]/78 p-6 shadow-[0_16px_48px_rgba(0,0,0,0.42)] backdrop-blur-md transition-opacity duration-300 ease-out motion-reduce:transition-none sm:p-8",
                   active
                     ? "z-10 opacity-100"
                     : "pointer-events-none z-0 opacity-0",
                 )}
                 aria-hidden={!active}
               >
-                <div className="scl-data inline-flex min-h-10 items-center gap-2 rounded-lg border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-900)]/80 px-3 text-[0.625rem] font-semibold tracking-[0.16em] uppercase">
+                <div className="scl-data inline-flex min-h-10 items-center gap-2 rounded-lg border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-900)]/90 px-3 text-[0.625rem] font-semibold tracking-[0.16em] uppercase">
                   <VerificationBadge size="xs" />
                   {slide.eyebrow}
                 </div>
 
                 <h1
                   id={active ? "scl-hero-title" : undefined}
-                  className="scl-display mt-4 max-w-lg text-3xl leading-[1.08] font-bold tracking-[0.02em] text-balance normal-case sm:mt-5 sm:text-5xl lg:text-6xl"
+                  className="scl-display mt-5 max-w-lg text-3xl leading-[1.08] font-bold tracking-[0.02em] text-balance normal-case sm:mt-6 sm:text-5xl lg:text-6xl"
                 >
                   <Link
                     href={slide.href}
@@ -165,11 +165,11 @@ export function CompetitionHero() {
                   </Link>
                 </h1>
 
-                <p className="mt-4 max-w-lg text-base leading-relaxed text-pretty text-[color:var(--scl-muted-data)] sm:text-lg">
+                <p className="mt-5 max-w-lg text-base leading-relaxed text-pretty text-[color:var(--scl-muted-data)] sm:mt-5 sm:text-lg">
                   {slide.body}
                 </p>
 
-                <div className="mt-6 flex flex-wrap items-center gap-3 sm:mt-7">
+                <div className="mt-7 flex flex-wrap items-center gap-3 sm:mt-8">
                   <Button
                     render={
                       <Link
