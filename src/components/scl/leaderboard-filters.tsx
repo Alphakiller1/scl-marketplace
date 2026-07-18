@@ -16,7 +16,11 @@ const TIME_SCOPES = [
   { key: "all", label: "All" },
 ] as const;
 
-function scopeHref(filters: Filters, window: Filters["window"]) {
+function scopeHref(
+  filters: Filters,
+  window: Filters["window"],
+  action: string,
+) {
   const params = new URLSearchParams({
     sport: filters.sport,
     window,
@@ -26,12 +30,13 @@ function scopeHref(filters: Filters, window: Filters["window"]) {
     limit: String(filters.limit),
   });
   if (filters.search) params.set("q", filters.search);
-  return `/leaderboard?${params.toString()}`;
+  return `${action}?${params.toString()}`;
 }
 
 export function LeaderboardFilters({
   filters,
   action = "/leaderboard",
+  label = "Leaderboard scope",
 }: {
   filters: Filters;
   action?: string;
@@ -39,7 +44,7 @@ export function LeaderboardFilters({
 }) {
   return (
     <section
-      aria-label="Leaderboard scope"
+      aria-label={label}
       className="border-border bg-card mt-5 rounded-[var(--scl-radius-card)] border p-2 sm:mt-6"
     >
       <div className="flex flex-col gap-2.5 xl:flex-row xl:items-end">
@@ -54,7 +59,7 @@ export function LeaderboardFilters({
               return (
                 <Link
                   key={scope.key}
-                  href={scopeHref(filters, scope.key)}
+                  href={scopeHref(filters, scope.key, action)}
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "focus-visible:ring-ring inline-flex min-h-11 min-w-12 items-center justify-center rounded-lg border px-2 text-sm font-semibold tabular-nums outline-none focus-visible:ring-2",

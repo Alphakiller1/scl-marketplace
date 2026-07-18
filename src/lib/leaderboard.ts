@@ -9,7 +9,6 @@ export const LEADERBOARD_WINDOWS = [
   { key: "7d", label: "Past 7 Days" },
   { key: "30d", label: "Past 30 Days" },
   { key: "90d", label: "Past 90 Days" },
-  { key: "year", label: "This Year" },
 ] as const;
 
 export const LEADERBOARD_MIN_PICKS = [0, 10, 25, 50] as const;
@@ -76,10 +75,6 @@ export function leaderboardWindowStart(
   now = new Date(),
 ): Date | null {
   if (window === "all") return null;
-  if (window === "year") {
-    return new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
-  }
-
   const days = Number(window.replace("d", ""));
   return new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 }

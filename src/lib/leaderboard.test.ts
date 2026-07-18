@@ -131,14 +131,10 @@ test("CLV sort requires signal sample and avgClv", () => {
   );
 });
 
-test("year window begins at the UTC calendar-year boundary", () => {
-  assert.equal(
-    leaderboardWindowStart(
-      "year",
-      new Date("2026-06-29T12:00:00Z"),
-    )?.toISOString(),
-    "2026-01-01T00:00:00.000Z",
-  );
+test("legacy year scope normalizes to the represented All scope", () => {
+  const filters = parseLeaderboardFilters({ window: "year" });
+  assert.equal(filters.window, "all");
+  assert.equal(leaderboardWindowStart(filters.window), null);
 });
 
 test("performance trend is cumulative and excludes unsettled plays", () => {

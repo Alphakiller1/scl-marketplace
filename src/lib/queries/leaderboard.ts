@@ -29,7 +29,7 @@ const DEFAULT_FILTERS: LeaderboardFilters = {
   window: "all",
   sort: "roi",
   minPicks: 0,
-  verifiedOnly: false,
+  verifiedOnly: true,
   search: "",
   limit: 10,
 };
@@ -109,9 +109,7 @@ function fetchRankableProfiles(filters: LeaderboardFilters, clvReady: boolean) {
           ...(filters.sport !== "ALL" || filters.verifiedOnly
             ? {
                 legs: {
-                  ...(filters.sport !== "ALL"
-                    ? { some: { sport: filters.sport } }
-                    : undefined),
+                  some: filters.sport !== "ALL" ? { sport: filters.sport } : {},
                   ...(filters.verifiedOnly
                     ? {
                         every: {
