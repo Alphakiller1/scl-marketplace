@@ -25,8 +25,8 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
 
   return (
     <header className="border-border bg-card border-b">
-      <div className="mx-auto max-w-5xl px-4 py-2 sm:px-6 sm:py-3.5">
-        <div className="flex flex-wrap items-start gap-2.5 sm:gap-4">
+      <div className="mx-auto max-w-5xl px-4 py-1.5 sm:px-6 sm:py-3.5">
+        <div className="flex flex-wrap items-start gap-2 sm:gap-4">
           <span className="bg-card ring-border shrink-0 rounded-xl p-0.5 ring-1">
             <CapperAvatar
               name={avatarName}
@@ -105,7 +105,7 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
 
             <ProfileActionGroup
               handle={capper.handle}
-              className="mt-2 sm:mt-3"
+              className="mt-1.5 sm:mt-3"
             />
           </div>
         </div>

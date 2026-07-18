@@ -225,7 +225,7 @@ export function EvidenceBrief({
         <h2 className="scl-display text-sm font-bold tracking-[0.05em] uppercase">
           Latest proof
         </h2>
-        <p className="text-muted-foreground mt-0.5 text-xs leading-snug">
+        <p className="text-muted-foreground mt-0.5 hidden text-xs leading-snug sm:block">
           Expanded paper receipt — inspectable capture, close, and CLV.
         </p>
       </div>
@@ -248,14 +248,15 @@ export function EvidenceBrief({
   );
 
   return (
-    <div className={cn("space-y-4 sm:space-y-5", className)}>
+    <div className={cn("space-y-3 sm:space-y-5", className)}>
       {/*
         Brief metrics + Latest Proof stay co-anchored across lens switches.
         CLV / cumulative charts render below the first receipt so Analyst
-        never pushes proof ~600px down.
+        never pushes proof ~600px down. Mobile: tighter brief so ~40–80px of
+        the paper receipt peeks before the first fold.
       */}
-      <div className="grid gap-4 lg:grid-cols-12 lg:items-start lg:gap-5">
-        <Card className="gap-0 p-3 sm:p-4 lg:col-span-5">
+      <div className="grid gap-2 sm:gap-4 lg:grid-cols-12 lg:items-start lg:gap-5">
+        <Card className="gap-0 p-2.5 sm:p-4 lg:col-span-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="scl-eyebrow text-[color:var(--scl-muted-label)]">
               Evidence Brief
@@ -265,10 +266,14 @@ export function EvidenceBrief({
             </div>
           </div>
 
-          <Tabs value={lens} onValueChange={onLensChange} className="mt-2">
+          <Tabs
+            value={lens}
+            onValueChange={onLensChange}
+            className="mt-1.5 sm:mt-2"
+          >
             <TabsList
               variant="line"
-              className="h-9 w-full max-w-md justify-start gap-1 sm:h-10"
+              className="h-8 w-full max-w-md justify-start gap-1 sm:h-10"
               aria-label="Trust lens"
             >
               <TabsTrigger
@@ -293,7 +298,7 @@ export function EvidenceBrief({
 
             <TabsContent
               value="simple"
-              className="mt-2.5 space-y-2.5 sm:mt-3 sm:space-y-3"
+              className="mt-2 space-y-2 sm:mt-3 sm:space-y-3"
             >
               <MetricRow
                 capper={capper}
@@ -304,12 +309,15 @@ export function EvidenceBrief({
                 clvScale={clvScale}
                 showClv={false}
               />
-              <SampleMaturityMeter graded={graded} />
+              <SampleMaturityMeter
+                graded={graded}
+                className="hidden sm:block"
+              />
             </TabsContent>
 
             <TabsContent
               value="analyst"
-              className="mt-2.5 space-y-2.5 sm:mt-3 sm:space-y-3"
+              className="mt-2 space-y-2 sm:mt-3 sm:space-y-3"
             >
               <MetricRow
                 capper={capper}
@@ -325,7 +333,7 @@ export function EvidenceBrief({
 
             <TabsContent
               value="audit"
-              className="mt-2.5 space-y-2.5 sm:mt-3 sm:space-y-3"
+              className="mt-2 space-y-2 sm:mt-3 sm:space-y-3"
             >
               <MetricRow
                 capper={capper}
@@ -347,7 +355,7 @@ export function EvidenceBrief({
             </TabsContent>
           </Tabs>
 
-          <div className="border-border mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t pt-2 sm:mt-3 sm:pt-2.5">
+          <div className="border-border mt-2 hidden flex-wrap items-center gap-x-4 gap-y-1.5 border-t pt-2 sm:mt-3 sm:flex sm:pt-2.5">
             <VerificationHelpLink />
             <a
               href="/responsible-gaming"
