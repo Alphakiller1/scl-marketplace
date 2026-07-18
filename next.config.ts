@@ -38,6 +38,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: "/cappers",
+        destination: "/discover",
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

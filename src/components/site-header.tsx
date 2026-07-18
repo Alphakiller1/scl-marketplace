@@ -40,10 +40,10 @@ export async function SiteHeader() {
             Leaderboard
           </Link>
           <Link
-            href="/cappers"
+            href="/discover"
             className="inline-flex min-h-11 items-center px-3 text-[color:var(--scl-text)] underline-offset-4 transition-colors hover:underline hover:decoration-[color:var(--scl-blue)]"
           >
-            Cappers
+            Discover
           </Link>
           <Link
             href="/packages"

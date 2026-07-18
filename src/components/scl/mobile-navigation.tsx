@@ -37,7 +37,7 @@ type NavItem = {
 const MARKETING_NAV = [
   { href: "/picks", label: "Picks", icon: Zap },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
-  { href: "/cappers", label: "Cappers", icon: Users },
+  { href: "/discover", label: "Discover", icon: Users },
   { href: "/packages", label: "Packages", icon: Package },
 ];
 
