@@ -106,16 +106,14 @@ export function summarizeClvTracker(
 
   const distributionSummary =
     snapshotCount === 0
-      ? "No closing snapshots recorded yet. CLV distribution is empty."
+      ? "No closing snapshots are recorded. CLV distribution is unavailable."
       : signal
         ? `CLV distribution across ${snapshotCount} closing snapshots. ${beatCloseCount} beat the close${
             avgClv != null
               ? `; average ${avgClv >= 0 ? "+" : ""}${avgClv.toFixed(2)} pts`
               : ""
           }.`
-        : `CLV distribution provisional — ${snapshotCount} snapshot${
-            snapshotCount === 1 ? "" : "s"
-          } (needs ${MIN_GRADED_FOR_SIGNAL}+ for a signal).`;
+        : `CLV distribution unavailable — ${snapshotCount} of ${MIN_GRADED_FOR_SIGNAL} required snapshots recorded.`;
 
   return {
     snapshotCount,
@@ -132,9 +130,9 @@ export function summarizeClvTracker(
 export const CLV_TRACKER_EMPTY_TITLE = "CLV not available yet";
 
 export const CLV_TRACKER_EMPTY_BODY =
-  "No closing snapshots are stored for this sample. CLV appears after board-verified picks capture a closing line — historical plays without a close stay as em dashes.";
+  "No closing snapshots are available for this record. CLV appears after SCL captures a closing line for a board-verified pick. Historical picks without a close remain em dashes.";
 
-export const CLV_TRACKER_PROVISIONAL_BODY = `CLV unlocks after ${MIN_GRADED_FOR_SIGNAL} closing snapshots. Showing an honest empty, not a fabricated 0.0.`;
+export const CLV_TRACKER_PROVISIONAL_BODY = `CLV distribution requires ${MIN_GRADED_FOR_SIGNAL} closing snapshots. Until then, the distribution remains unavailable.`;
 
 export const PLATFORM_CLV_EMPTY_BODY =
-  "No board-verified closing snapshots across publicly listed cappers yet. Platform CLV will populate as forward picks capture closes.";
+  "No board-verified closing snapshots are available across publicly listed cappers. Platform CLV remains unavailable until SCL captures closing lines for future board-verified picks.";

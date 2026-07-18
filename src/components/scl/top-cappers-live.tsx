@@ -34,7 +34,7 @@ export function TopCappersLive({
             Top cappers
           </h2>
           <p className="text-muted-foreground text-sm">
-            Worth inspecting — board-verified share, then units
+            Ordered by board-verified share, then units.
           </p>
         </div>
         <Link
@@ -50,9 +50,9 @@ export function TopCappersLive({
         <EmptyState
           icon={Users}
           title={
-            failed ? "Couldn't load top cappers" : "Top cappers are building"
+            failed ? "Couldn't load top cappers" : "No cappers qualify yet"
           }
-          description="No capper has enough graded volume to surface here yet. SCL only ranks after a minimum sample."
+          description="No capper has reached the minimum graded sample for this list."
         />
       ) : (
         <ul className="divide-border border-border divide-y border-y">

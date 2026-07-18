@@ -7,6 +7,8 @@ import {
   countLabel,
   leagueInitials,
   marketCategories,
+  platformReportLeagueLabel,
+  platformReportSegmentLabel,
   platformReportSubtitle,
   platformTrackedPicks,
   rankLeagueAction,
@@ -16,11 +18,21 @@ import {
 import { MIN_GRADED_FOR_SIGNAL } from "@/lib/sample";
 
 test("platform report copy uses publicly listed + singular-aware counts", () => {
-  assert.match(platformReportSubtitle(30), /publicly listed cappers/);
-  assert.match(PLATFORM_REPORT_ELIGIBILITY_FOOTNOTE, /publicly listed cappers/);
+  assert.equal(
+    platformReportSubtitle(30),
+    "Board-verified bet types from publicly listed cappers — last 30 days.",
+  );
+  assert.equal(
+    PLATFORM_REPORT_ELIGIBILITY_FOOTNOTE,
+    "Board-verified picks from publicly listed cappers, including ranked cappers and cappers building a record. Test accounts are excluded. ROI and units appear only after the minimum graded sample is met.",
+  );
   assert.equal(countLabel(1, "graded pick", "graded picks"), "1 graded pick");
   assert.equal(countLabel(2, "graded pick", "graded picks"), "2 graded picks");
   assert.equal(countLabel(1, "capper", "cappers"), "1 capper");
+  assert.equal(platformReportSegmentLabel(1), "active segment");
+  assert.equal(platformReportSegmentLabel(3), "active segments");
+  assert.equal(platformReportLeagueLabel(1), "tracked league");
+  assert.equal(platformReportLeagueLabel(2), "tracked leagues");
 });
 
 test("rankLeagueAction groups by league fallback and ranks by pick volume", () => {

@@ -10,6 +10,7 @@ import {
   buildVerifiedMonthLane,
   DISCOVER_LANES,
   DISCOVER_SIGNAL_FLOOR,
+  discoverLaneEmptyDescription,
   NEWLY_CREDIBLE_MIN_VERIFIED_SHARE,
   pickSpecialty,
   type DiscoverCapperInput,
@@ -242,6 +243,18 @@ test("DISCOVER_LANES locks exact titles and empty copy", () => {
     assert.equal(DISCOVER_LANES[i].title, expected[i][0]);
     assert.equal(DISCOVER_LANES[i].empty, expected[i][1]);
   }
+  assert.equal(
+    DISCOVER_LANES.find((l) => l.id === "newly_credible")?.explainer,
+    "Newer cappers with a high board-verified share and a growing graded sample.",
+  );
+  assert.equal(
+    discoverLaneEmptyDescription("proven"),
+    "This lane remains empty until a capper meets its published criteria.",
+  );
+  assert.equal(
+    discoverLaneEmptyDescription("market_beaters"),
+    "Avg CLV compares submitted prices with market closing prices. It does not predict results.",
+  );
 });
 
 test("buildAllDiscoverLanes never fabricates entries on empty input", () => {

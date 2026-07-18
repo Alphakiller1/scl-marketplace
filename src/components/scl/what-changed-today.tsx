@@ -34,15 +34,19 @@ export function WhatChangedToday({
           />
           <span className="min-w-0">
             <span className="text-foreground font-medium">
-              {failed ? "Couldn't load today's moves" : "No graded moves today"}
-            </span>
-            <span>
-              {" "}
-              —{" "}
               {failed
-                ? "try again shortly."
-                : "unit movers appear when board-verified picks settle."}
+                ? "Couldn't load today's moves"
+                : "No graded changes today."}
             </span>
+            {failed ? (
+              <span> try again shortly.</span>
+            ) : (
+              <span>
+                {" "}
+                Rank and unit changes appear after board-verified picks are
+                graded.
+              </span>
+            )}
           </span>
         </p>
       </section>
@@ -65,12 +69,12 @@ export function WhatChangedToday({
               What changed today
             </h2>
             <p className="text-muted-foreground text-xs">
-              Graded units today · ET calendar day · status rhythm
+              Rank and unit changes from picks graded today · ET
             </p>
           </div>
         </div>
         <span className="scl-data text-muted-foreground text-[0.65rem] tracking-[0.08em] uppercase">
-          Live · ET
+          Today · ET
         </span>
       </div>
 

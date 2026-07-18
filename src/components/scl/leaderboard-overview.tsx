@@ -38,7 +38,9 @@ export function LeaderboardOverview({
       <dl className="border-border mt-3 grid grid-cols-2 border-y sm:grid-cols-4">
         <OverviewMetric
           icon={Trophy}
-          label="Ranked Cappers"
+          label={
+            summary.rankedCappers === 1 ? "Ranked capper" : "Ranked cappers"
+          }
           value={summary.rankedCappers.toLocaleString()}
         />
         <OverviewMetric
@@ -48,7 +50,7 @@ export function LeaderboardOverview({
         />
         <OverviewMetric
           icon={ListChecks}
-          label="Graded Picks"
+          label={summary.trackedPicks === 1 ? "Graded pick" : "Graded picks"}
           value={summary.trackedPicks.toLocaleString()}
         />
         <OverviewMetric

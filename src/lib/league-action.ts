@@ -91,15 +91,22 @@ export const LEAGUE_ACTION_CATEGORY_EMPTY: Record<
 
 /** Matches leaderboard public-surface eligibility tone (ranked + building). */
 export const PLATFORM_REPORT_ELIGIBILITY_FOOTNOTE =
-  "Board-verified picks from publicly listed cappers (ranked and building-a-record). Test accounts are excluded. ROI and units appear only after a signal-sized graded sample.";
+  "Board-verified picks from publicly listed cappers, including ranked cappers and cappers building a record. Test accounts are excluded. ROI and units appear only after the minimum graded sample is met.";
 
 /** Homepage section subtitle (GPT-locked voice — no “most successful” hype). */
 export function platformReportSubtitle(windowDays: number): string {
-  return `Board-verified bet types from publicly listed cappers — last ${windowDays} days`;
+  return `Board-verified bet types from publicly listed cappers — last ${windowDays} days.`;
 }
 
-/** Metric label for categories with tracked volume. */
-export const PLATFORM_REPORT_SEGMENT_LABEL = "Active segments";
+/** Metric label for categories with tracked volume (singular-aware). */
+export function platformReportSegmentLabel(n: number): string {
+  return n === 1 ? "active segment" : "active segments";
+}
+
+/** Metric label for tracked leagues (singular-aware). */
+export function platformReportLeagueLabel(n: number): string {
+  return n === 1 ? "tracked league" : "tracked leagues";
+}
 
 /** Singular-aware count phrase, e.g. "1 capper" / "3 cappers". */
 export function countLabel(

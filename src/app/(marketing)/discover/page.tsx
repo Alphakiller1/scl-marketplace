@@ -77,7 +77,7 @@ export default async function DiscoverPage({
             Browse all public records
           </h2>
           <p className="text-muted-foreground mt-1 text-sm">
-            Filter and sort the full directory after the curated lanes.
+            Filter and sort every publicly listed capper record.
           </p>
         </div>
         <LeaderboardFilters filters={filters} action="/discover" />
@@ -85,7 +85,7 @@ export default async function DiscoverPage({
           <EmptyState
             className="mt-4"
             icon={Users}
-            title={failed ? "Couldn't Load The Directory" : "No Cappers Found"}
+            title={failed ? "Couldn’t load the directory" : "No cappers found"}
             description={
               failed
                 ? "Public capper records are temporarily unavailable. Please try again shortly."

@@ -18,6 +18,7 @@ import {
   CLV_TRACKER_PROVISIONAL_BODY,
   type ClvTrackerSummary,
 } from "@/lib/clv-tracker";
+import { countLabel } from "@/lib/league-action";
 import { MIN_GRADED_FOR_SIGNAL } from "@/lib/sample";
 import { cn } from "@/lib/utils";
 
@@ -77,7 +78,7 @@ export function ClvDistributionChart({
       <div className="flex flex-wrap items-end justify-between gap-2">
         <p className="scl-eyebrow text-muted-foreground">CLV distribution</p>
         <p className="scl-data text-muted-foreground text-xs tabular-nums">
-          {summary.snapshotCount.toLocaleString()} snapshots
+          {countLabel(summary.snapshotCount, "snapshot", "snapshots")}
         </p>
       </div>
       <div
@@ -121,7 +122,10 @@ export function ClvDistributionChart({
                 borderRadius: 8,
                 fontSize: 12,
               }}
-              formatter={(value) => [`${Number(value)} picks`, "Count"]}
+              formatter={(value) => [
+                countLabel(Number(value), "pick", "picks"),
+                "Count",
+              ]}
               labelFormatter={(label) => `CLV bin ${label}`}
             />
             <Bar
