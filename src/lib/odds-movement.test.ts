@@ -6,11 +6,13 @@ import {
   combineDecimalOdds,
   decimalToAmerican,
 } from "@/lib/odds";
+import * as OddsMovement from "@/lib/odds-movement";
 import {
   classifyOddsMove,
   moveKey,
   resolveCaptureOdds,
 } from "@/lib/odds-movement";
+import type { AcceptedMove } from "@/lib/odds-movement";
 import {
   DEFAULT_TOLERANCE_PROB,
   impliedProbFromAmerican,
@@ -310,4 +312,17 @@ test("parlay combined odds use accepted (live) leg prices — math proof", () =>
     );
     assert.equal(combined, accepted);
   }
+});
+
+test("AcceptedMove is type-only — no runtime export (picks/new smoke)", () => {
+  // Regression: `import { AcceptedMove }` (value) → ReferenceError in client bundles.
+  // Consumers must use `import type { AcceptedMove }`.
+  assert.equal("AcceptedMove" in OddsMovement, false);
+  assert.equal(typeof OddsMovement.findAcceptedMove, "function");
+  const sample: AcceptedMove = {
+    moveKey: "a|b||c|",
+    selectedOddsAmerican: -110,
+    acceptedOddsAmerican: -105,
+  };
+  assert.equal(sample.acceptedOddsAmerican, -105);
 });
