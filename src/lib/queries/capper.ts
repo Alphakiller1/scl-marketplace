@@ -111,9 +111,10 @@ export async function getPublicCapperByHandle(
           outcome: { not: "PENDING" },
           parlayId: null,
         },
-        select: { clvPts: true },
+        select: { clvPts: true, notes: true },
       });
       const pts = clvRows
+        .filter((r) => !hasQaNoteMarker(r.notes))
         .map((r) => (r.clvPts == null ? null : Number(r.clvPts)))
         .filter((v): v is number => v != null && Number.isFinite(v));
       clvTracker = summarizeClvTracker(pts);
