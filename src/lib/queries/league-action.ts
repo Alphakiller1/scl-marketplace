@@ -4,6 +4,7 @@ import type { VerificationTier } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import {
+  platformTrackedPicks,
   rankLeagueAction,
   rankLeagueActionCategories,
   type LeagueActionCategoryItem,
@@ -17,6 +18,7 @@ const DEFAULT_TAKE = 6;
 
 const VERIFIED_TIERS: VerificationTier[] = ["VERIFIED", "AUTO_VERIFIED"];
 
+/** Same public listed + board-verified gate as the leaderboard feed filters. */
 const PUBLIC_PLAY_FILTER = {
   units: { gte: UNIT_MIN },
   verificationTier: { in: VERIFIED_TIERS },
@@ -32,6 +34,8 @@ const PUBLIC_PLAY_FILTER = {
 export type LeagueActionReportResult = {
   leagues: LeagueActionItem[];
   categories: LeagueActionCategoryItem[];
+  /** Shape singles + parlays — never double-counts market buckets. */
+  trackedPicks: number;
   windowDays: number;
   failed: boolean;
 };
@@ -58,6 +62,11 @@ export async function getLeagueActionReport({
           capperId: true,
           market: true,
           parlayId: true,
+          outcome: true,
+          units: true,
+          profitUnits: true,
+          createdAt: true,
+          eventStartsAt: true,
         },
         orderBy: { createdAt: "desc" },
       }),
@@ -78,18 +87,71 @@ export async function getLeagueActionReport({
             },
           },
         },
-        select: { capperId: true },
+        select: {
+          capperId: true,
+          outcome: true,
+          units: true,
+          profitUnits: true,
+          createdAt: true,
+          legs: {
+            select: { eventStartsAt: true },
+            orderBy: { eventStartsAt: "asc" },
+          },
+        },
       }),
     ]);
 
+    const playRows = plays.map((p) => ({
+      sport: p.sport,
+      league: p.league,
+      capperId: p.capperId,
+      market: p.market,
+      parlayId: p.parlayId,
+      outcome: p.outcome,
+      units: Number(p.units),
+      profitUnits: p.profitUnits == null ? null : Number(p.profitUnits),
+      createdAt: p.createdAt,
+      eventStartsAt: p.eventStartsAt,
+    }));
+
+    const parlayRows = parlays.map((p) => {
+      const starts = p.legs
+        .map((l) => l.eventStartsAt)
+        .filter((d): d is Date => d != null);
+      const earliest =
+        starts.length > 0
+          ? starts.reduce((a, b) => (a.getTime() <= b.getTime() ? a : b))
+          : null;
+      return {
+        capperId: p.capperId,
+        outcome: p.outcome,
+        units: Number(p.units),
+        profitUnits: p.profitUnits == null ? null : Number(p.profitUnits),
+        createdAt: p.createdAt,
+        eventStartsAt: earliest,
+      };
+    });
+
+    // League ranking uses straight plays only (parlay legs excluded) so volume
+    // matches shape singles, not flattened legs.
+    const leaguePlays = playRows.filter((p) => p.parlayId == null);
+    const categories = rankLeagueActionCategories(playRows, parlayRows);
+
     return {
-      leagues: rankLeagueAction(plays, take),
-      categories: rankLeagueActionCategories(plays, parlays),
+      leagues: rankLeagueAction(leaguePlays, take),
+      categories,
+      trackedPicks: platformTrackedPicks(categories),
       windowDays,
       failed: false,
     };
   } catch (error) {
     console.error("[getLeagueActionReport] database unavailable:", error);
-    return { leagues: [], categories: [], windowDays, failed: true };
+    return {
+      leagues: [],
+      categories: [],
+      trackedPicks: 0,
+      windowDays,
+      failed: true,
+    };
   }
 }
