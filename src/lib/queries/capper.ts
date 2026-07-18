@@ -1,11 +1,12 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { UNIT_MIN } from "@/lib/constants";
 import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 import type { PlayView } from "@/lib/queries/plays";
 import type { CapperSummary } from "@/lib/mock";
-import { hasQaNoteMarker } from "@/lib/public-eligibility";
+import { hasQaNoteMarker, isValidPublicStake } from "@/lib/public-eligibility";
 import {
   hasClvColumns,
   hasNotesPublicColumn,
@@ -26,6 +27,11 @@ export type PublicCapper = {
  * live leaderboard (so rank/stats stay consistent with the board) and attaches
  * their most recent tracked plays. Returns null when the handle isn't a public
  * capper (ranked or building a record), so the page can 404 honestly.
+ *
+ * Proof list uses the same public-eligibility rules as the public feed:
+ * `units >= UNIT_MIN` and no QA note markers — so Latest Proof / Proof History
+ * never disagree with the Evidence Brief record (which comes from leaderboard
+ * stats that already filter sub-minimum stakes).
  */
 export async function getPublicCapperByHandle(
   handle: string,
@@ -44,7 +50,12 @@ export async function getPublicCapperByHandle(
     const notesPublicReady = await hasNotesPublicColumn();
     const clvReady = await hasClvColumns();
     const rows = await prisma.play.findMany({
-      where: { capper: { user: { username: handle } } },
+      where: {
+        capper: { user: { username: handle } },
+        // Match public feed / leaderboard: never surface sub-minimum stakes
+        // (a 0U receipt is a data error — filter it, do not render).
+        units: { gte: UNIT_MIN },
+      },
       orderBy: { createdAt: "desc" },
       // Over-fetch so QA-noted plays filtered below don't thin the record.
       take: 48,
@@ -70,7 +81,6 @@ export async function getPublicCapperByHandle(
     });
     plays = rows
       .filter((p) => !hasQaNoteMarker(p.notes))
-      .slice(0, 24)
       .map((p) => ({
         id: p.id,
         sport: p.sport,
@@ -100,7 +110,10 @@ export async function getPublicCapperByHandle(
           "clvPts" in p && (p as { clvPts?: unknown }).clvPts != null
             ? Number((p as { clvPts: unknown }).clvPts)
             : null,
-      }));
+      }))
+      // Belt: Decimal→Number edge cases must never yield a 0U public receipt.
+      .filter((p) => isValidPublicStake(p.units))
+      .slice(0, 24);
 
     if (clvReady) {
       const clvRows = await prisma.play.findMany({
@@ -110,6 +123,7 @@ export async function getPublicCapperByHandle(
           verificationTier: { in: ["VERIFIED", "AUTO_VERIFIED"] },
           outcome: { not: "PENDING" },
           parlayId: null,
+          units: { gte: UNIT_MIN },
         },
         select: { clvPts: true, notes: true },
       });
