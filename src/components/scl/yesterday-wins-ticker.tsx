@@ -8,19 +8,11 @@ import { cn } from "@/lib/utils";
 
 function formatResultUnits(
   outcome: GradedTickerResult["outcome"],
-  profitUnits: number,
-  stakeUnits: number,
+  profitUnits: number | null,
 ): string {
   if (outcome === "PUSH") return "0U";
-  const raw =
-    outcome === "WIN"
-      ? profitUnits > 0
-        ? profitUnits
-        : stakeUnits
-      : profitUnits < 0
-        ? profitUnits
-        : -stakeUnits;
-  const rounded = Math.round(raw * 100) / 100;
+  if (profitUnits == null || !Number.isFinite(profitUnits)) return "—";
+  const rounded = Math.round(profitUnits * 100) / 100;
   const text = Math.abs(rounded).toFixed(2).replace(/\.00$/, "");
   if (rounded > 0) return `+${text}U`;
   if (rounded < 0) return `−${text}U`;
@@ -34,7 +26,7 @@ function outcomeLabel(outcome: GradedTickerResult["outcome"]): string {
     case "LOSS":
       return "Lost";
     case "PUSH":
-      return "Push";
+      return "Pushed";
   }
 }
 
@@ -64,10 +56,26 @@ function buildMarqueeItems(
 function TickerItem({
   result,
   className,
+  interactive,
 }: {
   result: GradedTickerResult;
   className?: string;
+  /** When false, handle is plain text (decorative marquee / aria-hidden track). */
+  interactive: boolean;
 }) {
+  const handle = interactive ? (
+    <Link
+      href={`/cappers/${result.handle}`}
+      className="font-semibold text-[color:var(--scl-text)] underline decoration-[color:var(--scl-blue)] underline-offset-2 hover:decoration-[color:var(--scl-blue)]"
+    >
+      @{result.handle}
+    </Link>
+  ) : (
+    <span className="font-semibold text-[color:var(--scl-text)]">
+      @{result.handle}
+    </span>
+  );
+
   return (
     <span
       className={cn(
@@ -75,12 +83,7 @@ function TickerItem({
         className,
       )}
     >
-      <Link
-        href={`/cappers/${result.handle}`}
-        className="font-semibold text-[color:var(--scl-text)] underline decoration-[color:var(--scl-blue)] underline-offset-2 hover:decoration-[color:var(--scl-blue)]"
-      >
-        @{result.handle}
-      </Link>
+      {handle}
       <span className="text-muted-foreground" aria-hidden>
         ·
       </span>
@@ -107,7 +110,7 @@ function TickerItem({
           outcomeTone(result.outcome),
         )}
       >
-        {formatResultUnits(result.outcome, result.profitUnits, result.units)}
+        {formatResultUnits(result.outcome, result.profitUnits)}
       </span>
     </span>
   );
@@ -130,7 +133,6 @@ export function YesterdayWinsTicker({
   const items = results ?? wins ?? [];
   if (items.length === 0) return null;
 
-  const staticItems = items.slice(0, 8);
   const marqueeItems = buildMarqueeItems(items);
   const halfCount = marqueeItems.length / 2;
   const durationSec = Math.max(28, Math.round(halfCount * 2.8));
@@ -153,7 +155,7 @@ export function YesterdayWinsTicker({
           )}
         >
           <div
-            className="scl-ticker-track flex w-max items-center gap-2.5 group-focus-within/ticker:[animation-play-state:paused] group-hover/ticker:[animation-play-state:paused]"
+            className="scl-ticker-track flex w-max items-center gap-2.5 group-hover/ticker:[animation-play-state:paused]"
             style={
               {
                 animation: `scl-ticker ${durationSec}s linear infinite`,
@@ -162,28 +164,29 @@ export function YesterdayWinsTicker({
             aria-hidden="true"
           >
             {marqueeItems.map((result, i) => (
-              <TickerItem key={`dup-${result.id}-${i}`} result={result} />
+              <TickerItem
+                key={`dup-${result.id}-${i}`}
+                result={result}
+                interactive={false}
+              />
             ))}
           </div>
-          <div className="sr-only">
-            {staticItems.map((result) => (
-              <span key={result.id}>
-                @{result.handle} · {outcomeLabel(result.outcome)} ·{" "}
-                {result.selection} ·{" "}
-                {formatResultUnits(
-                  result.outcome,
-                  result.profitUnits,
-                  result.units,
-                )}
-              </span>
+          <ul className="sr-only">
+            {items.map((result) => (
+              <li key={result.id}>
+                <Link href={`/cappers/${result.handle}`}>@{result.handle}</Link>
+                {" · "}
+                {outcomeLabel(result.outcome)} · {result.selection} ·{" "}
+                {formatResultUnits(result.outcome, result.profitUnits)}
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
 
         <ul className="hidden min-w-0 flex-1 flex-wrap items-center gap-2 motion-reduce:flex">
-          {staticItems.map((result) => (
+          {items.map((result) => (
             <li key={`static-${result.id}`}>
-              <TickerItem result={result} />
+              <TickerItem result={result} interactive />
             </li>
           ))}
         </ul>

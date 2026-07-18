@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { Activity, ArrowRight } from "lucide-react";
 
 import { LeagueMark } from "@/components/scl/league-mark";
@@ -37,6 +37,16 @@ const BET_TYPE_COLS =
   "grid-cols-[minmax(0,1.1fr)_minmax(5.5rem,0.7fr)_4.25rem_4.25rem_4.5rem]";
 
 type TabKey = "types" | "leagues";
+
+function subscribeLg(onStoreChange: () => void) {
+  const mq = window.matchMedia("(min-width: 1024px)");
+  mq.addEventListener("change", onStoreChange);
+  return () => mq.removeEventListener("change", onStoreChange);
+}
+
+function getLgSnapshot() {
+  return window.matchMedia("(min-width: 1024px)").matches;
+}
 
 function Metric({
   label,
@@ -452,6 +462,8 @@ export function LeagueActionReport({
         ? "leagues"
         : "types",
   );
+  const isLg = useSyncExternalStore(subscribeLg, getLgSnapshot, () => false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   if (failed) {
     return (
@@ -503,9 +515,19 @@ export function LeagueActionReport({
         </div>
       </div>
 
-      {/* Mobile: secondary breakdown collapsed; desktop unchanged. */}
-      <details className="group border-border border-b lg:hidden">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 pl-5 outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--scl-blue)] focus-visible:ring-inset [&::-webkit-details-marker]:hidden">
+      {/* Mobile: secondary breakdown collapsed; desktop forced open — single mount. */}
+      <details
+        className="group border-border border-b"
+        open={isLg ? true : mobileOpen}
+        onToggle={(e) => {
+          if (isLg) {
+            e.currentTarget.open = true;
+            return;
+          }
+          setMobileOpen(e.currentTarget.open);
+        }}
+      >
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 pl-5 outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--scl-blue)] focus-visible:ring-inset lg:hidden [&::-webkit-details-marker]:hidden">
           <span className="min-w-0">
             <span className="text-foreground block text-sm font-semibold">
               Bet-type breakdown
@@ -531,18 +553,6 @@ export function LeagueActionReport({
           maxLeaguePicks={maxLeaguePicks}
         />
       </details>
-
-      <div className="hidden lg:block">
-        <PlatformReportTabs
-          tab={tab}
-          setTab={setTab}
-          shape={shape}
-          market={market}
-          leagues={leagues}
-          maxUnitsAbs={maxUnitsAbs}
-          maxLeaguePicks={maxLeaguePicks}
-        />
-      </div>
 
       <p className="text-muted-foreground border-border border-t px-4 py-2.5 pl-5 text-xs leading-relaxed sm:px-5 sm:pl-6">
         {PLATFORM_REPORT_ELIGIBILITY_FOOTNOTE}

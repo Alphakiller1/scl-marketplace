@@ -430,7 +430,7 @@ function MetricRow({
   showClv: boolean;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
+    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
       <RecordStat record={capper.record} />
       <div className="space-y-1.5">
         <RoiStat roi={capper.roi} gradedCount={graded} />

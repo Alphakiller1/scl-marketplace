@@ -14,7 +14,8 @@ export type GradedTickerResult = {
   handle: string;
   selection: string;
   units: number;
-  profitUnits: number;
+  /** Null when settlement P/L was not stored — never invent a return. */
+  profitUnits: number | null;
   outcome: "WIN" | "LOSS" | "PUSH";
 };
 
@@ -68,13 +69,14 @@ async function queryGradedResults(whereGradedAt: {
     if (p.outcome !== "WIN" && p.outcome !== "LOSS" && p.outcome !== "PUSH") {
       return [];
     }
+    const profitRaw = p.profitUnits;
     return [
       {
         id: p.id,
         handle,
         selection: p.selection,
         units: Number(p.units),
-        profitUnits: Number(p.profitUnits ?? 0),
+        profitUnits: profitRaw == null ? null : Number(profitRaw),
         outcome: p.outcome,
       },
     ];
