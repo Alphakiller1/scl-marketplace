@@ -213,6 +213,8 @@ export type RawBookmaker = {
   /** Odds API bookmaker key (e.g. draftkings). Required for per-book attribution. */
   key?: string;
   title?: string;
+  /** Odds API ISO timestamp for when this bookmaker's lines were last updated. */
+  last_update?: string;
   markets?: RawMarket[];
 };
 export type RawEventOdds = {

@@ -2,9 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  dedupeOddsEvents,
   getOddsForBook,
+  isExtremeAmericanOdds,
   normalizeEventBoard,
   preferredThenAll,
+  type OddsEvent,
 } from "@/lib/odds-board";
 import type { RawEventOdds } from "@/lib/odds-verify";
 
@@ -119,4 +122,96 @@ test("preferredThenAll falls back when preferred books miss the market", () => {
   const miss = preferredThenAll(byBook, ["betmgm"]);
   assert.equal(miss?.price, -105);
   assert.equal(miss?.book, "fanduel");
+});
+
+test("isExtremeAmericanOdds flags longshots and heavy favorites only", () => {
+  assert.equal(isExtremeAmericanOdds(900), true);
+  assert.equal(isExtremeAmericanOdds(940), true);
+  assert.equal(isExtremeAmericanOdds(899), false);
+  assert.equal(isExtremeAmericanOdds(-2000), true);
+  assert.equal(isExtremeAmericanOdds(-3100), true);
+  assert.equal(isExtremeAmericanOdds(-1999), false);
+  assert.equal(isExtremeAmericanOdds(-110), false);
+  assert.equal(isExtremeAmericanOdds(150), false);
+});
+
+test("dedupeOddsEvents keeps one row per matchup, preferring most-complete", () => {
+  const thin: OddsEvent = {
+    id: "thin",
+    sport: "MLB",
+    commenceTime: "2026-07-18T23:10:00Z",
+    home: "Cleveland Guardians",
+    away: "Pittsburgh Pirates",
+    selections: [
+      {
+        label: "Pirates ML",
+        market: "Moneyline",
+        selection: "Pittsburgh Pirates",
+        side: "Pittsburgh Pirates",
+        featured: true,
+        oddsAmerican: 940,
+        book: "draftkings",
+        bookPrices: { draftkings: 940 },
+      },
+    ],
+  };
+  const rich: OddsEvent = {
+    id: "rich",
+    sport: "MLB",
+    commenceTime: "2026-07-18T23:10:00Z",
+    home: "Cleveland Guardians",
+    away: "Pittsburgh Pirates",
+    selections: [
+      {
+        label: "Pirates ML",
+        market: "Moneyline",
+        selection: "Pittsburgh Pirates",
+        side: "Pittsburgh Pirates",
+        featured: true,
+        oddsAmerican: 150,
+        book: "fanduel",
+        bookPrices: { draftkings: 145, fanduel: 150, betmgm: 140 },
+      },
+      {
+        label: "Guardians ML",
+        market: "Moneyline",
+        selection: "Cleveland Guardians",
+        side: "Cleveland Guardians",
+        featured: true,
+        oddsAmerican: -175,
+        book: "fanduel",
+        bookPrices: { draftkings: -170, fanduel: -175 },
+      },
+    ],
+  };
+  const other: OddsEvent = {
+    id: "other",
+    sport: "MLB",
+    commenceTime: "2026-07-18T23:10:00Z",
+    home: "New York Yankees",
+    away: "Boston Red Sox",
+    selections: thin.selections,
+  };
+
+  const deduped = dedupeOddsEvents([thin, rich, other, thin]);
+  assert.equal(deduped.length, 2);
+  assert.equal(deduped[0]!.id, "rich");
+  assert.equal(deduped[1]!.id, "other");
+});
+
+test("normalizeEventBoard attaches bookmaker last_update as oddsCapturedAt", () => {
+  const withUpdate: RawEventOdds = {
+    ...EVENT,
+    bookmakers: EVENT.bookmakers?.map((bm) =>
+      bm.key === "fanduel"
+        ? { ...bm, last_update: "2026-07-18T18:00:00Z" }
+        : bm,
+    ),
+  };
+  const board = normalizeEventBoard(withUpdate);
+  const spread = board.find(
+    (s) => s.market === "Spread" && s.side === "Lakers",
+  );
+  assert.equal(spread?.book, "fanduel");
+  assert.equal(spread?.oddsCapturedAt, "2026-07-18T18:00:00Z");
 });

@@ -5,6 +5,7 @@ import { shouldCircuitBreak } from "@/lib/odds-budget";
 import { SOCCER_LEAGUES, soccerLeagueByKey } from "@/lib/soccer-leagues";
 import { prisma } from "@/lib/prisma";
 import {
+  dedupeOddsEvents,
   normalizeEventBoard,
   normalizeUpcomingEvent,
   type OddsBoardOpts,
@@ -257,7 +258,7 @@ export async function fetchSoccerBoard(
       );
       all.push(...chunk.flat());
     }
-    return all.slice(0, 80);
+    return dedupeOddsEvents(all).slice(0, 80);
   } catch (err) {
     console.warn("[odds] soccer board fetch failed", err);
     return [];
@@ -304,17 +305,17 @@ export async function fetchUpcomingOdds(
 
   try {
     const board = await attempt(preferred);
-    if (board.length > 0) return board;
+    if (board.length > 0) return dedupeOddsEvents(board);
 
     // Never empty the board solely because of a bookmakers filter — fall back to regions=us.
     if (bookmakersQueryParam(preferred ?? [])) {
       console.info(
         `[odds] upcoming ${sclSport}: bookmakers filter empty, falling back to regions=us`,
       );
-      return await attempt(undefined);
+      return dedupeOddsEvents(await attempt(undefined));
     }
     console.info(`[odds] upcoming ${sclSport}: 0 usable events returned`);
-    return board;
+    return dedupeOddsEvents(board);
   } catch (err) {
     console.warn(`[odds] upcoming ${sclSport}: fetch failed`, err);
     return [];
