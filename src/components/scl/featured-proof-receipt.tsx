@@ -1,0 +1,124 @@
+import Link from "next/link";
+import { Receipt } from "lucide-react";
+
+import { LeagueRef, TeamRef } from "@/components/scl/entity-marks";
+import { ProofReceipt } from "@/components/scl/proof-receipt";
+import { EmptyState } from "@/components/scl/states";
+import { formatOdds, formatUnits } from "@/lib/format";
+import { americanToDecimal } from "@/lib/odds";
+import { pickContextLabel } from "@/lib/pick-identity";
+import { deriveProofReceiptState } from "@/lib/proof-receipt";
+import type { FeaturedGradedPlay } from "@/lib/queries/home-live";
+import { cn } from "@/lib/utils";
+
+/**
+ * Homepage Featured Proof Receipt — one real graded pick, feed density.
+ */
+export function FeaturedProofReceipt({
+  play,
+  failed = false,
+  className,
+}: {
+  play: FeaturedGradedPlay | null;
+  failed?: boolean;
+  className?: string;
+}) {
+  return (
+    <section
+      className={cn("space-y-3", className)}
+      aria-label="Featured proof receipt"
+    >
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0 border-t border-[color:var(--scl-pink-deep)] pt-2.5">
+          <h2 className="scl-display text-lg font-semibold tracking-[0.04em]">
+            Featured proof
+          </h2>
+          <p className="text-muted-foreground text-sm">
+            One recent graded, inspectable receipt
+          </p>
+        </div>
+        {play ? (
+          <Link
+            href={`/cappers/${play.handle}`}
+            className="text-sm font-medium text-[color:var(--scl-blue)] hover:underline"
+          >
+            @{play.handle}
+          </Link>
+        ) : null}
+      </div>
+
+      {!play ? (
+        <EmptyState
+          icon={Receipt}
+          title={
+            failed ? "Couldn't load featured proof" : "No graded receipts yet"
+          }
+          description={
+            failed
+              ? "Try again shortly."
+              : "When board-verified picks settle, a Proof Receipt will appear here."
+          }
+        />
+      ) : (
+        <FeaturedReceiptBody play={play} />
+      )}
+    </section>
+  );
+}
+
+function FeaturedReceiptBody({ play }: { play: FeaturedGradedPlay }) {
+  const state = deriveProofReceiptState({
+    outcome: play.outcome,
+    eventStartsAt: play.eventStartsAt,
+    verificationTier: play.verificationTier,
+  });
+  const projected = play.units * (americanToDecimal(play.oddsAmerican) - 1);
+  const toWin =
+    play.profitUnits != null
+      ? formatUnits(play.profitUnits)
+      : formatUnits(projected, true, false);
+  const market = pickContextLabel({
+    sport: play.sport,
+    league: play.league,
+    market: play.market,
+  });
+
+  return (
+    <ProofReceipt
+      selectionTitle={play.selection}
+      leadingMark={
+        <TeamRef name={play.side} sport={play.sport} size="md" knownOnly />
+      }
+      eventLine={
+        <span className="inline-flex flex-wrap items-center gap-1.5 tracking-normal normal-case">
+          <LeagueRef sport={play.sport} />
+          {market ? (
+            <span className="scl-data tracking-[0.06em] uppercase">
+              {market}
+            </span>
+          ) : null}
+        </span>
+      }
+      legs={1}
+      odds={formatOdds(play.oddsAmerican)}
+      stake={formatUnits(play.units, true, false)}
+      toWin={toWin}
+      capturedAt={play.createdAt.toISOString()}
+      book={play.book}
+      state={state}
+      density="feed"
+      closingOddsAmerican={play.closingOddsAmerican ?? null}
+      clvPts={play.clvPts ?? null}
+      evidenceId={play.id}
+      analysis={play.notesPublic === false ? null : play.notes}
+      footerAction={
+        <Link
+          href={`/cappers/${play.handle}`}
+          className="text-xs font-semibold text-[color:var(--scl-blue)] hover:underline"
+        >
+          View @{play.handle} record
+        </Link>
+      }
+    />
+  );
+}
