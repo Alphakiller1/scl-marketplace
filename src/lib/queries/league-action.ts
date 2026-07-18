@@ -1,4 +1,4 @@
-﻿import "server-only";
+import "server-only";
 
 import type { VerificationTier } from "@prisma/client";
 
