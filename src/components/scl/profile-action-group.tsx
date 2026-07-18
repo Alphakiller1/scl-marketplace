@@ -66,13 +66,14 @@ function useLocalFollow(handle: string) {
   return { following, toggle };
 }
 
-const PINK_CTA =
-  "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)]";
+const BLUE_CTA =
+  "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)] hover:bg-[color:var(--scl-blue-deep)] hover:text-[color:var(--scl-blue-ink)]";
 const BLUE_OUTLINE =
   "border-[color:var(--scl-blue)] bg-transparent text-[color:var(--scl-text)] hover:bg-[color:var(--scl-blue)]/10";
 
 /**
  * Proof-mode first-viewport actions — Follow · Compare · View offers as one group.
+ * Follow is blue (navigation/relationship) — never pink (verification-only).
  */
 export function ProfileActionGroup({
   handle,
@@ -95,7 +96,7 @@ export function ProfileActionGroup({
       <Button
         type="button"
         size="sm"
-        className={cn("min-h-11 gap-1.5 sm:min-h-10", PINK_CTA)}
+        className={cn("min-h-11 gap-1.5 sm:min-h-10", BLUE_CTA)}
         onClick={toggleFollow}
         aria-pressed={following}
       >

@@ -23,6 +23,7 @@ import {
   TRACK_YOUR_RECORD_CTA,
 } from "@/lib/cold-start-copy";
 import { sortLeaderboard } from "@/lib/leaderboard";
+import { platformReportSubtitle } from "@/lib/league-action";
 import {
   getFeaturedGradedPlay,
   getTodaysGradedMoves,
@@ -140,7 +141,7 @@ export default async function Home() {
             <SectionHeader
               icon={Activity}
               title="Platform activity report"
-              subtitle={`Most successful bet types from public listed cappers — last ${windowDays} days`}
+              subtitle={platformReportSubtitle(windowDays)}
               href="/picks"
             />
             <LeagueActionReport

@@ -37,6 +37,7 @@ import {
 } from "@/lib/proof-receipt";
 import type { PlayView } from "@/lib/queries/plays";
 import { hasSignal, isProvisional } from "@/lib/sample";
+import { isVerifiedTier } from "@/lib/verification";
 import { cn } from "@/lib/utils";
 
 const LENS_KEY = "scl-trust-lens";
@@ -124,6 +125,8 @@ function playToProofReceipt(
       book={play.book}
       state={state}
       density={density}
+      verificationDominant={density === "expanded-paper"}
+      boardVerified={isVerifiedTier(play.verificationTier)}
       closingOddsAmerican={play.closingOddsAmerican ?? null}
       clvPts={play.clvPts ?? null}
       evidenceId={play.id}
