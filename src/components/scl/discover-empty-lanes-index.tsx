@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { Compass } from "lucide-react";
 
 import {
@@ -23,12 +24,14 @@ export function DiscoverEmptyLanesIndex({
   failed?: boolean;
   className?: string;
 }) {
+  const headingId = useId();
+
   if (!lanes.length) return null;
 
   return (
     <section
       className={cn("space-y-3", className)}
-      aria-labelledby="discover-empty-lanes"
+      aria-labelledby={headingId}
       data-visual-mode="rank"
     >
       <div className="min-w-0 border-t border-[color:var(--scl-line)] pt-3">
@@ -39,7 +42,7 @@ export function DiscoverEmptyLanesIndex({
           />
           <div className="min-w-0">
             <h2
-              id="discover-empty-lanes"
+              id={headingId}
               className="scl-display text-base font-bold tracking-[0.04em] sm:text-lg"
             >
               Lanes without matches yet
