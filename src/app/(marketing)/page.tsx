@@ -9,6 +9,7 @@ import { FeaturedProofReceipt } from "@/components/scl/featured-proof-receipt";
 import { HomeLiveBoard } from "@/components/scl/home-live-board";
 import { LeaderboardSnapshot } from "@/components/scl/leaderboard-snapshot";
 import { LeagueActionReport } from "@/components/scl/league-action-report";
+import { PlatformClvSummary } from "@/components/scl/platform-clv-summary";
 import { SectionHeader } from "@/components/scl/section";
 import { TopCappersLive } from "@/components/scl/top-cappers-live";
 import { VerificationLegend } from "@/components/scl/verification-legend";
@@ -28,6 +29,7 @@ import {
 } from "@/lib/queries/home-live";
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 import { getLeagueActionReport } from "@/lib/queries/league-action";
+import { getPlatformClvSummary } from "@/lib/queries/platform-clv";
 import { getYesterdaysGradedWins } from "@/lib/queries/yesterday-wins";
 
 export const revalidate = 60;
@@ -97,6 +99,8 @@ export default async function Home() {
   const { moves, failed: movesFailed } = await getTodaysGradedMoves();
   const { play: featuredPlay, failed: featuredFailed } =
     await getFeaturedGradedPlay();
+  const { summary: platformClv, failed: platformClvFailed } =
+    await getPlatformClvSummary();
 
   const snapshot = sortLeaderboard(cappers, "units").slice(0, 5);
   const topCappers = sortLeaderboard(cappers, "units").slice(0, 5);
@@ -159,6 +163,19 @@ export default async function Home() {
             trackedPicks={trackedPicks}
             windowDays={windowDays}
             failed={leagueActionFailed}
+          />
+        </section>
+
+        <section className="space-y-4">
+          <SectionHeader
+            icon={Activity}
+            title="Platform CLV"
+            subtitle="Pricing vs close on board-verified picks with a stored closing line"
+            href="/leaderboard?sort=clv"
+          />
+          <PlatformClvSummary
+            summary={platformClv}
+            failed={platformClvFailed}
           />
         </section>
 

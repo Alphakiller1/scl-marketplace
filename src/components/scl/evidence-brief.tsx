@@ -7,6 +7,7 @@ import {
   CumulativeUnitsChart,
   buildCumulativeUnits,
 } from "@/components/scl/cumulative-units-chart";
+import { ClvTrackerPanel } from "@/components/scl/clv-tracker-panel";
 import { LeagueRef, TeamRef } from "@/components/scl/entity-marks";
 import { ProofReceipt } from "@/components/scl/proof-receipt";
 import { ProvisionalRecordHelp } from "@/components/scl/provisional-record-help";
@@ -23,12 +24,13 @@ import { VerificationHelpLink } from "@/components/scl/verification-help-link";
 import { VerificationLegend } from "@/components/scl/verification-legend";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
 import { formatOdds, formatUnits } from "@/lib/format";
 import type { CapperSummary } from "@/lib/mock";
 import { americanToDecimal } from "@/lib/odds";
 import { pickContextLabel } from "@/lib/pick-identity";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
-import { deriveProofReceiptState } from "@/lib/proof-receipt";
+import { deriveProofReceiptState, formatClvPts } from "@/lib/proof-receipt";
 import type { PlayView } from "@/lib/queries/plays";
 import { hasSignal, isProvisional } from "@/lib/sample";
 import { cn } from "@/lib/utils";
@@ -132,6 +134,7 @@ export function EvidenceBrief({
   plays,
   playsError,
   avgClv,
+  clvTracker: clvTrackerProp,
   emptyName,
   className,
 }: {
@@ -139,6 +142,7 @@ export function EvidenceBrief({
   plays: PlayView[];
   playsError?: boolean;
   avgClv?: number | null;
+  clvTracker?: ClvTrackerSummary;
   emptyName: string;
   className?: string;
 }) {
@@ -149,7 +153,19 @@ export function EvidenceBrief({
     capper.verifiedShare != null && capper.verifiedShare > 0
       ? Math.round(capper.verifiedShare)
       : null;
-  const clvScale = perfScale("clv", avgClv, { gradedCount: graded });
+
+  const clvTracker = useMemo(() => {
+    if (clvTrackerProp) return clvTrackerProp;
+    const fromPlays = plays
+      .map((p) => p.clvPts)
+      .filter((v): v is number => v != null && Number.isFinite(v));
+    return summarizeClvTracker(fromPlays);
+  }, [clvTrackerProp, plays]);
+
+  const displayAvgClv = clvTracker.avgClv ?? avgClv ?? null;
+  const clvScale = perfScale("clv", displayAvgClv, {
+    gradedCount: clvTracker.snapshotCount,
+  });
 
   const [lens, setLens] = useState<TrustLens>(() => {
     if (typeof window === "undefined") return "simple";
@@ -237,12 +253,13 @@ export function EvidenceBrief({
               graded={graded}
               provisional={provisional}
               verifiedPct={verifiedPct}
-              avgClv={avgClv}
+              avgClv={displayAvgClv}
               clvScale={clvScale}
               showClv={showClv}
             />
             <SampleMaturityMeter graded={graded} showLegend />
             <CumulativeUnitsChart points={cumulative} gradedCount={graded} />
+            <ClvTrackerPanel summary={clvTracker} />
           </TabsContent>
 
           <TabsContent value="audit" className="mt-4 space-y-4">
@@ -251,17 +268,18 @@ export function EvidenceBrief({
               graded={graded}
               provisional={provisional}
               verifiedPct={verifiedPct}
-              avgClv={avgClv}
+              avgClv={displayAvgClv}
               clvScale={clvScale}
               showClv
             />
             <SampleMaturityMeter graded={graded} showLegend />
             <CumulativeUnitsChart points={cumulative} gradedCount={graded} />
+            <ClvTrackerPanel summary={clvTracker} />
             {showAuditMeta ? (
               <p className="text-muted-foreground text-xs leading-relaxed">
                 Audit lens shows Evidence IDs and Close/CLV on each receipt.
                 Historical plays without a closing snapshot stay as em-dashes —
-                CLV only computes forward.
+                CLV only populates forward when a close is captured.
               </p>
             ) : null}
           </TabsContent>
@@ -356,11 +374,7 @@ function MetricRow({
       {showClv ? (
         <StatBlock
           label="CLV"
-          value={
-            avgClv != null
-              ? `${avgClv >= 0 ? "+" : ""}${avgClv.toFixed(2)} pts`
-              : "—"
-          }
+          value={avgClv != null ? formatClvPts(avgClv) : "—"}
           valueClassName={perfToneClass(clvScale.tone)}
           aria-label={clvScale.ariaLabel}
           className="min-w-[4.5rem]"
