@@ -7,10 +7,9 @@ import { cn } from "@/lib/utils";
 import { formatOdds } from "@/lib/format";
 
 /**
- * Odds market chip — SCL-DESIGN-SPEC CHIP recipe.
- * Selected: pink fill + pink-ink + "✓ " odds prefix + double ring.
- * Optional mono book tag labels capture attribution (v1.1).
- * When oddsAmerican is null, renders "—" (honest missing book line) and is not pickable.
+ * v2 odds chip — single row: label + odds.
+ * SELECTED = pink fill, pink-ink, ring + ✓ prefix.
+ * Missing odds → honest em-dash, not pickable.
  */
 export function MarketChip({
   label,
@@ -40,7 +39,7 @@ export function MarketChip({
       disabled={disabled || selected || missing}
       aria-pressed={selected}
       className={cn(
-        "flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-[var(--scl-radius-chip)] border px-2 py-1.5 text-center transition-[background-color,box-shadow,border-color] duration-150 ease-in-out",
+        "flex min-h-12 w-full items-center justify-between gap-2 rounded-[var(--scl-radius-chip)] border px-3 py-2 text-left transition-[background-color,box-shadow,border-color] duration-150 ease-in-out",
         selected
           ? "cursor-default border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] shadow-[0_0_0_2px_var(--scl-ink-950),0_0_0_3.5px_var(--scl-pink-deep)]"
           : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-700)] hover:bg-[color:var(--scl-ink-600)]",
@@ -49,18 +48,33 @@ export function MarketChip({
         className,
       )}
     >
-      <BettingTitle
-        text={label}
-        className={cn(
-          "min-w-0 truncate text-xs font-medium",
-          selected
-            ? "font-semibold text-[color:var(--scl-pink-ink)]"
-            : "text-[color:var(--scl-muted-data)]",
-        )}
-      />
+      <span className="flex min-w-0 flex-1 items-center gap-1.5">
+        <BettingTitle
+          text={label}
+          className={cn(
+            "min-w-0 truncate text-sm font-medium",
+            selected
+              ? "font-semibold text-[color:var(--scl-pink-ink)]"
+              : "text-[color:var(--scl-muted-data)]",
+          )}
+        />
+        {bookTag ? (
+          <span
+            className={cn(
+              "scl-data inline-flex shrink-0 items-center gap-0.5 text-[0.56rem] font-medium tracking-[0.08em] uppercase",
+              selected
+                ? "text-[color:var(--scl-pink-ink)]/80"
+                : "text-[color:var(--scl-muted-data)]",
+            )}
+          >
+            {book ? <BookMark bookKey={book} size={16} /> : null}
+            {bookTag}
+          </span>
+        ) : null}
+      </span>
       <span
         className={cn(
-          "scl-data text-sm font-semibold tabular-nums",
+          "scl-data shrink-0 text-sm font-semibold tabular-nums",
           selected
             ? "text-[color:var(--scl-pink-ink)]"
             : "text-[color:var(--scl-text)]",
@@ -69,19 +83,6 @@ export function MarketChip({
         {selected ? "✓ " : ""}
         {missing ? "—" : formatOdds(oddsAmerican)}
       </span>
-      {bookTag ? (
-        <span
-          className={cn(
-            "scl-data inline-flex items-center gap-0.5 text-[0.56rem] font-medium tracking-[0.08em] uppercase",
-            selected
-              ? "text-[color:var(--scl-pink-ink)]/80"
-              : "text-[color:var(--scl-muted-data)]",
-          )}
-        >
-          {book ? <BookMark bookKey={book} size={16} /> : null}
-          {bookTag}
-        </span>
-      ) : null}
     </button>
   );
 }

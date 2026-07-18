@@ -25,6 +25,8 @@ export type SlipSelection = SlipPick & {
   league?: string;
   /** Per-line stake in Singles mode (ignored for parlay submit). */
   units: number;
+  /** ISO when the line was tapped onto the slip (board capture clock for UI). */
+  capturedAt: string;
 };
 
 export type SlipMode = "singles" | "parlay";
@@ -201,6 +203,7 @@ export function toSlipSelection(
     sport: string;
   },
   units: number,
+  capturedAt: string = new Date().toISOString(),
 ): SlipSelection {
   return {
     id: pickKey(pick),
@@ -216,6 +219,7 @@ export function toSlipSelection(
     player: pick.player,
     book: pick.book,
     units,
+    capturedAt,
   };
 }
 

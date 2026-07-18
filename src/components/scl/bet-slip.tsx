@@ -16,6 +16,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UNIT_MAX, UNIT_MIN, UNIT_STEP } from "@/lib/constants";
+import { formatCapturedHmEt } from "@/lib/format-capture";
 import { formatOdds } from "@/lib/format";
 import {
   americanToDecimal,
@@ -224,96 +225,104 @@ export function BetSlip({
       ) : null}
 
       <ul className="space-y-3">
-        {selections.map((s) => (
-          <li
-            key={s.id}
-            className="border-border rounded-[12px] border bg-[color:var(--scl-ink-800)] p-3"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex min-w-0 items-start gap-2">
-                {isTeamSide(s.side) && s.sport ? (
-                  <TeamRef
-                    name={s.side}
-                    sport={s.sport}
-                    size="sm"
-                    className="mt-0.5"
-                  />
-                ) : null}
-                <div className="min-w-0">
-                  <BettingTitle
-                    as="p"
-                    text={s.selection}
-                    className="scl-display text-sm font-bold tracking-[0.02em] break-words uppercase"
-                  />
-                  <p className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
-                    <span>{s.market}</span>
-                    {s.sport ? (
-                      <LeagueRef sport={s.sport} league={s.league} markOnly />
-                    ) : null}
-                    {s.sport ? (
-                      <span className="scl-data tracking-[0.06em] uppercase">
-                        {s.league?.trim() || s.sport}
-                      </span>
-                    ) : null}
-                    <span className="scl-data text-foreground font-semibold">
-                      {formatOdds(s.oddsAmerican)}
-                    </span>
-                    {s.book && isBookKey(s.book) ? (
-                      <span className="inline-flex items-center gap-1">
-                        <BookMark bookKey={s.book} size={16} />
-                        <span className="scl-data tracking-[0.06em] uppercase">
-                          {bookShort(s.book)}
-                        </span>
-                      </span>
-                    ) : null}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                aria-label={`Remove ${s.selection}`}
-                onClick={() => removeSelection(s.id)}
-                className="text-muted-foreground hover:text-foreground hover:bg-surface-2 min-h-10 min-w-10 shrink-0 rounded-md p-1.5"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-
-            {mode === "singles" ? (
-              <div className="mt-3 space-y-2">
-                <div className="grid grid-cols-2 items-end gap-2">
-                  <div className="space-y-1">
-                    <Label htmlFor={`units-${s.id}`}>Units</Label>
-                    <Input
-                      id={`units-${s.id}`}
-                      type="number"
-                      step={UNIT_STEP}
-                      min={UNIT_MIN}
-                      max={UNIT_MAX}
-                      value={s.units}
-                      onChange={(e) => {
-                        const n = Number(e.target.value);
-                        if (Number.isFinite(n)) setSelectionUnits(s.id, n);
-                      }}
+        {selections.map((s) => {
+          const capturedLabel = formatCapturedHmEt(s.capturedAt);
+          return (
+            <li
+              key={s.id}
+              className="border-border rounded-[12px] border bg-[color:var(--scl-ink-800)] p-3"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex min-w-0 items-start gap-2">
+                  {isTeamSide(s.side) && s.sport ? (
+                    <TeamRef
+                      name={s.side}
+                      sport={s.sport}
+                      size="sm"
+                      className="mt-0.5"
                     />
-                  </div>
-                  <div className="text-right">
-                    <p className="text-muted-foreground text-xs">To win</p>
-                    <StatValue tone="pink" className="text-base font-bold">
-                      {s.units > 0 && Math.abs(s.oddsAmerican) >= 100
-                        ? `+${(s.units * (americanToDecimal(s.oddsAmerican) - 1)).toFixed(2)}u`
-                        : "—"}
-                    </StatValue>
+                  ) : null}
+                  <div className="min-w-0">
+                    <BettingTitle
+                      as="p"
+                      text={s.selection}
+                      className="scl-display text-sm font-bold tracking-[0.02em] break-words uppercase"
+                    />
+                    <p className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
+                      <span>{s.market}</span>
+                      {s.sport ? (
+                        <LeagueRef sport={s.sport} league={s.league} markOnly />
+                      ) : null}
+                      {s.sport ? (
+                        <span className="scl-data tracking-[0.06em] uppercase">
+                          {s.league?.trim() || s.sport}
+                        </span>
+                      ) : null}
+                      <span className="scl-data text-foreground font-semibold">
+                        {formatOdds(s.oddsAmerican)}
+                      </span>
+                      {capturedLabel ? (
+                        <span className="scl-data tracking-[0.06em] uppercase">
+                          {capturedLabel}
+                        </span>
+                      ) : null}
+                      {s.book && isBookKey(s.book) ? (
+                        <span className="inline-flex items-center gap-1">
+                          <BookMark bookKey={s.book} size={16} />
+                          <span className="scl-data tracking-[0.06em] uppercase">
+                            {bookShort(s.book)}
+                          </span>
+                        </span>
+                      ) : null}
+                    </p>
                   </div>
                 </div>
-                <StakeQuickChips
-                  value={s.units}
-                  onChange={(u) => setSelectionUnits(s.id, u)}
-                />
+                <button
+                  type="button"
+                  aria-label={`Remove ${s.selection}`}
+                  onClick={() => removeSelection(s.id)}
+                  className="text-muted-foreground hover:text-foreground hover:bg-surface-2 min-h-10 min-w-10 shrink-0 rounded-md p-1.5"
+                >
+                  <X className="size-5" />
+                </button>
               </div>
-            ) : null}
-          </li>
-        ))}
+
+              {mode === "singles" ? (
+                <div className="mt-3 space-y-2">
+                  <div className="grid grid-cols-2 items-end gap-2">
+                    <div className="space-y-1">
+                      <Label htmlFor={`units-${s.id}`}>Units</Label>
+                      <Input
+                        id={`units-${s.id}`}
+                        type="number"
+                        step={UNIT_STEP}
+                        min={UNIT_MIN}
+                        max={UNIT_MAX}
+                        value={s.units}
+                        onChange={(e) => {
+                          const n = Number(e.target.value);
+                          if (Number.isFinite(n)) setSelectionUnits(s.id, n);
+                        }}
+                      />
+                    </div>
+                    <div className="text-right">
+                      <p className="text-muted-foreground text-xs">To win</p>
+                      <StatValue tone="pink" className="text-base font-bold">
+                        {s.units > 0 && Math.abs(s.oddsAmerican) >= 100
+                          ? `+${(s.units * (americanToDecimal(s.oddsAmerican) - 1)).toFixed(2)}u`
+                          : "—"}
+                      </StatValue>
+                    </div>
+                  </div>
+                  <StakeQuickChips
+                    value={s.units}
+                    onChange={(u) => setSelectionUnits(s.id, u)}
+                  />
+                </div>
+              ) : null}
+            </li>
+          );
+        })}
       </ul>
 
       {mode === "parlay" ? (
