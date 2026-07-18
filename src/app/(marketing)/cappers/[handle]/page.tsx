@@ -27,7 +27,7 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
   const data = await getPublicCapperByHandle(handle);
   if (!data) notFound();
 
-  const { capper, plays, playsError, avgClv } = data;
+  const { capper, plays, playsError, avgClv, clvTracker } = data;
   const identity = identityDisplayLinesFromCapper(capper);
   const packages = await getLivePackagesForCapper(capper.id);
 
@@ -42,6 +42,7 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
             plays={plays}
             playsError={playsError}
             avgClv={avgClv}
+            clvTracker={clvTracker}
             emptyName={identity.primary}
           />
 

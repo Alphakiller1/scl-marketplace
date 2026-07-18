@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 import type { PlayView } from "@/lib/queries/plays";
 import type { CapperSummary } from "@/lib/mock";
@@ -13,8 +14,10 @@ export type PublicCapper = {
   capper: CapperSummary;
   plays: PlayView[];
   playsError: boolean;
-  /** Average CLV pts on verified graded plays with a recorded close. */
+  /** Average CLV pts when signal-sized snapshots exist; else null. */
   avgClv: number | null;
+  /** Full CLV tracker summary from stored clvPts (never recomputed). */
+  clvTracker: ClvTrackerSummary;
 };
 
 /**
@@ -35,6 +38,7 @@ export async function getPublicCapperByHandle(
   let plays: PlayView[] = [];
   let playsError = false;
   let avgClv: number | null = null;
+  let clvTracker = summarizeClvTracker([]);
   try {
     const notesPublicReady = await hasNotesPublicColumn();
     const clvReady = await hasClvColumns();
@@ -94,24 +98,26 @@ export async function getPublicCapperByHandle(
     }));
 
     if (clvReady) {
-      const clvAgg = await prisma.play.aggregate({
+      const clvRows = await prisma.play.findMany({
         where: {
           capperId: capper.id,
           clvPts: { not: null },
           verificationTier: { in: ["VERIFIED", "AUTO_VERIFIED"] },
           outcome: { not: "PENDING" },
+          parlayId: null,
         },
-        _avg: { clvPts: true },
-        _count: { clvPts: true },
+        select: { clvPts: true },
       });
-      if (clvAgg._count.clvPts > 0 && clvAgg._avg.clvPts != null) {
-        avgClv = Number(clvAgg._avg.clvPts);
-      }
+      const pts = clvRows
+        .map((r) => (r.clvPts == null ? null : Number(r.clvPts)))
+        .filter((v): v is number => v != null && Number.isFinite(v));
+      clvTracker = summarizeClvTracker(pts);
+      avgClv = clvTracker.avgClv;
     }
   } catch (err) {
     console.error("[getPublicCapperByHandle] plays unavailable:", err);
     playsError = true;
   }
 
-  return { capper, plays, playsError, avgClv };
+  return { capper, plays, playsError, avgClv, clvTracker };
 }
