@@ -2,8 +2,8 @@ import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
 
 const base =
-  "https://scl-marketplace-3xi19vml5-alphakiller1s-projects.vercel.app";
-const share = "VJbl7V98O3xEWkiOqJpxw54JGYrufkbA";
+  "https://scl-marketplace-oc539xmf1-alphakiller1s-projects.vercel.app";
+const share = "1l6hibnigk3w2KLsJcQhbWmw9pytsNZP";
 const profilePath = "/cappers/petespicks";
 const outDir = "docs/qa/screenshots";
 mkdirSync(outDir, { recursive: true });
