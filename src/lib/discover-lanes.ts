@@ -45,7 +45,7 @@ export const DISCOVER_LANES: readonly DiscoverLaneMeta[] = [
   },
   {
     id: "verified_month",
-    title: "Best verified ROI this month",
+    title: "Best verified ROI over 30 days",
     explainer:
       "Recent ROI from graded picks that were board-verified at submission.",
     primaryLabel: "30-day ROI",
@@ -149,7 +149,7 @@ function groupStats(
  */
 export function pickSpecialty(
   plays: DiscoverPlayRow[],
-): { label: string; roi: number; settled: number } | null {
+): { label: string; roi: number; settled: number; units: number } | null {
   const gradedAll = plays.filter(
     (p) => p.outcome === "WIN" || p.outcome === "LOSS" || p.outcome === "PUSH",
   ).length;
@@ -174,7 +174,12 @@ export function pickSpecialty(
       b.settled - a.settled || b.roi - a.roi || a.label.localeCompare(b.label),
   );
   const best = candidates[0];
-  return { label: best.label, roi: best.roi, settled: best.settled };
+  return {
+    label: best.label,
+    roi: best.roi,
+    settled: best.settled,
+    units: best.units,
+  };
 }
 
 export function buildProvenLane(
@@ -236,7 +241,12 @@ export function buildSpecialistsLane(
     const specialty = pickSpecialty(plays);
     if (!specialty) continue;
     entries.push({
-      capper: summary,
+      capper: {
+        ...summary,
+        units: specialty.units,
+        settledPicks: specialty.settled,
+        roi: specialty.roi,
+      },
       primaryKind: "roi",
       primaryValue: specialty.roi,
       primaryLabel: meta.primaryLabel,

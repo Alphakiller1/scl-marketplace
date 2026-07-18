@@ -142,13 +142,14 @@ test("specialty lane picks concentrated sport with signal", () => {
   assert.equal(specialty?.label, "NBA");
   const lane = buildSpecialistsLane([
     {
-      summary: baseCapper({ settledPicks: 14, handle: "spec" }),
+      summary: baseCapper({ settledPicks: 14, handle: "spec", units: -25 }),
       plays,
     },
   ]);
   assert.equal(lane.length, 1);
   assert.equal(lane[0].contextLabel, "NBA");
   assert.equal(lane[0].primaryLabel, "Specialty ROI");
+  assert.ok(Math.abs(lane[0].capper.units - 3.28) < 1e-9);
 });
 
 test("newly credible requires developing sample + high verified share", () => {
@@ -221,7 +222,7 @@ test("DISCOVER_LANES locks exact titles and empty copy", () => {
       "No capper currently meets the long-window sample requirement.",
     ],
     [
-      "Best verified ROI this month",
+      "Best verified ROI over 30 days",
       "No capper has enough verified, graded picks in the current 30-day window.",
     ],
     [
