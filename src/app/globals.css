@@ -105,6 +105,13 @@
   --scl-perf-strong: #2fbf7b;
   --scl-perf-mid: #b5791e;
   --scl-perf-weak: #e5484d;
+  /* AA-safe text variants (≥4.5:1 on paper / white / #F5F3ED). Marks keep bright hues. */
+  --scl-win-text: #0b6b3c;
+  --scl-loss-text: #b71c1c;
+  --scl-push-text: #596273;
+  --scl-perf-strong-text: var(--scl-win-text);
+  --scl-perf-mid-text: #8a5a00;
+  --scl-perf-weak-text: var(--scl-loss-text);
   --scl-font-display:
     var(--font-barlow-condensed), "Barlow Condensed", sans-serif;
   --scl-font-ui: var(--font-barlow), "Barlow", sans-serif;
@@ -148,9 +155,9 @@
   --accent-foreground: var(--scl-blue-deep);
   --destructive: var(--scl-loss);
 
-  --pos: var(--scl-win);
+  --pos: var(--scl-win-text);
   --pos-foreground: #062416;
-  --neg: var(--scl-loss);
+  --neg: var(--scl-loss-text);
   --neg-foreground: #2a0608;
   --pink: var(--scl-pink);
   --pink-foreground: var(--scl-pink-ink);
@@ -159,7 +166,7 @@
 
   --live: var(--scl-blue);
   --live-foreground: var(--scl-blue-ink);
-  --push: var(--scl-push);
+  --push: var(--scl-push-text);
 
   --border: var(--scl-line);
   /* Strong borders lean blue (nav chrome) — pink stays on conviction hairlines */
@@ -208,6 +215,12 @@
   --scl-blue: #044cb6;
   --scl-blue-deep: #0043ac;
   --scl-blue-ink: #f1f9ff;
+  --scl-win-text: #0b6b3c;
+  --scl-loss-text: #b71c1c;
+  --scl-push-text: #596273;
+  --scl-perf-strong-text: var(--scl-win-text);
+  --scl-perf-mid-text: #8a5a00;
+  --scl-perf-weak-text: var(--scl-loss-text);
 }
 
 /* ---- Dark theme ? blue-cast ink (never pure black) ---- */
@@ -234,6 +247,13 @@
   --scl-perf-strong: #2fbf7b;
   --scl-perf-mid: #e6a93c;
   --scl-perf-weak: #e5484d;
+  /* AA-safe text variants (≥4.5:1 on ink-950/800/700). Marks keep bright hues. */
+  --scl-win-text: #2fbf7b;
+  --scl-loss-text: #ff6b6f;
+  --scl-push-text: #aab6c9;
+  --scl-perf-strong-text: var(--scl-win-text);
+  --scl-perf-mid-text: #f0c14d;
+  --scl-perf-weak-text: var(--scl-loss-text);
   --scl-shadow-card: 0 8px 24px rgba(0, 0, 0, 0.35);
   --scl-shadow-slip: 0 12px 30px rgba(0, 0, 0, 0.55);
 
@@ -268,9 +288,9 @@
   --accent-foreground: var(--scl-blue);
   --destructive: var(--scl-loss);
 
-  --pos: var(--scl-win);
+  --pos: var(--scl-win-text);
   --pos-foreground: #062416;
-  --neg: var(--scl-loss);
+  --neg: var(--scl-loss-text);
   --neg-foreground: #2a0608;
   --pink: var(--scl-pink);
   --pink-foreground: var(--scl-pink-ink);
@@ -279,7 +299,7 @@
 
   --live: var(--scl-blue);
   --live-foreground: var(--scl-blue-ink);
-  --push: var(--scl-push);
+  --push: var(--scl-push-text);
 
   --border: var(--scl-line);
   /* Strong borders lean blue (nav chrome) — pink stays on conviction hairlines */
@@ -361,7 +381,8 @@
     font-weight: 600;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--scl-muted-label);
+    /* Supporting tier — 10px labels must clear 4.5:1 (muted-label fails on light paper). */
+    color: var(--scl-muted-data);
   }
   /**
    * Accessible text link — text fill uses the text tier; blue is underline/hover only.

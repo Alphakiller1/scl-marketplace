@@ -1,7 +1,8 @@
 /**
  * WCAG 2.2 AA contrast guards — uses axe-core's color engine so regressions
  * fail `npm test` / CI. Conviction/nav hues are marks/fills only — never
- * small-text fills (see design/SCL-DESIGN-SPEC.md "Text-contrast tiers").
+ * small-text fills. Performance/settlement *text* tokens must clear 4.5:1
+ * (see design/SCL-DESIGN-SPEC.md "Numeric color system" + "Text-contrast tiers").
  */
 
 import assert from "node:assert/strict";
@@ -48,6 +49,8 @@ const AA_NORMAL = 4.5;
 /** Dark ink / paper tokens (locked in globals.css). */
 const DARK = {
   ink: "#07090F",
+  ink800: "#121A28",
+  ink700: "#1B2536",
   text: "#EDF1F7",
   mutedLabel: "#7E8AA0",
   mutedData: "#AAB6C9",
@@ -55,10 +58,19 @@ const DARK = {
   blue: "#105FD9",
   pinkInk: "#FFF3FC",
   blueInk: "#F1F9FF",
+  win: "#2FBF7B",
+  loss: "#E5484D",
+  perfMid: "#E6A93C",
+  winText: "#2FBF7B",
+  lossText: "#FF6B6F",
+  perfMidText: "#F0C14D",
+  pushText: "#AAB6C9",
 } as const;
 
 const LIGHT = {
   paper: "#F3F1EA",
+  white: "#FFFFFF",
+  surface: "#F5F3ED",
   text: "#161B26",
   mutedLabel: "#6E7686",
   mutedData: "#596273",
@@ -66,27 +78,66 @@ const LIGHT = {
   blue: "#044CB6",
   pinkInk: "#FFF3FC",
   blueInk: "#F1F9FF",
+  win: "#2FBF7B",
+  loss: "#E5484D",
+  perfMid: "#B5791E",
+  winText: "#0B6B3C",
+  lossText: "#B71C1C",
+  perfMidText: "#8A5A00",
+  pushText: "#596273",
 } as const;
+
+function assertAa(fg: string, bg: string, label: string) {
+  const ratio = contrast(fg, bg);
+  assert.ok(
+    ratio >= AA_NORMAL,
+    `${label}: ${fg} on ${bg} = ${ratio.toFixed(2)} (need ≥ ${AA_NORMAL})`,
+  );
+}
 
 describe("a11y contrast — approved text/bg pairs (axe-core)", () => {
   it("dark: text + supporting prose pass AA on ink", () => {
-    assert.ok(contrast(DARK.text, DARK.ink) >= AA_NORMAL);
-    assert.ok(contrast(DARK.mutedData, DARK.ink) >= AA_NORMAL);
+    assertAa(DARK.text, DARK.ink, "dark text/ink");
+    assertAa(DARK.mutedData, DARK.ink, "dark muted-data/ink");
   });
 
   it("light: text + supporting prose (#596273) pass AA on paper", () => {
-    assert.ok(contrast(LIGHT.text, LIGHT.paper) >= AA_NORMAL);
-    assert.ok(
-      contrast(LIGHT.mutedData, LIGHT.paper) >= AA_NORMAL,
-      `light muted-data on paper = ${contrast(LIGHT.mutedData, LIGHT.paper).toFixed(2)}`,
-    );
+    assertAa(LIGHT.text, LIGHT.paper, "light text/paper");
+    assertAa(LIGHT.mutedData, LIGHT.paper, "light muted-data/paper");
   });
 
   it("filled CTAs: pink-ink on pink and blue-ink on blue pass AA", () => {
-    assert.ok(contrast(DARK.pinkInk, DARK.pink) >= AA_NORMAL);
-    assert.ok(contrast(DARK.blueInk, DARK.blue) >= AA_NORMAL);
-    assert.ok(contrast(LIGHT.pinkInk, LIGHT.pink) >= AA_NORMAL);
-    assert.ok(contrast(LIGHT.blueInk, LIGHT.blue) >= AA_NORMAL);
+    assertAa(DARK.pinkInk, DARK.pink, "dark pink-ink/pink");
+    assertAa(DARK.blueInk, DARK.blue, "dark blue-ink/blue");
+    assertAa(LIGHT.pinkInk, LIGHT.pink, "light pink-ink/pink");
+    assertAa(LIGHT.blueInk, LIGHT.blue, "light blue-ink/blue");
+  });
+});
+
+describe("a11y contrast — performance/settlement text tokens ≥ 4.5:1", () => {
+  it("dark: win/loss/mid/push text clear AA on ink, ink-800, ink-700", () => {
+    for (const bg of [DARK.ink, DARK.ink800, DARK.ink700] as const) {
+      assertAa(DARK.winText, bg, `dark win-text`);
+      assertAa(DARK.lossText, bg, `dark loss-text`);
+      assertAa(DARK.perfMidText, bg, `dark perf-mid-text`);
+      assertAa(DARK.pushText, bg, `dark push-text`);
+    }
+  });
+
+  it("light: win/loss/mid/push text clear AA on paper, white, #F5F3ED", () => {
+    for (const bg of [LIGHT.paper, LIGHT.white, LIGHT.surface] as const) {
+      assertAa(LIGHT.winText, bg, `light win-text`);
+      assertAa(LIGHT.lossText, bg, `light loss-text`);
+      assertAa(LIGHT.perfMidText, bg, `light perf-mid-text`);
+      assertAa(LIGHT.pushText, bg, `light push-text`);
+    }
+  });
+
+  it("supporting muted-data (eyebrow tier) clears AA in both themes", () => {
+    assertAa(DARK.mutedData, DARK.ink, "dark eyebrow/supporting");
+    assertAa(DARK.mutedData, DARK.ink800, "dark eyebrow on card");
+    assertAa(LIGHT.mutedData, LIGHT.paper, "light eyebrow/supporting");
+    assertAa(LIGHT.mutedData, LIGHT.white, "light eyebrow on white card");
   });
 });
 
@@ -101,6 +152,12 @@ describe("a11y contrast — conviction/nav hues must NOT be small-text fills", (
     assert.ok(blueRatio > 3 && blueRatio < 4);
   });
 
+  it("documents bright mark hues fail as light-theme small text", () => {
+    assert.ok(contrast(LIGHT.win, LIGHT.paper) < AA_NORMAL);
+    assert.ok(contrast(LIGHT.loss, LIGHT.paper) < AA_NORMAL);
+    assert.ok(contrast(LIGHT.perfMid, LIGHT.paper) < AA_NORMAL);
+  });
+
   it("documents light muted-label (#6E7686) fails AA as normal prose on paper", () => {
     const ratio = contrast(LIGHT.mutedLabel, LIGHT.paper);
     assert.ok(
@@ -110,7 +167,6 @@ describe("a11y contrast — conviction/nav hues must NOT be small-text fills", (
   });
 
   it("dark muted-label is for labels only — supporting prose uses muted-data", () => {
-    // Label may sit near the AA edge; prose must use muted-data (tested above).
     assert.ok(
       contrast(DARK.mutedData, DARK.ink) > contrast(DARK.mutedLabel, DARK.ink),
     );

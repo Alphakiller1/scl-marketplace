@@ -22,9 +22,9 @@ export function StatValue({
         tone === "text" && "text-[color:var(--scl-text)]",
         /* Conviction numerals use the text tier — pink is for marks/fills only. */
         tone === "pink" && "text-[color:var(--scl-text)]",
-        tone === "win" && "text-[color:var(--scl-win)]",
-        tone === "loss" && "text-[color:var(--scl-loss)]",
-        tone === "label" && "text-[color:var(--scl-muted-label)]",
+        tone === "win" && "text-[color:var(--scl-win-text)]",
+        tone === "loss" && "text-[color:var(--scl-loss-text)]",
+        tone === "label" && "text-[color:var(--scl-muted-data)]",
         className,
       )}
     >

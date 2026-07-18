@@ -62,11 +62,11 @@ export function CapperStorefront({
     <section id="storefront" className={cn("mt-8 scroll-mt-20", className)}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
-          <span className="bg-surface-2 text-brand flex size-9 shrink-0 items-center justify-center rounded-lg">
+          <span className="bg-surface-2 flex size-9 shrink-0 items-center justify-center rounded-lg text-[color:var(--scl-pink)]">
             <Store className="size-4" aria-hidden />
           </span>
           <div className="min-w-0">
-            <p className="text-brand text-xs font-semibold uppercase">
+            <p className="text-foreground text-xs font-semibold tracking-wide uppercase">
               Marketplace
             </p>
             <h2 className="mt-1 text-lg font-semibold sm:text-xl">

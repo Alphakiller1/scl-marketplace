@@ -132,15 +132,15 @@ export function perfToneToStatTone(
   return "muted";
 }
 
-/** Tailwind-friendly class for amber provisional soft/weak. */
+/** Tailwind-friendly class for perf spectrum text (AA-safe *text* tokens). */
 export function perfToneClass(tone: PerfTone): string {
   switch (tone) {
     case "pos":
-      return "text-pos";
+      return "text-[color:var(--scl-perf-strong-text)]";
     case "neg":
-      return "text-neg";
+      return "text-[color:var(--scl-perf-weak-text)]";
     case "amber":
-      return "text-[color:var(--scl-perf-mid)]";
+      return "text-[color:var(--scl-perf-mid-text)]";
     case "muted":
     default:
       return "text-muted-foreground";
