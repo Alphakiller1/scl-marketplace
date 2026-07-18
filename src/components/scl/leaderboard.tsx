@@ -117,9 +117,11 @@ export function Leaderboard({
 export function BuildingRecordSection({
   cappers,
   failed = false,
+  minPicks = 0,
 }: {
   cappers: CapperSummary[];
   failed?: boolean;
+  minPicks?: number;
 }) {
   if (!cappers.length || failed) return null;
 
@@ -131,13 +133,12 @@ export function BuildingRecordSection({
     >
       <div className="mb-3 flex flex-col gap-1 sm:mb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-sm font-bold tracking-wide uppercase">
-            Building A Record
-          </h2>
+          <h2 className="text-sm font-bold">Building a record</h2>
           <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
-            A provisional record is visible but not ranked yet. Zero graded
-            picks, below SCL’s minimum graded-pick sample, or net-negative in
-            this scope appear here — early history, not a leaderboard signal.
+            {minPicks > 0
+              ? `These cappers have fewer than ${minPicks} graded picks in this scope, so no rank is shown yet.`
+              : "These cappers are still waiting for a graded pick in this scope, so no rank is shown yet."}{" "}
+            A new record is not a poor record.
           </p>
         </div>
         <p className="scl-data text-muted-foreground text-xs tabular-nums">

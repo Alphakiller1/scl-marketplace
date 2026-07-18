@@ -34,7 +34,8 @@ export type CapperSummary = {
   verified: boolean;
   topSport: string;
   rank: number;
-  rankDelta: number; // +up / -down / 0
+  /** Change from the previous comparable scope; null when no snapshot exists. */
+  rankDelta: number | null; // +up / -down / 0 / unavailable
   record: { w: number; l: number; p: number };
   winPct: number;
   units: number;

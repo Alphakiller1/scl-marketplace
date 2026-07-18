@@ -1,220 +1,134 @@
 import Link from "next/link";
-import { RotateCcw, Search, SlidersHorizontal } from "lucide-react";
+import { RotateCcw, SlidersHorizontal } from "lucide-react";
 
-import { LeagueMark } from "@/components/scl/league-mark";
 import { Button } from "@/components/ui/button";
-import { SPORTS, LEADERBOARD_SORTS } from "@/lib/constants";
+import { LEADERBOARD_SORTS, SPORTS } from "@/lib/constants";
 import {
   LEADERBOARD_MIN_PICKS,
-  LEADERBOARD_WINDOWS,
   type LeaderboardFilters as Filters,
 } from "@/lib/leaderboard";
 import { cn } from "@/lib/utils";
 
+const TIME_SCOPES = [
+  { key: "7d", label: "7D" },
+  { key: "30d", label: "30D" },
+  { key: "90d", label: "90D" },
+  { key: "all", label: "All" },
+] as const;
+
+function scopeHref(filters: Filters, window: Filters["window"]) {
+  const params = new URLSearchParams({
+    sport: filters.sport,
+    window,
+    sort: filters.sort,
+    minPicks: String(filters.minPicks),
+    record: filters.verifiedOnly ? "verified" : "all",
+    limit: String(filters.limit),
+  });
+  if (filters.search) params.set("q", filters.search);
+  return `/leaderboard?${params.toString()}`;
+}
+
 export function LeaderboardFilters({
   filters,
   action = "/leaderboard",
-  label = "Ranking Scope",
 }: {
   filters: Filters;
   action?: string;
   label?: string;
 }) {
-  const sportLabel =
-    filters.sport === "ALL"
-      ? "All Sports"
-      : (SPORTS.find((sport) => sport.key === filters.sport)?.label ??
-        filters.sport);
-  const windowLabel =
-    LEADERBOARD_WINDOWS.find((window) => window.key === filters.window)
-      ?.label ?? filters.window;
-
   return (
-    <>
-      <div
-        className="mt-5 flex flex-wrap gap-2 md:mt-6"
-        aria-label="Quick leaderboard filters"
-      >
-        {(
-          [
-            { href: "/leaderboard?record=verified", label: "Top Verified" },
-            {
-              href: "/leaderboard?sport=NFL&record=verified",
-              label: "NFL",
-              sport: "NFL",
-            },
-            {
-              href: "/leaderboard?sport=NBA&record=verified",
-              label: "NBA",
-              sport: "NBA",
-            },
-            {
-              href: "/leaderboard?sport=MLB&record=verified",
-              label: "MLB",
-              sport: "MLB",
-            },
-            {
-              href: "/leaderboard?window=L30&record=verified&sort=roi",
-              label: "Hot 30D ROI",
-            },
-          ] as const
-        ).map((preset) => (
-          <Link
-            key={preset.href}
-            href={preset.href}
-            className="border-border bg-card inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3 text-sm font-semibold transition-colors hover:border-[color:var(--scl-blue)] hover:text-[color:var(--scl-blue)]"
-          >
-            {"sport" in preset && preset.sport ? (
-              <LeagueMark
-                leagueKey={preset.sport}
-                size="sm"
-                className="rounded-md"
-              />
-            ) : null}
-            {preset.label}
-          </Link>
-        ))}
-      </div>
-
-      <details className="border-border bg-card mt-3 overflow-hidden rounded-xl border md:hidden">
-        <summary className="focus-visible:ring-ring flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 outline-none focus-visible:ring-2 focus-visible:ring-inset">
-          <span className="flex items-center gap-2 font-semibold">
-            <SlidersHorizontal
-              className="size-4 text-[color:var(--scl-muted-label)]"
-              aria-hidden
-            />
-            Filter Rankings
-          </span>
-          <span className="text-muted-foreground inline-flex min-w-0 items-center gap-1.5 truncate text-xs">
-            {filters.sport !== "ALL" ? (
-              <LeagueMark
-                leagueKey={filters.sport}
-                size="sm"
-                className="rounded-md"
-              />
-            ) : null}
-            {sportLabel} · {windowLabel}
-          </span>
-        </summary>
-        <FilterForm
-          filters={filters}
-          action={action}
-          className="border-border border-t p-4"
-        />
-      </details>
-
-      <div className="hidden md:block">
-        <FilterForm
-          filters={filters}
-          action={action}
-          label={label}
-          className="border-border bg-card mt-6 rounded-xl border p-3"
-        />
-      </div>
-    </>
-  );
-}
-
-function FilterForm({
-  filters,
-  action,
-  label,
-  className,
-}: {
-  filters: Filters;
-  action: string;
-  label?: string;
-  className?: string;
-}) {
-  return (
-    <form
-      method="get"
-      action={action}
-      aria-label="Leaderboard Filters"
-      className={className}
+    <section
+      aria-label="Leaderboard scope"
+      className="border-border bg-card mt-5 rounded-[var(--scl-radius-card)] border p-2.5 sm:mt-6"
     >
-      {label ? (
-        <div className="text-muted-foreground mb-3 flex items-center gap-2 text-xs font-semibold uppercase">
-          <SlidersHorizontal
-            className="size-4 text-[color:var(--scl-muted-label)]"
-            aria-hidden
-          />
-          {label}
-        </div>
-      ) : null}
-      <div className="grid gap-4">
-        <FilterPillGroup
-          label="Sport"
-          name="sport"
-          value={filters.sport}
-          withLeagueMarks
-          options={[
-            { value: "ALL", label: "All Sports" },
-            ...SPORTS.map((sport) => ({
-              value: sport.key,
-              label: sport.label,
-            })),
-          ]}
-        />
-        <FilterPillGroup
-          label="Record Trust"
-          name="record"
-          value={filters.verifiedOnly ? "verified" : "all"}
-          options={[
-            { value: "verified", label: "Verified Only" },
-            { value: "all", label: "All Records" },
-          ]}
-        />
-        <div className="grid gap-4 lg:grid-cols-2">
-          <FilterPillGroup
-            label="Window"
-            name="window"
-            value={filters.window}
-            options={LEADERBOARD_WINDOWS.map((window) => ({
-              value: window.key,
-              label: window.label,
-            }))}
-          />
-          <FilterPillGroup
-            label="Rank By"
+      <div className="flex flex-col gap-2.5 xl:flex-row xl:items-end">
+        <fieldset className="shrink-0">
+          <legend className="text-muted-foreground flex items-center gap-1.5 text-[0.65rem] font-semibold tracking-wide uppercase">
+            <SlidersHorizontal className="size-3.5" aria-hidden />
+            Time scope
+          </legend>
+          <div className="mt-1.5 grid grid-cols-4 gap-1">
+            {TIME_SCOPES.map((scope) => {
+              const active = filters.window === scope.key;
+              return (
+                <Link
+                  key={scope.key}
+                  href={scopeHref(filters, scope.key)}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "focus-visible:ring-ring inline-flex min-h-11 min-w-12 items-center justify-center rounded-lg border px-2 text-sm font-semibold tabular-nums outline-none focus-visible:ring-2",
+                    active
+                      ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
+                      : "border-border bg-surface-2 text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {scope.label}
+                </Link>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        <form
+          method="get"
+          action={action}
+          className="grid min-w-0 flex-1 grid-cols-2 items-end gap-2 sm:grid-cols-[1fr_1fr_1fr_auto_auto]"
+        >
+          <input type="hidden" name="window" value={filters.window} />
+          <input type="hidden" name="limit" value={filters.limit} />
+          {filters.search ? (
+            <input type="hidden" name="q" value={filters.search} />
+          ) : null}
+          <CompactSelect
+            label="Sport"
+            name="sport"
+            defaultValue={filters.sport}
+          >
+            <option value="ALL">All sports</option>
+            {SPORTS.map((sport) => (
+              <option key={sport.key} value={sport.key}>
+                {sport.label}
+              </option>
+            ))}
+          </CompactSelect>
+          <CompactSelect
+            label="Rank by"
             name="sort"
-            value={filters.sort}
-            options={LEADERBOARD_SORTS.map((sort) => ({
-              value: sort.key,
-              label: sort.label,
-            }))}
-          />
-        </div>
-        <FilterPillGroup
-          label="Minimum Sample"
-          name="minPicks"
-          value={String(filters.minPicks)}
-          options={LEADERBOARD_MIN_PICKS.map((count) => ({
-            value: String(count),
-            label: count === 0 ? "Any Sample" : `${count}+ Picks`,
-          }))}
-        />
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <label className="min-w-0 flex-1">
-            <span className="text-muted-foreground block text-[0.7rem] font-semibold uppercase">
-              Find A Capper
-            </span>
-            <span className="border-input bg-surface-2 focus-within:ring-ring mt-1 flex min-h-11 items-center gap-2 rounded-lg border px-3 focus-within:ring-2">
-              <Search className="text-muted-foreground size-4" aria-hidden />
-              <input
-                type="search"
-                name="q"
-                id="q"
-                defaultValue={filters.search}
-                placeholder="Name Or Handle"
-                className="h-11 min-h-10 min-w-0 flex-1 bg-transparent text-base outline-none"
-              />
-            </span>
+            defaultValue={filters.sort}
+          >
+            {LEADERBOARD_SORTS.map((sort) => (
+              <option key={sort.key} value={sort.key}>
+                {sort.label}
+              </option>
+            ))}
+          </CompactSelect>
+          <CompactSelect
+            label="Minimum sample"
+            name="minPicks"
+            defaultValue={String(filters.minPicks)}
+          >
+            {LEADERBOARD_MIN_PICKS.map((count) => (
+              <option key={count} value={count}>
+                {count === 0 ? "Any graded sample" : `${count}+ graded picks`}
+              </option>
+            ))}
+          </CompactSelect>
+          <label className="border-border bg-surface-2 flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-2.5 text-sm font-semibold">
+            <input type="hidden" name="record" value="all" />
+            <input
+              type="checkbox"
+              name="record"
+              value="verified"
+              defaultChecked={filters.verifiedOnly}
+              className="size-4 accent-[color:var(--scl-pink)]"
+            />
+            Verified only
           </label>
-          <div className="flex items-end gap-2">
+          <div className="col-span-2 flex gap-2 sm:col-span-1">
             <Button
               type="submit"
-              className="min-h-11 flex-1 border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)] sm:flex-none"
+              className="flex-1 bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)] hover:bg-[color:var(--scl-blue-deep)] sm:flex-none"
             >
               Apply
             </Button>
@@ -223,66 +137,43 @@ function FilterForm({
               nativeButton={false}
               variant="outline"
               size="icon"
-              className="size-11"
-              aria-label="Reset Leaderboard Filters"
-              title="Reset Filters"
+              aria-label="Reset leaderboard scope"
+              title="Reset scope"
             >
               <RotateCcw className="size-4" aria-hidden />
             </Button>
           </div>
-        </div>
+        </form>
       </div>
-    </form>
+    </section>
   );
 }
 
-/** Radio pill row — same visual language as SportPills, keeps URL GET forms. */
-function FilterPillGroup({
+function CompactSelect({
   label,
   name,
-  value,
-  options,
-  withLeagueMarks = false,
+  defaultValue,
+  className,
+  children,
 }: {
   label: string;
   name: string;
-  value: string;
-  options: { value: string; label: string }[];
-  withLeagueMarks?: boolean;
+  defaultValue: string;
+  className?: string;
+  children: React.ReactNode;
 }) {
   return (
-    <fieldset className="min-w-0">
-      <legend className="text-muted-foreground text-[0.7rem] font-semibold uppercase">
+    <label className={cn("min-w-0", className)}>
+      <span className="text-muted-foreground block text-[0.65rem] font-semibold tracking-wide uppercase">
         {label}
-      </legend>
-      <div className="mt-1.5 flex flex-wrap gap-1.5">
-        {options.map((option) => (
-          <label
-            key={option.value}
-            className={cn(
-              "scl-display inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-[22px] border px-3.5 text-[15px] font-semibold tracking-[0.05em] transition-colors",
-              "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",
-              "has-[:checked]:border-[color:var(--scl-blue)] has-[:checked]:bg-[color:var(--scl-blue)] has-[:checked]:text-[color:var(--scl-blue-ink)]",
-            )}
-          >
-            <input
-              type="radio"
-              name={name}
-              value={option.value}
-              defaultChecked={value === option.value}
-              className="sr-only"
-            />
-            {withLeagueMarks && option.value !== "ALL" ? (
-              <LeagueMark
-                leagueKey={option.value}
-                size="sm"
-                className="rounded-md"
-              />
-            ) : null}
-            {option.label}
-          </label>
-        ))}
-      </div>
-    </fieldset>
+      </span>
+      <select
+        name={name}
+        defaultValue={defaultValue}
+        className="border-border bg-surface-2 focus-visible:ring-ring mt-1.5 min-h-11 w-full rounded-lg border px-2.5 text-sm font-semibold outline-none focus-visible:ring-2"
+      >
+        {children}
+      </select>
+    </label>
   );
 }

@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 
-import {
-  BuildingRecordSection,
-  Leaderboard,
-} from "@/components/scl/leaderboard";
+import { BuildingRecordSection } from "@/components/scl/leaderboard";
 import { LeaderboardFilters } from "@/components/scl/leaderboard-filters";
 import { LeaderboardOverview } from "@/components/scl/leaderboard-overview";
+import { LeaderboardRankView } from "@/components/scl/leaderboard-rank-view";
+import { LeaderboardContextRail } from "@/components/scl/leaderboard-context-rail";
 import {
   parseLeaderboardFilters,
   summarizeLeaderboard,
@@ -15,7 +14,7 @@ import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 export const metadata: Metadata = {
   title: "Leaderboard",
   description:
-    "Sports capper leaderboard records ranked by units, ROI, and win rate after sample thresholds. Inspect building records while the founding roster forms.",
+    "Scoped sports capper rankings with ROI, Units, sample maturity, board-verification share, and recent form.",
 };
 
 // Live data, cached briefly so the public board stays fresh without hammering DB.
@@ -31,17 +30,24 @@ export default async function LeaderboardPage({
   const summary = summarizeLeaderboard(cappers, unranked);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-10">
+    <div className="mx-auto max-w-[90rem] px-4 py-7 sm:px-6 sm:py-10">
       <LeaderboardOverview summary={summary} />
       <LeaderboardFilters filters={filters} />
-      <section aria-label="Ranked Cappers" className="mt-5 sm:mt-6">
-        <Leaderboard
-          cappers={cappers}
-          failed={failed}
-          emptyDescription="No cappers match these ranking filters yet. Cappers below the sample threshold or net-negative in this scope appear under Building A Record."
-        />
-      </section>
-      <BuildingRecordSection cappers={unranked} failed={failed} />
+      <div className="mt-5 grid items-start gap-4 sm:mt-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
+        <section aria-label="Ranked cappers">
+          <LeaderboardRankView
+            cappers={cappers}
+            filters={filters}
+            failed={failed}
+          />
+        </section>
+        <LeaderboardContextRail filters={filters} />
+      </div>
+      <BuildingRecordSection
+        cappers={unranked}
+        failed={failed}
+        minPicks={filters.minPicks}
+      />
     </div>
   );
 }

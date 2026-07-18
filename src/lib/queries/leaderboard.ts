@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { Outcome } from "@prisma/client";
+import { VerificationTier, type Outcome } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import {
@@ -27,11 +27,17 @@ import { hasClvColumns } from "@/lib/results/schema-features";
 const DEFAULT_FILTERS: LeaderboardFilters = {
   sport: "ALL",
   window: "all",
-  sort: "units",
+  sort: "roi",
   minPicks: 0,
   verifiedOnly: false,
   search: "",
+  limit: 10,
 };
+
+const VERIFIED_TIERS: VerificationTier[] = [
+  VerificationTier.AUTO_VERIFIED,
+  VerificationTier.VERIFIED,
+];
 
 function fetchRankableProfiles(filters: LeaderboardFilters, clvReady: boolean) {
   const windowStart = leaderboardWindowStart(filters.window);
@@ -42,9 +48,6 @@ function fetchRankableProfiles(filters: LeaderboardFilters, clvReady: boolean) {
         username: { not: null },
         accountStatus: "ACTIVE",
         ...prismaExcludeTestHandles(),
-        ...(filters.verifiedOnly
-          ? { emailVerified: { not: null } }
-          : undefined),
         ...(filters.search
           ? {
               username: {
@@ -81,6 +84,9 @@ function fetchRankableProfiles(filters: LeaderboardFilters, clvReady: boolean) {
           units: { gte: UNIT_MIN },
           ...(filters.sport !== "ALL" ? { sport: filters.sport } : undefined),
           ...(windowStart ? { createdAt: { gte: windowStart } } : undefined),
+          ...(filters.verifiedOnly
+            ? { verificationTier: { in: VERIFIED_TIERS } }
+            : undefined),
         },
         select: {
           outcome: true,
@@ -100,8 +106,21 @@ function fetchRankableProfiles(filters: LeaderboardFilters, clvReady: boolean) {
         where: {
           ...(windowStart ? { createdAt: { gte: windowStart } } : undefined),
           units: { gte: UNIT_MIN },
-          ...(filters.sport !== "ALL"
-            ? { legs: { some: { sport: filters.sport } } }
+          ...(filters.sport !== "ALL" || filters.verifiedOnly
+            ? {
+                legs: {
+                  ...(filters.sport !== "ALL"
+                    ? { some: { sport: filters.sport } }
+                    : undefined),
+                  ...(filters.verifiedOnly
+                    ? {
+                        every: {
+                          verificationTier: { in: VERIFIED_TIERS },
+                        },
+                      }
+                    : undefined),
+                },
+              }
             : undefined),
         },
         select: {
@@ -110,6 +129,9 @@ function fetchRankableProfiles(filters: LeaderboardFilters, clvReady: boolean) {
           profitUnits: true,
           createdAt: true,
           gradedAt: true,
+          legs: {
+            select: { sport: true, verificationTier: true },
+          },
         },
         orderBy: { createdAt: "asc" },
       },
@@ -217,11 +239,14 @@ function summarize(p: ProfileRow): CapperSummary | null {
     bannerUrl: p.bannerUrl ?? undefined,
     verified: p.user.emailVerified != null,
     topSport: topSport(
-      p.plays.map((x) => x.sport),
+      [
+        ...p.plays.map((x) => x.sport),
+        ...p.parlays.flatMap((parlay) => parlay.legs.map((leg) => leg.sport)),
+      ],
       p.sports[0],
     ),
     rank: 0, // assigned after sort
-    rankDelta: 0, // no historical snapshot yet — honest neutral
+    rankDelta: null, // no comparable historical snapshot exists yet
     record: { w: stats.wins, l: stats.losses, p: stats.pushes },
     winPct: stats.winPct,
     units: stats.units,
@@ -230,7 +255,17 @@ function summarize(p: ProfileRow): CapperSummary | null {
     recentForm,
     trophies: [],
     settledPicks: stats.settled,
-    verifiedShare: computeVerifiedShare(p.plays.map((x) => x.verificationTier)),
+    verifiedShare: computeVerifiedShare([
+      ...p.plays.map((x) => x.verificationTier),
+      ...p.parlays.map((parlay) =>
+        parlay.legs.length > 0 &&
+        parlay.legs.every((leg) =>
+          VERIFIED_TIERS.includes(leg.verificationTier),
+        )
+          ? VerificationTier.VERIFIED
+          : VerificationTier.SELF_REPORTED,
+      ),
+    ]),
     avgClv,
     stakedUnits: stats.stakedUnits,
     performanceTrend,

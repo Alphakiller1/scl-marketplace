@@ -21,40 +21,39 @@ export function LeaderboardOverview({
         <div className="border-t border-[color:var(--scl-pink-deep)] pt-2.5">
           <div className="scl-eyebrow flex items-center gap-2 text-[color:var(--scl-muted-label)]">
             <Trophy className="size-4" aria-hidden />
-            Public Rankings
+            Rank mode
           </div>
-          <h1 className="scl-display mt-2 text-3xl font-bold tracking-[0.04em] text-balance uppercase sm:text-4xl">
+          <h1 className="scl-display mt-2 text-3xl font-bold tracking-[0.02em] text-balance sm:text-4xl">
             Leaderboard
           </h1>
           <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-relaxed sm:text-base">
-            Ranked by net units on board-verified graded plays. Filter by sport,
-            window, and sample size — provisional rows are still building a
-            record.
+            Compare scoped performance records with sample maturity and
+            submission verification visible in every row.
           </p>
           <div className="mt-2">
             <VerificationHelpLink />
           </div>
         </div>
         <p className="text-muted-foreground max-w-sm text-sm leading-relaxed sm:text-right">
-          Every row is an inspectable public record. Scope filters change who
-          ranks and what the totals show.
+          Early samples are labeled provisional. They are new records, not
+          performance conclusions.
         </p>
       </div>
 
       <dl className="border-border mt-6 grid grid-cols-2 border-y sm:grid-cols-4">
         <OverviewMetric
           icon={Trophy}
-          label="Ranked Cappers"
+          label="Ranked cappers"
           value={summary.rankedCappers.toLocaleString()}
         />
         <OverviewMetric
           icon={ShieldCheck}
-          label="Verified"
+          label="Board-verified"
           value={summary.verifiedCappers.toLocaleString()}
         />
         <OverviewMetric
           icon={ListChecks}
-          label="Graded Picks"
+          label="Graded picks"
           value={summary.trackedPicks.toLocaleString()}
         />
         <OverviewMetric

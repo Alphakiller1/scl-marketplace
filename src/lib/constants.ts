@@ -46,8 +46,11 @@ export const LEADERBOARD_TIMEFRAMES = [
 
 // How leaderboards can be ranked.
 export const LEADERBOARD_SORTS = [
-  { key: "units", label: "Units" },
   { key: "roi", label: "ROI %" },
+  { key: "units", label: "Units" },
   { key: "winPct", label: "Win %" },
+  { key: "sample", label: "Sample" },
+  { key: "verified", label: "Verified %" },
+  { key: "form", label: "Recent form" },
   { key: "clv", label: "CLV" },
 ] as const;

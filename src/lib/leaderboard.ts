@@ -13,6 +13,7 @@ export const LEADERBOARD_WINDOWS = [
 ] as const;
 
 export const LEADERBOARD_MIN_PICKS = [0, 10, 25, 50] as const;
+export const LEADERBOARD_LIMITS = [10, 20, 50] as const;
 
 export type LeaderboardWindow = (typeof LEADERBOARD_WINDOWS)[number]["key"];
 export type LeaderboardSort = (typeof LEADERBOARD_SORTS)[number]["key"];
@@ -24,6 +25,7 @@ export type LeaderboardFilters = {
   minPicks: number;
   verifiedOnly: boolean;
   search: string;
+  limit: (typeof LEADERBOARD_LIMITS)[number];
 };
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -38,6 +40,13 @@ export function parseLeaderboardFilters(
   const requestedWindow = first(params.window);
   const requestedSort = first(params.sort);
   const requestedMinPicks = Number(first(params.minPicks));
+  const requestedLimit = Number(first(params.limit));
+  const requestedRecord = params.record;
+  const recordValues = Array.isArray(requestedRecord)
+    ? requestedRecord
+    : requestedRecord
+      ? [requestedRecord]
+      : [];
 
   return {
     sport:
@@ -49,12 +58,16 @@ export function parseLeaderboardFilters(
       : "all",
     sort: LEADERBOARD_SORTS.some((item) => item.key === requestedSort)
       ? (requestedSort as LeaderboardSort)
-      : "units",
+      : "roi",
     minPicks: LEADERBOARD_MIN_PICKS.includes(requestedMinPicks as never)
       ? requestedMinPicks
       : 0,
-    verifiedOnly: first(params.record) !== "all",
+    verifiedOnly:
+      recordValues.length === 0 || recordValues.includes("verified"),
     search: (first(params.q) ?? "").trim().slice(0, 40),
+    limit: LEADERBOARD_LIMITS.includes(requestedLimit as never)
+      ? (requestedLimit as LeaderboardFilters["limit"])
+      : 10,
   };
 }
 
@@ -108,6 +121,12 @@ export function sortLeaderboard(
 ): CapperSummary[] {
   const ranked = [...cappers];
   ranked.sort((a, b) => {
+    const formScore = (capper: CapperSummary) =>
+      (capper.recentForm ?? []).reduce(
+        (score, result) =>
+          score + (result === "W" ? 1 : result === "L" ? -1 : 0),
+        0,
+      );
     const primary =
       sort === "roi"
         ? b.roi - a.roi
@@ -116,9 +135,17 @@ export function sortLeaderboard(
           : sort === "clv"
             ? (b.avgClv ?? Number.NEGATIVE_INFINITY) -
               (a.avgClv ?? Number.NEGATIVE_INFINITY)
-            : b.units - a.units;
+            : sort === "sample"
+              ? (b.settledPicks ?? 0) - (a.settledPicks ?? 0)
+              : sort === "verified"
+                ? (b.verifiedShare ?? 0) - (a.verifiedShare ?? 0)
+                : sort === "form"
+                  ? formScore(b) - formScore(a)
+                  : b.units - a.units;
     return (
       primary ||
+      b.units - a.units ||
+      b.winPct - a.winPct ||
       (b.settledPicks ?? 0) - (a.settledPicks ?? 0) ||
       a.name.localeCompare(b.name)
     );
@@ -136,11 +163,7 @@ export function isLeaderboardEligible(
   filters: LeaderboardFilters,
 ): boolean {
   const settledPicks = capper.settledPicks ?? 0;
-  const base =
-    settledPicks > 0 &&
-    settledPicks >= filters.minPicks &&
-    capper.units >= 0 &&
-    capper.roi >= 0;
+  const base = settledPicks > 0 && settledPicks >= filters.minPicks;
   if (!base) return false;
   // CLV rank: need signal-sized sample and at least one stored close.
   if (filters.sort === "clv") {
@@ -168,8 +191,6 @@ export function isBuildingARecord(
   if (input.settledPicks == null) return false;
   const settledPicks = input.settledPicks;
   if (!(settledPicks > 0 && settledPicks >= minPicks)) return true;
-  if (typeof input.units === "number" && input.units < 0) return true;
-  if (typeof input.roi === "number" && input.roi < 0) return true;
   return false;
 }
 
@@ -233,7 +254,7 @@ export function summarizeLeaderboard(
   const scoped = ranked.concat(unranked);
   const totals = scoped.reduce(
     (summary, capper) => {
-      summary.verifiedCappers += capper.verified ? 1 : 0;
+      summary.verifiedCappers += (capper.verifiedShare ?? 0) > 0 ? 1 : 0;
       summary.trackedPicks += capper.settledPicks ?? 0;
       summary.wins += capper.record.w;
       summary.losses += capper.record.l;

@@ -140,7 +140,7 @@ export function perfToneClass(tone: PerfTone): string {
     case "neg":
       return "text-neg";
     case "amber":
-      return "text-amber-600 dark:text-amber-400";
+      return "text-[color:var(--scl-perf-mid)]";
     case "muted":
     default:
       return "text-muted-foreground";

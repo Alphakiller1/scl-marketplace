@@ -27,16 +27,53 @@ test("leaderboard filters reject unsupported query values", () => {
     {
       sport: "ALL",
       window: "all",
-      sort: "units",
+      sort: "roi",
       minPicks: 0,
       verifiedOnly: false,
       search: "edge",
+      limit: 10,
     },
   );
 });
 
 test("leaderboard filters accept clv sort", () => {
   assert.equal(parseLeaderboardFilters({ sort: "clv" }).sort, "clv");
+});
+
+test("leaderboard filters preserve expansion and verified checkbox values", () => {
+  const filters = parseLeaderboardFilters({
+    limit: "20",
+    record: ["all", "verified"],
+  });
+  assert.equal(filters.limit, 20);
+  assert.equal(filters.verifiedOnly, true);
+});
+
+test("metric columns support sample, verification, and recent-form sorts", () => {
+  const cappers = [
+    {
+      id: "a",
+      name: "A",
+      units: 0,
+      winPct: 50,
+      settledPicks: 12,
+      verifiedShare: 100,
+      recentForm: ["W", "W"],
+    },
+    {
+      id: "b",
+      name: "B",
+      units: 0,
+      winPct: 50,
+      settledPicks: 40,
+      verifiedShare: 60,
+      recentForm: ["L", "L"],
+    },
+  ] as CapperSummary[];
+
+  assert.equal(sortLeaderboard(cappers, "sample")[0].id, "b");
+  assert.equal(sortLeaderboard(cappers, "verified")[0].id, "a");
+  assert.equal(sortLeaderboard(cappers, "form")[0].id, "a");
 });
 
 test("sortLeaderboard ranks by avgClv when sort=clv", () => {
@@ -141,14 +178,14 @@ test("below-minimum-sample cappers are not ranking-eligible", () => {
   );
 });
 
-test("net-negative cappers are not ranking-eligible", () => {
+test("sample-eligible negative records remain honestly ranked", () => {
   const filters = parseLeaderboardFilters({ minPicks: "10" });
   assert.equal(
     isLeaderboardEligible(
       { settledPicks: 20, units: -0.01, roi: -0.1 } as CapperSummary,
       filters,
     ),
-    false,
+    true,
   );
   assert.equal(
     isLeaderboardEligible(
@@ -171,14 +208,14 @@ test("isBuildingARecord agrees with the leaderboard partition gate", () => {
   // Higher threshold matches leaderboard min-sample filter.
   assert.equal(isBuildingARecord({ settledPicks: 9 }, 10), true);
   assert.equal(isBuildingARecord({ settledPicks: 10 }, 10), false);
-  // Net-negative cappers are also unranked once performance is known.
+  // Performance does not decide eligibility; negative records remain rankable.
   assert.equal(
     isBuildingARecord({ settledPicks: 10, units: -0.25, roi: -2 }, 10),
-    true,
+    false,
   );
 });
 
-test("partitionLeaderboard ranks non-negative eligible cappers and clears unranked places", () => {
+test("partitionLeaderboard ranks every sample-eligible capper and clears unranked places", () => {
   const filters = parseLeaderboardFilters({ minPicks: "10", sort: "units" });
   const cappers = [
     {
@@ -236,6 +273,7 @@ test("partitionLeaderboard ranks non-negative eligible cappers and clears unrank
     [
       { id: "d", rank: 1 },
       { id: "a", rank: 2 },
+      { id: "e", rank: 3 },
     ],
   );
   assert.deepEqual(
@@ -243,7 +281,6 @@ test("partitionLeaderboard ranks non-negative eligible cappers and clears unrank
     [
       { id: "c", rank: 0 },
       { id: "b", rank: 0 },
-      { id: "e", rank: 0 },
     ],
   );
 });
@@ -252,6 +289,7 @@ test("leaderboard summary keeps ranked count separate from scoped totals", () =>
   const ranked = [
     {
       verified: true,
+      verifiedShare: 100,
       record: { w: 6, l: 4, p: 0 },
       settledPicks: 10,
       units: 2,
@@ -261,6 +299,7 @@ test("leaderboard summary keeps ranked count separate from scoped totals", () =>
   const unranked = [
     {
       verified: false,
+      verifiedShare: 0,
       record: { w: 1, l: 4, p: 0 },
       settledPicks: 5,
       units: -1,

@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { hasSignal, isProvisional, MIN_GRADED_FOR_SIGNAL } from "@/lib/sample";
+import {
+  ESTABLISHED_SAMPLE_MIN,
+  hasSignal,
+  isProvisional,
+  MIN_GRADED_FOR_SIGNAL,
+  sampleMaturity,
+} from "@/lib/sample";
 
 test("MIN_GRADED_FOR_SIGNAL is 10", () => {
   assert.equal(MIN_GRADED_FOR_SIGNAL, 10);
@@ -30,4 +36,13 @@ test("isProvisional mirrors hasSignal", () => {
   assert.equal(isProvisional(10), false);
   assert.equal(isProvisional(null), true);
   assert.equal(isProvisional(undefined), true);
+});
+
+test("sample maturity labels threshold boundaries", () => {
+  assert.equal(ESTABLISHED_SAMPLE_MIN, 50);
+  assert.equal(sampleMaturity(0), "Early");
+  assert.equal(sampleMaturity(9), "Early");
+  assert.equal(sampleMaturity(10), "Developing");
+  assert.equal(sampleMaturity(49), "Developing");
+  assert.equal(sampleMaturity(50), "Established");
 });
