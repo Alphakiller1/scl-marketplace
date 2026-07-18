@@ -297,25 +297,26 @@ export async function fetchUpcomingOdds(
     const events = (await res.json()) as Parameters<
       typeof normalizeUpcomingEvent
     >[1][];
-    return events
-      .map((e) => normalizeUpcomingEvent(sclSport, e, preferred))
-      .filter((e) => e.selections.length > 0)
-      .slice(0, 60);
+    return dedupeOddsEvents(
+      events
+        .map((e) => normalizeUpcomingEvent(sclSport, e, preferred))
+        .filter((e) => e.selections.length > 0),
+    ).slice(0, 60);
   };
 
   try {
     const board = await attempt(preferred);
-    if (board.length > 0) return dedupeOddsEvents(board);
+    if (board.length > 0) return board;
 
     // Never empty the board solely because of a bookmakers filter — fall back to regions=us.
     if (bookmakersQueryParam(preferred ?? [])) {
       console.info(
         `[odds] upcoming ${sclSport}: bookmakers filter empty, falling back to regions=us`,
       );
-      return dedupeOddsEvents(await attempt(undefined));
+      return await attempt(undefined);
     }
     console.info(`[odds] upcoming ${sclSport}: 0 usable events returned`);
-    return dedupeOddsEvents(board);
+    return board;
   } catch (err) {
     console.warn(`[odds] upcoming ${sclSport}: fetch failed`, err);
     return [];

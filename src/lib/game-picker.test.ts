@@ -98,14 +98,21 @@ test("selectionForActiveBook is honest null (no silent substitute)", () => {
     oddsAmerican: -105,
     book: "fanduel",
     bookPrices: { fanduel: -105, draftkings: -110 },
+    bookCapturedAt: {
+      fanduel: "2026-07-18T18:00:00Z",
+      draftkings: "2026-07-18T17:55:00Z",
+    },
+    oddsCapturedAt: "2026-07-18T18:00:00Z",
   };
   assert.deepEqual(selectionForActiveBook(sel, null), {
     oddsAmerican: -105,
     book: "fanduel",
+    oddsCapturedAt: "2026-07-18T18:00:00Z",
   });
   assert.deepEqual(selectionForActiveBook(sel, "draftkings"), {
     oddsAmerican: -110,
     book: "draftkings",
+    oddsCapturedAt: "2026-07-18T17:55:00Z",
   });
   assert.deepEqual(selectionForActiveBook(sel, "betmgm"), {
     oddsAmerican: null,

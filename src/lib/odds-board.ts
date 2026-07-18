@@ -36,6 +36,8 @@ export type OddsSelection = {
   book?: string;
   /** Per-book American prices; missing key → honest null via {@link getOddsForBook}. */
   bookPrices?: Record<string, number>;
+  /** Bookmaker `last_update` ISO keyed by book for active-book display. */
+  bookCapturedAt?: Record<string, string>;
   /** Bookmaker `last_update` ISO for the displayed book, when the feed provides it. */
   oddsCapturedAt?: string;
 };
@@ -77,9 +79,14 @@ export function preferredThenAll(
   price: number;
   book: string;
   bookPrices: Record<string, number>;
+  bookCapturedAt?: Record<string, string>;
   capturedAt?: string;
 } | null {
   const bookPrices = Object.fromEntries(byBook);
+  const bookCapturedAt =
+    lastUpdateByBook && lastUpdateByBook.size > 0
+      ? Object.fromEntries(lastUpdateByBook)
+      : undefined;
   if (byBook.size === 0) return null;
 
   const preferredKeys = (preferred ?? []).filter(isBookKey);
@@ -109,6 +116,7 @@ export function preferredThenAll(
     price: best.price,
     book: best.book,
     bookPrices,
+    ...(bookCapturedAt ? { bookCapturedAt } : {}),
     ...(capturedAt ? { capturedAt } : {}),
   };
 }
@@ -289,6 +297,7 @@ export function normalizeEventBoard(
         oddsAmerican: best.price,
         book,
         bookPrices: best.bookPrices,
+        ...(best.bookCapturedAt ? { bookCapturedAt: best.bookCapturedAt } : {}),
         ...(oddsCapturedAt ? { oddsCapturedAt } : {}),
       });
     } else if (g.market === "Moneyline") {
@@ -301,6 +310,7 @@ export function normalizeEventBoard(
         oddsAmerican: best.price,
         book,
         bookPrices: best.bookPrices,
+        ...(best.bookCapturedAt ? { bookCapturedAt: best.bookCapturedAt } : {}),
         ...(oddsCapturedAt ? { oddsCapturedAt } : {}),
       });
     } else if (g.market === "Spread") {
@@ -315,6 +325,7 @@ export function normalizeEventBoard(
         oddsAmerican: best.price,
         book,
         bookPrices: best.bookPrices,
+        ...(best.bookCapturedAt ? { bookCapturedAt: best.bookCapturedAt } : {}),
         ...(oddsCapturedAt ? { oddsCapturedAt } : {}),
       });
     } else {
@@ -328,6 +339,7 @@ export function normalizeEventBoard(
         oddsAmerican: best.price,
         book,
         bookPrices: best.bookPrices,
+        ...(best.bookCapturedAt ? { bookCapturedAt: best.bookCapturedAt } : {}),
         ...(oddsCapturedAt ? { oddsCapturedAt } : {}),
       });
     }
@@ -459,6 +471,7 @@ export function normalizeUpcomingEvent(
         oddsAmerican: best.price,
         book,
         bookPrices: best.bookPrices,
+        ...(best.bookCapturedAt ? { bookCapturedAt: best.bookCapturedAt } : {}),
         ...(oddsCapturedAt ? { oddsCapturedAt } : {}),
       });
     } else if (g.market === "Spread") {
@@ -473,6 +486,7 @@ export function normalizeUpcomingEvent(
         oddsAmerican: best.price,
         book,
         bookPrices: best.bookPrices,
+        ...(best.bookCapturedAt ? { bookCapturedAt: best.bookCapturedAt } : {}),
         ...(oddsCapturedAt ? { oddsCapturedAt } : {}),
       });
     } else {
@@ -486,6 +500,7 @@ export function normalizeUpcomingEvent(
         oddsAmerican: best.price,
         book,
         bookPrices: best.bookPrices,
+        ...(best.bookCapturedAt ? { bookCapturedAt: best.bookCapturedAt } : {}),
         ...(oddsCapturedAt ? { oddsCapturedAt } : {}),
       });
     }

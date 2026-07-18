@@ -4,17 +4,8 @@ import { BettingTitle } from "@/components/scl/betting-title";
 import { BookMark } from "@/components/scl/book-mark";
 import { bookShort } from "@/lib/books";
 import { cn } from "@/lib/utils";
-import { formatOdds } from "@/lib/format";
+import { formatCaptureClock, formatOdds } from "@/lib/format";
 import { isExtremeAmericanOdds } from "@/lib/odds-board";
-
-function formatCaptureClock(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleTimeString(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
 
 /**
  * v2 odds chip — single row: label + odds.

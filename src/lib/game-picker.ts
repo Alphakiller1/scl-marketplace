@@ -96,16 +96,26 @@ export function categoryCounts(
 export function selectionForActiveBook(
   selection: OddsSelection,
   activeBook: string | null | undefined,
-): { oddsAmerican: number | null; book?: string } {
+): { oddsAmerican: number | null; book?: string; oddsCapturedAt?: string } {
   if (!activeBook) {
     return {
       oddsAmerican: selection.oddsAmerican,
       book: selection.book,
+      ...(selection.oddsCapturedAt
+        ? { oddsCapturedAt: selection.oddsCapturedAt }
+        : {}),
     };
   }
   const price = getOddsForBook(selection, activeBook);
   if (price === null) {
     return { oddsAmerican: null, book: activeBook };
   }
-  return { oddsAmerican: price, book: activeBook };
+  const oddsCapturedAt =
+    selection.bookCapturedAt?.[activeBook] ??
+    (selection.book === activeBook ? selection.oddsCapturedAt : undefined);
+  return {
+    oddsAmerican: price,
+    book: activeBook,
+    ...(oddsCapturedAt ? { oddsCapturedAt } : {}),
+  };
 }

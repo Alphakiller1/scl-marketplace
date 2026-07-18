@@ -214,4 +214,5 @@ test("normalizeEventBoard attaches bookmaker last_update as oddsCapturedAt", () 
   );
   assert.equal(spread?.book, "fanduel");
   assert.equal(spread?.oddsCapturedAt, "2026-07-18T18:00:00Z");
+  assert.equal(spread?.bookCapturedAt?.fanduel, "2026-07-18T18:00:00Z");
 });
