@@ -39,12 +39,14 @@ const DEFAULT_FILTERS: LeaderboardFilters = {
 async function fetchRankableProfiles(
   filters: LeaderboardFilters,
   clvReady: boolean,
+  capperIds?: string[],
 ) {
   const windowStart = leaderboardWindowStart(filters.window);
   const excludeTest = await prismaExcludeTestHandlesLive();
 
   return prisma.capperProfile.findMany({
     where: {
+      ...(capperIds ? { id: { in: capperIds } } : undefined),
       user: {
         username: { not: null },
         accountStatus: "ACTIVE",
@@ -273,6 +275,39 @@ export async function getLeaderboard(
   options: Partial<LeaderboardFilters> = {},
 ): Promise<CapperSummary[]> {
   return (await getLeaderboardResult(options)).cappers;
+}
+
+/**
+ * All-time public evidence for a bounded set of marketplace cappers. Reuses
+ * the leaderboard's public predicates and summary math without scanning every
+ * active account or assigning marketplace ranks.
+ */
+export async function getPublicCapperEvidenceByIds(
+  requestedIds: string[],
+): Promise<{ cappers: CapperSummary[]; failed: boolean }> {
+  const capperIds = [...new Set(requestedIds.filter(Boolean))].slice(0, 60);
+  if (capperIds.length === 0) return { cappers: [], failed: false };
+
+  try {
+    const clvReady = await hasClvColumns();
+    const profiles = await fetchRankableProfiles(
+      DEFAULT_FILTERS,
+      clvReady,
+      capperIds,
+    );
+    return {
+      cappers: profiles
+        .map(summarize)
+        .filter((capper): capper is CapperSummary => capper !== null),
+      failed: false,
+    };
+  } catch (error) {
+    console.error(
+      "[getPublicCapperEvidenceByIds] database unavailable:",
+      error,
+    );
+    return { cappers: [], failed: true };
+  }
 }
 
 export async function getLeaderboardResult(

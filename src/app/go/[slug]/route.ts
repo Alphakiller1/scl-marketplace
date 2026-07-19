@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
+import { publicPackagePublicationWhere } from "@/lib/public-packages";
 
 export const runtime = "nodejs";
 
@@ -23,17 +24,11 @@ export async function GET(
     const tracking = await prisma.trackingUrl.findFirst({
       where: {
         slug,
-        package: { capper: { user: excludeTest } },
+        package: publicPackagePublicationWhere(excludeTest),
       },
       select: {
         id: true,
         targetUrl: true,
-        package: {
-          select: {
-            isActive: true,
-            storeConnection: { select: { status: true } },
-          },
-        },
       },
     });
 
@@ -41,12 +36,7 @@ export async function GET(
       return NextResponse.redirect(new URL("/packages", request.url));
     }
 
-    const storeStatus = tracking.package.storeConnection?.status;
-    const allowed =
-      tracking.package.isActive &&
-      (storeStatus == null || storeStatus === "LIVE");
-
-    if (!allowed || !tracking.targetUrl) {
+    if (!tracking.targetUrl) {
       return NextResponse.redirect(new URL("/packages", request.url));
     }
 

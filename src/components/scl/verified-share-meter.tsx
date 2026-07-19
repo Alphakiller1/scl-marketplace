@@ -9,11 +9,14 @@ import { cn } from "@/lib/utils";
 export function VerifiedShareMeter({
   pct,
   className,
+  showZero = false,
 }: {
   pct: number | null | undefined;
   className?: string;
+  /** A measured 0% is meaningful when the caller knows at least one pick exists. */
+  showZero?: boolean;
 }) {
-  if (pct == null || !Number.isFinite(pct) || pct <= 0) {
+  if (pct == null || !Number.isFinite(pct) || (!showZero && pct <= 0)) {
     return (
       <span
         className={cn(
