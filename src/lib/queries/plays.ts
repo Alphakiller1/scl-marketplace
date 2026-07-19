@@ -6,7 +6,10 @@ import { prisma } from "@/lib/prisma";
 import type { CapperSummary, TodayPick } from "@/lib/mock";
 import { UNIT_MIN } from "@/lib/constants";
 import { joinPlaysToPublicPicks } from "@/lib/public-picks";
-import { prismaExcludeTestHandles } from "@/lib/public-eligibility";
+import {
+  hasQaNoteMarker,
+  prismaExcludeTestHandles,
+} from "@/lib/public-eligibility";
 import { hasNotesPublicColumn } from "@/lib/results/schema-features";
 import { isVerifiedTier, type VerificationTier } from "@/lib/verification";
 
@@ -257,10 +260,15 @@ export async function getPublicRecentPicksResult(
         ...(notesPublicReady ? { notesPublic: true } : {}),
       },
       orderBy: { createdAt: "desc" },
-      take,
+      // Over-fetch so QA-noted plays dropped below don't shrink the feed.
+      take: take * 2,
     });
 
-    return { picks: joinPlaysToPublicPicks(plays, cappers), failed: false };
+    const visible = plays
+      .filter((p) => !hasQaNoteMarker(p.notes))
+      .slice(0, take);
+
+    return { picks: joinPlaysToPublicPicks(visible, cappers), failed: false };
   } catch (error) {
     console.error("[getPublicRecentPicks] database unavailable:", error);
     return { picks: [], failed: true };

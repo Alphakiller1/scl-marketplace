@@ -5,7 +5,10 @@ import type { Outcome } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { UNIT_MIN } from "@/lib/constants";
 import { etDayBounds } from "@/lib/et-day";
-import { prismaExcludeTestHandles } from "@/lib/public-eligibility";
+import {
+  hasQaNoteMarker,
+  prismaExcludeTestHandles,
+} from "@/lib/public-eligibility";
 import type { PlayView } from "@/lib/queries/plays";
 import {
   hasClvColumns,
@@ -155,7 +158,7 @@ export async function getFeaturedGradedPlay(): Promise<{
   try {
     const clvReady = await hasClvColumns();
     const notesPublicReady = await hasNotesPublicColumn();
-    const row = await prisma.play.findFirst({
+    const rows = await prisma.play.findMany({
       where: {
         parlayId: null,
         outcome: { in: GRADED },
@@ -170,6 +173,8 @@ export async function getFeaturedGradedPlay(): Promise<{
         },
       },
       orderBy: { gradedAt: "desc" },
+      // Over-fetch so a QA-noted play can't claim the Featured slot.
+      take: 8,
       select: {
         id: true,
         sport: true,
@@ -194,6 +199,9 @@ export async function getFeaturedGradedPlay(): Promise<{
       },
     });
 
+    const row = rows.find(
+      (r) => r.capper.user.username && !hasQaNoteMarker(r.notes),
+    );
     if (!row?.capper.user.username) return { play: null, failed: false };
 
     const play: FeaturedGradedPlay = {
