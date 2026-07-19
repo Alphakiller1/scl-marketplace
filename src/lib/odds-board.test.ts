@@ -205,6 +205,45 @@ test("dedupeOddsEvents keeps one row per sport matchup, preferring most-complete
   assert.equal(deduped[2]!.id, "other-sport");
 });
 
+test("dedupeOddsEvents prefers the freshest row when completeness ties", () => {
+  const stale: OddsEvent = {
+    id: "stale",
+    sport: "MLB",
+    commenceTime: "2026-07-18T23:10:00Z",
+    home: "Cleveland Guardians",
+    away: "Pittsburgh Pirates",
+    selections: [
+      {
+        label: "Pirates ML",
+        market: "Moneyline",
+        selection: "Pittsburgh Pirates",
+        side: "Pittsburgh Pirates",
+        oddsAmerican: 145,
+        book: "draftkings",
+        bookPrices: { draftkings: 145 },
+        bookCapturedAt: { draftkings: "2026-07-18T18:00:00Z" },
+        oddsCapturedAt: "2026-07-18T18:00:00Z",
+      },
+    ],
+  };
+  const fresh: OddsEvent = {
+    ...stale,
+    id: "fresh",
+    selections: [
+      {
+        ...stale.selections[0]!,
+        oddsAmerican: 150,
+        bookPrices: { draftkings: 150 },
+        bookCapturedAt: { draftkings: "2026-07-18T18:05:00Z" },
+        oddsCapturedAt: "2026-07-18T18:05:00Z",
+      },
+    ],
+  };
+
+  assert.equal(dedupeOddsEvents([stale, fresh])[0]!.id, "fresh");
+  assert.equal(dedupeOddsEvents([fresh, stale])[0]!.id, "fresh");
+});
+
 test("normalizeEventBoard attaches bookmaker last_update as oddsCapturedAt", () => {
   const withUpdate: RawEventOdds = {
     ...EVENT,

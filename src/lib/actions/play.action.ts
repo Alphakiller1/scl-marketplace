@@ -279,7 +279,7 @@ async function preparePlayLine(
         units: d.units,
         notes: d.notes ?? null,
         notesPublic: d.notesPublic ?? true,
-        needsReview: isExtremeAmericanOdds(capture.oddsAmerican),
+        needsReview: isExtremeAmericanOdds(capture.selectedOddsAmerican),
         eventId: d.eventId,
         eventStartsAt,
         side: d.side,

@@ -141,9 +141,25 @@ function eventBoardCompleteness(event: OddsEvent): number {
   return bookSlots * 1_000 + event.selections.length;
 }
 
+function eventBoardFreshness(event: OddsEvent): number {
+  let freshest = Number.NEGATIVE_INFINITY;
+  for (const selection of event.selections) {
+    const capturedAt = [
+      selection.oddsCapturedAt,
+      ...Object.values(selection.bookCapturedAt ?? {}),
+    ];
+    for (const value of capturedAt) {
+      if (!value) continue;
+      const timestamp = Date.parse(value);
+      if (Number.isFinite(timestamp)) freshest = Math.max(freshest, timestamp);
+    }
+  }
+  return freshest;
+}
+
 /**
  * Collapse duplicate feed rows for the same matchup into one event.
- * Prefers the most-complete row (most book-attributed prices, then most selections).
+ * Prefers the most-complete row, then the freshest row, then the later feed row.
  */
 export function dedupeOddsEvents(events: readonly OddsEvent[]): OddsEvent[] {
   const bestByKey = new Map<string, OddsEvent>();
@@ -156,7 +172,13 @@ export function dedupeOddsEvents(events: readonly OddsEvent[]): OddsEvent[] {
       order.push(key);
       continue;
     }
-    if (eventBoardCompleteness(event) > eventBoardCompleteness(prev)) {
+    const completeness = eventBoardCompleteness(event);
+    const previousCompleteness = eventBoardCompleteness(prev);
+    if (
+      completeness > previousCompleteness ||
+      (completeness === previousCompleteness &&
+        eventBoardFreshness(event) >= eventBoardFreshness(prev))
+    ) {
       bestByKey.set(key, event);
     }
   }
