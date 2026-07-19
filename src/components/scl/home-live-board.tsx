@@ -6,6 +6,10 @@ import { cn } from "@/lib/utils";
  * Homepage evidence field — asymmetric 12-col regions around/below the carousel.
  * Structural hairlines between regions (not one card wrapping the stack).
  * Scanline + cobalt rail only on true live-board panes.
+ *
+ * Desktop rows use `lg:items-start` so sparse panes stay content-height (no
+ * stretch whitespace inside a short board). Vertical dividers are full-row
+ * rules on the grid, not `border-r` on the shorter pane.
  */
 export function HomeEvidenceField({
   leaderboard,
@@ -29,10 +33,12 @@ export function HomeEvidenceField({
       aria-label="Live evidence field"
     >
       {/* Row 1 — board snapshot + paper receipt contrast */}
-      <div className="border-border grid gap-0 border-y lg:grid-cols-12">
-        <LiveBoardPane className="lg:col-span-8 lg:border-r">
-          {leaderboard}
-        </LiveBoardPane>
+      <div className="border-border relative grid gap-0 border-y lg:grid-cols-12 lg:items-start">
+        <div
+          aria-hidden
+          className="border-border pointer-events-none absolute inset-y-0 left-2/3 hidden border-l lg:block"
+        />
+        <LiveBoardPane className="lg:col-span-8">{leaderboard}</LiveBoardPane>
         <div className="border-border min-w-0 px-4 py-5 sm:px-5 sm:py-6 lg:col-span-4 lg:border-t-0">
           {featuredProof}
         </div>
@@ -44,10 +50,12 @@ export function HomeEvidenceField({
       </LiveBoardPane>
 
       {/* Row 3 — inspectable cappers + verification context */}
-      <div className="border-border grid gap-0 border-b lg:grid-cols-12">
-        <LiveBoardPane className="lg:col-span-8 lg:border-r">
-          {topCappers}
-        </LiveBoardPane>
+      <div className="border-border relative grid gap-0 border-b lg:grid-cols-12 lg:items-start">
+        <div
+          aria-hidden
+          className="border-border pointer-events-none absolute inset-y-0 left-2/3 hidden border-l lg:block"
+        />
+        <LiveBoardPane className="lg:col-span-8">{topCappers}</LiveBoardPane>
         <div className="border-border min-w-0 px-4 py-5 sm:px-5 sm:py-6 lg:col-span-4">
           {verificationContext}
         </div>
