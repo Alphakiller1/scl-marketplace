@@ -1,9 +1,9 @@
 import { prismaExcludeTestHandles } from "@/lib/public-eligibility";
-import { hasIsTestColumn } from "@/lib/results/schema-features";
 
 /**
- * Public-query user filter with User.isTest soft-degrade.
- * Prefer this over the pure {@link prismaExcludeTestHandles} in server queries.
+ * Public-query user filter for the migrated User.isTest publication gate.
+ * Prefer this over the pure {@link prismaExcludeTestHandles} in server queries
+ * so reserved ghost accounts can be enabled only in an explicit preview.
  */
 export async function prismaExcludeTestHandlesLive() {
   const allowGhostAccounts =
@@ -11,7 +11,7 @@ export async function prismaExcludeTestHandlesLive() {
     process.env.VERCEL_ENV !== "production";
 
   return prismaExcludeTestHandles({
-    includeIsTestColumn: await hasIsTestColumn(),
+    includeIsTestColumn: true,
     allowGhostAccounts,
   });
 }
