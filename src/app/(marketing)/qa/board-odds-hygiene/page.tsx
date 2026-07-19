@@ -17,7 +17,7 @@ export default function BoardOddsHygieneQaPage() {
 
   return (
     <div className="overflow-x-hidden pb-10 sm:pb-12" data-visual-mode="proof">
-      <div className="mx-auto mt-4 max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto mt-4 max-w-[1400px] px-4 sm:px-6 lg:px-8">
         <QaBoardOddsHygiene />
       </div>
     </div>

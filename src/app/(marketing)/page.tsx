@@ -116,7 +116,7 @@ export default async function Home() {
         label={gradedWinsTicker.label}
       />
 
-      <div className="mx-auto max-w-6xl overflow-x-hidden px-4 py-8 sm:px-6 sm:py-10">
+      <div className="mx-auto max-w-[1400px] overflow-x-hidden px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
         <HomeEvidenceField
           leaderboard={
             <LeaderboardSnapshot

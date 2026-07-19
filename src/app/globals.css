@@ -100,6 +100,14 @@
   --scl-blue: #044cb6;
   --scl-blue-deep: #0043ac;
   --scl-blue-ink: #f1f9ff;
+  /* Photographic hero stays dark in both themes so the artwork and copy retain contrast. */
+  --scl-hero-ink: #07090f;
+  --scl-hero-ink-raised: #0c111b;
+  --scl-hero-text: #edf1f7;
+  --scl-hero-muted: #c2ccda;
+  --scl-hero-line: #243045;
+  --scl-hero-blue: #6ea8ff;
+  --scl-hero-pink-text: #ff74c8;
 
   --scl-win: #2fbf7b;
   --scl-loss: #e5484d;

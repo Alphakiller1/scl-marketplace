@@ -13,10 +13,10 @@ export async function SiteHeader() {
 
   return (
     <header className="border-border bg-sidebar sticky top-0 z-40 w-full border-b pt-[env(safe-area-inset-top)]">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
+      <div className="mx-auto grid h-16 w-full max-w-[1400px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 sm:px-6 lg:px-8">
         <Link
           href="/"
-          className="flex min-h-11 min-w-0 items-center gap-2.5 font-semibold"
+          className="col-start-1 row-start-1 flex min-h-11 min-w-0 items-center gap-2.5 justify-self-start font-semibold"
         >
           <span className="ring-border-strong flex size-9 items-center justify-center rounded-xl bg-[color:var(--scl-ink-800)] ring-1">
             <SclLogo className="size-6" />
@@ -26,7 +26,7 @@ export async function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="text-muted-foreground hidden items-center gap-1 text-sm sm:flex">
+        <nav className="text-muted-foreground col-start-2 row-start-1 hidden items-center gap-2 justify-self-center text-sm sm:flex">
           <Link
             href="/picks"
             className="inline-flex min-h-11 items-center px-3 text-[color:var(--scl-text)] underline-offset-4 transition-colors hover:underline hover:decoration-[color:var(--scl-blue)]"
@@ -45,15 +45,9 @@ export async function SiteHeader() {
           >
             Discover
           </Link>
-          <Link
-            href="/packages"
-            className="inline-flex min-h-11 items-center px-3 text-[color:var(--scl-text)] underline-offset-4 transition-colors hover:underline hover:decoration-[color:var(--scl-blue)]"
-          >
-            Packages
-          </Link>
         </nav>
 
-        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+        <div className="col-start-3 row-start-1 flex shrink-0 items-center gap-1 justify-self-end sm:gap-2">
           <ThemeToggle />
           {authed ? (
             <>

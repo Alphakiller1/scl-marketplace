@@ -142,7 +142,7 @@ export function YesterdayWinsTicker({
       aria-label={label}
       className="border-border border-b bg-[color:var(--scl-ink-900)]"
     >
-      <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 sm:gap-4 sm:px-6">
+      <div className="mx-auto flex max-w-[1400px] items-center gap-3 px-4 py-2.5 sm:gap-4 sm:px-6 lg:px-8">
         <p className="scl-eyebrow shrink-0 border-r border-[color:var(--scl-line)] pr-3 text-[color:var(--scl-muted-label)] sm:pr-4">
           {label}
         </p>

@@ -35,7 +35,7 @@ export default async function DiscoverPage({
 
   return (
     <div
-      className="mx-auto max-w-6xl overflow-x-hidden px-4 py-7 sm:px-6 sm:py-10"
+      className="mx-auto max-w-[1400px] overflow-x-hidden px-4 py-7 sm:px-6 sm:py-10 lg:px-8"
       data-visual-mode="rank"
     >
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">

@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   LogIn,
   Menu,
-  Package,
   Plus,
   Trophy,
   UserRound,
@@ -38,7 +37,6 @@ const MARKETING_NAV = [
   { href: "/picks", label: "Picks", icon: Zap },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/discover", label: "Discover", icon: Users },
-  { href: "/packages", label: "Packages", icon: Package },
 ];
 
 const navLinkClass =

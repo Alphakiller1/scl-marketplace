@@ -91,6 +91,14 @@ const LIGHT = {
   pinkText: "#A6007F",
 } as const;
 
+const HERO = {
+  ink: "#07090F",
+  text: "#EDF1F7",
+  muted: "#C2CCDA",
+  blue: "#6EA8FF",
+  pinkText: "#FF74C8",
+} as const;
+
 function assertAa(fg: string, bg: string, label: string) {
   const ratio = contrast(fg, bg);
   assert.ok(
@@ -115,6 +123,13 @@ describe("a11y contrast — approved text/bg pairs (axe-core)", () => {
     assertAa(DARK.blueInk, DARK.blue, "dark blue-ink/blue");
     assertAa(LIGHT.pinkInk, LIGHT.pink, "light pink-ink/pink");
     assertAa(LIGHT.blueInk, LIGHT.blue, "light blue-ink/blue");
+  });
+
+  it("theme-independent hero copy and interactions clear AA on hero ink", () => {
+    assertAa(HERO.text, HERO.ink, "hero text/ink");
+    assertAa(HERO.muted, HERO.ink, "hero supporting/ink");
+    assertAa(HERO.blue, HERO.ink, "hero focus and active marks/ink");
+    assertAa(HERO.pinkText, HERO.ink, "hero title hover/ink");
   });
 });
 
