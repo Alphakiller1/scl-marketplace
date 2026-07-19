@@ -64,8 +64,7 @@ export type ParlayView = {
 
 /** A record entry is either a straight play or a parlay; both share a createdAt for ordering. */
 export type RecordEntry =
-  | ({ kind: "play" } & PlayView)
-  | ({ kind: "parlay" } & ParlayView);
+  ({ kind: "play" } & PlayView) | ({ kind: "parlay" } & ParlayView);
 
 /** Merge plays + parlays into one most-recent-first record list (pure; no DB). */
 export function mergeRecordEntries(
@@ -255,6 +254,8 @@ export async function getPublicRecentPicksResult(
         side: true,
         eventStartsAt: true,
         book: true,
+        closingOddsAmerican: true,
+        clvPts: true,
         notes: true,
         ...(notesPublicReady ? { notesPublic: true } : {}),
       },

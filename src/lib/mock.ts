@@ -103,6 +103,12 @@ export type TodayPick = {
   profitUnits?: number | null;
   /** Odds API bookmaker key at capture — Ticket SOURCE line (M5 §4). */
   book?: string | null;
+  /** Scheduled event start — preserves lifecycle and empty-snapshot honesty. */
+  eventStartsAt?: Date | null;
+  /** Closing American odds when a real market-close snapshot exists. */
+  closingOddsAmerican?: number | null;
+  /** Closing-line value in pricing points; null until a real snapshot exists. */
+  clvPts?: number | null;
   notes?: string | null;
   notesPublic?: boolean;
   gradingHealthy?: boolean;
