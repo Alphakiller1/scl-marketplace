@@ -25,7 +25,14 @@ import {
 } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
+import {
+  buildAllDiscoverLanes,
+  type DiscoverCapperInput,
+  type DiscoverPlayRow,
+} from "@/lib/discover-lanes";
 import { settleParlay } from "@/lib/grading";
+import { computeCapperStats } from "@/lib/stats";
+import { computeVerifiedShare } from "@/lib/verification";
 
 const prisma = new PrismaClient();
 
@@ -536,7 +543,7 @@ function buildPlays(
           ? `${side} — model edge; board-checked at ${odds > 0 ? "+" : ""}${odds}.`
           : null,
     };
-    // Reserve a few verified graded plays for parlays.
+    // Reuse a few verified graded straight plays as parlay legs.
     if (
       g.hasParlays &&
       verified &&
@@ -545,9 +552,62 @@ function buildPlays(
       chance(0.3)
     )
       parlayPool.push(play);
-    else straights.push(play);
+    straights.push(play);
   }
   return { straights, parlayPool };
+}
+
+type ParlayCreate = {
+  combinedOddsAmerican: number;
+  units: number;
+  outcome: Outcome;
+  profitUnits: number | null;
+  createdAt: Date;
+  gradedAt: Date | null;
+  legs: PlayCreate[];
+};
+
+function buildParlays(parlayPool: PlayCreate[]): ParlayCreate[] {
+  const parlays: ParlayCreate[] = [];
+  let idx = 0;
+  while (parlayPool.length - idx >= 2) {
+    const remaining = parlayPool.length - idx;
+    const legCount = remaining <= 4 ? (remaining === 3 ? 3 : 2) : randInt(2, 3);
+    const legs = parlayPool.slice(idx, idx + legCount);
+    idx += legCount;
+    const combined = legs.reduce(
+      (acc, l) =>
+        acc *
+        (l.oddsAmerican > 0
+          ? 1 + l.oddsAmerican / 100
+          : 1 + 100 / Math.abs(l.oddsAmerican)),
+      1,
+    );
+    const combinedOddsAmerican =
+      combined >= 2
+        ? Math.round((combined - 1) * 100)
+        : Math.round(-100 / (combined - 1));
+    const units = round2(Math.min(5, Math.max(0.5, gauss(1.2, 0.5))));
+    const settlement = settleParlay(legs, units);
+    const gradedAt = legs.reduce<Date | null>(
+      (a, l) => (l.gradedAt && (!a || l.gradedAt > a) ? l.gradedAt : a),
+      null,
+    );
+    const createdAt = legs.reduce(
+      (a, l) => (l.createdAt < a ? l.createdAt : a),
+      legs[0].createdAt,
+    );
+    parlays.push({
+      combinedOddsAmerican,
+      units,
+      outcome: settlement.outcome,
+      profitUnits: settlement.profitUnits,
+      createdAt,
+      gradedAt: settlement.outcome === "PENDING" ? null : gradedAt,
+      legs,
+    });
+  }
+  return parlays;
 }
 
 // ── persistence ──────────────────────────────────────────────────────────────
@@ -589,71 +649,41 @@ async function seedGhost(passwordHash: string, g: Ghost) {
     await prisma.play.createMany({ data: straights });
   }
 
-  // Parlays: group the reserved verified plays into 2–3 leg positions.
-  if (parlayPool.length >= 2) {
-    let idx = 0;
-    while (parlayPool.length - idx >= 2) {
-      const remaining = parlayPool.length - idx;
-      const legCount =
-        remaining <= 4 ? (remaining === 3 ? 3 : 2) : randInt(2, 3);
-      const legs = parlayPool.slice(idx, idx + legCount);
-      idx += legCount;
-      const combined = legs.reduce(
-        (acc, l) =>
-          acc *
-          (l.oddsAmerican > 0
-            ? 1 + l.oddsAmerican / 100
-            : 1 + 100 / Math.abs(l.oddsAmerican)),
-        1,
-      );
-      const combinedAmerican =
-        combined >= 2
-          ? Math.round((combined - 1) * 100)
-          : Math.round(-100 / (combined - 1));
-      const units = round2(Math.min(5, Math.max(0.5, gauss(1.2, 0.5))));
-      const settlement = settleParlay(legs, units);
-      const gradedAt = legs.reduce<Date | null>(
-        (a, l) => (l.gradedAt && (!a || l.gradedAt > a) ? l.gradedAt : a),
-        null,
-      );
-      const createdAt = legs.reduce(
-        (a, l) => (l.createdAt < a ? l.createdAt : a),
-        legs[0].createdAt,
-      );
-      await prisma.parlay.create({
-        data: {
-          capperId,
-          combinedOddsAmerican: combinedAmerican,
-          units,
-          outcome: settlement.outcome,
-          profitUnits: settlement.profitUnits,
-          createdAt,
-          gradedAt: settlement.outcome === "PENDING" ? null : gradedAt,
-          legs: {
-            create: legs.map((l) => ({
-              capperId,
-              sport: l.sport,
-              league: l.league,
-              market: l.market,
-              selection: l.selection,
-              side: l.side,
-              line: l.line,
-              oddsAmerican: l.oddsAmerican,
-              units: 0, // the parlay carries the stake; legs are components
-              book: l.book,
-              outcome: l.outcome,
-              profitUnits: null, // legs don't carry standalone P/L inside a parlay
-              createdAt: l.createdAt,
-              gradedAt: l.gradedAt,
-              eventStartsAt: l.eventStartsAt,
-              loggedPreGame: true,
-              oddsVerified: l.oddsVerified,
-              verificationTier: l.verificationTier,
-            })),
-          },
+  // Parlays: group the selected verified plays into 2–3 leg positions.
+  for (const parlay of buildParlays(parlayPool)) {
+    await prisma.parlay.create({
+      data: {
+        capperId,
+        combinedOddsAmerican: parlay.combinedOddsAmerican,
+        units: parlay.units,
+        outcome: parlay.outcome,
+        profitUnits: parlay.profitUnits,
+        createdAt: parlay.createdAt,
+        gradedAt: parlay.gradedAt,
+        legs: {
+          create: parlay.legs.map((l) => ({
+            capperId,
+            sport: l.sport,
+            league: l.league,
+            market: l.market,
+            selection: l.selection,
+            side: l.side,
+            line: l.line,
+            oddsAmerican: l.oddsAmerican,
+            units: 0, // the parlay carries the stake; legs are components
+            book: l.book,
+            outcome: l.outcome,
+            profitUnits: null, // legs don't carry standalone P/L inside a parlay
+            createdAt: l.createdAt,
+            gradedAt: l.gradedAt,
+            eventStartsAt: l.eventStartsAt,
+            loggedPreGame: true,
+            oddsVerified: l.oddsVerified,
+            verificationTier: l.verificationTier,
+          })),
         },
-      });
-    }
+      },
+    });
   }
 
   // Packages via a LIVE store connection.
@@ -719,63 +749,84 @@ async function seedGhost(passwordHash: string, g: Ghost) {
 
 // ── dry run: prove the roster fills every surface, no DB needed ───────────────
 const SIGNAL = 10; // MIN_GRADED_FOR_SIGNAL / MATURITY.DEVELOPING
-const ESTABLISHED = 50; // MATURITY.ESTABLISHED
 function dryRun() {
   const roster = buildRoster();
   const lanes = {
     proven: 0,
-    verified30d: 0,
+    verified_month: 0,
     specialists: 0,
-    newlyCredible: 0,
-    marketBeaters: 0,
+    newly_credible: 0,
+    market_beaters: 0,
   };
+  const inputs: DiscoverCapperInput[] = [];
   let ranked = 0,
     building = 0,
     stores = 0,
     parlayCappers = 0,
     totalPlays = 0,
     clvPlays = 0;
-  const now = Date.now();
   for (const g of roster) {
     const { straights, parlayPool } = buildPlays("dry", g);
-    const all = [...straights, ...parlayPool];
-    totalPlays += all.length;
-    const settled = all.filter(
-      (p) =>
-        p.outcome === "WIN" || p.outcome === "LOSS" || p.outcome === "PUSH",
-    );
-    const graded = settled.length;
-    const verified = settled.filter(
-      (p) => p.verificationTier !== "SELF_REPORTED",
-    );
-    const verifiedSharePct = graded ? (verified.length / graded) * 100 : 0;
-    const clv = all.filter(
-      (p) => p.clvPts != null && p.verificationTier !== "SELF_REPORTED",
-    );
+    const parlays = buildParlays(parlayPool);
+    const plays: DiscoverPlayRow[] = straights.map((p) => ({
+      outcome: p.outcome,
+      units: p.units,
+      profitUnits: p.profitUnits,
+      sport: p.sport,
+      market: p.market,
+      createdAt: p.createdAt,
+      gradedAt: p.gradedAt,
+      verificationTier: p.verificationTier,
+      clvPts: p.clvPts,
+    }));
+    const stats = computeCapperStats([
+      ...plays,
+      ...parlays.map((p) => ({
+        outcome: p.outcome,
+        units: p.units,
+        profitUnits: p.profitUnits,
+      })),
+    ]);
+    const clv = plays
+      .map((p) => p.clvPts)
+      .filter((v): v is number => v != null && Number.isFinite(v));
+    totalPlays +=
+      straights.length + parlays.reduce((n, p) => n + p.legs.length, 0);
     clvPlays += clv.length;
-    // sport concentration
-    const bySport = new Map<string, number>();
-    for (const p of settled)
-      bySport.set(p.sport, (bySport.get(p.sport) ?? 0) + 1);
-    const topSport = Math.max(0, ...bySport.values());
-    const verified30 = verified.filter(
-      (p) => p.gradedAt && now - p.gradedAt.getTime() <= 30 * DAY,
-    ).length;
+    inputs.push({
+      summary: {
+        id: g.username,
+        name: g.username,
+        handle: g.username,
+        verified: true,
+        topSport: g.sports[0],
+        rank: 0,
+        rankDelta: 0,
+        record: { w: stats.wins, l: stats.losses, p: stats.pushes },
+        winPct: stats.winPct,
+        units: stats.units,
+        roi: stats.roi,
+        streak: 0,
+        recentForm: [],
+        trophies: [],
+        settledPicks: stats.settled,
+        verifiedShare: computeVerifiedShare(
+          plays.map((p) => p.verificationTier),
+        ),
+        avgClv: clv.length
+          ? clv.reduce((total, value) => total + value, 0) / clv.length
+          : null,
+      },
+      plays,
+    });
 
-    if (graded >= SIGNAL) ranked++;
+    if (stats.settled >= SIGNAL) ranked++;
     else building++;
     if (g.hasStore) stores++;
-    if (parlayPool.length >= 2) parlayCappers++;
-    if (graded >= ESTABLISHED) lanes.proven++;
-    if (verified30 >= SIGNAL) lanes.verified30d++;
-    if (topSport >= SIGNAL && topSport / graded >= 0.5) lanes.specialists++;
-    if (graded < ESTABLISHED && graded >= SIGNAL && verifiedSharePct >= 70)
-      lanes.newlyCredible++;
-    if (
-      clv.length >= SIGNAL &&
-      clv.reduce((a, p) => a + (p.clvPts ?? 0), 0) / clv.length > 0
-    )
-      lanes.marketBeaters++;
+    if (parlays.length) parlayCappers++;
+  }
+  for (const lane of buildAllDiscoverLanes(inputs)) {
+    lanes[lane.id] = lane.entries.length;
   }
   console.log(
     `DRY RUN — ${roster.length} ghost cappers, ${totalPlays} plays\n`,
@@ -790,13 +841,15 @@ function dryRun() {
   );
   console.log(`  Discover lanes (cappers qualifying — each must be ≥1):`);
   console.log(`    Proven over time (≥50 graded):        ${lanes.proven}`);
-  console.log(`    Best verified ROI 30d (≥10 verified): ${lanes.verified30d}`);
+  console.log(
+    `    Best verified ROI 30d (≥10 verified): ${lanes.verified_month}`,
+  );
   console.log(`    Consistent specialists (≥50% 1 sport):${lanes.specialists}`);
   console.log(
-    `    Newly credible (<50, ≥70% verified):  ${lanes.newlyCredible}`,
+    `    Newly credible (<50, ≥70% verified):  ${lanes.newly_credible}`,
   );
   console.log(
-    `    Market beaters (favorable CLV):        ${lanes.marketBeaters}`,
+    `    Market beaters (favorable CLV):        ${lanes.market_beaters}`,
   );
   const gaps = Object.entries(lanes)
     .filter(([, v]) => v === 0)
