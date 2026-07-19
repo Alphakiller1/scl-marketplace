@@ -28,7 +28,7 @@ import { bookShort, isBookKey, type BookKey } from "@/lib/books";
 import { cn } from "@/lib/utils";
 
 const PINK_CTA =
-  "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)]";
+  "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)] disabled:border-[color:var(--scl-line)] disabled:bg-[color:var(--scl-ink-700)] disabled:text-[color:var(--scl-muted-data)] disabled:opacity-100";
 
 /**
  * Unified sportsbook-style bet slip (M5 PR-3 / PR-4).
