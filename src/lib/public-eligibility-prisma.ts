@@ -1,5 +1,3 @@
-import "server-only";
-
 import { prismaExcludeTestHandles } from "@/lib/public-eligibility";
 import { hasIsTestColumn } from "@/lib/results/schema-features";
 
