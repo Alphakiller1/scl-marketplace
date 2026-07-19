@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { Compass } from "lucide-react";
 
 import {
@@ -9,9 +10,10 @@ import {
 import { cn } from "@/lib/utils";
 
 /**
- * Mobile-only index of empty Discover lanes — compact disclosures that preserve
- * every honest empty string. Desktop must render full lane sections as siblings
- * (never nest desktop bodies inside closed <details> — see #212).
+ * Compact index of empty Discover lanes — disclosures that preserve every
+ * honest empty string. Used on mobile always, and on desktop when ≥3 lanes
+ * are empty (see discover/page.tsx). Do not nest *filled* lane bodies inside
+ * closed <details> (see #212); empty-lane copy is safe here.
  */
 export function DiscoverEmptyLanesIndex({
   lanes,
@@ -22,12 +24,14 @@ export function DiscoverEmptyLanesIndex({
   failed?: boolean;
   className?: string;
 }) {
+  const headingId = useId();
+
   if (!lanes.length) return null;
 
   return (
     <section
-      className={cn("space-y-3 lg:hidden", className)}
-      aria-labelledby="discover-empty-lanes"
+      className={cn("space-y-3", className)}
+      aria-labelledby={headingId}
       data-visual-mode="rank"
     >
       <div className="min-w-0 border-t border-[color:var(--scl-line)] pt-3">
@@ -38,7 +42,7 @@ export function DiscoverEmptyLanesIndex({
           />
           <div className="min-w-0">
             <h2
-              id="discover-empty-lanes"
+              id={headingId}
               className="scl-display text-base font-bold tracking-[0.04em] sm:text-lg"
             >
               Lanes without matches yet
