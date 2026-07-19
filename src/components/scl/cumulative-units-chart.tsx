@@ -1,18 +1,11 @@
-"use client";
-
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-
 import { MIN_GRADED_FOR_SIGNAL, hasSignal } from "@/lib/sample";
 import { cn } from "@/lib/utils";
+
+const CHART_WIDTH = 1000;
+const CHART_HEIGHT = 160;
+const CHART_TOP = 8;
+const CHART_BOTTOM = 10;
+const GRID_STEPS = [0, 0.25, 0.5, 0.75, 1] as const;
 
 export type CumulativePoint = {
   /** 1-based graded pick index (oldest → newest). */
@@ -59,6 +52,20 @@ export function CumulativeUnitsChart({
   const domain: [number, number] = [min - pad, max + pad];
   const last = points[points.length - 1]!.units;
   const summary = `Cumulative units across ${points.length} graded plays. Ending balance ${last >= 0 ? "+" : ""}${last.toFixed(2)} units.`;
+  const plotHeight = CHART_HEIGHT - CHART_TOP - CHART_BOTTOM;
+  const domainRange = domain[1] - domain[0];
+  const xFor = (index: number) =>
+    (index / Math.max(1, points.length - 1)) * CHART_WIDTH;
+  const yFor = (units: number) =>
+    CHART_TOP + ((domain[1] - units) / domainRange) * plotHeight;
+  const zeroY = yFor(0);
+  const linePath = points
+    .map(
+      (point, index) =>
+        `${index === 0 ? "M" : "L"}${xFor(index).toFixed(2)},${yFor(point.units).toFixed(2)}`,
+    )
+    .join(" ");
+  const areaPath = `${linePath} L${CHART_WIDTH},${zeroY.toFixed(2)} L0,${zeroY.toFixed(2)} Z`;
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -74,59 +81,56 @@ export function CumulativeUnitsChart({
         role="img"
         aria-label={summary}
       >
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart
-            data={points}
-            margin={{ top: 4, right: 8, left: 0, bottom: 0 }}
-          >
-            <CartesianGrid
-              stroke="var(--scl-line)"
-              strokeDasharray="3 3"
-              vertical={false}
+        <svg
+          className="block size-full"
+          viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          {GRID_STEPS.map((step) => {
+            const y = CHART_TOP + step * plotHeight;
+            return (
+              <line
+                key={step}
+                x1="0"
+                x2={CHART_WIDTH}
+                y1={y}
+                y2={y}
+                stroke="var(--scl-line)"
+                strokeDasharray="3 5"
+                vectorEffect="non-scaling-stroke"
+              />
+            );
+          })}
+          <line
+            x1="0"
+            x2={CHART_WIDTH}
+            y1={zeroY}
+            y2={zeroY}
+            stroke="var(--scl-muted-label)"
+            vectorEffect="non-scaling-stroke"
+          />
+          <path d={areaPath} fill="var(--scl-pink)" fillOpacity="0.13" />
+          <path
+            d={linePath}
+            fill="none"
+            stroke="var(--scl-pink)"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+          />
+          {points.map((point, index) => (
+            <circle
+              key={point.n}
+              cx={xFor(index)}
+              cy={yFor(point.units)}
+              r="2.75"
+              fill="var(--scl-pink)"
+              vectorEffect="non-scaling-stroke"
             />
-            <XAxis
-              dataKey="n"
-              tick={{ fill: "var(--scl-muted-label)", fontSize: 10 }}
-              tickLine={false}
-              axisLine={false}
-              minTickGap={24}
-            />
-            <YAxis
-              domain={domain}
-              tick={{ fill: "var(--scl-muted-label)", fontSize: 10 }}
-              tickLine={false}
-              axisLine={false}
-              width={36}
-              tickFormatter={(v: number) => v.toFixed(0)}
-            />
-            <ReferenceLine
-              y={0}
-              stroke="var(--scl-muted-label)"
-              strokeWidth={1}
-            />
-            <Tooltip
-              contentStyle={{
-                background: "var(--scl-ink-800)",
-                border: "1px solid var(--scl-line)",
-                borderRadius: 8,
-                fontSize: 12,
-              }}
-              labelFormatter={(n) => `Graded #${n}`}
-              formatter={(value) => [
-                `${Number(value) >= 0 ? "+" : ""}${Number(value).toFixed(2)}U`,
-                "Cumulative",
-              ]}
-            />
-            <Area
-              type="monotone"
-              dataKey="units"
-              stroke="var(--scl-pink)"
-              fill="color-mix(in oklab, var(--scl-pink) 18%, transparent)"
-              strokeWidth={2}
-              isAnimationActive={false}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+          ))}
+        </svg>
       </div>
       <p className="sr-only">{summary}</p>
     </div>

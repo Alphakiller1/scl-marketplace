@@ -22,16 +22,23 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
       ? Math.round(capper.verifiedShare)
       : null;
   const lastPickLabel = formatLastPickDate(capper.lastPlayAt);
+  const coverageLine = [
+    capper.topSport,
+    ...(capper.specialties?.slice(0, 2) ?? []),
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <header className="border-border bg-card border-b">
-      <div className="mx-auto max-w-[1400px] px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
-        <div className="flex flex-wrap items-start gap-3 sm:gap-5">
-          <span className="bg-card ring-border shrink-0 rounded-xl p-0.5 ring-1">
+      <div className="mx-auto max-w-[1400px] px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+          <span className="bg-card ring-border shrink-0 rounded-2xl p-0.5 ring-1">
             <CapperAvatar
               name={avatarName}
               src={capper.avatarUrl}
-              size="xl"
+              size="xxl"
+              className="size-20 sm:size-28"
               priority
             />
           </span>
@@ -39,7 +46,7 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
           <div className="min-w-0 flex-1 lg:flex lg:items-center lg:justify-between lg:gap-8">
             <div className="min-w-0">
               <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <h1 className="scl-display min-w-0 text-2xl font-bold tracking-[0.02em] break-words sm:text-4xl">
+                <h1 className="scl-display min-w-0 text-3xl font-bold tracking-[0.02em] break-words sm:text-4xl">
                   {identity.primary}
                 </h1>
                 {capper.verified ? (
@@ -53,7 +60,13 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                 </span>
               ) : null}
 
-              <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs sm:mt-2">
+              {capper.headline || coverageLine ? (
+                <p className="text-muted-foreground mt-1 max-w-2xl text-sm leading-snug sm:text-base">
+                  {capper.headline || coverageLine}
+                </p>
+              ) : null}
+
+              <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs sm:mt-3">
                 <span className="inline-flex items-center gap-1.5">
                   <RankBadge
                     rank={capper.rank}

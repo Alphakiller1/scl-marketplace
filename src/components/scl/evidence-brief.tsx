@@ -22,7 +22,6 @@ import { SampleMaturityMeter } from "@/components/scl/sample-maturity-meter";
 import { EmptyState } from "@/components/scl/states";
 import { VerificationHelpLink } from "@/components/scl/verification-help-link";
 import { VerificationLegend } from "@/components/scl/verification-legend";
-import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
 import { formatOdds, formatUnits } from "@/lib/format";
@@ -33,6 +32,7 @@ import { perfScale, perfToneClass } from "@/lib/perf-scale";
 import {
   deriveProofReceiptState,
   formatClvPts,
+  formatEvidenceId,
   type ProofReceiptDensity,
 } from "@/lib/proof-receipt";
 import type { PlayView } from "@/lib/queries/plays";
@@ -148,9 +148,8 @@ function playToProofReceipt(
 
 /**
  * Capper profile Evidence Brief — Trust Lens metrics + Latest Proof as peers,
- * then deep-dive charts and Proof history. Desktop storefront is composed by
- * the page via `desktopStorefront` (lg+ only); mobile storefront stays after
- * CapperProfileMeta so stacked order is unchanged.
+ * followed by deep-dive charts and Proof history. Marketplace remains a
+ * downstream, full-width page section so proof stays visually dominant.
  */
 export function EvidenceBrief({
   capper,
@@ -159,7 +158,6 @@ export function EvidenceBrief({
   avgClv,
   clvTracker: clvTrackerProp,
   emptyName,
-  desktopStorefront,
   className,
 }: {
   capper: CapperSummary;
@@ -168,8 +166,6 @@ export function EvidenceBrief({
   avgClv?: number | null;
   clvTracker?: ClvTrackerSummary;
   emptyName: string;
-  /** Marketplace band under peers — rendered only from `lg` upward (never on mobile). */
-  desktopStorefront?: ReactNode;
   className?: string;
 }) {
   const graded = capper.settledPicks ?? 0;
@@ -263,7 +259,7 @@ export function EvidenceBrief({
   );
 
   const evidenceRecord = (
-    <Card className="min-w-0 gap-0 p-2.5 sm:p-4">
+    <section className="border-border min-w-0 border-y py-3 sm:py-4 lg:pr-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="scl-eyebrow text-[color:var(--scl-muted-label)]">
           Evidence Brief
@@ -280,25 +276,16 @@ export function EvidenceBrief({
       >
         <TabsList
           variant="line"
-          className="h-8 w-full max-w-md justify-start gap-1 sm:h-10"
+          className="h-10 w-full max-w-md justify-start gap-1"
           aria-label="Trust lens"
         >
-          <TabsTrigger
-            value="simple"
-            className="min-h-8 px-2.5 sm:min-h-9 sm:px-3"
-          >
+          <TabsTrigger value="simple" className="min-h-10 px-3">
             Simple
           </TabsTrigger>
-          <TabsTrigger
-            value="analyst"
-            className="min-h-8 px-2.5 sm:min-h-9 sm:px-3"
-          >
+          <TabsTrigger value="analyst" className="min-h-10 px-3">
             Analyst
           </TabsTrigger>
-          <TabsTrigger
-            value="audit"
-            className="min-h-8 px-2.5 sm:min-h-9 sm:px-3"
-          >
+          <TabsTrigger value="audit" className="min-h-10 px-3">
             Audit
           </TabsTrigger>
         </TabsList>
@@ -368,11 +355,11 @@ export function EvidenceBrief({
           Responsible gaming
         </a>
       </div>
-    </Card>
+    </section>
   );
 
   return (
-    <div className={cn("space-y-3 sm:space-y-5", className)}>
+    <div className={cn("space-y-5 sm:space-y-6", className)}>
       {/*
         Desktop (lg+): Evidence | Latest Proof peers; Marketplace always a
         full-width band under the peers (no 3-col rail — avoids squeezing
@@ -382,25 +369,26 @@ export function EvidenceBrief({
       */}
       <div
         className={cn(
-          "grid items-start gap-4 sm:gap-5 lg:gap-6",
-          "lg:grid-cols-[minmax(0,1.45fr)_minmax(420px,0.9fr)]",
+          "grid items-start gap-4 sm:gap-5 lg:gap-0",
+          "lg:grid-cols-[minmax(0,1.7fr)_minmax(400px,0.9fr)]",
         )}
       >
         {evidenceRecord}
-        <div className="min-w-0 lg:sticky lg:top-20">{latestProof}</div>
-        {desktopStorefront ? (
-          <aside className="border-border mt-1 hidden border-t pt-5 lg:col-span-2 lg:block">
-            {desktopStorefront}
-          </aside>
-        ) : null}
+        <div className="border-border min-w-0 lg:border-l lg:pl-6">
+          {latestProof}
+        </div>
       </div>
 
-      {showDeepAnalysis ? (
-        <section aria-label="Analyst deep dive" className="space-y-3">
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.7fr)_minmax(400px,0.9fr)] lg:gap-0">
+        <section
+          aria-label="Performance trend"
+          className="border-border min-w-0 space-y-3 border-b pb-5 lg:border-r lg:border-b-0 lg:pr-6 lg:pb-0"
+        >
           <CumulativeUnitsChart points={cumulative} gradedCount={graded} />
-          <ClvTrackerPanel summary={clvTracker} />
+          {showDeepAnalysis ? <ClvTrackerPanel summary={clvTracker} /> : null}
         </section>
-      ) : null}
+        <RecentProofLedger plays={historyPlays} playsError={playsError} />
+      </div>
 
       <section id="recent-picks" className="scroll-mt-20">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -448,6 +436,120 @@ export function EvidenceBrief({
   );
 }
 
+function RecentProofLedger({
+  plays,
+  playsError,
+}: {
+  plays: PlayView[];
+  playsError?: boolean;
+}) {
+  const visible = plays.slice(0, 5);
+
+  return (
+    <section
+      className="min-w-0 lg:pl-6"
+      aria-label="Recent proof history summary"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="scl-display text-base font-bold tracking-[0.04em]">
+          Recent proof history
+        </h2>
+        <a
+          href="#recent-picks"
+          className="text-muted-foreground hover:text-foreground inline-flex min-h-10 items-center text-xs font-semibold underline-offset-4 hover:underline"
+        >
+          View all
+        </a>
+      </div>
+
+      {!visible.length ? (
+        <p className="text-muted-foreground border-border mt-3 border-y py-5 text-sm leading-relaxed">
+          {playsError
+            ? "Recent proof history is temporarily unavailable."
+            : "No earlier graded receipts are available yet."}
+        </p>
+      ) : (
+        <div className="border-border mt-2 overflow-hidden border-y">
+          <table className="w-full table-fixed text-left text-xs">
+            <caption className="sr-only">
+              Five most recent proof receipts before the featured pick
+            </caption>
+            <thead className="text-muted-foreground border-border border-b text-[0.6rem] tracking-[0.08em] uppercase">
+              <tr>
+                <th className="hidden w-[5.5rem] py-2 pr-2 font-medium sm:table-cell">
+                  Date
+                </th>
+                <th className="py-2 pr-2 font-medium">Pick</th>
+                <th className="hidden w-12 py-2 pr-2 font-medium sm:table-cell">
+                  Line
+                </th>
+                <th className="w-12 py-2 pr-2 font-medium">Result</th>
+                <th className="w-14 py-2 pr-2 text-right font-medium">Units</th>
+                <th className="w-[4.75rem] py-2 text-right font-medium">
+                  Proof
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-border divide-y">
+              {visible.map((play) => {
+                const outcome = play.outcome.toLowerCase();
+                const resultClass =
+                  play.outcome === "WIN"
+                    ? "text-[color:var(--scl-win-text)]"
+                    : play.outcome === "LOSS"
+                      ? "text-[color:var(--scl-loss-text)]"
+                      : "text-muted-foreground";
+                return (
+                  <tr key={play.id}>
+                    <td className="text-muted-foreground hidden truncate py-2.5 pr-2 tabular-nums sm:table-cell">
+                      {play.createdAt.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                        timeZone: "UTC",
+                      })}
+                    </td>
+                    <td className="truncate py-2.5 pr-2 font-medium">
+                      {play.selection}
+                    </td>
+                    <td className="scl-data text-muted-foreground hidden py-2.5 pr-2 tabular-nums sm:table-cell">
+                      {formatOdds(play.oddsAmerican)}
+                    </td>
+                    <td
+                      className={cn(
+                        "scl-data py-2.5 pr-2 text-[0.65rem] font-semibold uppercase",
+                        resultClass,
+                      )}
+                    >
+                      {outcome}
+                    </td>
+                    <td
+                      className={cn(
+                        "scl-data py-2.5 pr-2 text-right font-semibold tabular-nums",
+                        resultClass,
+                      )}
+                    >
+                      {play.profitUnits == null
+                        ? "—"
+                        : formatUnits(play.profitUnits, true, false)}
+                    </td>
+                    <td
+                      className="scl-data text-muted-foreground truncate py-2.5 text-right tabular-nums"
+                      title={play.id}
+                    >
+                      {formatEvidenceId(play.id)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function MetricRow({
   capper,
   graded,
@@ -466,50 +568,77 @@ function MetricRow({
   showClv: boolean;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-      <RecordStat
-        record={capper.record}
-        className="min-w-[4.5rem]"
-        truncateValue={false}
-      />
-      <div className="min-w-[4.5rem] space-y-1.5">
-        <RoiStat roi={capper.roi} gradedCount={graded} truncateValue={false} />
-        {provisional ? (
-          <span className="border-border text-muted-foreground inline-flex min-h-8 items-center rounded-md border px-2 text-[0.7rem] font-semibold tracking-wide uppercase">
-            Provisional
-          </span>
-        ) : null}
-      </div>
-      <UnitStat
-        units={capper.units}
-        gradedCount={graded}
-        className="min-w-[4.5rem]"
-        truncateValue={false}
-      />
-      <StatBlock
-        label="Sample"
-        value={graded.toLocaleString()}
-        className="min-w-[4.5rem]"
-        truncateValue={false}
-      />
-      <VerifiedMeter pct={verifiedPct} />
-      {showClv ? (
-        <StatBlock
-          label="CLV"
-          value={avgClv != null ? formatClvPts(avgClv) : "—"}
-          valueClassName={perfToneClass(clvScale.tone)}
-          aria-label={clvScale.ariaLabel}
-          className="min-w-[4.5rem]"
-          truncateValue={false}
-        />
-      ) : (
-        <WinRateStat
-          winPct={capper.winPct}
+    <div className="grid grid-cols-2 gap-y-4 sm:grid-cols-3 xl:grid-cols-6">
+      <MetricCell>
+        <RecordStat record={capper.record} truncateValue={false} />
+      </MetricCell>
+      <MetricCell>
+        <div className="space-y-1.5">
+          <RoiStat
+            roi={capper.roi}
+            gradedCount={graded}
+            truncateValue={false}
+          />
+          {provisional ? (
+            <span className="border-border text-muted-foreground inline-flex min-h-10 items-center rounded-md border px-2 text-[0.7rem] font-semibold tracking-wide uppercase">
+              Provisional
+            </span>
+          ) : null}
+        </div>
+      </MetricCell>
+      <MetricCell>
+        <UnitStat
+          units={capper.units}
           gradedCount={graded}
-          className="min-w-[4.5rem]"
           truncateValue={false}
         />
+      </MetricCell>
+      <MetricCell>
+        <StatBlock
+          label="Sample"
+          value={graded.toLocaleString()}
+          truncateValue={false}
+        />
+      </MetricCell>
+      <MetricCell>
+        <VerifiedMeter pct={verifiedPct} />
+      </MetricCell>
+      <MetricCell last>
+        {showClv ? (
+          <StatBlock
+            label="CLV"
+            value={avgClv != null ? formatClvPts(avgClv) : "—"}
+            valueClassName={perfToneClass(clvScale.tone)}
+            aria-label={clvScale.ariaLabel}
+            truncateValue={false}
+          />
+        ) : (
+          <WinRateStat
+            winPct={capper.winPct}
+            gradedCount={graded}
+            truncateValue={false}
+          />
+        )}
+      </MetricCell>
+    </div>
+  );
+}
+
+function MetricCell({
+  children,
+  last = false,
+}: {
+  children: ReactNode;
+  last?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "border-border min-w-0 px-3 first:pl-0",
+        !last && "border-r",
       )}
+    >
+      {children}
     </div>
   );
 }

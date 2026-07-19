@@ -33,13 +33,13 @@ export function HomeEvidenceField({
       aria-label="Live evidence field"
     >
       {/* Row 1 — board snapshot + paper receipt contrast */}
-      <div className="border-border relative grid gap-0 border-y lg:grid-cols-12 lg:items-start">
+      <div className="border-border relative grid gap-0 border-y lg:grid-cols-[minmax(0,1.7fr)_minmax(390px,0.8fr)] lg:items-start">
         <div
           aria-hidden
-          className="border-border pointer-events-none absolute inset-y-0 left-2/3 hidden border-l lg:block"
+          className="border-border pointer-events-none absolute inset-y-0 right-[31.1%] hidden border-l lg:block"
         />
-        <LiveBoardPane className="lg:col-span-8">{leaderboard}</LiveBoardPane>
-        <div className="border-border min-w-0 px-4 py-5 sm:px-5 sm:py-6 lg:col-span-4 lg:border-t-0">
+        <LiveBoardPane>{leaderboard}</LiveBoardPane>
+        <div className="border-border min-w-0 px-4 py-5 sm:px-5 sm:py-6 lg:border-t-0">
           {featuredProof}
         </div>
       </div>

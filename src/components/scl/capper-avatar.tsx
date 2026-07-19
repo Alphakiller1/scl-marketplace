@@ -43,6 +43,7 @@ const SIZE_CONFIG = {
   md: { className: "size-16 text-sm", pixel: 64, sizes: "64px" },
   lg: { className: "size-16 text-base", pixel: 64, sizes: "64px" },
   xl: { className: "size-20 text-xl", pixel: 80, sizes: "80px" },
+  xxl: { className: "size-28 text-2xl", pixel: 112, sizes: "112px" },
 } as const;
 
 export function CapperAvatar({

@@ -52,6 +52,7 @@ export function LeaderboardSnapshot({
 
       {cappers.length === 0 ? (
         <EmptyState
+          className="py-6 sm:py-7"
           icon={Trophy}
           title={
             failed ? "Couldn't load the leaderboard" : "No ranked cappers yet"
