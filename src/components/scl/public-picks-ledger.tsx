@@ -580,7 +580,7 @@ function ExpandedEvidence({
         footerAction={
           <Link
             href={`/cappers/${pick.capper.handle}`}
-            className="focus-visible:ring-ring inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--scl-blue-text)] outline-none hover:underline focus-visible:ring-2"
+            className="focus-visible:ring-ring text-foreground inline-flex min-h-11 items-center text-sm font-semibold underline-offset-4 outline-none hover:underline focus-visible:ring-2"
           >
             Inspect @{pick.capper.handle}&apos;s public record
           </Link>

@@ -136,6 +136,12 @@ export type PublicPackageCard = {
   trackingPath: string;
 };
 
+export type PublicMarketplacePackage = PublicPackageCard & {
+  capperId: string;
+  capperHandle: string;
+  capperName: string;
+};
+
 const livePackageWhere = {
   isActive: true,
   checkoutUrl: { not: null },
@@ -210,13 +216,22 @@ export async function getOwnerLivePackagesForCapper(
   return queryLivePackagesForCapper(capperId, "owner");
 }
 
-export async function listActiveMarketplacePackages() {
+export async function listActiveMarketplacePackagesResult(): Promise<{
+  packages: PublicMarketplacePackage[];
+  failed: boolean;
+}> {
   try {
     const excludeTest = await prismaExcludeTestHandlesLive();
     const packages = await prisma.package.findMany({
       where: {
         ...livePackageWhere,
-        capper: { user: excludeTest },
+        capper: {
+          user: {
+            username: { not: null },
+            accountStatus: "ACTIVE",
+            ...excludeTest,
+          },
+        },
       },
       orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
       take: 60,
@@ -235,6 +250,7 @@ export async function listActiveMarketplacePackages() {
         },
         capper: {
           select: {
+            id: true,
             user: {
               select: { username: true, displayName: true },
             },
@@ -243,26 +259,36 @@ export async function listActiveMarketplacePackages() {
       },
     });
 
-    return packages
-      .filter((p) => p.trackingUrls[0]?.slug && p.capper.user.username)
-      .map((p) => ({
-        id: p.id,
-        title: p.title,
-        description: p.description,
-        promoOffer: p.promoOffer,
-        priceLabel: formatPriceCents(p.priceCents, p.billingPeriod),
-        provider: p.affiliateProvider,
-        trackingPath: `/go/${p.trackingUrls[0]!.slug}`,
-        capperHandle: p.capper.user.username!,
-        capperName:
-          p.capper.user.displayName?.trim() ||
-          `@${p.capper.user.username!.replace(/^@/, "")}`,
-      }));
+    return {
+      packages: packages
+        .filter((p) => p.trackingUrls[0]?.slug && p.capper.user.username)
+        .map((p) => ({
+          id: p.id,
+          title: p.title,
+          description: p.description,
+          promoOffer: p.promoOffer,
+          priceLabel: formatPriceCents(p.priceCents, p.billingPeriod),
+          provider: p.affiliateProvider,
+          trackingPath: `/go/${p.trackingUrls[0]!.slug}`,
+          capperId: p.capper.id,
+          capperHandle: p.capper.user.username!,
+          capperName:
+            p.capper.user.displayName?.trim() ||
+            `@${p.capper.user.username!.replace(/^@/, "")}`,
+        })),
+      failed: false,
+    };
   } catch (error) {
     console.error(
       "[listActiveMarketplacePackages] database unavailable:",
       error,
     );
-    return [];
+    return { packages: [], failed: true };
   }
+}
+
+export async function listActiveMarketplacePackages(): Promise<
+  PublicMarketplacePackage[]
+> {
+  return (await listActiveMarketplacePackagesResult()).packages;
 }
