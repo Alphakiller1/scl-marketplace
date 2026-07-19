@@ -6,6 +6,11 @@ import { prisma } from "@/lib/prisma";
 import type { CapperSummary, TodayPick } from "@/lib/mock";
 import { UNIT_MIN } from "@/lib/constants";
 import { joinPlaysToPublicPicks } from "@/lib/public-picks";
+import {
+  DEFAULT_PUBLIC_PICKS_FILTERS,
+  type PublicPicksLedgerFilters,
+} from "@/lib/public-picks-ledger";
+import { buildPublicPicksScopeWhere } from "@/lib/public-picks-scope";
 import { hasQaNoteMarker } from "@/lib/public-eligibility";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 import { hasNotesPublicColumn } from "@/lib/results/schema-features";
@@ -217,19 +222,25 @@ export async function getCapperParlays(
 export async function getPublicRecentPicks(
   cappers: CapperSummary[],
   take = 8,
+  filters: PublicPicksLedgerFilters = DEFAULT_PUBLIC_PICKS_FILTERS,
+  now: Date = new Date(),
 ): Promise<TodayPick[]> {
-  return (await getPublicRecentPicksResult(cappers, take)).picks;
+  return (await getPublicRecentPicksResult(cappers, take, filters, now)).picks;
 }
 
 export async function getPublicRecentPicksResult(
   cappers: CapperSummary[],
   take = 8,
+  filters: PublicPicksLedgerFilters = DEFAULT_PUBLIC_PICKS_FILTERS,
+  now: Date = new Date(),
 ): Promise<{ picks: TodayPick[]; failed: boolean }> {
   try {
     const notesPublicReady = await hasNotesPublicColumn();
     const excludeTest = await prismaExcludeTestHandlesLive();
+    const scopeWhere = buildPublicPicksScopeWhere(filters, now);
     const plays = await prisma.play.findMany({
       where: {
+        ...scopeWhere,
         units: { gte: UNIT_MIN },
         capper: {
           user: {
@@ -255,6 +266,8 @@ export async function getPublicRecentPicksResult(
         side: true,
         eventStartsAt: true,
         book: true,
+        closingOddsAmerican: true,
+        clvPts: true,
         notes: true,
         ...(notesPublicReady ? { notesPublic: true } : {}),
       },

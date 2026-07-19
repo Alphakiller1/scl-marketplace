@@ -29,6 +29,8 @@ export type PublicPlayJoinRow = {
   side: string | null;
   eventStartsAt: Date | null;
   book?: string | null;
+  closingOddsAmerican?: number | null;
+  clvPts?: number | { toString(): string } | null;
   notes?: string | null;
   notesPublic?: boolean;
 };
@@ -81,6 +83,9 @@ export function joinPlaysToPublicPicks(
         market: play.market,
         profitUnits: play.profitUnits == null ? null : Number(play.profitUnits),
         book: play.book ?? null,
+        eventStartsAt: play.eventStartsAt,
+        closingOddsAmerican: play.closingOddsAmerican ?? null,
+        clvPts: play.clvPts == null ? null : Number(play.clvPts),
         notes: play.notesPublic === false ? null : (play.notes ?? null),
         notesPublic: play.notesPublic ?? true,
       } satisfies TodayPick,

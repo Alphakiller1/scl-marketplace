@@ -190,12 +190,14 @@ const STATUS_STYLES: Record<
   win: {
     label: "Won",
     title: "Graded win",
-    className: "bg-pos/15 text-pos ring-1 ring-pos/30",
+    className:
+      "border border-[color:var(--scl-win)]/40 bg-transparent text-[color:var(--scl-win-text)]",
   },
   loss: {
     label: "Lost",
     title: "Graded loss",
-    className: "bg-neg/15 text-neg ring-1 ring-neg/30",
+    className:
+      "border border-[color:var(--scl-loss)]/40 bg-transparent text-[color:var(--scl-loss-text)]",
   },
   push: {
     label: "Push",
