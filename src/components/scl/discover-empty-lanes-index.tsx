@@ -62,7 +62,11 @@ export function DiscoverEmptyLanesIndex({
             : discoverLaneEmptyDescription(lane.id);
 
           return (
-            <li key={lane.id}>
+            <li
+              key={lane.id}
+              id={`discover-lane-${lane.id}`}
+              className="scroll-mt-24"
+            >
               <details className="group py-2">
                 <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-md px-0.5 text-left outline-none marker:content-none focus-visible:ring-2 focus-visible:ring-[color:var(--scl-blue)] [&::-webkit-details-marker]:hidden">
                   <span className="min-w-0">

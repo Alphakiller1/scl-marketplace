@@ -8,6 +8,7 @@ import {
   buildProvenLane,
   buildSpecialistsLane,
   buildVerifiedMonthLane,
+  DISCOVER_LANE_LIMIT,
   DISCOVER_LANES,
   DISCOVER_SIGNAL_FLOOR,
   discoverLaneEmptyDescription,
@@ -74,6 +75,10 @@ function nPlays(
 
 test("DISCOVER_SIGNAL_FLOOR matches MIN_GRADED_FOR_SIGNAL", () => {
   assert.equal(DISCOVER_SIGNAL_FLOOR, 10);
+});
+
+test("Discover lanes stay curated while the full directory remains separate", () => {
+  assert.equal(DISCOVER_LANE_LIMIT, 4);
 });
 
 test("proven lane requires established sample — does not fill with early records", () => {

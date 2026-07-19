@@ -9,7 +9,8 @@ import { MATURITY, MIN_GRADED_FOR_SIGNAL, hasSignal } from "@/lib/sample";
 import { computeCapperStats, type PlayForStats } from "@/lib/stats";
 import { isVerifiedTier, type VerificationTier } from "@/lib/verification";
 
-export const DISCOVER_LANE_LIMIT = 8;
+/** Curated preview size. The full public directory remains available below. */
+export const DISCOVER_LANE_LIMIT = 4;
 
 /** High verified-share bar for “Newly credible”. */
 export const NEWLY_CREDIBLE_MIN_VERIFIED_SHARE = 70;

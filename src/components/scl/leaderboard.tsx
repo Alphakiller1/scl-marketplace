@@ -56,6 +56,7 @@ export function Leaderboard({
   emptyDescription = "No cappers match this ranking scope yet.",
   emptyTitle,
   showExpand = false,
+  basePath = "/leaderboard",
 }: {
   cappers: CapperSummary[];
   filters?: LeaderboardFilters;
@@ -71,6 +72,8 @@ export function Leaderboard({
   emptyDescription?: string;
   emptyTitle?: string;
   showExpand?: boolean;
+  /** Preserve sorting and row-count controls on the surface hosting the table. */
+  basePath?: string;
 }) {
   const scopedLimit =
     typeof limitProp === "number"
@@ -163,6 +166,7 @@ export function Leaderboard({
                   label={col.label}
                   filters={filters}
                   align={col.align}
+                  basePath={basePath}
                 />
               ))}
             </tr>
@@ -192,7 +196,11 @@ export function Leaderboard({
       </div>
 
       {showExpand && filters ? (
-        <ExpandControls filters={filters} total={cappers.length} />
+        <ExpandControls
+          filters={filters}
+          total={cappers.length}
+          basePath={basePath}
+        />
       ) : null}
     </div>
   );
@@ -203,16 +211,18 @@ function SortableTh({
   label,
   filters,
   align = "right",
+  basePath,
 }: {
   sortKey: LeaderboardSort;
   label: string;
   filters?: LeaderboardFilters;
   align?: "left" | "right";
+  basePath: string;
 }) {
   const active = filters?.sort === sortKey;
   const href = filters
-    ? leaderboardHref(filters, { sort: sortKey })
-    : `/leaderboard?sort=${sortKey}`;
+    ? leaderboardHref(filters, { sort: sortKey }, basePath)
+    : `${basePath}?sort=${sortKey}`;
 
   return (
     <th
@@ -247,9 +257,11 @@ function SortableTh({
 function ExpandControls({
   filters,
   total,
+  basePath,
 }: {
   filters: LeaderboardFilters;
   total: number;
+  basePath: string;
 }) {
   if (total <= 10) return null;
   return (
@@ -265,7 +277,7 @@ function ExpandControls({
         return (
           <Link
             key={n}
-            href={leaderboardHref(filters, { limit: n })}
+            href={leaderboardHref(filters, { limit: n }, basePath)}
             className={cn(
               "inline-flex min-h-9 items-center rounded-[10px] border px-3 text-sm font-semibold tabular-nums",
               active
