@@ -36,6 +36,7 @@ import {
   type ProofReceiptDensity,
 } from "@/lib/proof-receipt";
 import type { PlayView } from "@/lib/queries/plays";
+import { isValidPublicStake } from "@/lib/public-eligibility";
 import { hasSignal, isProvisional } from "@/lib/sample";
 import { isVerifiedTier } from "@/lib/verification";
 import { cn } from "@/lib/utils";
@@ -92,6 +93,8 @@ function playToProofReceipt(
   play: PlayView,
   density: ProofReceiptDensity,
 ): ReactNode {
+  // Public receipts must never show 0U / sub-minimum stakes (data error).
+  if (!isValidPublicStake(play.units)) return null;
   const state = deriveProofReceiptState({
     outcome: play.outcome,
     eventStartsAt: play.eventStartsAt,
@@ -416,7 +419,9 @@ export function EvidenceBrief({
           <>
             <VerificationLegend className="mt-4" />
             <div className="mt-3 space-y-3">
-              {historyPlays.map((play) => playToProofReceipt(play, "feed"))}
+              {historyPlays
+                .map((play) => playToProofReceipt(play, "feed"))
+                .filter(Boolean)}
             </div>
           </>
         ) : featured ? (

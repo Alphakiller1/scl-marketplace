@@ -51,5 +51,6 @@ test("solpickz QA fixture is excluded from public surfaces", () => {
 test("isValidPublicStake enforces 0.25U minimum", () => {
   assert.equal(isValidPublicStake(0.25), true);
   assert.equal(isValidPublicStake(0.24), false);
+  assert.equal(isValidPublicStake(0), false);
   assert.equal(isValidPublicStake(1), true);
 });
