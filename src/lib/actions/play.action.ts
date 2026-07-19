@@ -18,8 +18,12 @@ import {
   type VerifyResult,
 } from "@/lib/odds-verify";
 import { americanToDecimal } from "@/lib/odds";
+import { isExtremeAmericanOdds } from "@/lib/odds-board";
 import { prisma } from "@/lib/prisma";
-import { hasNotesPublicColumn } from "@/lib/results/schema-features";
+import {
+  hasNeedsReviewColumn,
+  hasNotesPublicColumn,
+} from "@/lib/results/schema-features";
 import { playSchema, type PlayInput } from "@/lib/schemas/play.schema";
 import { getCurrentAccount } from "@/lib/session";
 import type { BulkSinglesReceipt, StraightReceipt } from "@/lib/verification";
@@ -35,6 +39,7 @@ type ReadyPlayData = {
   units: number;
   notes: string | null;
   notesPublic: boolean;
+  needsReview: boolean;
   eventId: string;
   eventStartsAt: Date;
   side: string;
@@ -46,9 +51,12 @@ type ReadyPlayData = {
 };
 
 async function playCreateData(data: ReadyPlayData) {
-  if (await hasNotesPublicColumn()) return data;
-  const { notesPublic: _omit, ...rest } = data;
-  return rest;
+  const { notesPublic, needsReview, ...base } = data;
+  return {
+    ...base,
+    ...((await hasNotesPublicColumn()) ? { notesPublic } : {}),
+    ...((await hasNeedsReviewColumn()) ? { needsReview } : {}),
+  };
 }
 
 export type PlayResult =
@@ -105,6 +113,7 @@ type ReadyWrite = {
     units: number;
     notes: string | null;
     notesPublic: boolean;
+    needsReview: boolean;
     eventId: string;
     eventStartsAt: Date;
     side: string;
@@ -270,6 +279,7 @@ async function preparePlayLine(
         units: d.units,
         notes: d.notes ?? null,
         notesPublic: d.notesPublic ?? true,
+        needsReview: isExtremeAmericanOdds(capture.selectedOddsAmerican),
         eventId: d.eventId,
         eventStartsAt,
         side: d.side,

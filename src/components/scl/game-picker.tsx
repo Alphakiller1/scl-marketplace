@@ -17,6 +17,7 @@ import {
   filterGamePickerEvents,
   ODDS_BOARD_SPORTS,
 } from "@/lib/game-picker";
+import { dedupeOddsEvents } from "@/lib/odds-board";
 import { filterBySlateDay, type SlateDay } from "@/lib/slate";
 import { getTeamIdentity } from "@/lib/teams";
 import { cn } from "@/lib/utils";
@@ -109,7 +110,7 @@ export function GamePicker({
         }),
       );
       if (cancelled) return;
-      const events = results.flatMap((r) => r.events);
+      const events = dedupeOddsEvents(results.flatMap((r) => r.events));
       const configured = results.some((r) => r.configured);
       const failed = results.every((r) => r.failed);
       const booksFromApi =

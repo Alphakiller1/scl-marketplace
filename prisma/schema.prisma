@@ -371,6 +371,8 @@ model Play {
   closingOddsAmerican Int?
   clvPts       Decimal?  @db.Decimal(10, 4)
   closingCapturedAt DateTime?
+  /// Extreme American price at submit (≥+900 / ≤−2000) — allow but flag for admin review.
+  needsReview  Boolean   @default(false)
   parlayId     String?
   createdAt    DateTime  @default(now())
   gradedAt     DateTime?

@@ -4,6 +4,15 @@ export function formatOdds(american: number): string {
   return american > 0 ? `+${american}` : `${american}`;
 }
 
+export function formatCaptureClock(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export function formatUnits(
   units: number,
   withSuffix = true,

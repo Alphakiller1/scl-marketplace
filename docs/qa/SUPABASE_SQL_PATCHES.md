@@ -61,3 +61,13 @@ OR lower(coalesce("username", '')) LIKE 'sclqa%';
 Owner toggles `isTest` in Supabase to exclude/restore a handle without a code
 change. App still keeps handle-prefix + `PUBLIC_EXCLUDED_HANDLES` + QA-note
 guards as belt-and-suspenders (`hasIsTestColumn()` soft-degrades until SQL runs).
+
+## Play — extreme-odds operator review
+
+```sql
+ALTER TABLE "Play"
+  ADD COLUMN IF NOT EXISTS "needsReview" BOOLEAN NOT NULL DEFAULT false;
+```
+
+Until this column exists, submit still accepts extreme prices; the review flag
+is omitted from the write (soft-degrade via `hasNeedsReviewColumn()`).

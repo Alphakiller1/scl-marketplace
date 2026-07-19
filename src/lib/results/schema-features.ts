@@ -6,6 +6,7 @@ let clvReady: boolean | null = null;
 let notesPublicReady: boolean | null = null;
 let oddsUsageReady: boolean | null = null;
 let isTestReady: boolean | null = null;
+let needsReviewReady: boolean | null = null;
 
 /**
  * Detect additive columns/tables from SUPABASE_SQL_PATCHES.md.
@@ -54,6 +55,22 @@ export async function hasIsTestColumn(): Promise<boolean> {
     isTestReady = false;
     console.warn(
       "[schema] User.isTest column missing — run docs/qa/SUPABASE_SQL_PATCHES.md",
+      err instanceof Error ? err.message : err,
+    );
+    return false;
+  }
+}
+
+export async function hasNeedsReviewColumn(): Promise<boolean> {
+  if (needsReviewReady === true) return true;
+  try {
+    await prisma.$queryRaw`SELECT "needsReview" FROM "Play" WHERE false`;
+    needsReviewReady = true;
+    return true;
+  } catch (err) {
+    needsReviewReady = false;
+    console.warn(
+      "[schema] needsReview column missing — run docs/qa/SUPABASE_SQL_PATCHES.md",
       err instanceof Error ? err.message : err,
     );
     return false;

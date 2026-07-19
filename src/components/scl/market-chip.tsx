@@ -4,17 +4,20 @@ import { BettingTitle } from "@/components/scl/betting-title";
 import { BookMark } from "@/components/scl/book-mark";
 import { bookShort } from "@/lib/books";
 import { cn } from "@/lib/utils";
-import { formatOdds } from "@/lib/format";
+import { formatCaptureClock, formatOdds } from "@/lib/format";
+import { isExtremeAmericanOdds } from "@/lib/odds-board";
 
 /**
  * v2 odds chip — single row: label + odds.
  * SELECTED = pink fill, pink-ink, ring + ✓ prefix.
  * Missing odds → honest em-dash, not pickable.
+ * Extreme American prices (≥+900 / ≤−2000) get a quiet review mark + source context.
  */
 export function MarketChip({
   label,
   oddsAmerican,
   book,
+  oddsCapturedAt,
   selected,
   disabled,
   onClick,
@@ -25,19 +28,32 @@ export function MarketChip({
   oddsAmerican: number | null;
   /** Odds API bookmaker key — shown as a mono short tag when present. */
   book?: string;
+  /** Bookmaker last_update ISO — shown inline when the price is extreme. */
+  oddsCapturedAt?: string;
   selected?: boolean;
   disabled?: boolean;
   onClick?: () => void;
   className?: string;
 }) {
   const missing = oddsAmerican === null;
+  const extreme =
+    !missing && typeof oddsAmerican === "number"
+      ? isExtremeAmericanOdds(oddsAmerican)
+      : false;
   const bookTag = book && !missing ? bookShort(book) : null;
+  const captureLabel =
+    extreme && oddsCapturedAt ? formatCaptureClock(oddsCapturedAt) : null;
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled || selected || missing}
       aria-pressed={selected}
+      title={
+        extreme
+          ? "Extreme price — flagged for operator review (still selectable)"
+          : undefined
+      }
       className={cn(
         "flex min-h-12 w-full items-center justify-between gap-2 rounded-[var(--scl-radius-chip)] border px-3 py-2 text-left transition-[background-color,box-shadow,border-color] duration-150 ease-in-out",
         selected
@@ -48,27 +64,43 @@ export function MarketChip({
         className,
       )}
     >
-      <span className="flex min-w-0 flex-1 items-center gap-1.5">
-        <BettingTitle
-          text={label}
-          className={cn(
-            "min-w-0 truncate text-sm font-medium",
-            selected
-              ? "font-semibold text-[color:var(--scl-pink-ink)]"
-              : "text-[color:var(--scl-muted-data)]",
-          )}
-        />
-        {bookTag ? (
-          <span
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="flex min-w-0 items-center gap-1.5">
+          <BettingTitle
+            text={label}
             className={cn(
-              "scl-data inline-flex shrink-0 items-center gap-0.5 text-[0.56rem] font-medium tracking-[0.08em] uppercase",
+              "min-w-0 truncate text-sm font-medium",
               selected
-                ? "text-[color:var(--scl-pink-ink)]/80"
+                ? "font-semibold text-[color:var(--scl-pink-ink)]"
                 : "text-[color:var(--scl-muted-data)]",
             )}
+          />
+          {bookTag ? (
+            <span
+              className={cn(
+                "scl-data inline-flex shrink-0 items-center gap-0.5 text-[0.56rem] font-medium tracking-[0.08em] uppercase",
+                selected
+                  ? "text-[color:var(--scl-pink-ink)]/80"
+                  : "text-[color:var(--scl-muted-data)]",
+              )}
+            >
+              {book ? <BookMark bookKey={book} size={16} /> : null}
+              {bookTag}
+            </span>
+          ) : null}
+        </span>
+        {extreme ? (
+          <span
+            className={cn(
+              "scl-data text-[0.56rem] tracking-[0.1em] uppercase",
+              selected
+                ? "text-[color:var(--scl-pink-ink)]/75"
+                : "text-[color:var(--scl-muted-label)]",
+            )}
           >
-            {book ? <BookMark bookKey={book} size={16} /> : null}
-            {bookTag}
+            Review
+            {bookTag ? ` · ${bookTag}` : ""}
+            {captureLabel ? ` · ${captureLabel}` : ""}
           </span>
         ) : null}
       </span>

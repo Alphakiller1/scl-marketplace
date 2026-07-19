@@ -5,6 +5,7 @@ import { shouldCircuitBreak } from "@/lib/odds-budget";
 import { SOCCER_LEAGUES, soccerLeagueByKey } from "@/lib/soccer-leagues";
 import { prisma } from "@/lib/prisma";
 import {
+  dedupeOddsEvents,
   normalizeEventBoard,
   normalizeUpcomingEvent,
   type OddsBoardOpts,
@@ -257,7 +258,7 @@ export async function fetchSoccerBoard(
       );
       all.push(...chunk.flat());
     }
-    return all.slice(0, 80);
+    return dedupeOddsEvents(all).slice(0, 80);
   } catch (err) {
     console.warn("[odds] soccer board fetch failed", err);
     return [];
@@ -296,10 +297,11 @@ export async function fetchUpcomingOdds(
     const events = (await res.json()) as Parameters<
       typeof normalizeUpcomingEvent
     >[1][];
-    return events
-      .map((e) => normalizeUpcomingEvent(sclSport, e, preferred))
-      .filter((e) => e.selections.length > 0)
-      .slice(0, 60);
+    return dedupeOddsEvents(
+      events
+        .map((e) => normalizeUpcomingEvent(sclSport, e, preferred))
+        .filter((e) => e.selections.length > 0),
+    ).slice(0, 60);
   };
 
   try {

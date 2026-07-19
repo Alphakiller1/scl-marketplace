@@ -10,6 +10,19 @@ import {
   type RawEventOdds,
 } from "@/lib/odds-verify";
 
+/** American ≥ this (longshot) or ≤ {@link EXTREME_AMERICAN_FAVORITE} → operator-review flag. */
+export const EXTREME_AMERICAN_LONGSHOT = 900;
+/** American ≤ this (heavy favorite) → operator-review flag. */
+export const EXTREME_AMERICAN_FAVORITE = -2000;
+
+/** True when an American price warrants quiet operator review (never auto-blocked). */
+export function isExtremeAmericanOdds(american: number): boolean {
+  return (
+    american >= EXTREME_AMERICAN_LONGSHOT ||
+    american <= EXTREME_AMERICAN_FAVORITE
+  );
+}
+
 export type OddsSelection = {
   label: string;
   market: string;
@@ -23,6 +36,10 @@ export type OddsSelection = {
   book?: string;
   /** Per-book American prices; missing key → honest null via {@link getOddsForBook}. */
   bookPrices?: Record<string, number>;
+  /** Bookmaker `last_update` ISO keyed by book for active-book display. */
+  bookCapturedAt?: Record<string, string>;
+  /** Bookmaker `last_update` ISO for the displayed book, when the feed provides it. */
+  oddsCapturedAt?: string;
 };
 
 export type OddsEvent = {
@@ -57,8 +74,19 @@ export function getOddsForBook(
 export function preferredThenAll(
   byBook: Map<string, number>,
   preferred: readonly string[] | undefined,
-): { price: number; book: string; bookPrices: Record<string, number> } | null {
+  lastUpdateByBook?: Map<string, string>,
+): {
+  price: number;
+  book: string;
+  bookPrices: Record<string, number>;
+  bookCapturedAt?: Record<string, string>;
+  capturedAt?: string;
+} | null {
   const bookPrices = Object.fromEntries(byBook);
+  const bookCapturedAt =
+    lastUpdateByBook && lastUpdateByBook.size > 0
+      ? Object.fromEntries(lastUpdateByBook)
+      : undefined;
   if (byBook.size === 0) return null;
 
   const preferredKeys = (preferred ?? []).filter(isBookKey);
@@ -83,7 +111,78 @@ export function preferredThenAll(
       bestImplied = implied;
     }
   }
-  return { price: best.price, book: best.book, bookPrices };
+  const capturedAt = lastUpdateByBook?.get(best.book);
+  return {
+    price: best.price,
+    book: best.book,
+    bookPrices,
+    ...(bookCapturedAt ? { bookCapturedAt } : {}),
+    ...(capturedAt ? { capturedAt } : {}),
+  };
+}
+
+/** Normalized matchup key for board dedupe (sport + home + away + commence). */
+export function oddsEventMatchupKey(
+  event: Pick<OddsEvent, "sport" | "home" | "away" | "commenceTime">,
+): string {
+  return [
+    event.sport.trim().toLowerCase(),
+    event.away.trim().toLowerCase(),
+    event.home.trim().toLowerCase(),
+    event.commenceTime.trim(),
+  ].join("|");
+}
+
+function eventBoardCompleteness(event: OddsEvent): number {
+  let bookSlots = 0;
+  for (const s of event.selections) {
+    bookSlots += Object.keys(s.bookPrices ?? {}).length;
+  }
+  return bookSlots * 1_000 + event.selections.length;
+}
+
+function eventBoardFreshness(event: OddsEvent): number {
+  let freshest = Number.NEGATIVE_INFINITY;
+  for (const selection of event.selections) {
+    const capturedAt = [
+      selection.oddsCapturedAt,
+      ...Object.values(selection.bookCapturedAt ?? {}),
+    ];
+    for (const value of capturedAt) {
+      if (!value) continue;
+      const timestamp = Date.parse(value);
+      if (Number.isFinite(timestamp)) freshest = Math.max(freshest, timestamp);
+    }
+  }
+  return freshest;
+}
+
+/**
+ * Collapse duplicate feed rows for the same matchup into one event.
+ * Prefers the most-complete row, then the freshest row, then the later feed row.
+ */
+export function dedupeOddsEvents(events: readonly OddsEvent[]): OddsEvent[] {
+  const bestByKey = new Map<string, OddsEvent>();
+  const order: string[] = [];
+  for (const event of events) {
+    const key = oddsEventMatchupKey(event);
+    const prev = bestByKey.get(key);
+    if (!prev) {
+      bestByKey.set(key, event);
+      order.push(key);
+      continue;
+    }
+    const completeness = eventBoardCompleteness(event);
+    const previousCompleteness = eventBoardCompleteness(prev);
+    if (
+      completeness > previousCompleteness ||
+      (completeness === previousCompleteness &&
+        eventBoardFreshness(event) >= eventBoardFreshness(prev))
+    ) {
+      bestByKey.set(key, event);
+    }
+  }
+  return order.map((key) => bestByKey.get(key)!);
 }
 
 const BOARD_MARKETS: Record<string, "Moneyline" | "Spread" | "Total"> = {
@@ -105,6 +204,7 @@ type BoardGroup = {
   player?: string;
   featured: boolean;
   byBook: Map<string, number>;
+  lastUpdateByBook: Map<string, string>;
 };
 
 function marketRank(market: string): number {
@@ -125,14 +225,19 @@ export function normalizeEventBoard(
 
   const add = (
     key: string,
-    seed: () => Omit<BoardGroup, "byBook">,
+    seed: () => Omit<BoardGroup, "byBook" | "lastUpdateByBook">,
     bookKey: string | undefined,
     price: number,
     featured: boolean,
+    lastUpdate?: string,
   ) => {
     let g = groups.get(key);
     if (!g) {
-      g = { ...seed(), byBook: new Map() };
+      g = {
+        ...seed(),
+        byBook: new Map(),
+        lastUpdateByBook: new Map(),
+      };
       groups.set(key, g);
     }
     if (featured) g.featured = true;
@@ -143,11 +248,14 @@ export function normalizeEventBoard(
       impliedProbFromAmerican(price) < impliedProbFromAmerican(prev)
     ) {
       g.byBook.set(bk, price);
+      if (lastUpdate) g.lastUpdateByBook.set(bk, lastUpdate);
     }
   };
 
   for (const bm of event.bookmakers ?? []) {
     const bookKey = bm.key?.trim() || undefined;
+    const lastUpdate =
+      typeof bm.last_update === "string" ? bm.last_update : undefined;
     for (const m of bm.markets ?? []) {
       const gameMarket = BOARD_MARKETS[m.key];
       const propLabel = PROP_MARKET_LABEL[m.key];
@@ -170,6 +278,7 @@ export function normalizeEventBoard(
             bookKey,
             price,
             isFeatured,
+            lastUpdate,
           );
         } else {
           const player = (o.description ?? "").trim();
@@ -186,6 +295,7 @@ export function normalizeEventBoard(
             bookKey,
             price,
             false,
+            lastUpdate,
           );
         }
       }
@@ -194,9 +304,10 @@ export function normalizeEventBoard(
 
   const selections: OddsSelection[] = [];
   for (const g of groups.values()) {
-    const best = preferredThenAll(g.byBook, preferred);
+    const best = preferredThenAll(g.byBook, preferred, g.lastUpdateByBook);
     if (!best) continue;
     const book = best.book || undefined;
+    const oddsCapturedAt = best.capturedAt;
     if (g.player) {
       const text = `${g.player} ${g.side} ${g.line}`;
       selections.push({
@@ -209,6 +320,8 @@ export function normalizeEventBoard(
         oddsAmerican: best.price,
         book,
         bookPrices: best.bookPrices,
+        ...(best.bookCapturedAt ? { bookCapturedAt: best.bookCapturedAt } : {}),
+        ...(oddsCapturedAt ? { oddsCapturedAt } : {}),
       });
     } else if (g.market === "Moneyline") {
       selections.push({
@@ -220,6 +333,8 @@ export function normalizeEventBoard(
         oddsAmerican: best.price,
         book,
         bookPrices: best.bookPrices,
+        ...(best.bookCapturedAt ? { bookCapturedAt: best.bookCapturedAt } : {}),
+        ...(oddsCapturedAt ? { oddsCapturedAt } : {}),
       });
     } else if (g.market === "Spread") {
       const signed = `${(g.line ?? 0) > 0 ? "+" : ""}${g.line}`;
@@ -233,6 +348,8 @@ export function normalizeEventBoard(
         oddsAmerican: best.price,
         book,
         bookPrices: best.bookPrices,
+        ...(best.bookCapturedAt ? { bookCapturedAt: best.bookCapturedAt } : {}),
+        ...(oddsCapturedAt ? { oddsCapturedAt } : {}),
       });
     } else {
       selections.push({
@@ -245,6 +362,8 @@ export function normalizeEventBoard(
         oddsAmerican: best.price,
         book,
         bookPrices: best.bookPrices,
+        ...(best.bookCapturedAt ? { bookCapturedAt: best.bookCapturedAt } : {}),
+        ...(oddsCapturedAt ? { oddsCapturedAt } : {}),
       });
     }
   }
@@ -269,6 +388,7 @@ type RawUpcoming = {
   away_team: string;
   bookmakers?: {
     key?: string;
+    last_update?: string;
     markets?: {
       key: string;
       outcomes: { name: string; price: number; point?: number }[];
@@ -290,6 +410,7 @@ export function normalizeUpcomingEvent(
       side: string;
       line?: number;
       byBook: Map<string, number>;
+      lastUpdateByBook: Map<string, string>;
     }
   >();
 
@@ -302,10 +423,11 @@ export function normalizeUpcomingEvent(
     },
     bookKey: string | undefined,
     price: number,
+    lastUpdate?: string,
   ) => {
     let g = groups.get(id);
     if (!g) {
-      g = { ...seed, byBook: new Map() };
+      g = { ...seed, byBook: new Map(), lastUpdateByBook: new Map() };
       groups.set(id, g);
     }
     const bk = bookKey ?? "";
@@ -315,11 +437,14 @@ export function normalizeUpcomingEvent(
       impliedProbFromAmerican(price) < impliedProbFromAmerican(prev)
     ) {
       g.byBook.set(bk, price);
+      if (lastUpdate) g.lastUpdateByBook.set(bk, lastUpdate);
     }
   };
 
   for (const bm of event.bookmakers ?? []) {
     const bookKey = bm.key?.trim() || undefined;
+    const lastUpdate =
+      typeof bm.last_update === "string" ? bm.last_update : undefined;
     for (const m of bm.markets ?? []) {
       for (const o of m.outcomes ?? []) {
         if (typeof o.price !== "number") continue;
@@ -330,6 +455,7 @@ export function normalizeUpcomingEvent(
             { market: "Moneyline", side: o.name },
             bookKey,
             price,
+            lastUpdate,
           );
         } else if (m.key === "spreads" && typeof o.point === "number") {
           touch(
@@ -337,6 +463,7 @@ export function normalizeUpcomingEvent(
             { market: "Spread", side: o.name, line: o.point },
             bookKey,
             price,
+            lastUpdate,
           );
         } else if (m.key === "totals" && typeof o.point === "number") {
           touch(
@@ -344,6 +471,7 @@ export function normalizeUpcomingEvent(
             { market: "Total", side: o.name, line: o.point },
             bookKey,
             price,
+            lastUpdate,
           );
         }
       }
@@ -352,9 +480,10 @@ export function normalizeUpcomingEvent(
 
   const selections: OddsSelection[] = [];
   for (const g of groups.values()) {
-    const best = preferredThenAll(g.byBook, preferredBooks);
+    const best = preferredThenAll(g.byBook, preferredBooks, g.lastUpdateByBook);
     if (!best) continue;
     const book = best.book || undefined;
+    const oddsCapturedAt = best.capturedAt;
     if (g.market === "Moneyline") {
       selections.push({
         label: `${g.side} ML`,
@@ -365,6 +494,8 @@ export function normalizeUpcomingEvent(
         oddsAmerican: best.price,
         book,
         bookPrices: best.bookPrices,
+        ...(best.bookCapturedAt ? { bookCapturedAt: best.bookCapturedAt } : {}),
+        ...(oddsCapturedAt ? { oddsCapturedAt } : {}),
       });
     } else if (g.market === "Spread") {
       const signed = `${(g.line ?? 0) > 0 ? "+" : ""}${g.line}`;
@@ -378,6 +509,8 @@ export function normalizeUpcomingEvent(
         oddsAmerican: best.price,
         book,
         bookPrices: best.bookPrices,
+        ...(best.bookCapturedAt ? { bookCapturedAt: best.bookCapturedAt } : {}),
+        ...(oddsCapturedAt ? { oddsCapturedAt } : {}),
       });
     } else {
       selections.push({
@@ -390,6 +523,8 @@ export function normalizeUpcomingEvent(
         oddsAmerican: best.price,
         book,
         bookPrices: best.bookPrices,
+        ...(best.bookCapturedAt ? { bookCapturedAt: best.bookCapturedAt } : {}),
+        ...(oddsCapturedAt ? { oddsCapturedAt } : {}),
       });
     }
   }

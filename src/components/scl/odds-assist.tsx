@@ -10,7 +10,8 @@ import { MarketChip } from "@/components/scl/market-chip";
 import { SkeletonCard } from "@/components/scl/states";
 import { TeamMark } from "@/components/scl/team-mark";
 import { cn } from "@/lib/utils";
-import { formatOdds } from "@/lib/format";
+import { formatCaptureClock, formatOdds } from "@/lib/format";
+import { bookShort } from "@/lib/books";
 import { selectionForActiveBook } from "@/lib/game-picker";
 import { pickKey } from "@/lib/slip";
 import {
@@ -23,6 +24,7 @@ import {
 import { filterBySlateDay, type SlateDay } from "@/lib/slate";
 import { getTeamIdentity, type TeamIdentity } from "@/lib/teams";
 import type { OddsEvent, OddsSelection } from "@/lib/odds-board";
+import { dedupeOddsEvents, isExtremeAmericanOdds } from "@/lib/odds-board";
 
 /** Re-export for callers that historically imported `pickKey` from this module. */
 export { pickKey } from "@/lib/slip";
@@ -162,7 +164,9 @@ export function OddsAssist({
         setCache((c) => ({
           ...c,
           [sport]: {
-            events: Array.isArray(d.events) ? (d.events as OddsEvent[]) : [],
+            events: Array.isArray(d.events)
+              ? dedupeOddsEvents(d.events as OddsEvent[])
+              : [],
             configured: Boolean(d.configured),
           },
         }));
@@ -356,6 +360,8 @@ function EventRow({
   const home = getTeamIdentity(event.home, event.sport);
   const awayMl = moneylineFor(event, away);
   const homeMl = moneylineFor(event, home);
+  const awaySel = moneylineSelection(event, away);
+  const homeSel = moneylineSelection(event, home);
   const awayFav =
     typeof awayMl === "number" && typeof homeMl === "number" && awayMl < homeMl;
   const homeFav =
@@ -389,24 +395,8 @@ function EventRow({
           <BoardTeamLine team={home} fav={homeFav} />
         </span>
         <span className="scl-data text-muted-foreground flex flex-col justify-center gap-1.5 px-3 pt-3 pb-1.5 text-right text-sm font-semibold">
-          <span
-            className={
-              typeof awayMl === "number" && awayMl < 0
-                ? "text-foreground"
-                : undefined
-            }
-          >
-            {typeof awayMl === "number" ? formatOdds(awayMl) : "—"}
-          </span>
-          <span
-            className={
-              typeof homeMl === "number" && homeMl < 0
-                ? "text-foreground"
-                : undefined
-            }
-          >
-            {typeof homeMl === "number" ? formatOdds(homeMl) : "—"}
-          </span>
+          <BoardMlPrice american={awayMl} selection={awaySel} />
+          <BoardMlPrice american={homeMl} selection={homeSel} />
         </span>
       </div>
       <span className="scl-data text-muted-foreground flex items-center gap-2 px-3 pt-1.5 pb-3 pl-[1.625rem] text-[0.65rem] tracking-[0.1em] uppercase">
@@ -439,16 +429,60 @@ function BoardTeamLine({ team, fav }: { team: TeamIdentity; fav?: boolean }) {
   );
 }
 
-function moneylineFor(
+function moneylineSelection(
   event: OddsEvent,
   team: TeamIdentity,
-): number | undefined {
-  const selection = event.selections.find(
+): OddsSelection | undefined {
+  return event.selections.find(
     (s) =>
       s.market === "Moneyline" &&
       getTeamIdentity(s.side, event.sport).key === team.key,
   );
-  return selection?.oddsAmerican;
+}
+
+function moneylineFor(
+  event: OddsEvent,
+  team: TeamIdentity,
+): number | undefined {
+  return moneylineSelection(event, team)?.oddsAmerican;
+}
+
+function BoardMlPrice({
+  american,
+  selection,
+}: {
+  american: number | undefined;
+  selection?: OddsSelection;
+}) {
+  if (typeof american !== "number") {
+    return <span>—</span>;
+  }
+  const extreme = isExtremeAmericanOdds(american);
+  const bookTag = selection?.book ? bookShort(selection.book) : null;
+  const captureLabel =
+    extreme && selection?.oddsCapturedAt
+      ? formatCaptureClock(selection.oddsCapturedAt)
+      : null;
+  return (
+    <span
+      className={cn(
+        "flex flex-col items-end gap-0.5",
+        american < 0 ? "text-foreground" : undefined,
+      )}
+      title={
+        extreme ? "Extreme price — flagged for operator review" : undefined
+      }
+    >
+      <span>{formatOdds(american)}</span>
+      {extreme ? (
+        <span className="scl-data text-[0.5rem] font-medium tracking-[0.1em] text-[color:var(--scl-muted-label)] uppercase">
+          Review
+          {bookTag ? ` · ${bookTag}` : ""}
+          {captureLabel ? ` · ${captureLabel}` : ""}
+        </span>
+      ) : null}
+    </span>
+  );
 }
 
 /**
@@ -528,6 +562,7 @@ export function EventDetail({
         label={s.selection}
         oddsAmerican={priced.oddsAmerican}
         book={priced.book}
+        oddsCapturedAt={priced.oddsCapturedAt}
         selected={selected}
         onClick={pick ? () => onPick(pick) : undefined}
       />
