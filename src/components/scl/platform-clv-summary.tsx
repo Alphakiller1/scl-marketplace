@@ -1,3 +1,4 @@
+import { ClvDistributionChart } from "@/components/scl/clv-distribution-chart";
 import { ClvExplainer } from "@/components/scl/clv-explainer";
 import { StatBlock } from "@/components/scl/stat";
 import { CLV_TOOLTIP_SHORT } from "@/lib/clv";
@@ -7,12 +8,13 @@ import {
 } from "@/lib/clv-tracker";
 import { countLabel } from "@/lib/league-action";
 import { formatClvPts, missingCloseOrClvTooltip } from "@/lib/proof-receipt";
+import { MIN_GRADED_FOR_SIGNAL } from "@/lib/sample";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
 import { cn } from "@/lib/utils";
 
 /**
- * Platform CLV summary — avg + % beat close across publicly listed /
- * board-verified picks with a stored close. Honest empty at cold start.
+ * Platform CLV evidence module — stored snapshot metrics + distribution.
+ * CLV stays framed as pricing, never as a prediction or result.
  */
 export function PlatformClvSummary({
   summary,
@@ -37,7 +39,9 @@ export function PlatformClvSummary({
         )}
         role="status"
       >
-        <p className="scl-eyebrow text-muted-foreground">Platform CLV</p>
+        <p className="scl-eyebrow text-[color:var(--scl-muted-label)]">
+          Closing-price evidence
+        </p>
         <p className="text-muted-foreground mt-2 text-sm">
           Closing-line metrics are temporarily unavailable.
         </p>
@@ -48,18 +52,23 @@ export function PlatformClvSummary({
   return (
     <div
       className={cn(
-        "border-border bg-card space-y-4 rounded-xl border p-4 sm:p-5",
+        "border-border bg-card relative overflow-hidden rounded-xl border",
         className,
       )}
       data-visual-mode="proof"
     >
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-[color:var(--scl-blue)]"
+        aria-hidden
+      />
+
+      <div className="border-border flex flex-wrap items-end justify-between gap-3 border-b px-4 py-4 pl-5 sm:px-5 sm:pl-6">
         <div>
           <h3 className="scl-display text-base font-bold tracking-[0.04em]">
-            Platform CLV
+            Closing-price evidence
           </h3>
           <p className="text-muted-foreground mt-1 text-sm">
-            Board-verified closing snapshots across publicly listed cappers.
+            Submitted prices compared with the same book&apos;s closing prices.
           </p>
         </div>
         <p className="scl-data text-muted-foreground text-xs tabular-nums">
@@ -68,47 +77,92 @@ export function PlatformClvSummary({
       </div>
 
       {summary.snapshotCount === 0 ? (
-        <p className="text-muted-foreground text-sm leading-relaxed">
-          <span className="text-foreground font-semibold">{emptyTitle}</span>
-          {" — "}
-          {PLATFORM_CLV_EMPTY_BODY}
-        </p>
+        <div className="px-4 py-6 pl-5 sm:px-5 sm:pl-6">
+          <p className="text-foreground text-sm font-semibold">{emptyTitle}</p>
+          <p className="text-muted-foreground mt-1 max-w-4xl text-sm leading-relaxed">
+            {PLATFORM_CLV_EMPTY_BODY}
+          </p>
+        </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:max-w-lg sm:grid-cols-3">
-          <div title={summary.avgClv == null ? emptyTitle : CLV_TOOLTIP_SHORT}>
-            <StatBlock
-              label="Avg CLV"
-              value={
-                summary.avgClv != null ? formatClvPts(summary.avgClv) : "—"
-              }
-              valueClassName={
-                summary.avgClv != null
-                  ? perfToneClass(clvScale.tone)
-                  : undefined
-              }
-              aria-label={
-                summary.avgClv != null ? clvScale.ariaLabel : emptyTitle
-              }
-            />
-          </div>
-          <div title={summary.beatClosePct == null ? emptyTitle : undefined}>
-            <StatBlock
-              label="% beat close"
-              value={
-                summary.beatClosePct != null
-                  ? `${summary.beatClosePct.toFixed(1)}%`
-                  : "—"
-              }
-            />
-          </div>
-          <StatBlock
-            label="Snapshots"
-            value={summary.snapshotCount.toLocaleString()}
-          />
+        <div className="grid gap-5 px-4 py-5 pl-5 sm:px-5 sm:pl-6 lg:grid-cols-[minmax(18rem,0.72fr)_minmax(0,1.28fr)] lg:gap-6">
+          <section className="min-w-0" aria-labelledby="platform-clv-summary">
+            <div className="flex items-end justify-between gap-3">
+              <h4
+                id="platform-clv-summary"
+                className="scl-eyebrow text-[color:var(--scl-muted-label)]"
+              >
+                Pricing summary
+              </h4>
+              <p className="scl-data text-muted-foreground text-xs tabular-nums">
+                {summary.hasSignal
+                  ? "Signal threshold met"
+                  : `${summary.snapshotCount} of ${MIN_GRADED_FOR_SIGNAL} required`}
+              </p>
+            </div>
+
+            <div className="border-border divide-border mt-2 grid grid-cols-3 divide-x overflow-hidden rounded-[10px] border">
+              <div
+                className="px-3 py-3"
+                title={summary.avgClv == null ? emptyTitle : CLV_TOOLTIP_SHORT}
+              >
+                <StatBlock
+                  label="Avg CLV"
+                  value={
+                    summary.avgClv != null ? formatClvPts(summary.avgClv) : "—"
+                  }
+                  valueClassName={
+                    summary.avgClv != null
+                      ? perfToneClass(clvScale.tone)
+                      : undefined
+                  }
+                  aria-label={
+                    summary.avgClv != null ? clvScale.ariaLabel : emptyTitle
+                  }
+                  truncateValue={false}
+                />
+              </div>
+              <div
+                className="px-3 py-3"
+                title={
+                  summary.beatClosePct == null
+                    ? emptyTitle
+                    : "Share of stored snapshots with positive CLV"
+                }
+              >
+                <StatBlock
+                  label="Beat close"
+                  value={
+                    summary.beatClosePct != null
+                      ? `${summary.beatClosePct.toFixed(1)}%`
+                      : "—"
+                  }
+                  truncateValue={false}
+                />
+              </div>
+              <div className="px-3 py-3">
+                <StatBlock
+                  label="Snapshots"
+                  value={summary.snapshotCount.toLocaleString()}
+                  truncateValue={false}
+                />
+              </div>
+            </div>
+
+            <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
+              Positive CLV means the submitted price beat the same book&apos;s
+              close. It does not predict future results.
+            </p>
+          </section>
+
+          <section className="border-border min-w-0 border-t pt-5 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+            <ClvDistributionChart summary={summary} embedded />
+          </section>
         </div>
       )}
 
-      <ClvExplainer className="text-muted-foreground text-xs leading-relaxed" />
+      <div className="border-border border-t px-4 py-2.5 pl-5 sm:px-5 sm:pl-6">
+        <ClvExplainer compact />
+      </div>
     </div>
   );
 }
