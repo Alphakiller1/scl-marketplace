@@ -71,7 +71,7 @@ export default async function PicksPage({
         <VerificationLegend className="mt-4" />
       </header>
 
-      {picks.length ? (
+      {!failed ? (
         <PublicPicksLedger
           key={`${filters.window}:${filters.sport}:${filters.status}:${initialReceiptId ?? "closed"}`}
           picks={picks}
@@ -83,12 +83,8 @@ export default async function PicksPage({
         <EmptyState
           className="mt-6"
           icon={ReceiptText}
-          title={failed ? "Couldn't load public picks" : "No public picks yet"}
-          description={
-            failed
-              ? "Recent tracked submissions are temporarily unavailable. Please try again shortly."
-              : "Public records appear here after cappers log tracked plays. Nothing is fabricated to fill the ledger."
-          }
+          title="Couldn't load public picks"
+          description="Recent tracked submissions are temporarily unavailable. Please try again shortly."
         />
       )}
     </main>

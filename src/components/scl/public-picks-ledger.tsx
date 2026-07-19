@@ -89,6 +89,10 @@ export function PublicPicksLedger({
   const [isPending, startTransition] = useTransition();
   const filters = initialFilters;
   const filtered = picks;
+  const defaultScope =
+    filters.window === "all" &&
+    filters.sport === "all" &&
+    filters.status === "all";
 
   function replaceQuery(
     nextFilters: PublicPicksLedgerFilters,
@@ -260,11 +264,12 @@ export function PublicPicksLedger({
             aria-hidden
           />
           <h3 className="scl-display text-foreground mt-3 text-lg font-semibold">
-            No records in this scope
+            {defaultScope ? "No public picks yet" : "No records in this scope"}
           </h3>
           <p className="text-muted-foreground mx-auto mt-1 max-w-md text-sm leading-relaxed">
-            No tracked public picks match these filters. Adjust the scope to
-            inspect other records.
+            {defaultScope
+              ? "Public records appear here after cappers log tracked plays. Nothing is fabricated to fill the ledger."
+              : "No tracked public picks match these filters. Adjust the scope to inspect other records."}
           </p>
         </div>
       )}
