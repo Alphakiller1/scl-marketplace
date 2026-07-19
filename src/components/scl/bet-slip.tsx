@@ -110,12 +110,12 @@ export function BetSlip({
     (mode === "parlay" && !canSubmitParlay);
 
   let submitLabel = "Submit";
-  if (submitting) submitLabel = "Submitting…";
+  if (submitting) submitLabel = "Logging…";
   else if (mode === "singles" && selections.length === 1)
-    submitLabel = "Submit Play";
+    submitLabel = "Log pick";
   else if (mode === "singles" && selections.length > 1)
-    submitLabel = `Submit ${selections.length} Plays`;
-  else if (mode === "parlay") submitLabel = "Submit parlay";
+    submitLabel = `Log ${selections.length} picks`;
+  else if (mode === "parlay") submitLabel = "Log parlay";
 
   let gateReason: string | null = null;
   if (singlesEmpty) gateReason = "Tap a line on the board to build your slip.";
@@ -148,8 +148,8 @@ export function BetSlip({
       >
         <SlipModeToggle mode={mode} onChange={setMode} />
         <p className="text-muted-foreground text-sm">
-          Tap market chips to add lines. Choose Singles or Parlay in this slip —
-          you never leave the board.
+          Select a board price to add it here. Choose Singles or Parlay before
+          logging the record.
         </p>
       </Card>
     );
@@ -166,7 +166,7 @@ export function BetSlip({
 
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="scl-eyebrow text-[color:var(--scl-muted-label)]">
+          <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
             {mode === "singles"
               ? `Singles · ${selections.length} pick${selections.length === 1 ? "" : "s"}`
               : `Parlay · ${selections.length}-leg${selections.length === 1 ? "" : "s"}`}
@@ -178,7 +178,7 @@ export function BetSlip({
             </StatValue>
           ) : mode === "singles" ? (
             <p className="scl-data text-muted-foreground mt-0.5 text-xs">
-              Risk {singlesStake.toFixed(2).replace(/\.00$/, "")}u
+              Stake {singlesStake.toFixed(2).replace(/\.00$/, "")}U
             </p>
           ) : (
             <p className="text-muted-foreground mt-0.5 text-xs">
@@ -187,14 +187,14 @@ export function BetSlip({
           )}
         </div>
         <div className="text-right">
-          <p className="text-muted-foreground text-xs">To win</p>
+          <p className="text-muted-foreground text-xs">Projected profit</p>
           <StatValue tone="pink" className="text-lg font-bold">
             {mode === "singles"
               ? singlesToWin > 0
-                ? `+${singlesToWin.toFixed(2)}u`
+                ? `+${singlesToWin.toFixed(2)}U`
                 : "—"
               : parlayToWin != null
-                ? `+${parlayToWin.toFixed(2)}u`
+                ? `+${parlayToWin.toFixed(2)}U`
                 : "—"}
           </StatValue>
         </div>
@@ -281,7 +281,7 @@ export function BetSlip({
                   type="button"
                   aria-label={`Remove ${s.selection}`}
                   onClick={() => removeSelection(s.id)}
-                  className="text-muted-foreground hover:text-foreground hover:bg-surface-2 min-h-10 min-w-10 shrink-0 rounded-md p-1.5"
+                  className="text-muted-foreground hover:text-foreground hover:bg-surface-2 min-h-11 min-w-11 shrink-0 rounded-md p-1.5"
                 >
                   <X className="size-5" />
                 </button>
@@ -306,10 +306,12 @@ export function BetSlip({
                       />
                     </div>
                     <div className="text-right">
-                      <p className="text-muted-foreground text-xs">To win</p>
+                      <p className="text-muted-foreground text-xs">
+                        Projected profit
+                      </p>
                       <StatValue tone="pink" className="text-base font-bold">
                         {s.units > 0 && Math.abs(s.oddsAmerican) >= 100
-                          ? `+${(s.units * (americanToDecimal(s.oddsAmerican) - 1)).toFixed(2)}u`
+                          ? `+${(s.units * (americanToDecimal(s.oddsAmerican) - 1)).toFixed(2)}U`
                           : "—"}
                       </StatValue>
                     </div>
@@ -349,7 +351,7 @@ export function BetSlip({
 
       {mode === "singles" && selections.length > 0 ? (
         <details className="rounded-[12px] border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] p-3">
-          <summary className="cursor-pointer text-sm font-semibold">
+          <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold">
             Analysis (optional)
           </summary>
           <div className="mt-3 space-y-2">
@@ -365,12 +367,12 @@ export function BetSlip({
               rows={3}
               className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring min-h-20 w-full resize-y rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
             />
-            <label className="flex min-h-10 cursor-pointer items-center gap-2 text-sm">
+            <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 checked={notesPublic}
                 onChange={(e) => setNotesPublic(e.target.checked)}
-                className="size-4 rounded border-[color:var(--scl-line)]"
+                className="size-5 rounded border-[color:var(--scl-line)]"
               />
               Show on my public pick card
             </label>

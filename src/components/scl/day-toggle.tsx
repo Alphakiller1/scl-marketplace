@@ -39,7 +39,7 @@ export function DayToggle({
           disabled={loading}
           aria-pressed={day === d}
           className={cn(
-            "scl-display relative min-h-10 rounded-lg text-sm font-semibold tracking-[0.06em] uppercase transition-colors",
+            "scl-display relative min-h-11 rounded-lg text-sm font-semibold tracking-[0.06em] uppercase transition-colors",
             day === d
               ? "bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)] shadow-[inset_0_0_0_1px_var(--scl-blue-deep)]"
               : "text-[color:var(--scl-muted-data)] hover:text-[color:var(--scl-text)]",
@@ -52,7 +52,7 @@ export function DayToggle({
               "scl-data mt-0.5 block text-[0.65rem] font-medium tracking-[0.08em] normal-case",
               day === d
                 ? "text-[color:var(--scl-blue-ink)]/80"
-                : "text-[color:var(--scl-muted-label)]",
+                : "text-[color:var(--scl-muted-data)]",
             )}
           >
             {dateLabel[d]}
@@ -60,7 +60,7 @@ export function DayToggle({
           </span>
           {loading && d === day ? (
             <Loader2
-              className="absolute top-2 right-2 size-3.5 animate-spin text-[color:var(--scl-muted-label)]"
+              className="absolute top-2 right-2 size-3.5 animate-spin text-[color:var(--scl-muted-data)]"
               aria-hidden
             />
           ) : null}
