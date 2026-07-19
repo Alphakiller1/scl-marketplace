@@ -7,9 +7,9 @@ import { getPublicCapperByHandle } from "@/lib/queries/capper";
 import { getLivePackagesForCapper } from "@/lib/queries/store";
 import { CapperProfileHeader } from "@/components/scl/capper-profile-header";
 import { CapperProfileMeta } from "@/components/scl/capper-profile-meta";
-import { CapperStorefront } from "@/components/scl/capper-storefront";
 import { CompareTray } from "@/components/scl/compare-tray";
 import { EvidenceBrief } from "@/components/scl/evidence-brief";
+import { ResponsiveCapperStorefront } from "@/components/scl/responsive-capper-storefront";
 
 type ProfileParams = { params: Promise<{ handle: string }> };
 
@@ -37,28 +37,34 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
     <div className="overflow-x-hidden pb-6 sm:pb-8" data-visual-mode="proof">
       <CapperProfileHeader capper={capper} />
 
-      <div className="mx-auto mt-2 max-w-5xl px-4 sm:mt-4 sm:px-6">
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-8">
-          <div className="min-w-0 space-y-6">
-            <EvidenceBrief
-              capper={capper}
-              plays={plays}
-              playsError={playsError}
-              avgClv={avgClv}
-              clvTracker={clvTracker}
-              emptyName={identity.primary}
-            />
-            <CapperProfileMeta capper={capper} />
-          </div>
-
-          <aside className="border-border border-t pt-5 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
-            <CapperStorefront
+      <div className="mx-auto mt-2 max-w-6xl px-4 sm:mt-4 sm:px-6">
+        <EvidenceBrief
+          capper={capper}
+          plays={plays}
+          playsError={playsError}
+          avgClv={avgClv}
+          clvTracker={clvTracker}
+          emptyName={identity.primary}
+          desktopStorefront={
+            <ResponsiveCapperStorefront
+              viewport="desktop"
               className="mt-0"
               storefront={capper.storefront}
               capperName={identity.primary}
               packages={packages}
             />
-          </aside>
+          }
+        />
+        <CapperProfileMeta capper={capper} />
+        {/* Mobile stack unchanged: EvidenceBrief → Meta → Marketplace */}
+        <div className="border-border mt-6 border-t pt-5 lg:hidden">
+          <ResponsiveCapperStorefront
+            viewport="mobile"
+            className="mt-0"
+            storefront={capper.storefront}
+            capperName={identity.primary}
+            packages={packages}
+          />
         </div>
       </div>
       <CompareTray />

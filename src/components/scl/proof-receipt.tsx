@@ -104,7 +104,19 @@ export function ProofReceipt({
   const settlementTone = preferVerified ? proofStampTone(state) : null;
   const closingLine = formatClosingLine(closingOddsAmerican);
   const clv = formatClvPts(clvPts);
-  const evidence = formatEvidenceId(evidenceId);
+  /**
+   * Short face for dense feed rows; paper/share show a longer wrap-safe id
+   * so documentary Evidence never relies on ellipsis clip alone.
+   */
+  const evidence = (() => {
+    if (!evidenceId?.trim()) return "—";
+    if (paper) {
+      const clean = evidenceId.trim().toUpperCase();
+      if (clean.length <= 22) return clean;
+      return `${clean.slice(0, 10)}…${clean.slice(-8)}`;
+    }
+    return formatEvidenceId(evidenceId);
+  })();
   const emptyCloseClvTitle =
     closingLine === "—" || clv === "—"
       ? missingCloseOrClvTooltip(eventStartsAt)
@@ -150,7 +162,8 @@ export function ProofReceipt({
     <article
       className={cn(
         "bg-card border-border relative w-full max-w-full min-w-0 overflow-x-clip overflow-y-hidden rounded-[var(--scl-radius-card)] border shadow-[var(--scl-shadow-card)]",
-        paper && "scl-proof-paper rounded-[var(--scl-radius-receipt)]",
+        paper &&
+          "scl-proof-paper rounded-[var(--scl-radius-receipt)] border-2 border-[color:var(--border)]",
         settling && "scl-ticket-settling",
         compact && "rounded-[12px]",
         density === "share-image" && "max-w-md",
@@ -252,6 +265,7 @@ export function ProofReceipt({
             label="Evidence"
             value={evidence}
             title={evidenceId || undefined}
+            wrap
             className="col-span-2 min-w-0 sm:col-span-1"
           />
         </div>
@@ -342,6 +356,7 @@ function ProofCell({
   accent: _accent,
   title,
   className,
+  wrap = false,
 }: {
   label: string;
   value: string;
@@ -349,12 +364,21 @@ function ProofCell({
   accent?: boolean;
   title?: string;
   className?: string;
+  /** Allow one soft wrap (Evidence ID) instead of ellipsis clip. */
+  wrap?: boolean;
 }) {
   void _accent;
   return (
     <div className={className} title={title}>
       <div className="scl-eyebrow">{label}</div>
-      <div className="scl-data text-foreground mt-0.5 truncate text-base font-semibold tabular-nums">
+      <div
+        className={cn(
+          "scl-data text-foreground mt-0.5 text-base font-semibold tabular-nums",
+          wrap
+            ? "line-clamp-2 max-w-full [overflow-wrap:anywhere] break-all whitespace-normal"
+            : "truncate",
+        )}
+      >
         {value}
       </div>
     </div>
