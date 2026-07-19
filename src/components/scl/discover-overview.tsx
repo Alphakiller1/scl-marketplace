@@ -1,11 +1,15 @@
 import { Compass } from "lucide-react";
 
 export function DiscoverOverview({
-  laneCount,
+  matchedLaneCount,
+  totalLaneCount,
   publicRecordCount,
+  failed = false,
 }: {
-  laneCount: number;
+  matchedLaneCount: number;
+  totalLaneCount: number;
   publicRecordCount: number;
+  failed?: boolean;
 }) {
   return (
     <header className="border-t border-[color:var(--scl-pink-deep)] pt-3 sm:pt-4">
@@ -29,14 +33,18 @@ export function DiscoverOverview({
 
         <dl className="border-border hidden shrink-0 grid-cols-2 overflow-hidden rounded-[10px] border sm:grid">
           <CompactMetric
-            label={laneCount === 1 ? "Evidence lane" : "Evidence lanes"}
-            value={laneCount.toLocaleString()}
+            label={matchedLaneCount === 1 ? "Matched lane" : "Matched lanes"}
+            value={
+              failed
+                ? "—"
+                : `${matchedLaneCount.toLocaleString()} / ${totalLaneCount.toLocaleString()}`
+            }
           />
           <CompactMetric
             label={
               publicRecordCount === 1 ? "Record in scope" : "Records in scope"
             }
-            value={publicRecordCount.toLocaleString()}
+            value={failed ? "—" : publicRecordCount.toLocaleString()}
           />
         </dl>
       </div>
@@ -47,7 +55,7 @@ export function DiscoverOverview({
 function CompactMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="border-border min-w-28 border-r px-4 py-2.5 last:border-r-0">
-      <dt className="scl-eyebrow text-[color:var(--scl-muted-label)]">
+      <dt className="scl-eyebrow text-[color:var(--scl-muted-data)]">
         {label}
       </dt>
       <dd className="scl-data text-lg font-bold tabular-nums">{value}</dd>

@@ -533,17 +533,22 @@ export function BuildingRecordSection({
 
   return (
     <section
-      id="building-a-record"
-      aria-label="Building a record"
-      className="border-border bg-surface-2/40 mt-8 scroll-mt-20 rounded-[14px] border border-dashed p-3 sm:mt-10 sm:p-4"
+      id="unranked-public-records"
+      aria-label="Unranked public records"
+      className="border-border mt-8 scroll-mt-20 border-t pt-5 sm:mt-10 sm:pt-6"
     >
       <div className="mb-3 flex flex-col gap-1 sm:mb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-sm font-bold tracking-wide">Building a record</h2>
+          <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
+            Outside the ranking field
+          </p>
+          <h2 className="scl-display text-foreground mt-1 text-lg font-semibold">
+            Unranked public records
+          </h2>
           <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
-            These records remain public but unranked. They have no graded picks,
-            do not meet the selected minimum sample, or have negative ROI or
-            units in this scope.
+            These cappers are still building a record in this scope. A record
+            stays unranked when it has no graded picks, misses the selected
+            sample, or has negative ROI or units.
           </p>
         </div>
         <p className="scl-data text-muted-foreground text-xs tabular-nums">
@@ -555,6 +560,7 @@ export function BuildingRecordSection({
         cappers={cappers}
         compactDesktop
         compactMobile
+        flush
         emptyTitle="No cappers building a record"
         emptyDescription="Every matching capper currently meets the ranking sample."
       />

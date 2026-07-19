@@ -1,11 +1,15 @@
-import { ArrowDown } from "lucide-react";
-
 import type { DiscoverLaneResult } from "@/lib/discover-lanes";
 
-export function DiscoverLaneIndex({ lanes }: { lanes: DiscoverLaneResult[] }) {
+export function DiscoverLaneIndex({
+  lanes,
+  failed = false,
+}: {
+  lanes: DiscoverLaneResult[];
+  failed?: boolean;
+}) {
   return (
     <nav className="mt-4" aria-label="Discover evidence lanes">
-      <p className="scl-eyebrow mb-2 text-[color:var(--scl-muted-label)]">
+      <p className="scl-eyebrow mb-2 text-[color:var(--scl-muted-data)]">
         Choose an evidence lens
       </p>
       <ol className="grid grid-cols-2 border-y border-[color:var(--scl-line)] md:grid-cols-3 lg:grid-cols-5">
@@ -26,13 +30,20 @@ export function DiscoverLaneIndex({ lanes }: { lanes: DiscoverLaneResult[] }) {
                   {lane.title}
                 </span>
                 <span className="text-muted-foreground mt-1 block text-[0.65rem] font-semibold tracking-wide uppercase">
-                  {lane.primaryLabel}
+                  {lane.primaryLabel} ·{" "}
+                  {failed
+                    ? "Unavailable"
+                    : lane.entries.length
+                      ? `${lane.entries.length} shown`
+                      : "No match"}
                 </span>
               </span>
-              <ArrowDown
-                className="size-3.5 shrink-0 text-[color:var(--scl-blue)] transition-transform group-hover:translate-y-0.5"
+              <span
+                className="scl-data text-xs text-[color:var(--scl-muted-data)] tabular-nums transition-transform group-hover:translate-y-0.5"
                 aria-hidden
-              />
+              >
+                ↓
+              </span>
             </a>
           </li>
         ))}
