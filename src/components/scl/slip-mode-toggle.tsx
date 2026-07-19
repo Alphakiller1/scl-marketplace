@@ -37,7 +37,7 @@ export function SlipModeToggle({
               "scl-display min-h-11 rounded-[10px] px-3 text-sm font-semibold tracking-[0.06em] uppercase transition-colors",
               active
                 ? "bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
-                : "text-[color:var(--scl-muted-data)] hover:bg-[color:var(--scl-ink-700)] hover:text-[color:var(--scl-text)]",
+                : "text-[color:var(--scl-text)] hover:bg-[color:var(--scl-ink-700)]",
             )}
           >
             {m === "singles" ? "Singles" : "Parlay"}

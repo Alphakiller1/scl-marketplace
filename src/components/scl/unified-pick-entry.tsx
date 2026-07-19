@@ -344,13 +344,18 @@ function UnifiedPickEntryInner() {
     return (
       <div className="mx-auto max-w-md space-y-4">
         <div className="space-y-1">
-          <p className="scl-eyebrow text-[color:var(--scl-muted-label)]">
+          <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
             Pick submitted
           </p>
-          <SectionHeader
-            title="Proof Receipt"
-            subtitle="Your slip is now an inspectable receipt — odds captured, board-checked when verified."
-          />
+          <div className="border-t border-[color:var(--scl-pink-deep)] pt-2.5">
+            <h1 className="scl-display text-2xl leading-tight font-semibold tracking-[0.04em]">
+              Proof receipt
+            </h1>
+            <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+              Your pick is now an inspectable record — odds captured and
+              board-checked when verified.
+            </p>
+          </div>
         </div>
         {receipt.kind === "bulk" ? (
           <ReceiptStack receipt={receipt} />
@@ -401,40 +406,38 @@ function UnifiedPickEntryInner() {
         </div>
       ) : null}
 
-      <div>
-        <p className="scl-eyebrow mb-1 text-[color:var(--scl-muted-label)]">
-          Verified Board Entry
+      <header>
+        <p className="scl-eyebrow mb-1 text-[color:var(--scl-muted-data)]">
+          Board record entry
         </p>
-        <SectionHeader
-          title="New Pick"
-          subtitle="Pick a book, sport, and market — lines capture into your slip before tip. Singles or Parlay."
-        />
-      </div>
-
-      {!hasSelections ? (
-        <div className="lg:max-w-sm">
-          <BetSlip onSubmit={onSubmit} submitting={submitting} />
+        <div className="border-t border-[color:var(--scl-pink-deep)] pt-2.5">
+          <h1 className="scl-display text-2xl leading-tight font-semibold tracking-[0.04em] sm:text-3xl">
+            Log a pick
+          </h1>
+          <p className="text-muted-foreground mt-1 max-w-2xl text-sm leading-relaxed">
+            Choose a source book, open a matchup, and capture a pre-game price
+            into your public record.
+          </p>
         </div>
-      ) : null}
+      </header>
 
       <div
         className={cn(
-          "grid gap-5 lg:items-start",
-          hasSelections && "lg:grid-cols-[minmax(0,1fr)_22rem]",
+          "grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start",
         )}
       >
         <div className="min-w-0">
           <GamePicker onPick={addPick} selectedKeys={selectedKeys} />
         </div>
 
-        {hasSelections && isLg ? (
+        {isLg ? (
           <div className="min-w-0 lg:sticky lg:top-20">{slip}</div>
         ) : null}
       </div>
 
       {hasSelections && isLg === false ? (
         <MobileSlipDock
-          title="Bet slip"
+          title="Pick slip"
           countLabel={
             mode === "parlay"
               ? `${selections.length} Leg${selections.length === 1 ? "" : "s"}`

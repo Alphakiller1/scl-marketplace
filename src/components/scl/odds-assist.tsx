@@ -618,14 +618,14 @@ export function EventDetail({
       {/* 2 · Player props — sticky search, category pills, player accordions */}
       {propSelections.length ? (
         <div className="space-y-2.5">
-          <div className="bg-card sticky top-0 z-10 space-y-2 pb-1">
+          <div className="bg-card z-10 space-y-2 pb-1 lg:sticky lg:top-0">
             <input
               type="text"
               value={query}
               onChange={(ev) => setQuery(ev.target.value)}
               placeholder="Search props by player…"
               aria-label="Search props by player"
-              className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-10 w-full rounded-lg border bg-transparent px-3 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
+              className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-lg border bg-transparent px-3 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
             />
             {propMarkets.length > 1 ? (
               <div
@@ -684,7 +684,7 @@ export function EventDetail({
                       setPlayerOpen((p) => ({ ...p, [player]: !open }))
                     }
                     aria-expanded={open}
-                    className="hover:bg-surface-2 flex min-h-10 w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors"
+                    className="hover:bg-surface-2 flex min-h-11 w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors"
                   >
                     <span className="min-w-0 truncate font-medium">
                       {player}

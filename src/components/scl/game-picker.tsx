@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Search } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, ChevronDown, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { Card } from "@/components/ui/card";
@@ -70,6 +70,8 @@ export function GamePicker({
   const [openId, setOpenId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Record<string, EventDetailData>>({});
   const [coverageSent, setCoverageSent] = useState(false);
+  const backButtonRef = useRef<HTMLButtonElement>(null);
+  const restoreFocusIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -156,6 +158,21 @@ export function GamePicker({
     : null;
 
   useEffect(() => {
+    if (openId) {
+      const frame = requestAnimationFrame(() => backButtonRef.current?.focus());
+      return () => cancelAnimationFrame(frame);
+    }
+
+    const restoreId = restoreFocusIdRef.current;
+    if (!restoreId) return;
+    restoreFocusIdRef.current = null;
+    const frame = requestAnimationFrame(() =>
+      document.getElementById(`market-event-${restoreId}`)?.focus(),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [openId]);
+
+  useEffect(() => {
     if (!openEvent) return;
     if (openEvent.id in detail) return;
     let cancelled = false;
@@ -198,6 +215,16 @@ export function GamePicker({
     });
   }
 
+  function openMatchup(eventId: string) {
+    restoreFocusIdRef.current = eventId;
+    setOpenId(eventId);
+  }
+
+  function closeMatchup() {
+    if (openId) restoreFocusIdRef.current = openId;
+    setOpenId(null);
+  }
+
   const categoryPills: { key: string; label: string; count: number }[] = [
     { key: "all", label: "All", count: counts.all },
     ...ODDS_BOARD_SPORTS.map((s) => ({
@@ -205,105 +232,139 @@ export function GamePicker({
       label: s.label,
       count: counts.bySport[s.key] ?? 0,
     })),
-  ];
+  ].filter((pill) => pill.key === "all" || pill.count > 0);
 
   return (
     <Card className={cn("scl-scanline relative space-y-3 p-4", className)}>
       <div className="flex items-baseline justify-between gap-2 border-t border-[color:var(--scl-pink-deep)] pt-2.5">
         <h2 className="scl-display text-sm font-semibold tracking-[0.08em] uppercase">
-          Game Picker
+          Market board
         </h2>
-        <span className="scl-data text-[0.625rem] tracking-[0.1em] text-[color:var(--scl-muted-label)] uppercase">
-          Odds: Live Feed · {loading ? "…" : visible.length} Events
+        <span className="scl-data text-[0.625rem] tracking-[0.1em] text-[color:var(--scl-muted-data)] uppercase">
+          {openEvent
+            ? "Focused matchup"
+            : `Pre-game board · ${loading ? "…" : visible.length} matchups`}
         </span>
       </div>
 
       {profileBooks.length > 0 ? (
-        <BookRail
-          books={profileBooks}
-          active={activeBook}
-          onChange={setBookChoice}
-        />
+        <div className="space-y-1.5">
+          <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
+            Source book
+          </p>
+          <BookRail
+            books={profileBooks}
+            active={activeBook}
+            onChange={setBookChoice}
+          />
+        </div>
       ) : null}
 
-      <DayToggle
-        day={day}
-        todayCount={todayEvents.length}
-        tomorrowCount={tomorrowEvents.length}
-        loading={loading}
-        onChange={(d) => {
-          setDayChoice(d);
-          setOpenId(null);
-        }}
-      />
+      {openEvent ? (
+        <div className="border-y border-[color:var(--scl-line)] py-2">
+          <button
+            ref={backButtonRef}
+            type="button"
+            onClick={closeMatchup}
+            className="hover:bg-surface-2 inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-[color:var(--scl-muted-data)] transition-colors hover:text-[color:var(--scl-text)]"
+          >
+            <ArrowLeft className="size-4" aria-hidden />
+            Back to slate
+          </button>
+        </div>
+      ) : (
+        <>
+          <DayToggle
+            day={day}
+            todayCount={todayEvents.length}
+            tomorrowCount={tomorrowEvents.length}
+            loading={loading}
+            onChange={(d) => {
+              setDayChoice(d);
+              setOpenId(null);
+            }}
+          />
 
-      <label className="relative block">
-        <span className="sr-only">Search teams, leagues, or matchups</span>
-        <Search
-          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[color:var(--scl-muted-label)]"
-          aria-hidden
-        />
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search teams, leagues, or matchups…"
-          className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-lg border bg-transparent py-2 pr-3 pl-10 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
-        />
-      </label>
+          <label className="relative block">
+            <span className="sr-only">Search teams, leagues, or matchups</span>
+            <Search
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[color:var(--scl-muted-data)]"
+              aria-hidden
+            />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search teams, leagues, or matchups…"
+              className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-lg border bg-transparent py-2 pr-3 pl-10 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
+            />
+          </label>
 
-      <div
-        className="-mx-1 flex scroll-px-1 [scrollbar-width:none] gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-        role="group"
-        aria-label="Filter by sport"
-      >
-        {categoryPills.map((p) => {
-          const active = category === p.key;
-          const zero = p.count === 0;
-          return (
-            <button
-              key={p.key}
-              type="button"
-              onClick={() => {
-                setCategory(p.key);
-                setOpenId(null);
-              }}
-              aria-pressed={active}
-              className={cn(
-                "scl-display flex h-11 shrink-0 items-center gap-2 rounded-[22px] border px-3.5 text-[15px] font-semibold tracking-[0.05em] transition-opacity",
-                active
-                  ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
-                  : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",
-                zero && !active && "opacity-[0.42]",
-              )}
-            >
-              {p.key !== "all" ? (
-                <LeagueMark
-                  leagueKey={p.key}
-                  size="sm"
-                  className="rounded-md"
-                />
-              ) : null}
-              {p.label}
-              <span
-                className={cn(
-                  "scl-data rounded-[9px] border px-1.5 py-0.5 text-[10px] font-medium",
-                  active
-                    ? "border-transparent bg-black/18 text-[color:var(--scl-blue-ink)]"
-                    : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-950)] text-[color:var(--scl-muted-label)]",
-                )}
-              >
-                {p.count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+          <div
+            className="-mx-1 flex scroll-px-1 [scrollbar-width:none] gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+            role="group"
+            aria-label="Filter by sport"
+          >
+            {categoryPills.map((p) => {
+              const active = category === p.key;
+              return (
+                <button
+                  key={p.key}
+                  type="button"
+                  onClick={() => {
+                    setCategory(p.key);
+                    setOpenId(null);
+                  }}
+                  aria-pressed={active}
+                  className={cn(
+                    "scl-display flex h-11 shrink-0 items-center gap-2 rounded-[22px] border px-3.5 text-[15px] font-semibold tracking-[0.05em] transition-opacity",
+                    active
+                      ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
+                      : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",
+                  )}
+                >
+                  {p.key !== "all" ? (
+                    <LeagueMark
+                      leagueKey={p.key}
+                      size="sm"
+                      className="rounded-md"
+                    />
+                  ) : null}
+                  {p.label}
+                  <span
+                    className={cn(
+                      "scl-data rounded-[9px] border px-1.5 py-0.5 text-[10px] font-medium",
+                      active
+                        ? "border-transparent bg-black/18 text-[color:var(--scl-blue-ink)]"
+                        : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-950)] text-[color:var(--scl-muted-data)]",
+                    )}
+                  >
+                    {p.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
 
-      {loading ? (
+      {openEvent ? (
+        <ul className="space-y-2 lg:max-h-[40rem] lg:overflow-y-auto lg:pr-1">
+          <li className="bg-card border-border overflow-hidden rounded-[14px] border">
+            <GameRow event={openEvent} open onToggle={closeMatchup} />
+            <EventDetail
+              event={openEvent}
+              detail={detail[openEvent.id]}
+              onPick={onPick}
+              selectedKeys={selectedKeys}
+              activeBook={activeBook}
+            />
+          </li>
+        </ul>
+      ) : loading ? (
         <SkeletonCard />
       ) : visible.length ? (
-        <ul className="max-h-[28rem] space-y-2 overflow-auto">
+        <ul className="space-y-2 lg:max-h-[40rem] lg:overflow-y-auto lg:pr-1">
           {visible.map((e) => {
             const open = openId === e.id;
             return (
@@ -314,7 +375,8 @@ export function GamePicker({
                 <GameRow
                   event={e}
                   open={open}
-                  onToggle={() => setOpenId(open ? null : e.id)}
+                  triggerId={`market-event-${e.id}`}
+                  onToggle={() => (open ? closeMatchup() : openMatchup(e.id))}
                 />
                 {open ? (
                   <EventDetail
@@ -350,16 +412,18 @@ export function GamePicker({
         </p>
       )}
 
-      <button
-        type="button"
-        onClick={requestCoverage}
-        disabled={coverageSent}
-        className="flex min-h-11 w-full items-center justify-center rounded-[14px] border border-dashed border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] px-3 text-sm font-medium text-[color:var(--scl-muted-data)] transition-colors hover:bg-[color:var(--scl-ink-700)] disabled:opacity-60"
-      >
-        {coverageSent
-          ? "Coverage request recorded"
-          : "Request coverage — tell us what's missing"}
-      </button>
+      {!openEvent ? (
+        <button
+          type="button"
+          onClick={requestCoverage}
+          disabled={coverageSent}
+          className="flex min-h-11 w-full items-center justify-center rounded-[14px] border border-dashed border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] px-3 text-sm font-medium text-[color:var(--scl-muted-data)] transition-colors hover:bg-[color:var(--scl-ink-700)] disabled:opacity-60"
+        >
+          {coverageSent
+            ? "Coverage request recorded"
+            : "Request coverage — tell us what's missing"}
+        </button>
+      ) : null}
     </Card>
   );
 }
@@ -408,10 +472,12 @@ function BookRail({
 function GameRow({
   event,
   open,
+  triggerId,
   onToggle,
 }: {
   event: OddsEvent;
   open: boolean;
+  triggerId?: string;
   onToggle: () => void;
 }) {
   const away = getTeamIdentity(event.away, event.sport);
@@ -423,6 +489,7 @@ function GameRow({
 
   return (
     <button
+      id={triggerId}
       type="button"
       onClick={onToggle}
       className="hover:bg-surface-2/60 flex min-h-11 w-full items-center gap-3 px-3 py-2.5 text-left transition-colors"
@@ -439,14 +506,14 @@ function GameRow({
           <span className="text-[color:var(--scl-muted-data)]">@</span>{" "}
           {home.shortName}
         </span>
-        <span className="scl-data mt-0.5 block text-[0.65rem] tracking-[0.1em] text-[color:var(--scl-muted-label)] uppercase">
+        <span className="scl-data mt-0.5 block text-[0.65rem] tracking-[0.1em] text-[color:var(--scl-muted-data)] uppercase">
           {timeLabel} ET
         </span>
       </span>
       <LeagueMark leagueKey={event.sport} size="sm" />
       <ChevronDown
         className={cn(
-          "size-4 shrink-0 text-[color:var(--scl-muted-label)] transition-transform",
+          "size-4 shrink-0 text-[color:var(--scl-muted-data)] transition-transform",
           open && "rotate-180",
         )}
         aria-hidden

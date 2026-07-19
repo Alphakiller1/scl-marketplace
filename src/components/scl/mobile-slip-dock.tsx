@@ -50,11 +50,11 @@ export function MobileSlipDock({
             boxShadow: "var(--scl-shadow-slip)",
           }}
         >
-          <span className="scl-display min-w-0 flex-1 truncate text-base font-bold tracking-[0.05em] text-[color:var(--scl-text)] uppercase">
+          <span className="scl-display min-w-0 flex-1 truncate text-base font-bold tracking-[0.05em] text-[color:var(--scl-hero-text)] uppercase">
             {countLabel}
           </span>
           {oddsLabel ? (
-            <span className="scl-data text-foreground shrink-0 text-[15px] font-semibold">
+            <span className="scl-data shrink-0 text-[15px] font-semibold text-[color:var(--scl-hero-text)]">
               {oddsLabel}
             </span>
           ) : null}
