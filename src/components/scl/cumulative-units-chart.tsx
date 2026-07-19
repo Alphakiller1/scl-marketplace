@@ -51,7 +51,7 @@ export function CumulativeUnitsChart({
   const pad = Math.max(0.5, (max - min) * 0.08);
   const domain: [number, number] = [min - pad, max + pad];
   const last = points[points.length - 1]!.units;
-  const summary = `Cumulative units across ${points.length} graded plays. Ending balance ${last >= 0 ? "+" : ""}${last.toFixed(2)} units.`;
+  const summary = `Cumulative units across ${gradedCount} graded plays. Ending balance ${last >= 0 ? "+" : ""}${last.toFixed(2)} units.`;
   const plotHeight = CHART_HEIGHT - CHART_TOP - CHART_BOTTOM;
   const domainRange = domain[1] - domain[0];
   const xFor = (index: number) =>

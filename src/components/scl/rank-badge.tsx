@@ -27,6 +27,7 @@ export function RankBadge({
     const ranked = rank != null && rank > 0;
     return (
       <span
+        role="img"
         className={cn(
           "scl-data flex w-8 shrink-0 items-center justify-center text-2xl font-bold tabular-nums",
           !provisional && rank === 1 && "text-[color:var(--scl-pink-text)]",
@@ -49,6 +50,7 @@ export function RankBadge({
   if (rank == null || rank <= 0) {
     return (
       <span
+        role="img"
         className={cn(
           "scl-data text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-lg border border-dashed text-sm font-bold tabular-nums",
           "border-border bg-surface-2",
@@ -66,6 +68,7 @@ export function RankBadge({
   if (provisional) {
     return (
       <span
+        role="img"
         className={cn(
           "scl-data border-border bg-surface-2 text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-lg border text-sm font-bold tabular-nums",
           className,
@@ -83,6 +86,7 @@ export function RankBadge({
 
   return (
     <span
+      role="img"
       className={cn(
         "scl-data flex size-10 shrink-0 items-center justify-center rounded-lg border text-sm font-bold tabular-nums",
         rank === 1 && "border-pink/35 bg-pink/10 text-foreground",

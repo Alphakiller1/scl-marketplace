@@ -94,6 +94,7 @@ export function ProfileActionGroup({
       aria-label="Profile actions"
     >
       <Button
+        data-profile-action-role="relationship"
         type="button"
         size="sm"
         className={cn("min-h-11 gap-1.5 sm:min-h-10", BLUE_CTA)}
