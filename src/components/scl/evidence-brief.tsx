@@ -2,6 +2,8 @@
 
 import {
   Fragment,
+  useCallback,
+  useEffect,
   useMemo,
   useState,
   useTransition,
@@ -194,14 +196,18 @@ export function EvidenceBrief({
     capper.verifiedShare != null && capper.verifiedShare > 0
       ? Math.round(capper.verifiedShare)
       : null;
+  const eligiblePlays = useMemo(
+    () => plays.filter((play) => isValidPublicStake(play.units)),
+    [plays],
+  );
 
   const clvTracker = useMemo(() => {
     if (clvTrackerProp) return clvTrackerProp;
-    const fromPlays = plays
+    const fromPlays = eligiblePlays
       .map((p) => p.clvPts)
       .filter((v): v is number => v != null && Number.isFinite(v));
     return summarizeClvTracker(fromPlays);
-  }, [clvTrackerProp, plays]);
+  }, [clvTrackerProp, eligiblePlays]);
 
   const displayAvgClv = clvTracker.avgClv ?? avgClv ?? null;
   const clvScale = perfScale("clv", displayAvgClv, {
@@ -219,6 +225,9 @@ export function EvidenceBrief({
     return "simple";
   });
   const [chartWindow, setChartWindow] = useState<ProfileChartWindow>("all");
+  const [loadedProofByHandle, setLoadedProofByHandle] = useState<
+    Record<string, PlayView>
+  >({});
 
   function onLensChange(next: string | number | null) {
     const v = String(next ?? "simple") as TrustLens;
@@ -232,15 +241,34 @@ export function EvidenceBrief({
   }
 
   const chartSeries = useMemo(
-    () => chartSeriesProp ?? buildProfileChartSeries(plays, new Date()),
-    [chartSeriesProp, plays],
+    () => chartSeriesProp ?? buildProfileChartSeries(eligiblePlays, new Date()),
+    [chartSeriesProp, eligiblePlays],
   );
   const cumulative = chartSeries[chartWindow];
 
   const showClv = signal || lens === "analyst" || lens === "audit";
   const showAuditMeta = lens === "audit";
   const showDeepAnalysis = lens === "analyst" || lens === "audit";
-  const featured = plays[0] ?? null;
+  const featured =
+    eligiblePlays[0] ?? loadedProofByHandle[capper.handle] ?? null;
+  const rememberLoadedProof = useCallback(
+    (rows: PlayView[]) => {
+      const first = rows.find((play) => isValidPublicStake(play.units));
+      if (!first) return;
+      setLoadedProofByHandle((current) =>
+        current[capper.handle]
+          ? current
+          : { ...current, [capper.handle]: first },
+      );
+    },
+    [capper.handle],
+  );
+  const historyLedgerKey = `${capper.handle}:${historyNextCursor ?? "end"}:${eligiblePlays
+    .map(
+      (play) =>
+        `${play.id}:${play.outcome}:${play.profitUnits ?? "open"}:${play.createdAt.getTime()}`,
+    )
+    .join(",")}`;
 
   const latestProof = (
     <section aria-label="Featured proof receipt" className="min-w-0 space-y-2">
@@ -451,13 +479,15 @@ export function EvidenceBrief({
           <VerificationHelpLink className="text-muted-foreground hover:text-foreground inline-flex min-h-11 shrink-0 gap-1.5 self-start px-2 text-xs font-medium" />
         </div>
 
-        {plays.length || historyNextCursor ? (
+        {eligiblePlays.length || historyNextCursor ? (
           <>
             <VerificationLegend className="mt-4" />
             <ProofHistoryLedger
-              plays={plays}
+              key={historyLedgerKey}
+              plays={eligiblePlays}
               handle={capper.handle}
               initialNextCursor={historyNextCursor ?? null}
+              onRowsLoaded={rememberLoadedProof}
             />
           </>
         ) : playsError ? (
@@ -486,10 +516,12 @@ function ProofHistoryLedger({
   plays,
   handle,
   initialNextCursor,
+  onRowsLoaded,
 }: {
   plays: PlayView[];
   handle: string;
   initialNextCursor: string | null;
+  onRowsLoaded: (rows: PlayView[]) => void;
 }) {
   const allInitial = useMemo(
     () => plays.filter((play) => isValidPublicStake(play.units)),
@@ -504,10 +536,13 @@ function ProofHistoryLedger({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isLoading, startLoading] = useTransition();
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const localRemaining = allInitial.slice(shown.length);
+  const localRemaining = useMemo(
+    () => allInitial.slice(shown.length),
+    [allInitial, shown.length],
+  );
   const canLoadMore = localRemaining.length > 0 || nextCursor != null;
 
-  function loadMore() {
+  const loadMore = useCallback(() => {
     if (localRemaining.length > 0) {
       setShown((current) => [
         ...current,
@@ -519,18 +554,30 @@ function ProofHistoryLedger({
     setLoadError(null);
     startLoading(async () => {
       try {
-        const page = await loadPublicProfileHistory(handle, nextCursor);
+        const requestedCursor = nextCursor;
+        const page = await loadPublicProfileHistory(handle, requestedCursor);
+        onRowsLoaded(page.plays);
         setShown((current) => {
           const byId = new Map(current.map((play) => [play.id, play]));
           for (const play of page.plays) byId.set(play.id, play);
           return [...byId.values()];
         });
-        setNextCursor(page.nextCursor);
+        setNextCursor(
+          page.nextCursor === requestedCursor ? null : page.nextCursor,
+        );
       } catch {
         setLoadError("Proof history could not load. Try again.");
       }
     });
-  }
+  }, [handle, isLoading, localRemaining, nextCursor, onRowsLoaded]);
+
+  useEffect(() => {
+    // A page can be entirely hidden QA receipts. Advance automatically until
+    // public evidence is found or the bounded server cursor is exhausted.
+    if (shown.length !== 0 || !nextCursor || isLoading || loadError) return;
+    const timer = window.setTimeout(loadMore, 0);
+    return () => window.clearTimeout(timer);
+  }, [isLoading, loadError, loadMore, nextCursor, shown.length]);
 
   return (
     <div

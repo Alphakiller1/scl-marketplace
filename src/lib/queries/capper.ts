@@ -24,7 +24,7 @@ export type PublicCapper = {
   playsError: boolean;
   avgClv: number | null;
   clvTracker: ClvTrackerSummary;
-  chartSeries: ProfileChartSeries;
+  chartSeries?: ProfileChartSeries;
   historyNextCursor: string | null;
 };
 
@@ -35,6 +35,8 @@ export type PublicProfileHistoryPage = {
 
 const PROFILE_HISTORY_PAGE_SIZE = 10;
 const PROFILE_HISTORY_FETCH_SIZE = PROFILE_HISTORY_PAGE_SIZE * 3;
+const PROFILE_HISTORY_MAX_BATCHES = 16;
+const PROFILE_CHART_QUERY_LIMIT = 5_000;
 
 /** Bounded public receipt page; parlay legs are never positions of record. */
 export async function getPublicProfileHistoryPage(
@@ -49,12 +51,19 @@ export async function getPublicProfileHistoryPage(
 
   for (
     let batch = 0;
-    batch < 4 && visible.length <= PROFILE_HISTORY_PAGE_SIZE && !exhausted;
+    batch < PROFILE_HISTORY_MAX_BATCHES &&
+    visible.length <= PROFILE_HISTORY_PAGE_SIZE &&
+    !exhausted;
     batch += 1
   ) {
     const rows = await prisma.play.findMany({
       where: {
-        capper: { user: { username: handle, accountStatus: "ACTIVE" } },
+        capper: {
+          user: {
+            username: { equals: handle, mode: "insensitive" },
+            accountStatus: "ACTIVE",
+          },
+        },
         units: { gte: UNIT_MIN },
         parlayId: null,
       },
@@ -142,20 +151,25 @@ export const getPublicCapperByHandle = cache(
     handle: string,
   ): Promise<PublicCapper | null> {
     const { cappers, unranked } = await getLeaderboardResult();
+    const normalizedHandle = handle.replace(/^@+/, "").trim().toLowerCase();
     const capper =
-      cappers.find((candidate) => candidate.handle === handle) ??
-      unranked.find((candidate) => candidate.handle === handle);
+      cappers.find(
+        (candidate) => candidate.handle.toLowerCase() === normalizedHandle,
+      ) ??
+      unranked.find(
+        (candidate) => candidate.handle.toLowerCase() === normalizedHandle,
+      );
     if (!capper) return null;
 
     let plays: PlayView[] = [];
     let playsError = false;
     let avgClv: number | null = null;
     let clvTracker = summarizeClvTracker([]);
-    let chartSeries = buildProfileChartSeries([], new Date());
+    let chartSeries: ProfileChartSeries | undefined;
     let historyNextCursor: string | null = null;
 
     try {
-      const history = await getPublicProfileHistoryPage(handle);
+      const history = await getPublicProfileHistoryPage(capper.handle);
       plays = history.plays;
       historyNextCursor = history.nextCursor;
     } catch (error) {
@@ -171,7 +185,8 @@ export const getPublicCapperByHandle = cache(
           parlayId: null,
           outcome: { not: "PENDING" },
         },
-        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: PROFILE_CHART_QUERY_LIMIT,
         select: {
           createdAt: true,
           outcome: true,
@@ -187,7 +202,8 @@ export const getPublicCapperByHandle = cache(
             outcome: row.outcome,
             profitUnits:
               row.profitUnits == null ? null : Number(row.profitUnits),
-          })),
+          }))
+          .reverse(),
         new Date(),
       );
     } catch (error) {

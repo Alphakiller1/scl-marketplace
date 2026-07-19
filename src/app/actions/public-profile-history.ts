@@ -10,7 +10,7 @@ export async function loadPublicProfileHistory(
   handle: string,
   cursor: string,
 ): Promise<PublicProfileHistoryPage> {
-  const normalizedHandle = handle.replace(/^@/, "").trim().toLowerCase();
+  const normalizedHandle = handle.replace(/^@+/, "").trim();
   if (!normalizedHandle || !cursor) return { plays: [], nextCursor: null };
   return getPublicProfileHistoryPage(normalizedHandle, cursor);
 }
