@@ -7,7 +7,9 @@ import { UNIT_MIN } from "@/lib/constants";
 
 /**
  * Exact public handles that are staging/demo fixtures — never surface in
- * Discover, leaderboard, or other public directories.
+ * Discover, leaderboard, or other public directories. Prefer toggling User.isTest
+ * in Supabase once that column exists; this list remains a belt-and-suspenders
+ * backstop for known fixtures.
  */
 export const PUBLIC_EXCLUDED_HANDLES = [
   "demo_capper",
@@ -30,6 +32,18 @@ export function isTestHandle(username: string | null | undefined): boolean {
   const clean = normalizeHandle(username);
   if (/^(qa|sclqa)/i.test(clean)) return true;
   return (PUBLIC_EXCLUDED_HANDLES as readonly string[]).includes(clean);
+}
+
+/**
+ * Publication exclusion for a user row — `isTest` column wins when present;
+ * handle-prefix / fixture list remain as belt-and-suspenders.
+ */
+export function isExcludedFromPublicPublication(user: {
+  username?: string | null;
+  isTest?: boolean | null;
+}): boolean {
+  if (user.isTest === true) return true;
+  return isTestHandle(user.username);
 }
 
 /** True when stake meets the public minimum (0.25U). */
@@ -57,9 +71,17 @@ export function hasQaNoteMarker(notes: string | null | undefined): boolean {
   return QA_NOTE_MARKER.test(notes);
 }
 
+type PrismaExcludeOpts = {
+  /**
+   * When true (User.isTest column live), also require `isTest: false`.
+   * Soft-degrade when the column is missing — handle guards still apply.
+   */
+  includeIsTestColumn?: boolean;
+};
+
 /** Prisma `user` filter fragment — excludes QA/test handles from public queries. */
-export function prismaExcludeTestHandles() {
-  return {
+export function prismaExcludeTestHandles(opts?: PrismaExcludeOpts) {
+  const handleGuard = {
     NOT: {
       OR: [
         { username: { startsWith: "qa", mode: "insensitive" as const } },
@@ -69,5 +91,11 @@ export function prismaExcludeTestHandles() {
         })),
       ],
     },
+  };
+
+  if (!opts?.includeIsTestColumn) return handleGuard;
+
+  return {
+    AND: [{ isTest: false }, handleGuard],
   };
 }

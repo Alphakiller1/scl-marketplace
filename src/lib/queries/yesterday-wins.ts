@@ -5,7 +5,7 @@ import type { Outcome } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { etDayBounds } from "@/lib/et-day";
 import { UNIT_MIN } from "@/lib/constants";
-import { prismaExcludeTestHandles } from "@/lib/public-eligibility";
+import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 
 const GRADED: Outcome[] = ["WIN", "LOSS", "PUSH"];
 
@@ -32,6 +32,7 @@ async function queryGradedResults(whereGradedAt: {
   gte: Date;
   lt?: Date;
 }): Promise<GradedTickerResult[]> {
+  const excludeTest = await prismaExcludeTestHandlesLive();
   const plays = await prisma.play.findMany({
     where: {
       outcome: { in: GRADED },
@@ -42,7 +43,7 @@ async function queryGradedResults(whereGradedAt: {
         user: {
           accountStatus: "ACTIVE",
           username: { not: null },
-          ...prismaExcludeTestHandles(),
+          ...excludeTest,
         },
       },
     },

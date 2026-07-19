@@ -5,10 +5,8 @@ import type { Outcome } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { UNIT_MIN } from "@/lib/constants";
 import { etDayBounds } from "@/lib/et-day";
-import {
-  hasQaNoteMarker,
-  prismaExcludeTestHandles,
-} from "@/lib/public-eligibility";
+import { hasQaNoteMarker } from "@/lib/public-eligibility";
+import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 import type { PlayView } from "@/lib/queries/plays";
 import {
   hasClvColumns,
@@ -43,6 +41,7 @@ export async function getTodaysGradedMoves(
 ): Promise<{ moves: TodaysMove[]; failed: boolean }> {
   try {
     const { start, end } = etDayBounds(0);
+    const excludeTest = await prismaExcludeTestHandlesLive();
     const plays = await prisma.play.findMany({
       where: {
         parlayId: null,
@@ -53,7 +52,7 @@ export async function getTodaysGradedMoves(
           user: {
             accountStatus: "ACTIVE",
             username: { not: null },
-            ...prismaExcludeTestHandles(),
+            ...excludeTest,
           },
         },
       },
@@ -158,6 +157,7 @@ export async function getFeaturedGradedPlay(): Promise<{
   try {
     const clvReady = await hasClvColumns();
     const notesPublicReady = await hasNotesPublicColumn();
+    const excludeTest = await prismaExcludeTestHandlesLive();
     const rows = await prisma.play.findMany({
       where: {
         parlayId: null,
@@ -168,7 +168,7 @@ export async function getFeaturedGradedPlay(): Promise<{
           user: {
             accountStatus: "ACTIVE",
             username: { not: null },
-            ...prismaExcludeTestHandles(),
+            ...excludeTest,
           },
         },
       },

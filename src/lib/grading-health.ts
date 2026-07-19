@@ -2,7 +2,7 @@ import "server-only";
 
 import { UNIT_MIN } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
-import { prismaExcludeTestHandles } from "@/lib/public-eligibility";
+import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 import {
   RESULTS_CLIFF_WARNING_DAYS,
   RESULTS_LOOKBACK_DAYS,
@@ -28,12 +28,12 @@ export type GradingHealthReport = {
   cliffWarningDays: number;
 };
 
-function publicPendingCapperFilter() {
+async function publicPendingCapperFilter() {
   return {
     user: {
       accountStatus: "ACTIVE" as const,
       username: { not: null },
-      ...prismaExcludeTestHandles(),
+      ...(await prismaExcludeTestHandlesLive()),
     },
   };
 }
@@ -56,7 +56,7 @@ export async function getGradingHealthReport(
     outcome: "PENDING" as const,
     eventStartsAt: { not: null },
     units: { gte: UNIT_MIN },
-    capper: publicPendingCapperFilter(),
+    capper: await publicPendingCapperFilter(),
   };
 
   const [pendingPast24h, cliffRisk] = await Promise.all([

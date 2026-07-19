@@ -11,30 +11,32 @@ import {
   type LeagueActionItem,
 } from "@/lib/league-action";
 import { UNIT_MIN } from "@/lib/constants";
-import { prismaExcludeTestHandles } from "@/lib/public-eligibility";
+import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 
 const DEFAULT_WINDOW_DAYS = 14;
 const DEFAULT_TAKE = 6;
 
 const VERIFIED_TIERS: VerificationTier[] = ["VERIFIED", "AUTO_VERIFIED"];
 
-/** Same publicly listed + board-verified gate as the leaderboard feed filters. */
-const PUBLIC_PLAY_FILTER = {
-  units: { gte: UNIT_MIN },
-  verificationTier: { in: VERIFIED_TIERS },
-  capper: {
-    user: {
-      accountStatus: "ACTIVE" as const,
-      username: { not: null },
-      ...prismaExcludeTestHandles(),
+async function publicPlayFilter() {
+  const excludeTest = await prismaExcludeTestHandlesLive();
+  return {
+    units: { gte: UNIT_MIN },
+    verificationTier: { in: VERIFIED_TIERS },
+    capper: {
+      user: {
+        accountStatus: "ACTIVE" as const,
+        username: { not: null },
+        ...excludeTest,
+      },
     },
-  },
-};
+  };
+}
 
 export type LeagueActionReportResult = {
   leagues: LeagueActionItem[];
   categories: LeagueActionCategoryItem[];
-  /** Shape singles + parlays — never double-counts market buckets. */
+  /** Shape singles + parlays ΓÇö never double-counts market buckets. */
   trackedPicks: number;
   windowDays: number;
   failed: boolean;
@@ -50,11 +52,13 @@ export async function getLeagueActionReport({
   const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000);
 
   try {
+    const playFilter = await publicPlayFilter();
+    const excludeTest = await prismaExcludeTestHandlesLive();
     const [plays, parlays] = await Promise.all([
       prisma.play.findMany({
         where: {
           createdAt: { gte: since },
-          ...PUBLIC_PLAY_FILTER,
+          ...playFilter,
         },
         select: {
           sport: true,
@@ -78,7 +82,7 @@ export async function getLeagueActionReport({
             user: {
               accountStatus: "ACTIVE",
               username: { not: null },
-              ...prismaExcludeTestHandles(),
+              ...excludeTest,
             },
           },
           legs: {
