@@ -54,7 +54,7 @@ function CompactMetric({ label, value }: { label: string; value: string }) {
       <dt className="scl-eyebrow text-[color:var(--scl-muted-label)]">
         {label}
       </dt>
-      <dd className="font-mono text-lg font-bold tabular-nums">{value}</dd>
+      <dd className="scl-data text-lg font-bold tabular-nums">{value}</dd>
     </div>
   );
 }
