@@ -67,6 +67,7 @@ const DARK = {
   lossText: "#FF6B6F",
   perfMidText: "#F0C14D",
   pushText: "#AAB6C9",
+  pinkText: "#FF74C8",
 } as const;
 
 const LIGHT = {
@@ -87,6 +88,7 @@ const LIGHT = {
   lossText: "#B71C1C",
   perfMidText: "#8A5A00",
   pushText: "#596273",
+  pinkText: "#A6007F",
 } as const;
 
 function assertAa(fg: string, bg: string, label: string) {
@@ -123,6 +125,7 @@ describe("a11y contrast — performance/settlement text tokens ≥ 4.5:1", () =>
       assertAa(DARK.lossText, bg, `dark loss-text`);
       assertAa(DARK.perfMidText, bg, `dark perf-mid-text`);
       assertAa(DARK.pushText, bg, `dark push-text`);
+      assertAa(DARK.pinkText, bg, `dark pink-text`); // hero title hover
     }
   });
 
@@ -132,6 +135,7 @@ describe("a11y contrast — performance/settlement text tokens ≥ 4.5:1", () =>
       assertAa(LIGHT.lossText, bg, `light loss-text`);
       assertAa(LIGHT.perfMidText, bg, `light perf-mid-text`);
       assertAa(LIGHT.pushText, bg, `light push-text`);
+      assertAa(LIGHT.pinkText, bg, `light pink-text`); // hero title hover
     }
   });
 
