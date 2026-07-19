@@ -22,6 +22,9 @@ export const PUBLIC_EXCLUDED_HANDLES = [
   "solpickz",
 ] as const;
 
+/** Email suffixes reserved for synthetic datasets. */
+export const PUBLIC_EXCLUDED_EMAIL_SUFFIXES = ["@ghost.scl.demo"] as const;
+
 function normalizeHandle(username: string): string {
   return username.replace(/^@+/, "").trim().toLowerCase();
 }
@@ -34,16 +37,26 @@ export function isTestHandle(username: string | null | undefined): boolean {
   return (PUBLIC_EXCLUDED_HANDLES as readonly string[]).includes(clean);
 }
 
+/** True when an account belongs to a reserved QA/demo email namespace. */
+export function isTestEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const clean = email.trim().toLowerCase();
+  return (PUBLIC_EXCLUDED_EMAIL_SUFFIXES as readonly string[]).some((suffix) =>
+    clean.endsWith(suffix),
+  );
+}
+
 /**
  * Publication exclusion for a user row — `isTest` column wins when present;
  * handle-prefix / fixture list remain as belt-and-suspenders.
  */
 export function isExcludedFromPublicPublication(user: {
   username?: string | null;
+  email?: string | null;
   isTest?: boolean | null;
 }): boolean {
   if (user.isTest === true) return true;
-  return isTestHandle(user.username);
+  return isTestHandle(user.username) || isTestEmail(user.email);
 }
 
 /** True when stake meets the public minimum (0.25U). */
@@ -77,10 +90,16 @@ type PrismaExcludeOpts = {
    * Soft-degrade when the column is missing — handle guards still apply.
    */
   includeIsTestColumn?: boolean;
+  /**
+   * Permit only reserved ghost-domain accounts in an explicitly gated
+   * non-production preview. Known QA handles remain excluded.
+   */
+  allowGhostAccounts?: boolean;
 };
 
 /** Prisma `user` filter fragment — excludes QA/test handles from public queries. */
 export function prismaExcludeTestHandles(opts?: PrismaExcludeOpts) {
+  const allowGhostAccounts = opts?.allowGhostAccounts === true;
   const handleGuard = {
     NOT: {
       OR: [
@@ -89,6 +108,11 @@ export function prismaExcludeTestHandles(opts?: PrismaExcludeOpts) {
         ...PUBLIC_EXCLUDED_HANDLES.map((handle) => ({
           username: { equals: handle, mode: "insensitive" as const },
         })),
+        ...(allowGhostAccounts
+          ? []
+          : PUBLIC_EXCLUDED_EMAIL_SUFFIXES.map((suffix) => ({
+              email: { endsWith: suffix, mode: "insensitive" as const },
+            }))),
       ],
     },
   };
@@ -96,6 +120,18 @@ export function prismaExcludeTestHandles(opts?: PrismaExcludeOpts) {
   if (!opts?.includeIsTestColumn) return handleGuard;
 
   return {
-    AND: [{ isTest: false }, handleGuard],
+    AND: [
+      allowGhostAccounts
+        ? {
+            OR: [
+              { isTest: false },
+              ...PUBLIC_EXCLUDED_EMAIL_SUFFIXES.map((suffix) => ({
+                email: { endsWith: suffix, mode: "insensitive" as const },
+              })),
+            ],
+          }
+        : { isTest: false },
+      handleGuard,
+    ],
   };
 }

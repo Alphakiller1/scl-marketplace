@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 
 export const runtime = "nodejs";
 
@@ -18,8 +19,12 @@ export async function GET(
   }
 
   try {
-    const tracking = await prisma.trackingUrl.findUnique({
-      where: { slug },
+    const excludeTest = await prismaExcludeTestHandlesLive();
+    const tracking = await prisma.trackingUrl.findFirst({
+      where: {
+        slug,
+        package: { capper: { user: excludeTest } },
+      },
       select: {
         id: true,
         targetUrl: true,

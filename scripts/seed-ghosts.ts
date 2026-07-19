@@ -8,10 +8,9 @@
  *  - Refuses to run against production (see assertNonProd): only localhost or an
  *    explicitly-isolated `schema=scl_staging` (or GHOST_SEED_FORCE=1) is allowed,
  *    and GHOST_SEED=1 must be set so it never runs by accident.
- *  - Ghosts use the clearly-demo `@ghost.scl.demo` domain and are wiped + rebuilt
- *    on each run (idempotent). They are `isTest=false` on purpose: in an isolated
- *    DB we WANT them to render; isolation comes from the database being non-prod,
- *    not from the publication flag.
+ *  - Ghosts use the clearly-demo `@ghost.scl.demo` domain, are marked `isTest=true`,
+ *    and are wiped + rebuilt on each run (idempotent). Populated-state QA must opt
+ *    in explicitly; public production queries always exclude them.
  *
  * Run:  GHOST_SEED=1 npm run seed:ghosts     (against a local / staging DATABASE_URL)
  */
@@ -623,7 +622,7 @@ async function seedGhost(passwordHash: string, g: Ghost) {
       role: "CAPPER",
       accountStatus: "ACTIVE",
       emailVerified: g.tier === "cold" && chance(0.5) ? null : new Date(),
-      isTest: false, // isolated DB → render; safety is the non-prod guard, not this flag
+      isTest: true,
       passwordHash,
       capperProfile: {
         create: {

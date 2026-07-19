@@ -6,7 +6,7 @@ import { PackageCard } from "@/components/scl/package-card";
 import { requireCapperAccess } from "@/lib/session";
 import {
   getCapperProfileIdForUser,
-  getLivePackagesForCapper,
+  getOwnerLivePackagesForCapper,
   listConnectionsForCapper,
 } from "@/lib/queries/store";
 
@@ -16,7 +16,9 @@ export default async function MonetizationPage() {
   const user = await requireCapperAccess();
   const capperId = await getCapperProfileIdForUser(user.id);
   const connections = capperId ? await listConnectionsForCapper(capperId) : [];
-  const livePackages = capperId ? await getLivePackagesForCapper(capperId) : [];
+  const livePackages = capperId
+    ? await getOwnerLivePackagesForCapper(capperId)
+    : [];
 
   return (
     <div className="space-y-6">
