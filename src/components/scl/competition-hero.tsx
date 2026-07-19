@@ -25,25 +25,25 @@ type HeroSlide = {
 const SLIDES: HeroSlide[] = [
   {
     id: "founding",
-    eyebrow: "Build a public record",
-    title: "Build a record people can inspect",
-    body: "Log each pick with its timestamp, submitted line, verification state, and result in units.",
+    eyebrow: "Founding Roster Forming",
+    title: "Apply As A Founding Capper",
+    body: "Build a public, inspectable record from day one — every pick, timestamp, line, and result visible before you send bettors anywhere.",
     href: "/signup",
     cta: "Track Your Record",
   },
   {
     id: "discover",
-    eyebrow: "Discover cappers",
-    title: "Compare records on the same terms",
-    body: "Compare units, ROI, sample maturity, and board-verified share within the same scope.",
+    eyebrow: "Discover Cappers",
+    title: "Find & Tail The Best Cappers In The World",
+    body: "Compare board-verified records by units, ROI, and sample size — then follow the cappers whose process holds up under inspection.",
     href: "/leaderboard",
     cta: "Explore Leaderboard",
   },
   {
     id: "verify",
-    eyebrow: "Track & verify",
-    title: "Track your picks. Keep your storefront.",
-    body: "Build a public rank with board-verified plays and use your own storefront. SCL does not process payments.",
+    eyebrow: "Track & Verify",
+    title: "Sell, Track, & Verify Your Predictions",
+    body: "Log board-verified plays, earn a public rank others can check, and keep payments on your own storefront. SCL does not process payments.",
     href: "/signup",
     cta: "Track Your Record",
   },
@@ -159,7 +159,7 @@ export function CompetitionHero() {
                   <Link
                     href={slide.href}
                     tabIndex={active ? undefined : -1}
-                    className="focus-visible:ring-ring rounded-sm text-[color:var(--scl-text)] underline-offset-4 transition-colors hover:underline hover:decoration-[color:var(--scl-pink)] focus-visible:ring-2 focus-visible:outline-none"
+                    className="focus-visible:ring-ring rounded-sm text-[color:var(--scl-text)] transition-colors hover:text-[color:var(--scl-pink-text)] focus-visible:ring-2 focus-visible:outline-none"
                   >
                     {slide.title}
                   </Link>

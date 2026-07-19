@@ -93,6 +93,8 @@
   /* Supporting prose — WCAG AA 5.43:1 on paper (#F3F1EA). */
   --scl-muted-data: #596273;
   --scl-pink: #a6007f;
+  /* AA-safe magenta for pink TEXT (e.g. hero title hover) — bright pink is marks-only. */
+  --scl-pink-text: #a6007f;
   --scl-pink-deep: #8d006a;
   --scl-pink-ink: #fff3fc;
   --scl-blue: #044cb6;
@@ -210,6 +212,8 @@
   /* Supporting prose — WCAG AA 5.43:1 on paper (#F3F1EA). */
   --scl-muted-data: #596273;
   --scl-pink: #a6007f;
+  /* AA-safe magenta for pink TEXT (e.g. hero title hover) — bright pink is marks-only. */
+  --scl-pink-text: #a6007f;
   --scl-pink-deep: #8d006a;
   --scl-pink-ink: #fff3fc;
   --scl-blue: #044cb6;
@@ -235,6 +239,8 @@
   --scl-muted-label: #7e8aa0;
   --scl-muted-data: #aab6c9;
   --scl-pink: #ba008e;
+  /* AA-safe light magenta for pink TEXT on dark ink (hero title hover) — 8.1:1 on ink. */
+  --scl-pink-text: #ff74c8;
   --scl-pink-deep: #8d006a;
   --scl-pink-ink: #fff3fc;
   --scl-blue: #105fd9;
