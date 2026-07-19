@@ -177,7 +177,11 @@ function DesktopScopeForm({
           />
           <AppliedChip
             label={filters.verifiedOnly ? "Verified only" : "All records"}
-            href={leaderboardHref(filters, { verifiedOnly: true }, action)}
+            href={leaderboardHref(
+              filters,
+              { verifiedOnly: !filters.verifiedOnly },
+              action,
+            )}
           />
           <Link
             href={action}
