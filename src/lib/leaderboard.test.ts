@@ -6,6 +6,7 @@ import {
   hasLeaderboardSample,
   isBuildingARecord,
   isLeaderboardEligible,
+  leaderboardHref,
   leaderboardWindowStart,
   parseLeaderboardFilters,
   partitionLeaderboard,
@@ -34,6 +35,19 @@ test("leaderboard filters reject unsupported query values", () => {
       search: "edge",
       limit: 10,
     },
+  );
+});
+
+test("legacy year scope normalizes to the supported all-time control", () => {
+  const filters = parseLeaderboardFilters({ window: "year" });
+  assert.equal(filters.window, "all");
+});
+
+test("leaderboard href can preserve filters on a shared route", () => {
+  const filters = parseLeaderboardFilters({ sport: "NFL", sort: "roi" });
+  assert.equal(
+    leaderboardHref(filters, { sport: "ALL" }, "/discover"),
+    "/discover?sort=roi",
   );
 });
 

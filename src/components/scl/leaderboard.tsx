@@ -313,11 +313,7 @@ function LeaderboardTableRow({
       </td>
       <td className="px-1.5 py-2 align-middle">
         <div className="flex items-center gap-1.5">
-          <RankBadge
-            rank={rank}
-            settledPicks={graded}
-            className="size-8 text-xs"
-          />
+          <RankBadge rank={rank} settledPicks={graded} variant="ledger" />
           <div className="flex min-w-0 flex-col items-start leading-none">
             <RankMovementIndicator delta={capper.rankDelta} />
             {provisional ? (
