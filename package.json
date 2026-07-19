@@ -23,7 +23,8 @@
     "prepare": "husky"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "seed:ghosts": "tsx scripts/seed-ghosts.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",
