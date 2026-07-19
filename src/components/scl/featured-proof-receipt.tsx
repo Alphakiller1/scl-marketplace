@@ -51,6 +51,7 @@ export function FeaturedProofReceipt({
 
       {!play ? (
         <EmptyState
+          className="py-6 sm:py-7"
           icon={Receipt}
           title={
             failed ? "Couldn't load featured proof" : "No graded receipts yet"

@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 
 import { CapperProfileHeader } from "@/components/scl/capper-profile-header";
+import { CapperStorefront } from "@/components/scl/capper-storefront";
 import { EvidenceBrief } from "@/components/scl/evidence-brief";
-import { ResponsiveCapperStorefront } from "@/components/scl/responsive-capper-storefront";
 import type { CapperSummary } from "@/lib/mock";
 import type { PlayView } from "@/lib/queries/plays";
 
@@ -45,27 +45,28 @@ export default function DesktopProfileCompositionQaPage() {
     },
   };
 
-  const plays: PlayView[] = [
-    {
-      id: "qa-play-1",
+  const plays: PlayView[] = Array.from({ length: 12 }, (_, index) => {
+    const loss = index % 4 === 2;
+    return {
+      id: `qa-play-${index + 1}`,
       sport: "MLB",
       league: null,
-      market: "Moneyline",
-      selection: "Yankees",
-      oddsAmerican: -120,
+      market: index % 2 === 0 ? "Moneyline" : "Run Line",
+      selection: index % 2 === 0 ? "Yankees" : "Yankees -1.5",
+      oddsAmerican: index === 0 ? -120 : -110,
       units: 1,
-      outcome: "WIN",
-      profitUnits: 0.83,
-      createdAt: new Date("2026-07-17T18:00:00Z"),
+      outcome: loss ? "LOSS" : "WIN",
+      profitUnits: loss ? -1 : index === 0 ? 0.83 : 0.91,
+      createdAt: new Date(Date.UTC(2026, 6, 17 - index, 18, 0, 0)),
       verificationTier: "VERIFIED",
       side: "Yankees",
-      eventStartsAt: new Date("2026-07-17T23:05:00Z"),
+      eventStartsAt: new Date(Date.UTC(2026, 6, 17 - index, 23, 5, 0)),
       book: "draftkings",
       notes: null,
-      closingOddsAmerican: -115,
-      clvPts: 0.9,
-    },
-  ];
+      closingOddsAmerican: index === 0 ? -115 : -108,
+      clvPts: index === 0 ? 0.9 : 0.4,
+    };
+  });
 
   const packages = [
     {
@@ -92,16 +93,15 @@ export default function DesktopProfileCompositionQaPage() {
           plays={plays}
           avgClv={1.2}
           emptyName={capper.name}
-          desktopStorefront={
-            <ResponsiveCapperStorefront
-              viewport="desktop"
-              className="mt-0"
-              storefront={capper.storefront}
-              capperName={capper.name}
-              packages={packages}
-            />
-          }
         />
+        <div className="border-border mt-8 border-t pt-6">
+          <CapperStorefront
+            className="mt-0"
+            storefront={capper.storefront}
+            capperName={capper.name}
+            packages={packages}
+          />
+        </div>
       </div>
     </div>
   );

@@ -104,7 +104,7 @@ export default async function Home() {
     await getPlatformClvSummary();
 
   // Snapshot = board place by units. Top cappers = inspectability by verified share.
-  const snapshot = sortLeaderboard(cappers, "units").slice(0, 5);
+  const snapshot = sortLeaderboard(cappers, "units").slice(0, 3);
   const topCappers = sortLeaderboard(cappers, "verified").slice(0, 5);
 
   return (
@@ -116,14 +116,14 @@ export default async function Home() {
         label={gradedWinsTicker.label}
       />
 
-      <div className="mx-auto max-w-[1400px] overflow-x-hidden px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+      <div className="mx-auto max-w-[1400px] overflow-x-hidden px-4 pt-5 pb-8 sm:px-6 sm:pt-6 sm:pb-10 lg:px-8">
         <HomeEvidenceField
           leaderboard={
             <LeaderboardSnapshot
               cappers={snapshot}
               failed={leaderboardFailed}
               updatedAt={updatedAt}
-              limit={5}
+              limit={3}
             />
           }
           featuredProof={

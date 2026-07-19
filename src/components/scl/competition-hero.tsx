@@ -69,7 +69,7 @@ export function CompetitionHero() {
 
   return (
     <section
-      className="relative min-h-[31rem] w-full overflow-hidden border-b border-[color:var(--scl-hero-line)] bg-[color:var(--scl-hero-ink)] text-[color:var(--scl-hero-text)] [--ring:var(--scl-hero-blue)] sm:min-h-[32rem]"
+      className="relative min-h-[29rem] w-full overflow-hidden border-b border-[color:var(--scl-hero-line)] bg-[color:var(--scl-hero-ink)] text-[color:var(--scl-hero-text)] [--ring:var(--scl-hero-blue)] sm:min-h-[30rem]"
       aria-roledescription="carousel"
       aria-label="SCL highlights"
       onMouseEnter={() => setPaused(true)}
@@ -128,7 +128,7 @@ export function CompetitionHero() {
         className="absolute inset-0 bg-gradient-to-t from-[color:var(--scl-hero-ink)]/32 via-transparent to-[color:var(--scl-hero-ink)]/10"
       />
 
-      <div className="relative mx-auto flex min-h-[31rem] w-full max-w-[1400px] flex-col px-4 py-8 sm:min-h-[32rem] sm:justify-center sm:px-6 sm:py-10 lg:px-8">
+      <div className="relative mx-auto flex min-h-[29rem] w-full max-w-[1400px] flex-col px-4 py-7 sm:min-h-[30rem] sm:justify-center sm:px-6 sm:py-9 lg:px-8">
         {/*
           Layer 5 — stack every slide in one grid cell so the tallest copy owns
           height. Opacity-only swaps avoid translateY remount rumble.

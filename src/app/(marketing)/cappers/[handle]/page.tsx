@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { identityDisplayLinesFromCapper } from "@/lib/identity";
-import { buildCapperProfileMetadata } from "@/lib/capper-profile-seo";
-import { getPublicCapperByHandle } from "@/lib/queries/capper";
-import { getLivePackagesForCapper } from "@/lib/queries/store";
 import { CapperProfileHeader } from "@/components/scl/capper-profile-header";
 import { CapperProfileMeta } from "@/components/scl/capper-profile-meta";
+import { CapperStorefront } from "@/components/scl/capper-storefront";
 import { CompareTray } from "@/components/scl/compare-tray";
 import { EvidenceBrief } from "@/components/scl/evidence-brief";
-import { ResponsiveCapperStorefront } from "@/components/scl/responsive-capper-storefront";
+import { buildCapperProfileMetadata } from "@/lib/capper-profile-seo";
+import { identityDisplayLinesFromCapper } from "@/lib/identity";
+import { getPublicCapperByHandle } from "@/lib/queries/capper";
+import { getLivePackagesForCapper } from "@/lib/queries/store";
 
 type ProfileParams = { params: Promise<{ handle: string }> };
 
@@ -45,21 +45,10 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
           avgClv={avgClv}
           clvTracker={clvTracker}
           emptyName={identity.primary}
-          desktopStorefront={
-            <ResponsiveCapperStorefront
-              viewport="desktop"
-              className="mt-0"
-              storefront={capper.storefront}
-              capperName={identity.primary}
-              packages={packages}
-            />
-          }
         />
         <CapperProfileMeta capper={capper} />
-        {/* Mobile stack unchanged: EvidenceBrief → Meta → Marketplace */}
-        <div className="border-border mt-6 border-t pt-5 lg:hidden">
-          <ResponsiveCapperStorefront
-            viewport="mobile"
+        <div className="border-border mt-8 border-t pt-6 sm:mt-10 sm:pt-8">
+          <CapperStorefront
             className="mt-0"
             storefront={capper.storefront}
             capperName={identity.primary}
