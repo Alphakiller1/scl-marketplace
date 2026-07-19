@@ -27,7 +27,11 @@ export type ProofReceiptState =
   | "source-unavailable";
 
 export type ProofReceiptDensity =
-  "feed" | "expanded-paper" | "mobile" | "share-image" | "text-only";
+  | "feed"
+  | "expanded-paper"
+  | "mobile"
+  | "share-image"
+  | "text-only";
 
 export type DeriveProofReceiptStateInput = {
   outcome?: Outcome | null;
