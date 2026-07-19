@@ -86,11 +86,11 @@ export function CompetitionHero() {
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(90%_80%_at_70%_55%,rgba(16,95,217,0.21),transparent_55%),radial-gradient(70%_70%_at_25%_45%,rgba(166,0,127,0.16),transparent_50%),linear-gradient(180deg,var(--scl-ink-950),var(--scl-ink-900))]"
       />
-      {/* Layer 1 — original-design bleed (object-cover) so the hero is edge-to-edge */}
+      {/* Desktop uses one integrated banner; mobile keeps its purpose-built atmosphere. */}
       <picture className="pointer-events-none absolute inset-0 block size-full">
         <source
           media="(min-width: 640px)"
-          srcSet="/assets/scl/leaderboard-hero-atmosphere-desktop.webp?v=20260717f5"
+          srcSet="/assets/scl/leaderboard-hero-integrated-v4.webp"
         />
         <img
           src="/assets/scl/leaderboard-hero-atmosphere-mobile.webp?v=20260717f5"
@@ -102,12 +102,8 @@ export function CompetitionHero() {
           className="absolute inset-0 size-full max-w-none object-cover object-center opacity-[0.84]"
         />
       </picture>
-      {/* Layer 2 — opaque original trophy scene (object-contain); leave framing as-designed */}
-      <picture className="pointer-events-none absolute inset-0 block size-full">
-        <source
-          media="(min-width: 640px)"
-          srcSet="/assets/scl/leaderboard-trophy-desktop.webp?v=20260717f5"
-        />
+      {/* Mobile-only trophy; the desktop trophy is integrated into the banner above. */}
+      <picture className="pointer-events-none absolute inset-0 block size-full sm:hidden">
         <img
           src="/assets/scl/leaderboard-trophy-mobile.webp?v=20260717f5"
           alt=""
