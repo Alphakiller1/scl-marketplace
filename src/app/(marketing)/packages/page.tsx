@@ -5,7 +5,7 @@ import { ArrowRight, PackageOpen, ShieldCheck } from "lucide-react";
 import { PackagesRegister } from "@/components/scl/packages-register";
 import { Button } from "@/components/ui/button";
 import { STOREFRONT_PAYMENT_DISCLAIMER } from "@/lib/cold-start-copy";
-import { getLeaderboardResult } from "@/lib/queries/leaderboard";
+import { getPublicCapperEvidenceByIds } from "@/lib/queries/leaderboard";
 import { listActiveMarketplacePackagesResult } from "@/lib/queries/store";
 
 export const metadata: Metadata = {
@@ -81,11 +81,13 @@ function MarketplaceEmpty({ failed = false }: { failed?: boolean }) {
 }
 
 export default async function PackagesPage() {
-  const [marketplace, leaderboard] = await Promise.all([
-    listActiveMarketplacePackagesResult(),
-    getLeaderboardResult({ window: "all", minPicks: 0, verifiedOnly: false }),
-  ]);
-  const cappers = leaderboard.cappers.concat(leaderboard.unranked);
+  const marketplace = await listActiveMarketplacePackagesResult();
+  const evidence =
+    !marketplace.failed && marketplace.packages.length > 0
+      ? await getPublicCapperEvidenceByIds(
+          marketplace.packages.map((pkg) => pkg.capperId),
+        )
+      : { cappers: [], failed: false };
 
   return (
     <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
@@ -133,8 +135,8 @@ export default async function PackagesPage() {
         <>
           <PackagesRegister
             packages={marketplace.packages}
-            cappers={cappers}
-            evidenceFailed={leaderboard.failed}
+            cappers={evidence.cappers}
+            evidenceFailed={evidence.failed}
           />
           <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
             Verified share describes board verification at submission, not pick

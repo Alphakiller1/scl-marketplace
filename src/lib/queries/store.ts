@@ -4,6 +4,10 @@ import type { StoreProvider } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
+import {
+  activePublicPackageWhere,
+  publicPackagePublicationWhere,
+} from "@/lib/public-packages";
 import { formatPriceCents } from "@/lib/store-connection";
 
 export type StoreConnectionRow = Awaited<
@@ -142,16 +146,6 @@ export type PublicMarketplacePackage = PublicPackageCard & {
   capperName: string;
 };
 
-const livePackageWhere = {
-  isActive: true,
-  checkoutUrl: { not: null },
-  trackingUrls: { some: {} },
-  OR: [
-    { storeConnection: { status: "LIVE" as const } },
-    { storeConnectionId: null },
-  ],
-};
-
 /** Live packages for a public capper profile — CTAs use /go/[slug] only. */
 async function queryLivePackagesForCapper(
   capperId: string,
@@ -165,8 +159,9 @@ async function queryLivePackagesForCapper(
     const packages = await prisma.package.findMany({
       where: {
         capperId,
-        ...(excludeTest ? { capper: { user: excludeTest } } : undefined),
-        ...livePackageWhere,
+        ...(publication === "public" && excludeTest
+          ? publicPackagePublicationWhere(excludeTest)
+          : activePublicPackageWhere),
       },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
       select: {
@@ -224,14 +219,7 @@ export async function listActiveMarketplacePackagesResult(): Promise<{
     const excludeTest = await prismaExcludeTestHandlesLive();
     const packages = await prisma.package.findMany({
       where: {
-        ...livePackageWhere,
-        capper: {
-          user: {
-            username: { not: null },
-            accountStatus: "ACTIVE",
-            ...excludeTest,
-          },
-        },
+        ...publicPackagePublicationWhere(excludeTest),
       },
       orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
       take: 60,
