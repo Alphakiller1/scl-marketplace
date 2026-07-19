@@ -43,82 +43,96 @@ export async function getPublicProfileHistoryPage(
 ): Promise<PublicProfileHistoryPage> {
   const notesPublicReady = await hasNotesPublicColumn();
   const clvReady = await hasClvColumns();
-  const rows = await prisma.play.findMany({
-    where: {
-      capper: { user: { username: handle, accountStatus: "ACTIVE" } },
-      units: { gte: UNIT_MIN },
-      parlayId: null,
-    },
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    take: PROFILE_HISTORY_FETCH_SIZE,
-    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    select: {
-      id: true,
-      sport: true,
-      league: true,
-      market: true,
-      selection: true,
-      oddsAmerican: true,
-      units: true,
-      outcome: true,
-      profitUnits: true,
-      createdAt: true,
-      verificationTier: true,
-      side: true,
-      eventStartsAt: true,
-      book: true,
-      notes: true,
-      ...(notesPublicReady ? { notesPublic: true } : {}),
-      ...(clvReady ? { closingOddsAmerican: true, clvPts: true } : {}),
-    },
-  });
-  const visible = rows
-    .filter((row) => !hasQaNoteMarker(row.notes))
-    .map((row) => ({
-      id: row.id,
-      sport: row.sport,
-      league: row.league,
-      market: row.market,
-      selection: row.selection,
-      oddsAmerican: row.oddsAmerican,
-      units: Number(row.units),
-      outcome: row.outcome,
-      profitUnits: row.profitUnits == null ? null : Number(row.profitUnits),
-      createdAt: row.createdAt,
-      verificationTier: row.verificationTier,
-      side: row.side,
-      eventStartsAt: row.eventStartsAt,
-      book: row.book,
-      notes:
-        "notesPublic" in row &&
-        (row as { notesPublic?: boolean }).notesPublic === false
-          ? null
-          : row.notes,
-      notesPublic:
-        "notesPublic" in row
-          ? ((row as { notesPublic?: boolean }).notesPublic ?? true)
-          : true,
-      closingOddsAmerican:
-        "closingOddsAmerican" in row
-          ? ((row as { closingOddsAmerican?: number | null })
-              .closingOddsAmerican ?? null)
-          : null,
-      clvPts:
-        "clvPts" in row && (row as { clvPts?: unknown }).clvPts != null
-          ? Number((row as { clvPts: unknown }).clvPts)
-          : null,
-    }))
-    .filter((play) => isValidPublicStake(play.units));
+  const visible: PlayView[] = [];
+  let scanCursor = cursor ?? null;
+  let exhausted = false;
+
+  for (
+    let batch = 0;
+    batch < 4 && visible.length <= PROFILE_HISTORY_PAGE_SIZE && !exhausted;
+    batch += 1
+  ) {
+    const rows = await prisma.play.findMany({
+      where: {
+        capper: { user: { username: handle, accountStatus: "ACTIVE" } },
+        units: { gte: UNIT_MIN },
+        parlayId: null,
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: PROFILE_HISTORY_FETCH_SIZE,
+      ...(scanCursor ? { cursor: { id: scanCursor }, skip: 1 } : {}),
+      select: {
+        id: true,
+        sport: true,
+        league: true,
+        market: true,
+        selection: true,
+        oddsAmerican: true,
+        units: true,
+        outcome: true,
+        profitUnits: true,
+        createdAt: true,
+        verificationTier: true,
+        side: true,
+        eventStartsAt: true,
+        book: true,
+        notes: true,
+        ...(notesPublicReady ? { notesPublic: true } : {}),
+        ...(clvReady ? { closingOddsAmerican: true, clvPts: true } : {}),
+      },
+    });
+    if (rows.length === 0) {
+      exhausted = true;
+      break;
+    }
+    scanCursor = rows.at(-1)?.id ?? scanCursor;
+    exhausted = rows.length < PROFILE_HISTORY_FETCH_SIZE;
+    visible.push(
+      ...rows
+        .filter((row) => !hasQaNoteMarker(row.notes))
+        .map((row) => ({
+          id: row.id,
+          sport: row.sport,
+          league: row.league,
+          market: row.market,
+          selection: row.selection,
+          oddsAmerican: row.oddsAmerican,
+          units: Number(row.units),
+          outcome: row.outcome,
+          profitUnits: row.profitUnits == null ? null : Number(row.profitUnits),
+          createdAt: row.createdAt,
+          verificationTier: row.verificationTier,
+          side: row.side,
+          eventStartsAt: row.eventStartsAt,
+          book: row.book,
+          notes:
+            "notesPublic" in row &&
+            (row as { notesPublic?: boolean }).notesPublic === false
+              ? null
+              : row.notes,
+          notesPublic:
+            "notesPublic" in row
+              ? ((row as { notesPublic?: boolean }).notesPublic ?? true)
+              : true,
+          closingOddsAmerican:
+            "closingOddsAmerican" in row
+              ? ((row as { closingOddsAmerican?: number | null })
+                  .closingOddsAmerican ?? null)
+              : null,
+          clvPts:
+            "clvPts" in row && (row as { clvPts?: unknown }).clvPts != null
+              ? Number((row as { clvPts: unknown }).clvPts)
+              : null,
+        }))
+        .filter((play) => isValidPublicStake(play.units)),
+    );
+  }
   const plays = visible.slice(0, PROFILE_HISTORY_PAGE_SIZE);
-  const mayHaveMore =
-    visible.length > PROFILE_HISTORY_PAGE_SIZE ||
-    rows.length === PROFILE_HISTORY_FETCH_SIZE;
+  const mayHaveMore = visible.length > PROFILE_HISTORY_PAGE_SIZE || !exhausted;
 
   return {
     plays,
-    nextCursor: mayHaveMore
-      ? (plays.at(-1)?.id ?? rows.at(-1)?.id ?? null)
-      : null,
+    nextCursor: mayHaveMore ? (plays.at(-1)?.id ?? scanCursor) : null,
   };
 }
 
@@ -140,9 +154,17 @@ export const getPublicCapperByHandle = cache(
     let chartSeries = buildProfileChartSeries([], new Date());
     let historyNextCursor: string | null = null;
 
-    const [historyResult, chartRowsResult] = await Promise.allSettled([
-      getPublicProfileHistoryPage(handle),
-      prisma.play.findMany({
+    try {
+      const history = await getPublicProfileHistoryPage(handle);
+      plays = history.plays;
+      historyNextCursor = history.nextCursor;
+    } catch (error) {
+      console.error("[getPublicCapperByHandle] history unavailable:", error);
+      playsError = true;
+    }
+
+    try {
+      const chartRows = await prisma.play.findMany({
         where: {
           capperId: capper.id,
           units: { gte: UNIT_MIN },
@@ -156,23 +178,9 @@ export const getPublicCapperByHandle = cache(
           profitUnits: true,
           notes: true,
         },
-      }),
-    ]);
-
-    if (historyResult.status === "fulfilled") {
-      plays = historyResult.value.plays;
-      historyNextCursor = historyResult.value.nextCursor;
-    } else {
-      console.error(
-        "[getPublicCapperByHandle] plays unavailable:",
-        historyResult.reason,
-      );
-      playsError = true;
-    }
-
-    if (chartRowsResult.status === "fulfilled") {
+      });
       chartSeries = buildProfileChartSeries(
-        chartRowsResult.value
+        chartRows
           .filter((row) => !hasQaNoteMarker(row.notes))
           .map((row) => ({
             createdAt: row.createdAt,
@@ -182,11 +190,8 @@ export const getPublicCapperByHandle = cache(
           })),
         new Date(),
       );
-    } else {
-      console.error(
-        "[getPublicCapperByHandle] chart unavailable:",
-        chartRowsResult.reason,
-      );
+    } catch (error) {
+      console.error("[getPublicCapperByHandle] chart unavailable:", error);
     }
 
     try {

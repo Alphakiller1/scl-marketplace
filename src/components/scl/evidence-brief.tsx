@@ -451,7 +451,7 @@ export function EvidenceBrief({
           <VerificationHelpLink className="text-muted-foreground hover:text-foreground inline-flex min-h-11 shrink-0 gap-1.5 self-start px-2 text-xs font-medium" />
         </div>
 
-        {plays.length > 0 || historyNextCursor != null ? (
+        {plays.length || historyNextCursor ? (
           <>
             <VerificationLegend className="mt-4" />
             <ProofHistoryLedger
