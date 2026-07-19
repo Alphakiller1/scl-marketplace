@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState, useTransition } from "react";
 import { ChevronDown, Filter, ReceiptText } from "lucide-react";
 
 import { CapperAvatar } from "@/components/scl/capper-avatar";
@@ -18,12 +18,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { bookLabel } from "@/lib/books";
+import { SPORTS } from "@/lib/constants";
 import { formatOdds, formatUnits } from "@/lib/format";
 import type { TodayPick } from "@/lib/mock";
 import { profitUnitsForOutcome } from "@/lib/odds";
 import {
   DEFAULT_PUBLIC_PICKS_FILTERS,
-  filterPublicPicks,
   isPublicPickGraded,
   publicPickProofState,
   type PublicPicksLedgerFilters,
@@ -38,7 +38,6 @@ type PublicPicksLedgerProps = {
   initialFilters: PublicPicksLedgerFilters;
   initialReceiptId?: string | null;
   gradingHealthy: boolean;
-  nowIso: string;
 };
 
 const CAPTURE_FORMAT = new Intl.DateTimeFormat("en-US", {
@@ -49,6 +48,11 @@ const CAPTURE_FORMAT = new Intl.DateTimeFormat("en-US", {
   minute: "2-digit",
   hour12: true,
 });
+
+const PUBLIC_SPORT_OPTIONS = [
+  ["all", "All"],
+  ...SPORTS.map((sport) => [sport.key, sport.key] as const),
+] as const;
 
 function formatCaptureTime(value: Date): string {
   return `${CAPTURE_FORMAT.format(new Date(value))} ET`;
@@ -79,21 +83,12 @@ export function PublicPicksLedger({
   initialFilters,
   initialReceiptId = null,
   gradingHealthy,
-  nowIso,
 }: PublicPicksLedgerProps) {
   const router = useRouter();
-  const [filters, setFilters] = useState(initialFilters);
   const [openId, setOpenId] = useState<string | null>(initialReceiptId);
-
-  const sports = useMemo(
-    () =>
-      Array.from(new Set(picks.map((pick) => pick.sport.toUpperCase()))).sort(),
-    [picks],
-  );
-  const filtered = useMemo(
-    () => filterPublicPicks(picks, filters, new Date(nowIso)),
-    [filters, nowIso, picks],
-  );
+  const [isPending, startTransition] = useTransition();
+  const filters = initialFilters;
+  const filtered = picks;
 
   function replaceQuery(
     nextFilters: PublicPicksLedgerFilters,
@@ -115,9 +110,8 @@ export function PublicPicksLedger({
   }
 
   function updateFilters(nextFilters: PublicPicksLedgerFilters) {
-    setFilters(nextFilters);
     setOpenId(null);
-    replaceQuery(nextFilters, null);
+    startTransition(() => replaceQuery(nextFilters, null));
   }
 
   function toggleReceipt(id: string) {
@@ -127,7 +121,11 @@ export function PublicPicksLedger({
   }
 
   return (
-    <section className="mt-5" aria-labelledby="public-picks-ledger-heading">
+    <section
+      className="mt-5"
+      aria-labelledby="public-picks-ledger-heading"
+      aria-busy={isPending}
+    >
       <h2 id="public-picks-ledger-heading" className="sr-only">
         Public picks ledger
       </h2>
@@ -159,10 +157,7 @@ export function PublicPicksLedger({
             onValueChange={(value) =>
               updateFilters({ ...filters, sport: value })
             }
-            options={[
-              ["all", "All"],
-              ...sports.map((sport) => [sport, sport] as const),
-            ]}
+            options={PUBLIC_SPORT_OPTIONS}
           />
           <ScopeSelect
             label="Status"
@@ -172,7 +167,7 @@ export function PublicPicksLedger({
             }
             options={[
               ["all", "All"],
-              ["pending", "Pending"],
+              ["pending", "Ungraded"],
               ["live", "Live"],
               ["graded", "Graded"],
             ]}
@@ -180,7 +175,7 @@ export function PublicPicksLedger({
         </div>
         <div className="flex min-h-11 items-center justify-between gap-3 lg:justify-end">
           <p className="scl-data text-foreground text-sm font-semibold tabular-nums">
-            {filterLabel(filtered.length)}
+            {isPending ? "Updating scope…" : filterLabel(filtered.length)}
           </p>
           <p className="text-muted-foreground hidden text-xs sm:block">
             Open one row to inspect its receipt.

@@ -26,6 +26,7 @@ export default async function PicksPage({
 }) {
   const params = await searchParams;
   const filters = parsePublicPicksLedgerFilters(params);
+  const now = new Date();
   const {
     cappers,
     unranked,
@@ -34,6 +35,8 @@ export default async function PicksPage({
   const { picks, failed: picksFailed } = await getPublicRecentPicksResult(
     publicFeedCappers(cappers, unranked),
     24,
+    filters,
+    now,
   );
   const gradingHealthy = await getGradingHealth();
   const failed = leaderboardFailed || picksFailed;
@@ -75,7 +78,6 @@ export default async function PicksPage({
           initialFilters={filters}
           initialReceiptId={initialReceiptId}
           gradingHealthy={gradingHealthy}
-          nowIso={new Date().toISOString()}
         />
       ) : (
         <EmptyState

@@ -7,6 +7,7 @@ import {
   parsePublicPicksLedgerFilters,
   publicPickProofState,
 } from "@/lib/public-picks-ledger";
+import { buildPublicPicksScopeWhere } from "@/lib/public-picks-scope";
 
 function pick(overrides: Partial<TodayPick>): TodayPick {
   return {
@@ -73,5 +74,55 @@ test("verified remains submission proof and does not override settlement", () =>
       pick({ status: "pre-game", verificationTier: "SELF_REPORTED" }),
     ),
     "pending",
+  );
+});
+
+test("server scope applies sport, window, and graded predicates before take", () => {
+  const now = new Date("2026-07-19T12:00:00.000Z");
+  assert.deepEqual(
+    buildPublicPicksScopeWhere(
+      { window: "7d", sport: "MLB", status: "graded" },
+      now,
+    ),
+    {
+      createdAt: { gte: new Date("2026-07-12T12:00:00.000Z") },
+      sport: "MLB",
+      outcome: { in: ["WIN", "LOSS", "PUSH", "VOID"] },
+    },
+  );
+});
+
+test("server live scope matches the shared five-hour lifecycle window", () => {
+  const now = new Date("2026-07-19T12:00:00.000Z");
+  assert.deepEqual(
+    buildPublicPicksScopeWhere(
+      { window: "all", sport: "all", status: "live" },
+      now,
+    ),
+    {
+      outcome: "PENDING",
+      eventStartsAt: {
+        gt: new Date("2026-07-19T07:00:00.000Z"),
+        lte: now,
+      },
+    },
+  );
+});
+
+test("server ungraded scope excludes only the current live window", () => {
+  const now = new Date("2026-07-19T12:00:00.000Z");
+  assert.deepEqual(
+    buildPublicPicksScopeWhere(
+      { window: "all", sport: "all", status: "pending" },
+      now,
+    ),
+    {
+      outcome: "PENDING",
+      OR: [
+        { eventStartsAt: null },
+        { eventStartsAt: { gt: now } },
+        { eventStartsAt: { lte: new Date("2026-07-19T07:00:00.000Z") } },
+      ],
+    },
   );
 });

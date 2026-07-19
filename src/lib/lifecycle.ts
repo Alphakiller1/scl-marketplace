@@ -14,7 +14,7 @@ import type { PickStatus } from "@/lib/mock";
 
 // Generous window after the scheduled start before a still-ungraded pick reads as
 // "awaiting grade" — covers long games + settlement lag without flipping too early.
-const EXPECTED_FINAL_MS = 5 * 60 * 60 * 1000;
+export const EXPECTED_FINAL_MS = 5 * 60 * 60 * 1000;
 
 export function deriveLifecycle(params: {
   outcome: Outcome;
