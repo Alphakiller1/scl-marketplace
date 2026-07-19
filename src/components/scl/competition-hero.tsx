@@ -104,6 +104,10 @@ export function CompetitionHero() {
       </picture>
       {/* Mobile-only trophy; the desktop trophy is integrated into the banner above. */}
       <picture className="pointer-events-none absolute inset-0 block size-full sm:hidden">
+        <source
+          media="(min-width: 640px)"
+          srcSet="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+        />
         <img
           src="/assets/scl/leaderboard-trophy-mobile.webp?v=20260717f5"
           alt=""
