@@ -11,6 +11,7 @@ import {
 } from "@/lib/profile-chart-window";
 import { prisma } from "@/lib/prisma";
 import { hasQaNoteMarker, isValidPublicStake } from "@/lib/public-eligibility";
+import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 import type { PlayView } from "@/lib/queries/plays";
 import {
@@ -43,6 +44,7 @@ export async function getPublicProfileHistoryPage(
   handle: string,
   cursor?: string | null,
 ): Promise<PublicProfileHistoryPage> {
+  const excludeTest = await prismaExcludeTestHandlesLive();
   const notesPublicReady = await hasNotesPublicColumn();
   const clvReady = await hasClvColumns();
   const visible: PlayView[] = [];
@@ -62,6 +64,7 @@ export async function getPublicProfileHistoryPage(
           user: {
             username: { equals: handle, mode: "insensitive" },
             accountStatus: "ACTIVE",
+            ...excludeTest,
           },
         },
         units: { gte: UNIT_MIN },

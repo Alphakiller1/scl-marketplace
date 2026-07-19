@@ -3,6 +3,7 @@ import "server-only";
 import type { StoreProvider } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 import { formatPriceCents } from "@/lib/store-connection";
 
 export type StoreConnectionRow = Awaited<
@@ -146,13 +147,19 @@ const livePackageWhere = {
 };
 
 /** Live packages for a public capper profile — CTAs use /go/[slug] only. */
-export async function getLivePackagesForCapper(
+async function queryLivePackagesForCapper(
   capperId: string,
+  publication: "public" | "owner",
 ): Promise<PublicPackageCard[]> {
   try {
+    const excludeTest =
+      publication === "public"
+        ? await prismaExcludeTestHandlesLive()
+        : undefined;
     const packages = await prisma.package.findMany({
       where: {
         capperId,
+        ...(excludeTest ? { capper: { user: excludeTest } } : undefined),
         ...livePackageWhere,
       },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
@@ -184,15 +191,33 @@ export async function getLivePackagesForCapper(
         trackingPath: `/go/${p.trackingUrls[0]!.slug}`,
       }));
   } catch (error) {
-    console.error("[getLivePackagesForCapper] database unavailable:", error);
+    console.error("[queryLivePackagesForCapper] database unavailable:", error);
     return [];
   }
 }
 
+/** Live packages for a public capper profile; CTAs use /go/[slug] only. */
+export async function getLivePackagesForCapper(
+  capperId: string,
+): Promise<PublicPackageCard[]> {
+  return queryLivePackagesForCapper(capperId, "public");
+}
+
+/** Owner dashboard view; test-account owners may inspect their own offers. */
+export async function getOwnerLivePackagesForCapper(
+  capperId: string,
+): Promise<PublicPackageCard[]> {
+  return queryLivePackagesForCapper(capperId, "owner");
+}
+
 export async function listActiveMarketplacePackages() {
   try {
+    const excludeTest = await prismaExcludeTestHandlesLive();
     const packages = await prisma.package.findMany({
-      where: livePackageWhere,
+      where: {
+        ...livePackageWhere,
+        capper: { user: excludeTest },
+      },
       orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
       take: 60,
       select: {

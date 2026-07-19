@@ -4,9 +4,11 @@ import { test } from "node:test";
 import {
   hasQaNoteMarker,
   isExcludedFromPublicPublication,
+  isTestEmail,
   isTestHandle,
   isValidPublicStake,
   prismaExcludeTestHandles,
+  PUBLIC_EXCLUDED_EMAIL_SUFFIXES,
   PUBLIC_EXCLUDED_HANDLES,
 } from "@/lib/public-eligibility";
 
@@ -24,6 +26,15 @@ test("isTestHandle excludes known public fixture handles", () => {
     assert.equal(isTestHandle(handle.toUpperCase()), true);
   }
   assert.equal(isTestHandle("demo_capper_real"), false);
+});
+
+test("isTestEmail excludes the ghost dataset namespace", () => {
+  for (const suffix of PUBLIC_EXCLUDED_EMAIL_SUFFIXES) {
+    assert.equal(isTestEmail(`capper${suffix}`), true);
+    assert.equal(isTestEmail(`CAPPER${suffix.toUpperCase()}`), true);
+  }
+  assert.equal(isTestEmail("capper@example.com"), false);
+  assert.equal(isTestEmail(null), false);
 });
 
 test("hasQaNoteMarker flags QA fixtures, not genuine analysis", () => {
@@ -73,6 +84,14 @@ test("isExcludedFromPublicPublication honors isTest over handle alone", () => {
     isExcludedFromPublicPublication({ username: "demo_capper", isTest: false }),
     true,
   );
+  assert.equal(
+    isExcludedFromPublicPublication({
+      username: "credible-looking-handle",
+      email: "synthetic@ghost.scl.demo",
+      isTest: false,
+    }),
+    true,
+  );
 });
 
 test("prismaExcludeTestHandles adds isTest when column ready", () => {
@@ -85,4 +104,32 @@ test("prismaExcludeTestHandles adds isTest when column ready", () => {
   const and = withCol.AND as unknown[];
   assert.deepEqual(and[0], { isTest: false });
   assert.ok(and[1] && typeof and[1] === "object" && "NOT" in and[1]);
+  const guard = and[1] as { NOT: { OR: unknown[] } };
+  assert.ok(
+    guard.NOT.OR.some(
+      (entry) =>
+        JSON.stringify(entry) ===
+        JSON.stringify({
+          email: { endsWith: "@ghost.scl.demo", mode: "insensitive" },
+        }),
+    ),
+  );
+});
+
+test("ghost publication opt-in remains narrow and non-default", () => {
+  const preview = prismaExcludeTestHandles({
+    includeIsTestColumn: true,
+    allowGhostAccounts: true,
+  });
+  const and = (preview as { AND: unknown[] }).AND;
+  assert.deepEqual(and[0], {
+    OR: [
+      { isTest: false },
+      {
+        email: { endsWith: "@ghost.scl.demo", mode: "insensitive" },
+      },
+    ],
+  });
+  assert.equal(JSON.stringify(and[1]).includes("@ghost.scl.demo"), false);
+  assert.equal(JSON.stringify(and[1]).includes("solpickz"), true);
 });
