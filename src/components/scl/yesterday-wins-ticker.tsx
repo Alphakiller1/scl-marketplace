@@ -1,6 +1,7 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
+import { Pause, Play } from "lucide-react";
 import Link from "next/link";
 
 import type { GradedTickerResult } from "@/lib/queries/yesterday-wins";
@@ -130,6 +131,7 @@ export function YesterdayWinsTicker({
   results?: GradedTickerResult[];
   label?: "Yesterday's graded results" | "Recent graded results";
 }) {
+  const [paused, setPaused] = useState(false);
   const items = results ?? wins ?? [];
   if (items.length === 0) return null;
 
@@ -142,23 +144,27 @@ export function YesterdayWinsTicker({
       aria-label={label}
       className="border-border border-b bg-[color:var(--scl-ink-900)]"
     >
-      <div className="mx-auto flex max-w-[1400px] items-center gap-3 px-4 py-2.5 sm:gap-4 sm:px-6 lg:px-8">
-        <p className="scl-eyebrow shrink-0 border-r border-[color:var(--scl-line)] pr-3 text-[color:var(--scl-muted-label)] sm:pr-4">
+      <div className="group/ticker mx-auto flex max-w-[1400px] items-center gap-3 px-4 py-2.5 sm:gap-4 sm:px-6 lg:px-8">
+        <p className="scl-eyebrow hidden shrink-0 border-r border-[color:var(--scl-line)] pr-3 text-[color:var(--scl-muted-label)] sm:block sm:pr-4">
           {label}
         </p>
 
         <div
           className={cn(
-            "group/ticker relative min-w-0 flex-1 overflow-hidden",
+            "relative min-w-0 flex-1 overflow-hidden",
             "motion-reduce:hidden",
             "[mask-image:linear-gradient(to_right,transparent,black_1.25rem,black_calc(100%-1.25rem),transparent)]",
           )}
         >
           <div
-            className="scl-ticker-track flex w-max items-center gap-2.5 group-hover/ticker:[animation-play-state:paused]"
+            className="scl-ticker-track flex w-max items-center gap-2.5 group-focus-within/ticker:[animation-play-state:paused] group-hover/ticker:[animation-play-state:paused]"
             style={
               {
-                animation: `scl-ticker ${durationSec}s linear infinite`,
+                animationName: "scl-ticker",
+                animationDuration: `${durationSec}s`,
+                animationTimingFunction: "linear",
+                animationIterationCount: "infinite",
+                animationPlayState: paused ? "paused" : undefined,
               } as CSSProperties
             }
             aria-hidden="true"
@@ -174,7 +180,7 @@ export function YesterdayWinsTicker({
           <ul className="sr-only">
             {items.map((result) => (
               <li key={result.id}>
-                <Link href={`/cappers/${result.handle}`}>@{result.handle}</Link>
+                @{result.handle}
                 {" · "}
                 {outcomeLabel(result.outcome)} · {result.selection} ·{" "}
                 {formatResultUnits(result.outcome, result.profitUnits)}
@@ -183,9 +189,23 @@ export function YesterdayWinsTicker({
           </ul>
         </div>
 
-        <ul className="hidden min-w-0 flex-1 flex-wrap items-center gap-2 motion-reduce:flex">
+        <button
+          type="button"
+          onClick={() => setPaused((current) => !current)}
+          aria-label={paused ? "Resume graded results" : "Pause graded results"}
+          title={paused ? "Resume graded results" : "Pause graded results"}
+          className="border-border text-muted-foreground hover:text-foreground hidden size-10 shrink-0 items-center justify-center rounded-full border bg-[color:var(--scl-ink-800)] outline-none hover:bg-[color:var(--scl-ink-700)] focus-visible:ring-2 focus-visible:ring-[color:var(--scl-blue)] motion-safe:inline-flex"
+        >
+          {paused ? (
+            <Play className="size-3.5" aria-hidden />
+          ) : (
+            <Pause className="size-3.5" aria-hidden />
+          )}
+        </button>
+
+        <ul className="hidden min-w-0 flex-1 items-center gap-2 overflow-x-auto overscroll-x-contain py-0.5 motion-reduce:flex">
           {items.map((result) => (
-            <li key={`static-${result.id}`}>
+            <li key={`static-${result.id}`} className="shrink-0">
               <TickerItem result={result} interactive />
             </li>
           ))}
