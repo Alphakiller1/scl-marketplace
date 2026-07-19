@@ -205,6 +205,11 @@ export function isSettledProofState(state: ProofReceiptState): boolean {
   );
 }
 
+/** A graded unit outcome is a result, never a projected "to win" amount. */
+export function proofUnitsLabel(state: ProofReceiptState): "Result" | "To win" {
+  return isSettledProofState(state) ? "Result" : "To win";
+}
+
 /** Plain-text summary for text-only density / a11y. */
 export function proofReceiptTextSummary(opts: {
   selection: string;

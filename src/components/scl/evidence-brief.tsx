@@ -26,7 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
 import { formatOdds, formatUnits } from "@/lib/format";
 import type { CapperSummary } from "@/lib/mock";
-import { americanToDecimal } from "@/lib/odds";
+import { profitUnitsForOutcome } from "@/lib/odds";
 import { pickContextLabel } from "@/lib/pick-identity";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
 import {
@@ -100,11 +100,16 @@ function playToProofReceipt(
     eventStartsAt: play.eventStartsAt,
     verificationTier: play.verificationTier,
   });
-  const projected = play.units * (americanToDecimal(play.oddsAmerican) - 1);
+  const settled = play.outcome !== "PENDING";
+  const receiptUnits =
+    play.profitUnits ??
+    profitUnitsForOutcome(
+      settled ? play.outcome : "WIN",
+      play.oddsAmerican,
+      play.units,
+    );
   const toWin =
-    play.profitUnits != null
-      ? formatUnits(play.profitUnits)
-      : formatUnits(projected, true, false);
+    receiptUnits == null ? "—" : formatUnits(receiptUnits, true, settled);
   const market = pickContextLabel({
     sport: play.sport,
     league: play.league,

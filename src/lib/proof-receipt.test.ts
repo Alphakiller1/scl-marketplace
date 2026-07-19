@@ -9,6 +9,7 @@ import {
   missingCloseOrClvTooltip,
   proofStampLabel,
   proofStampTone,
+  proofUnitsLabel,
 } from "@/lib/proof-receipt";
 
 describe("deriveProofReceiptState", () => {
@@ -130,5 +131,15 @@ describe("stamp vocabulary", () => {
     assert.equal(proofStampTone("captured"), "pink");
     assert.equal(proofStampTone("won"), "win");
     assert.equal(proofStampTone("loss"), "loss");
+  });
+});
+
+describe("receipt unit label", () => {
+  it("labels graded units as a result and open units as projected", () => {
+    assert.equal(proofUnitsLabel("won"), "Result");
+    assert.equal(proofUnitsLabel("loss"), "Result");
+    assert.equal(proofUnitsLabel("push"), "Result");
+    assert.equal(proofUnitsLabel("captured"), "To win");
+    assert.equal(proofUnitsLabel("live"), "To win");
   });
 });

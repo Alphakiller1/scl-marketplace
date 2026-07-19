@@ -6,7 +6,16 @@ import { ProofReceipt } from "@/components/scl/proof-receipt";
 import type { ProofReceiptState } from "@/lib/proof-receipt";
 
 /** @deprecated Prefer ProofReceiptState — kept for PickCard / feed callers. */
-export type TicketStatus = "verified" | "win" | "loss" | "muted" | "pending";
+export type TicketStatus =
+  | "verified"
+  | "win"
+  | "loss"
+  | "push"
+  | "void"
+  | "live"
+  | "awaiting-grade"
+  | "muted"
+  | "pending";
 
 export type TicketProps = {
   selectionTitle: string;
@@ -32,6 +41,10 @@ export type TicketProps = {
 function ticketStatusToProofState(status: TicketStatus): ProofReceiptState {
   if (status === "win") return "won";
   if (status === "loss") return "loss";
+  if (status === "push") return "push";
+  if (status === "void") return "void";
+  if (status === "live") return "live";
+  if (status === "awaiting-grade") return "awaiting-grade";
   if (status === "verified") return "captured";
   if (status === "pending") return "pending";
   return "pending";
