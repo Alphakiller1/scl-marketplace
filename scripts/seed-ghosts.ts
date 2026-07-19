@@ -543,7 +543,7 @@ function buildPlays(
           ? `${side} — model edge; board-checked at ${odds > 0 ? "+" : ""}${odds}.`
           : null,
     };
-    // Reuse a few verified graded straight plays as parlay legs.
+    // Use a few verified graded plays as parlay legs instead of straight bets.
     if (
       g.hasParlays &&
       verified &&
@@ -552,8 +552,10 @@ function buildPlays(
       chance(0.3)
     )
       parlayPool.push(play);
-    straights.push(play);
+    else straights.push(play);
   }
+  // A parlay needs at least two legs; keep a lone candidate as a straight.
+  if (parlayPool.length === 1) straights.push(parlayPool.pop()!);
   return { straights, parlayPool };
 }
 
