@@ -729,7 +729,7 @@ async function seedGhost(passwordHash: string, g: Ghost) {
       sort: number;
     }[];
     for (const p of pkgs) {
-      await prisma.package.create({
+      const pkg = await prisma.package.create({
         data: {
           capperId,
           storeConnectionId: conn.id,
@@ -743,6 +743,20 @@ async function seedGhost(passwordHash: string, g: Ghost) {
           providerType: g.providerType === "FREE" ? "PREMIUM" : g.providerType,
           sortOrder: p.sort,
           isActive: true,
+        },
+      });
+      // Public marketplace requires a TrackingUrl slug (/go/[slug]) — without it
+      // listActiveMarketplacePackages filters the package out.
+      const slugBase = `${g.username}-${p.title}`
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 48);
+      await prisma.trackingUrl.create({
+        data: {
+          packageId: pkg.id,
+          slug: `${slugBase}-${randInt(1000, 9999)}`,
+          targetUrl: `https://example.com/${provider.toLowerCase()}/${g.username}`,
         },
       });
     }
