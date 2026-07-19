@@ -37,6 +37,8 @@ export default function DesktopProfileCompositionQaPage() {
     settledPicks: 21,
     verifiedShare: 86,
     avgClv: 1.2,
+    headline: "Inspectable MLB pricing and market discipline.",
+    specialties: ["Moneyline", "Run line"],
     storefront: {
       title: "Pete's Marketplace",
       description: "Board-tracked packages — inspect before you buy.",

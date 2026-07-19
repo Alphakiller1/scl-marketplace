@@ -1,12 +1,15 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
-import { ListChecks, Receipt, ShieldCheck } from "lucide-react";
-
 import {
-  CumulativeUnitsChart,
-  buildCumulativeUnits,
-} from "@/components/scl/cumulative-units-chart";
+  Fragment,
+  useMemo,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
+import { ChevronDown, ListChecks, Receipt, ShieldCheck } from "lucide-react";
+
+import { CumulativeUnitsChart } from "@/components/scl/cumulative-units-chart";
 import { ClvTrackerPanel } from "@/components/scl/clv-tracker-panel";
 import { LeagueRef, TeamRef } from "@/components/scl/entity-marks";
 import { ProofReceipt } from "@/components/scl/proof-receipt";
@@ -23,12 +26,19 @@ import { EmptyState } from "@/components/scl/states";
 import { VerificationHelpLink } from "@/components/scl/verification-help-link";
 import { VerificationLegend } from "@/components/scl/verification-legend";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { loadPublicProfileHistory } from "@/app/actions/public-profile-history";
 import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
 import { formatOdds, formatUnits } from "@/lib/format";
 import type { CapperSummary } from "@/lib/mock";
 import { profitUnitsForOutcome } from "@/lib/odds";
 import { pickContextLabel } from "@/lib/pick-identity";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
+import {
+  PROFILE_CHART_WINDOWS,
+  buildProfileChartSeries,
+  type ProfileChartSeries,
+  type ProfileChartWindow,
+} from "@/lib/profile-chart-window";
 import {
   deriveProofReceiptState,
   formatClvPts,
@@ -162,6 +172,8 @@ export function EvidenceBrief({
   playsError,
   avgClv,
   clvTracker: clvTrackerProp,
+  chartSeries: chartSeriesProp,
+  historyNextCursor,
   emptyName,
   className,
 }: {
@@ -170,6 +182,8 @@ export function EvidenceBrief({
   playsError?: boolean;
   avgClv?: number | null;
   clvTracker?: ClvTrackerSummary;
+  chartSeries?: ProfileChartSeries;
+  historyNextCursor?: string | null;
   emptyName: string;
   className?: string;
 }) {
@@ -204,6 +218,7 @@ export function EvidenceBrief({
     }
     return "simple";
   });
+  const [chartWindow, setChartWindow] = useState<ProfileChartWindow>("all");
 
   function onLensChange(next: string | number | null) {
     const v = String(next ?? "simple") as TrustLens;
@@ -216,24 +231,16 @@ export function EvidenceBrief({
     }
   }
 
-  const cumulative = useMemo(() => {
-    const gradedPlays = [...plays]
-      .filter((p) => p.outcome !== "PENDING" && p.profitUnits != null)
-      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-    if (capper.performanceTrend?.length) {
-      return capper.performanceTrend.map((units, i) => ({
-        n: i + 1,
-        units,
-      }));
-    }
-    return buildCumulativeUnits(gradedPlays.map((p) => p.profitUnits ?? 0));
-  }, [plays, capper.performanceTrend]);
+  const chartSeries = useMemo(
+    () => chartSeriesProp ?? buildProfileChartSeries(plays, new Date()),
+    [chartSeriesProp, plays],
+  );
+  const cumulative = chartSeries[chartWindow];
 
   const showClv = signal || lens === "analyst" || lens === "audit";
   const showAuditMeta = lens === "audit";
   const showDeepAnalysis = lens === "analyst" || lens === "audit";
   const featured = plays[0] ?? null;
-  const historyPlays = plays.slice(1);
 
   const latestProof = (
     <section aria-label="Featured proof receipt" className="min-w-0 space-y-2">
@@ -373,26 +380,62 @@ export function EvidenceBrief({
         injects above Meta on mobile — page owns that band.
       */}
       <div
+        data-profile-evidence-grid
         className={cn(
           "grid items-start gap-4 sm:gap-5 lg:gap-0",
           "lg:grid-cols-[minmax(0,1.7fr)_minmax(400px,0.9fr)]",
         )}
       >
         {evidenceRecord}
-        <div className="border-border min-w-0 lg:border-l lg:pl-6">
+        <div className="border-border min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:border-l lg:pl-6">
           {latestProof}
         </div>
-      </div>
-
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.7fr)_minmax(400px,0.9fr)] lg:gap-0">
         <section
+          data-profile-performance-trend
           aria-label="Performance trend"
-          className="border-border min-w-0 space-y-3 border-b pb-5 lg:border-r lg:border-b-0 lg:pr-6 lg:pb-0"
+          className="border-border mt-1 min-w-0 space-y-3 border-b pb-5 lg:col-start-1 lg:row-start-2 lg:mt-6 lg:border-b-0 lg:pr-6 lg:pb-0"
         >
-          <CumulativeUnitsChart points={cumulative} gradedCount={graded} />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="scl-display text-base font-bold tracking-[0.04em]">
+                Performance trend
+              </h2>
+              <p className="text-muted-foreground mt-0.5 text-xs leading-snug">
+                Cumulative units from public single-pick receipts in this scope.
+              </p>
+            </div>
+            <div
+              className="border-border bg-surface-2 inline-flex min-h-11 items-center rounded-[var(--scl-radius-chip)] border p-1"
+              role="group"
+              aria-label="Performance chart window"
+            >
+              {PROFILE_CHART_WINDOWS.map((window) => {
+                const active = chartWindow === window.value;
+                return (
+                  <button
+                    key={window.value}
+                    type="button"
+                    className={cn(
+                      "scl-data min-h-9 min-w-11 rounded-md px-2 text-xs font-semibold tabular-nums",
+                      active
+                        ? "bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                    aria-pressed={active}
+                    onClick={() => setChartWindow(window.value)}
+                  >
+                    {window.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <CumulativeUnitsChart
+            points={cumulative.points}
+            gradedCount={cumulative.gradedCount}
+          />
           {showDeepAnalysis ? <ClvTrackerPanel summary={clvTracker} /> : null}
         </section>
-        <RecentProofLedger plays={historyPlays} playsError={playsError} />
       </div>
 
       <section id="recent-picks" className="scroll-mt-20">
@@ -408,19 +451,15 @@ export function EvidenceBrief({
           <VerificationHelpLink className="text-muted-foreground hover:text-foreground inline-flex min-h-11 shrink-0 gap-1.5 self-start px-2 text-xs font-medium" />
         </div>
 
-        {historyPlays.length ? (
+        {plays.length ? (
           <>
             <VerificationLegend className="mt-4" />
-            <div className="mt-3 space-y-3">
-              {historyPlays
-                .map((play) => playToProofReceipt(play, "feed"))
-                .filter(Boolean)}
-            </div>
+            <ProofHistoryLedger
+              plays={plays}
+              handle={capper.handle}
+              initialNextCursor={historyNextCursor ?? null}
+            />
           </>
-        ) : featured ? (
-          <p className="text-muted-foreground mt-4 text-sm leading-relaxed">
-            Additional receipts will stack here as more plays settle.
-          </p>
         ) : playsError ? (
           <EmptyState
             className="mt-4"
@@ -441,118 +480,237 @@ export function EvidenceBrief({
   );
 }
 
-function RecentProofLedger({
+const PROOF_HISTORY_PAGE_SIZE = 10;
+
+function ProofHistoryLedger({
   plays,
-  playsError,
+  handle,
+  initialNextCursor,
 }: {
   plays: PlayView[];
-  playsError?: boolean;
+  handle: string;
+  initialNextCursor: string | null;
 }) {
-  const visible = plays.slice(0, 5);
+  const allInitial = useMemo(
+    () => plays.filter((play) => isValidPublicStake(play.units)),
+    [plays],
+  );
+  const initialRows = useMemo(
+    () => allInitial.slice(0, PROOF_HISTORY_PAGE_SIZE),
+    [allInitial],
+  );
+  const [shown, setShown] = useState(initialRows);
+  const [nextCursor, setNextCursor] = useState(initialNextCursor);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isLoading, startLoading] = useTransition();
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const localRemaining = allInitial.slice(shown.length);
+  const canLoadMore = localRemaining.length > 0 || nextCursor != null;
+
+  function loadMore() {
+    if (localRemaining.length > 0) {
+      setShown((current) => [
+        ...current,
+        ...localRemaining.slice(0, PROOF_HISTORY_PAGE_SIZE),
+      ]);
+      return;
+    }
+    if (!nextCursor || isLoading) return;
+    setLoadError(null);
+    startLoading(async () => {
+      try {
+        const page = await loadPublicProfileHistory(handle, nextCursor);
+        setShown((current) => {
+          const byId = new Map(current.map((play) => [play.id, play]));
+          for (const play of page.plays) byId.set(play.id, play);
+          return [...byId.values()];
+        });
+        setNextCursor(page.nextCursor);
+      } catch {
+        setLoadError("Proof history could not load. Try again.");
+      }
+    });
+  }
 
   return (
-    <section
-      className="min-w-0 lg:pl-6"
-      aria-label="Recent proof history summary"
+    <div
+      data-profile-history-ledger
+      className="border-border mt-3 overflow-hidden border-y"
     >
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="scl-display text-base font-bold tracking-[0.04em]">
-          Recent proof history
-        </h2>
-        <a
-          href="#recent-picks"
-          className="text-muted-foreground hover:text-foreground inline-flex min-h-10 items-center text-xs font-semibold underline-offset-4 hover:underline"
-        >
-          View all
-        </a>
-      </div>
-
-      {!visible.length ? (
-        <p className="text-muted-foreground border-border mt-3 border-y py-5 text-sm leading-relaxed">
-          {playsError
-            ? "Recent proof history is temporarily unavailable."
-            : "No earlier graded receipts are available yet."}
-        </p>
-      ) : (
-        <div className="border-border mt-2 overflow-hidden border-y">
-          <table className="w-full table-fixed text-left text-xs">
-            <caption className="sr-only">
-              Five most recent proof receipts before the featured pick
-            </caption>
-            <thead className="text-muted-foreground border-border border-b text-[0.6rem] tracking-[0.08em] uppercase">
-              <tr>
-                <th className="hidden w-[5.5rem] py-2 pr-2 font-medium sm:table-cell">
-                  Date
-                </th>
-                <th className="py-2 pr-2 font-medium">Pick</th>
-                <th className="hidden w-12 py-2 pr-2 font-medium sm:table-cell">
-                  Line
-                </th>
-                <th className="w-12 py-2 pr-2 font-medium">Result</th>
-                <th className="w-14 py-2 pr-2 text-right font-medium">Units</th>
-                <th className="w-[4.75rem] py-2 text-right font-medium">
-                  Proof
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-border divide-y">
-              {visible.map((play) => {
-                const outcome = play.outcome.toLowerCase();
-                const resultClass =
-                  play.outcome === "WIN"
-                    ? "text-[color:var(--scl-win-text)]"
-                    : play.outcome === "LOSS"
-                      ? "text-[color:var(--scl-loss-text)]"
-                      : "text-muted-foreground";
-                return (
-                  <tr key={play.id}>
-                    <td className="text-muted-foreground hidden truncate py-2.5 pr-2 tabular-nums sm:table-cell">
-                      {play.createdAt.toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                        timeZone: "UTC",
-                      })}
-                    </td>
-                    <td className="truncate py-2.5 pr-2 font-medium">
-                      {play.selection}
-                    </td>
-                    <td className="scl-data text-muted-foreground hidden py-2.5 pr-2 tabular-nums sm:table-cell">
-                      {formatOdds(play.oddsAmerican)}
-                    </td>
-                    <td
-                      className={cn(
-                        "scl-data py-2.5 pr-2 text-[0.65rem] font-semibold uppercase",
-                        resultClass,
-                      )}
+      <table className="w-full table-fixed text-left text-xs">
+        <caption className="sr-only">
+          Full proof history. Use Inspect to open one canonical proof receipt.
+        </caption>
+        <thead className="text-muted-foreground border-border border-b text-[0.6rem] tracking-[0.08em] uppercase">
+          <tr>
+            <th className="w-12 py-2 pr-2 font-medium">
+              <span className="sr-only">Inspect</span>
+            </th>
+            <th className="hidden w-[6.5rem] py-2 pr-2 font-medium sm:table-cell">
+              Date
+            </th>
+            <th className="py-2 pr-2 font-medium">Pick</th>
+            <th className="hidden w-16 py-2 pr-2 font-medium sm:table-cell">
+              Line
+            </th>
+            <th className="w-14 py-2 pr-2 font-medium">Result</th>
+            <th className="w-16 py-2 pr-2 text-right font-medium">Units</th>
+            <th className="hidden w-24 py-2 text-right font-medium md:table-cell">
+              Proof
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-border divide-y">
+          {shown.map((play) => {
+            const expanded = expandedId === play.id;
+            const resultLabel = proofResultLabel(play);
+            const resultClass = proofResultClass(play.outcome);
+            return (
+              <Fragment key={play.id}>
+                <tr>
+                  <td className="py-1 pr-2 align-middle">
+                    <button
+                      type="button"
+                      className="text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex size-11 items-center justify-center rounded-md focus-visible:ring-2 focus-visible:outline-none sm:size-10"
+                      aria-expanded={expanded}
+                      aria-controls={`proof-history-${play.id}`}
+                      aria-label={`${expanded ? "Close" : "Inspect"} receipt for ${play.selection}`}
+                      onClick={() => setExpandedId(expanded ? null : play.id)}
                     >
-                      {outcome}
-                    </td>
+                      <ChevronDown
+                        className={cn(
+                          "size-4 transition-transform duration-200 motion-reduce:transition-none",
+                          expanded && "rotate-180",
+                        )}
+                        aria-hidden
+                      />
+                    </button>
+                  </td>
+                  <td className="text-muted-foreground hidden truncate py-2.5 pr-2 tabular-nums sm:table-cell">
+                    {play.createdAt.toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                      timeZone: "UTC",
+                    })}
+                  </td>
+                  <td className="truncate py-2.5 pr-2 font-medium">
+                    {play.selection}
+                  </td>
+                  <td className="scl-data text-muted-foreground hidden py-2.5 pr-2 tabular-nums sm:table-cell">
+                    {formatOdds(play.oddsAmerican)}
+                  </td>
+                  <td
+                    className={cn(
+                      "scl-data py-2.5 pr-2 text-[0.65rem] font-semibold uppercase",
+                      resultClass,
+                    )}
+                  >
+                    {resultLabel}
+                  </td>
+                  <td
+                    className={cn(
+                      "scl-data py-2.5 pr-2 text-right font-semibold whitespace-nowrap tabular-nums",
+                      resultClass,
+                    )}
+                  >
+                    {play.profitUnits == null
+                      ? "—"
+                      : formatUnits(play.profitUnits, true, false)}
+                  </td>
+                  <td
+                    className="scl-data text-muted-foreground hidden truncate py-2.5 text-right tabular-nums md:table-cell"
+                    title={play.id}
+                  >
+                    {formatEvidenceId(play.id)}
+                  </td>
+                </tr>
+                {expanded ? (
+                  <tr id={`proof-history-${play.id}`}>
                     <td
-                      className={cn(
-                        "scl-data py-2.5 pr-2 text-right font-semibold tabular-nums",
-                        resultClass,
-                      )}
+                      colSpan={7}
+                      className="bg-surface-2 px-2 py-3 sm:px-4 sm:py-4"
                     >
-                      {play.profitUnits == null
-                        ? "—"
-                        : formatUnits(play.profitUnits, true, false)}
-                    </td>
-                    <td
-                      className="scl-data text-muted-foreground truncate py-2.5 text-right tabular-nums"
-                      title={play.id}
-                    >
-                      {formatEvidenceId(play.id)}
+                      <div className="mx-auto max-w-3xl">
+                        {playToProofReceipt(play, "feed")}
+                      </div>
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                ) : null}
+              </Fragment>
+            );
+          })}
+        </tbody>
+      </table>
+
+      {canLoadMore || shown.length > initialRows.length ? (
+        <div className="border-border flex flex-wrap items-center justify-between gap-2 border-t px-2 py-2 sm:px-3">
+          <p className="text-muted-foreground text-xs tabular-nums">
+            Showing {shown.length} receipts
+          </p>
+          <div className="flex items-center gap-2">
+            {shown.length > initialRows.length ? (
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-foreground min-h-10 rounded-md px-3 text-xs font-semibold underline-offset-4 hover:underline"
+                onClick={() => {
+                  setShown(initialRows);
+                  setNextCursor(initialNextCursor);
+                  setLoadError(null);
+                  setExpandedId(null);
+                }}
+              >
+                Show fewer
+              </button>
+            ) : null}
+            {canLoadMore ? (
+              <button
+                type="button"
+                className="border-border bg-surface-2 hover:bg-surface-3 min-h-10 rounded-md border px-3 text-xs font-semibold"
+                disabled={isLoading}
+                onClick={loadMore}
+              >
+                {isLoading
+                  ? "Loading…"
+                  : localRemaining.length > 0
+                    ? `Show ${Math.min(PROOF_HISTORY_PAGE_SIZE, localRemaining.length)} more`
+                    : "Show more"}
+              </button>
+            ) : null}
+          </div>
+          {loadError ? (
+            <p
+              className="basis-full text-xs text-[color:var(--scl-loss-text)]"
+              role="status"
+            >
+              {loadError}
+            </p>
+          ) : null}
         </div>
-      )}
-    </section>
+      ) : null}
+    </div>
   );
+}
+
+function proofResultLabel(play: PlayView): string {
+  const state = deriveProofReceiptState({
+    outcome: play.outcome,
+    eventStartsAt: play.eventStartsAt,
+    verificationTier: play.verificationTier,
+  });
+  if (state === "won") return "Won";
+  if (state === "loss") return "Loss";
+  if (state === "push") return "Push";
+  if (state === "void") return "Void";
+  if (state === "live") return "Live";
+  if (state === "awaiting-grade") return "Awaiting";
+  return "Pending";
+}
+
+function proofResultClass(outcome: PlayView["outcome"]): string {
+  if (outcome === "WIN") return "text-[color:var(--scl-win-text)]";
+  if (outcome === "LOSS") return "text-[color:var(--scl-loss-text)]";
+  return "text-muted-foreground";
 }
 
 function MetricRow({
@@ -573,7 +731,10 @@ function MetricRow({
   showClv: boolean;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-y-4 sm:grid-cols-3 xl:grid-cols-6">
+    <div
+      data-profile-metric-row
+      className="grid grid-cols-2 gap-y-4 sm:grid-cols-3 xl:grid-cols-6"
+    >
       <MetricCell>
         <RecordStat record={capper.record} truncateValue={false} />
       </MetricCell>

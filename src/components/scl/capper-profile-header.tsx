@@ -1,6 +1,10 @@
 import type { CapperSummary } from "@/lib/mock";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
-import { LegacyBadge, VerificationBadge } from "@/components/scl/badges";
+import {
+  LegacyBadge,
+  SportTag,
+  VerificationBadge,
+} from "@/components/scl/badges";
 import { RankMovementIndicator } from "@/components/scl/indicators";
 import { RankBadge, BUILDING_RECORD_LABEL } from "@/components/scl/rank-badge";
 import { ProfileActionGroup } from "@/components/scl/profile-action-group";
@@ -22,12 +26,15 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
       ? Math.round(capper.verifiedShare)
       : null;
   const lastPickLabel = formatLastPickDate(capper.lastPlayAt);
-  const coverageLine = [
-    capper.topSport,
-    ...(capper.specialties?.slice(0, 2) ?? []),
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const specialties = (capper.specialties ?? [])
+    .filter(
+      (specialty) =>
+        specialty.trim().length > 0 &&
+        specialty.trim().toLowerCase() !==
+          (capper.topSport ?? "").toLowerCase(),
+    )
+    .slice(0, 2);
+  const hasCoverage = Boolean(capper.topSport || specialties.length);
 
   return (
     <header className="border-border bg-card border-b">
@@ -60,13 +67,33 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                 </span>
               ) : null}
 
-              {capper.headline || coverageLine ? (
+              {capper.headline ? (
                 <p className="text-muted-foreground mt-1 max-w-2xl text-sm leading-snug sm:text-base">
-                  {capper.headline || coverageLine}
+                  {capper.headline}
                 </p>
               ) : null}
 
-              <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs sm:mt-3">
+              {hasCoverage ? (
+                <div
+                  data-profile-specialties
+                  className="mt-2 flex flex-wrap items-center gap-1.5"
+                  aria-label="Sports and specialties"
+                >
+                  {capper.topSport ? (
+                    <SportTag sport={capper.topSport} withMark={false} />
+                  ) : null}
+                  {specialties.map((specialty) => (
+                    <span
+                      key={specialty}
+                      className="border-border bg-surface-2 text-muted-foreground inline-flex rounded-md border px-2 py-0.5 text-[0.7rem] font-semibold tracking-wide"
+                    >
+                      {specialty}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+
+              <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs">
                 <span className="inline-flex items-center gap-1.5">
                   <RankBadge
                     rank={capper.rank}

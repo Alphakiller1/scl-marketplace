@@ -211,6 +211,31 @@ Profile: is this record credible + relevant — Proof-first composition: compact
 Proof Receipt in the first viewport, Follow/Compare/View offers as one action group;
 bio/coverage/social sit below proof history.
 
+### Profile mockup contract
+
+At 1280px and wider, the first proof workspace is a left-heavy Evidence | Latest
+Proof grid using `1.7fr / 0.9fr` (roughly 65/35). The Evidence side keeps all six
+metrics on one row, followed by sample maturity. At 1024–1279px, a 3-by-2 metric
+grid is permitted to protect values from truncation; never widen Latest Proof to
+solve a metric collision.
+
+The left Evidence column is one continuous desk: Trust Lens, metrics, sample
+maturity, then cumulative units with `3M / 6M / 12M / All` scope controls. Do not
+push the chart into a second row below the receipt or leave a dead band beneath the
+metrics. The right column contains one warm expanded-paper receipt as the dominant
+documentary artifact in the first viewport. Full proof history is a semantic ledger,
+newest first; rows reveal the canonical Proof Receipt on request, one at a time. It
+must not default to a wall of expanded receipts or repeat a second summary table.
+Chart windows use bounded server-produced series, and the ledger loads bounded
+cursor pages; never ship a capper's entire receipt document set to the client.
+Marketplace follows the evidence and history flow as a full-width band, never a
+third-column rail or an interruption between evidence and history.
+
+The compact identity header shows the capper headline and a separate coverage row
+for the top sport and up to two specialties when those fields exist. Follow remains
+the blue relationship action; verification remains pink. These are intentional v2
+roles, not mockup-color approximations.
+
 ## Navigation, copy & brand
 
 - Nav: **Picks · Leaderboard · Discover**. Logo: the current `scl-logo.tsx` mark (do not vary).
