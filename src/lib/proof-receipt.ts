@@ -27,11 +27,7 @@ export type ProofReceiptState =
   | "source-unavailable";
 
 export type ProofReceiptDensity =
-  | "feed"
-  | "expanded-paper"
-  | "mobile"
-  | "share-image"
-  | "text-only";
+  "feed" | "expanded-paper" | "mobile" | "share-image" | "text-only";
 
 export type DeriveProofReceiptStateInput = {
   outcome?: Outcome | null;
@@ -203,6 +199,11 @@ export function isSettledProofState(state: ProofReceiptState): boolean {
     state === "void" ||
     state === "corrected"
   );
+}
+
+/** A graded unit outcome is a result, never a projected "to win" amount. */
+export function proofUnitsLabel(state: ProofReceiptState): "Result" | "To win" {
+  return isSettledProofState(state) ? "Result" : "To win";
 }
 
 /** Plain-text summary for text-only density / a11y. */

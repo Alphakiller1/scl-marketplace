@@ -11,7 +11,7 @@ import { StatValue } from "@/components/scl/stat-value";
 import { BUILDING_RECORD_LABEL, RankBadge } from "@/components/scl/rank-badge";
 import { Ticket, type TicketStatus } from "@/components/scl/ticket";
 import { isBuildingARecord } from "@/lib/leaderboard";
-import { americanToDecimal } from "@/lib/odds";
+import { profitUnitsForOutcome } from "@/lib/odds";
 import { pickContextLabel } from "@/lib/pick-identity";
 import { isVerifiedTier } from "@/lib/verification";
 
@@ -56,11 +56,38 @@ function CapperStandingLine({ pick }: { pick: TodayPick }) {
 function ticketStatusFor(pick: TodayPick): TicketStatus {
   if (pick.status === "win") return "win";
   if (pick.status === "loss") return "loss";
+  if (pick.status === "push") return "push";
+  if (pick.status === "void") return "void";
+  if (pick.status === "live") return "live";
+  if (pick.status === "awaiting-grade") return "awaiting-grade";
   if (pick.verificationTier && isVerifiedTier(pick.verificationTier)) {
     return "verified";
   }
-  if (pick.status === "pending" || pick.status === "live") return "pending";
+  if (pick.status === "pending" || pick.status === "pre-game") return "pending";
   return "muted";
+}
+
+function receiptUnitsFor(pick: TodayPick): {
+  value: number | null;
+  settled: boolean;
+} {
+  const outcome =
+    pick.status === "win"
+      ? "WIN"
+      : pick.status === "loss"
+        ? "LOSS"
+        : pick.status === "push"
+          ? "PUSH"
+          : pick.status === "void"
+            ? "VOID"
+            : "WIN";
+  const settled = ["win", "loss", "push", "void"].includes(pick.status);
+  return {
+    value:
+      pick.profitUnits ??
+      profitUnitsForOutcome(outcome, pick.oddsAmerican, pick.units),
+    settled,
+  };
 }
 
 function CapperTicketFooter({ pick }: { pick: TodayPick }) {
@@ -101,11 +128,11 @@ export function PickCard({
   compact?: boolean;
   gradingHealthy?: boolean;
 }) {
-  const projected = pick.units * (americanToDecimal(pick.oddsAmerican) - 1);
+  const receiptUnits = receiptUnitsFor(pick);
   const toWin =
-    pick.profitUnits != null
-      ? formatUnits(pick.profitUnits)
-      : formatUnits(projected, true, false);
+    receiptUnits.value == null
+      ? "—"
+      : formatUnits(receiptUnits.value, true, receiptUnits.settled);
   const marketLabel = pickMarketLabel(pick);
   const metaBits = [marketLabel, pick.gameTime].filter(Boolean);
 

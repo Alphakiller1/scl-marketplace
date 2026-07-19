@@ -13,6 +13,7 @@ import {
   proofReceiptTextSummary,
   proofStampLabel,
   proofStampTone,
+  proofUnitsLabel,
   type ProofReceiptDensity,
   type ProofReceiptState,
 } from "@/lib/proof-receipt";
@@ -157,6 +158,7 @@ export function ProofReceipt({
     Boolean(settlementLabel) &&
     settlementLabel !== "Verified" &&
     settlementLabel !== stamp;
+  const unitsLabel = proofUnitsLabel(state);
 
   return (
     <article
@@ -194,7 +196,7 @@ export function ProofReceipt({
         </div>
 
         <p className="scl-eyebrow mb-1.5 pr-20 text-[color:var(--scl-muted-label)] sm:pr-24">
-          SCL · Pick Receipt
+          SCL · Proof Receipt
         </p>
         <div className="flex min-w-0 items-start gap-2.5 pr-16 sm:pr-20">
           {leadingMark ? (
@@ -317,7 +319,7 @@ export function ProofReceipt({
           )}
         </p>
         <div className="scl-display shrink-0 text-right text-[0.8rem] font-semibold tracking-[0.06em] uppercase">
-          <span className="text-muted-foreground block">To Win</span>
+          <span className="text-muted-foreground block">{unitsLabel}</span>
           <span className="scl-data text-foreground text-[0.95rem] font-semibold tracking-normal normal-case">
             {toWin}
           </span>

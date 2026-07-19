@@ -12,7 +12,10 @@ import {
   hasClvColumns,
   hasNotesPublicColumn,
 } from "@/lib/results/schema-features";
-import type { VerificationTier } from "@/lib/verification";
+import {
+  BOARD_VERIFIED_TIERS,
+  type VerificationTier,
+} from "@/lib/verification";
 
 export type TodaysMove = {
   handle: string;
@@ -164,6 +167,7 @@ export async function getFeaturedGradedPlay(): Promise<{
         outcome: { in: GRADED },
         units: { gte: UNIT_MIN },
         gradedAt: { not: null },
+        verificationTier: { in: [...BOARD_VERIFIED_TIERS] },
         capper: {
           user: {
             accountStatus: "ACTIVE",

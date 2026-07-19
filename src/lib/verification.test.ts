@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  BOARD_VERIFIED_TIERS,
   computeVerifiedShare,
   isVerifiedTier,
   submissionReceiptCopy,
@@ -9,6 +10,11 @@ import {
 } from "@/lib/verification";
 
 const CAPTURED_AT = "2026-07-13T23:20:00.000Z";
+
+test("featured-proof eligible tiers are board-verified only", () => {
+  assert.deepEqual(BOARD_VERIFIED_TIERS, ["AUTO_VERIFIED", "VERIFIED"]);
+  assert.equal(BOARD_VERIFIED_TIERS.every(isVerifiedTier), true);
+});
 
 test("isVerifiedTier: only VERIFIED and AUTO_VERIFIED clear the bar", () => {
   assert.equal(isVerifiedTier("VERIFIED"), true);

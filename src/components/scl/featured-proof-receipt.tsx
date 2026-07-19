@@ -5,7 +5,7 @@ import { LeagueRef, TeamRef } from "@/components/scl/entity-marks";
 import { ProofReceipt } from "@/components/scl/proof-receipt";
 import { EmptyState } from "@/components/scl/states";
 import { formatOdds, formatUnits } from "@/lib/format";
-import { americanToDecimal } from "@/lib/odds";
+import { profitUnitsForOutcome } from "@/lib/odds";
 import { pickContextLabel } from "@/lib/pick-identity";
 import { deriveProofReceiptState } from "@/lib/proof-receipt";
 import type { FeaturedGradedPlay } from "@/lib/queries/home-live";
@@ -75,11 +75,17 @@ function FeaturedReceiptBody({ play }: { play: FeaturedGradedPlay }) {
     eventStartsAt: play.eventStartsAt,
     verificationTier: play.verificationTier,
   });
-  const projected = play.units * (americanToDecimal(play.oddsAmerican) - 1);
-  const toWin =
+  const computedResult = profitUnitsForOutcome(
+    play.outcome,
+    play.oddsAmerican,
+    play.units,
+  );
+  const resultUnits =
     play.profitUnits != null
       ? formatUnits(play.profitUnits)
-      : formatUnits(projected, true, false);
+      : computedResult != null
+        ? formatUnits(computedResult)
+        : "—";
   const market = pickContextLabel({
     sport: play.sport,
     league: play.league,
@@ -106,7 +112,7 @@ function FeaturedReceiptBody({ play }: { play: FeaturedGradedPlay }) {
       legs={1}
       odds={formatOdds(play.oddsAmerican)}
       stake={formatUnits(play.units, true, false)}
-      toWin={toWin}
+      toWin={resultUnits}
       capturedAt={play.createdAt.toISOString()}
       book={play.book}
       state={state}

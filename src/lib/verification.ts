@@ -10,6 +10,9 @@
 /** Mirrors the Prisma `VerificationTier` enum. */
 export type VerificationTier = "AUTO_VERIFIED" | "VERIFIED" | "SELF_REPORTED";
 
+/** Pick tiers that mean the board checked submission timing and price evidence. */
+export const BOARD_VERIFIED_TIERS = ["AUTO_VERIFIED", "VERIFIED"] as const;
+
 export type VerificationTierMeta = {
   /** Full label, e.g. for tooltips/legends. */
   label: string;
@@ -145,9 +148,7 @@ export type ParlayReceipt = {
 };
 
 export type SubmissionReceipt =
-  | StraightReceipt
-  | ParlayReceipt
-  | BulkSinglesReceipt;
+  StraightReceipt | ParlayReceipt | BulkSinglesReceipt;
 
 /** Presentation strings for the post-submit confirmation card. */
 export type ReceiptCopy = {
