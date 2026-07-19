@@ -56,9 +56,11 @@ export function parseLeaderboardFilters(
       requestedSport && SPORT_KEYS.includes(requestedSport as never)
         ? requestedSport
         : "ALL",
-    window: LEADERBOARD_WINDOWS.some((item) => item.key === requestedWindow)
-      ? (requestedWindow as LeaderboardWindow)
-      : "all",
+    window:
+      requestedWindow !== "year" &&
+      LEADERBOARD_SCOPE_WINDOWS.some((item) => item.key === requestedWindow)
+        ? (requestedWindow as LeaderboardWindow)
+        : "all",
     sort: LEADERBOARD_SORTS.some((item) => item.key === requestedSort)
       ? (requestedSort as LeaderboardSort)
       : "units",
@@ -85,6 +87,7 @@ export function leaderboardHref(
     search: string;
     limit: number;
   }> = {},
+  basePath = "/leaderboard",
 ): string {
   const next = { ...filters, ...overrides };
   const params = new URLSearchParams();
@@ -98,7 +101,7 @@ export function leaderboardHref(
     params.set("limit", String(next.limit));
   }
   const qs = params.toString();
-  return qs ? `/leaderboard?${qs}` : "/leaderboard";
+  return qs ? `${basePath}?${qs}` : basePath;
 }
 
 export function leaderboardWindowStart(

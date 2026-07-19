@@ -41,7 +41,7 @@ export default async function LeaderboardPage({
       <LeaderboardFilters filters={filters} />
 
       {/* Wide desktop: ~10/2 — main board + ~236px explanation rail */}
-      <div className="mt-3 grid gap-4 lg:mt-4 lg:grid-cols-[minmax(0,1fr)_14.75rem] lg:gap-5">
+      <div className="mt-3 grid gap-4 lg:grid-cols-[minmax(0,1fr)_15.25rem] lg:gap-4">
         <section aria-label="Ranked cappers" className="min-w-0">
           <Leaderboard
             cappers={cappers}
