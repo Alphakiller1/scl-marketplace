@@ -37,7 +37,7 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
     <div className="overflow-x-hidden pb-6 sm:pb-8" data-visual-mode="proof">
       <CapperProfileHeader capper={capper} />
 
-      <div className="mx-auto mt-2 max-w-6xl px-4 sm:mt-4 sm:px-6">
+      <div className="mx-auto mt-3 max-w-[1400px] px-4 sm:mt-5 sm:px-6 lg:px-8">
         <EvidenceBrief
           capper={capper}
           plays={plays}

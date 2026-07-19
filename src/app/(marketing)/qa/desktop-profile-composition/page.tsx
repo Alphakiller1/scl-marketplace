@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { CapperProfileHeader } from "@/components/scl/capper-profile-header";
 import { EvidenceBrief } from "@/components/scl/evidence-brief";
 import { ResponsiveCapperStorefront } from "@/components/scl/responsive-capper-storefront";
 import type { CapperSummary } from "@/lib/mock";
@@ -81,7 +82,8 @@ export default function DesktopProfileCompositionQaPage() {
 
   return (
     <div className="overflow-x-hidden pb-6 sm:pb-8" data-visual-mode="proof">
-      <div className="mx-auto mt-4 max-w-6xl px-4 sm:px-6">
+      <CapperProfileHeader capper={capper} />
+      <div className="mx-auto mt-4 max-w-[1400px] px-4 sm:px-6 lg:px-8">
         <p className="text-muted-foreground mb-3 text-xs tracking-[0.08em] uppercase">
           QA fixture · desktop profile composition
         </p>

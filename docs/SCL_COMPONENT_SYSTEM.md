@@ -15,8 +15,8 @@ Numbers are the product. These render performance consistently everywhere.
 
 ## Badges & status (`badges.tsx`)
 
-- `VerificationBadge` — verified record marker (live/cyan). Sizes `xs|sm|md`.
-- `TrophyBadge` — gold award/status chip.
+- `VerificationBadge` — board-verification marker (pink). Sizes `xs|sm|md`.
+- `TrophyBadge` — legacy component name; public rank treatment follows the v2 pink role.
 - `SportTag` — uppercase sport label from the canonical taxonomy (optional `LeagueMark`).
 - `TeamMark` (`team-mark.tsx`) — self-hosted mark when listed in `mark-manifest`; color+abbr fallback otherwise.
 - `LeagueMark` (`league-mark.tsx`) — self-hosted mark when listed in `mark-manifest`; color+initials fallback otherwise.

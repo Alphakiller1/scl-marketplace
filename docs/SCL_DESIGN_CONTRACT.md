@@ -22,13 +22,13 @@ Defined in `src/app/globals.css`, dark-mode first. Every color has a job:
 | `background` / `card` / `surface-2` / `surface-3` | `bg-*`                       | Deep **purple** base + layered surfaces (depth)                                                  |
 | `border` / `border-strong`                        | `border-*`                   | Premium hairlines; `-strong` leans **blue** (nav chrome). Section conviction hairlines stay pink |
 | `brand`                                           | `text-brand`, `bg-brand`     | SCL identity — **pink-magenta**. Conviction accents, verified, rank highlights                   |
-| `primary`                                         | `bg-primary`, `text-primary` | **Pink** — conviction CTAs (see `design/SCL-DESIGN-SPEC.md` v1.1)                                |
+| `primary`                                         | `bg-primary`, `text-primary` | **Pink** — conviction CTAs (see `design/SCL-DESIGN-SPEC.md` v2.0)                                |
 | `accent`                                          | `bg-accent`                  | Purple bridge — mix of brand-pink **and** navigation-blue                                        |
 | `pos`                                             | `text-pos`, `bg-pos/15`      | Positive performance (wins, +units, +ROI) — green                                                |
 | `neg`                                             | `text-neg`, `bg-neg/15`      | Negative performance (losses, −units) — red                                                      |
-| `gold`                                            | `text-gold`, `bg-gold/10`    | Rank, elite status, trophies, badges                                                             |
 | `live`                                            | `text-live`, `bg-live/15`    | Live/real-time chrome — **cobalt blue** (nav family; not a separate cyan)                        |
 | `push`                                            | —                            | Push/void neutral                                                                                |
+| `perf-*`                                          | shared performance helpers   | ROI, units, CLV, and win-rate magnitude; never rank or decoration                                |
 | `muted-foreground`                                | `text-muted-foreground`      | Secondary metadata, labels                                                                       |
 
 Rules: no random colors, no meaningless glow. Gradients are reserved for **brand identity
@@ -55,7 +55,8 @@ status — not noise.**
 - Radius scale from `--radius` (0.7rem). Cards `rounded-xl`/`rounded-2xl`.
 - Layered depth: `background` → `card` → `surface-2` → `surface-3`. Use elevation to group.
 - Generous row spacing in tables; never spreadsheet-tight.
-- Content max width `max-w-6xl`, page padding `px-4 sm:px-6`.
+- Public product shell max width is `1400px`, with `px-4 sm:px-6 lg:px-8`.
+- Auth/admin workspaces may remain narrower when the task is form-focused.
 
 ## Motion (subtle, meaningful — `motion`)
 

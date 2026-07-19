@@ -1,8 +1,10 @@
 # SCL Competitive Visual Implementation
 
-This document translates the approved trophy-led concept into production UI. The concept is
-art direction, not a screenshot to reproduce. SCL keeps its real navigation, real data, and
-existing brand source of truth (`design/SCL-DESIGN-SPEC.md`, `docs/SCL_DESIGN_CONTRACT.md`).
+This document translates the approved concept renders into production UI. Their hierarchy,
+proportions, alignment grid, density, and evidence-first composition are implementation
+contracts. Production keeps real navigation, real data, honest empty states, and the current
+brand source of truth (`design/SCL-DESIGN-SPEC.md` v2.0). Mature-data examples in the renders
+must never be copied as fabricated production data.
 
 ## Product read
 
@@ -33,7 +35,12 @@ Current chrome blues (exact cobalt baseline — do not drift toward sky/electric
 | Dark  | `#105FD9` |
 | Light | `#044CB6` |
 
-Source of truth for roles remains `design/SCL-DESIGN-SPEC.md` v1.1; hexes above sync
+The photographic hero is a forced-dark campaign surface in both page themes. Its scoped
+interaction tokens are `--scl-hero-blue:#6EA8FF` for focus/active marks and
+`--scl-hero-pink-text:#FF74C8` for title hover; both exceed 8:1 on hero ink and must not leak
+into routine product chrome.
+
+Source of truth for roles remains `design/SCL-DESIGN-SPEC.md` v2.0; hexes above sync
 `src/app/globals.css`.
 
 ## Visual layers
@@ -56,9 +63,10 @@ Source of truth for roles remains `design/SCL-DESIGN-SPEC.md` v1.1; hexes above 
 ### Competition
 
 - Rank is the first scan target.
-- Gold is reserved for first place and earned honors in **UI chrome** (not a requirement to
-  recolor the hero crown metal — hero metal stays cobalt-lit chrome unless owners revise art).
-- Second and third place receive distinct, restrained treatments.
+- Rank 1–3 use the v2 pink medal treatment. No gold status or rank chrome is permitted.
+- Atmospheric crown metal in owner-approved hero artwork is an image-art exception, not a UI
+  status token.
+- Second and third place receive distinct, restrained pink treatments.
 - Verification, sample size, recent form, and streaks stay visible near the result they qualify.
 
 ### Atmosphere (hero artwork)
@@ -74,19 +82,19 @@ Source of truth for roles remains `design/SCL-DESIGN-SPEC.md` v1.1; hexes above 
 
 Implemented in `src/components/scl/competition-hero.tsx`. Layers must stay in this order:
 
-| Z   | Layer                       | Purpose                                                                   |
-| --- | --------------------------- | ------------------------------------------------------------------------- |
-| 0   | Section ink-950 fallback    | Prevents flash before bitmaps paint                                       |
-| 1   | Atmosphere `<picture>` WebP | Original-design bleed (`object-cover`) — dense widen of `a9f20d3`         |
-| 2   | Trophy `<picture>` WebP     | Opaque original trophy scene (`object-contain`) — framing left as-is      |
-| 3   | L→R ink gradient (light)    | Softens left copy zone without washing out the solid art                  |
-| 4   | B→T ink gradient (light)    | Anchors lower edge                                                        |
-| 5   | Slide panel (grid-stacked)  | All slides share one cell; opacity crossfade only — no translateY remount |
-| 6   | Carousel controls           | Dots / prev-next outside the slide panel so height stays stable           |
+| Z   | Layer                        | Purpose                                                                    |
+| --- | ---------------------------- | -------------------------------------------------------------------------- |
+| 0   | Theme-independent hero ink   | Prevents flash and keeps campaign copy AA-safe in both page themes         |
+| 1   | Integrated desktop banner    | One owner-approved WebP contains the chart, arena, trophy, and crown       |
+| 2   | Mobile atmosphere + trophy   | Purpose-built portrait layers preserve the object at narrow widths only    |
+| 3   | Horizontal / vertical scrims | Protect the copy zone without recoloring the magenta/cobalt artwork        |
+| 4   | Unboxed grid-stacked slides  | Pink hairline anchors copy; opacity-only swaps prevent layout movement     |
+| 5   | Carousel controls            | Dots and arrows sit outside slide content so the text block remains stable |
 
-**Why two bitmaps:** one `object-fit` cannot both stretch edge-to-edge and keep the full original
-trophy scene at a stable size. The bleed layer is derived from the same original art (not a sparse
-or translucent overlay). The trophy layer stays opaque RGB — never punched alpha.
+Desktop must request the integrated banner once; it must not also download or render the mobile
+trophy. Mobile retains the separate atmosphere and trophy assets because their portrait crop is
+purpose-built for the narrow composition. The slide is deliberately unboxed so the artwork and
+message read as one surface rather than a card pasted over a banner.
 
 **Layer investigation notes (locked):**
 

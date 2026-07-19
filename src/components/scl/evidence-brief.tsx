@@ -383,7 +383,7 @@ export function EvidenceBrief({
       <div
         className={cn(
           "grid items-start gap-4 sm:gap-5 lg:gap-6",
-          "lg:grid-cols-[minmax(280px,0.85fr)_minmax(460px,1.4fr)]",
+          "lg:grid-cols-[minmax(0,1.45fr)_minmax(420px,0.9fr)]",
         )}
       >
         {evidenceRecord}
