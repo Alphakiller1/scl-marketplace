@@ -5,11 +5,12 @@
  */
 
 import type { CapperSummary } from "@/lib/mock";
+import { hasQaNoteMarker } from "@/lib/public-eligibility";
 import { MATURITY, MIN_GRADED_FOR_SIGNAL, hasSignal } from "@/lib/sample";
 import { computeCapperStats, type PlayForStats } from "@/lib/stats";
 import { isVerifiedTier, type VerificationTier } from "@/lib/verification";
 
-/** Curated preview size. The full public directory remains available below. */
+/** Curated preview size. The full public directory remains on /leaderboard. */
 export const DISCOVER_LANE_LIMIT = 4;
 
 /** High verified-share bar for “Newly credible”. */
@@ -17,6 +18,13 @@ export const NEWLY_CREDIBLE_MIN_VERIFIED_SHARE = 70;
 
 /** Specialty must be a meaningful share of the graded book. */
 export const SPECIALTY_MIN_SHARE = 0.5;
+
+/** Keep QA-marked analysis out of every public Discover aggregation. */
+export function filterDiscoverPublicPlays<T extends { notes?: string | null }>(
+  plays: T[],
+): T[] {
+  return plays.filter((play) => !hasQaNoteMarker(play.notes));
+}
 
 export type DiscoverLaneId =
   | "proven"

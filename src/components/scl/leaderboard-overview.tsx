@@ -51,7 +51,7 @@ export function LeaderboardOverview({
 function CompactMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="border-border min-w-28 border-r px-4 py-2.5 last:border-r-0">
-      <dt className="scl-eyebrow text-[color:var(--scl-muted-label)]">
+      <dt className="scl-eyebrow text-[color:var(--scl-muted-data)]">
         {label}
       </dt>
       <dd className="scl-data text-lg font-bold tabular-nums">{value}</dd>

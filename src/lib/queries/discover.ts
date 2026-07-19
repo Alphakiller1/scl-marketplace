@@ -15,6 +15,7 @@ import { buildPerformanceTrend } from "@/lib/leaderboard";
 import type { CapperSummary, FormResult } from "@/lib/mock";
 import {
   buildAllDiscoverLanes,
+  filterDiscoverPublicPlays,
   type DiscoverCapperInput,
   type DiscoverLaneResult,
   type DiscoverPlayRow,
@@ -55,6 +56,7 @@ function deriveForm(settled: Outcome[]): {
  */
 export async function getDiscoverLanes(): Promise<{
   lanes: DiscoverLaneResult[];
+  publicRecordCount: number;
   failed: boolean;
 }> {
   try {
@@ -99,6 +101,7 @@ export async function getDiscoverLanes(): Promise<{
             createdAt: true,
             gradedAt: true,
             verificationTier: true,
+            notes: true,
             ...(clvReady ? { clvPts: true } : {}),
           },
           orderBy: { createdAt: "asc" },
@@ -123,7 +126,9 @@ export async function getDiscoverLanes(): Promise<{
       const username = p.user.username;
       if (!username) continue;
 
-      const playRows: DiscoverPlayRow[] = p.plays.map((pl) => ({
+      const playRows: DiscoverPlayRow[] = filterDiscoverPublicPlays(
+        p.plays,
+      ).map((pl) => ({
         outcome: pl.outcome,
         units: Number(pl.units),
         profitUnits: pl.profitUnits == null ? null : Number(pl.profitUnits),
@@ -239,11 +244,16 @@ export async function getDiscoverLanes(): Promise<{
       inputs.push({ summary, plays: playRows });
     }
 
-    return { lanes: buildAllDiscoverLanes(inputs), failed: false };
+    return {
+      lanes: buildAllDiscoverLanes(inputs),
+      publicRecordCount: inputs.length,
+      failed: false,
+    };
   } catch (err) {
     console.error("[getDiscoverLanes] database unavailable:", err);
     return {
       lanes: buildAllDiscoverLanes([]),
+      publicRecordCount: 0,
       failed: true,
     };
   }

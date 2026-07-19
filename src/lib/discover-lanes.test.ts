@@ -12,6 +12,7 @@ import {
   DISCOVER_LANES,
   DISCOVER_SIGNAL_FLOOR,
   discoverLaneEmptyDescription,
+  filterDiscoverPublicPlays,
   NEWLY_CREDIBLE_MIN_VERIFIED_SHARE,
   pickSpecialty,
   type DiscoverCapperInput,
@@ -79,6 +80,19 @@ test("DISCOVER_SIGNAL_FLOOR matches MIN_GRADED_FOR_SIGNAL", () => {
 
 test("Discover lanes stay curated while the full directory remains separate", () => {
   assert.equal(DISCOVER_LANE_LIMIT, 4);
+});
+
+test("Discover excludes QA-marked plays before public aggregation", () => {
+  const plays = filterDiscoverPublicPlays([
+    { id: "qa", notes: "DISPOSABLE QA TEST" },
+    { id: "real", notes: "Testing the waters on this line" },
+    { id: "empty", notes: null },
+  ]);
+
+  assert.deepEqual(
+    plays.map((row) => row.id),
+    ["real", "empty"],
+  );
 });
 
 test("proven lane requires established sample — does not fill with early records", () => {

@@ -1,5 +1,4 @@
 import { useId } from "react";
-import { Compass } from "lucide-react";
 
 import {
   DISCOVER_LANE_LOAD_FAILED_BODY,
@@ -35,11 +34,13 @@ export function DiscoverEmptyLanesIndex({
       data-visual-mode="rank"
     >
       <div className="min-w-0 border-t border-[color:var(--scl-line)] pt-3">
-        <div className="flex items-start gap-2">
-          <Compass
-            className="mt-0.5 size-4 shrink-0 text-[color:var(--scl-blue)]"
+        <div className="flex items-start gap-3">
+          <span
+            className="scl-data mt-0.5 shrink-0 text-xs font-semibold text-[color:var(--scl-muted-data)] tabular-nums"
             aria-hidden
-          />
+          >
+            —
+          </span>
           <div className="min-w-0">
             <h2
               id={headingId}

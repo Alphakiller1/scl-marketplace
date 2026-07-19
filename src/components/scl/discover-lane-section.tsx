@@ -1,4 +1,4 @@
-import { Compass, Users } from "lucide-react";
+import { Users } from "lucide-react";
 
 import { DiscoverLaneCard } from "@/components/scl/discover-lane-card";
 import { EmptyState } from "@/components/scl/states";
@@ -15,10 +15,12 @@ import { cn } from "@/lib/utils";
  */
 export function DiscoverLaneSection({
   lane,
+  index,
   failed = false,
   className,
 }: {
   lane: DiscoverLaneResult;
+  index: number;
   failed?: boolean;
   className?: string;
 }) {
@@ -30,11 +32,13 @@ export function DiscoverLaneSection({
     >
       <div className="min-w-0 border-t border-[color:var(--scl-line)] pt-3">
         <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
-          <div className="flex min-w-0 items-start gap-2">
-            <Compass
-              className="mt-0.5 size-4 shrink-0 text-[color:var(--scl-blue)]"
+          <div className="flex min-w-0 items-start gap-3">
+            <span
+              className="scl-data mt-0.5 shrink-0 text-xs font-semibold text-[color:var(--scl-pink-text)] tabular-nums"
               aria-hidden
-            />
+            >
+              {String(index + 1).padStart(2, "0")}
+            </span>
             <div className="min-w-0">
               <h2
                 id={`discover-lane-${lane.id}`}
@@ -49,7 +53,7 @@ export function DiscoverLaneSection({
           </div>
           <dl className="flex shrink-0 items-center gap-4 pl-6 sm:pl-0">
             <div>
-              <dt className="scl-eyebrow text-[color:var(--scl-muted-label)]">
+              <dt className="scl-eyebrow text-[color:var(--scl-muted-data)]">
                 Primary measure
               </dt>
               <dd className="scl-data mt-0.5 text-sm font-bold">
@@ -58,7 +62,7 @@ export function DiscoverLaneSection({
             </div>
             {lane.entries.length ? (
               <div className="border-l border-[color:var(--scl-line)] pl-4 text-right">
-                <dt className="scl-eyebrow text-[color:var(--scl-muted-label)]">
+                <dt className="scl-eyebrow text-[color:var(--scl-muted-data)]">
                   Preview
                 </dt>
                 <dd className="scl-data mt-0.5 text-sm font-bold tabular-nums">

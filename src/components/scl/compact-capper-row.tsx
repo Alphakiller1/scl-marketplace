@@ -6,10 +6,11 @@ import { SportTag } from "@/components/scl/badges";
 import { RankBadge } from "@/components/scl/rank-badge";
 import { StatValue } from "@/components/scl/stat-value";
 import { cn } from "@/lib/utils";
-import { formatRecord, formatRoi, formatUnits, signTone } from "@/lib/format";
+import { signTone } from "@/lib/format";
 import { countLabel } from "@/lib/league-action";
 import { isProvisional } from "@/lib/sample";
 import type { CapperSummary } from "@/lib/mock";
+import { publicRecordDisplay } from "@/lib/public-record-display";
 
 export function CompactCapperRow({
   capper,
@@ -24,18 +25,26 @@ export function CompactCapperRow({
   variant?: "card" | "flush";
 }) {
   const graded = capper.settledPicks ?? 0;
+  const display = publicRecordDisplay(capper);
+  const hasGradedRecord = display.hasGradedRecord;
   const provisional = isProvisional(graded);
-  const primaryValue =
-    primaryMetric === "units"
-      ? formatUnits(capper.units)
-      : formatRoi(capper.roi);
+  const primaryValue = hasGradedRecord
+    ? primaryMetric === "units"
+      ? display.units
+      : display.roi
+    : "—";
   const primaryTone = signTone(
-    primaryMetric === "units" ? capper.units : capper.roi,
+    hasGradedRecord
+      ? primaryMetric === "units"
+        ? capper.units
+        : capper.roi
+      : 0,
   );
-  const secondaryValue =
-    primaryMetric === "units"
-      ? `${formatRoi(capper.roi)} ROI`
-      : `${formatUnits(capper.units)} Units`;
+  const secondaryValue = hasGradedRecord
+    ? primaryMetric === "units"
+      ? `${display.roi} ROI`
+      : `${display.units} Units`
+    : "—";
   const secondaryTone = signTone(
     primaryMetric === "units" ? capper.roi : capper.units,
   );
@@ -67,7 +76,7 @@ export function CompactCapperRow({
               ·
             </span>
             <StatValue tone="label" className="scl-data truncate text-xs">
-              {formatRecord(capper.record.w, capper.record.l, capper.record.p)}
+              {display.record}
             </StatValue>
           </div>
         </div>
@@ -96,7 +105,7 @@ export function CompactCapperRow({
         <div className="border-border text-muted-foreground mt-2 flex min-w-0 items-center gap-2 border-t pt-2 text-xs">
           <span className="shrink-0">
             <StatValue tone="text" className="font-semibold">
-              {capper.winPct.toFixed(1)}%
+              {display.winPct}
             </StatValue>{" "}
             Win
           </span>
@@ -114,9 +123,11 @@ export function CompactCapperRow({
             {secondaryValue}
           </StatValue>
           <StatValue tone="label" className="ml-auto truncate text-right">
-            {provisional
-              ? `${graded.toLocaleString()} graded — provisional`
-              : countLabel(graded, "graded pick", "graded picks")}
+            {!hasGradedRecord
+              ? "No graded picks"
+              : provisional
+                ? `${graded.toLocaleString()} graded — provisional`
+                : countLabel(graded, "graded pick", "graded picks")}
           </StatValue>
         </div>
       ) : null}
