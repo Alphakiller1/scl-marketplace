@@ -29,10 +29,10 @@ export function RankBadge({
       <span
         className={cn(
           "scl-data flex w-8 shrink-0 items-center justify-center text-2xl font-bold tabular-nums",
-          rank === 1 && "text-[color:var(--scl-pink-text)]",
-          rank === 2 && "text-foreground",
-          rank === 3 && "text-[color:var(--scl-muted-data)]",
-          ranked && rank > 3 && "text-muted-foreground",
+          !provisional && rank === 1 && "text-[color:var(--scl-pink-text)]",
+          !provisional && rank === 2 && "text-foreground",
+          !provisional && rank === 3 && "text-[color:var(--scl-muted-data)]",
+          ranked && (provisional || rank > 3) && "text-muted-foreground",
           !ranked && "text-muted-foreground",
           className,
         )}
