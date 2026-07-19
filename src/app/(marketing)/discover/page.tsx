@@ -6,7 +6,6 @@ import { DiscoverEmptyLanesIndex } from "@/components/scl/discover-empty-lanes-i
 import { DiscoverLaneIndex } from "@/components/scl/discover-lane-index";
 import { DiscoverLaneSection } from "@/components/scl/discover-lane-section";
 import { DiscoverOverview } from "@/components/scl/discover-overview";
-import { Button } from "@/components/ui/button";
 import { getDiscoverLanes } from "@/lib/queries/discover";
 
 export const metadata: Metadata = {
@@ -66,14 +65,13 @@ export default async function DiscoverPage() {
             a record.
           </p>
         </div>
-        <Button
-          render={<Link href="/leaderboard" />}
-          nativeButton={false}
-          className="min-h-11 gap-2 border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)] hover:bg-[color:var(--scl-blue)]/90"
+        <Link
+          href="/leaderboard"
+          className="focus-visible:ring-ring inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg border border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] px-3 text-sm font-medium whitespace-nowrap text-[color:var(--scl-blue-ink)] transition-colors outline-none hover:bg-[color:var(--scl-blue)]/90 focus-visible:ring-3"
         >
           Open leaderboard
           <ArrowRight className="size-4" aria-hidden />
-        </Button>
+        </Link>
       </section>
     </main>
   );
