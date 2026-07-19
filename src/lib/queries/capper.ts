@@ -140,30 +140,39 @@ export const getPublicCapperByHandle = cache(
     let chartSeries = buildProfileChartSeries([], new Date());
     let historyNextCursor: string | null = null;
 
-    try {
-      const clvReady = await hasClvColumns();
-      const [history, chartRows] = await Promise.all([
-        getPublicProfileHistoryPage(handle),
-        prisma.play.findMany({
-          where: {
-            capperId: capper.id,
-            units: { gte: UNIT_MIN },
-            parlayId: null,
-            outcome: { not: "PENDING" },
-          },
-          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-          select: {
-            createdAt: true,
-            outcome: true,
-            profitUnits: true,
-            notes: true,
-          },
-        }),
-      ]);
-      plays = history.plays;
-      historyNextCursor = history.nextCursor;
+    const [historyResult, chartRowsResult] = await Promise.allSettled([
+      getPublicProfileHistoryPage(handle),
+      prisma.play.findMany({
+        where: {
+          capperId: capper.id,
+          units: { gte: UNIT_MIN },
+          parlayId: null,
+          outcome: { not: "PENDING" },
+        },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        select: {
+          createdAt: true,
+          outcome: true,
+          profitUnits: true,
+          notes: true,
+        },
+      }),
+    ]);
+
+    if (historyResult.status === "fulfilled") {
+      plays = historyResult.value.plays;
+      historyNextCursor = historyResult.value.nextCursor;
+    } else {
+      console.error(
+        "[getPublicCapperByHandle] plays unavailable:",
+        historyResult.reason,
+      );
+      playsError = true;
+    }
+
+    if (chartRowsResult.status === "fulfilled") {
       chartSeries = buildProfileChartSeries(
-        chartRows
+        chartRowsResult.value
           .filter((row) => !hasQaNoteMarker(row.notes))
           .map((row) => ({
             createdAt: row.createdAt,
@@ -173,7 +182,15 @@ export const getPublicCapperByHandle = cache(
           })),
         new Date(),
       );
+    } else {
+      console.error(
+        "[getPublicCapperByHandle] chart unavailable:",
+        chartRowsResult.reason,
+      );
+    }
 
+    try {
+      const clvReady = await hasClvColumns();
       if (clvReady) {
         const clvRows = await prisma.play.findMany({
           where: {
@@ -196,8 +213,7 @@ export const getPublicCapperByHandle = cache(
         avgClv = clvTracker.avgClv;
       }
     } catch (error) {
-      console.error("[getPublicCapperByHandle] plays unavailable:", error);
-      playsError = true;
+      console.error("[getPublicCapperByHandle] CLV unavailable:", error);
     }
 
     return {
