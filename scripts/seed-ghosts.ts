@@ -25,6 +25,8 @@ import {
 } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
+import { settleParlay } from "@/lib/grading";
+
 const prisma = new PrismaClient();
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -591,7 +593,9 @@ async function seedGhost(passwordHash: string, g: Ghost) {
   if (parlayPool.length >= 2) {
     let idx = 0;
     while (parlayPool.length - idx >= 2) {
-      const legCount = Math.min(parlayPool.length - idx, randInt(2, 3));
+      const remaining = parlayPool.length - idx;
+      const legCount =
+        remaining <= 4 ? (remaining === 3 ? 3 : 2) : randInt(2, 3);
       const legs = parlayPool.slice(idx, idx + legCount);
       idx += legCount;
       const combined = legs.reduce(
@@ -607,19 +611,11 @@ async function seedGhost(passwordHash: string, g: Ghost) {
           ? Math.round((combined - 1) * 100)
           : Math.round(-100 / (combined - 1));
       const units = round2(Math.min(5, Math.max(0.5, gauss(1.2, 0.5))));
-      const allWin = legs.every((l) => l.outcome === "WIN");
-      const anyLoss = legs.some((l) => l.outcome === "LOSS");
-      const outcome: Outcome = anyLoss ? "LOSS" : allWin ? "WIN" : "PENDING";
+      const settlement = settleParlay(legs, units);
       const gradedAt = legs.reduce<Date | null>(
         (a, l) => (l.gradedAt && (!a || l.gradedAt > a) ? l.gradedAt : a),
         null,
       );
-      const profitUnits =
-        outcome === "WIN"
-          ? round2(payout(units, combinedAmerican))
-          : outcome === "LOSS"
-            ? -units
-            : null;
       const createdAt = legs.reduce(
         (a, l) => (l.createdAt < a ? l.createdAt : a),
         legs[0].createdAt,
@@ -629,10 +625,10 @@ async function seedGhost(passwordHash: string, g: Ghost) {
           capperId,
           combinedOddsAmerican: combinedAmerican,
           units,
-          outcome,
-          profitUnits,
+          outcome: settlement.outcome,
+          profitUnits: settlement.profitUnits,
           createdAt,
-          gradedAt: outcome === "PENDING" ? null : gradedAt,
+          gradedAt: settlement.outcome === "PENDING" ? null : gradedAt,
           legs: {
             create: legs.map((l) => ({
               capperId,
@@ -643,7 +639,7 @@ async function seedGhost(passwordHash: string, g: Ghost) {
               side: l.side,
               line: l.line,
               oddsAmerican: l.oddsAmerican,
-              units, // leg stake mirrors the parlay stake
+              units: 0, // the parlay carries the stake; legs are components
               book: l.book,
               outcome: l.outcome,
               profitUnits: null, // legs don't carry standalone P/L inside a parlay
