@@ -65,7 +65,7 @@ export function WhatChangedToday({
             aria-hidden
           />
           <div className="min-w-0">
-            <h2 className="scl-display text-lg font-semibold tracking-[0.04em]">
+            <h2 className="scl-display text-[0.8125rem] leading-4 font-semibold tracking-[0.14em] uppercase">
               What changed today
             </h2>
             <p className="text-muted-foreground text-xs">

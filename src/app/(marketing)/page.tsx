@@ -6,15 +6,13 @@ import { Button } from "@/components/ui/button";
 
 import { CompetitionHero } from "@/components/scl/competition-hero";
 import { FeaturedProofReceipt } from "@/components/scl/featured-proof-receipt";
-import { HomeEvidenceField } from "@/components/scl/home-live-board";
+import { HeroBoardCollage } from "@/components/scl/hero-board-collage";
 import { HomeVerificationRail } from "@/components/scl/home-verification-rail";
-import { LeaderboardSnapshot } from "@/components/scl/leaderboard-snapshot";
 import { LeagueActionReport } from "@/components/scl/league-action-report";
 import { PlatformClvSummary } from "@/components/scl/platform-clv-summary";
 import { SectionHeader } from "@/components/scl/section";
 import { TopCappersLive } from "@/components/scl/top-cappers-live";
 import { WhatChangedToday } from "@/components/scl/what-changed-today";
-import { YesterdayWinsTicker } from "@/components/scl/yesterday-wins-ticker";
 
 import { appUrl } from "@/lib/app-url";
 import {
@@ -31,7 +29,6 @@ import {
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 import { getLeagueActionReport } from "@/lib/queries/league-action";
 import { getPlatformClvSummary } from "@/lib/queries/platform-clv";
-import { getYesterdaysGradedWins } from "@/lib/queries/yesterday-wins";
 
 export const revalidate = 60;
 
@@ -96,7 +93,6 @@ export default async function Home() {
     failed: leagueActionFailed,
   } = await getLeagueActionReport();
 
-  const gradedWinsTicker = await getYesterdaysGradedWins();
   const { moves, failed: movesFailed } = await getTodaysGradedMoves();
   const { play: featuredPlay, failed: featuredFailed } =
     await getFeaturedGradedPlay();
@@ -104,37 +100,49 @@ export default async function Home() {
     await getPlatformClvSummary();
 
   // Snapshot = board place by units. Top cappers = inspectability by verified share.
-  const snapshot = sortLeaderboard(cappers, "units").slice(0, 3);
+  const snapshot = sortLeaderboard(cappers, "units").slice(0, 5);
   const topCappers = sortLeaderboard(cappers, "verified").slice(0, 5);
 
   return (
     <>
-      <CompetitionHero />
-
-      <YesterdayWinsTicker
-        results={gradedWinsTicker.results}
-        label={gradedWinsTicker.label}
+      <CompetitionHero
+        board={
+          <HeroBoardCollage
+            cappers={snapshot}
+            leaderboardFailed={leaderboardFailed}
+            updatedAt={updatedAt}
+            featuredPlay={featuredPlay}
+            featuredFailed={featuredFailed}
+          />
+        }
       />
 
-      <div className="mx-auto max-w-[1400px] overflow-x-hidden px-4 pt-5 pb-8 sm:px-6 sm:pt-6 sm:pb-10 lg:px-8">
-        <HomeEvidenceField
-          leaderboard={
-            <LeaderboardSnapshot
-              cappers={snapshot}
-              failed={leaderboardFailed}
-              updatedAt={updatedAt}
-              limit={3}
+      {/* Mockup: thin What Changed strip under hero */}
+      <div className="border-border border-b bg-[color:var(--scl-ink-900)]">
+        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
+          <WhatChangedToday moves={moves} failed={movesFailed} />
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-[1400px] overflow-x-hidden px-4 pt-6 pb-8 sm:px-6 sm:pt-8 sm:pb-10 lg:px-8">
+        {/* Mockup body: Top Cappers table + Featured Proof */}
+        <div className="border-border grid gap-0 border-y lg:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.85fr)] lg:items-start">
+          <div className="scl-scanline border-border relative min-w-0 border-b px-0 py-5 lg:border-r lg:border-b-0 lg:pr-6 lg:pl-5">
+            <div
+              className="pointer-events-none absolute inset-y-0 left-0 hidden w-1 bg-[color:var(--scl-blue)] lg:block"
+              aria-hidden
             />
-          }
-          featuredProof={
+            <TopCappersLive
+              cappers={topCappers}
+              failed={leaderboardFailed}
+              activeWindow="30d"
+            />
+          </div>
+          <div className="min-w-0 space-y-6 px-0 py-5 lg:pl-6">
             <FeaturedProofReceipt play={featuredPlay} failed={featuredFailed} />
-          }
-          whatChanged={<WhatChangedToday moves={moves} failed={movesFailed} />}
-          topCappers={
-            <TopCappersLive cappers={topCappers} failed={leaderboardFailed} />
-          }
-          verificationContext={<HomeVerificationRail />}
-        />
+            <HomeVerificationRail />
+          </div>
+        </div>
 
         <div className="mt-10 space-y-10 sm:mt-14 sm:space-y-14">
           <section className="space-y-4">

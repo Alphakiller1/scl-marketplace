@@ -241,12 +241,12 @@ roles, not mockup-color approximations.
 - Nav: **Picks · Leaderboard · Discover**. Logo: the current `scl-logo.tsx` mark (do not vary).
 - Primary capper-recruitment CTA: **"Track Your Record"** (retires "Become a Capper"). Sign-in
   entry may remain "Log in / Join SCL".
-- Homepage hero = rolling 3 slides, copy v2-aligned, Track Your Record recruitment CTA
-  (slide 1 CTA = "Track Your Record"; not word-for-word locked). Evidence modules sit
-  around/below it as an asymmetric 12-col field (≥1024): Row1 Leaderboard snapshot (8) +
-  Featured Proof Receipt warm paper (4); Row2 What changed today full-width open strip;
-  Row3 Top cappers by verified share (8) + verification context (4). Hairlines between
-  regions — not one card wrapping the stack. Scanline only on live-board panes.
+- Homepage hero = rolling 3 slides with **owner-locked CTA language**
+  (`src/lib/hero-slides.ts` / `design/MOCKUP_FIDELITY_HOME_CONTRACT.md`). Visual
+  composition is dual-column ≥1024: locked copy rail + Leaderboard snapshot /
+  overlapping Proof Receipt collage. Do not replace locked titles/CTAs with
+  marketing mockup lines. Body field below: What changed today strip, then Top
+  cappers dense table + Featured proof receipt (+ verification context).
 
 ## Data honesty rule
 
