@@ -296,7 +296,7 @@ export function GamePicker({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search teams, leagues, or matchups…"
-              className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-lg border bg-transparent py-2 pr-3 pl-10 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
+              className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-lg border bg-transparent py-2 pr-3 pl-10 text-base shadow-xs focus-visible:ring-[3px] focus-visible:outline-none sm:text-sm"
             />
           </label>
 

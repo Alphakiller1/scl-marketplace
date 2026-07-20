@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
 import { LeagueRef, TeamRef, isTeamSide } from "@/components/scl/entity-marks";
 import { bookLabel, bookShort } from "@/lib/books";
 import { formatOdds } from "@/lib/format";
@@ -43,6 +45,10 @@ function LineCard({
       ? `${line.market} ${line.line > 0 ? `+${line.line}` : line.line}`
       : line.market;
   const sport = line.sport?.trim() || "";
+  const updated =
+    !unavailable && line.updatedOddsAmerican != null
+      ? formatOdds(line.updatedOddsAmerican)
+      : null;
 
   return (
     <div className="border-border space-y-3 rounded-[14px] border bg-[color:var(--scl-ink-800)] p-3">
@@ -78,22 +84,20 @@ function LineCard({
 
       <div className="grid grid-cols-2 gap-2">
         <div className="rounded-lg border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-700)] px-3 py-2">
-          <p className="scl-eyebrow text-muted-foreground">Old</p>
+          <p className="scl-eyebrow text-muted-foreground">Captured</p>
           <p className="scl-data text-foreground mt-0.5 text-lg font-semibold">
             {formatOdds(line.selectedOddsAmerican)}
           </p>
         </div>
         <div className="rounded-lg border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-700)] px-3 py-2">
-          <p className="scl-eyebrow text-muted-foreground">New</p>
+          <p className="scl-eyebrow text-muted-foreground">Board now</p>
           <p
             className={cn(
               "scl-data mt-0.5 text-lg font-semibold",
               unavailable ? "text-muted-foreground" : "text-foreground",
             )}
           >
-            {unavailable || line.updatedOddsAmerican == null
-              ? "—"
-              : formatOdds(line.updatedOddsAmerican)}
+            {updated ?? "—"}
           </p>
         </div>
       </div>
@@ -111,10 +115,7 @@ function LineCard({
             onClick={() => onAccept(line)}
             className="min-h-11 flex-1 rounded-[10px] border border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] px-4 text-sm font-semibold text-[color:var(--scl-pink-ink)] transition-colors hover:bg-[color:var(--scl-pink-deep)]"
           >
-            Accept{" "}
-            {line.updatedOddsAmerican != null
-              ? formatOdds(line.updatedOddsAmerican)
-              : ""}
+            {updated ? `Use updated price (${updated})` : "Use updated price"}
           </button>
         ) : null}
         {onRemove ? (
@@ -151,6 +152,7 @@ export function LineMovedPrompt({
   onCancel: () => void;
   className?: string;
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
   const title =
     mode === "blocked"
       ? "Line unavailable — review before submit"
@@ -158,27 +160,39 @@ export function LineMovedPrompt({
 
   const confirmable = lines.filter((l) => l.class === "changed");
 
+  useEffect(() => {
+    const root = dialogRef.current;
+    if (!root) return;
+    const focusable = root.querySelector<HTMLElement>(
+      "button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])",
+    );
+    focusable?.focus();
+  }, [mode, lines]);
+
   return (
     <div
+      ref={dialogRef}
       role="alertdialog"
+      aria-modal="true"
       aria-labelledby="line-moved-title"
       aria-describedby="line-moved-desc"
+      tabIndex={-1}
       className={cn(
-        "space-y-4 rounded-[14px] border border-[color:var(--scl-pink-deep)] bg-[color:var(--scl-ink-700)] p-4 shadow-[var(--scl-shadow-card)]",
+        "space-y-4 rounded-[14px] border border-[color:var(--scl-pink-deep)] bg-[color:var(--scl-ink-700)] p-4 shadow-[var(--scl-shadow-card)] outline-none",
         className,
       )}
     >
       <div className="space-y-1">
         <p
           id="line-moved-title"
-          className="scl-display text-foreground text-base font-bold tracking-[0.04em] uppercase"
+          className="scl-display text-foreground text-base font-bold tracking-[0.04em]"
         >
           {title}
         </p>
         <p id="line-moved-desc" className="text-muted-foreground text-xs">
           {mode === "blocked"
             ? "A selected line is no longer offered. Remove it to submit the rest, or cancel — nothing has been written yet for pending lines."
-            : "Live odds changed beyond tolerance. Accept updated prices, remove a leg, or cancel — nothing has been written yet."}
+            : "Live odds changed beyond tolerance. Use the updated board price, remove a leg, or cancel — nothing has been written yet."}
         </p>
       </div>
 
@@ -203,7 +217,7 @@ export function LineMovedPrompt({
           onClick={() => onAcceptAll(confirmable)}
           className="min-h-11 w-full rounded-[10px] border border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] px-4 text-sm font-semibold text-[color:var(--scl-pink-ink)] transition-colors hover:bg-[color:var(--scl-pink-deep)]"
         >
-          Accept all
+          Use all updated prices
         </button>
       ) : null}
 
@@ -212,7 +226,7 @@ export function LineMovedPrompt({
         onClick={onCancel}
         className="border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 min-h-11 w-full rounded-[10px] border px-4 text-sm font-semibold transition-colors"
       >
-        Choose another
+        Cancel review
       </button>
     </div>
   );

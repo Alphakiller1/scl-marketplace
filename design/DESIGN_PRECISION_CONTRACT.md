@@ -28,3 +28,4 @@ This contract closes the system-level visual gaps that remain after the evidence
 - QA at 375, 768, 1024, 1280, and 1440px in dark and light.
 - No horizontal overflow, normal-size text below 4.5:1, broken images, or mobile input zoom traps.
 - Reduced motion renders a stable final state before automated contrast checks.
+- New Pick slate/prop search, line-move review, and mobile pick-slip CTA follow the same 44px / sentence-case / `text-base` mobile input rules.

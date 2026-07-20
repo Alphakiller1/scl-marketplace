@@ -88,12 +88,36 @@ export function filterPlayerPropGroups<T extends PropSelection>(
 
   return groups
     .map((g) => {
-      if (q && !g.player.toLowerCase().includes(q)) return null;
       const markets = market
         ? g.markets.filter(([m]) => m === market)
         : g.markets;
       if (!markets.length) return null;
-      return { player: g.player, markets };
+      if (!q) return { player: g.player, markets };
+
+      // Match player name, market label, or any selection/side string in the group.
+      const playerHit = g.player.toLowerCase().includes(q);
+      const filteredMarkets = markets
+        .map(([m, opts]): [string, T[]] | null => {
+          if (m.toLowerCase().includes(q)) return [m, opts];
+          const hitOpts = opts.filter((s) => {
+            const side =
+              "side" in s && typeof s.side === "string" ? s.side : "";
+            const selection =
+              "selection" in s && typeof s.selection === "string"
+                ? s.selection
+                : "";
+            return (
+              side.toLowerCase().includes(q) ||
+              selection.toLowerCase().includes(q)
+            );
+          });
+          return hitOpts.length ? [m, hitOpts] : null;
+        })
+        .filter((entry): entry is [string, T[]] => entry !== null);
+
+      if (playerHit) return { player: g.player, markets };
+      if (!filteredMarkets.length) return null;
+      return { player: g.player, markets: filteredMarkets };
     })
     .filter((g): g is PlayerPropGroup<T> => g !== null);
 }

@@ -83,6 +83,13 @@ describe("filterPlayerPropGroups", () => {
     assert.equal(hit[0]!.player, "Jayson Tatum");
   });
 
+  it("matches market labels in the prop search query", () => {
+    const hit = filterPlayerPropGroups(groups, { query: "strikeouts" });
+    assert.equal(hit.length, 1);
+    assert.equal(hit[0]!.player, "Gerrit Cole");
+    assert.equal(hit[0]!.markets[0]![0], "Strikeouts");
+  });
+
   it("filters by market category and drops players without that market", () => {
     const hit = filterPlayerPropGroups(groups, { market: "Strikeouts" });
     assert.equal(hit.length, 1);

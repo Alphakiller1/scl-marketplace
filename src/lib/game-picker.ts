@@ -30,7 +30,7 @@ export type GamePickerEvent = {
   away: string;
 };
 
-/** Case-insensitive match on teams, sport/league key, or "away @ home". */
+/** Case-insensitive match on teams, sport/league, or matchup text. */
 export function eventMatchesSearch(
   event: GamePickerEvent,
   query: string,
@@ -41,12 +41,16 @@ export function eventMatchesSearch(
     event.away,
     event.home,
     event.sport,
+    event.league ?? "",
     `${event.away} @ ${event.home}`,
     `${event.away} at ${event.home}`,
+    `${event.home} vs ${event.away}`,
+    `${event.away} vs ${event.home}`,
   ]
     .join(" ")
     .toLowerCase();
-  return hay.includes(q);
+  // All tokens must appear (order-independent) so "celtics lakers" still hits.
+  return q.split(/\s+/).every((token) => hay.includes(token));
 }
 
 export function countEventsBySport(

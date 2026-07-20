@@ -27,6 +27,52 @@ import { useIsLg } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
 import type { BulkSinglesReceipt, SubmissionReceipt } from "@/lib/verification";
 
+type WorkflowStep = "board" | "capture" | "receipt";
+
+function PickWorkflowSteps({ step }: { step: WorkflowStep }) {
+  const steps: { id: WorkflowStep; label: string }[] = [
+    { id: "board", label: "Board" },
+    { id: "capture", label: "Capture" },
+    { id: "receipt", label: "Receipt" },
+  ];
+  const activeIdx = steps.findIndex((s) => s.id === step);
+
+  return (
+    <nav aria-label="Pick workflow" className="mb-4">
+      <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+        {steps.map((s, i) => {
+          const reached = i <= activeIdx;
+          return (
+            <li key={s.id} className="flex items-center gap-2">
+              {i > 0 ? (
+                <span
+                  aria-hidden
+                  className="text-[color:var(--scl-muted-data)]"
+                >
+                  →
+                </span>
+              ) : null}
+              <span
+                className={cn(
+                  "rounded-md px-2 py-1 font-medium",
+                  reached
+                    ? "bg-[color:var(--scl-ink-800)] text-[color:var(--scl-text)]"
+                    : "text-[color:var(--scl-muted-data)]",
+                  s.id === step &&
+                    "ring-1 ring-[color:var(--scl-pink-deep)] ring-inset",
+                )}
+                aria-current={s.id === step ? "step" : undefined}
+              >
+                {s.label}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
 /**
  * Unified board + slip entry (M5 PR-3 / PR-4).
  * One GamePicker; multi-select into SlipStore; Singles | Parlay decided in-slip.
@@ -343,6 +389,7 @@ function UnifiedPickEntryInner() {
   if (receipt && (receipt.kind !== "bulk" || receipt.suspendedCount === 0)) {
     return (
       <div className="mx-auto max-w-md space-y-4">
+        <PickWorkflowSteps step="receipt" />
         <div className="space-y-1">
           <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
             Pick submitted
@@ -362,6 +409,14 @@ function UnifiedPickEntryInner() {
         ) : (
           <VerificationReceipt receipt={receipt} />
         )}
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-11 w-full"
+          onClick={() => setReceipt(null)}
+        >
+          Back to board
+        </Button>
       </div>
     );
   }
@@ -391,7 +446,7 @@ function UnifiedPickEntryInner() {
       {partialBulk ? (
         <div className="mx-auto max-w-md space-y-3">
           <SectionHeader
-            title="Plays Logged"
+            title="Plays logged"
             subtitle="Partial submit — suspended lines stayed in your slip"
           />
           <ReceiptStack receipt={partialBulk} />
@@ -405,6 +460,8 @@ function UnifiedPickEntryInner() {
           </Button>
         </div>
       ) : null}
+
+      <PickWorkflowSteps step={hasSelections ? "capture" : "board"} />
 
       <header>
         <p className="scl-eyebrow mb-1 text-[color:var(--scl-muted-data)]">
@@ -440,8 +497,8 @@ function UnifiedPickEntryInner() {
           title="Pick slip"
           countLabel={
             mode === "parlay"
-              ? `${selections.length} Leg${selections.length === 1 ? "" : "s"}`
-              : `${selections.length} Pick${selections.length === 1 ? "" : "s"}`
+              ? `${selections.length} leg${selections.length === 1 ? "" : "s"}`
+              : `${selections.length} pick${selections.length === 1 ? "" : "s"}`
           }
           oddsLabel={dockOdds}
         >

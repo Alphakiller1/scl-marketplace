@@ -22,6 +22,13 @@ Status: acceptance target for `/dashboard/picks/new` and its unified Singles / P
 - A selected price opens the existing bottom pick-slip dock; no empty slip card blocks the board.
 - The focused matchup uses document scrolling, never a nested 448px market scroll trap.
 - Controls used for selection, disclosure, removal, stake shortcuts, and slate navigation are at least 44px high.
+- Slate and prop search inputs use `text-base` on mobile (`sm:text-sm`) to avoid iOS zoom.
+
+## Lineage
+
+- The workspace exposes a Board → Capture → Receipt step rail.
+- Board is active with an empty slip; Capture activates once a price is selected; Receipt replaces the workspace after a successful log.
+- Receipt includes a “Back to board” action that returns to the board/capture workspace without inventing a second pick studio.
 
 ## Board hierarchy
 

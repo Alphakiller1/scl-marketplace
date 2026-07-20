@@ -41,12 +41,20 @@ const EVENTS = [
   },
 ];
 
-test("eventMatchesSearch matches teams, sport, and matchup text", () => {
+test("eventMatchesSearch matches teams, sport, league, and matchup text", () => {
   assert.equal(eventMatchesSearch(EVENTS[0]!, "lakers"), true);
   assert.equal(eventMatchesSearch(EVENTS[0]!, "NBA"), true);
   assert.equal(eventMatchesSearch(EVENTS[0]!, "lakers @ boston"), true);
   assert.equal(eventMatchesSearch(EVENTS[0]!, "yankees"), false);
   assert.equal(eventMatchesSearch(EVENTS[0]!, "  "), true);
+  assert.equal(
+    eventMatchesSearch(
+      { ...EVENTS[0]!, league: "National Basketball Association" },
+      "national basketball",
+    ),
+    true,
+  );
+  assert.equal(eventMatchesSearch(EVENTS[0]!, "celtics vs lakers"), true);
 });
 
 test("filterGamePickerEvents applies day + category + search", () => {

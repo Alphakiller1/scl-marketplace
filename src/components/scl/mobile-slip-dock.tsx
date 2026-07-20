@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Mobile sticky slip bar — SCL-DESIGN-SPEC STICKY SLIP BAR recipe.
- * Fixed bottom, 56px, pink-deep border, the one permitted gradient, VIEW SLIP CTA.
+ * Fixed bottom, 56px, pink-deep border, the one permitted gradient, open-slip CTA.
  */
 export function MobileSlipDock({
   title,
@@ -22,7 +22,7 @@ export function MobileSlipDock({
   className,
 }: {
   title: string;
-  /** e.g. "1 LEG" / "3 LEGS" */
+  /** e.g. "1 pick" / "3 legs" */
   countLabel: string;
   /** Combined or single-leg American odds, or null when not yet combinable. */
   oddsLabel?: string | null;
@@ -50,7 +50,7 @@ export function MobileSlipDock({
             boxShadow: "var(--scl-shadow-slip)",
           }}
         >
-          <span className="scl-display min-w-0 flex-1 truncate text-base font-bold tracking-[0.05em] text-[color:var(--scl-hero-text)] uppercase">
+          <span className="scl-display min-w-0 flex-1 truncate text-base font-bold tracking-[0.04em] text-[color:var(--scl-hero-text)]">
             {countLabel}
           </span>
           {oddsLabel ? (
@@ -61,11 +61,11 @@ export function MobileSlipDock({
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="scl-display h-11 shrink-0 rounded-[10px] bg-[color:var(--scl-pink)] px-4 text-[15px] font-bold tracking-[0.08em] text-[color:var(--scl-pink-ink)] uppercase"
+            className="h-11 shrink-0 rounded-[10px] bg-[color:var(--scl-pink)] px-4 text-[15px] font-semibold text-[color:var(--scl-pink-ink)]"
             aria-haspopup="dialog"
             aria-expanded={open}
           >
-            View Slip
+            Open pick slip
           </button>
         </div>
       </div>

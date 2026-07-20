@@ -623,9 +623,9 @@ export function EventDetail({
               type="text"
               value={query}
               onChange={(ev) => setQuery(ev.target.value)}
-              placeholder="Search props by player…"
-              aria-label="Search props by player"
-              className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-lg border bg-transparent px-3 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
+              placeholder="Search props by player, market, or line…"
+              aria-label="Search props by player, market, or line"
+              className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-lg border bg-transparent px-3 text-base shadow-xs focus-visible:ring-[3px] focus-visible:outline-none sm:text-sm"
             />
             {propMarkets.length > 1 ? (
               <div
