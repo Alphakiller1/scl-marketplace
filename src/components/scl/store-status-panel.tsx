@@ -50,13 +50,13 @@ function messageFor(
   }
   if (status === "PENDING_SCL_ACCEPTANCE") {
     return {
-      title: "Pending SCL Acceptance",
+      title: "Pending SCL acceptance",
       body: "Thanks. Your Winible affiliate request has been submitted. SCL must accept the request in Winible, then import your package links. No further action is required right now unless we contact you.",
     };
   }
   if (status === "PENDING_SCL_LINK_IMPORT") {
     return {
-      title: "Pending SCL Link Import",
+      title: "Pending SCL link import",
       body: "Thanks. You’ve added SCL as an affiliate on Whop. SCL will copy your product-specific links from our Whop affiliate dashboard and publish packages on your profile. No further action is required unless we contact you.",
     };
   }

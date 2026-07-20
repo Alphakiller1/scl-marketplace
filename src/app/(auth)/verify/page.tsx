@@ -20,12 +20,12 @@ export default async function VerifyPage({
         <AuthHeader
           icon={MailWarning}
           eyebrow="Email Verification"
-          title="Check Your Inbox"
+          title="Check your inbox"
           description="Open the verification link sent when your SCL account was created."
         />
         <AuthStatusNotice
           tone="info"
-          title="Verification Required"
+          title="Verification required"
           description="Capper play submission unlocks after your email is confirmed."
         />
         <Button

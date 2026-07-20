@@ -407,6 +407,13 @@
     /* Supporting tier — labels must clear 4.5:1 (muted-label fails on light paper). */
     color: var(--scl-muted-data);
   }
+  .scl-page-title {
+    font-family: var(--scl-font-display);
+    font-size: 2.5rem;
+    line-height: 2.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
   /**
    * Accessible text link — text fill uses the text tier; blue is underline/hover only.
    * Conviction/nav hues are never small-text fills (WCAG 2.2 AA).

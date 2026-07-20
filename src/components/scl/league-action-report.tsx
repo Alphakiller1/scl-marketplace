@@ -450,7 +450,7 @@ function ButtonishPicksLink({ label }: { label: string }) {
   return (
     <Link
       href="/picks"
-      className="scl-link inline-flex min-h-10 items-center gap-1.5 text-sm font-semibold"
+      className="scl-link inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold"
     >
       {label}
       <ArrowRight className="size-3.5" aria-hidden />
@@ -820,9 +820,9 @@ function PlatformReportTabs({
         >
           <TabsTrigger
             value="leagues"
-            className="data-active:text-foreground min-h-9 px-3 data-active:underline data-active:decoration-[color:var(--scl-blue)] data-active:underline-offset-4"
+            className="data-active:text-foreground min-h-11 px-3 data-active:underline data-active:decoration-[color:var(--scl-blue)] data-active:underline-offset-4"
           >
-            Top Leagues
+            Top leagues
             {leagues.length > 0 ? (
               <span className="scl-data text-muted-foreground ml-1 text-[0.7rem]">
                 {leagues.length}
@@ -831,9 +831,9 @@ function PlatformReportTabs({
           </TabsTrigger>
           <TabsTrigger
             value="types"
-            className="data-active:text-foreground min-h-9 px-3 data-active:underline data-active:decoration-[color:var(--scl-blue)] data-active:underline-offset-4"
+            className="data-active:text-foreground min-h-11 px-3 data-active:underline data-active:decoration-[color:var(--scl-blue)] data-active:underline-offset-4"
           >
-            Bet Types
+            Bet types
           </TabsTrigger>
         </TabsList>
       </div>

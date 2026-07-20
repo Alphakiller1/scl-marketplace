@@ -12,7 +12,7 @@ import { getPublicRecentPicksResult } from "@/lib/queries/plays";
 import { publicFeedCappers } from "@/lib/public-picks";
 
 export const metadata: Metadata = {
-  title: { absolute: "Latest Picks · SCL" },
+  title: { absolute: "Latest picks · SCL" },
   description:
     "A chronological ledger of tracked public picks, capture evidence, and graded results.",
 };
@@ -57,12 +57,12 @@ export default async function PicksPage({
             <p className="scl-eyebrow text-[color:var(--scl-muted-label)]">
               SCL Public Evidence Ledger
             </p>
-            <h1 className="scl-display text-foreground mt-1 text-3xl leading-none font-bold tracking-tight sm:text-4xl">
-              Latest Picks
+            <h1 className="scl-page-title text-foreground mt-1">
+              Latest picks
             </h1>
             <p className="text-muted-foreground mt-2 text-sm leading-relaxed sm:text-base">
-              A Chronological Ledger Of Public Submissions, Capture Evidence,
-              And Graded Results.
+              A chronological ledger of public submissions, capture evidence,
+              and graded results.
             </p>
           </div>
           <VerificationHelpLink className="text-muted-foreground hover:text-foreground inline-flex min-h-11 shrink-0 gap-1.5 self-start px-2 text-xs font-medium sm:self-auto" />
@@ -82,8 +82,8 @@ export default async function PicksPage({
         <EmptyState
           className="mt-6"
           icon={ReceiptText}
-          title="Couldn't Load Public Picks"
-          description="Recent Tracked Submissions Are Temporarily Unavailable. Please Try Again Shortly."
+          title="Couldn't load public picks"
+          description="Recent tracked submissions are temporarily unavailable. Please try again shortly."
         />
       )}
     </main>
