@@ -56,6 +56,12 @@ Bodies remain the three strings currently in `competition-hero.tsx` `SLIDES`.
 - No fabricated Handle $ or Avg Odds unless a real field exists
 - Empty / provisional / failed states stay honest
 
+## Craft micro-rules (home + board chips)
+
+- Window / scope chips: `h-8`, `px-2`, `text-[10px]`, `rounded-[var(--scl-radius-chip)]` — never `rounded-full` soft pills
+- Collage empty proof still sits in warm `scl-proof-paper` shell (receipt radius), not a soft EmptyState card alone
+- Leaderboard desktop rows target ~56px; specialty (or top sport) sits under identity
+
 ## Acceptance
 
 - Side-by-side screenshot review at 375 / 768 / 1280 / 1440 dark (+ light smoke)

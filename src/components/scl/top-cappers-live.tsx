@@ -63,7 +63,7 @@ export function TopCappersLive({
                 key={chip.id}
                 href={chip.href}
                 className={cn(
-                  "scl-data inline-flex h-9 min-w-11 items-center justify-center rounded-full px-3 text-[11px] font-semibold tracking-[0.08em] uppercase transition-colors",
+                  "scl-data inline-flex h-8 min-w-9 items-center justify-center rounded-[var(--scl-radius-chip)] px-2 text-[10px] font-semibold tracking-[0.1em] uppercase transition-colors",
                   active
                     ? "bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
                     : "border-border text-muted-foreground hover:text-foreground border bg-transparent",
@@ -140,10 +140,10 @@ export function TopCappersLive({
                       key={capper.id}
                       className="border-border hover:bg-surface-2/50 border-b last:border-b-0"
                     >
-                      <td className="scl-data px-2 py-2.5 tabular-nums">
+                      <td className="scl-data px-2 py-1.5 tabular-nums">
                         {capper.rank > 0 ? capper.rank : i + 1}
                       </td>
-                      <td className="px-2 py-2.5">
+                      <td className="px-2 py-1.5">
                         <Link
                           href={`/cappers/${capper.handle}`}
                           className="focus-visible:ring-ring flex min-w-0 items-center gap-2 rounded-sm focus-visible:ring-2 focus-visible:outline-none"
@@ -161,7 +161,7 @@ export function TopCappersLive({
                           />
                         </Link>
                       </td>
-                      <td className="px-2 py-2.5">
+                      <td className="px-2 py-1.5">
                         <div className="flex items-center gap-1">
                           {sports.map((sport) => (
                             <SportTag
@@ -173,7 +173,7 @@ export function TopCappersLive({
                           ))}
                         </div>
                       </td>
-                      <td className="scl-data px-2 py-2.5 text-right tabular-nums">
+                      <td className="scl-data px-2 py-1.5 text-right tabular-nums">
                         {formatRecord(
                           capper.record.w,
                           capper.record.l,
@@ -182,7 +182,7 @@ export function TopCappersLive({
                       </td>
                       <td
                         className={cn(
-                          "scl-data px-2 py-2.5 text-right font-semibold tabular-nums",
+                          "scl-data px-2 py-1.5 text-right font-semibold tabular-nums",
                           perfToneClass(roiScale.tone),
                         )}
                         title={roiScale.ariaLabel}
@@ -191,24 +191,24 @@ export function TopCappersLive({
                       </td>
                       <td
                         className={cn(
-                          "scl-data px-2 py-2.5 text-right font-semibold tabular-nums",
+                          "scl-data px-2 py-1.5 text-right font-semibold tabular-nums",
                           perfToneClass(unitsScale.tone),
                         )}
                         title={unitsScale.ariaLabel}
                       >
                         {formatUnits(capper.units)}
                       </td>
-                      <td className="px-2 py-2.5">
+                      <td className="px-2 py-1.5">
                         <div className="ml-auto w-[4.75rem]">
                           <SampleMaturityMeter graded={graded} compact />
                         </div>
                       </td>
-                      <td className="px-2 py-2.5">
+                      <td className="px-2 py-1.5">
                         <div className="ml-auto w-[4.75rem]">
                           <VerifiedShareMeter pct={capper.verifiedShare} />
                         </div>
                       </td>
-                      <td className="px-1 py-2.5 text-[color:var(--scl-muted-data)]">
+                      <td className="px-1 py-1.5 text-[color:var(--scl-muted-data)]">
                         <ChevronRight className="size-4" aria-hidden />
                       </td>
                     </tr>

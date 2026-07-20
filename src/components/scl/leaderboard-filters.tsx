@@ -272,7 +272,7 @@ function AppliedChip({ label, href }: { label: string; href: string }) {
   return (
     <Link
       href={href}
-      className="border-border bg-card focus-visible:ring-ring inline-flex min-h-10 items-center gap-1.5 rounded-[8px] border px-2.5 text-xs font-medium focus-visible:ring-2 focus-visible:outline-none"
+      className="border-border bg-card focus-visible:ring-ring scl-data inline-flex h-8 items-center gap-1 rounded-[var(--scl-radius-chip)] border px-2 text-[10px] font-medium tracking-[0.06em] uppercase focus-visible:ring-2 focus-visible:outline-none"
     >
       {label}
       <X className="size-3 text-[color:var(--scl-muted-label)]" aria-hidden />

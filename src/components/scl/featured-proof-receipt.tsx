@@ -56,18 +56,29 @@ export function FeaturedProofReceipt({
       )}
 
       {!play ? (
-        <EmptyState
-          className="py-6 sm:py-7"
-          icon={Receipt}
-          title={
-            failed ? "Couldn't load featured proof" : "No graded receipts yet"
-          }
-          description={
-            failed
-              ? "Try again shortly."
-              : "A proof receipt appears here after a board-verified pick is graded."
-          }
-        />
+        <div
+          className={cn(
+            hideHeader &&
+              "scl-proof-paper bg-card rounded-[var(--scl-radius-receipt)] border-2 border-[color:var(--border)] shadow-[var(--scl-shadow-card)]",
+          )}
+        >
+          <EmptyState
+            className={cn(
+              "py-6 sm:py-7",
+              hideHeader &&
+                "rounded-[var(--scl-radius-receipt)] border-0 bg-transparent py-5 shadow-none sm:py-6",
+            )}
+            icon={Receipt}
+            title={
+              failed ? "Couldn't load featured proof" : "No graded receipts yet"
+            }
+            description={
+              failed
+                ? "Try again shortly."
+                : "A proof receipt appears here after a board-verified pick is graded."
+            }
+          />
+        </div>
       ) : (
         <FeaturedReceiptBody play={play} />
       )}

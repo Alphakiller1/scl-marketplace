@@ -279,7 +279,7 @@ function ExpandControls({
             key={n}
             href={leaderboardHref(filters, { limit: n }, basePath)}
             className={cn(
-              "inline-flex min-h-9 items-center rounded-[10px] border px-3 text-sm font-semibold tabular-nums",
+              "scl-data inline-flex h-8 min-w-9 items-center justify-center rounded-[var(--scl-radius-chip)] border px-2 text-[10px] font-semibold tracking-[0.1em] uppercase tabular-nums",
               active
                 ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
                 : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-[color:var(--scl-blue)]",
@@ -311,9 +311,13 @@ function LeaderboardTableRow({
   const selected = isSelected(capper.handle);
   const compareDisabled = !selected && !canAdd;
 
+  const specialty =
+    capper.specialties?.find((s) => s.trim().length > 0) ??
+    (capper.topSport ? capper.topSport : null);
+
   return (
-    <tr className="hover:bg-surface-2/80 group h-[72px]">
-      <td className="px-1.5 py-2 align-middle">
+    <tr className="hover:bg-surface-2/80 group h-[56px]">
+      <td className="px-1.5 py-1.5 align-middle">
         <input
           type="checkbox"
           className="size-4 accent-[color:var(--scl-blue)]"
@@ -323,7 +327,7 @@ function LeaderboardTableRow({
           onChange={() => toggle(capper.handle)}
         />
       </td>
-      <td className="px-1.5 py-2 align-middle">
+      <td className="px-1.5 py-1.5 align-middle">
         <div className="flex items-center gap-1.5">
           <RankBadge rank={rank} settledPicks={graded} variant="ledger" />
           <div className="flex min-w-0 flex-col items-start leading-none">
@@ -336,7 +340,7 @@ function LeaderboardTableRow({
           </div>
         </div>
       </td>
-      <td className="px-1.5 py-2 align-middle">
+      <td className="px-1.5 py-1.5 align-middle">
         <div className="flex min-w-0 items-center gap-2">
           <CapperAvatar name={capper.name} src={capper.avatarUrl} size="sm" />
           <Link
@@ -349,22 +353,32 @@ function LeaderboardTableRow({
               verified={false}
               primaryClassName="text-sm"
             />
+            {specialty ? (
+              <span className="text-muted-foreground mt-0.5 block truncate text-[10px] tracking-[0.06em] uppercase">
+                {specialty}
+              </span>
+            ) : null}
           </Link>
         </div>
       </td>
-      <td className="px-1.5 py-2 align-middle">
+      <td className="px-1.5 py-1.5 align-middle">
         <div className="flex flex-wrap items-center gap-1">
           {sports.map((sport) => (
-            <SportTag key={sport} sport={sport} markOnly className="shrink-0" />
+            <SportTag
+              key={sport}
+              sport={sport}
+              markOnly
+              className="size-6 shrink-0 [&_img]:size-3.5"
+            />
           ))}
         </div>
       </td>
-      <td className="px-1.5 py-2 text-right align-middle">
+      <td className="px-1.5 py-1.5 text-right align-middle">
         <StatValue tone="text" className="text-sm font-semibold tabular-nums">
           {formatRecord(capper.record.w, capper.record.l, capper.record.p)}
         </StatValue>
       </td>
-      <td className="px-1.5 py-2 text-right align-middle">
+      <td className="px-1.5 py-1.5 text-right align-middle">
         <span
           className={cn(
             "scl-data text-sm font-semibold tabular-nums",
@@ -375,7 +389,7 @@ function LeaderboardTableRow({
           {formatRoi(capper.roi)}
         </span>
       </td>
-      <td className="px-1.5 py-2 text-right align-middle">
+      <td className="px-1.5 py-1.5 text-right align-middle">
         <span
           className={cn(
             "scl-data text-sm font-semibold tabular-nums",
@@ -386,15 +400,15 @@ function LeaderboardTableRow({
           {formatUnits(capper.units)}
         </span>
       </td>
-      <td className="px-1.5 py-2 text-right align-middle">
+      <td className="px-1.5 py-1.5 text-right align-middle">
         <div className="ml-auto max-w-[5.5rem]">
           <SampleMaturityMeter graded={graded} compact />
         </div>
       </td>
-      <td className="px-1.5 py-2 text-right align-middle">
+      <td className="px-1.5 py-1.5 text-right align-middle">
         <VerifiedShareMeter pct={capper.verifiedShare} />
       </td>
-      <td className="px-1.5 py-2 text-right align-middle">
+      <td className="px-1.5 py-1.5 text-right align-middle">
         {capper.recentForm.length ? (
           <div className="flex justify-end">
             <RecentFormStrip form={capper.recentForm.slice(-5)} />
