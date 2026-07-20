@@ -99,7 +99,7 @@ export function StoreStatusPanel({
         <StoreStatusChip status={status} />
         <ProviderBadge provider={provider} />
       </div>
-      <h2 className="scl-display mt-3 text-lg font-bold tracking-[0.04em] uppercase">
+      <h2 className="scl-display mt-3 text-lg font-bold tracking-[0.02em]">
         {copy.title}
       </h2>
       <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-relaxed">

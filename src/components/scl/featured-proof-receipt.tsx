@@ -126,7 +126,7 @@ function FeaturedReceiptBody({ play }: { play: FeaturedGradedPlay }) {
       footerAction={
         <Link
           href={`/cappers/${play.handle}`}
-          className="scl-link text-xs font-semibold"
+          className="scl-link inline-flex min-h-11 items-center text-xs font-semibold"
         >
           View @{play.handle} record
         </Link>

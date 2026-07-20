@@ -154,7 +154,7 @@ export function CompetitionHero() {
 
                 <h1
                   id={active ? "scl-hero-title" : undefined}
-                  className="scl-display mt-5 max-w-[35rem] text-4xl leading-[0.98] font-bold tracking-[0.01em] normal-case sm:text-6xl"
+                  className="scl-display mt-5 max-w-[35rem] text-[2.375rem] leading-10 font-bold tracking-[0.01em] normal-case sm:text-[3.5rem] sm:leading-[1]"
                 >
                   <Link
                     href={slide.href}
@@ -195,7 +195,7 @@ export function CompetitionHero() {
           <button
             type="button"
             onClick={() => go(index - 1)}
-            className="focus-visible:ring-ring inline-flex size-10 items-center justify-center rounded-lg border border-[color:var(--scl-hero-line)] bg-[color:var(--scl-hero-ink-raised)]/80 text-[color:var(--scl-hero-muted)] backdrop-blur-sm hover:text-[color:var(--scl-hero-text)] focus-visible:ring-2 focus-visible:outline-none"
+            className="focus-visible:ring-ring inline-flex size-11 items-center justify-center rounded-lg border border-[color:var(--scl-hero-line)] bg-[color:var(--scl-hero-ink-raised)]/80 text-[color:var(--scl-hero-muted)] backdrop-blur-sm hover:text-[color:var(--scl-hero-text)] focus-visible:ring-2 focus-visible:outline-none"
             aria-label="Previous slide"
           >
             <ChevronLeft className="size-4" aria-hidden />
@@ -214,7 +214,7 @@ export function CompetitionHero() {
                 aria-selected={i === index}
                 aria-label={`Show slide ${i + 1}: ${s.title}`}
                 onClick={() => setIndex(i)}
-                className="group focus-visible:ring-ring inline-flex size-10 items-center justify-center rounded-lg focus-visible:ring-2 focus-visible:outline-none"
+                className="group focus-visible:ring-ring inline-flex size-11 items-center justify-center rounded-lg focus-visible:ring-2 focus-visible:outline-none"
               >
                 <span
                   aria-hidden
@@ -232,7 +232,7 @@ export function CompetitionHero() {
           <button
             type="button"
             onClick={() => go(index + 1)}
-            className="focus-visible:ring-ring inline-flex size-10 items-center justify-center rounded-lg border border-[color:var(--scl-hero-line)] bg-[color:var(--scl-hero-ink-raised)]/80 text-[color:var(--scl-hero-muted)] backdrop-blur-sm hover:text-[color:var(--scl-hero-text)] focus-visible:ring-2 focus-visible:outline-none"
+            className="focus-visible:ring-ring inline-flex size-11 items-center justify-center rounded-lg border border-[color:var(--scl-hero-line)] bg-[color:var(--scl-hero-ink-raised)]/80 text-[color:var(--scl-hero-muted)] backdrop-blur-sm hover:text-[color:var(--scl-hero-text)] focus-visible:ring-2 focus-visible:outline-none"
             aria-label="Next slide"
           >
             <ChevronRight className="size-4" aria-hidden />

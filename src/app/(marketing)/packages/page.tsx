@@ -98,9 +98,7 @@ export default async function PackagesPage() {
           </p>
           <div className="mt-2 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h1 className="scl-display text-foreground text-3xl font-bold tracking-tight sm:text-4xl">
-                Packages
-              </h1>
+              <h1 className="scl-page-title text-foreground">Packages</h1>
               <p className="text-muted-foreground mt-2 max-w-3xl text-sm leading-relaxed sm:text-base">
                 Inspect a capper&apos;s public evidence before opening an offer
                 on an external storefront.

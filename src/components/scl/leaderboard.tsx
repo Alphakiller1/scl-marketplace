@@ -279,7 +279,7 @@ function ExpandControls({
             key={n}
             href={leaderboardHref(filters, { limit: n }, basePath)}
             className={cn(
-              "inline-flex min-h-9 items-center rounded-[10px] border px-3 text-sm font-semibold tabular-nums",
+              "inline-flex min-h-11 items-center rounded-[10px] border px-3 text-sm font-semibold tabular-nums",
               active
                 ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
                 : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-[color:var(--scl-blue)]",
@@ -314,14 +314,16 @@ function LeaderboardTableRow({
   return (
     <tr className="hover:bg-surface-2/80 group h-[72px]">
       <td className="px-1.5 py-2 align-middle">
-        <input
-          type="checkbox"
-          className="size-4 accent-[color:var(--scl-blue)]"
-          checked={selected}
-          disabled={compareDisabled}
-          aria-label={`Compare @${capper.handle}`}
-          onChange={() => toggle(capper.handle)}
-        />
+        <label className="inline-flex size-11 cursor-pointer items-center justify-center rounded-md">
+          <input
+            type="checkbox"
+            className="size-6 accent-[color:var(--scl-blue)]"
+            checked={selected}
+            disabled={compareDisabled}
+            aria-label={`Compare @${capper.handle}`}
+            onChange={() => toggle(capper.handle)}
+          />
+        </label>
       </td>
       <td className="px-1.5 py-2 align-middle">
         <div className="flex items-center gap-1.5">
@@ -341,7 +343,7 @@ function LeaderboardTableRow({
           <CapperAvatar name={capper.name} src={capper.avatarUrl} size="sm" />
           <Link
             href={`/cappers/${capper.handle}`}
-            className="focus-visible:ring-ring min-h-11 min-w-0 rounded-sm focus-visible:ring-2 focus-visible:outline-none sm:min-h-0"
+            className="focus-visible:ring-ring inline-flex min-h-11 min-w-0 items-center rounded-sm focus-visible:ring-2 focus-visible:outline-none"
           >
             <CapperIdentityLabel
               capper={capper}
@@ -439,14 +441,16 @@ export function LeaderboardMobileCard({
   return (
     <article className="border-border bg-card flex min-h-40 flex-col gap-3 rounded-[14px] border p-3.5">
       <div className="flex items-start gap-3">
-        <input
-          type="checkbox"
-          className="mt-1 size-4 shrink-0 accent-[color:var(--scl-blue)]"
-          checked={selected}
-          disabled={compareDisabled}
-          aria-label={`Compare @${capper.handle}`}
-          onChange={() => toggle(capper.handle)}
-        />
+        <label className="-m-2 inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-md">
+          <input
+            type="checkbox"
+            className="size-6 accent-[color:var(--scl-blue)]"
+            checked={selected}
+            disabled={compareDisabled}
+            aria-label={`Compare @${capper.handle}`}
+            onChange={() => toggle(capper.handle)}
+          />
+        </label>
         <div className="flex flex-col items-center gap-0.5">
           <RankBadge rank={rank ?? capper.rank} settledPicks={graded} />
           <RankMovementIndicator delta={capper.rankDelta} />
@@ -455,7 +459,7 @@ export function LeaderboardMobileCard({
         <div className="min-w-0 flex-1">
           <Link
             href={`/cappers/${capper.handle}`}
-            className="focus-visible:ring-ring rounded-sm focus-visible:ring-2 focus-visible:outline-none"
+            className="focus-visible:ring-ring inline-flex min-h-11 items-center rounded-sm focus-visible:ring-2 focus-visible:outline-none"
           >
             <CapperIdentityLabel capper={capper} compact verified={false} />
           </Link>

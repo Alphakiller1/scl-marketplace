@@ -97,7 +97,7 @@ export function ProfileActionGroup({
         data-profile-action-role="relationship"
         type="button"
         size="sm"
-        className={cn("min-h-11 gap-1.5 sm:min-h-10", BLUE_CTA)}
+        className={cn("min-h-11 gap-1.5", BLUE_CTA)}
         onClick={toggleFollow}
         aria-pressed={following}
       >
@@ -112,10 +112,7 @@ export function ProfileActionGroup({
         type="button"
         variant="outline"
         size="sm"
-        className={cn(
-          "min-h-11 gap-1.5 sm:min-h-10",
-          comparing ? BLUE_OUTLINE : undefined,
-        )}
+        className={cn("min-h-11 gap-1.5", comparing ? BLUE_OUTLINE : undefined)}
         disabled={compareDisabled}
         aria-pressed={comparing}
         onClick={() => toggle(handle)}
@@ -128,7 +125,7 @@ export function ProfileActionGroup({
         nativeButton={false}
         variant="outline"
         size="sm"
-        className="min-h-11 gap-1.5 sm:min-h-10"
+        className="min-h-11 gap-1.5"
       >
         <Store className="size-3.5" aria-hidden />
         View offers

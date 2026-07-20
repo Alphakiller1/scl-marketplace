@@ -79,7 +79,7 @@ export function PackageCard({
             />
           }
           nativeButton={false}
-          className="min-h-11 gap-1.5 sm:min-h-9"
+          className="min-h-11 gap-1.5"
         >
           {cta}
           <ArrowUpRight className="size-4" aria-hidden />

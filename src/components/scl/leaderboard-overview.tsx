@@ -20,9 +20,7 @@ export function LeaderboardOverview({
             Public rankings
           </div>
           <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h1 className="scl-display text-4xl font-bold tracking-[0.02em] sm:text-[2.65rem] sm:leading-none">
-              Leaderboard
-            </h1>
+            <h1 className="scl-page-title">Leaderboard</h1>
             <VerificationHelpLink />
           </div>
           <p className="text-muted-foreground mt-2 max-w-3xl text-sm leading-snug sm:text-[0.95rem]">

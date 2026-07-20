@@ -22,9 +22,7 @@ export function DiscoverOverview({
             />
             Public evidence directory
           </div>
-          <h1 className="scl-display mt-1.5 text-4xl font-bold tracking-[0.02em] sm:text-[2.65rem] sm:leading-none">
-            Discover
-          </h1>
+          <h1 className="scl-page-title mt-1.5">Discover</h1>
           <p className="text-muted-foreground mt-2 max-w-3xl text-sm leading-snug sm:text-[0.95rem]">
             Explore cappers through evidence-based views of record,
             verification, specialization, and pricing.

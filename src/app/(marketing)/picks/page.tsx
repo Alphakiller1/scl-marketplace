@@ -58,7 +58,7 @@ export default async function PicksPage({
             <p className="scl-eyebrow text-[color:var(--scl-muted-label)]">
               SCL public evidence ledger
             </p>
-            <h1 className="scl-display text-foreground mt-1 text-3xl leading-none font-bold tracking-tight sm:text-4xl">
+            <h1 className="scl-page-title text-foreground mt-1">
               Latest picks
             </h1>
             <p className="text-muted-foreground mt-2 text-sm leading-relaxed sm:text-base">

@@ -27,7 +27,7 @@ export function ProvisionalRecordHelp({
     <Dialog>
       <DialogTrigger
         className={cn(
-          "border-border text-muted-foreground inline-flex min-h-10 items-center gap-1.5 rounded-md border px-2.5 text-[0.7rem] font-semibold tracking-wide uppercase",
+          "border-border text-muted-foreground inline-flex min-h-11 items-center gap-1.5 rounded-md border px-2.5 text-[0.7rem] font-semibold tracking-wide uppercase",
           className,
         )}
         aria-label={`${label}: what provisional record means`}
@@ -37,7 +37,7 @@ export function ProvisionalRecordHelp({
       </DialogTrigger>
       <DialogContent className="sm:max-w-md" showCloseButton>
         <DialogHeader>
-          <DialogTitle className="scl-display text-base tracking-wide uppercase">
+          <DialogTitle className="scl-display text-base font-semibold tracking-[0.02em]">
             Provisional record
           </DialogTitle>
           <DialogDescription className="text-muted-foreground text-sm leading-relaxed">

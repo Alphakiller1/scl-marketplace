@@ -161,7 +161,7 @@ function DesktopScopeForm({
         </Button>
       </div>
 
-      <div className="mt-2 flex min-h-9 items-center justify-between gap-4">
+      <div className="mt-2 flex min-h-11 items-center justify-between gap-4">
         <div className="flex min-w-0 flex-wrap items-center gap-1.5">
           <AppliedChip
             label={sportLabel}
@@ -185,7 +185,7 @@ function DesktopScopeForm({
           />
           <Link
             href={action}
-            className="text-muted-foreground focus-visible:ring-ring hover:text-foreground inline-flex min-h-10 items-center rounded px-2 text-xs font-semibold underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:outline-none"
+            className="text-muted-foreground focus-visible:ring-ring hover:text-foreground inline-flex min-h-11 items-center rounded px-2 text-xs font-semibold underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:outline-none"
           >
             Clear all
           </Link>
@@ -197,7 +197,7 @@ function DesktopScopeForm({
             <select
               name="minPicks"
               defaultValue={String(filters.minPicks)}
-              className="border-input bg-card focus-visible:ring-ring h-10 rounded-[8px] border px-2 text-xs outline-none focus-visible:ring-2"
+              className="border-input bg-card focus-visible:ring-ring h-11 rounded-[8px] border px-2 text-xs outline-none focus-visible:ring-2"
             >
               {LEADERBOARD_MIN_PICKS.map((count) => (
                 <option key={count} value={String(count)}>
@@ -206,7 +206,7 @@ function DesktopScopeForm({
               ))}
             </select>
           </label>
-          <label className="border-input bg-card focus-within:ring-ring flex h-10 w-40 items-center gap-2 rounded-[8px] border px-2 focus-within:ring-2">
+          <label className="border-input bg-card focus-within:ring-ring flex h-11 w-40 items-center gap-2 rounded-[8px] border px-2 focus-within:ring-2">
             <Search className="text-muted-foreground size-3.5" aria-hidden />
             <span className="sr-only">Find a capper</span>
             <input
@@ -222,7 +222,7 @@ function DesktopScopeForm({
             nativeButton={false}
             variant="outline"
             size="icon"
-            className="size-10"
+            className="size-11"
             aria-label="Reset leaderboard scope"
             title="Reset"
           >
@@ -257,7 +257,7 @@ function ScopeSelect({
         aria-hidden
       />
       <span className="sr-only">{label}</span>
-      <div className="min-w-0 flex-1 [&>select]:h-10 [&>select]:w-full [&>select]:appearance-none [&>select]:truncate [&>select]:bg-transparent [&>select]:pr-6 [&>select]:text-sm [&>select]:font-semibold [&>select]:outline-none">
+      <div className="min-w-0 flex-1 [&>select]:h-11 [&>select]:w-full [&>select]:appearance-none [&>select]:truncate [&>select]:bg-transparent [&>select]:pr-6 [&>select]:text-sm [&>select]:font-semibold [&>select]:outline-none">
         {children}
       </div>
       <ChevronDown
@@ -272,7 +272,7 @@ function AppliedChip({ label, href }: { label: string; href: string }) {
   return (
     <Link
       href={href}
-      className="border-border bg-card focus-visible:ring-ring inline-flex min-h-10 items-center gap-1.5 rounded-[8px] border px-2.5 text-xs font-medium focus-visible:ring-2 focus-visible:outline-none"
+      className="border-border bg-card focus-visible:ring-ring inline-flex min-h-11 items-center gap-1.5 rounded-[8px] border px-2.5 text-xs font-medium focus-visible:ring-2 focus-visible:outline-none"
     >
       {label}
       <X className="size-3 text-[color:var(--scl-muted-label)]" aria-hidden />
@@ -351,7 +351,7 @@ function MobileScopeForm({
             name="q"
             defaultValue={filters.search}
             placeholder="Handle"
-            className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+            className="min-w-0 flex-1 bg-transparent text-base outline-none sm:text-sm"
           />
         </span>
       </label>
@@ -390,7 +390,7 @@ function MobileSelect({
       <select
         name={name}
         defaultValue={value}
-        className="border-input bg-surface-2 focus-visible:ring-ring mt-1 h-11 w-full rounded-[8px] border px-2 text-sm outline-none focus-visible:ring-2"
+        className="border-input bg-surface-2 focus-visible:ring-ring mt-1 h-11 w-full rounded-[8px] border px-2 text-base outline-none focus-visible:ring-2 sm:text-sm"
       >
         {children}
       </select>

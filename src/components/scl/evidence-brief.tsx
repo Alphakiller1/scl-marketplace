@@ -273,7 +273,7 @@ export function EvidenceBrief({
   const latestProof = (
     <section aria-label="Featured proof receipt" className="min-w-0 space-y-2">
       <div className="border-t border-[color:var(--scl-pink-deep)] pt-2 lg:border-t-0 lg:pt-0">
-        <h2 className="scl-display text-sm font-bold tracking-[0.05em] uppercase">
+        <h2 className="scl-display text-base font-bold tracking-[0.02em]">
           Latest proof
         </h2>
         <p className="text-muted-foreground mt-0.5 hidden text-xs leading-snug sm:block">
@@ -316,16 +316,16 @@ export function EvidenceBrief({
       >
         <TabsList
           variant="line"
-          className="h-10 w-full max-w-md justify-start gap-1"
+          className="h-11 w-full max-w-md justify-start gap-1"
           aria-label="Trust lens"
         >
-          <TabsTrigger value="simple" className="min-h-10 px-3">
+          <TabsTrigger value="simple" className="min-h-11 px-3">
             Simple
           </TabsTrigger>
-          <TabsTrigger value="analyst" className="min-h-10 px-3">
+          <TabsTrigger value="analyst" className="min-h-11 px-3">
             Analyst
           </TabsTrigger>
-          <TabsTrigger value="audit" className="min-h-10 px-3">
+          <TabsTrigger value="audit" className="min-h-11 px-3">
             Audit
           </TabsTrigger>
         </TabsList>
@@ -390,7 +390,7 @@ export function EvidenceBrief({
         <VerificationHelpLink />
         <a
           href="/responsible-gaming"
-          className="text-muted-foreground hover:text-foreground inline-flex min-h-10 items-center text-xs underline-offset-4 hover:underline"
+          className="text-muted-foreground hover:text-foreground inline-flex min-h-11 items-center text-xs underline-offset-4 hover:underline"
         >
           Responsible gaming
         </a>
@@ -444,7 +444,7 @@ export function EvidenceBrief({
                     key={window.value}
                     type="button"
                     className={cn(
-                      "scl-data min-h-9 min-w-11 rounded-md px-2 text-xs font-semibold tabular-nums",
+                      "scl-data min-h-11 min-w-11 rounded-md px-2 text-xs font-semibold tabular-nums",
                       active
                         ? "bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
                         : "text-muted-foreground hover:text-foreground",
@@ -469,7 +469,7 @@ export function EvidenceBrief({
       <section id="recent-picks" className="scroll-mt-20">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="scl-display text-base font-bold tracking-[0.05em] uppercase">
+            <h2 className="scl-display text-base font-bold tracking-[0.02em]">
               Proof history
             </h2>
             <p className="text-muted-foreground mt-1 text-sm">
@@ -618,7 +618,7 @@ function ProofHistoryLedger({
                   <td className="py-1 pr-2 align-middle">
                     <button
                       type="button"
-                      className="text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex size-11 items-center justify-center rounded-md focus-visible:ring-2 focus-visible:outline-none sm:size-10"
+                      className="text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex size-11 items-center justify-center rounded-md focus-visible:ring-2 focus-visible:outline-none"
                       aria-expanded={expanded}
                       aria-controls={`proof-history-${play.id}`}
                       aria-label={`${expanded ? "Close" : "Inspect"} receipt for ${play.selection}`}
@@ -699,7 +699,7 @@ function ProofHistoryLedger({
             {shown.length > initialRows.length ? (
               <button
                 type="button"
-                className="text-muted-foreground hover:text-foreground min-h-10 rounded-md px-3 text-xs font-semibold underline-offset-4 hover:underline"
+                className="text-muted-foreground hover:text-foreground min-h-11 rounded-md px-3 text-xs font-semibold underline-offset-4 hover:underline"
                 onClick={() => {
                   setShown(initialRows);
                   setNextCursor(initialNextCursor);
@@ -713,7 +713,7 @@ function ProofHistoryLedger({
             {canLoadMore ? (
               <button
                 type="button"
-                className="border-border bg-surface-2 hover:bg-surface-3 min-h-10 rounded-md border px-3 text-xs font-semibold"
+                className="border-border bg-surface-2 hover:bg-surface-3 min-h-11 rounded-md border px-3 text-xs font-semibold"
                 disabled={isLoading}
                 onClick={loadMore}
               >

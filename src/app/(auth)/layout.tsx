@@ -38,8 +38,8 @@ export default function AuthLayout({
             <p className="scl-eyebrow text-[color:var(--scl-muted-label)]">
               Sports Capper Leaderboard
             </p>
-            <p className="scl-display mt-3 text-4xl font-bold tracking-[0.04em] uppercase">
-              Trust Starts With A Visible Record
+            <p className="scl-display mt-3 text-4xl leading-[1.08] font-bold tracking-[0.02em]">
+              Trust starts with a visible record
             </p>
             <p className="text-muted-foreground mt-4 max-w-sm">
               Sign in to log board-verified picks, climb public rankings, and

@@ -19,13 +19,13 @@ export function VerificationHelpLink({ className }: { className?: string }) {
   return (
     <Dialog>
       <DialogTrigger
-        className={`scl-link inline-flex min-h-10 items-center text-xs font-medium ${className ?? ""}`}
+        className={`scl-link inline-flex min-h-11 items-center text-xs font-medium ${className ?? ""}`}
       >
         How verification works
       </DialogTrigger>
       <DialogContent className="sm:max-w-md" showCloseButton>
         <DialogHeader>
-          <DialogTitle className="scl-display text-base tracking-wide uppercase">
+          <DialogTitle className="scl-display text-base font-semibold tracking-[0.02em]">
             How verification works
           </DialogTitle>
           <DialogDescription className="text-muted-foreground text-sm">
