@@ -148,7 +148,7 @@ export function Leaderboard({
 
   return (
     <div className="space-y-3">
-      <div className="border-border bg-card hidden overflow-x-auto overflow-y-hidden rounded-[14px] border md:block">
+      <div className="border-border scl-elevated hidden overflow-x-auto overflow-y-hidden rounded-[14px] border md:block">
         <table
           className={cn(
             "w-full border-collapse text-sm",
@@ -475,7 +475,7 @@ export function LeaderboardMobileCard({
   }
 
   return (
-    <article className="border-border bg-card flex min-h-40 flex-col gap-3 rounded-[14px] border p-3.5">
+    <article className="border-border scl-elevated flex min-h-40 flex-col gap-3 rounded-[14px] border p-3.5">
       <div className="flex items-start gap-3">
         <input
           type="checkbox"
@@ -573,11 +573,13 @@ export function BuildingRecordSection({
     <section
       id="building-a-record"
       aria-label="Building a record"
-      className="border-border bg-surface-2/40 mt-8 scroll-mt-20 rounded-[14px] border border-dashed p-3 sm:mt-10 sm:p-4"
+      className="border-border scl-elevated mt-8 scroll-mt-20 rounded-[14px] border border-dashed p-3 sm:mt-10 sm:p-4"
     >
       <div className="mb-3 flex flex-col gap-1 sm:mb-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-sm font-bold tracking-wide">Building a record</h2>
+        <div className="scl-section-mark">
+          <h2 className="scl-display text-sm font-bold tracking-wide normal-case">
+            Building A Record
+          </h2>
           <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
             These records remain public but unranked. They have no graded picks,
             do not meet the selected minimum sample, or have negative ROI or

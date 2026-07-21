@@ -37,10 +37,14 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
   const hasCoverage = Boolean(capper.topSport || specialties.length);
 
   return (
-    <header className="border-border bg-card border-b">
-      <div className="mx-auto max-w-[1400px] px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
+    <header className="border-border relative overflow-hidden border-b bg-[linear-gradient(165deg,color-mix(in_srgb,var(--scl-ink-800)_70%,var(--scl-ink-900))_0%,var(--scl-ink-900)_100%)]">
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,color-mix(in_srgb,var(--scl-blue)_40%,transparent)_35%,color-mix(in_srgb,var(--scl-pink)_28%,transparent)_70%,transparent)]"
+        aria-hidden
+      />
+      <div className="relative mx-auto max-w-[1400px] px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
         <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-          <span className="bg-card ring-border shrink-0 rounded-2xl p-0.5 ring-1">
+          <span className="ring-border shrink-0 rounded-2xl bg-[color:var(--scl-ink-800)] p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ring-1">
             <CapperAvatar
               name={avatarName}
               src={capper.avatarUrl}

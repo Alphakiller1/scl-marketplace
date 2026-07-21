@@ -60,7 +60,8 @@ function MarketplaceEmpty({ failed = false }: { failed?: boolean }) {
             <Button
               render={<Link href="/discover" />}
               nativeButton={false}
-              className="min-h-11 gap-2 border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)] hover:bg-[color:var(--scl-blue)]/90"
+              variant="nav"
+              className="min-h-11 gap-2"
             >
               Inspect Public Records
               <ArrowRight className="size-4" aria-hidden />
@@ -92,7 +93,7 @@ export default async function PackagesPage() {
   return (
     <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
       <header className="border-border border-b pb-6">
-        <div className="border-l-2 border-[color:var(--scl-pink)] pl-4">
+        <div className="scl-section-mark">
           <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
             SCL Public Offer Register
           </p>
@@ -152,7 +153,7 @@ export default async function PackagesPage() {
         className="mt-10 scroll-mt-24"
         aria-labelledby="how-packages-title"
       >
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div className="scl-section-mark flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
               Process
@@ -168,11 +169,11 @@ export default async function PackagesPage() {
             The Public Record And The External Offer Stay Visibly Separate.
           </p>
         </div>
-        <ol className="border-border mt-4 grid border-y sm:grid-cols-3">
+        <ol className="border-border scl-elevated mt-4 grid overflow-hidden rounded-[14px] border sm:grid-cols-3">
           {STEPS.map((step, index) => (
             <li
               key={step.number}
-              className={`py-5 sm:px-5 sm:first:pl-0 sm:last:pr-0 ${
+              className={`px-4 py-5 sm:px-5 ${
                 index > 0
                   ? "border-border border-t sm:border-t-0 sm:border-l"
                   : ""

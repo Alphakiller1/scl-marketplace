@@ -26,7 +26,7 @@ export function CompareTray({ className }: { className?: string }) {
       {/* Clear space above sticky slip when both present */}
       <div className="pointer-events-auto mx-auto mb-[calc(3.5rem+0.75rem)] max-w-3xl lg:mb-3">
         <div
-          className="border-border bg-card flex min-h-11 items-center gap-2 rounded-[10px] border px-3 py-2 shadow-[var(--scl-shadow-card)]"
+          className="border-border scl-elevated flex min-h-11 items-center gap-2 rounded-[10px] border px-3 py-2"
           role="region"
           aria-label="Compare tray"
         >
