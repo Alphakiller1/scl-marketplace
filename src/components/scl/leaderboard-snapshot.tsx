@@ -28,19 +28,19 @@ export function LeaderboardSnapshot({
 
   return (
     <section
-      className={cn("space-y-4", className)}
+      className={cn("space-y-2.5 sm:space-y-4", className)}
       aria-label="Leaderboard Snapshot"
     >
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-2 sm:gap-4">
         <div className="scl-section-mark min-w-0">
           <p className="scl-eyebrow">Live Board</p>
-          <h2 className="scl-display mt-1.5 text-[1.375rem] leading-7 font-semibold tracking-[0.02em] normal-case">
+          <h2 className="scl-display mt-1 text-[1.25rem] leading-7 font-semibold tracking-[0.02em] normal-case sm:mt-1.5 sm:text-[1.375rem]">
             Leaderboard Snapshot
           </h2>
-          <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
+          <p className="text-muted-foreground mt-1 text-xs leading-snug sm:mt-1.5 sm:text-sm sm:leading-relaxed">
             Board Standings — Ranked By Net Units
           </p>
-          <p className="scl-data text-muted-foreground mt-1.5 text-[0.7rem] tabular-nums">
+          <p className="scl-data text-muted-foreground mt-1 text-[0.65rem] tabular-nums sm:mt-1.5 sm:text-[0.7rem]">
             {formatUpdatedAgo(updatedAt)}
           </p>
         </div>
