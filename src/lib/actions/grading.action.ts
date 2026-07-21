@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 
 import { profitUnitsForOutcome } from "@/lib/odds";
 import { prisma } from "@/lib/prisma";
+import { ensureClosingAndClv } from "@/lib/results/closing-snapshot";
+import { hasClvColumns } from "@/lib/results/schema-features";
 import {
   gradePlaySchema,
   type GradePlayInput,
@@ -17,6 +19,7 @@ type GradeResult = { ok: true } | { ok: false; error: string };
  * Profit is derived from the play's odds + units; every change is written to the
  * append-only GradingAudit with a required reason. Parlay legs are graded via the
  * parlay flow, not here, so leg P/L never double-counts against the parent.
+ * Close + CLV are captured/persisted when schema + odds allow.
  */
 export async function gradePlayAction(
   input: GradePlayInput,
@@ -32,6 +35,7 @@ export async function gradePlayAction(
   }
   const { playId, outcome, reason } = parsed.data;
 
+  const clvReady = await hasClvColumns();
   const play = await prisma.play.findUnique({
     where: { id: playId },
     select: {
@@ -40,6 +44,14 @@ export async function gradePlayAction(
       oddsAmerican: true,
       units: true,
       parlayId: true,
+      sport: true,
+      eventId: true,
+      book: true,
+      market: true,
+      side: true,
+      line: true,
+      league: true,
+      ...(clvReady ? { closingOddsAmerican: true } : {}),
     },
   });
   if (!play) return { ok: false, error: "Play not found." };
@@ -65,10 +77,42 @@ export async function gradePlayAction(
     Number(play.units),
   );
 
+  const existingClose =
+    "closingOddsAmerican" in play
+      ? ((play as { closingOddsAmerican?: number | null })
+          .closingOddsAmerican ?? null)
+      : null;
+
+  const clv = clvReady
+    ? await ensureClosingAndClv({
+        id: play.id,
+        sport: play.sport,
+        eventId: play.eventId,
+        book: play.book,
+        market: play.market,
+        side: play.side,
+        line: play.line,
+        league: play.league,
+        oddsAmerican: play.oddsAmerican,
+        closingOddsAmerican: existingClose,
+      })
+    : { closingOddsAmerican: null, clvPts: null };
+
   await prisma.$transaction([
     prisma.play.update({
       where: { id: play.id },
-      data: { outcome, profitUnits, gradedAt: new Date() },
+      data: {
+        outcome,
+        profitUnits,
+        gradedAt: new Date(),
+        ...(clv.clvPts != null ? { clvPts: clv.clvPts } : {}),
+        ...(clv.closingOddsAmerican != null && existingClose == null
+          ? {
+              closingOddsAmerican: clv.closingOddsAmerican,
+              closingCapturedAt: new Date(),
+            }
+          : {}),
+      },
       select: { id: true },
     }),
     prisma.gradingAudit.create({

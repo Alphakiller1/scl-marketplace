@@ -18,9 +18,6 @@ import {
   type StraightReceipt,
 } from "@/lib/verification";
 
-const PINK_CTA =
-  "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)]";
-
 function CompactPickTicket({ pick }: { pick: StraightReceipt }) {
   const verified = isVerifiedTier(pick.tier);
   const metaBits = [pick.market, pick.moveNote].filter(Boolean);
@@ -138,7 +135,7 @@ export function ReceiptStack({
 
       <p className="text-muted-foreground text-sm">{copy.gradingLine}</p>
       <Button
-        className={`min-h-12 w-full text-base ${PINK_CTA}`}
+        className="scl-cta-brand min-h-12 w-full text-base"
         render={<Link href={picksHref} />}
         nativeButton={false}
       >

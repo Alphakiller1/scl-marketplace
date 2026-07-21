@@ -60,7 +60,7 @@ function ModeCard({
       className={cn(
         "flex min-h-11 flex-col justify-center rounded-[14px] border px-3 py-3 transition-colors sm:min-h-[4.5rem] sm:px-4",
         active
-          ? "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] shadow-[0_0_0_1px_var(--scl-pink-deep)]"
+          ? "scl-fill-brand"
           : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)] hover:bg-[color:var(--scl-ink-700)]",
       )}
     >

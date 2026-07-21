@@ -39,9 +39,11 @@ async function runGrade(req: NextRequest) {
   }
 
   let clvSnapshots = 0;
+  let clvBackfilled = 0;
   try {
     const clv = await snapshotClosingOdds();
     clvSnapshots = clv.snapshots;
+    clvBackfilled = clv.backfilled;
   } catch (err) {
     console.error("[cron/grade] CLV snapshot skipped:", err);
   }
@@ -63,6 +65,7 @@ async function runGrade(req: NextRequest) {
     return NextResponse.json({
       ...result,
       clvSnapshots,
+      clvBackfilled,
       health,
       stuckPlays,
     });

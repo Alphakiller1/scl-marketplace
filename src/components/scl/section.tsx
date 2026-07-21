@@ -26,12 +26,12 @@ export function SectionHeader({
             <Icon className="size-4" aria-hidden />
           </span>
         ) : null}
-        <div className="min-w-0 border-t border-[color:var(--scl-pink-deep)] pt-2.5">
-          <h2 className="scl-display text-[1.375rem] leading-7 font-semibold tracking-[0.02em] normal-case">
+        <div className="scl-section-mark min-w-0">
+          <h2 className="scl-display text-lg leading-tight font-semibold tracking-[0.06em] uppercase">
             {title}
           </h2>
           {subtitle ? (
-            <p className="text-muted-foreground mt-1 max-w-[42rem] text-sm leading-relaxed">
+            <p className="text-muted-foreground mt-0.5 text-sm leading-relaxed">
               {subtitle}
             </p>
           ) : null}

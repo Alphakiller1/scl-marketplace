@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   LogIn,
   Menu,
+  Package,
   Plus,
   Trophy,
   UserRound,
@@ -37,6 +38,7 @@ const MARKETING_NAV = [
   { href: "/picks", label: "Picks", icon: Zap },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/discover", label: "Discover", icon: Users },
+  { href: "/packages", label: "Packages", icon: Package },
 ];
 
 const navLinkClass =
@@ -66,7 +68,7 @@ export function MobileSiteNav({ authed = false }: { authed?: boolean }) {
           <BrandLabel label="Explore SCL" />
           <SheetTitle className="mt-3 text-xl font-bold">Main Menu</SheetTitle>
           <SheetDescription>
-            Latest Picks, rankings, capper records, and marketplace access.
+            Latest picks, rankings, capper records, and marketplace access.
           </SheetDescription>
         </SheetHeader>
 
@@ -97,7 +99,7 @@ export function MobileSiteNav({ authed = false }: { authed?: boolean }) {
                 render={
                   <Link
                     href="/dashboard"
-                    className="bg-primary text-primary-foreground flex min-h-12 items-center justify-center gap-2 rounded-lg px-4 font-semibold"
+                    className="scl-cta-nav flex min-h-12 items-center justify-center gap-2 px-4"
                   />
                 }
               >
@@ -113,7 +115,7 @@ export function MobileSiteNav({ authed = false }: { authed?: boolean }) {
                 render={
                   <Link
                     href="/signup"
-                    className="flex min-h-12 items-center justify-center gap-2 rounded-lg border border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] px-4 font-semibold text-[color:var(--scl-pink-ink)]"
+                    className="scl-cta-brand flex min-h-12 items-center justify-center gap-2 px-4"
                   />
                 }
               >
@@ -183,7 +185,7 @@ export function MobileAppNav({ area, nav }: { area: string; nav: NavItem[] }) {
                     href={item.href}
                     className={
                       primary
-                        ? "flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] px-4 font-semibold text-[color:var(--scl-pink-ink)]"
+                        ? "scl-cta-brand flex min-h-12 items-center justify-center gap-2 px-4"
                         : navLinkClass
                     }
                   />

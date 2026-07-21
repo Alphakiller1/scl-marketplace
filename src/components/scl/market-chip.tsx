@@ -57,7 +57,7 @@ export function MarketChip({
       className={cn(
         "flex min-h-12 w-full items-center justify-between gap-2 rounded-[var(--scl-radius-chip)] border px-3 py-2 text-left transition-[background-color,box-shadow,border-color] duration-150 ease-in-out",
         selected
-          ? "cursor-default border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] shadow-[0_0_0_2px_var(--scl-ink-950),0_0_0_3.5px_var(--scl-pink-deep)]"
+          ? "scl-fill-brand cursor-default"
           : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-700)] hover:bg-[color:var(--scl-ink-600)]",
         missing &&
           "cursor-default opacity-60 hover:bg-[color:var(--scl-ink-700)]",

@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import { ChevronDown, Trophy } from "lucide-react";
 
@@ -22,6 +23,7 @@ import { formatRecord, formatRoi, formatUnits } from "@/lib/format";
 import {
   LEADERBOARD_LIMITS,
   leaderboardHref,
+  sortLeaderboard,
   type LeaderboardFilters,
   type LeaderboardSort,
 } from "@/lib/leaderboard";
@@ -34,12 +36,23 @@ const METRIC_SORTS: {
   key: LeaderboardSort;
   label: string;
   align?: "left" | "right";
+  thClassName?: string;
 }[] = [
   { key: "winPct", label: "Record", align: "right" },
   { key: "roi", label: "ROI", align: "right" },
   { key: "units", label: "Units", align: "right" },
-  { key: "sample", label: "Sample", align: "right" },
-  { key: "verified", label: "Verified", align: "right" },
+  {
+    key: "sample",
+    label: "Sample",
+    align: "right",
+    thClassName: "min-w-[5.75rem]",
+  },
+  {
+    key: "verified",
+    label: "Verified",
+    align: "right",
+    thClassName: "min-w-[6.5rem]",
+  },
   { key: "form", label: "Form", align: "right" },
 ];
 
@@ -53,10 +66,9 @@ export function Leaderboard({
   flush = false,
   rankByPosition = false,
   primaryMetric = "units",
-  emptyDescription = "No Cappers Match This Ranking Scope Yet.",
+  emptyDescription = "No cappers match this ranking scope yet.",
   emptyTitle,
   showExpand = false,
-  basePath = "/leaderboard",
 }: {
   cappers: CapperSummary[];
   filters?: LeaderboardFilters;
@@ -72,16 +84,21 @@ export function Leaderboard({
   emptyDescription?: string;
   emptyTitle?: string;
   showExpand?: boolean;
-  /** Preserve sorting and row-count controls on the surface hosting the table. */
-  basePath?: string;
 }) {
+  const activeSort = filters?.sort ?? "units";
+
+  const ordered = useMemo(() => {
+    if (!filters) return cappers;
+    return sortLeaderboard(cappers, activeSort);
+  }, [cappers, filters, activeSort]);
+
   const scopedLimit =
     typeof limitProp === "number"
       ? limitProp
       : showExpand || filters
-        ? (filters?.limit ?? cappers.length)
-        : cappers.length;
-  const visible = cappers.slice(0, scopedLimit);
+        ? (filters?.limit ?? ordered.length)
+        : ordered.length;
+  const visible = ordered.slice(0, scopedLimit);
 
   if (!visible.length) {
     return (
@@ -89,20 +106,25 @@ export function Leaderboard({
         icon={Trophy}
         title={
           failed
-            ? "Couldn't Load The Leaderboard"
-            : (emptyTitle ?? "No Ranked Cappers Found")
+            ? "Couldn't load the leaderboard"
+            : (emptyTitle ?? "No ranked cappers found")
         }
         description={
           failed
-            ? "Performance Data Is Temporarily Unavailable. Please Try Again Shortly."
+            ? "Performance data is temporarily unavailable. Please try again shortly."
             : emptyDescription
         }
       />
     );
   }
 
-  const place = (capper: CapperSummary, index: number) =>
-    rankByPosition ? index + 1 : (capper.rank ?? index + 1);
+  // Ranked boards: place follows current sort order (1…n).
+  // Building-a-record rows keep rank 0 (em dash).
+  const place = (capper: CapperSummary, index: number) => {
+    if (capper.rank === 0) return 0;
+    if (rankByPosition || filters) return index + 1;
+    return capper.rank ?? index + 1;
+  };
 
   if (compactDesktop) {
     return (
@@ -134,29 +156,40 @@ export function Leaderboard({
           )}
         >
           <caption className="sr-only">
-            Ranked cappers for the selected scope. Metric columns are sortable.
+            Ranked cappers for the selected scope. Click a metric column title
+            to reorder; rank numbers update with the sort.
           </caption>
           <thead>
-            <tr className="border-border border-b">
+            <tr className="text-muted-foreground border-border border-b text-[0.65rem] font-semibold tracking-wide uppercase">
               <th
                 scope="col"
-                className="scl-eyebrow w-10 px-1.5 py-2 text-left"
+                className="w-10 px-1.5 py-2 text-left font-semibold"
               >
                 <span className="sr-only">Compare</span>
               </th>
               <th
                 scope="col"
-                className="scl-eyebrow w-16 px-1.5 py-2 text-left"
+                className="w-16 px-1.5 py-2 text-left font-semibold"
               >
-                Rank
+                {filters ? (
+                  <SortableTh
+                    sortKey="units"
+                    label="Rank"
+                    filters={filters}
+                    activeSort={activeSort}
+                    align="left"
+                  />
+                ) : (
+                  "Rank"
+                )}
               </th>
               <th
                 scope="col"
-                className="scl-eyebrow min-w-[9.5rem] px-1.5 py-2 text-left"
+                className="min-w-[9.5rem] px-1.5 py-2 text-left font-semibold"
               >
                 Capper
               </th>
-              <th scope="col" className="scl-eyebrow px-1.5 py-2 text-left">
+              <th scope="col" className="px-1.5 py-2 text-left font-semibold">
                 Sports
               </th>
               {METRIC_SORTS.map((col) => (
@@ -165,8 +198,9 @@ export function Leaderboard({
                   sortKey={col.key}
                   label={col.label}
                   filters={filters}
+                  activeSort={activeSort}
                   align={col.align}
-                  basePath={basePath}
+                  className={col.thClassName}
                 />
               ))}
             </tr>
@@ -196,11 +230,7 @@ export function Leaderboard({
       </div>
 
       {showExpand && filters ? (
-        <ExpandControls
-          filters={filters}
-          total={cappers.length}
-          basePath={basePath}
-        />
+        <ExpandControls filters={filters} total={ordered.length} />
       ) : null}
     </div>
   );
@@ -210,37 +240,42 @@ function SortableTh({
   sortKey,
   label,
   filters,
+  activeSort,
   align = "right",
-  basePath,
+  className,
 }: {
   sortKey: LeaderboardSort;
   label: string;
   filters?: LeaderboardFilters;
+  activeSort?: LeaderboardSort;
   align?: "left" | "right";
-  basePath: string;
+  className?: string;
 }) {
-  const active = filters?.sort === sortKey;
+  const active = (activeSort ?? filters?.sort) === sortKey;
   const href = filters
-    ? leaderboardHref(filters, { sort: sortKey }, basePath)
-    : `${basePath}?sort=${sortKey}`;
+    ? leaderboardHref(filters, { sort: sortKey })
+    : `/leaderboard?sort=${sortKey}`;
 
   return (
     <th
       scope="col"
       aria-sort={active ? "descending" : "none"}
       className={cn(
-        "scl-eyebrow px-1.5 py-2",
+        "px-1.5 py-2 font-semibold",
         align === "right" ? "text-right" : "text-left",
+        className,
       )}
     >
       <Link
         href={href}
+        scroll={false}
+        title={`Sort by ${label}`}
         className={cn(
-          "hover:text-foreground inline-flex items-center gap-0.5",
+          "hover:text-foreground focus-visible:ring-ring inline-flex min-h-8 cursor-pointer items-center gap-0.5 rounded-md px-1 transition-colors focus-visible:ring-2 focus-visible:outline-none",
           align === "right" && "justify-end",
           active
             ? "text-foreground underline decoration-[color:var(--scl-blue)] underline-offset-4"
-            : "text-[color:var(--scl-muted-data)]",
+            : "text-muted-foreground hover:underline hover:decoration-[color:var(--scl-blue)]/60 hover:underline-offset-4",
         )}
       >
         {label}
@@ -258,11 +293,9 @@ function SortableTh({
 function ExpandControls({
   filters,
   total,
-  basePath,
 }: {
   filters: LeaderboardFilters;
   total: number;
-  basePath: string;
 }) {
   if (total <= 10) return null;
   return (
@@ -278,9 +311,9 @@ function ExpandControls({
         return (
           <Link
             key={n}
-            href={leaderboardHref(filters, { limit: n }, basePath)}
+            href={leaderboardHref(filters, { limit: n })}
             className={cn(
-              "scl-data inline-flex h-8 min-w-9 items-center justify-center rounded-[var(--scl-radius-chip)] border px-2 text-[10px] font-semibold tracking-[0.1em] uppercase tabular-nums",
+              "inline-flex min-h-9 items-center rounded-[10px] border px-3 text-sm font-semibold tabular-nums",
               active
                 ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
                 : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-[color:var(--scl-blue)]",
@@ -312,13 +345,9 @@ function LeaderboardTableRow({
   const selected = isSelected(capper.handle);
   const compareDisabled = !selected && !canAdd;
 
-  const specialty =
-    capper.specialties?.find((s) => s.trim().length > 0) ??
-    (capper.topSport ? capper.topSport : null);
-
   return (
-    <tr className="hover:bg-surface-2/80 group h-[56px]">
-      <td className="px-1.5 py-1.5 align-middle">
+    <tr className="hover:bg-surface-2/80 group h-[72px]">
+      <td className="px-1.5 py-2 align-middle">
         <input
           type="checkbox"
           className="size-4 accent-[color:var(--scl-blue)]"
@@ -328,9 +357,13 @@ function LeaderboardTableRow({
           onChange={() => toggle(capper.handle)}
         />
       </td>
-      <td className="px-1.5 py-1.5 align-middle">
+      <td className="px-1.5 py-2 align-middle">
         <div className="flex items-center gap-1.5">
-          <RankBadge rank={rank} settledPicks={graded} variant="ledger" />
+          <RankBadge
+            rank={rank}
+            settledPicks={graded}
+            className="size-8 text-xs"
+          />
           <div className="flex min-w-0 flex-col items-start leading-none">
             <RankMovementIndicator delta={capper.rankDelta} />
             {provisional ? (
@@ -341,38 +374,35 @@ function LeaderboardTableRow({
           </div>
         </div>
       </td>
-      <td className="px-1.5 py-1.5 align-middle">
+      <td className="px-1.5 py-2 align-middle">
         <div className="flex min-w-0 items-center gap-2">
           <CapperAvatar name={capper.name} src={capper.avatarUrl} size="sm" />
           <Link
             href={`/cappers/${capper.handle}`}
             className="focus-visible:ring-ring min-h-11 min-w-0 rounded-sm focus-visible:ring-2 focus-visible:outline-none sm:min-h-0"
           >
-            <CapperIdentityLabel capper={capper} compact verified={false} />
-            {specialty ? (
-              <span className="scl-eyebrow text-muted-foreground mt-0.5 block truncate tracking-[0.04em] normal-case">
-                {specialty}
-              </span>
-            ) : null}
+            <CapperIdentityLabel
+              capper={capper}
+              compact
+              verified={false}
+              primaryClassName="text-sm"
+            />
           </Link>
         </div>
       </td>
-      <td className="px-1.5 py-1.5 align-middle">
-        <div className="flex flex-nowrap items-center gap-1.5">
+      <td className="px-1.5 py-2 align-middle">
+        <div className="flex flex-wrap items-center gap-1">
           {sports.map((sport) => (
-            <SportTag key={sport} sport={sport} markOnly />
+            <SportTag key={sport} sport={sport} markOnly className="shrink-0" />
           ))}
         </div>
       </td>
-      <td className="px-1.5 py-1.5 text-right align-middle">
-        <StatValue
-          tone="text"
-          className="scl-data text-sm font-semibold tabular-nums"
-        >
+      <td className="px-1.5 py-2 text-right align-middle">
+        <StatValue tone="text" className="text-sm font-semibold tabular-nums">
           {formatRecord(capper.record.w, capper.record.l, capper.record.p)}
         </StatValue>
       </td>
-      <td className="px-1.5 py-1.5 text-right align-middle">
+      <td className="px-1.5 py-2 text-right align-middle">
         <span
           className={cn(
             "scl-data text-sm font-semibold tabular-nums",
@@ -383,7 +413,7 @@ function LeaderboardTableRow({
           {formatRoi(capper.roi)}
         </span>
       </td>
-      <td className="px-1.5 py-1.5 text-right align-middle">
+      <td className="px-1.5 py-2 text-right align-middle">
         <span
           className={cn(
             "scl-data text-sm font-semibold tabular-nums",
@@ -394,15 +424,15 @@ function LeaderboardTableRow({
           {formatUnits(capper.units)}
         </span>
       </td>
-      <td className="px-1.5 py-1.5 text-right align-middle">
-        <div className="ml-auto max-w-[5.5rem]">
+      <td className="min-w-[5.75rem] overflow-hidden px-1.5 py-2 text-right align-middle">
+        <div className="ml-auto w-full max-w-[6rem]">
           <SampleMaturityMeter graded={graded} compact />
         </div>
       </td>
-      <td className="px-1.5 py-1.5 text-right align-middle">
+      <td className="min-w-[6.5rem] overflow-hidden px-1.5 py-2 text-right align-middle">
         <VerifiedShareMeter pct={capper.verifiedShare} />
       </td>
-      <td className="px-1.5 py-1.5 text-right align-middle">
+      <td className="px-1.5 py-2 text-right align-middle">
         {capper.recentForm.length ? (
           <div className="flex justify-end">
             <RecentFormStrip form={capper.recentForm.slice(-5)} />
@@ -541,36 +571,30 @@ export function BuildingRecordSection({
 
   return (
     <section
-      id="unranked-public-records"
-      aria-label="Unranked Public Records"
-      className="border-border mt-8 scroll-mt-20 border-t pt-5 sm:mt-10 sm:pt-6"
+      id="building-a-record"
+      aria-label="Building a record"
+      className="border-border bg-surface-2/40 mt-8 scroll-mt-20 rounded-[14px] border border-dashed p-3 sm:mt-10 sm:p-4"
     >
       <div className="mb-3 flex flex-col gap-1 sm:mb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
-            Outside The Ranking Field
-          </p>
-          <h2 className="scl-display text-foreground mt-1 text-[1.375rem] leading-7 font-semibold tracking-[0.02em] normal-case">
-            Unranked Public Records
-          </h2>
-          <p className="text-muted-foreground mt-1 max-w-2xl text-sm leading-snug">
-            These Cappers Are Still Building A Record In This Scope. A Record
-            Stays Unranked When It Has No Graded Picks, Misses The Selected
-            Sample, Or Has Negative ROI Or Units.
+          <h2 className="text-sm font-bold tracking-wide">Building a record</h2>
+          <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
+            These records remain public but unranked. They have no graded picks,
+            do not meet the selected minimum sample, or have negative ROI or
+            units in this scope.
           </p>
         </div>
         <p className="scl-data text-muted-foreground text-xs tabular-nums">
           {cappers.length.toLocaleString()}{" "}
-          {cappers.length === 1 ? "Capper" : "Cappers"}
+          {cappers.length === 1 ? "capper" : "cappers"}
         </p>
       </div>
       <Leaderboard
         cappers={cappers}
         compactDesktop
         compactMobile
-        flush
-        emptyTitle="No Cappers Building A Record"
-        emptyDescription="Every Matching Capper Currently Meets The Ranking Sample."
+        emptyTitle="No cappers building a record"
+        emptyDescription="Every matching capper currently meets the ranking sample."
       />
     </section>
   );

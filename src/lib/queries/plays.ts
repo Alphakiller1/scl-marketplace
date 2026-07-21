@@ -13,7 +13,10 @@ import {
 import { buildPublicPicksScopeWhere } from "@/lib/public-picks-scope";
 import { hasQaNoteMarker } from "@/lib/public-eligibility";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
-import { hasNotesPublicColumn } from "@/lib/results/schema-features";
+import {
+  hasClvColumns,
+  hasNotesPublicColumn,
+} from "@/lib/results/schema-features";
 import { isVerifiedTier, type VerificationTier } from "@/lib/verification";
 
 export type PlayView = {
@@ -96,6 +99,7 @@ export async function getCapperPlays(
   if (!profile) return [];
 
   const notesPublicReady = await hasNotesPublicColumn();
+  const clvReady = await hasClvColumns();
   const plays = await prisma.play.findMany({
     // Exclude parlay legs — the parlay is the position of record, not each leg.
     where: { capperId: profile.id, parlayId: null },
@@ -118,6 +122,7 @@ export async function getCapperPlays(
       book: true,
       notes: true,
       ...(notesPublicReady ? { notesPublic: true } : {}),
+      ...(clvReady ? { closingOddsAmerican: true, clvPts: true } : {}),
     },
   });
 
@@ -141,6 +146,15 @@ export async function getCapperPlays(
       "notesPublic" in p
         ? ((p as { notesPublic?: boolean }).notesPublic ?? true)
         : true,
+    closingOddsAmerican:
+      "closingOddsAmerican" in p &&
+      (p as { closingOddsAmerican?: number | null }).closingOddsAmerican != null
+        ? Number((p as { closingOddsAmerican: number }).closingOddsAmerican)
+        : null,
+    clvPts:
+      "clvPts" in p && (p as { clvPts?: unknown }).clvPts != null
+        ? Number((p as { clvPts: unknown }).clvPts)
+        : null,
   }));
 }
 

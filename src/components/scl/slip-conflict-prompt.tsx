@@ -55,14 +55,14 @@ export function SlipConflictPrompt({
         <button
           type="button"
           onClick={onReplace}
-          className="min-h-11 rounded-full border border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] px-4 text-sm font-semibold text-[color:var(--scl-pink-ink)] transition-colors hover:bg-[color:var(--scl-pink-deep)]"
+          className="scl-cta-brand min-h-11 px-4"
         >
           Replace
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 min-h-11 rounded-full border px-4 text-sm font-semibold transition-colors"
+          className="scl-cta-nav min-h-11 px-4"
         >
           Cancel
         </button>
