@@ -52,13 +52,13 @@ export default async function DiscoverPage() {
       >
         <div>
           <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
-            Public directory
+            Public Directory
           </p>
           <h2
             id="discover-directory-handoff"
             className="scl-display text-foreground mt-1 text-xl font-semibold"
           >
-            Need every public record?
+            Need Every Public Record?
           </h2>
           <p className="text-muted-foreground mt-1 max-w-2xl text-sm leading-relaxed">
             The Leaderboard separates ranked records from cappers still building
@@ -69,7 +69,7 @@ export default async function DiscoverPage() {
           href="/leaderboard"
           className="focus-visible:ring-ring inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg border border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] px-3 text-sm font-medium whitespace-nowrap text-[color:var(--scl-blue-ink)] transition-colors outline-none hover:bg-[color:var(--scl-blue)]/90 focus-visible:ring-3"
         >
-          Open leaderboard
+          Open Leaderboard
           <ArrowRight className="size-4" aria-hidden />
         </Link>
       </section>

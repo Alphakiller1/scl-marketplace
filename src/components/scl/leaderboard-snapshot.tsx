@@ -63,7 +63,7 @@ export function LeaderboardSnapshot({
           description={
             failed
               ? "Performance data is temporarily unavailable. Please try again shortly."
-              : "Cappers appear here after meeting the minimum graded sample and verification filters. Earlier records remain visible under Building a Record."
+              : "Cappers appear here after meeting the minimum graded sample and verification filters. Earlier records remain visible under Building A Record."
           }
         />
       ) : (

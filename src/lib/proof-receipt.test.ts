@@ -112,12 +112,12 @@ describe("honest closing / CLV / evidence", () => {
   });
 
   it("empty Close/CLV tooltips stay honest", () => {
-    assert.equal(missingCloseOrClvTooltip(null), "Not available");
-    assert.equal(missingCloseOrClvTooltip(undefined), "Not available");
+    assert.equal(missingCloseOrClvTooltip(null), "Not Available");
+    assert.equal(missingCloseOrClvTooltip(undefined), "Not Available");
     const past = new Date(Date.now() - 60_000).toISOString();
-    assert.equal(missingCloseOrClvTooltip(past), "Not available");
+    assert.equal(missingCloseOrClvTooltip(past), "Not Available");
     const future = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-    assert.equal(missingCloseOrClvTooltip(future), "Not captured yet");
+    assert.equal(missingCloseOrClvTooltip(future), "Not Captured Yet");
     assert.doesNotMatch(
       missingCloseOrClvTooltip(past),
       /event window|still open/i,

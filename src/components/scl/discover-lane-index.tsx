@@ -35,7 +35,7 @@ export function DiscoverLaneIndex({
                     ? "Unavailable"
                     : lane.entries.length
                       ? `${lane.entries.length} shown`
-                      : "No match"}
+                      : "No Match"}
                 </span>
               </span>
               <span

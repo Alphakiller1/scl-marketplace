@@ -149,7 +149,7 @@ function PerfCell({
     return (
       <span
         className={cn("block", alignClass)}
-        title="Not available — below the minimum graded sample."
+        title="Not Available — below the minimum graded sample."
       >
         <StatValue tone="data" className="text-sm font-semibold">
           —
@@ -500,7 +500,7 @@ export function LeagueActionReport({
         </div>
         <div className="flex flex-col items-end gap-1">
           <p className="scl-eyebrow text-right">Last {windowDays} days</p>
-          <ButtonishPicksLink label="Open pick feed" />
+          <ButtonishPicksLink label="Open Pick Feed" />
         </div>
       </div>
 
@@ -509,7 +509,7 @@ export function LeagueActionReport({
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 pl-5 outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--scl-blue)] focus-visible:ring-inset [&::-webkit-details-marker]:hidden">
           <span className="min-w-0">
             <span className="text-foreground block text-sm font-semibold">
-              Bet-type breakdown
+              Bet-Type Breakdown
             </span>
             <span className="text-muted-foreground mt-0.5 block text-xs leading-snug">
               Shape, market, and top leagues — expand for full report
@@ -533,7 +533,7 @@ export function LeagueActionReport({
         />
       </details>
 
-      {/* 1280+: Shape, Market, and Top leagues stay visible together. */}
+      {/* 1280+: Shape, Market, and Top Leagues stay visible together. */}
       <div className="hidden xl:block">
         <PlatformReportDesktop
           shape={shape}
@@ -578,7 +578,7 @@ function PlatformReportDesktop({
           maxUnitsAbs={maxUnitsAbs}
         />
         <section className="min-w-0 space-y-2">
-          <h3 className="scl-eyebrow">Top leagues</h3>
+          <h3 className="scl-eyebrow">Top Leagues</h3>
           <TopLeaguesDesktop
             leagues={leagues}
             maxLeaguePicks={maxLeaguePicks}
@@ -586,7 +586,7 @@ function PlatformReportDesktop({
         </section>
       </div>
       <div className="mt-5 border-t border-[color:var(--scl-line)] pt-3">
-        <ButtonishPicksLink label="Browse verified picks" />
+        <ButtonishPicksLink label="Browse Verified Picks" />
       </div>
     </div>
   );
@@ -606,7 +606,7 @@ function BetTypeColumnSection({
       <h3 className="scl-eyebrow">{title}</h3>
       <div className="border-border overflow-hidden rounded-lg border">
         <div className="text-muted-foreground grid grid-cols-[minmax(0,1fr)_4.25rem_4.5rem] gap-3 border-b px-3 py-2 text-[0.7rem] font-semibold uppercase">
-          <span>Type and sample</span>
+          <span>Type And Sample</span>
           <span className="text-right">ROI</span>
           <span className="text-right">Units</span>
         </div>
@@ -771,13 +771,13 @@ function PlatformReportTabs({
             value="types"
             className="data-active:text-foreground min-h-9 px-3 data-active:underline data-active:decoration-[color:var(--scl-blue)] data-active:underline-offset-4"
           >
-            Bet types
+            Bet Types
           </TabsTrigger>
           <TabsTrigger
             value="leagues"
             className="data-active:text-foreground min-h-9 px-3 data-active:underline data-active:decoration-[color:var(--scl-blue)] data-active:underline-offset-4"
           >
-            Top leagues
+            Top Leagues
             {leagues.length > 0 ? (
               <span className="scl-data text-muted-foreground ml-1 text-[0.7rem]">
                 {leagues.length}
@@ -799,7 +799,7 @@ function PlatformReportTabs({
             rows={market}
             maxUnitsAbs={maxUnitsAbs}
           />
-          <ButtonishPicksLink label="Browse verified picks" />
+          <ButtonishPicksLink label="Browse Verified Picks" />
         </TabsContent>
 
         <TabsContent value="leagues" className="mt-0">

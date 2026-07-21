@@ -69,7 +69,7 @@ Bodies remain the three strings currently in `competition-hero.tsx` `SLIDES`.
 - Section titles: Barlow Condensed **Title Case** at ~22/26 (`text-[1.375rem] leading-7`); eyebrows stay uppercase Barlow (CSS)
 - Premium gloss = `.scl-elevated` (hairline + card shadow) + solid ink boards + scanline on Live panes — **no** `backdrop-blur` glass
 - Metrics: Inter tabular via `.scl-data` on every numeric column
-- Home UI copy (titles, CTAs, empty-state titles, short helpers): **Title Case** every word; locked hero slide strings unchanged; long body paragraphs on hero slides stay as locked
+- Home UI copy (titles, CTAs, empty-state titles, helpers, filter labels): **Title Case** every word. Locked hero slide **bodies** stay as locked sentence case. Eyebrows remain CSS-uppercase accents.
 
 ## Acceptance
 

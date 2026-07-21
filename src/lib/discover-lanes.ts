@@ -49,57 +49,57 @@ export type DiscoverLaneMeta = {
  */
 export function discoverLaneEmptyDescription(laneId: DiscoverLaneId): string {
   if (laneId === "market_beaters") {
-    return "Avg CLV compares submitted prices with market closing prices. It does not predict results.";
+    return "Avg CLV Compares Submitted Prices With Market Closing Prices. It Does Not Predict Results.";
   }
-  return "This lane remains empty until a capper meets its published criteria.";
+  return "This Lane Remains Empty Until A Capper Meets Its Published Criteria.";
 }
 
-export const DISCOVER_LANE_LOAD_FAILED_TITLE = "Couldn't load this lane";
+export const DISCOVER_LANE_LOAD_FAILED_TITLE = "Couldn't Load This Lane";
 export const DISCOVER_LANE_LOAD_FAILED_BODY =
-  "Public records are temporarily unavailable. Please try again shortly.";
+  "Public Records Are Temporarily Unavailable. Please Try Again Shortly.";
 
 export const DISCOVER_LANES: readonly DiscoverLaneMeta[] = [
   {
     id: "proven",
-    title: "Proven over time",
+    title: "Proven Over Time",
     explainer:
-      "Cappers with long-window records and enough graded picks for stronger context.",
-    primaryLabel: "Long-term ROI",
-    empty: "No capper currently meets the long-window sample requirement.",
+      "Cappers With Long-Window Records And Enough Graded Picks For Stronger Context.",
+    primaryLabel: "Long-Term ROI",
+    empty: "No Capper Currently Meets The Long-Window Sample Requirement.",
   },
   {
     id: "verified_month",
-    title: "Best verified ROI over 30 days",
+    title: "Best Verified ROI Over 30 Days",
     explainer:
-      "Recent ROI from graded picks that were board-verified at submission.",
-    primaryLabel: "30-day ROI",
+      "Recent ROI From Graded Picks That Were Board-Verified At Submission.",
+    primaryLabel: "30-Day ROI",
     empty:
-      "No capper has enough verified, graded picks in the current 30-day window.",
+      "No Capper Has Enough Verified, Graded Picks In The Current 30-Day Window.",
   },
   {
     id: "specialists",
-    title: "Consistent specialists",
+    title: "Consistent Specialists",
     explainer:
-      "Cappers with a qualifying record concentrated in one sport or market.",
+      "Cappers With A Qualifying Record Concentrated In One Sport Or Market.",
     primaryLabel: "Specialty ROI",
-    empty: "No capper has a large enough sport or market sample to qualify.",
+    empty: "No Capper Has A Large Enough Sport Or Market Sample To Qualify.",
   },
   {
     id: "newly_credible",
-    title: "Newly credible",
+    title: "Newly Credible",
     explainer:
-      "Newer cappers with a high board-verified share and a growing graded sample.",
-    primaryLabel: "Verified share",
+      "Newer Cappers With A High Board-Verified Share And A Growing Graded Sample.",
+    primaryLabel: "Verified Share",
     empty:
-      "No newer capper currently meets both the verification and sample requirements.",
+      "No Newer Capper Currently Meets Both The Verification And Sample Requirements.",
   },
   {
     id: "market_beaters",
-    title: "Market beaters",
+    title: "Market Beaters",
     explainer:
-      "Cappers whose submitted prices have compared favorably with market closing prices.",
+      "Cappers Whose Submitted Prices Have Compared Favorably With Market Closing Prices.",
     primaryLabel: "Avg CLV",
-    empty: "No capper has enough closing-line snapshots to qualify.",
+    empty: "No Capper Has Enough Closing-Line Snapshots To Qualify.",
   },
 ] as const;
 

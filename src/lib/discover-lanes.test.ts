@@ -118,7 +118,7 @@ test("proven lane requires established sample — does not fill with early recor
   const lane = buildProvenLane([early, proven]);
   assert.equal(lane.length, 1);
   assert.equal(lane[0].capper.handle, "proven");
-  assert.equal(lane[0].primaryLabel, "Long-term ROI");
+  assert.equal(lane[0].primaryLabel, "Long-Term ROI");
 });
 
 test("verified month lane requires board-verified graded signal in window", () => {
@@ -140,7 +140,7 @@ test("verified month lane requires board-verified graded signal in window", () =
   const lane = buildVerifiedMonthLane([selfReported, verified], since);
   assert.equal(lane.length, 1);
   assert.equal(lane[0].capper.handle, "v");
-  assert.equal(lane[0].primaryLabel, "30-day ROI");
+  assert.equal(lane[0].primaryLabel, "30-Day ROI");
 });
 
 test("specialty lane stays empty without concentrated signal sample", () => {
@@ -238,24 +238,24 @@ test("market beaters require verified graded positive avg CLV", () => {
 test("DISCOVER_LANES locks exact titles and empty copy", () => {
   const expected = [
     [
-      "Proven over time",
-      "No capper currently meets the long-window sample requirement.",
+      "Proven Over Time",
+      "No Capper Currently Meets The Long-Window Sample Requirement.",
     ],
     [
-      "Best verified ROI over 30 days",
-      "No capper has enough verified, graded picks in the current 30-day window.",
+      "Best Verified ROI Over 30 Days",
+      "No Capper Has Enough Verified, Graded Picks In The Current 30-Day Window.",
     ],
     [
-      "Consistent specialists",
-      "No capper has a large enough sport or market sample to qualify.",
+      "Consistent Specialists",
+      "No Capper Has A Large Enough Sport Or Market Sample To Qualify.",
     ],
     [
-      "Newly credible",
-      "No newer capper currently meets both the verification and sample requirements.",
+      "Newly Credible",
+      "No Newer Capper Currently Meets Both The Verification And Sample Requirements.",
     ],
     [
-      "Market beaters",
-      "No capper has enough closing-line snapshots to qualify.",
+      "Market Beaters",
+      "No Capper Has Enough Closing-Line Snapshots To Qualify.",
     ],
   ] as const;
   for (let i = 0; i < expected.length; i++) {
@@ -264,15 +264,15 @@ test("DISCOVER_LANES locks exact titles and empty copy", () => {
   }
   assert.equal(
     DISCOVER_LANES.find((l) => l.id === "newly_credible")?.explainer,
-    "Newer cappers with a high board-verified share and a growing graded sample.",
+    "Newer Cappers With A High Board-Verified Share And A Growing Graded Sample.",
   );
   assert.equal(
     discoverLaneEmptyDescription("proven"),
-    "This lane remains empty until a capper meets its published criteria.",
+    "This Lane Remains Empty Until A Capper Meets Its Published Criteria.",
   );
   assert.equal(
     discoverLaneEmptyDescription("market_beaters"),
-    "Avg CLV compares submitted prices with market closing prices. It does not predict results.",
+    "Avg CLV Compares Submitted Prices With Market Closing Prices. It Does Not Predict Results.",
   );
 });
 

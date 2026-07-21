@@ -84,7 +84,7 @@ function EvidenceStrip({
   if (unavailable) {
     return (
       <p className="text-muted-foreground text-sm leading-relaxed">
-        Public record temporarily unavailable.
+        Public Record temporarily unavailable.
       </p>
     );
   }
@@ -138,7 +138,7 @@ function CapperCell({ row }: { row: RegisterRow }) {
           @{row.pkg.capperHandle.replace(/^@/, "")}
         </span>
         <span className="text-muted-foreground block text-xs">
-          Inspect public record
+          Inspect Public Record
         </span>
       </span>
     </Link>
@@ -174,7 +174,7 @@ function ExternalStorefront({ pkg }: { pkg: PublicMarketplacePackage }) {
           External price
         </p>
         <p className="nums text-foreground mt-0.5 text-sm font-semibold tabular-nums">
-          {pkg.priceLabel ?? "Shown by provider"}
+          {pkg.priceLabel ?? "Shown By Provider"}
         </p>
       </div>
       <Button
@@ -214,7 +214,7 @@ export function PackagesRegister({
   }));
 
   return (
-    <section className="border-border mt-6 border-y" aria-label="Public offers">
+    <section className="border-border mt-6 border-y" aria-label="Public Offers">
       <div className="bg-surface-2 border-border flex flex-col gap-2 border-b px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
         <div className="flex items-center gap-2">
           <ShieldCheck
@@ -244,7 +244,7 @@ export function PackagesRegister({
           </colgroup>
           <thead>
             <tr className="border-border bg-background border-b">
-              {["Capper", "Public record", "Offer", "External storefront"].map(
+              {["Capper", "Public Record", "Offer", "External Storefront"].map(
                 (label) => (
                   <th
                     key={label}

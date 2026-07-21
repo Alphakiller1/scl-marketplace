@@ -81,7 +81,7 @@ export function VerifiedBadge({
           : "text-muted-foreground border border-[color:var(--scl-line)]",
         className,
       )}
-      aria-label={verified ? "Board-verified pick" : "Logged pick"}
+      aria-label={verified ? "Board-Verified Pick" : "Logged pick"}
     >
       {verified ? (
         <ShieldCheck

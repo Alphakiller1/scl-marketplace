@@ -28,7 +28,7 @@ export function GradingAuditList({ items }: { items: GradingAuditItem[] }) {
     return (
       <EmptyState
         icon={History}
-        title="No grading activity yet"
+        title="No Grading Activity Yet"
         description="Grades and overrides will appear here as plays are settled."
       />
     );

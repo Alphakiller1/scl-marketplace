@@ -130,7 +130,7 @@ export function PlatformClvSummary({
                 }
               >
                 <StatBlock
-                  label="Beat close"
+                  label="Beat Close"
                   value={
                     summary.beatClosePct != null
                       ? `${summary.beatClosePct.toFixed(1)}%`

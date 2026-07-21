@@ -266,7 +266,7 @@ function finalizeBucket(
 }
 
 /**
- * Bet-type breakdown: Shape (Singles / Parlays) and Market (Sides / Totals /
+ * Bet-Type Breakdown: Shape (Singles / Parlays) and Market (Sides / Totals /
  * Props / Futures). Singles and market buckets count Play rows with
  * `parlayId == null` only — parlays are counted as Parlay entities, never
  * flattened via legs.

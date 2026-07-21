@@ -33,7 +33,7 @@ export function VerificationBadge({
     >
       <BadgeCheck
         className={cn(px, "text-[color:var(--scl-pink)]")}
-        aria-label="Verified account"
+        aria-label="Verified Account"
       />
       {withLabel ? <span className="text-xs font-medium">Verified</span> : null}
     </span>
