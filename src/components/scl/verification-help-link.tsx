@@ -21,12 +21,12 @@ export function VerificationHelpLink({ className }: { className?: string }) {
       <DialogTrigger
         className={`scl-link inline-flex min-h-10 items-center text-xs font-medium ${className ?? ""}`}
       >
-        How verification works
+        How Verification Works
       </DialogTrigger>
       <DialogContent className="sm:max-w-md" showCloseButton>
         <DialogHeader>
           <DialogTitle className="scl-display text-base tracking-wide uppercase">
-            How verification works
+            How Verification Works
           </DialogTitle>
           <DialogDescription className="text-muted-foreground text-sm">
             Account trust and pick authenticity are separate signals.
@@ -39,7 +39,7 @@ export function VerificationHelpLink({ className }: { className?: string }) {
             </span>
             <div className="min-w-0 space-y-1">
               <p className="text-foreground text-sm font-semibold">
-                Verified account
+                Verified Account
               </p>
               <p className="text-muted-foreground text-xs leading-relaxed">
                 {ACCOUNT_VERIFIED_TOOLTIP}
@@ -52,7 +52,7 @@ export function VerificationHelpLink({ className }: { className?: string }) {
             </span>
             <div className="min-w-0 space-y-1">
               <p className="text-foreground text-sm font-semibold">
-                Board-verified pick
+                Board-Verified Pick
               </p>
               <p className="text-muted-foreground text-xs leading-relaxed">
                 {VERIFICATION_TIER_META.VERIFIED.description}

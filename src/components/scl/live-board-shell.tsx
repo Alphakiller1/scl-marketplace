@@ -3,10 +3,10 @@ import type { CapperSummary } from "@/lib/mock";
 import { cn } from "@/lib/utils";
 
 /**
- * Hero right-rail board — elevated Leaderboard snapshot only.
- * Featured proof lives under the fold (not overlaid on the first viewport).
+ * Elevated Live-board shell for the hero right rail.
+ * Premium gloss = hairline + card shadow + solid ink (no blur / glass).
  */
-export function HeroBoardCollage({
+export function LiveBoardShell({
   cappers,
   leaderboardFailed,
   updatedAt,
@@ -24,7 +24,7 @@ export function HeroBoardCollage({
         className,
       )}
     >
-      <div className="border-border relative overflow-hidden rounded-[14px] border bg-[color:var(--scl-ink-900)]/92 shadow-[var(--scl-shadow-card)] backdrop-blur-sm">
+      <div className="scl-elevated border-border relative overflow-hidden rounded-[var(--scl-radius-card)] border bg-[color:var(--scl-ink-800)]">
         <div
           className="scl-scanline pointer-events-none absolute inset-0 opacity-80"
           aria-hidden
@@ -41,3 +41,6 @@ export function HeroBoardCollage({
     </div>
   );
 }
+
+/** @deprecated Use LiveBoardShell — collage naming implied overlapping proof. */
+export const HeroBoardCollage = LiveBoardShell;

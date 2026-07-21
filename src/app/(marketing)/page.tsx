@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 import { CompetitionHero } from "@/components/scl/competition-hero";
 import { FeaturedProofReceipt } from "@/components/scl/featured-proof-receipt";
-import { HeroBoardCollage } from "@/components/scl/hero-board-collage";
+import { LiveBoardShell } from "@/components/scl/live-board-shell";
 import { HomeVerificationRail } from "@/components/scl/home-verification-rail";
 import { LeagueActionReport } from "@/components/scl/league-action-report";
 import { PlatformClvSummary } from "@/components/scl/platform-clv-summary";
@@ -107,7 +107,7 @@ export default async function Home() {
     <>
       <CompetitionHero
         board={
-          <HeroBoardCollage
+          <LiveBoardShell
             cappers={snapshot}
             leaderboardFailed={leaderboardFailed}
             updatedAt={updatedAt}
@@ -125,7 +125,7 @@ export default async function Home() {
       <div className="mx-auto max-w-[1400px] overflow-x-hidden px-4 pt-6 pb-8 sm:px-6 sm:pt-8 sm:pb-10 lg:px-8">
         {/* Mockup body: Top Cappers table + Featured Proof */}
         <div className="border-border grid gap-0 border-y lg:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.85fr)] lg:items-start">
-          <div className="scl-scanline border-border relative min-w-0 border-b px-0 py-5 lg:border-r lg:border-b-0 lg:pr-6 lg:pl-5">
+          <div className="scl-scanline scl-elevated border-border relative min-w-0 overflow-hidden rounded-[var(--scl-radius-card)] border bg-[color:var(--scl-ink-800)] px-3 py-5 sm:px-4 lg:rounded-none lg:border-0 lg:bg-transparent lg:px-0 lg:pr-6 lg:pl-5 lg:shadow-none">
             <div
               className="pointer-events-none absolute inset-y-0 left-0 hidden w-1 bg-[color:var(--scl-blue)] lg:block"
               aria-hidden
@@ -146,7 +146,7 @@ export default async function Home() {
           <section className="space-y-4">
             <SectionHeader
               icon={Activity}
-              title="Platform activity report"
+              title="Platform Activity Report"
               subtitle={platformReportSubtitle(windowDays)}
               href="/picks"
             />
@@ -163,7 +163,7 @@ export default async function Home() {
             <SectionHeader
               icon={Activity}
               title="Platform CLV"
-              subtitle="Pricing vs close on board-verified picks with a stored closing line"
+              subtitle="Pricing Vs Close On Board-Verified Picks With A Stored Closing Line"
               href="/leaderboard?sort=clv"
             />
             <PlatformClvSummary

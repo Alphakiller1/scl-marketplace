@@ -46,7 +46,7 @@ export function DiscoverEmptyLanesIndex({
               id={headingId}
               className="scl-display text-base font-bold tracking-[0.04em] sm:text-lg"
             >
-              Lanes without matches yet
+              Lanes Without Matches Yet
             </h2>
             <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
               Expand a lane to read why it is empty. SCL does not invent rows.

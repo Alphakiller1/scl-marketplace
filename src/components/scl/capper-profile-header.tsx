@@ -116,7 +116,7 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                   ) : (
                     <span className="inline-flex flex-wrap items-center gap-1.5">
                       <span>{BUILDING_RECORD_LABEL}</span>
-                      <ProvisionalRecordHelp label="What this means" />
+                      <ProvisionalRecordHelp label="What This Means" />
                     </span>
                   )}
                 </span>

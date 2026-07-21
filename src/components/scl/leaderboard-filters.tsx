@@ -32,7 +32,7 @@ export function LeaderboardFilters({
 }) {
   const sportLabel =
     filters.sport === "ALL"
-      ? "All sports"
+      ? "All Sports"
       : (SPORTS.find((sport) => sport.key === filters.sport)?.label ??
         filters.sport);
   const windowLabel =
@@ -51,7 +51,7 @@ export function LeaderboardFilters({
               className="size-3.5 text-[color:var(--scl-muted-label)]"
               aria-hidden
             />
-            Ranking scope
+            Ranking Scope
           </span>
           <span className="text-muted-foreground inline-flex min-w-0 items-center gap-1.5 truncate text-xs">
             {filters.sport !== "ALL" ? (
@@ -108,12 +108,12 @@ function DesktopScopeForm({
 
       <div className="border-border bg-card flex items-center gap-3 rounded-[10px] border p-2.5">
         <p className="scl-eyebrow hidden shrink-0 px-2 text-[color:var(--scl-muted-data)] xl:block">
-          Ranking scope
+          Ranking Scope
         </p>
         <div className="grid min-w-0 flex-1 grid-cols-4 overflow-hidden rounded-[8px] border border-[color:var(--scl-line)]">
           <ScopeSelect icon={Globe2} label="Sport">
             <select name="sport" defaultValue={filters.sport}>
-              <option value="ALL">All sports</option>
+              <option value="ALL">All Sports</option>
               {SPORTS.map((sport) => (
                 <option key={sport.key} value={sport.key}>
                   {sport.label}
@@ -122,7 +122,7 @@ function DesktopScopeForm({
             </select>
           </ScopeSelect>
 
-          <ScopeSelect icon={CalendarDays} label="Time scope">
+          <ScopeSelect icon={CalendarDays} label="Time Scope">
             <select name="window" defaultValue={filters.window}>
               {LEADERBOARD_SCOPE_WINDOWS.map((window) => (
                 <option key={window.key} value={window.key}>
@@ -132,7 +132,7 @@ function DesktopScopeForm({
             </select>
           </ScopeSelect>
 
-          <ScopeSelect icon={ChartPie} label="Rank by">
+          <ScopeSelect icon={ChartPie} label="Rank By">
             <select name="sort" defaultValue={filters.sort}>
               {LEADERBOARD_SORTS.map((sort) => (
                 <option key={sort.key} value={sort.key}>
@@ -142,13 +142,13 @@ function DesktopScopeForm({
             </select>
           </ScopeSelect>
 
-          <ScopeSelect icon={ShieldCheck} label="Record trust" last>
+          <ScopeSelect icon={ShieldCheck} label="Record Trust" last>
             <select
               name="record"
               defaultValue={filters.verifiedOnly ? "verified" : "all"}
             >
-              <option value="verified">Verified only</option>
-              <option value="all">All records</option>
+              <option value="verified">Verified Only</option>
+              <option value="all">All Records</option>
             </select>
           </ScopeSelect>
         </div>
@@ -176,7 +176,7 @@ function DesktopScopeForm({
             href={leaderboardHref(filters, { sort: "units" }, action)}
           />
           <AppliedChip
-            label={filters.verifiedOnly ? "Verified only" : "All records"}
+            label={filters.verifiedOnly ? "Verified Only" : "All Records"}
             href={leaderboardHref(
               filters,
               { verifiedOnly: !filters.verifiedOnly },
@@ -187,13 +187,13 @@ function DesktopScopeForm({
             href={action}
             className="text-muted-foreground focus-visible:ring-ring hover:text-foreground inline-flex min-h-10 items-center rounded px-2 text-xs font-semibold underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:outline-none"
           >
-            Clear all
+            Clear All
           </Link>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
           <label>
-            <span className="sr-only">Minimum sample</span>
+            <span className="sr-only">Minimum Sample</span>
             <select
               name="minPicks"
               defaultValue={String(filters.minPicks)}
@@ -201,14 +201,14 @@ function DesktopScopeForm({
             >
               {LEADERBOARD_MIN_PICKS.map((count) => (
                 <option key={count} value={String(count)}>
-                  {count === 0 ? "Any sample" : `${count}+ picks`}
+                  {count === 0 ? "Any Sample" : `${count}+ picks`}
                 </option>
               ))}
             </select>
           </label>
           <label className="border-input bg-card focus-within:ring-ring flex h-10 w-40 items-center gap-2 rounded-[8px] border px-2 focus-within:ring-2">
             <Search className="text-muted-foreground size-3.5" aria-hidden />
-            <span className="sr-only">Find a capper</span>
+            <span className="sr-only">Find A Capper</span>
             <input
               type="search"
               name="q"
@@ -300,21 +300,21 @@ function MobileScopeForm({
         <input type="hidden" name="limit" value={filters.limit} />
       ) : null}
       <MobileSelect label="Sport" name="sport" value={filters.sport}>
-        <option value="ALL">All sports</option>
+        <option value="ALL">All Sports</option>
         {SPORTS.map((sport) => (
           <option key={sport.key} value={sport.key}>
             {sport.label}
           </option>
         ))}
       </MobileSelect>
-      <MobileSelect label="Time scope" name="window" value={filters.window}>
+      <MobileSelect label="Time Scope" name="window" value={filters.window}>
         {LEADERBOARD_SCOPE_WINDOWS.map((window) => (
           <option key={window.key} value={window.key}>
             {window.longLabel}
           </option>
         ))}
       </MobileSelect>
-      <MobileSelect label="Rank by" name="sort" value={filters.sort}>
+      <MobileSelect label="Rank By" name="sort" value={filters.sort}>
         {LEADERBOARD_SORTS.map((sort) => (
           <option key={sort.key} value={sort.key}>
             {sort.label}
@@ -322,27 +322,27 @@ function MobileScopeForm({
         ))}
       </MobileSelect>
       <MobileSelect
-        label="Minimum sample"
+        label="Minimum Sample"
         name="minPicks"
         value={String(filters.minPicks)}
       >
         {LEADERBOARD_MIN_PICKS.map((count) => (
           <option key={count} value={String(count)}>
-            {count === 0 ? "Any sample" : `${count}+ picks`}
+            {count === 0 ? "Any Sample" : `${count}+ picks`}
           </option>
         ))}
       </MobileSelect>
       <MobileSelect
-        label="Record trust"
+        label="Record Trust"
         name="record"
         value={filters.verifiedOnly ? "verified" : "all"}
       >
-        <option value="verified">Verified only</option>
-        <option value="all">All records</option>
+        <option value="verified">Verified Only</option>
+        <option value="all">All Records</option>
       </MobileSelect>
       <label>
         <span className="scl-eyebrow text-[color:var(--scl-muted-label)]">
-          Find a capper
+          Find A Capper
         </span>
         <span className="border-input bg-surface-2 focus-within:ring-ring mt-1 flex h-11 items-center gap-2 rounded-[8px] border px-2 focus-within:ring-2">
           <Search className="text-muted-foreground size-3.5" aria-hidden />

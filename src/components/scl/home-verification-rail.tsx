@@ -25,17 +25,17 @@ export function HomeVerificationRail({ className }: { className?: string }) {
           </h2>
         </div>
         <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
-          Account checks and pick authenticity are separate. Board-verified
-          means odds were captured pre-game and checked against the live market
-          — not that the pick won.
+          Account Checks And Pick Authenticity Are Separate. Board-Verified
+          Means Odds Were Captured Pre-Game And Checked Against The Live Market
+          — Not That The Pick Won.
         </p>
       </div>
 
       <VerificationLegend />
 
       <p className="text-muted-foreground text-xs leading-relaxed">
-        The pink stamp is the trust mark. Settlement (win / loss / push) is a
-        separate result signal and never replaces verification.
+        The Pink Stamp Is The Trust Mark. Settlement (Win / Loss / Push) Is A
+        Separate Result Signal And Never Replaces Verification.
       </p>
     </aside>
   );

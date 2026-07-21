@@ -151,8 +151,8 @@ export function PublicPicksLedger({
             }
             options={[
               ["all", "All"],
-              ["7d", "7 days"],
-              ["30d", "30 days"],
+              ["7d", "7 Days"],
+              ["30d", "30 Days"],
             ]}
           />
           <ScopeSelect
@@ -179,7 +179,7 @@ export function PublicPicksLedger({
         </div>
         <div className="flex min-h-11 items-center justify-between gap-3 lg:justify-end">
           <p className="scl-data text-foreground text-sm font-semibold tabular-nums">
-            {isPending ? "Updating scope…" : filterLabel(filtered.length)}
+            {isPending ? "Updating Scope…" : filterLabel(filtered.length)}
           </p>
           <p className="text-muted-foreground hidden text-xs sm:block">
             Open one row to inspect its receipt.
@@ -264,11 +264,11 @@ export function PublicPicksLedger({
             aria-hidden
           />
           <h3 className="scl-display text-foreground mt-3 text-lg font-semibold">
-            {defaultScope ? "No public picks yet" : "No records in this scope"}
+            {defaultScope ? "No Public Picks Yet" : "No Records In This Scope"}
           </h3>
           <p className="text-muted-foreground mx-auto mt-1 max-w-md text-sm leading-relaxed">
             {defaultScope
-              ? "Public records appear here after cappers log tracked plays. Nothing is fabricated to fill the ledger."
+              ? "Public Records appear here after cappers log tracked plays. Nothing is fabricated to fill the ledger."
               : "No tracked public picks match these filters. Adjust the scope to inspect other records."}
           </p>
         </div>
@@ -533,7 +533,7 @@ function ExpandedEvidence({
             value={pick.book ? bookLabel(pick.book) : "Live board"}
           />
           <AuditRow
-            label="Submission proof"
+            label="Submission Proof"
             value={boardVerified ? "Board-verified" : "Logged"}
           />
           <AuditRow
@@ -542,7 +542,7 @@ function ExpandedEvidence({
           />
         </dl>
         <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
-          Submission proof describes how the pick was recorded. Settlement is
+          Submission Proof describes how the pick was recorded. Settlement is
           shown separately.
         </p>
       </div>

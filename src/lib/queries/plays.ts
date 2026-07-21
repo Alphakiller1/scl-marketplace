@@ -60,7 +60,7 @@ export type ParlayView = {
   outcome: Outcome;
   profitUnits: number | null;
   createdAt: Date;
-  /** Verified only when every leg was logged pre-game and price-verified. */
+  /** Verified Only when every leg was logged pre-game and price-verified. */
   verificationTier: VerificationTier;
   /** Earliest leg start — drives the parlay's lifecycle chip. */
   eventStartsAt: Date | null;

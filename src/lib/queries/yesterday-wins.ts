@@ -86,7 +86,7 @@ async function queryGradedResults(whereGradedAt: {
 
 /**
  * Public homepage ticker — previous ET day's graded results (W/L/P).
- * Falls back to the last 7 days when yesterday is empty. Never fabricate.
+ * Falls back to the last 7 Days when yesterday is empty. Never fabricate.
  * Hide the module when both windows are empty.
  */
 export async function getYesterdaysGradedWins(): Promise<GradedResultsTickerPayload> {

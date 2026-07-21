@@ -53,7 +53,7 @@ export function Leaderboard({
   flush = false,
   rankByPosition = false,
   primaryMetric = "units",
-  emptyDescription = "No cappers match this ranking scope yet.",
+  emptyDescription = "No Cappers Match This Ranking Scope Yet.",
   emptyTitle,
   showExpand = false,
   basePath = "/leaderboard",
@@ -89,8 +89,8 @@ export function Leaderboard({
         icon={Trophy}
         title={
           failed
-            ? "Couldn't load the leaderboard"
-            : (emptyTitle ?? "No ranked cappers found")
+            ? "Couldn't Load The Leaderboard"
+            : (emptyTitle ?? "No Ranked Cappers Found")
         }
         description={
           failed
@@ -542,26 +542,26 @@ export function BuildingRecordSection({
   return (
     <section
       id="unranked-public-records"
-      aria-label="Unranked public records"
+      aria-label="Unranked Public Records"
       className="border-border mt-8 scroll-mt-20 border-t pt-5 sm:mt-10 sm:pt-6"
     >
       <div className="mb-3 flex flex-col gap-1 sm:mb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
-            Outside the ranking field
+            Outside The Ranking Field
           </p>
           <h2 className="scl-display text-foreground mt-1 text-[1.375rem] leading-7 font-semibold tracking-[0.02em] normal-case">
-            Unranked public records
+            Unranked Public Records
           </h2>
           <p className="text-muted-foreground mt-1 max-w-2xl text-sm leading-snug">
-            These cappers are still building a record in this scope. A record
-            stays unranked when it has no graded picks, misses the selected
-            sample, or has negative ROI or units.
+            These Cappers Are Still Building A Record In This Scope. A Record
+            Stays Unranked When It Has No Graded Picks, Misses The Selected
+            Sample, Or Has Negative ROI Or Units.
           </p>
         </div>
         <p className="scl-data text-muted-foreground text-xs tabular-nums">
           {cappers.length.toLocaleString()}{" "}
-          {cappers.length === 1 ? "capper" : "cappers"}
+          {cappers.length === 1 ? "Capper" : "Cappers"}
         </p>
       </div>
       <Leaderboard
@@ -569,8 +569,8 @@ export function BuildingRecordSection({
         compactDesktop
         compactMobile
         flush
-        emptyTitle="No cappers building a record"
-        emptyDescription="Every matching capper currently meets the ranking sample."
+        emptyTitle="No Cappers Building A Record"
+        emptyDescription="Every Matching Capper Currently Meets The Ranking Sample."
       />
     </section>
   );

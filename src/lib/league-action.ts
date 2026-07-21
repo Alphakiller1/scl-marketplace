@@ -91,21 +91,21 @@ export const LEAGUE_ACTION_CATEGORY_EMPTY: Record<
 
 /** Matches leaderboard public-surface eligibility tone (ranked + building). */
 export const PLATFORM_REPORT_ELIGIBILITY_FOOTNOTE =
-  "Board-verified picks from publicly listed cappers, including ranked cappers and cappers building a record. Test accounts are excluded. ROI and units appear only after the minimum graded sample is met.";
+  "Board-Verified Picks From Publicly Listed Cappers, Including Ranked Cappers And Cappers Building A Record. Test Accounts Are Excluded. ROI And Units Appear Only After The Minimum Graded Sample Is Met.";
 
 /** Homepage section subtitle (GPT-locked voice — no “most successful” hype). */
 export function platformReportSubtitle(windowDays: number): string {
-  return `Board-verified bet types from publicly listed cappers — last ${windowDays} days.`;
+  return `Board-Verified Bet Types From Publicly Listed Cappers — Last ${windowDays} Days.`;
 }
 
 /** Metric label for categories with tracked volume (singular-aware). */
 export function platformReportSegmentLabel(n: number): string {
-  return n === 1 ? "active segment" : "active segments";
+  return n === 1 ? "Active Segment" : "Active Segments";
 }
 
 /** Metric label for tracked leagues (singular-aware). */
 export function platformReportLeagueLabel(n: number): string {
-  return n === 1 ? "tracked league" : "tracked leagues";
+  return n === 1 ? "Tracked League" : "Tracked Leagues";
 }
 
 /** Singular-aware count phrase, e.g. "1 capper" / "3 cappers". */
@@ -266,7 +266,7 @@ function finalizeBucket(
 }
 
 /**
- * Bet-type breakdown: Shape (Singles / Parlays) and Market (Sides / Totals /
+ * Bet-Type Breakdown: Shape (Singles / Parlays) and Market (Sides / Totals /
  * Props / Futures). Singles and market buckets count Play rows with
  * `parlayId == null` only — parlays are counted as Parlay entities, never
  * flattened via legs.

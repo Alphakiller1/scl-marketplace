@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { VerificationBadge } from "@/components/scl/badges";
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 const PINK_CTA =
   "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)]";
 
+/** Auto-advance interval — no manual arrows/dots chrome. */
 const AUTO_MS = 6500;
 
 export function CompetitionHero({ board }: { board?: ReactNode }) {
@@ -32,11 +33,14 @@ export function CompetitionHero({ board }: { board?: ReactNode }) {
     return () => window.clearInterval(id);
   }, [go, index, paused]);
 
+  const activeSlide = HERO_SLIDES[index] ?? HERO_SLIDES[0];
+
   return (
     <section
       className="relative w-full overflow-hidden border-b border-[color:var(--scl-hero-line)] bg-[color:var(--scl-hero-ink)] text-[color:var(--scl-hero-text)] [--ring:var(--scl-hero-blue)]"
       aria-roledescription="carousel"
-      aria-label="SCL highlights"
+      aria-label="SCL Highlights"
+      aria-live="polite"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
@@ -52,7 +56,12 @@ export function CompetitionHero({ board }: { board?: ReactNode }) {
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(90%_80%_at_78%_48%,rgba(16,95,217,0.18),transparent_55%),radial-gradient(70%_70%_at_18%_40%,rgba(166,0,127,0.12),transparent_50%),linear-gradient(180deg,var(--scl-hero-ink),var(--scl-hero-ink-raised))]"
       />
 
-      <div className="relative mx-auto grid w-full max-w-[1400px] gap-8 px-4 py-7 sm:px-6 sm:py-9 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.95fr)] lg:items-center lg:gap-10 lg:px-8 lg:py-10">
+      <p className="sr-only">
+        Slide {index + 1} Of {HERO_SLIDES.length}: {activeSlide.title}
+      </p>
+
+      {/* Board rail must host Rank-schema width — prefer board share over copy. */}
+      <div className="relative mx-auto grid w-full max-w-[1400px] gap-8 px-4 py-7 sm:px-6 sm:py-9 lg:grid-cols-[minmax(0,0.9fr)_minmax(26rem,1.15fr)] lg:items-start lg:gap-8 lg:px-8 lg:py-10">
         <div className="min-w-0">
           <div className="grid max-w-[36rem]">
             {HERO_SLIDES.map((slide, i) => {
@@ -61,7 +70,7 @@ export function CompetitionHero({ board }: { board?: ReactNode }) {
                 <div
                   key={slide.id}
                   className={cn(
-                    "col-start-1 row-start-1 transition-opacity duration-300 ease-out motion-reduce:transition-none",
+                    "col-start-1 row-start-1 transition-opacity duration-500 ease-out motion-reduce:transition-none",
                     active
                       ? "z-10 opacity-100"
                       : "pointer-events-none z-0 opacity-0",
@@ -111,54 +120,6 @@ export function CompetitionHero({ board }: { board?: ReactNode }) {
                 </div>
               );
             })}
-          </div>
-
-          <div className="mt-7 flex items-center gap-2 sm:mt-8">
-            <button
-              type="button"
-              onClick={() => go(index - 1)}
-              className="focus-visible:ring-ring inline-flex size-11 items-center justify-center rounded-lg border border-[color:var(--scl-hero-line)] bg-[color:var(--scl-hero-ink-raised)]/80 text-[color:var(--scl-hero-muted)] backdrop-blur-sm hover:text-[color:var(--scl-hero-text)] focus-visible:ring-2 focus-visible:outline-none"
-              aria-label="Previous slide"
-            >
-              <ChevronLeft className="size-4" aria-hidden />
-            </button>
-
-            <div
-              className="flex items-center"
-              role="tablist"
-              aria-label="Hero slides"
-            >
-              {HERO_SLIDES.map((s, i) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={i === index}
-                  aria-label={`Show slide ${i + 1}: ${s.title}`}
-                  onClick={() => setIndex(i)}
-                  className="group focus-visible:ring-ring inline-flex size-11 items-center justify-center rounded-lg focus-visible:ring-2 focus-visible:outline-none"
-                >
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "block h-2 rounded-full transition-[width,background-color] duration-300 ease-out motion-reduce:transition-none",
-                      i === index
-                        ? "w-7 bg-[color:var(--scl-hero-blue)]"
-                        : "w-2 bg-[color:var(--scl-hero-muted)]/40 group-hover:bg-[color:var(--scl-hero-muted)]/70",
-                    )}
-                  />
-                </button>
-              ))}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => go(index + 1)}
-              className="focus-visible:ring-ring inline-flex size-11 items-center justify-center rounded-lg border border-[color:var(--scl-hero-line)] bg-[color:var(--scl-hero-ink-raised)]/80 text-[color:var(--scl-hero-muted)] backdrop-blur-sm hover:text-[color:var(--scl-hero-text)] focus-visible:ring-2 focus-visible:outline-none"
-              aria-label="Next slide"
-            >
-              <ChevronRight className="size-4" aria-hidden />
-            </button>
           </div>
         </div>
 

@@ -64,8 +64,11 @@ Numbers are the product. These render performance consistently everywhere.
   with 44px targets, preserved SCL identity, and safe-area-aware actions.
 - `LeaderboardRow` (`leaderboard-row.tsx`) — desktop leaderboard row (grid, hover, links).
 - `LeaderboardMobileCard` — mobile card equivalent (never a compressed table).
-- `CompactCapperRow` — homepage résumé row with one emphasized ranking metric and inline sample
-  context; keeps high-volume home sections scan-efficient without weakening dedicated views.
+- `CompactCapperRow` — compact résumé row for discovery/list surfaces (not home Live boards;
+  home uses `RankBoardTable`).
+- `RankBoardTable` — shared home Rank-schema body (hero snapshot + Top Cappers); specialty under
+  Capper identity; no Handle $.
+- `LiveBoardShell` — elevated hero Live-board shell (ink scanline; no overlapping proof).
 - `CapperCard` (`capper-card.tsx`) — discovery/résumé card.
 - `PickCard` (`pick-card.tsx`) — today's-pick card (event, selection, odds, stake, capper, status).
 - `SectionHeader` (`section.tsx`) — titled section with optional "view all".
@@ -77,7 +80,8 @@ Numbers are the product. These render performance consistently everywhere.
 - `Leaderboard` — shared desktop row / mobile card renderer with honest empty and error states.
 - `LeaderboardFilters` — URL-driven sport, window, sort, sample, search, and verification scope.
 - `LeaderboardOverview` — data-route title and real aggregate metric band.
-- `CompetitionHero` — responsive artwork-led home hero with live platform metrics.
+- `CompetitionHero` — dual-column home hero: locked slides + elevated Rank-schema Live board
+  (ink + radial atmosphere; no photographic plate). See `design/HOME_DESIGN_LAYER_SCHEMA.md`.
 
 ## States (`states.tsx`)
 

@@ -29,7 +29,7 @@ export const VERIFICATION_TIER_META: Record<
   VerificationTierMeta
 > = {
   AUTO_VERIFIED: {
-    label: "Auto-verified",
+    label: "Auto-Verified",
     short: "Verified",
     description:
       "Captured automatically from an authorized source, logged pre-game, with odds checked against the market.",
@@ -53,7 +53,7 @@ export const VERIFICATION_TIER_META: Record<
 
 /** Account-level Verified badge (profile / identity) — not a pick authenticity claim. */
 export const ACCOUNT_VERIFIED_TOOLTIP =
-  "Verified account — identity confirmed and record tracked by SCL. Individual picks are marked board-verified or logged.";
+  "Verified Account — identity confirmed and record tracked by SCL. Individual picks are marked board-verified or logged.";
 
 export function verificationTierMeta(
   tier: VerificationTier,

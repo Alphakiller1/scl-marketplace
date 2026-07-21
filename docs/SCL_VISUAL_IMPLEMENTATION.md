@@ -69,47 +69,37 @@ Source of truth for roles remains `design/SCL-DESIGN-SPEC.md` v2.0; hexes above 
 - Second and third place receive distinct, restrained pink treatments.
 - Verification, sample size, recent form, and streaks stay visible near the result they qualify.
 
-### Atmosphere (hero artwork)
+### Atmosphere (hero — superseded)
 
-- Generated trophy artwork is limited to the home hero and campaign-scale surfaces.
-- Canonical look: **magenta market chart + cobalt sports ambient** with a **simple solid trophy +
-  gold crown** (see `docs/SCL_ASSET_MANIFEST.md`). Atmosphere reaches every edge of the hero.
-- Trophy stays solid and readable — not ornate/filigree, not a tight close-up.
-- Rejected treatments: flat black letterbox voids, over-light sky-cyan grades, purple-only washes
-  with no cobalt, single `object-cover` crops that clip the crown/base.
+> **Superseded for home.** Marketing home uses **ink + radial atmosphere only** (no
+> photographic WebP plate). See `design/HOME_DESIGN_LAYER_SCHEMA.md` and
+> `design/MOCKUP_FIDELITY_HOME_CONTRACT.md`. Campaign-scale artwork elsewhere may still
+> use magenta/cobalt trophy assets from the manifest — not as the live home hero plane.
 
-### Home hero compositing stack (back → front)
+### Home hero compositing stack (current)
 
-Implemented in `src/components/scl/competition-hero.tsx`. Layers must stay in this order:
+Implemented in `src/components/scl/competition-hero.tsx` + `live-board-shell.tsx`.
 
-| Z   | Layer                        | Purpose                                                                    |
-| --- | ---------------------------- | -------------------------------------------------------------------------- |
-| 0   | Theme-independent hero ink   | Prevents flash and keeps campaign copy AA-safe in both page themes         |
-| 1   | Integrated desktop banner    | One owner-approved WebP contains the chart, arena, trophy, and crown       |
-| 2   | Mobile atmosphere + trophy   | Purpose-built portrait layers preserve the object at narrow widths only    |
-| 3   | Horizontal / vertical scrims | Protect the copy zone without recoloring the magenta/cobalt artwork        |
-| 4   | Unboxed grid-stacked slides  | Pink hairline anchors copy; opacity-only swaps prevent layout movement     |
-| 5   | Carousel controls            | Dots and arrows sit outside slide content so the text block remains stable |
+| Z   | Layer                       | Purpose                                                            |
+| --- | --------------------------- | ------------------------------------------------------------------ |
+| 0   | Theme-independent hero ink  | Prevents flash and keeps campaign copy AA-safe in both page themes |
+| 1   | Soft pink / blue radials    | Brand atmosphere without photographic plate                        |
+| 2   | Dual-column grid            | Copy rail + elevated Rank-schema Live board (`LiveBoardShell`)     |
+| 3   | Unboxed grid-stacked slides | Locked CTA language; opacity-only auto-advance (no arrows/dots)    |
+| 4   | _(removed)_                 | Manual carousel chrome removed — auto-moving only                  |
 
-Desktop must request the integrated banner once; it must not also download or render the mobile
-trophy. Mobile retains the separate atmosphere and trophy assets because their portrait crop is
-purpose-built for the narrow composition. The slide is deliberately unboxed so the artwork and
-message read as one surface rather than a card pasted over a banner.
+**Do not:** reintroduce WebP trophy plate; use `CompactCapperRow` in the hero board; overlay Featured Proof on the snapshot; fork a second Rank table dialect for Top Cappers.
 
 **Layer investigation notes (locked):**
 
-1. Scrims are ink overlays only — they must not hue-shift magenta/cobalt art toward pink or sky blue.
-2. Slide changes must not remount with `scl-reveal` translateY (that “rumbles” the page). Stack
-   slides in one CSS grid cell and fade opacity.
-3. Do not punch transparency into the trophy scene or invent sparse chart overlays on top of it.
-4. If art feels “too dark,” prefer a **tiny** pixel-level cobalt lift or owner review — never a
-   full regrade to electric/sky blue, and never leave a programmatic lighten pass that changes
-   the magenta/cobalt identity.
+1. Board rail width must host Rank-schema columns — prefer board share over copy (`minmax(26rem,1.15fr)`).
+2. Slide changes must not remount with `scl-reveal` translateY. Stack slides in one CSS grid cell and fade opacity.
+3. One Rank body: `RankBoardTable` for hero snapshot and Top Cappers.
 
 ## Responsive composition
 
-- The home hero uses separate landscape and portrait artwork.
-- Mobile copy occupies the calm upper / left portion of the portrait asset.
+- The home hero uses ink + radial atmosphere with a dual-column Rank-schema Live board (see `design/HOME_DESIGN_LAYER_SCHEMA.md`).
+- Mobile copy sits above the board stack; board is full-width below the copy rail.
 - Leaderboards use full rows at `md` and purpose-built ranked cards below `md`.
 - Filters remain operable at 375px with 40px minimum controls and no horizontal page overflow.
 - Fixed chart and rank dimensions prevent data changes from shifting layout.

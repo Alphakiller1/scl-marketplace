@@ -127,7 +127,7 @@ export function summarizeClvTracker(
 }
 
 /** Honest empty copy when no snapshots (or under signal for metric faces). */
-export const CLV_TRACKER_EMPTY_TITLE = "CLV not available yet";
+export const CLV_TRACKER_EMPTY_TITLE = "CLV Not Available Yet";
 
 export const CLV_TRACKER_EMPTY_BODY =
   "No closing snapshots are available for this record. CLV appears after SCL captures a closing line for a board-verified pick. Historical picks without a close remain em dashes.";

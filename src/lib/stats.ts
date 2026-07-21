@@ -87,7 +87,7 @@ export function computeStatsBySport(
     .sort((a, b) => b.units - a.units);
 }
 
-/** Stats over a trailing window (e.g. last 30 days), by play creation time. */
+/** Stats over a trailing window (e.g. last 30 Days), by play creation time. */
 export function computeStatsSince(
   plays: (PlayForStats & { createdAt: Date })[],
   since: Date,

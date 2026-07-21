@@ -23,7 +23,7 @@ export function VerifiedShareMeter({
           "scl-data text-muted-foreground text-sm tabular-nums",
           className,
         )}
-        title="Not available"
+        title="Not Available"
       >
         —
       </span>

@@ -285,13 +285,13 @@ export function EvidenceBrief({
       ) : playsError ? (
         <EmptyState
           icon={Receipt}
-          title="Couldn't load latest proof"
+          title="Couldn't Load Latest Proof"
           description="Try again shortly."
         />
       ) : (
         <EmptyState
           icon={Receipt}
-          title="No tracked plays yet"
+          title="No Tracked Plays Yet"
           description={`${emptyName} hasn't posted a graded play yet. When they do, the Proof Receipt appears here — timestamps, lines, and results included.`}
         />
       )}
@@ -721,7 +721,7 @@ function ProofHistoryLedger({
                   ? "Loading…"
                   : localRemaining.length > 0
                     ? `Show ${Math.min(PROOF_HISTORY_PAGE_SIZE, localRemaining.length)} more`
-                    : "Show more"}
+                    : "Show More"}
               </button>
             ) : null}
           </div>

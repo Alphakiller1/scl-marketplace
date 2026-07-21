@@ -48,7 +48,7 @@ export default async function LeaderboardPage({
             filters={filters}
             showExpand
             failed={failed}
-            emptyDescription="No cappers meet the selected ranking filters. Records below the sample threshold or with negative ROI or units remain visible under Building a Record."
+            emptyDescription="No Cappers Meet The Selected Ranking Filters. Records Below The Sample Threshold Or With Negative ROI Or Units Remain Visible Under Building A Record."
           />
         </section>
         <div className="min-w-0">
@@ -58,7 +58,7 @@ export default async function LeaderboardPage({
 
       <BuildingRecordSection cappers={unranked} failed={failed} />
       <CompareTray />
-      {/* Spacer so compare tray does not cover Building a Record on mobile */}
+      {/* Spacer so compare tray does not cover Building A Record on mobile */}
       <div className="h-16" aria-hidden />
     </div>
   );

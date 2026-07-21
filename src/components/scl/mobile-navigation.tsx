@@ -66,7 +66,7 @@ export function MobileSiteNav({ authed = false }: { authed?: boolean }) {
           <BrandLabel label="Explore SCL" />
           <SheetTitle className="mt-3 text-xl font-bold">Main Menu</SheetTitle>
           <SheetDescription>
-            Latest picks, rankings, capper records, and marketplace access.
+            Latest Picks, rankings, capper records, and marketplace access.
           </SheetDescription>
         </SheetHeader>
 
