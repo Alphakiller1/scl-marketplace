@@ -62,13 +62,13 @@ export const BOTTOM_BAND_BODY =
   "Log Board-Verified Plays. Earn A Public Rank Others Can Check.";
 
 /** Rank-mode right rail — factual eligibility copy (GPT review welcome). */
-export const HOW_RANKING_WORKS_TITLE = "How Ranking Works";
+export const HOW_RANKING_WORKS_TITLE = "How ranking works";
 
 export const HOW_RANKING_WORKS_BULLETS = [
-  "Within The Selected Scope, A Public Rank Requires The Minimum Graded Sample And Non-Negative ROI And Units.",
-  "Records Below The Sample Threshold Or With Negative ROI Or Units Remain Visible Under Building A Record And Are Not Ranked.",
-  "CLV Sorting Requires The Minimum Sample And At Least One Stored Closing Line.",
+  "Within the selected scope, a public rank requires the minimum graded sample and non-negative ROI and units.",
+  "Records below the sample threshold or with negative ROI or units remain visible under Building a Record and are not ranked.",
+  "CLV sorting requires the minimum sample and at least one stored closing line.",
 ] as const;
 
 export const HOW_RANKING_VERIFIED_NOTE =
-  "Verified Share Is The Percentage Of Tracked Picks Checked Against The Board At Submission. It Does Not Describe Pick Outcomes.";
+  "Verified share is the percentage of tracked picks checked against the board at submission. It does not describe pick outcomes.";
