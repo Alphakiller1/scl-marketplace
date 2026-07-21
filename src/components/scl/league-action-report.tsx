@@ -1,8 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { Activity, ArrowRight } from "lucide-react";
+import { useMemo, useState, type ComponentType } from "react";
+import {
+  Activity,
+  ArrowRight,
+  Layers3,
+  ShieldCheck,
+  Trophy,
+} from "lucide-react";
 
 import { LeagueMark } from "@/components/scl/league-mark";
 import { SampleMaturityMeter } from "@/components/scl/sample-maturity-meter";
@@ -40,27 +46,60 @@ const BET_TYPE_COLS =
 
 type TabKey = "types" | "leagues";
 
-function Metric({
+type MetricTone = "pink" | "blue" | "ledger";
+
+function MetricTile({
   label,
   value,
-  emphasize = false,
+  icon: Icon,
+  tone = "ledger",
 }: {
   label: string;
   value: number;
-  emphasize?: boolean;
+  icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  tone?: MetricTone;
 }) {
+  const iconWrap =
+    tone === "pink"
+      ? "border-[color-mix(in_srgb,var(--scl-pink)_40%,var(--scl-line))] bg-[color-mix(in_srgb,var(--scl-pink)_14%,transparent)] text-[color:var(--scl-pink)] shadow-[0_0_16px_color-mix(in_srgb,var(--scl-pink)_22%,transparent)]"
+      : tone === "blue"
+        ? "border-[color-mix(in_srgb,var(--scl-blue)_45%,var(--scl-line))] bg-[color-mix(in_srgb,var(--scl-blue)_16%,transparent)] text-[color:var(--scl-blue)] shadow-[0_0_16px_color-mix(in_srgb,var(--scl-blue)_28%,transparent)]"
+        : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-700)] text-[color:var(--scl-muted-label)]";
+
   return (
-    <div className="min-w-0">
-      <StatValue
-        tone="text"
-        className={cn(
-          "block font-bold tabular-nums",
-          emphasize ? "text-2xl sm:text-3xl" : "text-xl",
-        )}
-      >
-        {value.toLocaleString()}
-      </StatValue>
-      <span className="scl-eyebrow mt-1 block">{label}</span>
+    <div
+      className={cn(
+        "relative min-w-0 overflow-hidden rounded-[12px] border border-[color:var(--scl-line)]",
+        "bg-[linear-gradient(165deg,color-mix(in_srgb,var(--scl-ink-700)_88%,#fff_4%)_0%,var(--scl-ink-800)_100%)]",
+        "px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
+      )}
+    >
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,color-mix(in_srgb,var(--scl-blue)_35%,transparent)_40%,transparent)]"
+        aria-hidden
+      />
+      <div className="flex items-center gap-3">
+        <span
+          className={cn(
+            "inline-flex size-9 shrink-0 items-center justify-center rounded-full border",
+            iconWrap,
+          )}
+          aria-hidden
+        >
+          <Icon className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <StatValue
+            tone="text"
+            className="block text-[1.375rem] leading-none font-bold tracking-tight tabular-nums sm:text-[1.5rem]"
+          >
+            {value.toLocaleString()}
+          </StatValue>
+          <span className="scl-eyebrow mt-1.5 block truncate text-[color:var(--scl-muted-label)]">
+            {label}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -482,22 +521,37 @@ export function LeagueActionReport({
       {/* Live cobalt rail */}
       <div className="scl-live-rail" aria-hidden />
 
-      {/* Flat ink-800 header + structural hairline (no gradient) */}
-      <div className="border-border flex flex-wrap items-end justify-between gap-4 border-b px-4 py-4 pl-5 sm:px-5 sm:pl-6">
-        <div className="flex flex-wrap gap-6 sm:gap-8">
-          <Metric label="Board-Verified Picks" value={trackedPicks} emphasize />
-          <Metric
+      {/* Even metric tiles — equal type scale, icon badges, lacquered panes */}
+      <div className="border-border flex flex-col gap-3 border-b px-4 py-4 pl-5 sm:px-5 sm:pl-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="scl-eyebrow inline-flex items-center gap-1.5 rounded-full border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-700)] px-2.5 py-1 text-[color:var(--scl-muted-label)]">
+            <span className="relative flex size-1.5">
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-[color:var(--scl-blue)] opacity-40 motion-reduce:hidden" />
+              <span className="relative inline-flex size-1.5 rounded-full bg-[color:var(--scl-blue)]" />
+            </span>
+            Live Window · Last {windowDays} Days
+          </span>
+          <ButtonishPicksLink label="Open Pick Feed" />
+        </div>
+        <div className="grid gap-2.5 sm:grid-cols-3">
+          <MetricTile
+            label="Board-Verified Picks"
+            value={trackedPicks}
+            icon={ShieldCheck}
+            tone="pink"
+          />
+          <MetricTile
             label={platformReportSegmentLabel(liveSegments)}
             value={liveSegments}
+            icon={Layers3}
+            tone="blue"
           />
-          <Metric
+          <MetricTile
             label={platformReportLeagueLabel(leagues.length)}
             value={leagues.length}
+            icon={Trophy}
+            tone="ledger"
           />
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          <p className="scl-eyebrow text-right">Last {windowDays} Days</p>
-          <ButtonishPicksLink label="Open Pick Feed" />
         </div>
       </div>
 
