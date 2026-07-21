@@ -31,13 +31,13 @@ export function LeaderboardSnapshot({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0 border-t border-[color:var(--scl-pink-deep)] pt-2.5">
           <p className="scl-eyebrow">Live board</p>
-          <h2 className="scl-display text-lg font-semibold tracking-[0.04em]">
+          <h2 className="scl-display mt-1 text-[1.375rem] leading-7 font-semibold tracking-[0.02em] normal-case">
             Leaderboard snapshot
           </h2>
-          <p className="text-muted-foreground mt-0.5 text-sm">
+          <p className="text-muted-foreground mt-1 text-sm leading-snug">
             Board standings — ranked by net units
           </p>
-          <p className="scl-data text-muted-foreground mt-0.5 text-xs tabular-nums">
+          <p className="scl-data text-muted-foreground mt-1 text-[0.7rem] tabular-nums">
             {formatUpdatedAgo(updatedAt)}
           </p>
         </div>

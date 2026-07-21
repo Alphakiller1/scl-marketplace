@@ -137,7 +137,7 @@ export function SportTag({
   if (showMark && !showLabel) {
     return (
       <span className={cn("inline-flex shrink-0", className)} title={label}>
-        <LeagueMark leagueKey={sport} size="md" className="rounded-md" />
+        <LeagueMark leagueKey={sport} size="sm" className="rounded-full" />
         <span className="sr-only">{label}</span>
       </span>
     );

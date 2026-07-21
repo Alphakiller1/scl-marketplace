@@ -9,15 +9,15 @@
 export const LEAGUE_PNG_MARKS = new Set<string>([
   "MLB",
   "NBA",
-  "NFL",
   "NHL",
   "WNBA",
   "SOCCER",
   "MMA",
 ]);
 
-/** SVG-only keys (no real PNG available). */
+/** SVG marks — used when PNG plates read as white boxes on dark UI, or no PNG exists. */
 export const LEAGUE_SVG_MARKS = new Set<string>([
+  "NFL",
   "NCAAF",
   "NCAAB",
   "CFL",
@@ -81,7 +81,7 @@ export const TEAM_MARKS = new Set<string>([
 ]);
 
 /** Bump when replacing league mark binaries so CDN/browser caches refresh. */
-const LEAGUE_MARK_ASSET_VERSION = "4";
+const LEAGUE_MARK_ASSET_VERSION = "6";
 
 export function leagueMarkSrc(key: string): string | undefined {
   const canonical = normalizeLeagueKey(key);

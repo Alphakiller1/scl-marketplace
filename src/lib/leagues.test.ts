@@ -8,24 +8,18 @@ import {
   leagueMarkInitials,
 } from "@/lib/leagues";
 
-test("getLeagueIdentity prefers ESPN CDN real league logos", () => {
+test("getLeagueIdentity prefers self-hosted league marks", () => {
   const mlb = getLeagueIdentity("MLB");
 
   assert.equal(mlb.name, "MLB");
 
-  assert.equal(
-    mlb.logoUrl,
-    "https://a.espncdn.com/i/teamlogos/leagues/500/mlb.png",
-  );
+  assert.equal(mlb.logoUrl, "/marks/leagues/mlb.png?v=6");
 
   const wnba = getLeagueIdentity("wnba");
 
   assert.equal(wnba.key, "WNBA");
 
-  assert.equal(
-    wnba.logoUrl,
-    "https://a.espncdn.com/i/teamlogos/leagues/500/wnba.png",
-  );
+  assert.equal(wnba.logoUrl, "/marks/leagues/wnba.png?v=6");
 });
 
 test("espnLeagueLogoUrl covers major leagues", () => {

@@ -25,9 +25,11 @@ export function TeamMark({
   return (
     <span
       className={cn(
-        "scl-display border-border/60 relative flex shrink-0 items-center justify-center overflow-hidden rounded-full border font-bold tracking-wide shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]",
+        "scl-display relative flex shrink-0 items-center justify-center overflow-hidden rounded-full font-bold tracking-wide",
         size === "sm" ? "size-5 text-[0.55rem]" : "size-[30px] text-xs",
-        showLogo ? "bg-background" : null,
+        showLogo
+          ? "border-0 bg-transparent shadow-none"
+          : "border-border/60 border shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]",
         className,
       )}
       style={style}
@@ -40,7 +42,7 @@ export function TeamMark({
         <img
           src={team.logoUrl}
           alt=""
-          className="size-full object-contain p-0.5"
+          className="size-full object-contain"
           loading="lazy"
           decoding="async"
           onError={() => setFailed(true)}

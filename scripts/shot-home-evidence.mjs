@@ -62,11 +62,6 @@ for (const t of targets) {
     const row1 = field?.firstElementChild;
     if (!row1) return null;
     const cs = getComputedStyle(row1);
-    const kids = [...row1.children].filter((el) =>
-      el.tagName !== "DIV" || !el.hasAttribute("aria-hidden")
-        ? true
-        : el.getAttribute("aria-hidden") !== "true",
-    );
     // include panes; skip measuring decorative absolute divider via height 0 width
     const panes = [...row1.children]
       .map((el) => {

@@ -19,10 +19,13 @@ import { cn } from "@/lib/utils";
 export function FeaturedProofReceipt({
   play,
   failed = false,
+  hideHeader = false,
   className,
 }: {
   play: FeaturedGradedPlay | null;
   failed?: boolean;
+  /** When true, hide the section header (legacy collage prop — unused on home). */
+  hideHeader?: boolean;
   className?: string;
 }) {
   return (
@@ -30,38 +33,43 @@ export function FeaturedProofReceipt({
       className={cn("space-y-3", className)}
       aria-label="Featured proof receipt"
     >
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0 border-t border-[color:var(--scl-pink-deep)] pt-2.5">
-          <h2 className="scl-display text-lg font-semibold tracking-[0.04em]">
-            Featured proof
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            An inspectable receipt for a recent graded pick.
-          </p>
+      {hideHeader ? null : (
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="min-w-0 border-t border-[color:var(--scl-pink-deep)] pt-2.5">
+            <h2 className="scl-display text-[1.375rem] leading-7 font-semibold tracking-[0.02em] normal-case">
+              Featured proof receipt
+            </h2>
+            <p className="text-muted-foreground mt-1 text-sm leading-snug">
+              An inspectable receipt for a recent graded pick.
+            </p>
+          </div>
+          {play ? (
+            <Link
+              href={`/cappers/${play.handle}`}
+              className="scl-link text-sm font-medium"
+            >
+              View all proof receipts
+              <span aria-hidden> →</span>
+            </Link>
+          ) : null}
         </div>
-        {play ? (
-          <Link
-            href={`/cappers/${play.handle}`}
-            className="scl-link text-sm font-medium"
-          >
-            @{play.handle}
-          </Link>
-        ) : null}
-      </div>
+      )}
 
       {!play ? (
-        <EmptyState
-          className="py-6 sm:py-7"
-          icon={Receipt}
-          title={
-            failed ? "Couldn't load featured proof" : "No graded receipts yet"
-          }
-          description={
-            failed
-              ? "Try again shortly."
-              : "A proof receipt appears here after a board-verified pick is graded."
-          }
-        />
+        <div className="scl-proof-paper bg-card rounded-[var(--scl-radius-receipt)] border-2 border-[color:var(--border)] shadow-[var(--scl-shadow-card)]">
+          <EmptyState
+            className="rounded-[var(--scl-radius-receipt)] border-0 bg-transparent py-5 shadow-none sm:py-6"
+            icon={Receipt}
+            title={
+              failed ? "Couldn't load featured proof" : "No graded receipts yet"
+            }
+            description={
+              failed
+                ? "Try again shortly."
+                : "A proof receipt appears here after a board-verified pick is graded."
+            }
+          />
+        </div>
       ) : (
         <FeaturedReceiptBody play={play} />
       )}
