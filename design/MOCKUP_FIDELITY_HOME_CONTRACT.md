@@ -27,7 +27,7 @@ Bodies remain the three strings currently in `competition-hero.tsx` `SLIDES`.
 - Right: elevated **Leaderboard snapshot** as **Rank-schema dense table** (`RankBoardTable` density=`snapshot`) — **not** soft `CompactCapperRow` résumé rows; **no overlapping graded-proof receipt** in the first viewport (proof lives under the fold)
 - Capper cell includes specialty (or top sport) under identity — same Rank anatomy as full board
 - Hero height restrained — board shares first viewport; grid favors board width (`minmax(26rem,1.15fr)`); ink + subtle radial atmosphere only (no photographic trophy plate)
-- Carousel controls remain; 44px hit targets
+- Auto-advancing carousel only (no arrows / dots chrome); pauses on hover/focus; respects `prefers-reduced-motion`
 
 ### What changed today
 
