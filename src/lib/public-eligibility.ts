@@ -91,8 +91,9 @@ type PrismaExcludeOpts = {
    */
   includeIsTestColumn?: boolean;
   /**
-   * Permit only reserved ghost-domain accounts in an explicitly gated
-   * non-production preview. Known QA handles remain excluded.
+   * Permit reserved ghost-domain accounts when an owner enables
+   * `SCL_ALLOW_GHOST_PUBLICATION=1` (temporary demo populate).
+   * Known QA handles remain excluded.
    */
   allowGhostAccounts?: boolean;
 };
