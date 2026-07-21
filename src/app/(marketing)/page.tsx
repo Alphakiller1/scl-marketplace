@@ -40,13 +40,8 @@ const HOME_DESCRIPTION =
 
 export async function generateMetadata(): Promise<Metadata> {
   const base = appUrl();
-  const { cappers } = await getLeaderboardResult({ verifiedOnly: true });
-  const featured =
-    sortLeaderboard(cappers, "units")[0] ??
-    sortLeaderboard(cappers, "roi")[0] ??
-    null;
-  const ogHandle = featured?.handle.replace(/^@+/, "") || "demo_capper";
-  const ogImage = `${base}/api/og/capper/${ogHandle}`;
+  // Static OG — avoid a second full leaderboard scan on every home request.
+  const ogImage = `${base}/api/og/capper/demo_capper`;
 
   return {
     title: HOME_TITLE,
@@ -62,9 +57,7 @@ export async function generateMetadata(): Promise<Metadata> {
           url: ogImage,
           width: 1200,
           height: 630,
-          alt: featured
-            ? `${featured.handle} on SCL`
-            : "SCL Sports Capper Leaderboard",
+          alt: "SCL Sports Capper Leaderboard",
         },
       ],
     },
@@ -80,24 +73,33 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function Home() {
   const updatedAt = new Date();
 
-  const { cappers, failed: leaderboardFailed } = await getLeaderboardResult({
-    verifiedOnly: true,
-  });
+  const [
+    leaderboard,
+    leagueAction,
+    liveTicker,
+    todaysMoves,
+    featured,
+    platformClvResult,
+  ] = await Promise.all([
+    getLeaderboardResult({ verifiedOnly: true }),
+    getLeagueActionReport(),
+    getLiveActivityTicker(),
+    getTodaysGradedMoves(),
+    getFeaturedGradedPlay(),
+    getPlatformClvSummary(),
+  ]);
 
+  const { cappers, failed: leaderboardFailed } = leaderboard;
   const {
     leagues,
     categories,
     trackedPicks,
     windowDays,
     failed: leagueActionFailed,
-  } = await getLeagueActionReport();
-
-  const liveTicker = await getLiveActivityTicker();
-  const { moves, failed: movesFailed } = await getTodaysGradedMoves();
-  const { play: featuredPlay, failed: featuredFailed } =
-    await getFeaturedGradedPlay();
-  const { summary: platformClv, failed: platformClvFailed } =
-    await getPlatformClvSummary();
+  } = leagueAction;
+  const { moves, failed: movesFailed } = todaysMoves;
+  const { play: featuredPlay, failed: featuredFailed } = featured;
+  const { summary: platformClv, failed: platformClvFailed } = platformClvResult;
 
   // Snapshot = board place by units. Top cappers = inspectability by verified share.
   const snapshot = sortLeaderboard(cappers, "units").slice(0, 5);

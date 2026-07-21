@@ -27,18 +27,17 @@ export default async function PicksPage({
   const params = await searchParams;
   const filters = parsePublicPicksLedgerFilters(params);
   const now = new Date();
-  const {
-    cappers,
-    unranked,
-    failed: leaderboardFailed,
-  } = await getLeaderboardResult();
+  const [board, gradingHealthy] = await Promise.all([
+    getLeaderboardResult(),
+    getGradingHealth(),
+  ]);
+  const { cappers, unranked, failed: leaderboardFailed } = board;
   const { picks, failed: picksFailed } = await getPublicRecentPicksResult(
     publicFeedCappers(cappers, unranked),
     24,
     filters,
     now,
   );
-  const gradingHealthy = await getGradingHealth();
   const failed = leaderboardFailed || picksFailed;
   const requestedReceipt = Array.isArray(params.receipt)
     ? params.receipt[0]

@@ -1,5 +1,7 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
+import { cache } from "react";
 import type { Outcome } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
@@ -310,14 +312,11 @@ export async function getPublicCapperEvidenceByIds(
   }
 }
 
-export async function getLeaderboardResult(
-  options: Partial<LeaderboardFilters> = {},
-): Promise<{
+async function loadLeaderboardResult(filters: LeaderboardFilters): Promise<{
   cappers: CapperSummary[];
   unranked: CapperSummary[];
   failed: boolean;
 }> {
-  const filters = { ...DEFAULT_FILTERS, ...options };
   let profiles: ProfileRow[];
   try {
     const clvReady = await hasClvColumns();
@@ -346,3 +345,32 @@ export async function getLeaderboardResult(
 
   return { cappers: ranked, unranked, failed: false };
 }
+
+const getCachedLeaderboardResult = unstable_cache(
+  async (cacheKey: string) => {
+    const filters = JSON.parse(cacheKey) as LeaderboardFilters;
+    return loadLeaderboardResult(filters);
+  },
+  ["leaderboard-result"],
+  { revalidate: 60, tags: ["leaderboard"] },
+);
+
+export const getLeaderboardResult = cache(async function getLeaderboardResult(
+  options: Partial<LeaderboardFilters> = {},
+): Promise<{
+  cappers: CapperSummary[];
+  unranked: CapperSummary[];
+  failed: boolean;
+}> {
+  const filters = { ...DEFAULT_FILTERS, ...options };
+  const cacheKey = JSON.stringify({
+    sport: filters.sport,
+    window: filters.window,
+    sort: filters.sort,
+    minPicks: filters.minPicks,
+    verifiedOnly: filters.verifiedOnly,
+    search: filters.search,
+    limit: filters.limit,
+  });
+  return getCachedLeaderboardResult(cacheKey);
+});

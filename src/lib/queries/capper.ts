@@ -12,7 +12,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { hasQaNoteMarker, isValidPublicStake } from "@/lib/public-eligibility";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
-import { getLeaderboardResult } from "@/lib/queries/leaderboard";
+import { getPublicCapperEvidenceByIds } from "@/lib/queries/leaderboard";
 import type { PlayView } from "@/lib/queries/plays";
 import {
   hasClvColumns,
@@ -153,16 +153,30 @@ export const getPublicCapperByHandle = cache(
   async function getPublicCapperByHandle(
     handle: string,
   ): Promise<PublicCapper | null> {
-    const { cappers, unranked } = await getLeaderboardResult();
     const normalizedHandle = handle.replace(/^@+/, "").trim().toLowerCase();
-    const capper =
-      cappers.find(
-        (candidate) => candidate.handle.toLowerCase() === normalizedHandle,
-      ) ??
-      unranked.find(
-        (candidate) => candidate.handle.toLowerCase() === normalizedHandle,
-      );
-    if (!capper) return null;
+    if (!normalizedHandle) return null;
+
+    // Targeted lookup — never scan the full leaderboard for one profile.
+    const excludeTest = await prismaExcludeTestHandlesLive();
+    const profile = await prisma.capperProfile.findFirst({
+      where: {
+        user: {
+          username: { equals: normalizedHandle, mode: "insensitive" },
+          accountStatus: "ACTIVE",
+          ...excludeTest,
+        },
+      },
+      select: { id: true, user: { select: { username: true } } },
+    });
+    if (!profile?.user.username) return null;
+
+    const { cappers, failed: evidenceFailed } =
+      await getPublicCapperEvidenceByIds([profile.id]);
+    const capper = cappers[0];
+    if (!capper) {
+      if (evidenceFailed) return null;
+      return null;
+    }
 
     let plays: PlayView[] = [];
     let playsError = false;
@@ -171,17 +185,9 @@ export const getPublicCapperByHandle = cache(
     let chartSeries: ProfileChartSeries | undefined;
     let historyNextCursor: string | null = null;
 
-    try {
-      const history = await getPublicProfileHistoryPage(capper.handle);
-      plays = history.plays;
-      historyNextCursor = history.nextCursor;
-    } catch (error) {
-      console.error("[getPublicCapperByHandle] history unavailable:", error);
-      playsError = true;
-    }
-
-    try {
-      const chartRows = await prisma.play.findMany({
+    const [historyResult, chartResult, clvResult] = await Promise.allSettled([
+      getPublicProfileHistoryPage(capper.handle),
+      prisma.play.findMany({
         where: {
           capperId: capper.id,
           units: { gte: UNIT_MIN },
@@ -196,27 +202,11 @@ export const getPublicCapperByHandle = cache(
           profitUnits: true,
           notes: true,
         },
-      });
-      chartSeries = buildProfileChartSeries(
-        chartRows
-          .filter((row) => !hasQaNoteMarker(row.notes))
-          .map((row) => ({
-            createdAt: row.createdAt,
-            outcome: row.outcome,
-            profitUnits:
-              row.profitUnits == null ? null : Number(row.profitUnits),
-          }))
-          .reverse(),
-        new Date(),
-      );
-    } catch (error) {
-      console.error("[getPublicCapperByHandle] chart unavailable:", error);
-    }
-
-    try {
-      const clvReady = await hasClvColumns();
-      if (clvReady) {
-        const clvRows = await prisma.play.findMany({
+      }),
+      (async () => {
+        const clvReady = await hasClvColumns();
+        if (!clvReady) return null;
+        return prisma.play.findMany({
           where: {
             capperId: capper.id,
             clvPts: { not: null },
@@ -227,17 +217,54 @@ export const getPublicCapperByHandle = cache(
           },
           select: { clvPts: true, notes: true },
         });
-        const points = clvRows
+      })(),
+    ]);
+
+    if (historyResult.status === "fulfilled") {
+      plays = historyResult.value.plays;
+      historyNextCursor = historyResult.value.nextCursor;
+    } else {
+      console.error(
+        "[getPublicCapperByHandle] history unavailable:",
+        historyResult.reason,
+      );
+      playsError = true;
+    }
+
+    if (chartResult.status === "fulfilled") {
+      chartSeries = buildProfileChartSeries(
+        chartResult.value
           .filter((row) => !hasQaNoteMarker(row.notes))
-          .map((row) => (row.clvPts == null ? null : Number(row.clvPts)))
-          .filter(
-            (value): value is number => value != null && Number.isFinite(value),
-          );
-        clvTracker = summarizeClvTracker(points);
-        avgClv = clvTracker.avgClv;
-      }
-    } catch (error) {
-      console.error("[getPublicCapperByHandle] CLV unavailable:", error);
+          .map((row) => ({
+            createdAt: row.createdAt,
+            outcome: row.outcome,
+            profitUnits:
+              row.profitUnits == null ? null : Number(row.profitUnits),
+          }))
+          .reverse(),
+        new Date(),
+      );
+    } else {
+      console.error(
+        "[getPublicCapperByHandle] chart unavailable:",
+        chartResult.reason,
+      );
+    }
+
+    if (clvResult.status === "fulfilled" && clvResult.value) {
+      const points = clvResult.value
+        .filter((row) => !hasQaNoteMarker(row.notes))
+        .map((row) => (row.clvPts == null ? null : Number(row.clvPts)))
+        .filter(
+          (value): value is number => value != null && Number.isFinite(value),
+        );
+      clvTracker = summarizeClvTracker(points);
+      avgClv = clvTracker.avgClv;
+    } else if (clvResult.status === "rejected") {
+      console.error(
+        "[getPublicCapperByHandle] CLV unavailable:",
+        clvResult.reason,
+      );
     }
 
     return {
