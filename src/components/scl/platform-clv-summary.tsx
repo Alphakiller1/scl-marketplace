@@ -6,7 +6,6 @@ import {
   PLATFORM_CLV_EMPTY_BODY,
   type ClvTrackerSummary,
 } from "@/lib/clv-tracker";
-import { countLabel } from "@/lib/league-action";
 import { formatClvPts, missingCloseOrClvTooltip } from "@/lib/proof-receipt";
 import { MIN_GRADED_FOR_SIGNAL } from "@/lib/sample";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
@@ -68,9 +67,6 @@ export function PlatformClvSummary({
             Submitted Prices Compared With The Same Book&apos;s Closing Prices.
           </p>
         </div>
-        <p className="scl-data text-muted-foreground text-xs tabular-nums">
-          {countLabel(summary.snapshotCount, "snapshot", "snapshots")}
-        </p>
       </div>
 
       {summary.snapshotCount === 0 ? (
