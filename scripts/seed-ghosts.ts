@@ -42,7 +42,7 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 const round4 = (n: number) => Math.round(n * 10000) / 10000;
 
 // ── production guard ─────────────────────────────────────────────────────────
-function assertNonProd() {
+function assertNonProd(force = false) {
   const url = process.env.DATABASE_URL ?? "";
   if (process.env.GHOST_SEED !== "1") {
     throw new Error(
@@ -51,7 +51,7 @@ function assertNonProd() {
   }
   const isLocal = /@(localhost|127\.0\.0\.1)[:/]/.test(url);
   const isStaging = /schema=scl_staging\b/.test(url);
-  const forced = process.env.GHOST_SEED_FORCE === "1";
+  const forced = force || process.env.GHOST_SEED_FORCE === "1";
   // The prod database is the Supabase pooler on the `scl` schema.
   const looksProd =
     /pooler\.supabase\.com/.test(url) && /schema=scl\b/.test(url);
@@ -876,41 +876,109 @@ function dryRun() {
   );
 }
 
-async function main() {
-  if (process.env.GHOST_SEED_DRYRUN === "1") {
-    dryRun();
-    return;
-  }
-  assertNonProd();
+export type GhostSeedResult = {
+  wiped: number;
+  seeded: number;
+  usernames: string[];
+  remaining: number;
+  total: number;
+  done: boolean;
+};
 
-  // Wipe any prior ghosts (cascades to profiles/plays/parlays/packages/connections).
-  const wiped = await prisma.user.deleteMany({
-    where: { email: { endsWith: GHOST_DOMAIN } },
-  });
-  if (wiped.count) console.log(`Cleared ${wiped.count} prior ghost cappers.`);
+/**
+ * Wipe and/or seed ghost cappers. Supports chunked runs for serverless timeouts.
+ * Set GHOST_SEED=1 (and GHOST_SEED_FORCE=1 for production) before calling.
+ */
+export async function runGhostSeed(opts?: {
+  force?: boolean;
+  /** When true, only wipe prior ghosts. */
+  wipeOnly?: boolean;
+  /** Skip wipe (for subsequent chunks). */
+  skipWipe?: boolean;
+  /** Roster offset for chunked seeding. */
+  offset?: number;
+  /** Max ghosts to seed in this call (default: all remaining). */
+  limit?: number;
+}): Promise<GhostSeedResult> {
+  assertNonProd(opts?.force === true);
+
+  let wiped = 0;
+  if (!opts?.skipWipe) {
+    const result = await prisma.user.deleteMany({
+      where: { email: { endsWith: GHOST_DOMAIN } },
+    });
+    wiped = result.count;
+    if (wiped) console.log(`Cleared ${wiped} prior ghost cappers.`);
+  }
+
+  if (opts?.wipeOnly) {
+    return {
+      wiped,
+      seeded: 0,
+      usernames: [],
+      remaining: 0,
+      total: buildRoster().length,
+      done: false,
+    };
+  }
 
   const passwordHash = await bcrypt.hash("ghost1234", 12);
   const roster = buildRoster();
-  for (const g of roster) {
+  const offset = Math.max(0, opts?.offset ?? 0);
+  const limit =
+    opts?.limit == null
+      ? roster.length - offset
+      : Math.max(0, Math.min(opts.limit, roster.length - offset));
+  const slice = roster.slice(offset, offset + limit);
+  const usernames: string[] = [];
+
+  for (const g of slice) {
     await seedGhost(passwordHash, g);
+    usernames.push(g.username);
     process.stdout.write(
       `  seeded @${g.username} (${g.tier}, ${g.graded} graded)\n`,
     );
   }
 
+  const nextOffset = offset + slice.length;
+  const remaining = Math.max(0, roster.length - nextOffset);
+  return {
+    wiped,
+    seeded: slice.length,
+    usernames,
+    remaining,
+    total: roster.length,
+    done: remaining === 0,
+  };
+}
+
+async function main() {
+  if (process.env.GHOST_SEED_DRYRUN === "1") {
+    dryRun();
+    return;
+  }
+
+  const result = await runGhostSeed({
+    force: process.env.GHOST_SEED_FORCE === "1",
+  });
   const users = await prisma.user.count({
     where: { email: { endsWith: GHOST_DOMAIN } },
   });
   const plays = await prisma.play.count();
   console.log(
-    `\nDone. ${users} ghost cappers · ${plays} total plays in this database.`,
+    `\nDone. ${users} ghost cappers · ${plays} total plays in this database.` +
+      ` (seeded ${result.seeded} this run)`,
   );
   console.log("Login (any ghost): <username>" + GHOST_DOMAIN + " / ghost1234");
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exitCode = 1;
-  })
-  .finally(() => prisma.$disconnect());
+// Only auto-run when executed as a CLI script (not when imported by the API).
+const invokedAsCli = process.argv[1]?.includes("seed-ghosts");
+if (invokedAsCli) {
+  main()
+    .catch((e) => {
+      console.error(e);
+      process.exitCode = 1;
+    })
+    .finally(() => prisma.$disconnect());
+}
