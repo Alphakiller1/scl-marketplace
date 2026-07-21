@@ -85,8 +85,8 @@ Implemented in `src/components/scl/competition-hero.tsx` + `live-board-shell.tsx
 | 0   | Theme-independent hero ink  | Prevents flash and keeps campaign copy AA-safe in both page themes |
 | 1   | Soft pink / blue radials    | Brand atmosphere without photographic plate                        |
 | 2   | Dual-column grid            | Copy rail + elevated Rank-schema Live board (`LiveBoardShell`)     |
-| 3   | Unboxed grid-stacked slides | Locked CTA language; opacity-only swaps prevent layout movement    |
-| 4   | Carousel controls           | Dots and arrows outside slide content                              |
+| 3   | Unboxed grid-stacked slides | Locked CTA language; opacity-only auto-advance (no arrows/dots)    |
+| 4   | _(removed)_                 | Manual carousel chrome removed — auto-moving only                  |
 
 **Do not:** reintroduce WebP trophy plate; use `CompactCapperRow` in the hero board; overlay Featured Proof on the snapshot; fork a second Rank table dialect for Top Cappers.
 
