@@ -487,11 +487,11 @@ export function LeagueActionReport({
   }, [categories]);
 
   const [tab, setTab] = useState<TabKey>(
-    trackedPicks > 0 || categories.some((c) => c.picks > 0)
-      ? "types"
-      : leagues.length > 0
-        ? "leagues"
-        : "types",
+    leagues.length > 0
+      ? "leagues"
+      : trackedPicks > 0 || categories.some((c) => c.picks > 0)
+        ? "types"
+        : "leagues",
   );
   if (failed) {
     return (
@@ -563,7 +563,7 @@ export function LeagueActionReport({
               Bet-Type Breakdown
             </span>
             <span className="text-muted-foreground mt-0.5 block text-xs leading-snug">
-              Shape, market, and top leagues — expand for full report
+              Top leagues, shape, and market — expand for full report
             </span>
           </span>
           <span className="text-muted-foreground shrink-0 text-xs font-semibold tracking-wide uppercase group-open:hidden">
@@ -584,7 +584,7 @@ export function LeagueActionReport({
         />
       </details>
 
-      {/* 1280+: Shape, Market, and Top Leagues stay visible together. */}
+      {/* 1280+: Top Leagues first, then Shape and Market. */}
       <div className="hidden xl:block">
         <PlatformReportDesktop
           shape={shape}
@@ -617,7 +617,14 @@ function PlatformReportDesktop({
 }) {
   return (
     <div className="px-5 py-5 pl-6">
-      <div className="grid grid-cols-[minmax(20rem,3.2fr)_minmax(24rem,4fr)_minmax(15.5rem,3fr)] gap-5">
+      <div className="grid grid-cols-[minmax(15.5rem,3fr)_minmax(20rem,3.2fr)_minmax(24rem,4fr)] gap-5">
+        <section className="min-w-0 space-y-2">
+          <h3 className="scl-eyebrow">Top Leagues</h3>
+          <TopLeaguesDesktop
+            leagues={leagues}
+            maxLeaguePicks={maxLeaguePicks}
+          />
+        </section>
         <BetTypeColumnSection
           title="Shape"
           rows={shape}
@@ -628,13 +635,6 @@ function PlatformReportDesktop({
           rows={market}
           maxUnitsAbs={maxUnitsAbs}
         />
-        <section className="min-w-0 space-y-2">
-          <h3 className="scl-eyebrow">Top Leagues</h3>
-          <TopLeaguesDesktop
-            leagues={leagues}
-            maxLeaguePicks={maxLeaguePicks}
-          />
-        </section>
       </div>
       <div className="mt-5 border-t border-[color:var(--scl-line)] pt-3">
         <ButtonishPicksLink label="Browse Verified Picks" />
@@ -819,12 +819,6 @@ function PlatformReportTabs({
           className="h-auto w-full flex-wrap justify-start gap-1"
         >
           <TabsTrigger
-            value="types"
-            className="data-active:text-foreground min-h-9 px-3 data-active:underline data-active:decoration-[color:var(--scl-blue)] data-active:underline-offset-4"
-          >
-            Bet Types
-          </TabsTrigger>
-          <TabsTrigger
             value="leagues"
             className="data-active:text-foreground min-h-9 px-3 data-active:underline data-active:decoration-[color:var(--scl-blue)] data-active:underline-offset-4"
           >
@@ -834,6 +828,12 @@ function PlatformReportTabs({
                 {leagues.length}
               </span>
             ) : null}
+          </TabsTrigger>
+          <TabsTrigger
+            value="types"
+            className="data-active:text-foreground min-h-9 px-3 data-active:underline data-active:decoration-[color:var(--scl-blue)] data-active:underline-offset-4"
+          >
+            Bet Types
           </TabsTrigger>
         </TabsList>
       </div>
