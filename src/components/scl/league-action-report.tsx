@@ -203,7 +203,7 @@ function BetTypeMobileCard({
     <li className="border-border space-y-3 border-b border-[color:var(--scl-line)] py-3 last:border-b-0">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="scl-display text-sm font-bold tracking-[0.04em] uppercase">
+          <h3 className="scl-display text-sm font-semibold tracking-[0.02em] normal-case">
             {cat.label}
           </h3>
           <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
@@ -279,7 +279,7 @@ function BetTypeDesktopRow({
       className={`border-border grid min-h-14 ${BET_TYPE_COLS} items-center gap-3 border-b py-3 last:border-b-0`}
     >
       <div className="min-w-0">
-        <h3 className="scl-display text-sm font-bold tracking-[0.04em] uppercase">
+        <h3 className="scl-display text-sm font-semibold tracking-[0.02em] normal-case">
           {cat.label}
         </h3>
         <p className="text-muted-foreground mt-0.5 text-xs">
@@ -376,7 +376,7 @@ function LeagueMobileCard({
         <LeagueMark leagueKey={league.sport || league.league} size="md" />
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <h3 className="scl-display truncate text-sm font-bold tracking-[0.04em] uppercase">
+            <h3 className="scl-display truncate text-sm font-semibold tracking-[0.02em] normal-case">
               {league.league}
             </h3>
             {league.sport &&
@@ -631,7 +631,7 @@ function BetTypeColumnSection({
               >
                 <div className="min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <h4 className="scl-display truncate text-sm font-bold tracking-[0.04em] uppercase">
+                    <h4 className="scl-display truncate text-sm font-semibold tracking-[0.02em] normal-case">
                       {cat.label}
                     </h4>
                     <span className="scl-data text-muted-foreground shrink-0 text-xs tabular-nums">
@@ -705,7 +705,7 @@ function TopLeaguesDesktop({
             <LeagueMark leagueKey={league.sport || league.league} size="md" />
             <div className="min-w-0">
               <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <h3 className="scl-display truncate text-sm font-bold tracking-[0.04em] uppercase">
+                <h3 className="scl-display truncate text-sm font-semibold tracking-[0.02em] normal-case">
                   {league.league}
                 </h3>
                 {league.sport &&
@@ -847,7 +847,7 @@ function PlatformReportTabs({
                       />
                       <div className="min-w-0">
                         <div className="flex min-w-0 flex-wrap items-center gap-2">
-                          <h3 className="scl-display truncate text-sm font-bold tracking-[0.04em] uppercase">
+                          <h3 className="scl-display truncate text-sm font-semibold tracking-[0.02em] normal-case">
                             {league.league}
                           </h3>
                           {league.sport &&

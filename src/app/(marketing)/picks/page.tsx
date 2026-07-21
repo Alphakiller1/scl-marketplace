@@ -84,7 +84,7 @@ export default async function PicksPage({
           className="mt-6"
           icon={ReceiptText}
           title="Couldn't Load Public Picks"
-          description="Recent tracked submissions are temporarily unavailable. Please try again shortly."
+          description="Recent Tracked Submissions Are Temporarily Unavailable. Please Try Again Shortly."
         />
       )}
     </main>

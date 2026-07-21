@@ -94,7 +94,7 @@ export function Leaderboard({
         }
         description={
           failed
-            ? "Performance data is temporarily unavailable. Please try again shortly."
+            ? "Performance Data Is Temporarily Unavailable. Please Try Again Shortly."
             : emptyDescription
         }
       />

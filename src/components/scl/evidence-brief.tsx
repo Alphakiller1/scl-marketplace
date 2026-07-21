@@ -273,11 +273,11 @@ export function EvidenceBrief({
   const latestProof = (
     <section aria-label="Featured proof receipt" className="min-w-0 space-y-2">
       <div className="border-t border-[color:var(--scl-pink-deep)] pt-2 lg:border-t-0 lg:pt-0">
-        <h2 className="scl-display text-sm font-bold tracking-[0.05em] uppercase">
-          Latest proof
+        <h2 className="scl-display text-base font-semibold tracking-[0.02em] normal-case">
+          Latest Proof
         </h2>
         <p className="text-muted-foreground mt-0.5 hidden text-xs leading-snug sm:block">
-          Expanded paper receipt — inspectable capture, close, and CLV.
+          Expanded Paper Receipt — Inspectable Capture, Close, And CLV.
         </p>
       </div>
       {featured ? (
@@ -286,13 +286,13 @@ export function EvidenceBrief({
         <EmptyState
           icon={Receipt}
           title="Couldn't Load Latest Proof"
-          description="Try again shortly."
+          description="Try Again Shortly."
         />
       ) : (
         <EmptyState
           icon={Receipt}
           title="No Tracked Plays Yet"
-          description={`${emptyName} hasn't posted a graded play yet. When they do, the Proof Receipt appears here — timestamps, lines, and results included.`}
+          description={`${emptyName} Hasn't Posted A Graded Play Yet. When They Do, The Proof Receipt Appears Here — Timestamps, Lines, And Results Included.`}
         />
       )}
     </section>
@@ -469,11 +469,11 @@ export function EvidenceBrief({
       <section id="recent-picks" className="scroll-mt-20">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="scl-display text-base font-bold tracking-[0.05em] uppercase">
-              Proof history
+            <h2 className="scl-display text-base font-semibold tracking-[0.02em] normal-case">
+              Proof History
             </h2>
             <p className="text-muted-foreground mt-1 text-sm">
-              Inspectable receipts — newest first. Verified ≠ Won.
+              Inspectable Receipts — Newest First. Verified ≠ Won.
             </p>
           </div>
           <VerificationHelpLink className="text-muted-foreground hover:text-foreground inline-flex min-h-11 shrink-0 gap-1.5 self-start px-2 text-xs font-medium" />
@@ -495,14 +495,14 @@ export function EvidenceBrief({
             className="mt-4"
             icon={ListChecks}
             title="Couldn't Load Recent Plays"
-            description="We hit a snag loading this capper's plays. Please try again shortly."
+            description="We Hit A Snag Loading This Capper's Plays. Please Try Again Shortly."
           />
         ) : (
           <EmptyState
             className="mt-4"
             icon={ListChecks}
             title="No Tracked Plays Yet"
-            description={`${emptyName} hasn't posted any graded plays yet. Every new play will stay inspectable here — timestamps, lines, and results included.`}
+            description={`${emptyName} Hasn't Posted Any Graded Plays Yet. Every New Play Will Stay Inspectable Here — Timestamps, Lines, And Results Included.`}
           />
         )}
       </section>
@@ -566,7 +566,7 @@ function ProofHistoryLedger({
           page.nextCursor === requestedCursor ? null : page.nextCursor,
         );
       } catch {
-        setLoadError("Proof history could not load. Try again.");
+        setLoadError("Proof History Could Not Load. Try Again.");
       }
     });
   }, [handle, isLoading, localRemaining, nextCursor, onRowsLoaded]);

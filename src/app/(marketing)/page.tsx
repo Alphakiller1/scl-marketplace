@@ -125,7 +125,8 @@ export default async function Home() {
       <div className="mx-auto max-w-[1400px] overflow-x-hidden px-4 pt-6 pb-8 sm:px-6 sm:pt-8 sm:pb-10 lg:px-8">
         {/* Mockup body: Top Cappers table + Featured Proof */}
         <div className="border-border grid gap-0 border-y lg:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.85fr)] lg:items-start">
-          <div className="scl-scanline scl-elevated border-border relative min-w-0 overflow-hidden rounded-[var(--scl-radius-card)] border bg-[color:var(--scl-ink-800)] px-3 py-5 sm:px-4 lg:rounded-none lg:border-0 lg:bg-transparent lg:px-0 lg:pr-6 lg:pl-5 lg:shadow-none">
+          {/* No extra elevated board chrome — RankBoardTable owns the ink shell. */}
+          <div className="scl-scanline relative min-w-0 overflow-hidden py-5 lg:pr-6 lg:pl-5">
             <div
               className="pointer-events-none absolute inset-y-0 left-0 hidden w-1 bg-[color:var(--scl-blue)] lg:block"
               aria-hidden
@@ -133,7 +134,7 @@ export default async function Home() {
             <TopCappersLive
               cappers={topCappers}
               failed={leaderboardFailed}
-              activeWindow="30d"
+              activeWindow="all"
             />
           </div>
           <div className="min-w-0 space-y-6 px-0 py-5 lg:pl-6">
