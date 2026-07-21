@@ -6,35 +6,35 @@
 
 ## Shipped on main
 
-| Area                                                           | Status                                             |
-| -------------------------------------------------------------- | -------------------------------------------------- |
-| Auto-grade cron `/api/cron/grade` + CLV snapshot pass          | Done — Vercel daily (Hobby) + GH Actions `*/30`    |
-| Spread + eventId matching; sport-scoped scores + ESPN fallback | Done                                               |
-| Parlay auto-settle after legs grade                            | Done                                               |
-| Props auto-grade deferred (`props_deferred` log)               | Done                                               |
-| QA handle + &lt;0.25U public exclusion + invalid-stake badge   | Done                                               |
-| Track Your Record / Start Tracking CTAs                        | Done — hero/bottom; founding apply on hero slide 1 |
-| 4U/5U chips; Pending label; Logged tier                        | Done                                               |
-| Verified badge (no 100% text; pink at ~100% share)             | Done                                               |
-| Odds purpose logging + circuit-break + `OddsUsageDaily`        | Done — needs SQL table                             |
-| Pick analysis + `notesPublic` toggle                           | Done — needs SQL column                            |
-| Grading health honesty on public tickets                       | Done                                               |
-| CLV schema + compute + profile avg CLV + explainer             | Done — needs SQL columns                           |
-| **Rank-by-CLV leaderboard sort**                               | Done — `sort=clv`; signal sample + avgClv required |
-| Soccer GamePicker (`SOCCER` + league fan-out)                  | Done                                               |
-| Odds board diagnostics meta on `GET /api/odds`                 | Done                                               |
-| BookMark monograms on slip/list/ticket/chips/profile           | Done                                               |
-| Leaderboard row declutter + league monograms                   | Done                                               |
-| Legal pages (no placeholder footer)                            | Done                                               |
-| SEO templates + cold-start founding copy                       | Done                                               |
-| Dynamic capper OG images (Inter tabular nums)                  | Done                                               |
-| League Action Report (volume board + tabs)                     | Done                                               |
-| ROI Leaders = Performance Leaderboard row chrome               | Done                                               |
-| Yesterday / Recent graded wins ticker (horizontal marquee)     | Done — hide when empty; 7d fallback                |
-| Homepage How Verification Works (top of content)               | Done                                               |
-| 3-slide clickable hero + extended trophy art                   | Done                                               |
-| UIX polish (empty states, BookRail taps, Ticket capture)       | Done                                               |
-| Inter tabular data face (app UI)                               | Done                                               |
+| Area                                                           | Status                                                                             |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Auto-grade cron `/api/cron/grade` + CLV snapshot pass          | Done — Vercel daily (Hobby) + GH Actions `*/30`                                    |
+| Spread + eventId matching; sport-scoped scores + ESPN fallback | Done                                                                               |
+| Parlay auto-settle after legs grade                            | Done                                                                               |
+| Props auto-grade deferred (`props_deferred` log)               | Done                                                                               |
+| QA handle + &lt;0.25U public exclusion + invalid-stake badge   | Done                                                                               |
+| Track Your Record / Start Tracking CTAs                        | Done — hero/bottom; founding apply on hero slide 1                                 |
+| 4U/5U chips; Pending label; Logged tier                        | Done                                                                               |
+| Verified badge (no 100% text; pink at ~100% share)             | Done                                                                               |
+| Odds purpose logging + circuit-break + `OddsUsageDaily`        | Done — needs SQL table                                                             |
+| Pick analysis + `notesPublic` toggle                           | Done — needs SQL column                                                            |
+| Grading health honesty on public tickets                       | Done                                                                               |
+| CLV schema + compute + profile avg CLV + explainer             | Done — needs SQL columns                                                           |
+| **Rank-by-CLV leaderboard sort**                               | Done — `sort=clv`; signal sample + avgClv required                                 |
+| Soccer GamePicker (`SOCCER` + league fan-out)                  | Done                                                                               |
+| Odds board diagnostics meta on `GET /api/odds`                 | Done                                                                               |
+| BookMark monograms on slip/list/ticket/chips/profile           | Done — brand-color tiles under `public/marks/books/` (v2); short fallback on error |
+| Leaderboard row declutter + league monograms                   | Done                                                                               |
+| Legal pages (no placeholder footer)                            | Done                                                                               |
+| SEO templates + cold-start founding copy                       | Done                                                                               |
+| Dynamic capper OG images (Inter tabular nums)                  | Done                                                                               |
+| League Action Report (volume board + tabs)                     | Done                                                                               |
+| ROI Leaders = Performance Leaderboard row chrome               | Done                                                                               |
+| Yesterday / Recent graded wins ticker (horizontal marquee)     | Done — hide when empty; 7d fallback                                                |
+| Homepage How Verification Works (top of content)               | Done                                                                               |
+| 3-slide clickable hero + extended trophy art                   | Done                                                                               |
+| UIX polish (empty states, BookRail taps, Ticket capture)       | Done                                                                               |
+| Inter tabular data face (app UI)                               | Done                                                                               |
 
 ## Owner deploy checklist
 
@@ -46,12 +46,12 @@
 
 ## Still deferred / out of scope
 
-| Item                         | Why                                                                  |
-| ---------------------------- | -------------------------------------------------------------------- |
-| Real trademark book logos    | Book monograms shipped; league PNGs self-hosted from ESPN public CDN |
-| Soccer 3-way ML auto-grade   | Gated until draw/home/away settlement keys                           |
-| Parlay-level analysis column | Needs `Parlay.notes` migration                                       |
-| Analysis edit after grade    | No edit UI path; immutability locked                                 |
+| Item                         | Why                                                                                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Real trademark book logos    | Brand-color attribution tiles shipped (`public/marks/books/*.svg`); swap in rights-cleared official art with same filenames when available |
+| Soccer 3-way ML auto-grade   | Gated until draw/home/away settlement keys                                                                                                 |
+| Parlay-level analysis column | Needs `Parlay.notes` migration                                                                                                             |
+| Analysis edit after grade    | No edit UI path; immutability locked                                                                                                       |
 
 ## Author note
 

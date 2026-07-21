@@ -27,6 +27,18 @@ To add a mark: drop the SVG into the path above, then add the key to
 Code maps: `src/lib/mark-manifest.ts`, `src/lib/teams.ts`, `src/lib/leagues.ts`,
 `src/lib/players.ts` (slot only).
 
+## Sportsbook marks (self-hosted)
+
+| Kind             | Path pattern                          | Gate                               | Fallback                           |
+| ---------------- | ------------------------------------- | ---------------------------------- | ---------------------------------- |
+| Sportsbook marks | `public/marks/books/{OddsApiKey}.svg` | none — keys from `SUPPORTED_BOOKS` | `bookShort` letters via `BookMark` |
+
+Filenames must match Odds API bookmaker keys in `src/lib/books.ts` (e.g. `draftkings.svg`,
+`williamhill_us.svg` for Caesars). Nominative source attribution only — never imply SCL
+partnership. Current tiles are brand-color attribution marks; replace with rights-cleared
+official artwork using the **same filenames**, then bump `BOOK_MARK_ASSET_VERSION` in
+`src/components/scl/book-mark.tsx`.
+
 ## Source and rights
 
 - Both trophy files are original AI-generated production artwork created for SCL.

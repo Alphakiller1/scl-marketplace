@@ -1,5 +1,5 @@
-﻿<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" role="img" aria-label="FAN">
-  <rect width="40" height="40" rx="8" fill="#1a1525"/>
-  <rect x="0.5" y="0.5" width="39" height="39" rx="7.5" fill="none" stroke="#ec4899" stroke-opacity="0.45"/>
-  <text x="20" y="25" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#f9a8d4">FAN</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" role="img" aria-label="Fanatics">
+  <rect width="40" height="40" rx="8" fill="#E31837"/>
+  <path fill="#FFFFFF" d="M10.5 9.5h19v4.2H16.2v2.4h11.2v4H16.2V30.5h-5.7Z"/>
+  <text x="20" y="36" text-anchor="middle" font-family="Arial Black,Helvetica Neue,Arial,sans-serif" font-size="5.8" font-weight="800" fill="#FFFFFF">FAN</text>
 </svg>
