@@ -129,11 +129,11 @@ export default async function Home() {
         </div>
       )}
 
-      <div className="mx-auto max-w-[1400px] overflow-x-hidden px-4 pt-5 pb-8 sm:px-6 sm:pt-8 sm:pb-12 lg:px-8">
+      <div className="mx-auto max-w-[1400px] min-w-0 px-4 pt-5 pb-8 sm:px-6 sm:pt-8 sm:pb-12 lg:px-8">
         {/* Top Cappers + Featured Proof — solid board panes, no scanlines */}
-        <div className="scl-board overflow-hidden">
-          <div className="relative grid gap-0 lg:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.85fr)] lg:items-start">
-            <div className="scl-board-rule relative min-w-0 overflow-hidden border-b px-3 py-4 sm:px-5 sm:py-6 lg:border-r lg:border-b-0 lg:px-5 lg:pr-6 lg:pl-5">
+        <div className="scl-board min-w-0">
+          <div className="relative grid min-w-0 gap-0 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,0.85fr)] lg:items-start">
+            <div className="scl-board-rule relative min-w-0 border-b px-3 py-4 sm:px-5 sm:py-6 lg:border-r lg:border-b-0 lg:px-5 lg:pr-6 lg:pl-5">
               <div className="scl-live-rail hidden lg:block" aria-hidden />
               <TopCappersLive
                 cappers={topCappers}

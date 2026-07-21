@@ -142,3 +142,7 @@ already in the repo.
   `design/MOCKUP_FIDELITY_HOME_CONTRACT.md`. Hero Live board and Top Cappers share
   `RankBoardTable` (not `CompactCapperRow`). Ink + radial hero only — do not reintroduce
   WebP trophy plate or overlapping proof in the first viewport. Hero CTA strings stay locked.
+- **Browser zoom resilience:** Prefer `rem` / `minmax(0, …)` / `min-w-0` / `min-h-*` over
+  rigid `px` floors, page-level `overflow-x-hidden`, and fixed row heights. Wide Rank tables
+  may scroll _inside_ their shell; never clip the page shell so zoomed text falls off. Keep
+  `html { font-size: 100% }` so rem tracks the user's zoom/default font.

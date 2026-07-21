@@ -148,7 +148,7 @@ export function Leaderboard({
 
   return (
     <div className="space-y-3">
-      <div className="border-border scl-elevated hidden overflow-x-auto overflow-y-hidden rounded-[14px] border md:block">
+      <div className="border-border scl-elevated hidden overflow-x-auto rounded-[14px] border md:block">
         <table
           className={cn(
             "w-full border-collapse text-sm",
@@ -346,7 +346,7 @@ function LeaderboardTableRow({
   const compareDisabled = !selected && !canAdd;
 
   return (
-    <tr className="hover:bg-surface-2/80 group h-[72px]">
+    <tr className="hover:bg-surface-2/80 group min-h-[4.5rem]">
       <td className="px-1.5 py-2 align-middle">
         <input
           type="checkbox"

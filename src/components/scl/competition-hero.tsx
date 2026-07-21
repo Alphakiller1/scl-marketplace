@@ -57,7 +57,7 @@ export function CompetitionHero({ board }: { board?: ReactNode }) {
       </p>
 
       {/* Board rail must host Rank-schema width — prefer board share over copy. */}
-      <div className="relative mx-auto grid w-full max-w-[1400px] gap-6 px-4 py-6 sm:gap-8 sm:px-6 sm:py-9 lg:grid-cols-[minmax(0,0.9fr)_minmax(26rem,1.15fr)] lg:items-start lg:gap-10 lg:px-8 lg:py-12">
+      <div className="relative mx-auto grid w-full max-w-[1400px] gap-6 px-4 py-6 sm:gap-8 sm:px-6 sm:py-9 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.15fr)] lg:items-start lg:gap-10 lg:px-8 lg:py-12">
         <div className="min-w-0">
           <div className="grid max-w-[36rem]">
             {HERO_SLIDES.map((slide, i) => {

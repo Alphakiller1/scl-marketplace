@@ -352,6 +352,14 @@
   }
   html {
     @apply font-sans;
+    /*
+     * Zoom resilience: keep root at the browser default (100% of user preference).
+     * Rem-based spacing/type then scales with browser zoom; never lock html to a
+     * fixed px font-size. Prefer rem/em and minmax(0, …) over rigid px floors.
+     */
+    font-size: 100%;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
   h1,
   h2,
@@ -391,11 +399,12 @@
   }
   .scl-eyebrow {
     font-family: var(--scl-font-ui);
-    font-size: 0.625rem;
+    /* ≥12px at default root so labels stay legible under browser zoom. */
+    font-size: 0.75rem;
     font-weight: 600;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    /* Supporting tier — 10px labels must clear 4.5:1 (muted-label fails on light paper). */
+    /* Supporting tier — labels must clear 4.5:1 (muted-label fails on light paper). */
     color: var(--scl-muted-data);
   }
   /**

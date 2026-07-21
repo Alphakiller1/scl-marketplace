@@ -46,7 +46,7 @@ export function CapperIdentityLabel({
       <div className="flex min-w-0 items-center gap-1">
         <span
           className={cn(
-            "scl-display truncate text-sm font-semibold tracking-[0.01em]",
+            "scl-display min-w-0 flex-1 truncate text-sm font-semibold tracking-[0.01em]",
             primaryClassName,
           )}
         >
@@ -57,7 +57,7 @@ export function CapperIdentityLabel({
       {lines.secondary ? (
         <span
           className={cn(
-            "text-muted-foreground block truncate text-[0.7rem] leading-4",
+            "text-muted-foreground block min-w-0 truncate text-[0.7rem] leading-4",
             secondaryClassName,
           )}
         >

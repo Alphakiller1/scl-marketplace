@@ -126,7 +126,7 @@ export function RankBoardTable({
               return (
                 <tr
                   key={capper.id}
-                  className="border-border relative h-14 border-b last:border-b-0 hover:bg-[color:var(--scl-ink-700)]/80"
+                  className="border-border relative min-h-14 border-b last:border-b-0 hover:bg-[color:var(--scl-ink-700)]/80"
                 >
                   <td className={cn(cell, "align-middle")}>
                     <RankBadge
@@ -161,7 +161,7 @@ export function RankBoardTable({
                     </Link>
                   </td>
                   <td className={cn(cell, "align-middle")}>
-                    <div className="flex flex-nowrap items-center gap-1">
+                    <div className="flex max-w-[6.5rem] flex-wrap items-center gap-1">
                       {sports.map((sport) => (
                         <SportTag key={sport} sport={sport} markOnly />
                       ))}
@@ -255,19 +255,20 @@ function RankBoardMobileRow({
       <Link
         href={`/cappers/${capper.handle}`}
         className={cn(
-          "focus-visible:ring-ring flex min-h-12 items-center gap-2 px-2.5 py-2 focus-visible:ring-2 focus-visible:outline-none",
-          compact ? "min-h-11 gap-1.5 px-2 py-1.5" : "min-h-12",
+          "focus-visible:ring-ring flex min-h-11 items-center gap-2 px-2.5 py-1.5 focus-visible:ring-2 focus-visible:outline-none sm:min-h-12",
+          compact ? "gap-1.5 px-2" : null,
         )}
         aria-label={`Open ${capper.handle} profile`}
       >
         <RankBadge rank={rank} settledPicks={graded} variant="ledger" />
         <CapperAvatar name={capper.name} src={capper.avatarUrl} size="sm" />
         <span className="min-w-0 flex-1">
-          <span className="flex min-w-0 items-center gap-1.5">
+          <span className="flex min-w-0 flex-wrap items-center gap-1.5">
             <CapperIdentityLabel
               capper={capper}
               compact
               verified={capper.verified}
+              className="min-w-0 flex-1 basis-[8rem]"
             />
             {sports.map((sport) => (
               <SportTag
