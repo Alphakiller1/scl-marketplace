@@ -102,9 +102,12 @@ export function ClvDistributionChart({
     <div className={cn("space-y-2", className)}>
       <div className="flex flex-wrap items-end justify-between gap-2">
         <p className="scl-eyebrow text-muted-foreground">CLV distribution</p>
-        <p className="scl-data text-muted-foreground text-xs tabular-nums">
-          {countLabel(summary.snapshotCount, "snapshot", "snapshots")}
-        </p>
+        {/* Parent PlatformClvSummary already shows snapshot count — avoid a second "N snapshots". */}
+        {embedded ? null : (
+          <p className="scl-data text-muted-foreground text-xs tabular-nums">
+            {countLabel(summary.snapshotCount, "snapshot", "snapshots")}
+          </p>
+        )}
       </div>
       <div
         className={cn(
