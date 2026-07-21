@@ -162,13 +162,13 @@ export function TopCappersLive({
                         </Link>
                       </td>
                       <td className="px-2 py-1.5">
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5">
                           {sports.map((sport) => (
                             <SportTag
                               key={sport}
                               sport={sport}
                               markOnly
-                              className="size-6 shrink-0 [&_img]:size-3.5"
+                              className="inline-flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full [&_img]:size-3.5 [&_svg]:size-3.5"
                             />
                           ))}
                         </div>

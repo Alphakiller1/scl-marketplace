@@ -123,6 +123,11 @@ already in the repo.
   and `package.json`.
 - **Postgres:** local Ubuntu cluster — `sudo pg_ctlcluster 16 main start` if queries fail.
   Schema is `scl` only; use `npm run db:push` / `npm run db:seed` against local `.env`.
+- **Home / leaderboard query soft-fail:** if surfaces show “Couldn't load…”, apply additive
+  SQL from `docs/qa/SUPABASE_SQL_PATCHES.md` (especially `User.isTest` and
+  `Play.closingOddsAmerican`) then restart `npm run dev` so schema-feature caches refresh.
+- **Mockup fidelity:** hero CTA language is locked in `design/MOCKUP_FIDELITY_HOME_CONTRACT.md`
+  — do not rewrite slide eyebrows/titles/bodies/CTAs/hrefs.
 - **Auth host gotcha:** `.env` sets `AUTH_URL=http://localhost:3000`. Browse and sign in via
   `http://localhost:3000`, not `http://127.0.0.1:3000`, or Auth.js cookies/session will not
   stick and login will look broken.

@@ -362,13 +362,13 @@ function LeaderboardTableRow({
         </div>
       </td>
       <td className="px-1.5 py-1.5 align-middle">
-        <div className="flex flex-wrap items-center gap-1">
+        <div className="flex flex-nowrap items-center gap-1.5">
           {sports.map((sport) => (
             <SportTag
               key={sport}
               sport={sport}
               markOnly
-              className="size-6 shrink-0 [&_img]:size-3.5"
+              className="inline-flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full [&_img]:size-3.5 [&_svg]:size-3.5"
             />
           ))}
         </div>
