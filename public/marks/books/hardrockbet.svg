@@ -1,5 +1,5 @@
-﻿<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" role="img" aria-label="HRB">
-  <rect width="40" height="40" rx="8" fill="#1a1525"/>
-  <rect x="0.5" y="0.5" width="39" height="39" rx="7.5" fill="none" stroke="#ec4899" stroke-opacity="0.45"/>
-  <text x="20" y="25" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="700" fill="#f9a8d4">HRB</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" role="img" aria-label="Hard Rock Bet">
+  <rect width="40" height="40" rx="8" fill="#4B0082"/>
+  <path fill="#F5A623" d="M9 23.5 13.5 11 17.8 19.2 22 9.5 26.2 19.2 30.5 11 35 23.5h-6.2l-2.2-4.2L22 28.5 17.8 19.2 15.8 23.5Z"/>
+  <text x="20" y="35.5" text-anchor="middle" font-family="Arial Black,Helvetica Neue,Arial,sans-serif" font-size="6" font-weight="800" fill="#F5A623">HRB</text>
 </svg>
