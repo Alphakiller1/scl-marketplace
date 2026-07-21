@@ -25,7 +25,7 @@ remains locked in `MOCKUP_FIDELITY_HOME_CONTRACT.md`.
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│ What changed today · horizontal ticker chips · Today · ET  │
+│ What Changed Today · horizontal ticker chips · Today · ET  │
 │ Height ~44–56px. Never a multi-row second board.           │
 └────────────────────────────────────────────────────────────┘
 ```
@@ -34,7 +34,7 @@ remains locked in `MOCKUP_FIDELITY_HOME_CONTRACT.md`.
 
 ```
 ┌───────────────────────────────┬────────────────────────────┐
-│ Top cappers (RankBoardTable   │ Featured proof receipt     │
+│ Top Cappers (RankBoardTable   │ Featured Proof Receipt     │
 │   density=live)               │ Warm paper artifact        │
 │ sort: verified share → units  │ + verification context     │
 │ window chips → /leaderboard   │                            │

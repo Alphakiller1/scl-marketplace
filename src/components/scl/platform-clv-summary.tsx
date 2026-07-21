@@ -34,16 +34,16 @@ export function PlatformClvSummary({
     return (
       <div
         className={cn(
-          "border-border bg-card rounded-xl border p-4 sm:p-5",
+          "border-border bg-card scl-elevated rounded-[var(--scl-radius-card)] border p-4 sm:p-5",
           className,
         )}
         role="status"
       >
         <p className="scl-eyebrow text-[color:var(--scl-muted-label)]">
-          Closing-price evidence
+          Closing-Price Evidence
         </p>
         <p className="text-muted-foreground mt-2 text-sm">
-          Closing-line metrics are temporarily unavailable.
+          Closing-Line Metrics Are Temporarily Unavailable.
         </p>
       </div>
     );
@@ -52,7 +52,7 @@ export function PlatformClvSummary({
   return (
     <div
       className={cn(
-        "border-border bg-card relative overflow-hidden rounded-xl border",
+        "border-border bg-card scl-elevated relative overflow-hidden rounded-[var(--scl-radius-card)] border",
         className,
       )}
       data-visual-mode="proof"
@@ -64,11 +64,11 @@ export function PlatformClvSummary({
 
       <div className="border-border flex flex-wrap items-end justify-between gap-3 border-b px-4 py-4 pl-5 sm:px-5 sm:pl-6">
         <div>
-          <h3 className="scl-display text-base font-bold tracking-[0.04em]">
-            Closing-price evidence
+          <h3 className="scl-display text-base font-bold tracking-[0.04em] normal-case">
+            Closing-Price Evidence
           </h3>
           <p className="text-muted-foreground mt-1 text-sm">
-            Submitted prices compared with the same book&apos;s closing prices.
+            Submitted Prices Compared With The Same Book&apos;s Closing Prices.
           </p>
         </div>
         <p className="scl-data text-muted-foreground text-xs tabular-nums">
@@ -91,12 +91,12 @@ export function PlatformClvSummary({
                 id="platform-clv-summary"
                 className="scl-eyebrow text-[color:var(--scl-muted-label)]"
               >
-                Pricing summary
+                Pricing Summary
               </h4>
               <p className="scl-data text-muted-foreground text-xs tabular-nums">
                 {summary.hasSignal
-                  ? "Signal threshold met"
-                  : `${summary.snapshotCount} of ${MIN_GRADED_FOR_SIGNAL} required`}
+                  ? "Signal Threshold Met"
+                  : `${summary.snapshotCount} Of ${MIN_GRADED_FOR_SIGNAL} Required`}
               </p>
             </div>
 

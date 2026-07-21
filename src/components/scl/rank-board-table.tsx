@@ -37,7 +37,12 @@ export function RankBoardTable({
   const meterW = compact ? "w-[4.25rem]" : "w-[4.75rem]";
 
   return (
-    <div className={cn("border-border overflow-x-auto border-y", className)}>
+    <div
+      className={cn(
+        "border-border overflow-x-auto rounded-[var(--scl-radius-card)] border bg-[color:var(--scl-ink-800)]",
+        className,
+      )}
+    >
       <table
         className={cn(
           "w-full border-collapse text-sm",
@@ -90,7 +95,7 @@ export function RankBoardTable({
             return (
               <tr
                 key={capper.id}
-                className="border-border hover:bg-surface-2/50 h-14 border-b last:border-b-0"
+                className="border-border h-14 border-b last:border-b-0 hover:bg-[color:var(--scl-ink-700)]/80"
               >
                 <td className={cn(cell, "align-middle")}>
                   <RankBadge

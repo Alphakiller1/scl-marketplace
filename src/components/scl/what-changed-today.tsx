@@ -22,7 +22,7 @@ export function WhatChangedToday({
 }) {
   if (!moves.length) {
     return (
-      <section className={cn(className)} aria-label="What changed today">
+      <section className={cn(className)} aria-label="What Changed Today">
         <p
           className="text-muted-foreground flex min-h-11 items-center gap-2.5 py-2.5 text-sm leading-snug"
           role="status"
@@ -34,16 +34,16 @@ export function WhatChangedToday({
           <span className="min-w-0">
             <span className="text-foreground font-medium">
               {failed
-                ? "Couldn't load today's moves"
-                : "No graded changes today."}
+                ? "Couldn't Load Today's Moves"
+                : "No Graded Changes Today."}
             </span>
             {failed ? (
-              <span> try again shortly.</span>
+              <span> Try Again Shortly.</span>
             ) : (
               <span>
                 {" "}
-                Rank and unit changes appear after board-verified picks are
-                graded.
+                Rank And Unit Changes Appear After Board-Verified Picks Are
+                Graded.
               </span>
             )}
           </span>
@@ -53,14 +53,16 @@ export function WhatChangedToday({
   }
 
   return (
-    <section className={cn("py-2", className)} aria-label="What changed today">
+    <section className={cn("py-2", className)} aria-label="What Changed Today">
       <div className="flex min-h-11 items-center gap-3 overflow-hidden">
         <div className="flex shrink-0 items-center gap-2">
           <Activity
             className="size-3.5 shrink-0 text-[color:var(--scl-blue)]"
             aria-hidden
           />
-          <p className="scl-eyebrow whitespace-nowrap">What changed today</p>
+          <p className="scl-display text-sm font-semibold tracking-[0.02em] normal-case">
+            What Changed Today
+          </p>
         </div>
 
         <ul className="flex min-w-0 flex-1 [scrollbar-width:none] items-center gap-2 overflow-x-auto py-0.5 [&::-webkit-scrollbar]:hidden">
@@ -73,7 +75,7 @@ export function WhatChangedToday({
               <li key={move.handle} className="shrink-0">
                 <Link
                   href={`/cappers/${move.handle}`}
-                  className="border-border hover:bg-surface-2 focus-visible:ring-ring inline-flex h-8 items-center gap-2 rounded-[var(--scl-radius-chip)] border bg-[color:var(--scl-ink-800)] px-2 focus-visible:ring-2 focus-visible:outline-none"
+                  className="border-border focus-visible:ring-ring inline-flex h-8 items-center gap-2 rounded-[var(--scl-radius-chip)] border bg-[color:var(--scl-ink-800)] px-2 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] hover:bg-[color:var(--scl-ink-700)] focus-visible:ring-2 focus-visible:outline-none"
                 >
                   <span className="scl-data text-muted-foreground text-[0.65rem] tracking-[0.06em] uppercase tabular-nums">
                     {status}

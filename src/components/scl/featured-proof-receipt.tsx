@@ -31,16 +31,16 @@ export function FeaturedProofReceipt({
   return (
     <section
       className={cn("space-y-3", className)}
-      aria-label="Featured proof receipt"
+      aria-label="Featured Proof Receipt"
     >
       {hideHeader ? null : (
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0 border-t border-[color:var(--scl-pink-deep)] pt-2.5">
             <h2 className="scl-display text-[1.375rem] leading-7 font-semibold tracking-[0.02em] normal-case">
-              Featured proof receipt
+              Featured Proof Receipt
             </h2>
             <p className="text-muted-foreground mt-1 text-sm leading-snug">
-              An inspectable receipt for a recent graded pick.
+              An Inspectable Receipt For A Recent Graded Pick.
             </p>
           </div>
           {play ? (
@@ -48,7 +48,7 @@ export function FeaturedProofReceipt({
               href={`/cappers/${play.handle}`}
               className="scl-link text-sm font-medium"
             >
-              View all proof receipts
+              View All Proof Receipts
               <span aria-hidden> →</span>
             </Link>
           ) : null}
@@ -56,17 +56,17 @@ export function FeaturedProofReceipt({
       )}
 
       {!play ? (
-        <div className="scl-proof-paper bg-card rounded-[var(--scl-radius-receipt)] border-2 border-[color:var(--border)] shadow-[var(--scl-shadow-card)]">
+        <div className="scl-proof-paper scl-elevated bg-card rounded-[var(--scl-radius-receipt)] border-2 border-[color:var(--border)]">
           <EmptyState
             className="rounded-[var(--scl-radius-receipt)] border-0 bg-transparent py-5 shadow-none sm:py-6"
             icon={Receipt}
             title={
-              failed ? "Couldn't load featured proof" : "No graded receipts yet"
+              failed ? "Couldn't Load Featured Proof" : "No Graded Receipts Yet"
             }
             description={
               failed
-                ? "Try again shortly."
-                : "A proof receipt appears here after a board-verified pick is graded."
+                ? "Try Again Shortly."
+                : "A Proof Receipt Appears Here After A Board-Verified Pick Is Graded."
             }
           />
         </div>
@@ -136,7 +136,7 @@ function FeaturedReceiptBody({ play }: { play: FeaturedGradedPlay }) {
           href={`/cappers/${play.handle}`}
           className="scl-link text-xs font-semibold"
         >
-          View @{play.handle} record
+          View @{play.handle} Record
         </Link>
       }
     />

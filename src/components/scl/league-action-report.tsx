@@ -458,8 +458,8 @@ export function LeagueActionReport({
     return (
       <EmptyState
         icon={Activity}
-        title="Couldn't load platform activity"
-        description="Recent bet-type activity is temporarily unavailable. Please try again shortly."
+        title="Couldn't Load Platform Activity"
+        description="Recent Bet-Type Activity Is Temporarily Unavailable. Please Try Again Shortly."
       />
     );
   }
@@ -468,15 +468,15 @@ export function LeagueActionReport({
     return (
       <EmptyState
         icon={Activity}
-        title="No tracked activity in this window"
-        description="No board-verified bet types or leagues were tracked in the last 14 days."
+        title="No Tracked Activity In This Window"
+        description="No Board-Verified Bet Types Or Leagues Were Tracked In The Last 14 Days."
       />
     );
   }
 
   return (
     <div
-      className="border-border relative overflow-hidden rounded-xl border bg-[color:var(--scl-ink-800)]"
+      className="border-border scl-elevated relative overflow-hidden rounded-[var(--scl-radius-card)] border bg-[color:var(--scl-ink-800)]"
       data-visual-mode="live"
     >
       {/* Live cobalt rail */}
@@ -488,7 +488,7 @@ export function LeagueActionReport({
       {/* Flat ink-800 header + structural hairline (no gradient) */}
       <div className="border-border flex flex-wrap items-end justify-between gap-4 border-b px-4 py-4 pl-5 sm:px-5 sm:pl-6">
         <div className="flex flex-wrap gap-6 sm:gap-8">
-          <Metric label="Board-verified picks" value={trackedPicks} emphasize />
+          <Metric label="Board-Verified Picks" value={trackedPicks} emphasize />
           <Metric
             label={platformReportSegmentLabel(liveSegments)}
             value={liveSegments}

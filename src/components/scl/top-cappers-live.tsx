@@ -34,7 +34,7 @@ export function TopCappersLive({
   className?: string;
 }) {
   return (
-    <section className={cn("space-y-3", className)} aria-label="Top cappers">
+    <section className={cn("space-y-3", className)} aria-label="Top Cappers">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 border-t border-[color:var(--scl-pink-deep)] pt-2.5">
@@ -43,17 +43,17 @@ export function TopCappersLive({
               aria-hidden
             />
             <h2 className="scl-display text-[1.375rem] leading-7 font-semibold tracking-[0.02em] normal-case">
-              Top cappers
+              Top Cappers
             </h2>
           </div>
           <p className="text-muted-foreground mt-1 text-sm leading-snug">
-            Ranked by board-verified share, then units.
+            Ranked By Board-Verified Share, Then Units.
           </p>
         </div>
         <div
           className="flex flex-wrap items-center gap-1.5"
           role="group"
-          aria-label="Open full leaderboard by window"
+          aria-label="Open Full Leaderboard By Window"
         >
           {WINDOW_CHIPS.map((chip) => {
             const active = chip.id === activeWindow;
@@ -68,7 +68,7 @@ export function TopCappersLive({
                     : "border-border text-muted-foreground hover:text-foreground border bg-transparent",
                 )}
                 aria-current={active ? "page" : undefined}
-                title={`Open ${chip.label} leaderboard (verified sort)`}
+                title={`Open ${chip.label} Leaderboard (Verified Sort)`}
               >
                 {chip.label}
               </Link>
@@ -81,22 +81,22 @@ export function TopCappersLive({
         <EmptyState
           icon={Users}
           title={
-            failed ? "Couldn't load top cappers" : "No cappers qualify yet"
+            failed ? "Couldn't Load Top Cappers" : "No Cappers Qualify Yet"
           }
-          description="No capper has reached the minimum graded sample for this list."
+          description="No Capper Has Reached The Minimum Graded Sample For This List."
         />
       ) : (
         <>
           <RankBoardTable
             cappers={cappers}
             density="live"
-            caption="Top cappers ranked by board-verified share, then units."
+            caption="Top Cappers Ranked By Board-Verified Share, Then Units."
           />
           <Link
             href="/leaderboard?sort=verified"
             className="scl-link inline-flex min-h-11 items-center gap-1 text-sm font-medium"
           >
-            View full leaderboard
+            View Full Leaderboard
             <ArrowRight className="size-3.5" aria-hidden />
           </Link>
         </>

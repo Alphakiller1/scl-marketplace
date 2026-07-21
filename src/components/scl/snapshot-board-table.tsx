@@ -16,7 +16,7 @@ export function SnapshotBoardTable({
     <RankBoardTable
       cappers={cappers}
       density="snapshot"
-      caption="Leaderboard snapshot ranked by net units."
+      caption="Leaderboard Snapshot Ranked By Net Units."
       className={className}
     />
   );

@@ -66,8 +66,10 @@ Bodies remain the three strings currently in `competition-hero.tsx` `SLIDES`.
 - Featured proof empty states sit in warm `scl-proof-paper` shell (receipt radius), under the fold only
 - Leaderboard desktop rows target ~56px; specialty (or top sport) sits under identity
 - League / team logos: **transparent** tiles when a mark image loads — no white boxes, no hairline frames around logos
-- Section titles: Barlow Condensed **sentence case** at ~22/26 (`text-[1.375rem] leading-7`); eyebrows stay uppercase Barlow
+- Section titles: Barlow Condensed **Title Case** at ~22/26 (`text-[1.375rem] leading-7`); eyebrows stay uppercase Barlow (CSS)
+- Premium gloss = `.scl-elevated` (hairline + card shadow) + solid ink boards + scanline on Live panes — **no** `backdrop-blur` glass
 - Metrics: Inter tabular via `.scl-data` on every numeric column
+- Home UI copy (titles, CTAs, empty-state titles, short helpers): **Title Case** every word; locked hero slide strings unchanged; long body paragraphs on hero slides stay as locked
 
 ## Acceptance
 

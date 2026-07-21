@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Elevated Live-board shell for the hero right rail.
- * Rank-schema snapshot only — no overlapping proof collage.
+ * Premium gloss = hairline + card shadow + solid ink (no blur / glass).
  */
 export function LiveBoardShell({
   cappers,
@@ -24,7 +24,7 @@ export function LiveBoardShell({
         className,
       )}
     >
-      <div className="border-border relative overflow-hidden rounded-[14px] border bg-[color:var(--scl-ink-900)]/92 shadow-[var(--scl-shadow-card)] backdrop-blur-sm">
+      <div className="scl-elevated border-border relative overflow-hidden rounded-[var(--scl-radius-card)] border bg-[color:var(--scl-ink-800)]">
         <div
           className="scl-scanline pointer-events-none absolute inset-0 opacity-80"
           aria-hidden
