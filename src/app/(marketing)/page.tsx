@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 import { CompetitionHero } from "@/components/scl/competition-hero";
 import { FeaturedProofReceipt } from "@/components/scl/featured-proof-receipt";
-import { HeroBoardCollage } from "@/components/scl/hero-board-collage";
+import { LiveBoardShell } from "@/components/scl/live-board-shell";
 import { HomeVerificationRail } from "@/components/scl/home-verification-rail";
 import { LeagueActionReport } from "@/components/scl/league-action-report";
 import { PlatformClvSummary } from "@/components/scl/platform-clv-summary";
@@ -107,7 +107,7 @@ export default async function Home() {
     <>
       <CompetitionHero
         board={
-          <HeroBoardCollage
+          <LiveBoardShell
             cappers={snapshot}
             leaderboardFailed={leaderboardFailed}
             updatedAt={updatedAt}

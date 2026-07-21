@@ -3,10 +3,10 @@ import type { CapperSummary } from "@/lib/mock";
 import { cn } from "@/lib/utils";
 
 /**
- * Hero right-rail board — elevated Leaderboard snapshot only.
- * Featured proof lives under the fold (not overlaid on the first viewport).
+ * Elevated Live-board shell for the hero right rail.
+ * Rank-schema snapshot only — no overlapping proof collage.
  */
-export function HeroBoardCollage({
+export function LiveBoardShell({
   cappers,
   leaderboardFailed,
   updatedAt,
@@ -41,3 +41,6 @@ export function HeroBoardCollage({
     </div>
   );
 }
+
+/** @deprecated Use LiveBoardShell — collage naming implied overlapping proof. */
+export const HeroBoardCollage = LiveBoardShell;

@@ -34,10 +34,10 @@ Defined in `src/app/globals.css`, dark-mode first. Every color has a job:
 Rules: no random colors, no meaningless glow. Gradients are reserved for **brand identity
 only** — the pink→blue `.scl-brand-text` wordmark/heading fill and the restrained pink+blue
 `.scl-glow` radial / `.scl-card-gradient`. The trophy mark (`SclLogo`) carries the same
-pink→blue gradient. Home hero bitmap atmosphere is **magenta chart + cobalt metal** (not
-sky-blue and not pink-only). Full layer stack + design matrix:
-`docs/SCL_VISUAL_IMPLEMENTATION.md`. The page feels alive through **hierarchy, data, and
-status — not noise.**
+pink→blue gradient. Home hero atmosphere is **ink + soft pink/blue radials** with a dual-column
+Rank-schema Live board — not a photographic WebP plate. Structural SoT:
+`design/HOME_DESIGN_LAYER_SCHEMA.md`. Visual notes: `docs/SCL_VISUAL_IMPLEMENTATION.md`.
+The page feels alive through **hierarchy, data, and status — not noise.**
 
 ## Typography
 

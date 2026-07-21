@@ -18,24 +18,27 @@ Bodies remain the three strings currently in `competition-hero.tsx` `SLIDES`.
 
 ## Mockup composition that MUST match (visual)
 
+**Structural SoT:** `design/HOME_DESIGN_LAYER_SCHEMA.md` (one `RankBoardTable`, dual sorts, no photo plate).
+
 ### Hero
 
 - Dual-column ≥1024: **copy rail left** · **Leaderboard snapshot board right**
 - Left: locked slide stack, Barlow Condensed display (38/40 mobile · 56/56 desktop), pink primary CTA only
-- Right: elevated **Leaderboard snapshot** only — **no overlapping graded-proof receipt** in the first viewport (proof lives under the fold)
-- Hero height restrained — board shares first viewport; no photographic trophy/hero plate behind the board (ink + subtle radial atmosphere only)
+- Right: elevated **Leaderboard snapshot** as **Rank-schema dense table** (`RankBoardTable` density=`snapshot`) — **not** soft `CompactCapperRow` résumé rows; **no overlapping graded-proof receipt** in the first viewport (proof lives under the fold)
+- Capper cell includes specialty (or top sport) under identity — same Rank anatomy as full board
+- Hero height restrained — board shares first viewport; grid favors board width (`minmax(26rem,1.15fr)`); ink + subtle radial atmosphere only (no photographic trophy plate)
 - Carousel controls remain; 44px hit targets
 
 ### What changed today
 
-- Full-width thin ticker/strip under hero (pulse + compact moves)
+- Full-width thin ticker/strip under hero (pulse + compact `h-8`/`px-2` chips)
 - Not a tall second board competing with Top Cappers
 
 ### Top cappers
 
-- Dense **table** (not soft avatar list): Rank · Capper · Sports marks · Record · ROI · Units · Sample · Verified meter
-- Header: trophy mark + “Top cappers” + “Ranked by …” + window chips (7D / 30D / 90D / ALL) when data supports it
-- Compact rows, hairline dividers, chevron affordance, “View full leaderboard” link
+- Dense **table** via shared `RankBoardTable` density=`live` (not soft avatar list; not a private table dialect): Rank · Capper · Sports marks · Record · ROI · Units · Sample · Verified meter
+- Header: trophy mark + “Top cappers” + “Ranked by …” + window chips (7D / 30D / 90D / ALL) that open `/leaderboard?window=…&sort=verified` (honest to this surface’s sort)
+- Compact rows (~56px), hairline dividers, chevron affordance, “View full leaderboard” link
 - **No dollar Handle column** (data honesty — units only)
 
 ### Featured proof
@@ -49,6 +52,7 @@ Bodies remain the three strings currently in `competition-hero.tsx` `SLIDES`.
 - Chips max compact (`px-2`, `text-[10px]`–`11px`, no wide soft pills)
 - Sports as circular marks, not wide `SportTag` text chips in table cells
 - Inter tabular on every metric; Barlow Condensed on section titles
+- Forbidden: `HomeEvidenceField` board‖proof row-1 anatomy; overlapping-proof collage; WebP hero plate
 
 ## Intentional product overrides (not mockup bugs)
 

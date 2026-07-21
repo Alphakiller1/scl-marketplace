@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { ArrowRight, Trophy } from "lucide-react";
 
-import { Leaderboard } from "@/components/scl/leaderboard";
 import { EmptyState } from "@/components/scl/states";
+import { SnapshotBoardTable } from "@/components/scl/snapshot-board-table";
 import { formatUpdatedAgo } from "@/lib/format-freshness";
 import type { CapperSummary } from "@/lib/mock";
 import { cn } from "@/lib/utils";
 
 /**
- * Homepage Live — compact leaderboard snapshot (Units, never dollar handle).
+ * Homepage Live board — Rank-schema dense snapshot (Units sort).
+ * Design layer: table anatomy, not CompactCapperRow résumé cards.
  */
 export function LeaderboardSnapshot({
   cappers,
@@ -23,6 +24,8 @@ export function LeaderboardSnapshot({
   limit?: number;
   className?: string;
 }) {
+  const rows = cappers.slice(0, limit);
+
   return (
     <section
       className={cn("space-y-3", className)}
@@ -50,7 +53,7 @@ export function LeaderboardSnapshot({
         </Link>
       </div>
 
-      {cappers.length === 0 ? (
+      {rows.length === 0 ? (
         <EmptyState
           className="py-6 sm:py-7"
           icon={Trophy}
@@ -64,16 +67,7 @@ export function LeaderboardSnapshot({
           }
         />
       ) : (
-        <Leaderboard
-          cappers={cappers}
-          limit={limit}
-          failed={failed}
-          compactMobile
-          compactDesktop
-          flush
-          primaryMetric="units"
-          emptyDescription="The founding roster is forming. Verified cappers will appear here after they clear SCL’s ranking sample."
-        />
+        <SnapshotBoardTable cappers={rows} />
       )}
     </section>
   );

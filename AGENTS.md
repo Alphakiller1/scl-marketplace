@@ -138,3 +138,7 @@ already in the repo.
   rejects free-text event entry.
 - **IA / structure notes:** see `docs/SCL_STRUCTURE_AUDIT.md` for the latest public + capper
   workspace structure audit and roadmap.
+- **Home design-layer SoT:** page anatomy is `design/HOME_DESIGN_LAYER_SCHEMA.md` +
+  `design/MOCKUP_FIDELITY_HOME_CONTRACT.md`. Hero Live board and Top Cappers share
+  `RankBoardTable` (not `CompactCapperRow`). Ink + radial hero only — do not reintroduce
+  WebP trophy plate or overlapping proof in the first viewport. Hero CTA strings stay locked.
