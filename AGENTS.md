@@ -126,10 +126,10 @@ already in the repo.
 - **Home / leaderboard query soft-fail:** if surfaces show “Couldn't load…”, apply additive
   SQL from `docs/qa/SUPABASE_SQL_PATCHES.md` (especially `User.isTest` and
   `Play.closingOddsAmerican`) then restart `npm run dev` so schema-feature caches refresh.
-- **Ghost populate (temporary):** set `SCL_ALLOW_GHOST_PUBLICATION=1` on Vercel to
-  show `@ghost.scl.demo` cappers on public surfaces. Seed prod with
+- **Ghost populate (temporary):** `@ghost.scl.demo` accounts publish on public
+  surfaces unless `SCL_ALLOW_GHOST_PUBLICATION=0`. Seed production with
   `GHOST_SEED=1 GHOST_SEED_FORCE=1 npm run seed:ghosts` against the production
-  `DATABASE_URL`. Remove the env + wipe ghosts when real roster is enough.
+  `DATABASE_URL`. Set the env to `0` and wipe ghosts when the real roster is enough.
 - **Auth host gotcha:** `.env` sets `AUTH_URL=http://localhost:3000`. Browse and sign in via
   `http://localhost:3000`, not `http://127.0.0.1:3000`, or Auth.js cookies/session will not
   stick and login will look broken.
