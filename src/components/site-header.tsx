@@ -13,10 +13,10 @@ export async function SiteHeader() {
 
   return (
     <header className="border-border bg-sidebar sticky top-0 z-40 w-full border-b pt-[env(safe-area-inset-top)]">
-      <div className="mx-auto grid h-16 w-full max-w-[1400px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
         <Link
           href="/"
-          className="col-start-1 row-start-1 flex min-h-11 min-w-0 items-center gap-2.5 justify-self-start font-semibold"
+          className="flex min-h-11 min-w-0 items-center gap-2.5 font-semibold"
         >
           <span className="ring-border-strong flex size-9 items-center justify-center rounded-xl bg-[color:var(--scl-ink-800)] ring-1">
             <SclLogo className="size-6" />
@@ -26,7 +26,7 @@ export async function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="text-muted-foreground col-start-2 row-start-1 hidden items-center gap-2 justify-self-center text-sm sm:flex">
+        <nav className="text-muted-foreground hidden items-center gap-1 text-sm sm:flex">
           <Link
             href="/picks"
             className="inline-flex min-h-11 items-center px-3 text-[color:var(--scl-text)] underline-offset-4 transition-colors hover:underline hover:decoration-[color:var(--scl-blue)]"
@@ -45,21 +45,28 @@ export async function SiteHeader() {
           >
             Discover
           </Link>
+          <Link
+            href="/packages"
+            className="inline-flex min-h-11 items-center px-3 text-[color:var(--scl-text)] underline-offset-4 transition-colors hover:underline hover:decoration-[color:var(--scl-blue)]"
+          >
+            Packages
+          </Link>
         </nav>
 
-        <div className="col-start-3 row-start-1 flex shrink-0 items-center gap-1 justify-self-end sm:gap-2">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <ThemeToggle />
           {authed ? (
             <>
               <Button
                 render={<Link href="/dashboard" />}
                 nativeButton={false}
+                variant="nav"
                 size="sm"
-                className="hidden min-h-11 sm:inline-flex md:h-11"
+                className="hidden min-h-10 sm:inline-flex"
               >
                 Dashboard
               </Button>
-              <SignOutButton className="hidden min-h-11 sm:inline-flex md:h-11" />
+              <SignOutButton className="hidden min-h-10 sm:inline-flex" />
             </>
           ) : (
             <>
@@ -68,15 +75,16 @@ export async function SiteHeader() {
                 nativeButton={false}
                 variant="ghost"
                 size="sm"
-                className="hidden min-h-11 sm:inline-flex md:h-11"
+                className="hidden min-h-10 sm:inline-flex"
               >
                 Log In
               </Button>
               <Button
                 render={<Link href="/signup" />}
                 nativeButton={false}
+                variant="brand"
                 size="sm"
-                className="hidden min-h-11 border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)] sm:inline-flex md:h-11"
+                className="hidden min-h-10 sm:inline-flex"
               >
                 Join SCL
               </Button>

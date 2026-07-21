@@ -39,7 +39,7 @@ export function AppHeader({
                   href={n.href}
                   className={
                     primary
-                      ? "inline-flex min-h-11 items-center rounded-lg border border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] px-3 font-semibold text-[color:var(--scl-pink-ink)] transition-colors hover:bg-[color:var(--scl-pink-deep)]"
+                      ? "scl-cta-brand inline-flex min-h-11 items-center px-3"
                       : "hover:text-foreground inline-flex min-h-11 items-center px-3 transition-colors"
                   }
                 >

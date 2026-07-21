@@ -34,21 +34,22 @@ export default async function LeaderboardPage({
 
   return (
     <div
-      className="mx-auto max-w-[1400px] px-4 py-4 sm:px-6 sm:py-5 lg:px-8"
+      className="mx-auto max-w-[1400px] px-4 py-4 sm:px-6 sm:py-5"
       data-visual-mode="rank"
     >
       <LeaderboardOverview summary={summary} />
       <LeaderboardFilters filters={filters} />
 
       {/* Wide desktop: ~10/2 — main board + ~236px explanation rail */}
-      <div className="mt-3 grid gap-4 lg:grid-cols-[minmax(0,1fr)_15.25rem] lg:gap-4">
+      <div className="mt-3 grid gap-4 lg:mt-4 lg:grid-cols-[minmax(0,1fr)_14.75rem] lg:gap-5">
         <section aria-label="Ranked cappers" className="min-w-0">
           <Leaderboard
             cappers={cappers}
             filters={filters}
             showExpand
+            rankByPosition
             failed={failed}
-            emptyDescription="No Cappers Meet The Selected Ranking Filters. Records Below The Sample Threshold Or With Negative ROI Or Units Remain Visible Under Building A Record."
+            emptyDescription="No cappers meet the selected ranking filters. Records below the sample threshold or with negative ROI or units remain visible under Building a Record."
           />
         </section>
         <div className="min-w-0">
@@ -58,7 +59,7 @@ export default async function LeaderboardPage({
 
       <BuildingRecordSection cappers={unranked} failed={failed} />
       <CompareTray />
-      {/* Spacer so compare tray does not cover Building A Record on mobile */}
+      {/* Spacer so compare tray does not cover Building a Record on mobile */}
       <div className="h-16" aria-hidden />
     </div>
   );

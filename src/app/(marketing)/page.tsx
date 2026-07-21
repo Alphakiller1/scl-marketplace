@@ -13,6 +13,7 @@ import { PlatformClvSummary } from "@/components/scl/platform-clv-summary";
 import { SectionHeader } from "@/components/scl/section";
 import { TopCappersLive } from "@/components/scl/top-cappers-live";
 import { WhatChangedToday } from "@/components/scl/what-changed-today";
+import { LiveActivityTicker } from "@/components/scl/live-activity-ticker";
 
 import { appUrl } from "@/lib/app-url";
 import {
@@ -26,6 +27,7 @@ import {
   getFeaturedGradedPlay,
   getTodaysGradedMoves,
 } from "@/lib/queries/home-live";
+import { getLiveActivityTicker } from "@/lib/queries/live-activity-ticker";
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 import { getLeagueActionReport } from "@/lib/queries/league-action";
 import { getPlatformClvSummary } from "@/lib/queries/platform-clv";
@@ -75,9 +77,6 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const PINK_CTA =
-  "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)]";
-
 export default async function Home() {
   const updatedAt = new Date();
 
@@ -93,6 +92,7 @@ export default async function Home() {
     failed: leagueActionFailed,
   } = await getLeagueActionReport();
 
+  const liveTicker = await getLiveActivityTicker();
   const { moves, failed: movesFailed } = await getTodaysGradedMoves();
   const { play: featuredPlay, failed: featuredFailed } =
     await getFeaturedGradedPlay();
@@ -115,31 +115,35 @@ export default async function Home() {
         }
       />
 
-      {/* Mockup: thin What Changed strip under hero */}
-      <div className="border-border border-b bg-[color:var(--scl-ink-900)]">
-        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
-          <WhatChangedToday moves={moves} failed={movesFailed} />
+      <LiveActivityTicker items={liveTicker.items} failed={liveTicker.failed} />
+
+      {moves.length > 0 || movesFailed ? (
+        <div className="border-border border-b bg-[color:var(--scl-ink-900)]">
+          <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
+            <WhatChangedToday moves={moves} failed={movesFailed} />
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div className="mx-auto max-w-[1400px] overflow-x-hidden px-4 pt-6 pb-8 sm:px-6 sm:pt-8 sm:pb-10 lg:px-8">
-        {/* Mockup body: Top Cappers table + Featured Proof */}
-        <div className="border-border grid gap-0 border-y lg:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.85fr)] lg:items-start">
-          {/* No extra elevated board chrome — RankBoardTable owns the ink shell. */}
-          <div className="scl-scanline relative min-w-0 overflow-hidden py-5 lg:pr-6 lg:pl-5">
-            <div
-              className="pointer-events-none absolute inset-y-0 left-0 hidden w-1 bg-[color:var(--scl-blue)] lg:block"
-              aria-hidden
-            />
-            <TopCappersLive
-              cappers={topCappers}
-              failed={leaderboardFailed}
-              activeWindow="all"
-            />
-          </div>
-          <div className="min-w-0 space-y-6 px-0 py-5 lg:pl-6">
-            <FeaturedProofReceipt play={featuredPlay} failed={featuredFailed} />
-            <HomeVerificationRail />
+        {/* Top Cappers + Featured Proof — solid board panes, no scanlines */}
+        <div className="scl-board overflow-hidden">
+          <div className="relative grid gap-0 lg:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.85fr)] lg:items-start">
+            <div className="scl-board-rule relative min-w-0 overflow-hidden border-b py-5 lg:border-r lg:border-b-0 lg:pr-6 lg:pl-5">
+              <div className="scl-live-rail hidden lg:block" aria-hidden />
+              <TopCappersLive
+                cappers={topCappers}
+                failed={leaderboardFailed}
+                activeWindow="all"
+              />
+            </div>
+            <div className="min-w-0 space-y-6 px-4 py-5 sm:px-5 lg:pl-6">
+              <FeaturedProofReceipt
+                play={featuredPlay}
+                failed={featuredFailed}
+              />
+              <HomeVerificationRail />
+            </div>
           </div>
         </div>
 
@@ -184,8 +188,9 @@ export default async function Home() {
             <Button
               render={<Link href="/signup" />}
               nativeButton={false}
+              variant="brand"
               size="lg"
-              className={`min-h-11 w-full shrink-0 gap-2 sm:w-auto ${PINK_CTA}`}
+              className="min-h-11 w-full shrink-0 gap-2 sm:w-auto"
             >
               {TRACK_YOUR_RECORD_CTA}{" "}
               <ArrowRight className="size-4" aria-hidden />

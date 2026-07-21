@@ -17,8 +17,7 @@ import {
   type SubmissionReceipt,
 } from "@/lib/verification";
 
-const PINK_CTA =
-  "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)]";
+const VIEW_PICKS_CTA = "scl-cta-brand";
 
 /**
  * Post-submit confirmation — canonical ProofReceipt in expanded-paper density.
@@ -134,7 +133,7 @@ export function VerificationReceipt({
               </p>
             ) : null}
             <Button
-              className={`min-h-12 w-full text-base ${PINK_CTA}`}
+              className={`min-h-12 w-full text-base ${VIEW_PICKS_CTA}`}
               render={<Link href={picksHref} />}
               nativeButton={false}
             >

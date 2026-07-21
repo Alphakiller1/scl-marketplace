@@ -9,10 +9,6 @@ import { VerificationBadge } from "@/components/scl/badges";
 import { HERO_SLIDES } from "@/lib/hero-slides";
 import { cn } from "@/lib/utils";
 
-const PINK_CTA =
-  "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)]";
-
-/** Auto-advance interval — no manual arrows/dots chrome. */
 const AUTO_MS = 6500;
 
 export function CompetitionHero({ board }: { board?: ReactNode }) {
@@ -110,8 +106,9 @@ export function CompetitionHero({ board }: { board?: ReactNode }) {
                         />
                       }
                       nativeButton={false}
+                      variant="brand"
                       size="lg"
-                      className={`min-h-11 gap-2 ${PINK_CTA}`}
+                      className="min-h-11 gap-2"
                     >
                       {slide.cta}
                       <ArrowRight className="size-4" aria-hidden />

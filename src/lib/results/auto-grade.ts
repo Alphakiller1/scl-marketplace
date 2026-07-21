@@ -3,7 +3,7 @@ import "server-only";
 import { settleParlay } from "@/lib/grading";
 import { profitUnitsForOutcome } from "@/lib/odds";
 import { prisma } from "@/lib/prisma";
-import { clvPtsForGrade } from "@/lib/results/closing-snapshot";
+import { ensureClosingAndClv } from "@/lib/results/closing-snapshot";
 import { isDeferredProp, resolveOutcome } from "@/lib/results/match";
 import type { ResultsProvider } from "@/lib/results/provider";
 import { hasClvColumns } from "@/lib/results/schema-features";
@@ -65,6 +65,8 @@ async function gradeStraightPlays(
         eventStartsAt: true,
         side: true,
         line: true,
+        book: true,
+        league: true,
         ...(clvReady ? { closingOddsAmerican: true } : {}),
       },
       take: 500,
@@ -116,9 +118,20 @@ async function gradeStraightPlays(
       play.oddsAmerican,
       play.units,
     );
-    const clvPts = clvReady
-      ? clvPtsForGrade(play.oddsAmerican, play.closingOddsAmerican)
-      : null;
+    const clv = clvReady
+      ? await ensureClosingAndClv({
+          id: play.id,
+          sport: play.sport,
+          eventId: play.eventId,
+          book: play.book,
+          market: play.market,
+          side: play.side,
+          line: play.line,
+          league: play.league,
+          oddsAmerican: play.oddsAmerican,
+          closingOddsAmerican: play.closingOddsAmerican,
+        })
+      : { closingOddsAmerican: null, clvPts: null };
     await prisma.$transaction([
       prisma.play.update({
         where: { id: play.id },
@@ -126,7 +139,14 @@ async function gradeStraightPlays(
           outcome,
           profitUnits,
           gradedAt: new Date(),
-          ...(clvPts != null ? { clvPts } : {}),
+          ...(clv.clvPts != null ? { clvPts: clv.clvPts } : {}),
+          ...(clv.closingOddsAmerican != null &&
+          play.closingOddsAmerican == null
+            ? {
+                closingOddsAmerican: clv.closingOddsAmerican,
+                closingCapturedAt: new Date(),
+              }
+            : {}),
         },
         select: { id: true },
       }),

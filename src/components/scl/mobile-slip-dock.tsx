@@ -50,18 +50,18 @@ export function MobileSlipDock({
             boxShadow: "var(--scl-shadow-slip)",
           }}
         >
-          <span className="scl-display min-w-0 flex-1 truncate text-base font-bold tracking-[0.05em] text-[color:var(--scl-hero-text)] uppercase">
+          <span className="scl-display min-w-0 flex-1 truncate text-base font-bold tracking-[0.05em] text-[color:var(--scl-text)] uppercase">
             {countLabel}
           </span>
           {oddsLabel ? (
-            <span className="scl-data shrink-0 text-[15px] font-semibold text-[color:var(--scl-hero-text)]">
+            <span className="scl-data text-foreground shrink-0 text-[15px] font-semibold">
               {oddsLabel}
             </span>
           ) : null}
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="scl-display h-11 shrink-0 rounded-[10px] bg-[color:var(--scl-pink)] px-4 text-[15px] font-bold tracking-[0.08em] text-[color:var(--scl-pink-ink)] uppercase"
+            className="scl-cta-brand h-11 shrink-0 px-4 text-[15px]"
             aria-haspopup="dialog"
             aria-expanded={open}
           >

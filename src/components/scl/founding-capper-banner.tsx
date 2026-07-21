@@ -11,9 +11,6 @@ import {
   FOUNDING_BANNER_SECONDARY,
 } from "@/lib/cold-start-copy";
 
-const PINK_CTA =
-  "border-[color:var(--scl-pink)] bg-[color:var(--scl-pink)] text-[color:var(--scl-pink-ink)] hover:bg-[color:var(--scl-pink-deep)] hover:text-[color:var(--scl-pink-ink)]";
-
 /**
  * Editorial founding-roster recruitment — integrated strip, not a pop-up.
  */
@@ -49,8 +46,9 @@ export function FoundingCapperBanner() {
         <Button
           render={<Link href="/signup" />}
           nativeButton={false}
+          variant="brand"
           size="lg"
-          className={`min-h-11 w-full shrink-0 gap-2 sm:mt-1 sm:w-auto ${PINK_CTA}`}
+          className="min-h-11 w-full shrink-0 gap-2 sm:mt-1 sm:w-auto"
         >
           {FOUNDING_BANNER_CTA}
           <ArrowRight className="size-4" aria-hidden />
