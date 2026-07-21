@@ -157,7 +157,7 @@ export function BetSlip({
   return (
     <Card
       className={cn(
-        "scl-elevated space-y-4 border border-[color:var(--scl-pink-deep)] p-4 sm:p-5",
+        "scl-elevated space-y-4 border border-[color:color-mix(in_srgb,var(--scl-blue)_32%,var(--scl-line))] p-4 sm:p-5",
         className,
       )}
     >

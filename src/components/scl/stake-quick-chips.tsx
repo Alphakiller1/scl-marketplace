@@ -31,10 +31,10 @@ export function StakeQuickChips({
             onClick={() => onChange(u)}
             aria-pressed={active}
             className={cn(
-              "scl-data min-h-11 min-w-11 rounded-full border px-3 text-sm font-semibold tabular-nums transition-colors",
+              "scl-data min-h-11 min-w-11 rounded-[var(--scl-radius-chip)] border px-3 text-sm font-semibold tabular-nums transition-colors",
               active
-                ? "border-pink bg-pink text-pink-foreground"
-                : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30",
+                ? "scl-fill-brand"
+                : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground",
             )}
           >
             {u}U

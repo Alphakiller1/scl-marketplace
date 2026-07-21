@@ -32,7 +32,7 @@ export function LeaderboardSnapshot({
       aria-label="Leaderboard Snapshot"
     >
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0 border-t border-[color:var(--scl-pink-deep)] pt-2.5">
+        <div className="scl-section-mark min-w-0">
           <p className="scl-eyebrow">Live Board</p>
           <h2 className="scl-display mt-1 text-[1.375rem] leading-7 font-semibold tracking-[0.02em] normal-case">
             Leaderboard Snapshot

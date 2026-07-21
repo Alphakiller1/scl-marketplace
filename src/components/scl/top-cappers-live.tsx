@@ -38,7 +38,7 @@ export function TopCappersLive({
     <section className={cn("space-y-3", className)} aria-label="Top Cappers">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 border-t border-[color:var(--scl-pink-deep)] pt-2.5">
+          <div className="scl-section-mark flex items-center gap-2">
             <Trophy
               className="size-4 text-[color:var(--scl-pink)]"
               aria-hidden

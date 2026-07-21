@@ -164,7 +164,7 @@ export function LineMovedPrompt({
       aria-labelledby="line-moved-title"
       aria-describedby="line-moved-desc"
       className={cn(
-        "space-y-4 rounded-[14px] border border-[color:var(--scl-pink-deep)] bg-[color:var(--scl-ink-700)] p-4 shadow-[var(--scl-shadow-card)]",
+        "space-y-4 rounded-[14px] border border-[color:color-mix(in_srgb,var(--scl-blue)_32%,var(--scl-line))] bg-[color:var(--scl-ink-700)] p-4 shadow-[var(--scl-shadow-card)]",
         className,
       )}
     >
