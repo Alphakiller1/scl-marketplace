@@ -3,7 +3,13 @@
 import type { ReactNode } from "react";
 
 import { BettingTitle } from "@/components/scl/betting-title";
-import { formatOddsCaptureSourceLine } from "@/lib/books";
+import { BookMark } from "@/components/scl/book-mark";
+import {
+  bookLabel,
+  formatOddsCaptureSourceLine,
+  isBookKey,
+  oddsSourceBoardLabel,
+} from "@/lib/books";
 import {
   formatClvPts,
   formatClosingLine,
@@ -63,6 +69,15 @@ const STAMP_CLASS: Record<ReturnType<typeof proofStampTone>, string> = {
   push: "border-[color:var(--scl-push)] text-[color:var(--scl-push-text)]",
   muted: "border-border text-muted-foreground",
 };
+
+/** Strip SOURCE: … from capture line once the logo + board label carry it. */
+function captureLineWithoutSource(line: string): string {
+  return line
+    .replace(/\s*\/\s*SOURCE:\s*[^\u00b7]+/i, "")
+    .replace(/\s*SOURCE:\s*[^\u00b7]+/i, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
 
 /**
  * Canonical Proof Receipt — tear line, pink VERIFIED stamp, honest CLV/close.
@@ -132,6 +147,13 @@ export function ProofReceipt({
   const gradeDelayed = !settled && captureLine.includes("GRADING DELAYED");
   const showProofMeta = density !== "feed" || evidenceId != null;
   const padX = compact || paper ? "px-3.5 sm:px-5" : "px-5";
+  const sourceBoard = oddsSourceBoardLabel(book);
+  const sourceName =
+    book && isBookKey(book)
+      ? bookLabel(book)
+      : book?.trim()
+        ? book.trim()
+        : "Live Board";
 
   if (density === "text-only") {
     const text = proofReceiptTextSummary({
@@ -160,6 +182,36 @@ export function ProofReceipt({
     settlementLabel !== stamp;
   const unitsLabel = proofUnitsLabel(state);
 
+  const captureBody = (() => {
+    if (captureLine.includes("GRADES AUTOMATICALLY")) {
+      const base = captureLineWithoutSource(
+        captureLine.replace(/ · GRADES AUTOMATICALLY$/, ""),
+      );
+      return (
+        <>
+          {base}
+          {base ? " · " : null}
+          <span className="text-pos font-semibold">Grades Automatically</span>
+        </>
+      );
+    }
+    if (gradeDelayed) {
+      const base = captureLineWithoutSource(
+        captureLine.replace(/ · GRADING DELAYED — CHECK BACK SOON$/, ""),
+      );
+      return (
+        <>
+          {base}
+          {base ? " · " : null}
+          <span className="text-muted-foreground font-semibold">
+            Grading delayed — check back soon
+          </span>
+        </>
+      );
+    }
+    return captureLineWithoutSource(captureLine);
+  })();
+
   return (
     <article
       className={cn(
@@ -173,7 +225,7 @@ export function ProofReceipt({
       )}
       data-density={density}
       data-state={state}
-      aria-label={`Proof receipt: ${selectionTitle}. ${stamp}${showSettlementLine ? `, ${settlementLabel}` : ""}. Evidence ${evidenceId || "unavailable"}`}
+      aria-label={`Proof receipt: ${selectionTitle}. ${stamp}${showSettlementLine ? `, ${settlementLabel}` : ""}. Source ${sourceBoard}. Evidence ${evidenceId || "unavailable"}`}
     >
       <div
         className={cn(
@@ -202,14 +254,18 @@ export function ProofReceipt({
           {leadingMark ? (
             <span className="mt-1 shrink-0">{leadingMark}</span>
           ) : null}
+          {/*
+            Bet title uses UI + data fonts (same family stack as cell values),
+            not condensed display — keeps the ticket face consistent.
+          */}
           <BettingTitle
             as="h2"
             text={selectionTitle}
             className={cn(
-              "scl-display text-foreground min-w-0 flex-1 font-bold tracking-tight text-balance break-words whitespace-pre-line",
+              "text-foreground min-w-0 flex-1 font-[family-name:var(--scl-font-ui)] font-bold tracking-tight text-balance break-words whitespace-pre-line",
               compact
-                ? "text-xl leading-[1.1]"
-                : "text-xl leading-[1.1] sm:text-2xl sm:leading-[1.05] md:text-[1.65rem]",
+                ? "text-xl leading-[1.15]"
+                : "text-xl leading-[1.15] sm:text-[1.35rem] sm:leading-[1.2] md:text-[1.5rem]",
             )}
           />
         </div>
@@ -282,45 +338,48 @@ export function ProofReceipt({
         className="border-border relative overflow-x-clip border-t-[1.5px] border-dashed"
         aria-hidden
       >
-        <span className="bg-background border-border pointer-events-none absolute top-[-9px] left-0 size-[18px] -translate-x-1/2 rounded-full border" />
-        <span className="bg-background border-border pointer-events-none absolute top-[-9px] right-0 size-[18px] translate-x-1/2 rounded-full border" />
+        <span className="pointer-events-none absolute top-[-9px] left-0 size-[18px] -translate-x-1/2 rounded-full border border-[color:var(--border)] bg-[color:var(--scl-ink-900,#0b0f14)]" />
+        <span className="pointer-events-none absolute top-[-9px] right-0 size-[18px] translate-x-1/2 rounded-full border border-[color:var(--border)] bg-[color:var(--scl-ink-900,#0b0f14)]" />
       </div>
 
       <div
         className={cn(
-          "flex min-w-0 items-center justify-between gap-3",
+          "flex min-w-0 items-start justify-between gap-3",
           compact ? "px-3.5 pt-2.5 pb-3 sm:px-4" : `${padX} pt-3 pb-4`,
         )}
       >
-        <p
+        <div
           className={cn(
-            "scl-data scl-ticket-capture text-muted-foreground max-w-[16rem] text-[0.625rem] leading-relaxed tracking-[0.08em] uppercase",
+            "scl-ticket-capture flex min-w-0 flex-1 items-start gap-2.5",
             settling && "opacity-0",
           )}
         >
-          {captureLine.split(" · GRADES AUTOMATICALLY").length === 2 ? (
-            <>
-              {captureLine.replace(/ · GRADES AUTOMATICALLY$/, "")}
-              {" · "}
-              <span className="text-pos font-semibold">
-                Grades Automatically
-              </span>
-            </>
-          ) : gradeDelayed ? (
-            <>
-              {captureLine.replace(/ · GRADING DELAYED — CHECK BACK SOON$/, "")}
-              {" · "}
-              <span className="text-muted-foreground font-semibold">
-                Grading delayed — check back soon
-              </span>
-            </>
-          ) : (
-            captureLine
-          )}
-        </p>
-        <div className="scl-display shrink-0 text-right text-[0.8rem] font-semibold tracking-[0.06em] uppercase">
-          <span className="text-muted-foreground block">{unitsLabel}</span>
-          <span className="scl-data text-foreground text-[0.95rem] font-semibold tracking-normal normal-case">
+          <span
+            className={cn(
+              "mt-0.5 inline-flex shrink-0 items-center justify-center rounded-[5px] border border-[color:var(--border)] bg-[color:color-mix(in_srgb,#fff_55%,transparent)] p-1",
+              paper ? "shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]" : null,
+            )}
+            title={sourceName}
+          >
+            <BookMark bookKey={book} size={compact ? 16 : 20} />
+          </span>
+          <div className="min-w-0">
+            <p className="scl-eyebrow text-[color:var(--scl-muted-label)]">
+              Source
+            </p>
+            <p className="scl-data text-foreground text-sm font-semibold tracking-tight">
+              {sourceBoard}
+            </p>
+            <p className="scl-data text-muted-foreground mt-1 max-w-[18rem] text-[0.625rem] leading-relaxed tracking-[0.08em] uppercase">
+              {captureBody}
+            </p>
+          </div>
+        </div>
+        <div className="shrink-0 text-right">
+          <span className="scl-eyebrow text-muted-foreground block">
+            {unitsLabel}
+          </span>
+          <span className="scl-data text-foreground text-[0.95rem] font-semibold tracking-normal tabular-nums">
             {toWin}
           </span>
         </div>
