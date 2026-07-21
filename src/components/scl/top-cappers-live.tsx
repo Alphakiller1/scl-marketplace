@@ -43,11 +43,11 @@ export function TopCappersLive({
               className="size-4 text-[color:var(--scl-pink)]"
               aria-hidden
             />
-            <h2 className="scl-display text-[1.375rem] leading-7 font-semibold tracking-[0.04em] uppercase">
+            <h2 className="scl-display text-[1.375rem] leading-7 font-semibold tracking-[0.02em] normal-case">
               Top cappers
             </h2>
           </div>
-          <p className="text-muted-foreground mt-1 text-sm">
+          <p className="text-muted-foreground mt-1 text-sm leading-snug">
             Ranked by board-verified share, then units.
           </p>
         </div>
@@ -91,30 +91,14 @@ export function TopCappersLive({
             <table className="w-full min-w-[44rem] border-collapse text-sm">
               <thead>
                 <tr className="border-border border-b">
-                  <th className="scl-eyebrow text-muted-foreground px-2 py-2 text-left font-medium">
-                    Rank
-                  </th>
-                  <th className="scl-eyebrow text-muted-foreground px-2 py-2 text-left font-medium">
-                    Capper
-                  </th>
-                  <th className="scl-eyebrow text-muted-foreground px-2 py-2 text-left font-medium">
-                    Sports
-                  </th>
-                  <th className="scl-eyebrow text-muted-foreground px-2 py-2 text-right font-medium">
-                    Record
-                  </th>
-                  <th className="scl-eyebrow text-muted-foreground px-2 py-2 text-right font-medium">
-                    ROI
-                  </th>
-                  <th className="scl-eyebrow text-muted-foreground px-2 py-2 text-right font-medium">
-                    Units
-                  </th>
-                  <th className="scl-eyebrow text-muted-foreground px-2 py-2 text-right font-medium">
-                    Sample
-                  </th>
-                  <th className="scl-eyebrow text-muted-foreground px-2 py-2 text-right font-medium">
-                    Verified
-                  </th>
+                  <th className="scl-eyebrow px-2 py-2 text-left">Rank</th>
+                  <th className="scl-eyebrow px-2 py-2 text-left">Capper</th>
+                  <th className="scl-eyebrow px-2 py-2 text-left">Sports</th>
+                  <th className="scl-eyebrow px-2 py-2 text-right">Record</th>
+                  <th className="scl-eyebrow px-2 py-2 text-right">ROI</th>
+                  <th className="scl-eyebrow px-2 py-2 text-right">Units</th>
+                  <th className="scl-eyebrow px-2 py-2 text-right">Sample</th>
+                  <th className="scl-eyebrow px-2 py-2 text-right">Verified</th>
                   <th className="w-8 px-1 py-2">
                     <span className="sr-only">Open</span>
                   </th>
@@ -157,19 +141,13 @@ export function TopCappersLive({
                             capper={capper}
                             compact
                             verified={capper.verified}
-                            primaryClassName="text-sm"
                           />
                         </Link>
                       </td>
                       <td className="px-2 py-1.5">
                         <div className="flex items-center gap-1.5">
                           {sports.map((sport) => (
-                            <SportTag
-                              key={sport}
-                              sport={sport}
-                              markOnly
-                              className="inline-flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full [&_img]:size-3.5 [&_svg]:size-3.5"
-                            />
+                            <SportTag key={sport} sport={sport} markOnly />
                           ))}
                         </div>
                       </td>

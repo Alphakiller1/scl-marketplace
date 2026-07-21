@@ -20,12 +20,12 @@ export function LeaderboardOverview({
             Public rankings
           </div>
           <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h1 className="scl-display text-4xl font-bold tracking-[0.02em] sm:text-[2.65rem] sm:leading-none">
+            <h1 className="scl-display text-[2.5rem] leading-[2.75rem] font-bold tracking-[0.02em] normal-case sm:text-[2.5rem] sm:leading-[2.75rem]">
               Leaderboard
             </h1>
             <VerificationHelpLink />
           </div>
-          <p className="text-muted-foreground mt-2 max-w-3xl text-sm leading-snug sm:text-[0.95rem]">
+          <p className="text-muted-foreground mt-2 max-w-3xl text-base leading-relaxed">
             Tracked public records ranked within the scope you choose.
             Submission verification and provisional samples remain visible.
           </p>

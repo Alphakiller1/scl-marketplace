@@ -127,7 +127,8 @@ already in the repo.
   SQL from `docs/qa/SUPABASE_SQL_PATCHES.md` (especially `User.isTest` and
   `Play.closingOddsAmerican`) then restart `npm run dev` so schema-feature caches refresh.
 - **Mockup fidelity:** hero CTA language is locked in `design/MOCKUP_FIDELITY_HOME_CONTRACT.md`
-  — do not rewrite slide eyebrows/titles/bodies/CTAs/hrefs.
+  — do not rewrite slide eyebrows/titles/bodies/CTAs/hrefs. Hero board is snapshot-only (no
+  overlapping graded-proof receipt). League logos must stay transparent (no white boxes).
 - **Auth host gotcha:** `.env` sets `AUTH_URL=http://localhost:3000`. Browse and sign in via
   `http://localhost:3000`, not `http://127.0.0.1:3000`, or Auth.js cookies/session will not
   stick and login will look broken.

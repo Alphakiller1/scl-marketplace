@@ -65,11 +65,7 @@ export function CompactCapperRow({
         <CapperAvatar name={capper.name} src={capper.avatarUrl} size="sm" />
 
         <div className="min-w-0 flex-1">
-          <CapperIdentityLabel
-            capper={capper}
-            compact
-            primaryClassName="text-sm"
-          />
+          <CapperIdentityLabel capper={capper} compact />
           <div className="text-muted-foreground mt-0.5 flex items-center gap-1.5 text-xs">
             <SportTag sport={capper.topSport} markOnly />
             <span aria-hidden className="text-border">

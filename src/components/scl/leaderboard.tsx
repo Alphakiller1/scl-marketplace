@@ -137,26 +137,26 @@ export function Leaderboard({
             Ranked cappers for the selected scope. Metric columns are sortable.
           </caption>
           <thead>
-            <tr className="text-muted-foreground border-border border-b text-[0.65rem] font-semibold tracking-wide uppercase">
+            <tr className="border-border border-b">
               <th
                 scope="col"
-                className="w-10 px-1.5 py-2 text-left font-semibold"
+                className="scl-eyebrow w-10 px-1.5 py-2 text-left"
               >
                 <span className="sr-only">Compare</span>
               </th>
               <th
                 scope="col"
-                className="w-16 px-1.5 py-2 text-left font-semibold"
+                className="scl-eyebrow w-16 px-1.5 py-2 text-left"
               >
                 Rank
               </th>
               <th
                 scope="col"
-                className="min-w-[9.5rem] px-1.5 py-2 text-left font-semibold"
+                className="scl-eyebrow min-w-[9.5rem] px-1.5 py-2 text-left"
               >
                 Capper
               </th>
-              <th scope="col" className="px-1.5 py-2 text-left font-semibold">
+              <th scope="col" className="scl-eyebrow px-1.5 py-2 text-left">
                 Sports
               </th>
               {METRIC_SORTS.map((col) => (
@@ -229,17 +229,18 @@ function SortableTh({
       scope="col"
       aria-sort={active ? "descending" : "none"}
       className={cn(
-        "px-1.5 py-2 font-semibold",
+        "scl-eyebrow px-1.5 py-2",
         align === "right" ? "text-right" : "text-left",
       )}
     >
       <Link
         href={href}
         className={cn(
-          "hover:text-foreground text-foreground inline-flex items-center gap-0.5",
+          "hover:text-foreground inline-flex items-center gap-0.5",
           align === "right" && "justify-end",
-          active &&
-            "underline decoration-[color:var(--scl-blue)] underline-offset-4",
+          active
+            ? "text-foreground underline decoration-[color:var(--scl-blue)] underline-offset-4"
+            : "text-[color:var(--scl-muted-data)]",
         )}
       >
         {label}
@@ -347,14 +348,9 @@ function LeaderboardTableRow({
             href={`/cappers/${capper.handle}`}
             className="focus-visible:ring-ring min-h-11 min-w-0 rounded-sm focus-visible:ring-2 focus-visible:outline-none sm:min-h-0"
           >
-            <CapperIdentityLabel
-              capper={capper}
-              compact
-              verified={false}
-              primaryClassName="text-sm"
-            />
+            <CapperIdentityLabel capper={capper} compact verified={false} />
             {specialty ? (
-              <span className="text-muted-foreground mt-0.5 block truncate text-[10px] tracking-[0.06em] uppercase">
+              <span className="scl-eyebrow text-muted-foreground mt-0.5 block truncate tracking-[0.04em] normal-case">
                 {specialty}
               </span>
             ) : null}
@@ -364,17 +360,15 @@ function LeaderboardTableRow({
       <td className="px-1.5 py-1.5 align-middle">
         <div className="flex flex-nowrap items-center gap-1.5">
           {sports.map((sport) => (
-            <SportTag
-              key={sport}
-              sport={sport}
-              markOnly
-              className="inline-flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full [&_img]:size-3.5 [&_svg]:size-3.5"
-            />
+            <SportTag key={sport} sport={sport} markOnly />
           ))}
         </div>
       </td>
       <td className="px-1.5 py-1.5 text-right align-middle">
-        <StatValue tone="text" className="text-sm font-semibold tabular-nums">
+        <StatValue
+          tone="text"
+          className="scl-data text-sm font-semibold tabular-nums"
+        >
           {formatRecord(capper.record.w, capper.record.l, capper.record.p)}
         </StatValue>
       </td>
@@ -556,10 +550,10 @@ export function BuildingRecordSection({
           <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
             Outside the ranking field
           </p>
-          <h2 className="scl-display text-foreground mt-1 text-lg font-semibold">
+          <h2 className="scl-display text-foreground mt-1 text-[1.375rem] leading-7 font-semibold tracking-[0.02em] normal-case">
             Unranked public records
           </h2>
-          <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
+          <p className="text-muted-foreground mt-1 max-w-2xl text-sm leading-snug">
             These cappers are still building a record in this scope. A record
             stays unranked when it has no graded picks, misses the selected
             sample, or has negative ROI or units.

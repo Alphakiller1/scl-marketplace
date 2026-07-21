@@ -24,7 +24,7 @@ export function FeaturedProofReceipt({
 }: {
   play: FeaturedGradedPlay | null;
   failed?: boolean;
-  /** Hero collage uses the paper body only. */
+  /** When true, hide the section header (legacy collage prop — unused on home). */
   hideHeader?: boolean;
   className?: string;
 }) {
@@ -36,10 +36,10 @@ export function FeaturedProofReceipt({
       {hideHeader ? null : (
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0 border-t border-[color:var(--scl-pink-deep)] pt-2.5">
-            <h2 className="scl-display text-[1.375rem] leading-7 font-semibold tracking-[0.04em] uppercase">
+            <h2 className="scl-display text-[1.375rem] leading-7 font-semibold tracking-[0.02em] normal-case">
               Featured proof receipt
             </h2>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground mt-1 text-sm leading-snug">
               An inspectable receipt for a recent graded pick.
             </p>
           </div>

@@ -65,10 +65,10 @@ export function WhatChangedToday({
             aria-hidden
           />
           <div className="min-w-0">
-            <h2 className="scl-display text-[0.8125rem] leading-4 font-semibold tracking-[0.14em] uppercase">
+            <h2 className="scl-display text-sm font-semibold tracking-[0.02em] normal-case">
               What changed today
             </h2>
-            <p className="text-muted-foreground text-xs">
+            <p className="text-muted-foreground text-xs leading-snug">
               Rank and unit changes from picks graded today · ET
             </p>
           </div>

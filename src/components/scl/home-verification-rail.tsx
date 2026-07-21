@@ -20,11 +20,11 @@ export function HomeVerificationRail({ className }: { className?: string }) {
             className="size-4 shrink-0 text-[color:var(--scl-pink)]"
             aria-hidden
           />
-          <h2 className="scl-display text-lg font-semibold tracking-[0.04em]">
+          <h2 className="scl-display text-[1.375rem] leading-7 font-semibold tracking-[0.02em] normal-case">
             Verification
           </h2>
         </div>
-        <p className="text-muted-foreground mt-1.5 text-sm leading-snug">
+        <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
           Account checks and pick authenticity are separate. Board-verified
           means odds were captured pre-game and checked against the live market
           — not that the pick won.

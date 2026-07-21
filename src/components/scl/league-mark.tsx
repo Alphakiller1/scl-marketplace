@@ -53,7 +53,8 @@ export function LeagueMark({
   const style = {
     width: px,
     height: px,
-    backgroundColor: showLogo ? "#ffffff" : league.primaryColor,
+    // Logos sit on transparent tiles — no white boxes around league marks.
+    backgroundColor: showLogo ? "transparent" : league.primaryColor,
     color: leagueMarkTextColor(league),
     fontSize: Math.max(8, Math.round(px * 0.34)),
   } satisfies CSSProperties;
@@ -61,7 +62,10 @@ export function LeagueMark({
   return (
     <span
       className={cn(
-        "border-border/50 relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-md border font-bold tracking-wide shadow-xs",
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-bold tracking-wide",
+        showLogo
+          ? "border-0 bg-transparent shadow-none"
+          : "border-border/50 border shadow-xs",
         className,
       )}
       style={style}
@@ -77,7 +81,7 @@ export function LeagueMark({
           alt=""
           width={px}
           height={px}
-          className="size-full object-contain p-0.5"
+          className="size-full object-contain"
           loading="eager"
           decoding="async"
           referrerPolicy="no-referrer"

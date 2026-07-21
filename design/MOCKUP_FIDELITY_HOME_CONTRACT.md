@@ -20,10 +20,10 @@ Bodies remain the three strings currently in `competition-hero.tsx` `SLIDES`.
 
 ### Hero
 
-- Dual-column ≥1024: **copy rail left** · **board collage right**
+- Dual-column ≥1024: **copy rail left** · **Leaderboard snapshot board right**
 - Left: locked slide stack, Barlow Condensed display (38/40 mobile · 56/56 desktop), pink primary CTA only
-- Right: elevated **Leaderboard snapshot** card with overlapping warm **Proof Receipt** (paper) — collage, not a flat side-by-side under the fold
-- Hero height restrained — board collage shares first viewport; trophy/atmosphere is background only, never the sole hero subject
+- Right: elevated **Leaderboard snapshot** only — **no overlapping graded-proof receipt** in the first viewport (proof lives under the fold)
+- Hero height restrained — board shares first viewport; trophy/atmosphere is background only, never the sole hero subject
 - Carousel controls remain; 44px hit targets
 
 ### What changed today
@@ -59,11 +59,15 @@ Bodies remain the three strings currently in `competition-hero.tsx` `SLIDES`.
 ## Craft micro-rules (home + board chips)
 
 - Window / scope chips: `h-8`, `px-2`, `text-[10px]`, `rounded-[var(--scl-radius-chip)]` — never `rounded-full` soft pills
-- Collage empty proof still sits in warm `scl-proof-paper` shell (receipt radius), not a soft EmptyState card alone
+- Featured proof empty states sit in warm `scl-proof-paper` shell (receipt radius), under the fold only
 - Leaderboard desktop rows target ~56px; specialty (or top sport) sits under identity
+- League / team logos: **transparent** tiles when a mark image loads — no white boxes, no hairline frames around logos
+- Section titles: Barlow Condensed **sentence case** at ~22/26 (`text-[1.375rem] leading-7`); eyebrows stay uppercase Barlow
+- Metrics: Inter tabular via `.scl-data` on every numeric column
 
 ## Acceptance
 
 - Side-by-side screenshot review at 375 / 768 / 1280 / 1440 dark (+ light smoke)
 - Locked slide strings byte-equal to this contract
 - No horizontal overflow; AA text; 44px primary controls
+- No graded-proof overlay in hero; no white boxes around league logos

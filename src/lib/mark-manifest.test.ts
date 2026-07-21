@@ -7,10 +7,11 @@ import {
   teamMarkSrc,
 } from "@/lib/mark-manifest";
 
-test("leagueMarkSrc returns self-hosted PNG for major leagues", () => {
-  assert.equal(leagueMarkSrc("MLB"), "/marks/leagues/mlb.png?v=4");
-  assert.equal(leagueMarkSrc("nba"), "/marks/leagues/nba.png?v=4");
-  assert.equal(leagueMarkSrc("NCAAF"), "/marks/leagues/ncaaf.svg?v=4");
+test("leagueMarkSrc returns self-hosted marks for major leagues", () => {
+  assert.equal(leagueMarkSrc("MLB"), "/marks/leagues/mlb.png?v=6");
+  assert.equal(leagueMarkSrc("nba"), "/marks/leagues/nba.png?v=6");
+  assert.equal(leagueMarkSrc("NFL"), "/marks/leagues/nfl.svg?v=6");
+  assert.equal(leagueMarkSrc("NCAAF"), "/marks/leagues/ncaaf.svg?v=6");
   assert.equal(leagueMarkSrc(""), undefined);
   assert.equal(leagueMarkSrc("Quidditch"), undefined);
 });

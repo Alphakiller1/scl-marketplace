@@ -243,10 +243,11 @@ roles, not mockup-color approximations.
   entry may remain "Log in / Join SCL".
 - Homepage hero = rolling 3 slides with **owner-locked CTA language**
   (`src/lib/hero-slides.ts` / `design/MOCKUP_FIDELITY_HOME_CONTRACT.md`). Visual
-  composition is dual-column ≥1024: locked copy rail + Leaderboard snapshot /
-  overlapping Proof Receipt collage. Do not replace locked titles/CTAs with
-  marketing mockup lines. Body field below: What changed today strip, then Top
-  cappers dense table + Featured proof receipt (+ verification context).
+  composition is dual-column ≥1024: locked copy rail + elevated Leaderboard
+  snapshot (no overlapping graded-proof receipt in the first viewport). Do not
+  replace locked titles/CTAs with marketing mockup lines. Body field below: What
+  changed today strip, then Top cappers dense table + Featured proof receipt
+  (+ verification context). League logos render without white boxes.
 
 ## Data honesty rule
 

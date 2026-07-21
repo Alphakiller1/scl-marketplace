@@ -111,8 +111,6 @@ export default async function Home() {
             cappers={snapshot}
             leaderboardFailed={leaderboardFailed}
             updatedAt={updatedAt}
-            featuredPlay={featuredPlay}
-            featuredFailed={featuredFailed}
           />
         }
       />
