@@ -1,4 +1,5 @@
-import { ClvDistributionChart } from "@/components/scl/clv-distribution-chart";
+import dynamic from "next/dynamic";
+
 import { ClvExplainer } from "@/components/scl/clv-explainer";
 import { StatBlock } from "@/components/scl/stat";
 import { CLV_TOOLTIP_SHORT } from "@/lib/clv";
@@ -10,6 +11,22 @@ import { formatClvPts, missingCloseOrClvTooltip } from "@/lib/proof-receipt";
 import { MIN_GRADED_FOR_SIGNAL } from "@/lib/sample";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
 import { cn } from "@/lib/utils";
+
+const ClvDistributionChart = dynamic(
+  () =>
+    import("@/components/scl/clv-distribution-chart").then(
+      (mod) => mod.ClvDistributionChart,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="bg-surface-2 h-44 w-full animate-pulse rounded-[10px]"
+        aria-hidden
+      />
+    ),
+  },
+);
 
 /**
  * Platform CLV evidence module — stored snapshot metrics + distribution.
