@@ -1,0 +1,176 @@
+name: Seed production ghosts
+
+# Populates @ghost.scl.demo cappers on the live production database.
+# Primary: CRON_SECRET → chunked POST /api/admin/seed-ghosts
+# Fallback: Production DATABASE_URL or Vercel CLI env pull
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: seed-production-ghosts
+  cancel-in-progress: false
+
+jobs:
+  seed-via-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      api_ok: ${{ steps.result.outputs.api_ok }}
+    steps:
+      - name: Check CRON_SECRET
+        id: cfg
+        run: |
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "CRON_SECRET missing — will try DB URL fallback." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Chunked ghost seed via production API
+        if: steps.cfg.outputs.ready == 'true'
+        id: api
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SEED_URL: ${{ secrets.CRON_SEED_GHOSTS_URL }}
+        run: |
+          URL="${SEED_URL:-https://scl-marketplace.vercel.app/api/admin/seed-ghosts}"
+          auth() { curl -sS -H "Authorization: Bearer ${CRON_SECRET}" -H "Content-Type: application/json" -H "Accept: application/json" "$@"; }
+
+          echo "Probing endpoint…"
+          code=$(curl -sS -o /tmp/probe.json -w "%{http_code}" -H "Authorization: Bearer ${CRON_SECRET}" "$URL")
+          echo "GET HTTP $code"
+          cat /tmp/probe.json || true
+          if [ "$code" != "200" ]; then
+            echo "Endpoint not ready (HTTP $code). Fallback will run." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          echo "Wiping prior ghosts…"
+          wipe=$(auth -X POST -d '{"wipeOnly":true}' "$URL")
+          echo "$wipe"
+          echo "$wipe" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8")); if(!d.ok) process.exit(1)'
+
+          offset=0
+          limit=3
+          for i in $(seq 1 40); do
+            echo "Chunk offset=$offset limit=$limit"
+            body=$(node -e "console.log(JSON.stringify({skipWipe:true,offset:$offset,limit:$limit}))")
+            resp=$(auth -X POST -d "$body" "$URL")
+            echo "$resp"
+            parsed=$(echo "$resp" | node -e '
+              const d=JSON.parse(require("fs").readFileSync(0,"utf8"));
+              if(!d.ok) { console.error(d.error||d); process.exit(2); }
+              console.log([d.seeded||0,d.remaining||0,d.done?1:0,d.total||0].join(" "));
+            ')
+            seeded=$(echo "$parsed" | awk '{print $1}')
+            remaining=$(echo "$parsed" | awk '{print $2}')
+            done=$(echo "$parsed" | awk '{print $3}')
+            total=$(echo "$parsed" | awk '{print $4}')
+            offset=$((offset + seeded))
+            echo "progress offset=$offset remaining=$remaining total=$total"
+            if [ "$done" = "1" ] || [ "$remaining" = "0" ]; then
+              echo "### ✅ Ghost seed complete via API (total roster $total)" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "### ❌ Seed did not finish within chunk budget" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+
+      - name: Record result
+        id: result
+        if: always()
+        run: |
+          if [ "${{ steps.api.outcome }}" = "success" ]; then
+            echo "api_ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "api_ok=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  seed-via-db-url:
+    needs: seed-via-api
+    if: needs.seed-via-api.outputs.api_ok != 'true'
+    runs-on: ubuntu-latest
+    environment: Production
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Resolve DATABASE_URL
+        id: db
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          if [ -n "$DATABASE_URL" ]; then
+            echo "mode=secret" >> "$GITHUB_OUTPUT"
+            echo "Using Production environment DATABASE_URL secret." >> "$GITHUB_STEP_SUMMARY"
+            {
+              echo "DATABASE_URL=$DATABASE_URL"
+              [ -n "$DIRECT_URL" ] && echo "DIRECT_URL=$DIRECT_URL"
+            } >> "$GITHUB_ENV"
+            exit 0
+          fi
+          if [ -n "$VERCEL_TOKEN" ] && [ -n "$VERCEL_ORG_ID" ] && [ -n "$VERCEL_PROJECT_ID" ]; then
+            npm install -g vercel@latest
+            vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+            FILE=""
+            for f in .vercel/.env.production.local .env.production.local .env; do
+              [ -f "$f" ] && FILE="$f" && break
+            done
+            if [ -z "$FILE" ]; then
+              echo "vercel pull produced no env file" >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+            fi
+            node <<'NODE'
+              const fs = require("fs");
+              const file = process.env.FILE;
+              const text = fs.readFileSync(file, "utf8");
+              for (const line of text.split(/\n/)) {
+                const m = line.match(/^(DATABASE_URL|DIRECT_URL)=(.*)$/);
+                if (!m) continue;
+                let v = m[2].trim();
+                if (
+                  (v.startsWith('"') && v.endsWith('"')) ||
+                  (v.startsWith("'") && v.endsWith("'"))
+                ) {
+                  v = v.slice(1, -1);
+                }
+                fs.appendFileSync(process.env.GITHUB_ENV, `${m[1]}=${v}\n`);
+              }
+            NODE
+            FILE="$FILE" node -e '
+              const fs=require("fs");
+              const text=fs.readFileSync(process.env.FILE,"utf8");
+              for (const line of text.split(/\n/)) {
+                const m=line.match(/^(DATABASE_URL|DIRECT_URL)=(.*)$/);
+                if (!m) continue;
+                let v=m[2].trim();
+                if ((v.startsWith("\"") && v.endsWith("\"")) || (v.startsWith("'\''") && v.endsWith("'\''"))) v=v.slice(1,-1);
+                fs.appendFileSync(process.env.GITHUB_ENV, m[1]+"="+v+"\n");
+              }
+            '
+            echo "mode=vercel" >> "$GITHUB_OUTPUT"
+            echo "Pulled DATABASE_URL via Vercel CLI." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "### ❌ No DATABASE_URL and no Vercel CLI secrets" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+
+      - name: Seed ghosts
+        env:
+          GHOST_SEED: "1"
+          GHOST_SEED_FORCE: "1"
+        run: |
+          npm run seed:ghosts
+          echo "### ✅ Ghost seed complete via DB URL" >> "$GITHUB_STEP_SUMMARY"
