@@ -23,7 +23,7 @@ Bodies remain the three strings currently in `competition-hero.tsx` `SLIDES`.
 - Dual-column ≥1024: **copy rail left** · **Leaderboard snapshot board right**
 - Left: locked slide stack, Barlow Condensed display (38/40 mobile · 56/56 desktop), pink primary CTA only
 - Right: elevated **Leaderboard snapshot** only — **no overlapping graded-proof receipt** in the first viewport (proof lives under the fold)
-- Hero height restrained — board shares first viewport; trophy/atmosphere is background only, never the sole hero subject
+- Hero height restrained — board shares first viewport; no photographic trophy/hero plate behind the board (ink + subtle radial atmosphere only)
 - Carousel controls remain; 44px hit targets
 
 ### What changed today

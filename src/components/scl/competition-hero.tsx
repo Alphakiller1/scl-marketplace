@@ -46,32 +46,10 @@ export function CompetitionHero({ board }: { board?: ReactNode }) {
         }
       }}
     >
+      {/* Atmosphere only — no photographic trophy/hero plate behind the board. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(90%_80%_at_78%_48%,rgba(16,95,217,0.22),transparent_55%),radial-gradient(70%_70%_at_18%_40%,rgba(166,0,127,0.14),transparent_50%),linear-gradient(180deg,var(--scl-hero-ink),var(--scl-hero-ink-raised))]"
-      />
-      <picture className="pointer-events-none absolute inset-0 block size-full">
-        <source
-          media="(min-width: 640px)"
-          srcSet="/assets/scl/leaderboard-hero-integrated-v4.webp"
-        />
-        <img
-          src="/assets/scl/leaderboard-hero-atmosphere-mobile.webp?v=20260717f5"
-          alt=""
-          width="2400"
-          height="1200"
-          fetchPriority="high"
-          decoding="async"
-          className="absolute inset-0 size-full max-w-none object-cover object-center opacity-[0.55]"
-        />
-      </picture>
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-gradient-to-r from-[color:var(--scl-hero-ink)]/80 via-[color:var(--scl-hero-ink)]/45 to-[color:var(--scl-hero-ink)]/25"
-      />
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-gradient-to-t from-[color:var(--scl-hero-ink)]/50 via-transparent to-[color:var(--scl-hero-ink)]/20"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(90%_80%_at_78%_48%,rgba(16,95,217,0.18),transparent_55%),radial-gradient(70%_70%_at_18%_40%,rgba(166,0,127,0.12),transparent_50%),linear-gradient(180deg,var(--scl-hero-ink),var(--scl-hero-ink-raised))]"
       />
 
       <div className="relative mx-auto grid w-full max-w-[1400px] gap-8 px-4 py-7 sm:px-6 sm:py-9 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.95fr)] lg:items-center lg:gap-10 lg:px-8 lg:py-10">
