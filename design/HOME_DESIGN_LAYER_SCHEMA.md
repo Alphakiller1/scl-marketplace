@@ -9,8 +9,9 @@ remains locked in `MOCKUP_FIDELITY_HOME_CONTRACT.md`.
 ```
 ┌─────────────────────────────┬──────────────────────────────┐
 │ Copy rail (locked slides)   │ Elevated Live board          │
-│ eyebrow · title · body ·    │ SECTION HEAD (pink hairline) │
-│ pink CTA · carousel         │ RankBoardTable density=      │
+│ eyebrow · title · body ·    │ SECTION HEAD (.scl-section-  │
+│ brand CTA · carousel        │   mark pill, not full line)  │
+│                             │ RankBoardTable density=      │
 │                             │   snapshot                   │
 │                             │ Rank·Capper(+specialty)·     │
 │                             │ Sports·Record·ROI·Units·     │
@@ -21,14 +22,18 @@ remains locked in `MOCKUP_FIDELITY_HOME_CONTRACT.md`.
  Grid: copy ~0.9fr · board minmax(26rem, 1.15fr) — board must host schema
 ```
 
-## Under hero (thin strip only)
+## Under hero (thin strip only — one strip, never both)
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│ What Changed Today · horizontal ticker chips · Today · ET  │
+│ Prefer: LiveActivityTicker (wins / +CLV / new pick chips)  │
+│ Fallback: What Changed Today (rank/unit move chips)        │
 │ Height ~44–56px. Never a multi-row second board.           │
 └────────────────────────────────────────────────────────────┘
 ```
+
+When the live marquee has items, render `LiveActivityTicker` only.
+Otherwise render `WhatChangedToday` (including its empty open line).
 
 ## Body evidence field
 
@@ -45,12 +50,12 @@ remains locked in `MOCKUP_FIDELITY_HOME_CONTRACT.md`.
 
 ## Density models (do not cross)
 
-| Surface         | Model                                  | Component                             | Forbidden                                         |
-| --------------- | -------------------------------------- | ------------------------------------- | ------------------------------------------------- |
-| Hero Live board | Rank-schema table, snapshot density    | `RankBoardTable` via `LiveBoardShell` | CompactCapperRow / soft cards / overlapping proof |
-| What Changed    | Horizontal ticker chips (`h-8`/`px-2`) | `WhatChangedToday`                    | Tall headed list / second board                   |
-| Top Cappers     | Rank-schema table, live density        | `RankBoardTable` via `TopCappersLive` | Soft avatar list / private table dialect          |
-| Featured Proof  | Ticket paper receipt                   | `FeaturedProofReceipt`                | Soft empty card wall without paper shell          |
+| Surface          | Model                                  | Component                                      | Forbidden                                         |
+| ---------------- | -------------------------------------- | ---------------------------------------------- | ------------------------------------------------- |
+| Hero Live board  | Rank-schema table, snapshot density    | `RankBoardTable` via `LiveBoardShell`          | CompactCapperRow / soft cards / overlapping proof |
+| Under-hero strip | Horizontal ticker chips (`h-8`/`px-2`) | `LiveActivityTicker` → else `WhatChangedToday` | Dual strips / tall headed list / second board     |
+| Top Cappers      | Rank-schema table, live density        | `RankBoardTable` via `TopCappersLive`          | Soft avatar list / private table dialect          |
+| Featured Proof   | Ticket paper receipt                   | `FeaturedProofReceipt`                         | Soft empty card wall without paper shell          |
 
 **One Rank body.** Hero snapshot and Top Cappers share `RankBoardTable` — do not fork column markup.
 

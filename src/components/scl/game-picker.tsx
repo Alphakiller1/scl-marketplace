@@ -235,22 +235,22 @@ export function GamePicker({
   ].filter((pill) => pill.key === "all" || pill.count > 0);
 
   return (
-    <Card className={cn("scl-scanline relative space-y-3 p-4", className)}>
-      <div className="flex items-baseline justify-between gap-2 border-t border-[color:var(--scl-pink-deep)] pt-2.5">
+    <Card className={cn("scl-elevated relative space-y-3 p-4", className)}>
+      <div className="scl-section-mark flex items-baseline justify-between gap-2">
         <h2 className="scl-display text-sm font-semibold tracking-[0.08em] uppercase">
-          Market board
+          Market Board
         </h2>
         <span className="scl-data text-[0.625rem] tracking-[0.1em] text-[color:var(--scl-muted-data)] uppercase">
           {openEvent
-            ? "Focused matchup"
-            : `Pre-game board · ${loading ? "…" : visible.length} matchups`}
+            ? "Focused Matchup"
+            : `Pre-Game Board · ${loading ? "…" : visible.length} Matchups`}
         </span>
       </div>
 
       {profileBooks.length > 0 ? (
         <div className="space-y-1.5">
           <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
-            Source book
+            Source Book
           </p>
           <BookRail
             books={profileBooks}

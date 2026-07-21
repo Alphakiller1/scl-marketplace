@@ -34,7 +34,13 @@ export function RankBoardTable({
 }) {
   const compact = density === "snapshot";
   const cell = compact ? "px-1.5 py-1.5" : "px-2 py-1.5";
-  const meterW = compact ? "w-[4.25rem]" : "w-[4.75rem]";
+  /** Dedicated columns so Sample / Verified meters never collide. */
+  const sampleCol = compact
+    ? "w-[5.5rem] min-w-[5.5rem]"
+    : "w-[6rem] min-w-[6rem]";
+  const verifiedCol = compact
+    ? "w-[6.75rem] min-w-[6.75rem]"
+    : "w-[7.25rem] min-w-[7.25rem]";
 
   return (
     <div
@@ -46,7 +52,7 @@ export function RankBoardTable({
       <table
         className={cn(
           "w-full border-collapse text-sm",
-          compact ? "min-w-[32rem]" : "min-w-[44rem]",
+          compact ? "min-w-[36rem]" : "min-w-[48rem]",
         )}
       >
         <caption className="sr-only">{caption}</caption>
@@ -66,8 +72,12 @@ export function RankBoardTable({
             <th className={cn("scl-eyebrow text-right", cell)}>Record</th>
             <th className={cn("scl-eyebrow text-right", cell)}>ROI</th>
             <th className={cn("scl-eyebrow text-right", cell)}>Units</th>
-            <th className={cn("scl-eyebrow text-right", cell)}>Sample</th>
-            <th className={cn("scl-eyebrow text-right", cell)}>Verified</th>
+            <th className={cn("scl-eyebrow text-right", sampleCol, cell)}>
+              Sample
+            </th>
+            <th className={cn("scl-eyebrow text-right", verifiedCol, cell)}>
+              Verified
+            </th>
             <th className={cn(compact ? "w-6 px-1 py-1.5" : "w-8 px-1 py-2")}>
               <span className="sr-only">Open</span>
             </th>
@@ -76,7 +86,8 @@ export function RankBoardTable({
         <tbody>
           {cappers.map((capper, i) => {
             const graded = capper.settledPicks ?? 0;
-            const rank = capper.rank > 0 ? capper.rank : i + 1;
+            // Rank follows this board's order (parent already sorted).
+            const rank = i + 1;
             const sports = (
               capper.sports?.length ? capper.sports : [capper.topSport]
             )
@@ -168,14 +179,14 @@ export function RankBoardTable({
                 >
                   {formatUnits(capper.units)}
                 </td>
-                <td className={cn(cell, "align-middle")}>
-                  <div className={cn("ml-auto", meterW)}>
+                <td className={cn(cell, sampleCol, "align-middle")}>
+                  <div className="ml-auto w-full max-w-full">
                     <SampleMaturityMeter graded={graded} compact />
                   </div>
                 </td>
-                <td className={cn(cell, "align-middle")}>
-                  <div className={cn("ml-auto", meterW)}>
-                    <VerifiedShareMeter pct={capper.verifiedShare} />
+                <td className={cn(cell, verifiedCol, "align-middle")}>
+                  <div className="ml-auto w-full max-w-full">
+                    <VerifiedShareMeter pct={capper.verifiedShare} compact />
                   </div>
                 </td>
                 <td

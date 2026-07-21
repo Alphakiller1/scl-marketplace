@@ -231,7 +231,7 @@ export function OddsAssist({
   return (
     <Card
       className={cn(
-        "scl-scanline relative space-y-3 p-4 transition-opacity duration-150 ease-out",
+        "scl-elevated relative space-y-3 p-4 transition-opacity duration-150 ease-out",
         switchPhase === "out" && "opacity-50",
         switchPhase === "in" && "scl-board-fade-in",
       )}
@@ -242,7 +242,7 @@ export function OddsAssist({
           aria-hidden
         />
       ) : null}
-      <div className="flex items-baseline justify-between gap-2 border-t border-[color:var(--scl-pink-deep)] pt-2.5">
+      <div className="scl-section-mark flex items-baseline justify-between gap-2">
         <h2 className="scl-display text-sm font-semibold tracking-[0.08em] uppercase">
           {boardSport} Board
         </h2>

@@ -25,10 +25,6 @@ export function LiveBoardShell({
       )}
     >
       <div className="scl-elevated border-border relative overflow-hidden rounded-[var(--scl-radius-card)] border bg-[color:var(--scl-ink-800)]">
-        <div
-          className="scl-scanline pointer-events-none absolute inset-0 opacity-80"
-          aria-hidden
-        />
         <div className="relative p-3 sm:p-4">
           <LeaderboardSnapshot
             cappers={cappers}

@@ -12,7 +12,7 @@ export function DiscoverOverview({
   failed?: boolean;
 }) {
   return (
-    <header className="border-t border-[color:var(--scl-pink-deep)] pt-3 sm:pt-4">
+    <header className="scl-section-mark pt-3 sm:pt-4">
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
           <div className="scl-eyebrow flex items-center gap-2 text-[color:var(--scl-muted-data)]">
@@ -20,7 +20,7 @@ export function DiscoverOverview({
               className="size-3.5 text-[color:var(--scl-blue)]"
               aria-hidden
             />
-            Public evidence directory
+            Public Evidence Directory
           </div>
           <h1 className="scl-display mt-1.5 text-4xl font-bold tracking-[0.02em] sm:text-[2.65rem] sm:leading-none">
             Discover

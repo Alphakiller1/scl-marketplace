@@ -30,7 +30,7 @@ export function SampleMaturityMeter({
     <div
       className={cn(
         "bg-surface-2 border-border overflow-hidden rounded-full border",
-        compact ? "h-1 min-w-[3.25rem] flex-1" : "h-1.5",
+        compact ? "h-1 min-w-0 flex-1" : "h-1.5",
       )}
       role="meter"
       aria-valuemin={0}
@@ -55,7 +55,7 @@ export function SampleMaturityMeter({
     return (
       <div
         className={cn(
-          "flex min-w-[5rem] items-center justify-end gap-1.5",
+          "flex w-full min-w-0 items-center justify-end gap-1.5",
           className,
         )}
       >

@@ -32,13 +32,13 @@ function kindMeta(kind: LiveTickerItem["kind"]): {
       };
     case "clv":
       return {
-        label: "Beat close",
+        label: "Beat Close",
         Icon: TrendingUp,
         tone: "text-pos",
       };
     case "posted":
       return {
-        label: "New pick",
+        label: "New Pick",
         Icon: Sparkles,
         tone: "text-[color:var(--scl-blue)]",
       };

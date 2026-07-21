@@ -115,15 +115,19 @@ export default async function Home() {
         }
       />
 
-      <LiveActivityTicker items={liveTicker.items} failed={liveTicker.failed} />
-
-      {moves.length > 0 || movesFailed ? (
+      {/* One under-hero strip: live marquee when present, else What Changed. */}
+      {liveTicker.items.length > 0 ? (
+        <LiveActivityTicker
+          items={liveTicker.items}
+          failed={liveTicker.failed}
+        />
+      ) : (
         <div className="border-border border-b bg-[color:var(--scl-ink-900)]">
           <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
             <WhatChangedToday moves={moves} failed={movesFailed} />
           </div>
         </div>
-      ) : null}
+      )}
 
       <div className="mx-auto max-w-[1400px] overflow-x-hidden px-4 pt-6 pb-8 sm:px-6 sm:pt-8 sm:pb-10 lg:px-8">
         {/* Top Cappers + Featured Proof — solid board panes, no scanlines */}

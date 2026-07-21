@@ -480,10 +480,7 @@ export function LeagueActionReport({
       data-visual-mode="live"
     >
       {/* Live cobalt rail */}
-      <div
-        className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-[color:var(--scl-blue)]"
-        aria-hidden
-      />
+      <div className="scl-live-rail" aria-hidden />
 
       {/* Flat ink-800 header + structural hairline (no gradient) */}
       <div className="border-border flex flex-wrap items-end justify-between gap-4 border-b px-4 py-4 pl-5 sm:px-5 sm:pl-6">
@@ -499,7 +496,7 @@ export function LeagueActionReport({
           />
         </div>
         <div className="flex flex-col items-end gap-1">
-          <p className="scl-eyebrow text-right">Last {windowDays} days</p>
+          <p className="scl-eyebrow text-right">Last {windowDays} Days</p>
           <ButtonishPicksLink label="Open Pick Feed" />
         </div>
       </div>

@@ -430,7 +430,7 @@ function LeaderboardTableRow({
         </div>
       </td>
       <td className="min-w-[6.5rem] overflow-hidden px-1.5 py-2 text-right align-middle">
-        <VerifiedShareMeter pct={capper.verifiedShare} />
+        <VerifiedShareMeter pct={capper.verifiedShare} compact />
       </td>
       <td className="px-1.5 py-2 text-right align-middle">
         {capper.recentForm.length ? (

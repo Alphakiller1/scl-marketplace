@@ -272,7 +272,7 @@ export function EvidenceBrief({
 
   const latestProof = (
     <section aria-label="Featured proof receipt" className="min-w-0 space-y-2">
-      <div className="border-t border-[color:var(--scl-pink-deep)] pt-2 lg:border-t-0 lg:pt-0">
+      <div className="scl-section-mark lg:pt-0 lg:[&::before]:mb-0 lg:[&::before]:hidden">
         <h2 className="scl-display text-base font-semibold tracking-[0.02em] normal-case">
           Latest Proof
         </h2>

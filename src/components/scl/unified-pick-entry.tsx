@@ -345,11 +345,11 @@ function UnifiedPickEntryInner() {
       <div className="mx-auto max-w-md space-y-4">
         <div className="space-y-1">
           <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
-            Pick submitted
+            Pick Submitted
           </p>
-          <div className="border-t border-[color:var(--scl-pink-deep)] pt-2.5">
+          <div className="scl-section-mark">
             <h1 className="scl-display text-2xl leading-tight font-semibold tracking-[0.04em]">
-              Proof receipt
+              Proof Receipt
             </h1>
             <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
               Your pick is now an inspectable record — odds captured and
@@ -408,11 +408,11 @@ function UnifiedPickEntryInner() {
 
       <header>
         <p className="scl-eyebrow mb-1 text-[color:var(--scl-muted-data)]">
-          Board record entry
+          Board Record Entry
         </p>
-        <div className="border-t border-[color:var(--scl-pink-deep)] pt-2.5">
+        <div className="scl-section-mark">
           <h1 className="scl-display text-2xl leading-tight font-semibold tracking-[0.04em] sm:text-3xl">
-            Log a pick
+            Log A Pick
           </h1>
           <p className="text-muted-foreground mt-1 max-w-2xl text-sm leading-relaxed">
             Choose a source book, open a matchup, and capture a pre-game price
