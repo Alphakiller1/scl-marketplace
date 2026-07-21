@@ -101,7 +101,7 @@ export default async function Home() {
 
   // Snapshot = board place by units. Top cappers = inspectability by verified share.
   const snapshot = sortLeaderboard(cappers, "units").slice(0, 5);
-  const topCappers = sortLeaderboard(cappers, "verified").slice(0, 5);
+  const topCappers = sortLeaderboard(cappers, "verified").slice(0, 10);
 
   return (
     <>
