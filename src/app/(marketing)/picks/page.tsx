@@ -54,7 +54,7 @@ export default async function PicksPage({
     >
       <header className="border-border border-b pb-5 sm:pb-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="max-w-3xl border-l-2 border-l-[color:var(--scl-pink)] pl-3 sm:pl-4">
+          <div className="scl-section-mark max-w-3xl">
             <p className="scl-eyebrow text-[color:var(--scl-muted-label)]">
               SCL Public Evidence Ledger
             </p>

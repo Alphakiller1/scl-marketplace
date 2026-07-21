@@ -13,15 +13,16 @@ export function LeaderboardRankingRail({ className }: { className?: string }) {
   return (
     <aside
       className={cn(
-        "border-border bg-card space-y-3 rounded-[14px] border p-3",
+        "border-border scl-elevated relative space-y-3 overflow-hidden rounded-[14px] border p-3 pl-4",
         className,
       )}
       aria-label={HOW_RANKING_WORKS_TITLE}
     >
+      <div className="scl-live-rail" aria-hidden />
       <div className="space-y-1.5">
         <div className="flex items-center gap-1.5">
           <Info
-            className="size-3.5 shrink-0 text-[color:var(--scl-muted-label)]"
+            className="size-3.5 shrink-0 text-[color:var(--scl-blue)]"
             aria-hidden
           />
           <h2 className="scl-display text-sm font-bold tracking-[0.04em]">

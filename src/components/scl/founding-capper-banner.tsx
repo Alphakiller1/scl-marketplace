@@ -18,7 +18,7 @@ export function FoundingCapperBanner() {
   return (
     <section
       aria-labelledby="founding-cappers-title"
-      className="border-border bg-card overflow-hidden rounded-xl border"
+      className="border-border scl-board overflow-hidden rounded-xl border"
     >
       <div className="flex flex-col gap-5 p-4 sm:flex-row sm:items-start sm:justify-between sm:gap-8 sm:p-6">
         <div className="min-w-0 flex-1">

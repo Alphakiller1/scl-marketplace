@@ -30,7 +30,7 @@ export function DiscoverLaneSection({
       aria-labelledby={`discover-lane-${lane.id}`}
       data-visual-mode="rank"
     >
-      <div className="min-w-0 border-t border-[color:var(--scl-line)] pt-3">
+      <div className="scl-section-mark min-w-0">
         <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
           <div className="flex min-w-0 items-start gap-3">
             <span
@@ -54,7 +54,7 @@ export function DiscoverLaneSection({
           <dl className="flex shrink-0 items-center gap-4 pl-6 sm:pl-0">
             <div>
               <dt className="scl-eyebrow text-[color:var(--scl-muted-data)]">
-                Primary measure
+                Primary Measure
               </dt>
               <dd className="scl-data mt-0.5 text-sm font-bold">
                 {lane.primaryLabel}
@@ -66,7 +66,7 @@ export function DiscoverLaneSection({
                   Preview
                 </dt>
                 <dd className="scl-data mt-0.5 text-sm font-bold tabular-nums">
-                  {lane.entries.length} shown
+                  {lane.entries.length} Shown
                 </dd>
               </div>
             ) : null}
@@ -85,9 +85,9 @@ export function DiscoverLaneSection({
           }
         />
       ) : (
-        <ul className="divide-border border-border divide-y border-y">
+        <ul className="divide-border border-border scl-elevated divide-y overflow-hidden rounded-[14px] border">
           {lane.entries.map((entry) => (
-            <li key={`${lane.id}-${entry.capper.id}`}>
+            <li key={`${lane.id}-${entry.capper.id}`} className="px-3 sm:px-4">
               <DiscoverLaneCard entry={entry} />
             </li>
           ))}

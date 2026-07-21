@@ -31,9 +31,9 @@ export function DiscoverOverview({
           </p>
         </div>
 
-        <dl className="border-border hidden shrink-0 grid-cols-2 overflow-hidden rounded-[10px] border sm:grid">
+        <dl className="hidden shrink-0 grid-cols-2 gap-2 sm:grid">
           <CompactMetric
-            label={matchedLaneCount === 1 ? "Matched lane" : "Matched lanes"}
+            label={matchedLaneCount === 1 ? "Matched Lane" : "Matched Lanes"}
             value={
               failed
                 ? "—"
@@ -42,7 +42,7 @@ export function DiscoverOverview({
           />
           <CompactMetric
             label={
-              publicRecordCount === 1 ? "Record in scope" : "Records in scope"
+              publicRecordCount === 1 ? "Record In Scope" : "Records In Scope"
             }
             value={failed ? "—" : publicRecordCount.toLocaleString()}
           />
@@ -54,7 +54,7 @@ export function DiscoverOverview({
 
 function CompactMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border-border min-w-28 border-r px-4 py-2.5 last:border-r-0">
+    <div className="border-border min-w-28 overflow-hidden rounded-[12px] border bg-[linear-gradient(165deg,color-mix(in_srgb,var(--scl-ink-700)_88%,#fff_4%)_0%,var(--scl-ink-800)_100%)] px-4 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
       <dt className="scl-eyebrow text-[color:var(--scl-muted-data)]">
         {label}
       </dt>

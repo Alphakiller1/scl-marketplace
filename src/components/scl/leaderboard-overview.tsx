@@ -31,15 +31,15 @@ export function LeaderboardOverview({
           </p>
         </div>
 
-        <dl className="border-border hidden shrink-0 grid-cols-2 overflow-hidden rounded-[10px] border sm:grid">
+        <dl className="hidden shrink-0 grid-cols-2 gap-2 sm:grid">
           <CompactMetric
             label={
-              summary.rankedCappers === 1 ? "Ranked capper" : "Ranked cappers"
+              summary.rankedCappers === 1 ? "Ranked Capper" : "Ranked Cappers"
             }
             value={summary.rankedCappers.toLocaleString()}
           />
           <CompactMetric
-            label={summary.trackedPicks === 1 ? "Graded pick" : "Graded picks"}
+            label={summary.trackedPicks === 1 ? "Graded Pick" : "Graded Picks"}
             value={summary.trackedPicks.toLocaleString()}
           />
         </dl>
@@ -50,7 +50,7 @@ export function LeaderboardOverview({
 
 function CompactMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border-border min-w-28 border-r px-4 py-2.5 last:border-r-0">
+    <div className="border-border min-w-28 overflow-hidden rounded-[12px] border bg-[linear-gradient(165deg,color-mix(in_srgb,var(--scl-ink-700)_88%,#fff_4%)_0%,var(--scl-ink-800)_100%)] px-4 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
       <dt className="scl-eyebrow text-[color:var(--scl-muted-data)]">
         {label}
       </dt>
