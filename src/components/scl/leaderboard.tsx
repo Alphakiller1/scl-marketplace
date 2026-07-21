@@ -261,7 +261,7 @@ function SortableTh({
       scope="col"
       aria-sort={active ? "descending" : "none"}
       className={cn(
-        "px-1.5 py-2 font-semibold",
+        "px-1.5 py-0 font-semibold",
         align === "right" ? "text-right" : "text-left",
         className,
       )}
@@ -271,7 +271,7 @@ function SortableTh({
         scroll={false}
         title={`Sort by ${label}`}
         className={cn(
-          "hover:text-foreground focus-visible:ring-ring inline-flex min-h-8 cursor-pointer items-center gap-0.5 rounded-md px-1 transition-colors focus-visible:ring-2 focus-visible:outline-none",
+          "hover:text-foreground focus-visible:ring-ring inline-flex min-h-11 min-w-11 cursor-pointer items-center gap-0.5 rounded-md px-1 transition-colors focus-visible:ring-2 focus-visible:outline-none",
           align === "right" && "justify-end",
           active
             ? "text-foreground underline decoration-[color:var(--scl-blue)] underline-offset-4"

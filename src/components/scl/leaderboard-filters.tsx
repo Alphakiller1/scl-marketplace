@@ -35,7 +35,7 @@ export function LeaderboardFilters({
 
   return (
     <div className="mt-3 space-y-2">
-      <details className="border-border scl-elevated overflow-hidden rounded-[10px] border md:hidden">
+      <details className="border-border scl-elevated overflow-hidden rounded-[10px] border lg:hidden">
         <summary className="focus-visible:ring-ring flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 outline-none focus-visible:ring-2 focus-visible:ring-inset">
           <span className="flex items-center gap-2 text-sm font-semibold">
             <SlidersHorizontal
@@ -62,7 +62,7 @@ export function LeaderboardFilters({
         />
       </details>
 
-      <div className="hidden md:block">
+      <div className="hidden lg:block">
         <ScopeForm
           filters={filters}
           action={action}

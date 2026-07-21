@@ -286,7 +286,7 @@ export function EvidenceBrief({
         <EmptyState
           icon={Receipt}
           title="Couldn't load latest proof"
-          description="Try Again Shortly."
+          description="Try again shortly."
         />
       ) : (
         <EmptyState
