@@ -30,16 +30,16 @@ export function FeaturedProofReceipt({
 }) {
   return (
     <section
-      className={cn("space-y-3", className)}
+      className={cn("space-y-5", className)}
       aria-label="Featured Proof Receipt"
     >
       {hideHeader ? null : (
-        <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="scl-section-mark min-w-0">
             <h2 className="scl-display text-[1.375rem] leading-7 font-semibold tracking-[0.02em] normal-case">
               Featured Proof Receipt
             </h2>
-            <p className="text-muted-foreground mt-1 text-sm leading-snug">
+            <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
               An Inspectable Receipt For A Recent Graded Pick.
             </p>
           </div>

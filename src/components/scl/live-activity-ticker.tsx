@@ -179,7 +179,7 @@ export function LiveActivityTicker({
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,color-mix(in_srgb,var(--scl-blue)_55%,transparent)_20%,color-mix(in_srgb,var(--scl-pink)_40%,transparent)_80%,transparent)]"
       />
-      <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 sm:gap-4 sm:px-6">
+      <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3.5 sm:gap-4 sm:px-6">
         <div className="flex shrink-0 items-center gap-2 border-r border-[color:var(--scl-line)] pr-3 sm:pr-4">
           <span className="relative flex size-2 shrink-0">
             <span className="absolute inline-flex size-full animate-ping rounded-full bg-[color:var(--scl-blue)] opacity-40 motion-reduce:hidden" />

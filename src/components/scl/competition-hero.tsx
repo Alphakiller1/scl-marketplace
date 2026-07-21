@@ -57,7 +57,7 @@ export function CompetitionHero({ board }: { board?: ReactNode }) {
       </p>
 
       {/* Board rail must host Rank-schema width — prefer board share over copy. */}
-      <div className="relative mx-auto grid w-full max-w-[1400px] gap-8 px-4 py-7 sm:px-6 sm:py-9 lg:grid-cols-[minmax(0,0.9fr)_minmax(26rem,1.15fr)] lg:items-start lg:gap-8 lg:px-8 lg:py-10">
+      <div className="relative mx-auto grid w-full max-w-[1400px] gap-10 px-4 py-9 sm:px-6 sm:py-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(26rem,1.15fr)] lg:items-start lg:gap-10 lg:px-8 lg:py-12">
         <div className="min-w-0">
           <div className="grid max-w-[36rem]">
             {HERO_SLIDES.map((slide, i) => {
@@ -82,7 +82,7 @@ export function CompetitionHero({ board }: { board?: ReactNode }) {
 
                   <h1
                     id={active ? "scl-hero-title" : undefined}
-                    className="scl-display mt-3 max-w-[20ch] text-[2.375rem] leading-10 font-bold tracking-[0.01em] text-balance normal-case sm:mt-4 sm:text-[3.5rem] sm:leading-none"
+                    className="scl-display mt-4 max-w-[20ch] text-[2.125rem] leading-[1.15] font-bold tracking-[0.01em] text-balance normal-case sm:mt-4 sm:text-[3.5rem] sm:leading-none"
                   >
                     <Link
                       href={slide.href}
@@ -93,11 +93,11 @@ export function CompetitionHero({ board }: { board?: ReactNode }) {
                     </Link>
                   </h1>
 
-                  <p className="mt-4 max-w-[34rem] text-base leading-relaxed text-pretty text-[color:var(--scl-hero-muted)] sm:text-[1.05rem]">
+                  <p className="mt-5 max-w-[34rem] text-base leading-relaxed text-pretty text-[color:var(--scl-hero-muted)] sm:text-[1.05rem]">
                     {slide.body}
                   </p>
 
-                  <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <div className="mt-7 flex flex-wrap items-center gap-3">
                     <Button
                       render={
                         <Link

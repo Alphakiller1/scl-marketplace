@@ -129,11 +129,11 @@ export default async function Home() {
         </div>
       )}
 
-      <div className="mx-auto max-w-[1400px] overflow-x-hidden px-4 pt-6 pb-8 sm:px-6 sm:pt-8 sm:pb-10 lg:px-8">
+      <div className="mx-auto max-w-[1400px] overflow-x-hidden px-4 pt-8 pb-12 sm:px-6 sm:pt-10 sm:pb-14 lg:px-8">
         {/* Top Cappers + Featured Proof — solid board panes, no scanlines */}
         <div className="scl-board overflow-hidden">
           <div className="relative grid gap-0 lg:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.85fr)] lg:items-start">
-            <div className="scl-board-rule relative min-w-0 overflow-hidden border-b py-5 lg:border-r lg:border-b-0 lg:pr-6 lg:pl-5">
+            <div className="scl-board-rule relative min-w-0 overflow-hidden border-b px-4 py-6 sm:px-5 sm:py-7 lg:border-r lg:border-b-0 lg:px-5 lg:pr-6 lg:pl-5">
               <div className="scl-live-rail hidden lg:block" aria-hidden />
               <TopCappersLive
                 cappers={topCappers}
@@ -141,7 +141,7 @@ export default async function Home() {
                 activeWindow="all"
               />
             </div>
-            <div className="min-w-0 space-y-6 px-4 py-5 sm:px-5 lg:pl-6">
+            <div className="min-w-0 space-y-8 px-4 py-6 sm:space-y-8 sm:px-5 sm:py-7 lg:pl-6">
               <FeaturedProofReceipt
                 play={featuredPlay}
                 failed={featuredFailed}
@@ -151,8 +151,8 @@ export default async function Home() {
           </div>
         </div>
 
-        <div className="mt-10 space-y-10 sm:mt-14 sm:space-y-14">
-          <section className="space-y-4">
+        <div className="mt-12 space-y-12 sm:mt-16 sm:space-y-16">
+          <section className="space-y-5 sm:space-y-6">
             <SectionHeader
               icon={Activity}
               title="Platform Activity Report"
@@ -168,7 +168,7 @@ export default async function Home() {
             />
           </section>
 
-          <section className="space-y-4">
+          <section className="space-y-5 sm:space-y-6">
             <SectionHeader
               icon={Activity}
               title="Platform CLV"
@@ -181,13 +181,15 @@ export default async function Home() {
             />
           </section>
 
-          <section className="border-border flex flex-col items-stretch gap-5 border-y py-8 sm:flex-row sm:items-center sm:justify-between sm:py-10">
+          <section className="border-border flex flex-col items-stretch gap-6 border-y py-10 sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:py-12">
             <div className="max-w-2xl">
               <ShieldCheck className="size-8 text-[color:var(--scl-muted-data)]" />
-              <h2 className="scl-display mt-4 text-2xl font-bold tracking-[0.04em] text-balance sm:text-3xl">
+              <h2 className="scl-display mt-5 text-2xl font-bold tracking-[0.04em] text-balance sm:mt-4 sm:text-3xl">
                 {BOTTOM_BAND_HEADLINE}
               </h2>
-              <p className="text-muted-foreground mt-2">{BOTTOM_BAND_BODY}</p>
+              <p className="text-muted-foreground mt-3 text-base leading-relaxed">
+                {BOTTOM_BAND_BODY}
+              </p>
             </div>
             <Button
               render={<Link href="/signup" />}

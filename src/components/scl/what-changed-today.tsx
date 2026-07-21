@@ -24,7 +24,7 @@ export function WhatChangedToday({
     return (
       <section className={cn(className)} aria-label="What Changed Today">
         <p
-          className="text-muted-foreground flex min-h-11 items-center gap-2.5 py-2.5 text-sm leading-snug"
+          className="text-muted-foreground flex min-h-12 items-center gap-2.5 py-3.5 text-sm leading-relaxed"
           role="status"
         >
           <Activity
@@ -53,8 +53,11 @@ export function WhatChangedToday({
   }
 
   return (
-    <section className={cn("py-2", className)} aria-label="What Changed Today">
-      <div className="flex min-h-11 items-center gap-3 overflow-hidden">
+    <section
+      className={cn("py-3.5", className)}
+      aria-label="What Changed Today"
+    >
+      <div className="flex min-h-12 items-center gap-3 overflow-hidden">
         <div className="flex shrink-0 items-center gap-2">
           <Activity
             className="size-3.5 shrink-0 text-[color:var(--scl-blue)]"
