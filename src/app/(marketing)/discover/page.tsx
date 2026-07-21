@@ -24,7 +24,7 @@ export default async function DiscoverPage() {
 
   return (
     <main
-      className="mx-auto max-w-[1400px] overflow-x-hidden px-4 py-4 sm:px-6 sm:py-5 lg:px-8"
+      className="mx-auto max-w-[1400px] min-w-0 px-4 py-4 sm:px-6 sm:py-5 lg:px-8"
       data-visual-mode="rank"
     >
       <DiscoverOverview

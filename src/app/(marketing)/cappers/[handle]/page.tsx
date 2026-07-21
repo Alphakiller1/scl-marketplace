@@ -42,7 +42,7 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
   const packages = await getLivePackagesForCapper(capper.id);
 
   return (
-    <div className="overflow-x-hidden pb-6 sm:pb-8" data-visual-mode="proof">
+    <div className="min-w-0 pb-6 sm:pb-8" data-visual-mode="proof">
       <CapperProfileHeader capper={capper} />
 
       <div className="mx-auto mt-3 max-w-[1400px] px-4 sm:mt-5 sm:px-6 lg:px-8">

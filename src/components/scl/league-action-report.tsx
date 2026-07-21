@@ -617,7 +617,7 @@ function PlatformReportDesktop({
 }) {
   return (
     <div className="px-5 py-5 pl-6">
-      <div className="grid grid-cols-[minmax(15.5rem,3fr)_minmax(20rem,3.2fr)_minmax(24rem,4fr)] gap-5">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(0,3.2fr)_minmax(0,4fr)]">
         <section className="min-w-0 space-y-2">
           <h3 className="scl-eyebrow">Top Leagues</h3>
           <TopLeaguesDesktop

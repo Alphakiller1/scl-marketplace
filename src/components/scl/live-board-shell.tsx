@@ -24,7 +24,7 @@ export function LiveBoardShell({
         className,
       )}
     >
-      <div className="scl-elevated border-border relative overflow-hidden rounded-[var(--scl-radius-card)] border bg-[color:var(--scl-ink-800)]">
+      <div className="scl-elevated border-border relative min-w-0 overflow-x-auto rounded-[var(--scl-radius-card)] border bg-[color:var(--scl-ink-800)]">
         <div className="relative p-2.5 sm:p-4">
           <LeaderboardSnapshot
             cappers={cappers}
