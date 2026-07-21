@@ -146,3 +146,7 @@ already in the repo.
   rigid `px` floors, page-level `overflow-x-hidden`, and fixed row heights. Wide Rank tables
   may scroll _inside_ their shell; never clip the page shell so zoomed text falls off. Keep
   `html { font-size: 100% }` so rem tracks the user's zoom/default font.
+- **Nav responsiveness:** Marketing header auth is a Suspense island — don't block public
+  chrome on `auth()`. Prefer `Promise.all` for independent page queries; cache
+  `getLeaderboardResult` (~60s). Profile lookup must target one handle (never scan the full
+  board). Keep `loading.tsx` on marketing routes for instant click feedback.
