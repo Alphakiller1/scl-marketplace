@@ -62,8 +62,8 @@ export function LeaderboardSnapshot({
           }
           description={
             failed
-              ? "Performance data is temporarily unavailable. Please try again shortly."
-              : "Cappers appear here after meeting the minimum graded sample and verification filters. Earlier records remain visible under Building A Record."
+              ? "Performance Data Is Temporarily Unavailable. Please Try Again Shortly."
+              : "Cappers Appear Here After Meeting The Minimum Graded Sample And Verification Filters. Earlier Records Remain Visible Under Building A Record."
           }
         />
       ) : (

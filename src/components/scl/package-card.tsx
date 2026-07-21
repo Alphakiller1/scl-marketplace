@@ -41,14 +41,14 @@ export function PackageCard({
         {pkg.capperHandle ? (
           <Link
             href={`/cappers/${pkg.capperHandle}`}
-            className="text-muted-foreground text-xs font-semibold tracking-wide uppercase underline-offset-4 hover:underline"
+            className="text-muted-foreground text-xs font-semibold tracking-normal underline-offset-4 hover:underline"
           >
             {pkg.capperName || `@${pkg.capperHandle}`}
           </Link>
         ) : null}
       </div>
       <div className="min-w-0">
-        <h3 className="scl-display text-base font-bold tracking-[0.04em] uppercase">
+        <h3 className="scl-display text-base font-semibold tracking-[0.02em] normal-case">
           {pkg.title}
         </h3>
         {pkg.description ? (
@@ -57,7 +57,7 @@ export function PackageCard({
           </p>
         ) : null}
         {pkg.promoOffer ? (
-          <p className="text-foreground mt-2 text-xs font-semibold tracking-wide uppercase">
+          <p className="text-foreground mt-2 text-xs font-semibold tracking-normal">
             {pkg.promoOffer}
           </p>
         ) : null}

@@ -95,7 +95,7 @@ export function RankBoardTable({
             return (
               <tr
                 key={capper.id}
-                className="border-border h-14 border-b last:border-b-0 hover:bg-[color:var(--scl-ink-700)]/80"
+                className="border-border relative h-14 border-b last:border-b-0 hover:bg-[color:var(--scl-ink-700)]/80"
               >
                 <td className={cn(cell, "align-middle")}>
                   <RankBadge
@@ -107,7 +107,8 @@ export function RankBoardTable({
                 <td className={cn(cell, "align-middle")}>
                   <Link
                     href={`/cappers/${capper.handle}`}
-                    className="focus-visible:ring-ring flex min-w-0 items-center gap-2 rounded-sm focus-visible:ring-2 focus-visible:outline-none"
+                    className="focus-visible:ring-ring flex min-w-0 items-center gap-2 rounded-sm after:absolute after:inset-0 after:z-[1] after:content-[''] focus-visible:ring-2 focus-visible:outline-none"
+                    aria-label={`Open ${capper.handle} profile`}
                   >
                     <CapperAvatar
                       name={capper.name}
@@ -121,7 +122,7 @@ export function RankBoardTable({
                         verified={capper.verified}
                       />
                       {specialty ? (
-                        <span className="scl-eyebrow text-muted-foreground mt-0.5 block truncate tracking-[0.04em] normal-case">
+                        <span className="text-muted-foreground mt-0.5 block truncate text-xs leading-snug tracking-normal normal-case">
                           {specialty}
                         </span>
                       ) : null}
@@ -179,7 +180,7 @@ export function RankBoardTable({
                 </td>
                 <td
                   className={cn(
-                    "align-middle text-[color:var(--scl-muted-data)]",
+                    "pointer-events-none align-middle text-[color:var(--scl-muted-data)]",
                     compact ? "px-1 py-1.5" : "px-1 py-1.5",
                   )}
                 >

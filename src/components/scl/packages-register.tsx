@@ -84,7 +84,7 @@ function EvidenceStrip({
   if (unavailable) {
     return (
       <p className="text-muted-foreground text-sm leading-relaxed">
-        Public Record temporarily unavailable.
+        Public Record Temporarily Unavailable.
       </p>
     );
   }

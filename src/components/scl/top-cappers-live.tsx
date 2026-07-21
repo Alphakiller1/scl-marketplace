@@ -25,7 +25,8 @@ const WINDOW_CHIPS = [
 export function TopCappersLive({
   cappers,
   failed = false,
-  activeWindow = "30d",
+  /** Must match the home query window (default all-time). Chips are exit links. */
+  activeWindow = "all",
   className,
 }: {
   cappers: CapperSummary[];
