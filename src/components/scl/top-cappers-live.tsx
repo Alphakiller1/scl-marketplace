@@ -35,8 +35,8 @@ export function TopCappersLive({
   className?: string;
 }) {
   return (
-    <section className={cn("space-y-3", className)} aria-label="Top Cappers">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+    <section className={cn("space-y-5", className)} aria-label="Top Cappers">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           <div className="scl-section-mark flex items-center gap-2">
             <Trophy
@@ -47,12 +47,12 @@ export function TopCappersLive({
               Top Cappers
             </h2>
           </div>
-          <p className="text-muted-foreground mt-1 text-sm leading-snug">
+          <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
             Ranked By Board-Verified Share, Then Units.
           </p>
         </div>
         <div
-          className="flex flex-wrap items-center gap-1.5"
+          className="flex flex-wrap items-center gap-2"
           role="group"
           aria-label="Open Full Leaderboard By Window"
         >
@@ -63,7 +63,7 @@ export function TopCappersLive({
                 key={chip.id}
                 href={chip.href}
                 className={cn(
-                  "scl-data inline-flex h-8 min-w-9 items-center justify-center rounded-[var(--scl-radius-chip)] px-2 text-[10px] font-semibold tracking-[0.1em] uppercase transition-colors",
+                  "scl-data inline-flex h-9 min-w-10 items-center justify-center rounded-[var(--scl-radius-chip)] px-2.5 text-[10px] font-semibold tracking-[0.1em] uppercase transition-colors",
                   active
                     ? "bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
                     : "border-border text-muted-foreground hover:text-foreground border bg-transparent",
