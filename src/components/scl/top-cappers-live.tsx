@@ -35,24 +35,24 @@ export function TopCappersLive({
   className?: string;
 }) {
   return (
-    <section className={cn("space-y-5", className)} aria-label="Top Cappers">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <section className={cn("space-y-3", className)} aria-label="Top Cappers">
+      <div className="flex flex-wrap items-end justify-between gap-2.5 sm:gap-4">
         <div className="min-w-0">
           <div className="scl-section-mark flex items-center gap-2">
             <Trophy
               className="size-4 text-[color:var(--scl-pink)]"
               aria-hidden
             />
-            <h2 className="scl-display text-[1.375rem] leading-7 font-semibold tracking-[0.02em] normal-case">
+            <h2 className="scl-display text-[1.25rem] leading-7 font-semibold tracking-[0.02em] normal-case sm:text-[1.375rem]">
               Top Cappers
             </h2>
           </div>
-          <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
+          <p className="text-muted-foreground mt-1 text-xs leading-snug sm:mt-1.5 sm:text-sm sm:leading-relaxed">
             Ranked By Board-Verified Share, Then Units.
           </p>
         </div>
         <div
-          className="flex flex-wrap items-center gap-2"
+          className="flex flex-wrap items-center gap-1.5 sm:gap-2"
           role="group"
           aria-label="Open Full Leaderboard By Window"
         >
@@ -63,7 +63,7 @@ export function TopCappersLive({
                 key={chip.id}
                 href={chip.href}
                 className={cn(
-                  "scl-data inline-flex h-9 min-w-10 items-center justify-center rounded-[var(--scl-radius-chip)] px-2.5 text-[10px] font-semibold tracking-[0.1em] uppercase transition-colors",
+                  "scl-data inline-flex h-8 min-w-9 items-center justify-center rounded-[var(--scl-radius-chip)] px-2 text-[10px] font-semibold tracking-[0.1em] uppercase transition-colors sm:h-9 sm:min-w-10 sm:px-2.5",
                   active
                     ? "bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
                     : "border-border text-muted-foreground hover:text-foreground border bg-transparent",

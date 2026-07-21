@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
  * - snapshot — hero Live board (tighter cells, still full schema)
  * - live — Top Cappers body (standard ~56px craft density)
  *
- * Mobile (< md): Rank-faithful stacked cards — no sideways-scrolling table.
+ * Mobile (< md): dense Rank list rows in one shell — no tall cards, no h-scroll.
  * Desktop (md+): dense Rank table unchanged.
  */
 export function RankBoardTable({
@@ -49,12 +49,13 @@ export function RankBoardTable({
     <div className={cn(className)}>
       <p className="sr-only">{caption}</p>
 
+      {/* Dense Rank list on phones — one shell, hairline rows (~52px), full schema. */}
       <ul
-        className={cn("md:hidden", compact ? "space-y-2.5" : "space-y-3")}
+        className="border-border divide-border divide-y overflow-hidden rounded-[var(--scl-radius-card)] border bg-[color:var(--scl-ink-800)] md:hidden"
         aria-label={caption}
       >
         {cappers.map((capper, i) => (
-          <RankBoardMobileCard
+          <RankBoardMobileRow
             key={capper.id}
             capper={capper}
             rank={i + 1}
@@ -229,7 +230,11 @@ export function RankBoardTable({
   );
 }
 
-function RankBoardMobileCard({
+/**
+ * Compact Rank row for phones: identity + headline stats on one scan path.
+ * Keeps Record / ROI / Units / Sample / Verified without tall multi-band cards.
+ */
+function RankBoardMobileRow({
   capper,
   rank,
   compact,
@@ -241,10 +246,7 @@ function RankBoardMobileCard({
   const graded = capper.settledPicks ?? 0;
   const sports = (capper.sports?.length ? capper.sports : [capper.topSport])
     .filter(Boolean)
-    .slice(0, 3);
-  const specialty =
-    capper.specialties?.find((s) => s.trim().length > 0) ??
-    (capper.topSport ? capper.topSport : null);
+    .slice(0, compact ? 2 : 3);
   const roiScale = perfScale("roi", capper.roi, { gradedCount: graded });
   const unitsScale = perfScale("units", capper.units, { gradedCount: graded });
 
@@ -253,121 +255,70 @@ function RankBoardMobileCard({
       <Link
         href={`/cappers/${capper.handle}`}
         className={cn(
-          "border-border focus-visible:ring-ring block rounded-[var(--scl-radius-card)] border bg-[color:var(--scl-ink-800)] focus-visible:ring-2 focus-visible:outline-none",
-          compact ? "p-3" : "p-3.5",
+          "focus-visible:ring-ring flex min-h-12 items-center gap-2 px-2.5 py-2 focus-visible:ring-2 focus-visible:outline-none",
+          compact ? "min-h-11 gap-1.5 px-2 py-1.5" : "min-h-12",
         )}
         aria-label={`Open ${capper.handle} profile`}
       >
-        <div className="flex items-start gap-3">
-          <RankBadge rank={rank} settledPicks={graded} variant="ledger" />
-          <CapperAvatar
-            name={capper.name}
-            src={capper.avatarUrl}
-            size={compact ? "sm" : "md"}
-          />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <CapperIdentityLabel
-                  capper={capper}
-                  compact
-                  verified={capper.verified}
-                />
-                {specialty ? (
-                  <span className="text-muted-foreground mt-0.5 block truncate text-xs leading-snug tracking-normal normal-case">
-                    {specialty}
-                  </span>
-                ) : null}
-              </div>
-              <ChevronRight
-                className="text-muted-foreground mt-0.5 size-4 shrink-0"
-                aria-hidden
+        <RankBadge rank={rank} settledPicks={graded} variant="ledger" />
+        <CapperAvatar name={capper.name} src={capper.avatarUrl} size="sm" />
+        <span className="min-w-0 flex-1">
+          <span className="flex min-w-0 items-center gap-1.5">
+            <CapperIdentityLabel
+              capper={capper}
+              compact
+              verified={capper.verified}
+            />
+            {sports.map((sport) => (
+              <SportTag
+                key={sport}
+                sport={sport}
+                markOnly
+                className="shrink-0"
               />
-            </div>
-            {sports.length ? (
-              <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                {sports.map((sport) => (
-                  <SportTag key={sport} sport={sport} markOnly />
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        <div
+            ))}
+          </span>
+          <span className="text-muted-foreground mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[0.7rem] leading-tight">
+            <span className="scl-data tabular-nums">
+              {formatRecord(capper.record.w, capper.record.l, capper.record.p)}
+            </span>
+            <span aria-hidden className="text-border">
+              ·
+            </span>
+            <span
+              className={cn(
+                "scl-data font-semibold tabular-nums",
+                perfToneClass(roiScale.tone),
+              )}
+              title={roiScale.ariaLabel}
+            >
+              {formatRoi(capper.roi)}
+            </span>
+            <span aria-hidden className="text-border">
+              ·
+            </span>
+            <span className="inline-flex w-[3.25rem] shrink-0 items-center">
+              <SampleMaturityMeter graded={graded} compact />
+            </span>
+            <span className="inline-flex w-[3.5rem] shrink-0 items-center">
+              <VerifiedShareMeter pct={capper.verifiedShare} compact />
+            </span>
+          </span>
+        </span>
+        <span
           className={cn(
-            "border-border mt-3 grid grid-cols-3 gap-2 border-t",
-            compact ? "pt-2.5" : "pt-3",
+            "scl-data shrink-0 text-right text-sm font-semibold tabular-nums",
+            perfToneClass(unitsScale.tone),
           )}
+          title={unitsScale.ariaLabel}
         >
-          <MobileStat
-            label="Record"
-            value={formatRecord(
-              capper.record.w,
-              capper.record.l,
-              capper.record.p,
-            )}
-          />
-          <MobileStat
-            label="ROI"
-            value={formatRoi(capper.roi)}
-            className={perfToneClass(roiScale.tone)}
-            title={roiScale.ariaLabel}
-          />
-          <MobileStat
-            label="Units"
-            value={formatUnits(capper.units)}
-            className={perfToneClass(unitsScale.tone)}
-            title={unitsScale.ariaLabel}
-          />
-        </div>
-
-        <div
-          className={cn(
-            "mt-3 grid grid-cols-2 gap-3",
-            compact ? "gap-2.5" : "gap-3",
-          )}
-        >
-          <div className="min-w-0 space-y-1">
-            <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
-              Sample
-            </p>
-            <SampleMaturityMeter graded={graded} compact />
-          </div>
-          <div className="min-w-0 space-y-1">
-            <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
-              Verified
-            </p>
-            <VerifiedShareMeter pct={capper.verifiedShare} compact />
-          </div>
-        </div>
+          {formatUnits(capper.units)}
+        </span>
+        <ChevronRight
+          className="size-3.5 shrink-0 text-[color:var(--scl-muted-data)]"
+          aria-hidden
+        />
       </Link>
     </li>
-  );
-}
-
-function MobileStat({
-  label,
-  value,
-  className,
-  title,
-}: {
-  label: string;
-  value: string;
-  className?: string;
-  title?: string;
-}) {
-  return (
-    <div className="min-w-0 text-center" title={title}>
-      <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">{label}</p>
-      <p
-        className={cn(
-          "scl-data mt-1 text-sm font-semibold tabular-nums",
-          className,
-        )}
-      >
-        {value}
-      </p>
-    </div>
   );
 }

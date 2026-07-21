@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 export function HomeVerificationRail({ className }: { className?: string }) {
   return (
     <aside
-      className={cn("space-y-5", className)}
+      className={cn("space-y-3 sm:space-y-5", className)}
       aria-label="Verification context"
       id="how-verification-works"
     >
@@ -20,11 +20,11 @@ export function HomeVerificationRail({ className }: { className?: string }) {
             className="size-4 shrink-0 text-[color:var(--scl-pink)]"
             aria-hidden
           />
-          <h2 className="scl-display text-lg font-semibold tracking-[0.04em]">
+          <h2 className="scl-display text-base font-semibold tracking-[0.04em] sm:text-lg">
             Verification
           </h2>
         </div>
-        <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+        <p className="text-muted-foreground mt-1.5 text-xs leading-snug sm:mt-2 sm:text-sm sm:leading-relaxed">
           Account checks and pick authenticity are separate. Board-verified
           means odds were captured pre-game and checked against the live market
           — not that the pick won.
@@ -33,7 +33,7 @@ export function HomeVerificationRail({ className }: { className?: string }) {
 
       <VerificationLegend />
 
-      <p className="text-muted-foreground text-sm leading-relaxed">
+      <p className="text-muted-foreground text-xs leading-snug sm:text-sm sm:leading-relaxed">
         The pink stamp is the trust mark. Settlement (win / loss / push) is a
         separate result signal and never replaces verification.
       </p>
