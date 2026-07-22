@@ -70,7 +70,7 @@ export function CapperStorefront({
               Marketplace
             </p>
             <h2 className="mt-1 text-lg font-semibold sm:text-xl">
-              {storefront?.title || `${capperName} Packages`}
+              {storefront?.title || `${capperName} packages`}
             </h2>
             <p className="text-muted-foreground mt-1 max-w-2xl text-sm leading-relaxed">
               {storefront?.description ||
@@ -79,7 +79,7 @@ export function CapperStorefront({
           </div>
         </div>
         <span className="border-border bg-surface-2 text-muted-foreground inline-flex min-h-8 shrink-0 items-center self-start rounded-lg border px-2.5 text-xs font-medium">
-          Third-Party Checkout
+          Third-party checkout
         </span>
       </div>
 

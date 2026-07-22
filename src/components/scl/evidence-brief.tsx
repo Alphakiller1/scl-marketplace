@@ -721,7 +721,7 @@ function ProofHistoryLedger({
                   ? "Loading…"
                   : localRemaining.length > 0
                     ? `Show ${Math.min(PROOF_HISTORY_PAGE_SIZE, localRemaining.length)} more`
-                    : "Show More"}
+                    : "Show more"}
               </button>
             ) : null}
           </div>
