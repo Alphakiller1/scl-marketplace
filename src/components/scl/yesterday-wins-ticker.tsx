@@ -194,7 +194,7 @@ export function YesterdayWinsTicker({
           onClick={() => setPaused((current) => !current)}
           aria-label={paused ? "Resume graded results" : "Pause graded results"}
           title={paused ? "Resume graded results" : "Pause graded results"}
-          className="border-border text-muted-foreground hover:text-foreground hidden size-10 shrink-0 items-center justify-center rounded-full border bg-[color:var(--scl-ink-800)] outline-none hover:bg-[color:var(--scl-ink-700)] focus-visible:ring-2 focus-visible:ring-[color:var(--scl-blue)] motion-safe:inline-flex"
+          className="border-border text-muted-foreground hover:text-foreground hidden size-11 shrink-0 items-center justify-center rounded-full border bg-[color:var(--scl-ink-800)] outline-none hover:bg-[color:var(--scl-ink-700)] focus-visible:ring-2 focus-visible:ring-[color:var(--scl-blue)] motion-safe:inline-flex"
         >
           {paused ? (
             <Play className="size-3.5" aria-hidden />

@@ -41,7 +41,7 @@ export function CapperProfileMeta({
       className={cn("border-border space-y-4 border-t pt-6", className)}
       aria-label="Capper profile details"
     >
-      <h2 className="scl-display text-base font-bold tracking-[0.05em] uppercase">
+      <h2 className="scl-display text-base font-bold tracking-[0.02em]">
         About
       </h2>
 

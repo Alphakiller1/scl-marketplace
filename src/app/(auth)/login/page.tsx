@@ -69,7 +69,7 @@ function LoginForm() {
       <AuthHeader
         icon={LogIn}
         eyebrow="Capper Access"
-        title="Welcome Back"
+        title="Welcome back"
         description="Open your dashboard to log picks, review graded results, and manage your public profile."
       />
 
@@ -110,7 +110,7 @@ function LoginForm() {
           className="min-h-11 w-full"
           disabled={isSubmitting}
         >
-          {isSubmitting ? "Signing In…" : "Log In"}
+          {isSubmitting ? "Signing in…" : "Log in"}
         </Button>
       </form>
 
@@ -120,7 +120,7 @@ function LoginForm() {
           href="/signup"
           className="scl-link inline-flex min-h-11 items-center font-medium"
         >
-          Create An Account
+          Create an account
         </Link>
       </p>
     </>

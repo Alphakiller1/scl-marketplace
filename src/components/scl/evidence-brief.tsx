@@ -274,10 +274,10 @@ export function EvidenceBrief({
     <section aria-label="Featured proof receipt" className="min-w-0 space-y-2">
       <div className="scl-section-mark lg:pt-0 lg:[&::before]:mb-0 lg:[&::before]:hidden">
         <h2 className="scl-display text-base font-semibold tracking-[0.02em] normal-case">
-          Latest Proof
+          Latest proof
         </h2>
         <p className="text-muted-foreground mt-0.5 hidden text-xs leading-snug sm:block">
-          Expanded Paper Receipt — Inspectable Capture, Close, And CLV.
+          Expanded paper receipt — inspectable capture, close, and CLV.
         </p>
       </div>
       {featured ? (
@@ -285,14 +285,14 @@ export function EvidenceBrief({
       ) : playsError ? (
         <EmptyState
           icon={Receipt}
-          title="Couldn't Load Latest Proof"
-          description="Try Again Shortly."
+          title="Couldn't load latest proof"
+          description="Try again shortly."
         />
       ) : (
         <EmptyState
           icon={Receipt}
-          title="No Tracked Plays Yet"
-          description={`${emptyName} Hasn't Posted A Graded Play Yet. When They Do, The Proof Receipt Appears Here — Timestamps, Lines, And Results Included.`}
+          title="No tracked plays yet"
+          description={`${emptyName} hasn't posted a graded play yet. When they do, the proof receipt appears here — timestamps, lines, and results included.`}
         />
       )}
     </section>
@@ -316,16 +316,16 @@ export function EvidenceBrief({
       >
         <TabsList
           variant="line"
-          className="h-10 w-full max-w-md justify-start gap-1"
+          className="h-11 w-full max-w-md justify-start gap-1"
           aria-label="Trust lens"
         >
-          <TabsTrigger value="simple" className="min-h-10 px-3">
+          <TabsTrigger value="simple" className="min-h-11 px-3">
             Simple
           </TabsTrigger>
-          <TabsTrigger value="analyst" className="min-h-10 px-3">
+          <TabsTrigger value="analyst" className="min-h-11 px-3">
             Analyst
           </TabsTrigger>
-          <TabsTrigger value="audit" className="min-h-10 px-3">
+          <TabsTrigger value="audit" className="min-h-11 px-3">
             Audit
           </TabsTrigger>
         </TabsList>
@@ -390,7 +390,7 @@ export function EvidenceBrief({
         <VerificationHelpLink />
         <a
           href="/responsible-gaming"
-          className="text-muted-foreground hover:text-foreground inline-flex min-h-10 items-center text-xs underline-offset-4 hover:underline"
+          className="text-muted-foreground hover:text-foreground inline-flex min-h-11 items-center text-xs underline-offset-4 hover:underline"
         >
           Responsible gaming
         </a>
@@ -444,7 +444,7 @@ export function EvidenceBrief({
                     key={window.value}
                     type="button"
                     className={cn(
-                      "scl-data min-h-9 min-w-11 rounded-md px-2 text-xs font-semibold tabular-nums",
+                      "scl-data min-h-11 min-w-11 rounded-md px-2 text-xs font-semibold tabular-nums",
                       active
                         ? "bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
                         : "text-muted-foreground hover:text-foreground",
@@ -470,10 +470,10 @@ export function EvidenceBrief({
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="scl-display text-base font-semibold tracking-[0.02em] normal-case">
-              Proof History
+              Proof history
             </h2>
             <p className="text-muted-foreground mt-1 text-sm">
-              Inspectable Receipts — Newest First. Verified ≠ Won.
+              Inspectable receipts — newest first. Verified ≠ won.
             </p>
           </div>
           <VerificationHelpLink className="text-muted-foreground hover:text-foreground inline-flex min-h-11 shrink-0 gap-1.5 self-start px-2 text-xs font-medium" />
@@ -494,15 +494,15 @@ export function EvidenceBrief({
           <EmptyState
             className="mt-4"
             icon={ListChecks}
-            title="Couldn't Load Recent Plays"
-            description="We Hit A Snag Loading This Capper's Plays. Please Try Again Shortly."
+            title="Couldn't load recent plays"
+            description="We hit a snag loading this capper's plays. Please try again shortly."
           />
         ) : (
           <EmptyState
             className="mt-4"
             icon={ListChecks}
-            title="No Tracked Plays Yet"
-            description={`${emptyName} Hasn't Posted Any Graded Plays Yet. Every New Play Will Stay Inspectable Here — Timestamps, Lines, And Results Included.`}
+            title="No tracked plays yet"
+            description={`${emptyName} hasn't posted any graded plays yet. Every new play will stay inspectable here — timestamps, lines, and results included.`}
           />
         )}
       </section>
@@ -566,7 +566,7 @@ function ProofHistoryLedger({
           page.nextCursor === requestedCursor ? null : page.nextCursor,
         );
       } catch {
-        setLoadError("Proof History Could Not Load. Try Again.");
+        setLoadError("Proof history could not load. Try again.");
       }
     });
   }, [handle, isLoading, localRemaining, nextCursor, onRowsLoaded]);
@@ -618,7 +618,7 @@ function ProofHistoryLedger({
                   <td className="py-1 pr-2 align-middle">
                     <button
                       type="button"
-                      className="text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex size-11 items-center justify-center rounded-md focus-visible:ring-2 focus-visible:outline-none sm:size-10"
+                      className="text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex size-11 items-center justify-center rounded-md focus-visible:ring-2 focus-visible:outline-none"
                       aria-expanded={expanded}
                       aria-controls={`proof-history-${play.id}`}
                       aria-label={`${expanded ? "Close" : "Inspect"} receipt for ${play.selection}`}
@@ -699,7 +699,7 @@ function ProofHistoryLedger({
             {shown.length > initialRows.length ? (
               <button
                 type="button"
-                className="text-muted-foreground hover:text-foreground min-h-10 rounded-md px-3 text-xs font-semibold underline-offset-4 hover:underline"
+                className="text-muted-foreground hover:text-foreground min-h-11 rounded-md px-3 text-xs font-semibold underline-offset-4 hover:underline"
                 onClick={() => {
                   setShown(initialRows);
                   setNextCursor(initialNextCursor);
@@ -713,7 +713,7 @@ function ProofHistoryLedger({
             {canLoadMore ? (
               <button
                 type="button"
-                className="border-border bg-surface-2 hover:bg-surface-3 min-h-10 rounded-md border px-3 text-xs font-semibold"
+                className="border-border bg-surface-2 hover:bg-surface-3 min-h-11 rounded-md border px-3 text-xs font-semibold"
                 disabled={isLoading}
                 onClick={loadMore}
               >
@@ -721,7 +721,7 @@ function ProofHistoryLedger({
                   ? "Loading…"
                   : localRemaining.length > 0
                     ? `Show ${Math.min(PROOF_HISTORY_PAGE_SIZE, localRemaining.length)} more`
-                    : "Show More"}
+                    : "Show more"}
               </button>
             ) : null}
           </div>

@@ -52,12 +52,12 @@ export default function SignupPage() {
           <AuthHeader
             icon={MailCheck}
             eyebrow="Account Created"
-            title="Verify Your Email"
+            title="Verify your email"
             description="Your SCL identity is reserved. Confirm your email to activate capper access."
           />
           <AuthStatusNotice
             tone="info"
-            title="Verification Sent"
+            title="Verification sent"
             description="Check your inbox — the secure link expires in 24 hours."
           />
           <Button
@@ -66,7 +66,7 @@ export default function SignupPage() {
             variant="outline"
             className="min-h-11 w-full"
           >
-            Back To Log In
+            Back to log in
           </Button>
         </div>
       );
@@ -78,7 +78,7 @@ export default function SignupPage() {
         <AuthHeader
           icon={MailCheck}
           eyebrow="Account Created"
-          title="One Tap To Finish"
+          title="One tap to finish"
           description="Your SCL identity is reserved. Confirm your email to activate capper access."
         />
         {done.verifyUrl ? (
@@ -87,12 +87,12 @@ export default function SignupPage() {
             nativeButton={false}
             className="min-h-11 w-full"
           >
-            Verify &amp; Continue
+            Verify &amp; continue
           </Button>
         ) : (
           <AuthStatusNotice
             tone="info"
-            title="Almost There"
+            title="Almost there"
             description="Use the resend option from the log-in page to get your verification link."
           />
         )}
@@ -102,7 +102,7 @@ export default function SignupPage() {
           variant="outline"
           className="min-h-11 w-full"
         >
-          Back To Log In
+          Back to log in
         </Button>
       </div>
     );
@@ -113,7 +113,7 @@ export default function SignupPage() {
       <AuthHeader
         icon={UserRoundPlus}
         eyebrow="Capper Onboarding"
-        title="Create Your SCL Identity"
+        title="Create your SCL identity"
         description="Start a secure account and claim the handle attached to your public record."
       />
 
@@ -182,7 +182,7 @@ export default function SignupPage() {
           className="min-h-11 w-full"
           disabled={isSubmitting}
         >
-          {isSubmitting ? "Creating Account…" : "Start Tracking"}
+          {isSubmitting ? "Creating account…" : "Start tracking"}
         </Button>
       </form>
 
@@ -192,7 +192,7 @@ export default function SignupPage() {
           href="/login"
           className="scl-link inline-flex min-h-11 items-center font-medium"
         >
-          Log In
+          Log in
         </Link>
       </p>
     </>

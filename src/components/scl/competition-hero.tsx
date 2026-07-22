@@ -82,7 +82,7 @@ export function CompetitionHero({ board }: { board?: ReactNode }) {
 
                   <h1
                     id={active ? "scl-hero-title" : undefined}
-                    className="scl-display mt-3 max-w-[20ch] text-[2rem] leading-[1.12] font-bold tracking-[0.01em] text-balance normal-case sm:mt-4 sm:text-[3.5rem] sm:leading-none"
+                    className="scl-display mt-3 max-w-[20ch] text-[2.375rem] leading-10 font-bold tracking-[0.01em] text-balance normal-case sm:mt-4 sm:text-[3.5rem] sm:leading-none"
                   >
                     <Link
                       href={slide.href}

@@ -35,7 +35,7 @@ export function LeaderboardFilters({
 
   return (
     <div className="mt-3 space-y-2">
-      <details className="border-border scl-elevated overflow-hidden rounded-[10px] border md:hidden">
+      <details className="border-border scl-elevated overflow-hidden rounded-[10px] border lg:hidden">
         <summary className="focus-visible:ring-ring flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 outline-none focus-visible:ring-2 focus-visible:ring-inset">
           <span className="flex items-center gap-2 text-sm font-semibold">
             <SlidersHorizontal
@@ -62,7 +62,7 @@ export function LeaderboardFilters({
         />
       </details>
 
-      <div className="hidden md:block">
+      <div className="hidden lg:block">
         <ScopeForm
           filters={filters}
           action={action}
@@ -102,7 +102,7 @@ function ScopeForm({
           <label
             key={window.key}
             className={cn(
-              "inline-flex min-h-9 cursor-pointer items-center rounded-[10px] border px-3 text-sm font-semibold tabular-nums transition-colors",
+              "inline-flex min-h-11 cursor-pointer items-center rounded-[10px] border px-3 text-sm font-semibold tabular-nums transition-colors",
               "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",
               "has-[:checked]:border-[color:var(--scl-blue)] has-[:checked]:bg-[color:var(--scl-blue)] has-[:checked]:text-[color:var(--scl-blue-ink)]",
             )}
@@ -125,7 +125,7 @@ function ScopeForm({
           <select
             name="sport"
             defaultValue={filters.sport}
-            className="border-input bg-surface-2 focus-visible:ring-ring h-9 min-w-[7.5rem] rounded-[10px] border px-2 text-sm outline-none focus-visible:ring-2"
+            className="border-input bg-surface-2 focus-visible:ring-ring h-11 min-w-[7.5rem] rounded-[10px] border px-2 text-base outline-none focus-visible:ring-2 lg:text-sm"
           >
             <option value="ALL">All sports</option>
             {SPORTS.map((sport) => (
@@ -145,7 +145,7 @@ function ScopeForm({
             onChange={(event) => {
               event.currentTarget.form?.requestSubmit();
             }}
-            className="border-input bg-surface-2 focus-visible:ring-ring h-9 min-w-[7rem] rounded-[10px] border px-2 text-sm outline-none focus-visible:ring-2"
+            className="border-input bg-surface-2 focus-visible:ring-ring h-11 min-w-[7rem] rounded-[10px] border px-2 text-base outline-none focus-visible:ring-2 lg:text-sm"
           >
             {LEADERBOARD_SORTS.map((sort) => (
               <option key={sort.key} value={sort.key}>
@@ -160,7 +160,7 @@ function ScopeForm({
           <select
             name="minPicks"
             defaultValue={String(filters.minPicks)}
-            className="border-input bg-surface-2 focus-visible:ring-ring h-9 min-w-[6.5rem] rounded-[10px] border px-2 text-sm outline-none focus-visible:ring-2"
+            className="border-input bg-surface-2 focus-visible:ring-ring h-11 min-w-[6.5rem] rounded-[10px] border px-2 text-base outline-none focus-visible:ring-2 lg:text-sm"
           >
             {LEADERBOARD_MIN_PICKS.map((count) => (
               <option key={count} value={String(count)}>
@@ -175,7 +175,7 @@ function ScopeForm({
           <select
             name="record"
             defaultValue={filters.verifiedOnly ? "verified" : "all"}
-            className="border-input bg-surface-2 focus-visible:ring-ring h-9 min-w-[8rem] rounded-[10px] border px-2 text-sm outline-none focus-visible:ring-2"
+            className="border-input bg-surface-2 focus-visible:ring-ring h-11 min-w-[8rem] rounded-[10px] border px-2 text-base outline-none focus-visible:ring-2 lg:text-sm"
           >
             <option value="verified">Verified only</option>
             <option value="all">All records</option>
@@ -184,14 +184,14 @@ function ScopeForm({
 
         <label className="min-w-0 flex-1 basis-[10rem]">
           <span className="sr-only">Find a capper</span>
-          <span className="border-input bg-surface-2 focus-within:ring-ring flex h-9 items-center gap-2 rounded-[10px] border px-2 focus-within:ring-2">
+          <span className="border-input bg-surface-2 focus-within:ring-ring flex h-11 items-center gap-2 rounded-[10px] border px-2 focus-within:ring-2">
             <Search className="text-muted-foreground size-3.5" aria-hidden />
             <input
               type="search"
               name="q"
               defaultValue={filters.search}
               placeholder="Handle"
-              className="h-9 min-w-0 flex-1 bg-transparent text-sm outline-none"
+              className="h-11 min-w-0 flex-1 bg-transparent text-base outline-none lg:text-sm"
             />
           </span>
         </label>
@@ -199,7 +199,7 @@ function ScopeForm({
         <Button
           type="submit"
           size="sm"
-          className="h-9 min-h-11 border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)] hover:bg-[color:var(--scl-blue)]/90 sm:min-h-9"
+          className="h-11 min-h-11 border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)] hover:bg-[color:var(--scl-blue)]/90"
         >
           Apply
         </Button>
@@ -208,7 +208,7 @@ function ScopeForm({
           nativeButton={false}
           variant="outline"
           size="icon"
-          className="size-9"
+          className="size-11"
           aria-label="Reset leaderboard scope"
           title="Reset"
         >

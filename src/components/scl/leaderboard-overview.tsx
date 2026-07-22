@@ -17,12 +17,10 @@ export function LeaderboardOverview({
               className="size-3.5 text-[color:var(--scl-blue)]"
               aria-hidden
             />
-            Public Rankings
+            Public rankings
           </div>
           <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h1 className="scl-display text-[2.5rem] leading-[2.75rem] font-bold tracking-[0.02em] normal-case sm:text-[2.5rem] sm:leading-[2.75rem]">
-              Leaderboard
-            </h1>
+            <h1 className="scl-page-title">Leaderboard</h1>
             <VerificationHelpLink />
           </div>
           <p className="text-muted-foreground mt-2 max-w-3xl text-base leading-relaxed">
@@ -34,12 +32,12 @@ export function LeaderboardOverview({
         <dl className="hidden shrink-0 grid-cols-2 gap-2 sm:grid">
           <CompactMetric
             label={
-              summary.rankedCappers === 1 ? "Ranked Capper" : "Ranked Cappers"
+              summary.rankedCappers === 1 ? "Ranked capper" : "Ranked cappers"
             }
             value={summary.rankedCappers.toLocaleString()}
           />
           <CompactMetric
-            label={summary.trackedPicks === 1 ? "Graded Pick" : "Graded Picks"}
+            label={summary.trackedPicks === 1 ? "Graded pick" : "Graded picks"}
             value={summary.trackedPicks.toLocaleString()}
           />
         </dl>

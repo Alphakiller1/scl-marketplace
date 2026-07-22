@@ -20,7 +20,7 @@ export function AuthHeader({
       <p className="scl-eyebrow text-[color:var(--scl-muted-label)]">
         {eyebrow}
       </p>
-      <h1 className="scl-display mt-1 text-2xl leading-tight font-bold tracking-[0.04em] uppercase">
+      <h1 className="scl-display mt-1 text-3xl leading-8 font-bold tracking-[0.02em]">
         {title}
       </h1>
       <p className="text-muted-foreground mt-2 text-sm">{description}</p>
