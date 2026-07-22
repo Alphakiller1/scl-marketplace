@@ -20,7 +20,7 @@ export function LiveBoardShell({
   return (
     <div
       className={cn(
-        "relative isolate min-h-[16rem] w-full max-w-xl lg:max-w-none",
+        "dark relative isolate min-h-[16rem] w-full max-w-xl lg:max-w-none",
         className,
       )}
     >

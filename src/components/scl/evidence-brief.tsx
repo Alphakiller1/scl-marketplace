@@ -291,8 +291,8 @@ export function EvidenceBrief({
       ) : (
         <EmptyState
           icon={Receipt}
-          title="No Tracked Plays Yet"
-          description={`${emptyName} Hasn't Posted A Graded Play Yet. When They Do, The Proof Receipt Appears Here — Timestamps, Lines, And Results Included.`}
+          title="No tracked plays yet"
+          description={`${emptyName} hasn't posted a graded play yet. When they do, the proof receipt appears here — timestamps, lines, and results included.`}
         />
       )}
     </section>
@@ -494,15 +494,15 @@ export function EvidenceBrief({
           <EmptyState
             className="mt-4"
             icon={ListChecks}
-            title="Couldn't Load Recent Plays"
-            description="We Hit A Snag Loading This Capper's Plays. Please Try Again Shortly."
+            title="Couldn't load recent plays"
+            description="We hit a snag loading this capper's plays. Please try again shortly."
           />
         ) : (
           <EmptyState
             className="mt-4"
             icon={ListChecks}
-            title="No Tracked Plays Yet"
-            description={`${emptyName} Hasn't Posted Any Graded Plays Yet. Every New Play Will Stay Inspectable Here — Timestamps, Lines, And Results Included.`}
+            title="No tracked plays yet"
+            description={`${emptyName} hasn't posted any graded plays yet. Every new play will stay inspectable here — timestamps, lines, and results included.`}
           />
         )}
       </section>

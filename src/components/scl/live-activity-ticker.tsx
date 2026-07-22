@@ -40,7 +40,7 @@ function kindMeta(kind: LiveTickerItem["kind"]): {
       return {
         label: "New Pick",
         Icon: Sparkles,
-        tone: "text-[color:var(--scl-blue)]",
+        tone: "text-foreground",
       };
   }
 }

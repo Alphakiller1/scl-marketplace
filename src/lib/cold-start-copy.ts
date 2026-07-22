@@ -4,39 +4,39 @@
  */
 
 export const PROVISIONAL_RECORD_HELP =
-  "A Provisional Record Is Visible But Not Ranked Yet. The Capper Has Not Reached SCL’s Minimum Graded-Pick Sample, So Their Stats Should Be Read As Early History, Not A Leaderboard Signal.";
+  "A provisional record is visible but not ranked yet. The capper has not reached SCL’s minimum graded-pick sample, so their stats should be read as early history, not a leaderboard signal.";
 
 export const VERIFIED_ACCOUNT_HELP =
-  "This Capper’s SCL Account Has Passed Platform Identity And Access Checks, But That Does Not Verify Future Performance.";
+  "This capper’s SCL account has passed platform identity and access checks, but that does not verify future performance.";
 
 export const BOARD_VERIFIED_PICK_HELP =
-  "This Pick Was Submitted Through SCL’s Board With Event, Market, Odds, And Timestamp Captured Before Grading.";
+  "This pick was submitted through SCL’s board with event, market, odds, and timestamp captured before grading.";
 
 export const SELF_REPORTED_PICK_HELP =
-  "This Pick Was Entered Without Full Board Verification, So It Remains Visible But Carries Less Verification Weight.";
+  "This pick was entered without full board verification, so it remains visible but carries less verification weight.";
 
-export const STOREFRONT_EMPTY_TITLE = "No Storefront Linked Yet";
+export const STOREFRONT_EMPTY_TITLE = "No storefront linked yet";
 
 export const STOREFRONT_EMPTY_BODY =
-  "This Capper Has Not Linked A Paid Community Or Storefront. You Can Still Inspect Their Public Record On SCL.";
+  "This capper has not linked a paid community or storefront. You can still inspect their public record on SCL.";
 
 export const STOREFRONT_PAYMENT_DISCLAIMER =
-  "SCL Provides Record Transparency Only. Payments And Subscriptions Are Handled By Third-Party Storefronts When A Capper Chooses To Link One.";
+  "SCL provides record transparency only. Payments and subscriptions are handled by third-party storefronts when a capper chooses to link one.";
 
 export const STOREFRONT_OUTBOUND_MICROCOPY =
-  "You Are Leaving SCL For A Third-Party Storefront. SCL Does Not Process Payments Or Manage Subscriptions.";
+  "You are leaving SCL for a third-party storefront. SCL does not process payments or manage subscriptions.";
 
-export const STOREFRONT_OUTBOUND_CTA = "View External Storefront";
+export const STOREFRONT_OUTBOUND_CTA = "View external storefront";
 
 export const PAYMENT_OUTCOME_DISCLAIMER =
-  "SCL Provides Record Transparency Only. Payments And Subscriptions Are Handled By Third-Party Storefronts. Records Are Informational And Do Not Guarantee Future Outcomes.";
+  "SCL provides record transparency only. Payments and subscriptions are handled by third-party storefronts. Records are informational and do not guarantee future outcomes.";
 
-export const ROI_LEADERS_EMPTY_TITLE = "ROI Leaders Are Building";
+export const ROI_LEADERS_EMPTY_TITLE = "ROI leaders are building";
 
 export const ROI_LEADERS_EMPTY_BODY =
-  "No Capper Has Enough Graded Volume To Rank Here Yet. SCL Only Shows ROI Leaders After A Minimum Sample So Early Records Do Not Look More Proven Than They Are.";
+  "No capper has enough graded volume to rank here yet. SCL only shows ROI leaders after a minimum sample so early records do not look more proven than they are.";
 
-export const ROI_LEADERS_EMPTY_LABEL = "Minimum Sample Required";
+export const ROI_LEADERS_EMPTY_LABEL = "Minimum sample required";
 
 export const FOUNDING_BANNER_HEADLINE = "Founding Cappers Wanted";
 

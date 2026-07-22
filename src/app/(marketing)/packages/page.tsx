@@ -19,18 +19,18 @@ export const revalidate = 60;
 const STEPS = [
   {
     number: "01",
-    title: "Inspect The Record",
-    body: "Review All-Time Record, ROI, Units, Sample Maturity, And Board-Verified Share.",
+    title: "Inspect the record",
+    body: "Review all-time record, ROI, units, sample maturity, and board-verified share.",
   },
   {
     number: "02",
-    title: "Read The Offer",
-    body: "Check The Listed Package Details, Provider, And External Price Before Leaving SCL.",
+    title: "Read the offer",
+    body: "Check the listed package details, provider, and external price before leaving SCL.",
   },
   {
     number: "03",
-    title: "Continue Externally",
-    body: "The Provider Handles Checkout And The Subscription. SCL Does Not Process Payment.",
+    title: "Continue externally",
+    body: "The provider handles checkout and the subscription. SCL does not process payment.",
   },
 ] as const;
 
@@ -47,13 +47,13 @@ function MarketplaceEmpty({ failed = false }: { failed?: boolean }) {
         />
         <h2 className="scl-display text-foreground mt-3 text-xl font-semibold">
           {failed
-            ? "Offers Are Temporarily Unavailable"
-            : "No Public Offers Are Listed"}
+            ? "Offers are temporarily unavailable"
+            : "No public offers are listed"}
         </h2>
         <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
           {failed
-            ? "The Public Offer Register Could Not Be Loaded. Please Try Again Shortly."
-            : "No Approved External Offers Currently Meet The Publication Rules. Public Capper Records Remain Available To Inspect."}
+            ? "The public offer register could not be loaded. Please try again shortly."
+            : "No approved external offers currently meet the publication rules. Public capper records remain available to inspect."}
         </p>
         {!failed ? (
           <div className="mt-5 flex flex-col gap-2 sm:flex-row">
@@ -63,7 +63,7 @@ function MarketplaceEmpty({ failed = false }: { failed?: boolean }) {
               variant="nav"
               className="min-h-11 gap-2"
             >
-              Inspect Public Records
+              Inspect public records
               <ArrowRight className="size-4" aria-hidden />
             </Button>
             <Button
@@ -72,7 +72,7 @@ function MarketplaceEmpty({ failed = false }: { failed?: boolean }) {
               variant="outline"
               className="min-h-11"
             >
-              View Leaderboard
+              View leaderboard
             </Button>
           </div>
         ) : null}
@@ -95,21 +95,21 @@ export default async function PackagesPage() {
       <header className="border-border border-b pb-6">
         <div className="scl-section-mark">
           <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
-            SCL Public Offer Register
+            SCL public offer register
           </p>
           <div className="mt-2 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="scl-page-title text-foreground">Packages</h1>
               <p className="text-muted-foreground mt-2 max-w-3xl text-sm leading-relaxed sm:text-base">
-                Inspect A Capper&apos;s Public Evidence Before Opening An Offer
-                On An External Storefront.
+                Inspect a capper&apos;s public evidence before opening an offer
+                on an external storefront.
               </p>
             </div>
             <Link
               href="#how-packages-work"
               className="focus-visible:ring-ring inline-flex min-h-11 items-center text-sm font-semibold underline underline-offset-4 focus-visible:ring-2 focus-visible:outline-none"
             >
-              How Packages Work
+              How packages work
             </Link>
           </div>
         </div>
@@ -121,7 +121,7 @@ export default async function PackagesPage() {
           />
           <p className="text-muted-foreground">
             <span className="text-foreground font-semibold">
-              Evidence Stays On SCL.
+              Evidence stays on SCL.
             </span>{" "}
             {STOREFRONT_PAYMENT_DISCLAIMER}
           </p>
@@ -138,8 +138,8 @@ export default async function PackagesPage() {
             evidenceFailed={evidence.failed}
           />
           <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
-            Verified Share Describes Board Verification At Submission, Not Pick
-            Outcomes. Past Performance Is Not A Guarantee Of Future Results.
+            Verified share describes board verification at submission, not pick
+            outcomes. Past performance is not a guarantee of future results.
           </p>
         </>
       ) : (
@@ -160,11 +160,11 @@ export default async function PackagesPage() {
               id="how-packages-title"
               className="scl-display text-foreground mt-1 text-xl font-semibold"
             >
-              How Packages Work
+              How packages work
             </h2>
           </div>
           <p className="text-muted-foreground max-w-xl text-sm leading-relaxed">
-            The Public Record And The External Offer Stay Visibly Separate.
+            The public record and the external offer stay visibly separate.
           </p>
         </div>
         <ol className="border-border scl-elevated mt-4 grid overflow-hidden rounded-[14px] border sm:grid-cols-3">

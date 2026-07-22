@@ -822,7 +822,7 @@ function PlatformReportTabs({
             value="leagues"
             className="data-active:text-foreground min-h-11 px-3 data-active:underline data-active:decoration-[color:var(--scl-blue)] data-active:underline-offset-4"
           >
-            Top leagues
+            Top Leagues
             {leagues.length > 0 ? (
               <span className="scl-data text-muted-foreground ml-1 text-[0.7rem]">
                 {leagues.length}
@@ -833,7 +833,7 @@ function PlatformReportTabs({
             value="types"
             className="data-active:text-foreground min-h-11 px-3 data-active:underline data-active:decoration-[color:var(--scl-blue)] data-active:underline-offset-4"
           >
-            Bet types
+            Bet Types
           </TabsTrigger>
         </TabsList>
       </div>
