@@ -10,7 +10,7 @@ import {
   listConnectionsForCapper,
 } from "@/lib/queries/store";
 
-export const metadata = { title: "Monetization" };
+export const metadata = { title: "Storefront" };
 
 export default async function MonetizationPage() {
   const user = await requireCapperAccess();
