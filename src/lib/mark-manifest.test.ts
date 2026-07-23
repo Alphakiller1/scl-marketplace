@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  bookMarkSrc,
   leagueMarkSrc,
   normalizeLeagueKey,
   teamMarkSrc,
@@ -26,4 +27,11 @@ test("normalizeLeagueKey maps aliases to canonical keys", () => {
 test("teamMarkSrc returns undefined when manifest has no entry", () => {
   assert.equal(teamMarkSrc("MLB", "LAD"), undefined);
   assert.equal(teamMarkSrc("MLB", ""), undefined);
+});
+
+test("bookMarkSrc returns versioned PNG paths for curated sportsbooks", () => {
+  assert.equal(bookMarkSrc("draftkings"), "/marks/books/draftkings.png?v=2");
+  assert.equal(bookMarkSrc("fanduel"), "/marks/books/fanduel.png?v=2");
+  assert.equal(bookMarkSrc(""), undefined);
+  assert.equal(bookMarkSrc("unknown"), undefined);
 });

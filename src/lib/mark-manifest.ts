@@ -83,6 +83,36 @@ export const TEAM_MARKS = new Set<string>([
 /** Bump when replacing league mark binaries so CDN/browser caches refresh. */
 const LEAGUE_MARK_ASSET_VERSION = "6";
 
+/** Bump when replacing sportsbook logo PNGs (scripts/sync_book_marks.py). */
+export const BOOK_MARK_ASSET_VERSION = "2";
+
+/** Self-hosted trademark marks — PNG preferred; SVG monogram is fallback only. */
+export const BOOK_PNG_MARKS = new Set<string>([
+  "draftkings",
+  "fanduel",
+  "betmgm",
+  "williamhill_us",
+  "fanatics",
+  "espnbet",
+  "hardrockbet",
+  "betrivers",
+  "bovada",
+  "betonlineag",
+]);
+
+export function bookMarkSrc(key: string): string | undefined {
+  const normalized = key.trim().toLowerCase();
+  if (!normalized || !BOOK_PNG_MARKS.has(normalized)) return undefined;
+  return `/marks/books/${normalized}.png?v=${BOOK_MARK_ASSET_VERSION}`;
+}
+
+/** Legacy monogram SVG — used only when PNG fails to load. */
+export function bookMarkMonogramSrc(key: string): string | undefined {
+  const normalized = key.trim().toLowerCase();
+  if (!normalized || !BOOK_PNG_MARKS.has(normalized)) return undefined;
+  return `/marks/books/${normalized}.svg`;
+}
+
 export function leagueMarkSrc(key: string): string | undefined {
   const canonical = normalizeLeagueKey(key);
   if (!canonical) return undefined;

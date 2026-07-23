@@ -23,7 +23,7 @@
 | **Rank-by-CLV leaderboard sort**                               | Done — `sort=clv`; signal sample + avgClv required                                 |
 | Soccer GamePicker (`SOCCER` + league fan-out)                  | Done                                                                               |
 | Odds board diagnostics meta on `GET /api/odds`                 | Done                                                                               |
-| BookMark monograms on slip/list/ticket/chips/profile           | Done — brand-color tiles under `public/marks/books/` (v2); short fallback on error |
+| BookMark real logos on slip/list/ticket/chips/profile          | Done — PNGs in `public/marks/books/` (`sync_book_marks.py`, v2 cache bust)         |
 | Leaderboard row declutter + league monograms                   | Done                                                                               |
 | Legal pages (no placeholder footer)                            | Done                                                                               |
 | SEO templates + cold-start founding copy                       | Done                                                                               |
@@ -46,12 +46,11 @@
 
 ## Still deferred / out of scope
 
-| Item                         | Why                                                                                                                                        |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Real trademark book logos    | Brand-color attribution tiles shipped (`public/marks/books/*.svg`); swap in rights-cleared official art with same filenames when available |
-| Soccer 3-way ML auto-grade   | Gated until draw/home/away settlement keys                                                                                                 |
-| Parlay-level analysis column | Needs `Parlay.notes` migration                                                                                                             |
-| Analysis edit after grade    | No edit UI path; immutability locked                                                                                                       |
+| Item                         | Why                                        |
+| ---------------------------- | ------------------------------------------ |
+| Soccer 3-way ML auto-grade   | Gated until draw/home/away settlement keys |
+| Parlay-level analysis column | Needs `Parlay.notes` migration             |
+| Analysis edit after grade    | No edit UI path; immutability locked       |
 
 ## Author note
 
