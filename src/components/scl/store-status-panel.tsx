@@ -12,16 +12,16 @@ function timeline(
   const steps =
     provider === "WHOP"
       ? [
-          "Choose Whop and review affiliate model",
+          "Choose Whop and review storefront connection",
           "Add Sports Cappers Leaderboard as an affiliate",
-          "SCL copies product-specific links from Whop dashboard",
-          "Packages go live on your SCL profile",
+          "SCL imports your package links from Whop",
+          "Your storefront goes live on SCL",
         ]
       : [
-          "Choose Winible and review affiliate model",
+          "Choose Winible and review storefront connection",
           "Submit affiliate invite in Winible",
-          "SCL accepts invite and imports package links",
-          "Packages go live on your SCL profile",
+          "SCL reviews your request and imports package links",
+          "Your storefront goes live on SCL",
         ];
 
   let current = 0;
@@ -44,20 +44,20 @@ function messageFor(
 ): { title: string; body: string } {
   if (status === "LIVE") {
     return {
-      title: `Your ${providerLabel(provider)} store is live`,
-      body: "Your packages are visible on your SCL profile using SCL tracking URLs.",
+      title: `Your ${providerLabel(provider)} storefront is live`,
+      body: "Your packages are visible on your SCL profile. Fans leave SCL to check out on your storefront.",
     };
   }
   if (status === "PENDING_SCL_ACCEPTANCE") {
     return {
-      title: "Pending SCL acceptance",
-      body: "Thanks. Your Winible affiliate request has been submitted. SCL must accept the request in Winible, then import your package links. No further action is required right now unless we contact you.",
+      title: "Pending Storefront Approval",
+      body: "Thanks — your Winible affiliate request is in. SCL will review it, import your package links, and notify you if anything else is needed. No further action is required right now.",
     };
   }
   if (status === "PENDING_SCL_LINK_IMPORT") {
     return {
-      title: "Pending SCL link import",
-      body: "Thanks. You’ve added SCL as an affiliate on Whop. SCL will copy your product-specific links from our Whop affiliate dashboard and publish packages on your profile. No further action is required unless we contact you.",
+      title: "Pending Storefront Approval",
+      body: "Thanks — you’ve added SCL as an affiliate on Whop. SCL will import your package links and publish them on your profile. No further action is required unless we contact you.",
     };
   }
   if (status === "NEEDS_ACTION") {

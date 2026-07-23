@@ -49,9 +49,9 @@ export function storeStatusLabel(status: StoreConnectionStatus): string {
     case "INSTRUCTIONS_VIEWED":
       return "Instructions Viewed";
     case "PENDING_SCL_ACCEPTANCE":
-      return "Pending SCL Acceptance";
+      return "Pending Storefront Approval";
     case "PENDING_SCL_LINK_IMPORT":
-      return "Pending SCL Link Import";
+      return "Pending Storefront Approval";
     case "LINKS_RECEIVED":
       return "Links Received";
     case "PACKAGES_IMPORTED":

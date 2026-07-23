@@ -6,6 +6,7 @@ import {
   packageCtaLabel,
   pendingStatusForProvider,
   providerLabel,
+  storeStatusLabel,
   storeStatusTone,
 } from "@/lib/store-connection";
 
@@ -24,6 +25,17 @@ describe("store-connection helpers", () => {
   it("labels providers", () => {
     assert.equal(providerLabel("WINIBLE"), "Winible");
     assert.equal(providerLabel("WHOP"), "Whop");
+  });
+
+  it("uses storefront-approval language for pending statuses", () => {
+    assert.equal(
+      storeStatusLabel("PENDING_SCL_ACCEPTANCE"),
+      "Pending Storefront Approval",
+    );
+    assert.equal(
+      storeStatusLabel("PENDING_SCL_LINK_IMPORT"),
+      "Pending Storefront Approval",
+    );
   });
 
   it("adapts purchase CTA by platform", () => {

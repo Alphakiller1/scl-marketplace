@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 
 const STEPS = [
   "Choose platform",
-  "Why affiliate",
+  "Why connect",
   "Setup steps",
   "Confirm",
   "Status",
@@ -174,8 +174,8 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
                 ],
                 [
                   "NONE",
-                  "None",
-                  "Start selling through Winible with SCL’s referral path.",
+                  "None yet",
+                  "Don’t have a platform yet? We’ll help you get set up with Winible.",
                 ],
               ] as const
             ).map(([id, title, body]) => (
@@ -198,10 +198,12 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
           </div>
           {provider === "NONE" ? (
             <div className="border-border bg-surface-2 rounded-lg border p-4 text-sm">
-              <p className="font-semibold">Start Selling Through Winible</p>
-              <p className="text-muted-foreground mt-1">
-                Create a Winible storefront, then return here and choose Winible
-                to connect SCL as an affiliate.
+              <p className="font-semibold">Get Set Up With Winible</p>
+              <p className="text-muted-foreground mt-1 leading-relaxed">
+                Don’t have a platform yet? We’ll help you get set up with
+                Winible in just a few minutes so you can sell packages that
+                appear on SCL. Create your Winible storefront, then return here
+                and choose Winible to connect it.
               </p>
             </div>
           ) : null}
@@ -220,28 +222,31 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
         </Card>
       ) : null}
 
-      {!showStatus && step === 1 ? (
+      {!showStatus && step === 1 && provider && provider !== "NONE" ? (
         <Card className="space-y-4 p-5">
           <h2 className="scl-display text-base font-bold tracking-[0.05em] uppercase">
-            Why SCL uses an affiliate model
+            Why Connect Your Storefront?
           </h2>
-          <div className="border-brand/30 bg-brand/10 space-y-2 rounded-lg border p-4 text-sm leading-relaxed">
-            <p>
-              Sports Cappers Leaderboard is free for creators. Rather than
-              charging monthly platform fees, SCL is supported through affiliate
-              relationships with approved third-party storefront platforms.
-            </p>
-            <p>
-              When you connect your storefront, you designate Sports Cappers
-              Leaderboard as an affiliate partner. SCL only receives
-              compensation when a transaction is attributed to SCL under that
-              platform’s affiliate program.
-            </p>
-            <p>
-              Attribution rules, cookies, windows, and recurring commission
-              policies are controlled by the third-party platform—not by SCL.
-            </p>
-          </div>
+          <ul className="border-brand/30 bg-brand/10 space-y-2.5 rounded-lg border p-4 text-sm leading-relaxed">
+            <li>No monthly SCL platform fees.</li>
+            <li>
+              SCL automatically imports and displays your existing{" "}
+              {providerLabel(provider)} packages.
+            </li>
+            <li>
+              You continue selling through your existing storefront—your
+              checkout and subscriptions remain on {providerLabel(provider)}.
+            </li>
+            <li>
+              When SCL refers a new subscriber to your storefront, we earn an
+              affiliate commission from the platform. That’s how SCL remains
+              free for cappers.
+            </li>
+          </ul>
+          <p className="text-muted-foreground text-xs leading-relaxed">
+            Affiliate attribution, cookies, and commission rules are governed by{" "}
+            {providerLabel(provider)}, not SCL.
+          </p>
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
             <Button
               variant="ghost"
@@ -251,7 +256,7 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
               Back
             </Button>
             <Button className="min-h-11" onClick={() => setStep(2)}>
-              Continue to setup steps
+              Continue to {providerLabel(provider)} Setup
             </Button>
           </div>
         </Card>
@@ -354,7 +359,9 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
               Back
             </Button>
             <Button className="min-h-11" onClick={() => setStep(3)}>
-              I’ve finished the {providerLabel(provider)} steps
+              {provider === "WHOP"
+                ? "I’ve Added SCL as an Affiliate on Whop"
+                : "I’ve Submitted My Winible Affiliate Request"}
             </Button>
           </div>
         </Card>

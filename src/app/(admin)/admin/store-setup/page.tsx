@@ -151,7 +151,7 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
         <EmptyState
           icon={Store}
           title="No store setup requests"
-          description="When a capper submits Winible or Whop onboarding from Monetization Center, it appears here."
+          description="When a capper submits Winible or Whop onboarding from Storefront setup, it appears here."
         />
       )}
 
