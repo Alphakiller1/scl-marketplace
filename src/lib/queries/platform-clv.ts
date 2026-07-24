@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { VerificationTier } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 
 import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
 import { UNIT_MIN } from "@/lib/constants";
@@ -15,11 +16,7 @@ export type PlatformClvResult = {
   failed: boolean;
 };
 
-/**
- * Platform CLV — READ stored clvPts only, same publicly listed + board-verified
- * gate as the leaderboard / platform activity report.
- */
-export async function getPlatformClvSummary(): Promise<PlatformClvResult> {
+async function loadPlatformClvSummary(): Promise<PlatformClvResult> {
   const empty = summarizeClvTracker([]);
   try {
     const clvReady = await hasClvColumns();
@@ -54,4 +51,19 @@ export async function getPlatformClvSummary(): Promise<PlatformClvResult> {
     console.error("[getPlatformClvSummary] database unavailable:", error);
     return { summary: empty, failed: true };
   }
+}
+
+const getCachedPlatformClvSummary = unstable_cache(
+  loadPlatformClvSummary,
+  ["platform-clv-summary"],
+  { revalidate: 60, tags: ["leaderboard", "platform-clv"] },
+);
+
+/**
+ * Platform CLV — READ stored clvPts only, same publicly listed + board-verified
+ * gate as the leaderboard / platform activity report.
+ * Cached ~60s — home should not re-scan every navigation.
+ */
+export async function getPlatformClvSummary(): Promise<PlatformClvResult> {
+  return getCachedPlatformClvSummary();
 }

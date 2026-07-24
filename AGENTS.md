@@ -148,5 +148,8 @@ already in the repo.
   `html { font-size: 100% }` so rem tracks the user's zoom/default font.
 - **Nav responsiveness:** Marketing header auth is a Suspense island — don't block public
   chrome on `auth()`. Prefer `Promise.all` for independent page queries; cache
-  `getLeaderboardResult` (~60s). Profile lookup must target one handle (never scan the full
-  board). Keep `loading.tsx` on marketing routes for instant click feedback.
+  `getLeaderboardResult` / Discover / league-action / platform CLV (~60s). Profile lookup
+  must target one handle (never scan the full board). Keep `loading.tsx` on marketing **and**
+  `(capper)` / `(admin)` routes for instant click feedback. `getCurrentUser` /
+  `getCurrentAccount` are `React.cache`'d — don't re-gate pages that the layout already
+  gated; home streams via Suspense islands (hero first). No unused root `QueryProvider`.

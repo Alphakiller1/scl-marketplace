@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { Activity, ArrowRight, ShieldCheck } from "lucide-react";
+import dynamic from "next/dynamic";
 
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import { CompetitionHero } from "@/components/scl/competition-hero";
 import { FeaturedProofReceipt } from "@/components/scl/featured-proof-receipt";
 import { LiveBoardShell } from "@/components/scl/live-board-shell";
 import { HomeVerificationRail } from "@/components/scl/home-verification-rail";
-import { LeagueActionReport } from "@/components/scl/league-action-report";
 import { PlatformClvSummary } from "@/components/scl/platform-clv-summary";
 import { SectionHeader } from "@/components/scl/section";
 import { TopCappersLive } from "@/components/scl/top-cappers-live";
@@ -16,6 +18,7 @@ import { WhatChangedToday } from "@/components/scl/what-changed-today";
 import { LiveActivityTicker } from "@/components/scl/live-activity-ticker";
 
 import { appUrl } from "@/lib/app-url";
+import { slimBoardCapper } from "@/lib/board-capper";
 import {
   BOTTOM_BAND_BODY,
   BOTTOM_BAND_HEADLINE,
@@ -37,6 +40,19 @@ export const revalidate = 60;
 const HOME_TITLE = "SCL — Sports Capper Leaderboard";
 const HOME_DESCRIPTION =
   "Inspect verified sports capper records, public picks, timestamps, and leaderboard history. Transparent records for bettors and founding cappers — SCL does not process payments.";
+
+/** Heavy client island — load after hero paints. */
+const LeagueActionReport = dynamic(
+  () =>
+    import("@/components/scl/league-action-report").then((m) => ({
+      default: m.LeagueActionReport,
+    })),
+  {
+    loading: () => (
+      <Skeleton className="h-72 w-full rounded-[var(--scl-radius-card)]" />
+    ),
+  },
+);
 
 export async function generateMetadata(): Promise<Metadata> {
   const base = appUrl();
@@ -70,118 +86,160 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function Home() {
+function SectionSkeleton({ className }: { className?: string }) {
+  return (
+    <Skeleton
+      className={className ?? "h-48 w-full rounded-[var(--scl-radius-card)]"}
+    />
+  );
+}
+
+async function HomeHero() {
   const updatedAt = new Date();
-
-  const [
-    leaderboard,
-    leagueAction,
-    liveTicker,
-    todaysMoves,
-    featured,
-    platformClvResult,
-  ] = await Promise.all([
-    getLeaderboardResult({ verifiedOnly: true }),
-    getLeagueActionReport(),
-    getLiveActivityTicker(),
-    getTodaysGradedMoves(),
-    getFeaturedGradedPlay(),
-    getPlatformClvSummary(),
-  ]);
-
-  const { cappers, failed: leaderboardFailed } = leaderboard;
-  const {
-    leagues,
-    categories,
-    trackedPicks,
-    windowDays,
-    failed: leagueActionFailed,
-  } = leagueAction;
-  const { moves, failed: movesFailed } = todaysMoves;
-  const { play: featuredPlay, failed: featuredFailed } = featured;
-  const { summary: platformClv, failed: platformClvFailed } = platformClvResult;
-
-  // Snapshot = board place by units. Top cappers = inspectability by verified share.
-  const snapshot = sortLeaderboard(cappers, "units").slice(0, 5);
-  const topCappers = sortLeaderboard(cappers, "verified").slice(0, 10);
+  const { cappers, failed } = await getLeaderboardResult({
+    verifiedOnly: true,
+  });
+  const snapshot = sortLeaderboard(cappers, "units")
+    .slice(0, 5)
+    .map(slimBoardCapper);
 
   return (
-    <>
-      <CompetitionHero
-        board={
-          <LiveBoardShell
-            cappers={snapshot}
-            leaderboardFailed={leaderboardFailed}
-            updatedAt={updatedAt}
-          />
-        }
-      />
-
-      {/* One under-hero strip: live marquee when present, else What Changed. */}
-      {liveTicker.items.length > 0 ? (
-        <LiveActivityTicker
-          items={liveTicker.items}
-          failed={liveTicker.failed}
+    <CompetitionHero
+      board={
+        <LiveBoardShell
+          cappers={snapshot}
+          leaderboardFailed={failed}
+          updatedAt={updatedAt}
         />
-      ) : (
-        <div className="border-border border-b bg-[color:var(--scl-ink-900)]">
-          <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
-            <WhatChangedToday moves={moves} failed={movesFailed} />
-          </div>
+      }
+    />
+  );
+}
+
+async function HomeLiveStrip() {
+  const [liveTicker, todaysMoves] = await Promise.all([
+    getLiveActivityTicker(),
+    getTodaysGradedMoves(),
+  ]);
+
+  if (liveTicker.items.length > 0) {
+    return (
+      <LiveActivityTicker items={liveTicker.items} failed={liveTicker.failed} />
+    );
+  }
+
+  return (
+    <div className="border-border border-b bg-[color:var(--scl-ink-900)]">
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
+        <WhatChangedToday
+          moves={todaysMoves.moves}
+          failed={todaysMoves.failed}
+        />
+      </div>
+    </div>
+  );
+}
+
+async function HomeTopBoard() {
+  const [leaderboard, featured] = await Promise.all([
+    getLeaderboardResult({ verifiedOnly: true }),
+    getFeaturedGradedPlay(),
+  ]);
+  const topCappers = sortLeaderboard(leaderboard.cappers, "verified")
+    .slice(0, 10)
+    .map(slimBoardCapper);
+
+  return (
+    <div className="scl-board min-w-0">
+      <div className="relative grid min-w-0 gap-0 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,0.85fr)] lg:items-start">
+        <div className="scl-board-rule relative min-w-0 border-b px-3 py-4 sm:px-5 sm:py-6 lg:border-r lg:border-b-0 lg:px-5 lg:pr-6 lg:pl-5">
+          <div className="scl-live-rail hidden lg:block" aria-hidden />
+          <TopCappersLive
+            cappers={topCappers}
+            failed={leaderboard.failed}
+            activeWindow="all"
+          />
         </div>
-      )}
+        <div className="min-w-0 space-y-5 px-3 py-4 sm:space-y-7 sm:px-5 sm:py-6 lg:pl-6">
+          <FeaturedProofReceipt play={featured.play} failed={featured.failed} />
+          <HomeVerificationRail />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+async function HomePlatformReport() {
+  const { leagues, categories, trackedPicks, windowDays, failed } =
+    await getLeagueActionReport();
+
+  return (
+    <section className="space-y-4 sm:space-y-5">
+      <SectionHeader
+        icon={Activity}
+        title="Platform Activity Report"
+        subtitle={platformReportSubtitle(windowDays)}
+        href="/picks"
+      />
+      <LeagueActionReport
+        leagues={leagues}
+        categories={categories}
+        trackedPicks={trackedPicks}
+        windowDays={windowDays}
+        failed={failed}
+      />
+    </section>
+  );
+}
+
+async function HomePlatformClv() {
+  const { summary, failed } = await getPlatformClvSummary();
+
+  return (
+    <section className="space-y-4 sm:space-y-5">
+      <SectionHeader
+        icon={Activity}
+        title="Platform CLV"
+        subtitle="Pricing Vs Close On Board-Verified Picks With A Stored Closing Line"
+        href="/leaderboard?sort=clv"
+      />
+      <PlatformClvSummary summary={summary} failed={failed} />
+    </section>
+  );
+}
+
+export default function Home() {
+  return (
+    <>
+      <Suspense
+        fallback={
+          <div className="mx-auto max-w-[1400px] px-4 py-10 sm:px-6 lg:px-8">
+            <SectionSkeleton className="h-72 w-full rounded-[var(--scl-radius-card)]" />
+          </div>
+        }
+      >
+        <HomeHero />
+      </Suspense>
+
+      <Suspense
+        fallback={<SectionSkeleton className="h-12 w-full rounded-none" />}
+      >
+        <HomeLiveStrip />
+      </Suspense>
 
       <div className="mx-auto max-w-[1400px] min-w-0 px-4 pt-5 pb-8 sm:px-6 sm:pt-8 sm:pb-12 lg:px-8">
-        {/* Top Cappers + Featured Proof — solid board panes, no scanlines */}
-        <div className="scl-board min-w-0">
-          <div className="relative grid min-w-0 gap-0 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,0.85fr)] lg:items-start">
-            <div className="scl-board-rule relative min-w-0 border-b px-3 py-4 sm:px-5 sm:py-6 lg:border-r lg:border-b-0 lg:px-5 lg:pr-6 lg:pl-5">
-              <div className="scl-live-rail hidden lg:block" aria-hidden />
-              <TopCappersLive
-                cappers={topCappers}
-                failed={leaderboardFailed}
-                activeWindow="all"
-              />
-            </div>
-            <div className="min-w-0 space-y-5 px-3 py-4 sm:space-y-7 sm:px-5 sm:py-6 lg:pl-6">
-              <FeaturedProofReceipt
-                play={featuredPlay}
-                failed={featuredFailed}
-              />
-              <HomeVerificationRail />
-            </div>
-          </div>
-        </div>
+        <Suspense fallback={<SectionSkeleton className="h-80 w-full" />}>
+          <HomeTopBoard />
+        </Suspense>
 
         <div className="mt-8 space-y-8 sm:mt-14 sm:space-y-14">
-          <section className="space-y-4 sm:space-y-5">
-            <SectionHeader
-              icon={Activity}
-              title="Platform Activity Report"
-              subtitle={platformReportSubtitle(windowDays)}
-              href="/picks"
-            />
-            <LeagueActionReport
-              leagues={leagues}
-              categories={categories}
-              trackedPicks={trackedPicks}
-              windowDays={windowDays}
-              failed={leagueActionFailed}
-            />
-          </section>
+          <Suspense fallback={<SectionSkeleton className="h-72 w-full" />}>
+            <HomePlatformReport />
+          </Suspense>
 
-          <section className="space-y-4 sm:space-y-5">
-            <SectionHeader
-              icon={Activity}
-              title="Platform CLV"
-              subtitle="Pricing Vs Close On Board-Verified Picks With A Stored Closing Line"
-              href="/leaderboard?sort=clv"
-            />
-            <PlatformClvSummary
-              summary={platformClv}
-              failed={platformClvFailed}
-            />
-          </section>
+          <Suspense fallback={<SectionSkeleton className="h-56 w-full" />}>
+            <HomePlatformClv />
+          </Suspense>
 
           <section className="border-border flex flex-col items-stretch gap-5 border-y py-8 sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:py-12">
             <div className="max-w-2xl">

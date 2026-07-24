@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { VerificationTier } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import {
@@ -42,13 +43,13 @@ export type LeagueActionReportResult = {
   failed: boolean;
 };
 
-export async function getLeagueActionReport({
-  windowDays = DEFAULT_WINDOW_DAYS,
-  take = DEFAULT_TAKE,
+async function loadLeagueActionReport({
+  windowDays,
+  take,
 }: {
-  windowDays?: number;
-  take?: number;
-} = {}): Promise<LeagueActionReportResult> {
+  windowDays: number;
+  take: number;
+}): Promise<LeagueActionReportResult> {
   const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000);
 
   try {
@@ -158,4 +159,26 @@ export async function getLeagueActionReport({
       failed: true,
     };
   }
+}
+
+const getCachedLeagueActionReport = unstable_cache(
+  async (cacheKey: string) => {
+    const { windowDays, take } = JSON.parse(cacheKey) as {
+      windowDays: number;
+      take: number;
+    };
+    return loadLeagueActionReport({ windowDays, take });
+  },
+  ["league-action-report"],
+  { revalidate: 60, tags: ["leaderboard", "league-action"] },
+);
+
+export async function getLeagueActionReport({
+  windowDays = DEFAULT_WINDOW_DAYS,
+  take = DEFAULT_TAKE,
+}: {
+  windowDays?: number;
+  take?: number;
+} = {}): Promise<LeagueActionReportResult> {
+  return getCachedLeagueActionReport(JSON.stringify({ windowDays, take }));
 }
