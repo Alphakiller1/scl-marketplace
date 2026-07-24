@@ -1,5 +1,6 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { UNIT_MIN } from "@/lib/constants";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
@@ -53,8 +54,17 @@ function deriveForm(settled: Outcome[]): {
 /**
  * Public Discover lanes — same public-listed eligibility as the leaderboard.
  * Honest empties when cold start leaves lanes thin; never fabricates rows.
+ * Cached ~60s (same cadence as the leaderboard) — nested play scans are heavy.
  */
 export async function getDiscoverLanes(): Promise<{
+  lanes: DiscoverLaneResult[];
+  publicRecordCount: number;
+  failed: boolean;
+}> {
+  return getCachedDiscoverLanes();
+}
+
+async function loadDiscoverLanes(): Promise<{
   lanes: DiscoverLaneResult[];
   publicRecordCount: number;
   failed: boolean;
@@ -258,3 +268,9 @@ export async function getDiscoverLanes(): Promise<{
     };
   }
 }
+
+const getCachedDiscoverLanes = unstable_cache(
+  loadDiscoverLanes,
+  ["discover-lanes"],
+  { revalidate: 60, tags: ["leaderboard", "discover"] },
+);

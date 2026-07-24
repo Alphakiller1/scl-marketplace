@@ -3,7 +3,7 @@ import { Store } from "lucide-react";
 import { MonetizationWizard } from "@/components/scl/monetization-wizard";
 import { SectionHeader } from "@/components/scl/section";
 import { PackageCard } from "@/components/scl/package-card";
-import { requireCapperAccess } from "@/lib/session";
+import { getCurrentUser } from "@/lib/session";
 import {
   getCapperProfileIdForUser,
   getOwnerLivePackagesForCapper,
@@ -13,12 +13,17 @@ import {
 export const metadata = { title: "Storefront" };
 
 export default async function MonetizationPage() {
-  const user = await requireCapperAccess();
+  // Layout already ran requireCapperAccess — reuse cached session user.
+  const user = await getCurrentUser();
+  if (!user) return null;
+
   const capperId = await getCapperProfileIdForUser(user.id);
-  const connections = capperId ? await listConnectionsForCapper(capperId) : [];
-  const livePackages = capperId
-    ? await getOwnerLivePackagesForCapper(capperId)
-    : [];
+  const [connections, livePackages] = capperId
+    ? await Promise.all([
+        listConnectionsForCapper(capperId),
+        getOwnerLivePackagesForCapper(capperId),
+      ])
+    : [[], []];
 
   return (
     <div className="space-y-6">

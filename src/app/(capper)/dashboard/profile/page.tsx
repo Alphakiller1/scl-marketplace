@@ -1,6 +1,6 @@
 import { UserCog } from "lucide-react";
 
-import { requireCapperAccess } from "@/lib/session";
+import { getCurrentUser } from "@/lib/session";
 import { getCapperProfileByUserId } from "@/lib/queries/profile";
 import { SectionHeader } from "@/components/scl/section";
 import { ProfileForm } from "./profile-form";
@@ -8,7 +8,9 @@ import { ProfileForm } from "./profile-form";
 export const metadata = { title: "Profile" };
 
 export default async function ProfileSettingsPage() {
-  const user = await requireCapperAccess();
+  // Layout already ran requireCapperAccess — reuse cached session user.
+  const user = await getCurrentUser();
+  if (!user) return null;
   const profile = await getCapperProfileByUserId(user.id);
 
   return (

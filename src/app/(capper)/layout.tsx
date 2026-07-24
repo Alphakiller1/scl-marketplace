@@ -1,5 +1,8 @@
+import { Suspense } from "react";
+
 import { requireCapperAccess } from "@/lib/session";
 import { AppHeader } from "@/components/app-header";
+import { CapperRouteSkeleton } from "@/components/scl/capper-route-skeleton";
 import { NewPickFab } from "@/components/scl/new-pick-fab";
 
 const CAPPER_NAV = [
@@ -10,19 +13,27 @@ const CAPPER_NAV = [
   { href: "/dashboard/profile", label: "Profile" },
 ];
 
-export default async function CapperLayout({
+/**
+ * Auth gate as a Suspense child so chrome paints immediately on nav clicks.
+ * Middleware still blocks anonymous access; this is defense-in-depth.
+ */
+async function CapperGate({ children }: { children: React.ReactNode }) {
+  await requireCapperAccess();
+  return children;
+}
+
+export default function CapperLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Defense in depth (middleware already gates /dashboard).
-  await requireCapperAccess();
-
   return (
     <div className="flex min-h-screen flex-col">
       <AppHeader area="Capper" nav={CAPPER_NAV} />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-8">
-        {children}
+        <Suspense fallback={<CapperRouteSkeleton />}>
+          <CapperGate>{children}</CapperGate>
+        </Suspense>
       </main>
       <NewPickFab />
     </div>

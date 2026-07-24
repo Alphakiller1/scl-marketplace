@@ -1,14 +1,18 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { CURRENT_POLICY_VERSION } from "@/lib/legal";
 
-/** Current session user (or null). Server-only. */
-export async function getCurrentUser() {
+/**
+ * Current session user (or null). Server-only.
+ * Request-scoped cache — layout + page share one Auth.js lookup.
+ */
+export const getCurrentUser = cache(async () => {
   const session = await auth();
   return session?.user ?? null;
-}
+});
 
 /** Require any signed-in user; redirect to login otherwise. */
 export async function requireUser() {
@@ -17,8 +21,12 @@ export async function requireUser() {
   return user;
 }
 
-/** Current session plus fresh account state for authorization decisions. */
-export async function getCurrentAccount() {
+/**
+ * Current session plus fresh account state for authorization decisions.
+ * Request-scoped cache — avoids duplicate Prisma hits when layout and page
+ * both call requireCapperAccess / requireActiveUser.
+ */
+export const getCurrentAccount = cache(async () => {
   const user = await getCurrentUser();
   if (!user) return null;
 
@@ -43,7 +51,7 @@ export async function getCurrentAccount() {
     emailVerified: account.emailVerified,
     legalAcceptance: account.termsAcceptances[0] ?? null,
   };
-}
+});
 
 /** Require a verified, active account. */
 export async function requireActiveUser() {
