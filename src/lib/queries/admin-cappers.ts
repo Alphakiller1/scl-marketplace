@@ -15,8 +15,11 @@ export async function getAdminCapperAccounts() {
       createdAt: true,
       capperProfile: {
         select: {
+          id: true,
           sports: true,
-          _count: { select: { plays: true } },
+          storefrontStatus: true,
+          commercePlatform: true,
+          _count: { select: { plays: true, packages: true } },
         },
       },
     },

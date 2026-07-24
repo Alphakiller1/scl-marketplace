@@ -2,12 +2,14 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
+import type { PublicLivePackage } from "@/lib/queries/admin-storefronts";
 import type { PlayView } from "@/lib/queries/plays";
 import type { CapperSummary } from "@/lib/mock";
 
 export type PublicCapper = {
   capper: CapperSummary;
   plays: PlayView[];
+  packages: PublicLivePackage[];
   /** True when the recent-plays query failed, so the page can show an error
    * state instead of a misleading "no plays" empty state. */
   playsError: boolean;
@@ -30,6 +32,7 @@ export async function getPublicCapperByHandle(
 
   let plays: PlayView[] = [];
   let playsError = false;
+  let packages: PublicLivePackage[] = [];
   try {
     const rows = await prisma.play.findMany({
       where: { capper: { user: { username: handle } } },
@@ -57,5 +60,11 @@ export async function getPublicCapperByHandle(
     playsError = true;
   }
 
-  return { capper, plays, playsError };
+  try {
+    packages = await getPublicLivePackages(capper.id);
+  } catch (err) {
+    console.error("[getPublicCapperByHandle] packages unavailable:", err);
+  }
+
+  return { capper, plays, packages, playsError };
 }

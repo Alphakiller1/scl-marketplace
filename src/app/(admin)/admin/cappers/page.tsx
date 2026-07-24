@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { Users } from "lucide-react";
 
 import { AccountStatusBadge } from "@/components/scl/account-trust";
 import { AccountStatusControl } from "@/components/scl/account-status-control";
 import { EmptyState } from "@/components/scl/states";
 import { SectionHeader } from "@/components/scl/section";
+import { StorefrontStatusBadge } from "@/components/scl/storefront-status-badge";
 import { getAdminCapperAccounts } from "@/lib/queries/admin-cappers";
 
 export const metadata = { title: "Capper accounts" };
@@ -16,14 +18,15 @@ export default async function AdminCappersPage() {
       <SectionHeader
         icon={Users}
         title="Capper Accounts"
-        subtitle="Account access, verification, and status controls"
+        subtitle="Account access, verification, storefront status, and lifecycle controls"
       />
 
       {accounts.length ? (
         <div className="border-border overflow-hidden rounded-xl border">
-          <div className="border-border bg-surface-2 text-muted-foreground hidden grid-cols-[minmax(0,1fr)_7rem_5rem_1.4fr] gap-4 border-b px-4 py-2 text-xs font-semibold uppercase md:grid">
+          <div className="border-border bg-surface-2 text-muted-foreground hidden grid-cols-[minmax(0,1fr)_7rem_8rem_5rem_1.4fr] gap-4 border-b px-4 py-2 text-xs font-semibold uppercase xl:grid">
             <span>Capper</span>
             <span>Status</span>
+            <span>Storefront</span>
             <span>Plays</span>
             <span>Control</span>
           </div>
@@ -31,7 +34,7 @@ export default async function AdminCappersPage() {
             {accounts.map((account) => (
               <article
                 key={account.id}
-                className="bg-card grid gap-4 p-4 md:grid-cols-[minmax(0,1fr)_7rem_5rem_1.4fr] md:items-center"
+                className="bg-card grid gap-4 p-4 xl:grid-cols-[minmax(0,1fr)_7rem_8rem_5rem_1.4fr] xl:items-center"
               >
                 <div className="min-w-0">
                   <h2 className="truncate font-semibold">
@@ -45,13 +48,30 @@ export default async function AdminCappersPage() {
                   <p className="text-muted-foreground mt-1 text-xs">
                     {account.emailVerified ? "Email verified" : "Email pending"}
                   </p>
+                  {account.capperProfile ? (
+                    <Link
+                      href={`/admin/storefronts/${account.capperProfile.id}`}
+                      className="text-brand mt-2 inline-block text-xs font-medium"
+                    >
+                      Manage storefront
+                    </Link>
+                  ) : null}
                 </div>
                 <div>
                   <AccountStatusBadge status={account.accountStatus} />
                 </div>
+                <div>
+                  {account.capperProfile ? (
+                    <StorefrontStatusBadge
+                      status={account.capperProfile.storefrontStatus}
+                    />
+                  ) : (
+                    <span className="text-muted-foreground text-sm">—</span>
+                  )}
+                </div>
                 <div className="nums text-sm font-semibold tabular-nums">
                   {account.capperProfile?._count.plays ?? 0}
-                  <span className="text-muted-foreground ml-1 font-normal md:hidden">
+                  <span className="text-muted-foreground ml-1 font-normal xl:hidden">
                     plays
                   </span>
                 </div>

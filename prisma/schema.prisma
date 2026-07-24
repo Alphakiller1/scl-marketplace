@@ -16,6 +16,7 @@ datasource db {
 
 enum Role {
   CAPPER
+  CUSTOMER
   ADMIN
 }
 
@@ -42,11 +43,20 @@ model User {
   accounts           Account[]
   sessions           Session[]
   capperProfile      CapperProfile?
+  customerProfile    CustomerProfile?
   termsAcceptances   TermsAcceptance[]
   gradingActions     GradingAudit[]       @relation("GradedBy")
   passwordResetToken PasswordResetToken?
   statusChanges      AccountStatusAudit[] @relation("AccountStatusSubject")
   statusActions      AccountStatusAudit[] @relation("AccountStatusActor")
+  storefrontReviews  CapperProfile[]      @relation("StorefrontReviewedBy")
+  packageApprovals   Package[]            @relation("PackageApprovedBy")
+  policyReleases     PolicyRelease[]      @relation("PolicyPublishedBy")
+  bulkEmailCampaigns BulkEmailCampaign[]  @relation("BulkEmailSentBy")
+  recordedSales      PackageSale[]        @relation("SaleRecordedBy")
+  customerPurchases  PackageSale[]        @relation("CustomerPurchases")
+  clickEvents        ClickEvent[]
+  commerceSettings   PlatformCommerceSettings[] @relation("CommerceSettingsUpdatedBy")
 }
 
 model Account {
@@ -144,6 +154,27 @@ enum DailyVolume {
   VERY_HIGH
 }
 
+enum CommercePlatform {
+  NONE
+  WINIBLE
+  WHOP
+}
+
+enum StorefrontStatus {
+  NOT_STARTED
+  AWAITING_AFFILIATE_INVITE
+  PENDING_SCL_REVIEW
+  APPROVED
+  STOREFRONT_LIVE
+  NEEDS_ATTENTION
+}
+
+enum PackageVisibility {
+  DRAFT
+  HIDDEN
+  LIVE
+}
+
 enum BetType {
   STRAIGHT
   PARLAY
@@ -171,7 +202,14 @@ model CapperProfile {
   isLegacy              Boolean      @default(false)
   storefrontTitle       String?
   storefrontDescription String?
-  storefrontEnabled     Boolean      @default(true)
+  storefrontEnabled     Boolean            @default(true)
+  commercePlatform      CommercePlatform   @default(NONE)
+  storefrontStatus      StorefrontStatus   @default(NOT_STARTED)
+  adminNotes            String?
+  lastReviewedAt        DateTime?
+  lastReviewedById      String?
+  nativeStoreEnabled    Boolean            @default(false)
+  defaultAffiliatePercent Int?
 
   // social handles (store handle/username, not full URL)
   instagram String?
@@ -183,8 +221,9 @@ model CapperProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plays    Play[]
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastReviewedBy User?     @relation("StorefrontReviewedBy", fields: [lastReviewedById], references: [id], onDelete: SetNull)
+  plays          Play[]
   parlays  Parlay[]
   packages Package[]
 
@@ -209,15 +248,40 @@ model Package {
   billingPeriod BillingPeriod @default(MONTH)
   // External checkout (e.g. Winible) for Phase 1; native Stripe checkout in Phase 2.
   checkoutUrl   String?
+  trialTerms    String?
+  displayOrder  Int               @default(0)
+  visibility    PackageVisibility @default(DRAFT)
+  affiliatePercent Int?
+  approvedAt    DateTime?
+  approvedById  String?
+  suspendedAt   DateTime?
+  suspendedReason String?
   providerType  ProviderType  @default(PREMIUM)
   isActive      Boolean       @default(true)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
   capper       CapperProfile @relation(fields: [capperId], references: [id], onDelete: Cascade)
+  approvedBy   User?         @relation("PackageApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
   trackingUrls TrackingUrl[]
+  sales        PackageSale[]
 
   @@index([capperId])
+  @@index([visibility])
+}
+
+model CustomerProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  marketingOptIn Boolean  @default(true)
+  adminNotes     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purchases PackageSale[]
+
+  @@index([marketingOptIn])
 }
 
 model TrackingUrl {
@@ -234,15 +298,19 @@ model TrackingUrl {
 }
 
 model ClickEvent {
-  id            String   @id @default(cuid())
-  trackingUrlId String
-  referrer      String?
-  userAgent     String?
-  createdAt     DateTime @default(now())
+  id             String   @id @default(cuid())
+  trackingUrlId  String
+  customerUserId String?
+  referrer       String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
 
-  trackingUrl TrackingUrl @relation(fields: [trackingUrlId], references: [id], onDelete: Cascade)
+  trackingUrl  TrackingUrl    @relation(fields: [trackingUrlId], references: [id], onDelete: Cascade)
+  customerUser User?          @relation(fields: [customerUserId], references: [id], onDelete: SetNull)
+  sales        PackageSale[]
 
   @@index([trackingUrlId])
+  @@index([customerUserId])
 }
 
 // ---------- Plays, parlays & grading ----------
@@ -361,4 +429,128 @@ model GradingAudit {
   gradedBy User? @relation("GradedBy", fields: [gradedById], references: [id], onDelete: SetNull)
 
   @@index([playId])
+}
+
+// ---------- Policy CMS & admin communications ----------
+
+enum PolicyDocumentSlug {
+  TERMS
+  PRIVACY
+  RESPONSIBLE_GAMING
+  DISCLAIMER
+}
+
+enum BulkEmailAudience {
+  ALL_CAPPERS
+  ACTIVE_CAPPERS
+  VERIFIED_CAPPERS
+  STOREFRONT_LIVE
+  NEEDS_ATTENTION
+  ALL_CUSTOMERS
+  ACTIVE_CUSTOMERS
+  MARKETING_OPT_IN_CUSTOMERS
+}
+
+enum EmailRecipientKind {
+  CAPPER
+  CUSTOMER
+}
+
+enum SaleSource {
+  MANUAL
+  WINIBLE
+  WHOP
+  SCL_NATIVE
+}
+
+enum SaleStatus {
+  REPORTED
+  CONFIRMED
+  REFUNDED
+  DISPUTED
+}
+
+model PolicyRelease {
+  id                   String   @id @default(cuid())
+  version              String   @unique
+  summary              String?
+  requiresReacceptance Boolean  @default(true)
+  publishedAt          DateTime @default(now())
+  publishedById        String
+
+  publishedBy User              @relation("PolicyPublishedBy", fields: [publishedById], references: [id], onDelete: Restrict)
+  documents   PolicyDocument[]
+
+  @@index([publishedAt])
+}
+
+model PolicyDocument {
+  id        String             @id @default(cuid())
+  releaseId String
+  slug      PolicyDocumentSlug
+  title     String
+  body      String             @db.Text
+
+  release PolicyRelease @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+
+  @@unique([releaseId, slug])
+  @@index([slug])
+}
+
+model BulkEmailCampaign {
+  id              String             @id @default(cuid())
+  subject         String
+  bodyHtml        String             @db.Text
+  recipientKind   EmailRecipientKind @default(CAPPER)
+  audience        BulkEmailAudience
+  recipientCount  Int                @default(0)
+  deliveredCount  Int                @default(0)
+  failedCount     Int                @default(0)
+  createdAt       DateTime           @default(now())
+  sentById        String
+
+  sentBy User @relation("BulkEmailSentBy", fields: [sentById], references: [id], onDelete: Restrict)
+
+  @@index([createdAt])
+  @@index([recipientKind])
+}
+
+model PlatformCommerceSettings {
+  id                       String   @id @default("default")
+  nativeStoreEnabled       Boolean  @default(false)
+  platformAffiliatePercent Int      @default(20)
+  updatedAt                DateTime @updatedAt
+  updatedById              String?
+
+  updatedBy User? @relation("CommerceSettingsUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+}
+
+model PackageSale {
+  id               String     @id @default(cuid())
+  packageId        String
+  customerUserId   String?
+  customerProfileId String?
+  clickEventId     String?
+  source           SaleSource
+  status           SaleStatus @default(REPORTED)
+  grossCents       Int
+  affiliateCents   Int?
+  affiliatePercent Int?
+  externalOrderId  String?
+  purchasedAt      DateTime
+  notes            String?
+  recordedById     String
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  package         Package          @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  customerUser    User?            @relation("CustomerPurchases", fields: [customerUserId], references: [id], onDelete: SetNull)
+  customerProfile CustomerProfile? @relation(fields: [customerProfileId], references: [id], onDelete: SetNull)
+  clickEvent      ClickEvent?      @relation(fields: [clickEventId], references: [id], onDelete: SetNull)
+  recordedBy      User             @relation("SaleRecordedBy", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  @@index([packageId])
+  @@index([purchasedAt])
+  @@index([status])
+  @@index([source])
 }

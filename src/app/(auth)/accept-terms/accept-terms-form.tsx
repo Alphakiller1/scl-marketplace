@@ -8,9 +8,15 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { acceptCurrentTermsAction } from "@/lib/actions/legal.action";
-import { CURRENT_POLICY_VERSION } from "@/lib/legal";
+import { defaultPathForRole } from "@/lib/commerce-settings";
 
-export function AcceptTermsForm() {
+export function AcceptTermsForm({
+  policyVersion,
+  homePath = "/dashboard",
+}: {
+  policyVersion: string;
+  homePath?: string;
+}) {
   const router = useRouter();
   const [accepted, setAccepted] = useState(false);
   const [pending, setPending] = useState(false);
@@ -26,7 +32,7 @@ export function AcceptTermsForm() {
     }
 
     toast.success("Policies accepted");
-    router.push("/dashboard");
+    router.push(homePath);
     router.refresh();
   }
 
@@ -37,7 +43,7 @@ export function AcceptTermsForm() {
       </div>
       <div>
         <p className="text-live text-xs font-semibold uppercase">
-          Policy version {CURRENT_POLICY_VERSION}
+          Policy version {policyVersion}
         </p>
         <h1 className="mt-1 text-2xl font-bold">Review Account Policies</h1>
         <p className="text-muted-foreground mt-2 text-sm">

@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { getCurrentPolicyVersion } from "@/lib/legal";
 import { prisma } from "@/lib/prisma";
-import { CURRENT_POLICY_VERSION } from "@/lib/legal";
 
 /** Current session user (or null). Server-only. */
 export async function getCurrentUser() {
@@ -28,7 +28,7 @@ export async function getCurrentAccount() {
       accountStatus: true,
       emailVerified: true,
       termsAcceptances: {
-        where: { policyVersion: CURRENT_POLICY_VERSION },
+        where: { policyVersion: await getCurrentPolicyVersion() },
         select: { acceptedAt: true, policyVersion: true },
         orderBy: { acceptedAt: "desc" },
         take: 1,
@@ -64,6 +64,15 @@ export async function requireActiveUser() {
 /** Require an active account with the current terms/privacy acceptance. */
 export async function requireCapperAccess() {
   const account = await requireActiveUser();
+  if (account.role === "CUSTOMER") redirect("/account");
+  if (!account.legalAcceptance) redirect("/accept-terms");
+  return account;
+}
+
+/** Require a signed-in customer account with current policy acceptance. */
+export async function requireCustomerAccess() {
+  const account = await requireActiveUser();
+  if (account.role !== "CUSTOMER") redirect("/dashboard");
   if (!account.legalAcceptance) redirect("/accept-terms");
   return account;
 }

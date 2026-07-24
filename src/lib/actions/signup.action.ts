@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { signupSchema, type SignupInput } from "@/lib/schemas/auth.schema";
 import { createVerificationToken } from "@/lib/tokens";
 import { sendVerificationEmail } from "@/lib/email";
-import { CURRENT_POLICY_VERSION } from "@/lib/legal";
+import { getCurrentPolicyVersion } from "@/lib/legal";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getRequestIdentity } from "@/lib/request-identity";
 
@@ -58,6 +58,7 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
+  const policyVersion = await getCurrentPolicyVersion();
 
   // Look up any account already on this email or this handle (separately, so we know which
   // one collided).
@@ -98,7 +99,7 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
           ...newAccountState,
           capperProfile: { upsert: { create: {}, update: {} } },
           termsAcceptances: {
-            create: { policyVersion: CURRENT_POLICY_VERSION },
+            create: { policyVersion },
           },
         },
       });
@@ -112,7 +113,7 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
           ...newAccountState,
           capperProfile: { create: {} },
           termsAcceptances: {
-            create: { policyVersion: CURRENT_POLICY_VERSION },
+            create: { policyVersion },
           },
         },
       });

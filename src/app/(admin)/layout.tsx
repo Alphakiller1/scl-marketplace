@@ -3,8 +3,16 @@ import { AppHeader } from "@/components/app-header";
 
 const ADMIN_NAV = [
   { href: "/admin", label: "Overview" },
+  { href: "/admin/plays", label: "Plays" },
   { href: "/admin/grading", label: "Grading" },
   { href: "/admin/cappers", label: "Cappers" },
+  { href: "/admin/customers", label: "Customers" },
+  { href: "/admin/storefronts", label: "Storefronts" },
+  { href: "/admin/store", label: "Store" },
+  { href: "/admin/sales", label: "Sales" },
+  { href: "/admin/analytics", label: "Analytics" },
+  { href: "/admin/policies", label: "Policies" },
+  { href: "/admin/communications", label: "Comms" },
 ];
 
 export default async function AdminLayout({

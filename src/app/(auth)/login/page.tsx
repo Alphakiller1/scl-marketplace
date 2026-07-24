@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LogIn } from "lucide-react";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthFormSkeleton, AuthHeader } from "@/components/scl/auth-header";
 import { PasswordField } from "@/components/scl/password-field";
+import { defaultPathForRole } from "@/lib/commerce-settings";
 import { loginSchema, type LoginInput } from "@/lib/schemas/auth.schema";
 
 export default function LoginPage() {
@@ -27,7 +28,7 @@ export default function LoginPage() {
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const callbackUrl = params.get("callbackUrl") ?? "/dashboard";
+  const callbackUrl = params.get("callbackUrl");
 
   const {
     register,
@@ -45,8 +46,11 @@ function LoginForm() {
         toast.error("Unable to sign in with those credentials");
         return;
       }
+      const session = await getSession();
+      const destination =
+        callbackUrl ?? defaultPathForRole(session?.user?.role);
       toast.success("Welcome back");
-      router.push(callbackUrl);
+      router.push(destination);
       router.refresh();
     } catch {
       toast.error("Couldn't sign you in. Please try again in a moment.");
@@ -109,7 +113,14 @@ function LoginForm() {
           href="/signup"
           className="text-brand inline-flex min-h-11 items-center font-medium hover:underline"
         >
-          Create An Account
+          Capper signup
+        </Link>
+        {" · "}
+        <Link
+          href="/signup/customer"
+          className="text-brand inline-flex min-h-11 items-center font-medium hover:underline"
+        >
+          Customer signup
         </Link>
       </p>
     </>

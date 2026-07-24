@@ -44,7 +44,7 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
   const data = await getPublicCapperByHandle(handle);
   if (!data) notFound();
 
-  const { capper, plays, playsError } = data;
+  const { capper, plays, packages, playsError } = data;
   const identity = identityDisplayLinesFromCapper(capper);
 
   return (
@@ -94,6 +94,7 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
                 className="mt-0"
                 storefront={capper.storefront}
                 capperName={identity.primary}
+                packages={packages}
               />
             </aside>
           ) : null}

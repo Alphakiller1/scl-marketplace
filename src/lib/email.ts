@@ -89,3 +89,61 @@ export async function sendPasswordResetEmail(email: string, token: string) {
     return { delivered: false as const, link };
   }
 }
+
+type BroadcastRecipient = {
+  email: string;
+  displayName?: string | null;
+  username?: string | null;
+};
+
+export async function sendCapperBroadcastEmail(
+  recipients: BroadcastRecipient[],
+  subject: string,
+  bodyHtml: string,
+) {
+  if (!recipients.length) {
+    return { delivered: 0, failed: 0, skipped: true as const };
+  }
+
+  const wrappedBody = `
+    <div style="font-family:system-ui,sans-serif;max-width:560px;margin:auto;line-height:1.5">
+      ${bodyHtml}
+      <hr style="border:none;border-top:1px solid #ddd;margin:24px 0" />
+      <p style="color:#666;font-size:12px">You received this message from SCL operations because you have a capper account on Sports Capper Leaderboard.</p>
+    </div>
+  `;
+
+  if (!resend) {
+    console.info(
+      `[email:dev] broadcast "${subject}" to ${recipients.length} capper(s):`,
+      recipients.map((r) => r.email).join(", "),
+    );
+    return {
+      delivered: 0,
+      failed: recipients.length,
+      skipped: false as const,
+      devMode: true as const,
+    };
+  }
+
+  let delivered = 0;
+  let failed = 0;
+
+  for (const recipient of recipients) {
+    try {
+      const { error } = await resend.emails.send({
+        from,
+        to: recipient.email,
+        subject,
+        html: wrappedBody,
+      });
+      if (error) failed += 1;
+      else delivered += 1;
+    } catch (err) {
+      console.error(`[email] broadcast failed for ${recipient.email}:`, err);
+      failed += 1;
+    }
+  }
+
+  return { delivered, failed, skipped: false as const };
+}
