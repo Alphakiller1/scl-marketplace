@@ -11,6 +11,20 @@ export const loginSchema = z.object({
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
+/**
+ * Second step of admin sign-in. The challenge id stands in for the password:
+ * it only exists because the password was already verified.
+ */
+export const adminLoginCodeSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Enter a valid email"),
+  challengeId: z.string().min(1, "Start again from the login form"),
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "Enter the 6-digit code from your email"),
+});
+export type AdminLoginCodeInput = z.infer<typeof adminLoginCodeSchema>;
+
 export const signupSchema = z
   .object({
     username: z

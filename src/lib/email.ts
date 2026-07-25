@@ -90,6 +90,44 @@ export async function sendPasswordResetEmail(email: string, token: string) {
   }
 }
 
+/**
+ * Second-factor code for admin sign-in. Unlike the other senders this one
+ * reports failure honestly: if the code never left the building, the admin is
+ * locked out and needs to know why rather than staring at a code entry box.
+ */
+export async function sendAdminLoginCodeEmail(email: string, code: string) {
+  if (!resend) {
+    console.info(`[email:dev] admin sign-in code for ${email}: ${code}`);
+    return { delivered: false as const, configured: false as const };
+  }
+
+  try {
+    const { error } = await resend.emails.send({
+      from,
+      to: email,
+      subject: `${code} is your SCL admin sign-in code`,
+      html: `
+      <div style="font-family:system-ui,sans-serif;max-width:480px;margin:auto">
+        <h2>Admin sign-in code</h2>
+        <p>Enter this code to finish signing in to the SCL admin panel.</p>
+        <p style="font-size:32px;font-weight:700;letter-spacing:6px;margin:24px 0">${code}</p>
+        <p style="color:#666;font-size:13px">This code expires in 10 minutes and works once. If you didn't try to sign in, change your password — someone else has it.</p>
+      </div>
+    `,
+    });
+    if (error) {
+      console.error(
+        `[email] admin code send failed for ${email}: ${error.message}`,
+      );
+      return { delivered: false as const, configured: true as const };
+    }
+    return { delivered: true as const, configured: true as const };
+  } catch (err) {
+    console.error(`[email] admin code send threw for ${email}:`, err);
+    return { delivered: false as const, configured: true as const };
+  }
+}
+
 type BroadcastRecipient = {
   email: string;
   displayName?: string | null;

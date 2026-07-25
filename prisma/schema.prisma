@@ -47,6 +47,7 @@ model User {
   termsAcceptances   TermsAcceptance[]
   gradingActions     GradingAudit[]       @relation("GradedBy")
   passwordResetToken PasswordResetToken?
+  loginChallenges    AdminLoginChallenge[]
   statusChanges      AccountStatusAudit[] @relation("AccountStatusSubject")
   statusActions      AccountStatusAudit[] @relation("AccountStatusActor")
   storefrontReviews  CapperProfile[]      @relation("StorefrontReviewedBy")
@@ -103,6 +104,23 @@ model PasswordResetToken {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Second factor for ADMIN sign-in: a short-lived emailed code. The row is
+/// created only after the password has been verified, and deleted on success,
+/// expiry, or too many wrong attempts.
+model AdminLoginChallenge {
+  id        String   @id @default(cuid())
+  userId    String
+  codeHash  String
+  attempts  Int      @default(0)
+  expires   DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expires])
 }
 
 model TermsAcceptance {

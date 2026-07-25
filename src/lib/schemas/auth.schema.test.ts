@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  adminLoginCodeSchema,
   passwordResetRequestSchema,
   passwordSchema,
   resetPasswordSchema,
@@ -32,6 +33,35 @@ test("signup normalizes public handles and email addresses", () => {
 
   assert.equal(parsed.username, "chase_analytics");
   assert.equal(parsed.email, "cappper@example.com");
+});
+
+test("admin sign-in code must be exactly six digits", () => {
+  const base = { email: "admin@scl.local", challengeId: "chal_1" };
+
+  assert.equal(adminLoginCodeSchema.safeParse(base).success, false);
+  assert.equal(
+    adminLoginCodeSchema.safeParse({ ...base, code: "12345" }).success,
+    false,
+  );
+  assert.equal(
+    adminLoginCodeSchema.safeParse({ ...base, code: "12345a" }).success,
+    false,
+  );
+  assert.equal(
+    adminLoginCodeSchema.safeParse({ ...base, code: " 123456 " }).success,
+    true,
+  );
+});
+
+test("admin sign-in code rejects a password-only payload", () => {
+  // The credentials provider relies on this failing so that an admin can never
+  // complete the challenge branch without a challenge id and code.
+  const parsed = adminLoginCodeSchema.safeParse({
+    email: "admin@scl.local",
+    password: "long-passphrase",
+  });
+
+  assert.equal(parsed.success, false);
 });
 
 test("password reset requires a valid token and matching passwords", () => {

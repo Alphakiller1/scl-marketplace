@@ -12,6 +12,9 @@ write it.
 
 - **User** (auth) — email, username, `passwordHash`, `role` (CAPPER/ADMIN),
   `accountStatus` (PENDING/ACTIVE/SUSPENDED/DISABLED), `emailVerified`.
+- **AdminLoginChallenge** — second factor for ADMIN sign-in: `codeHash` (bcrypt),
+  `attempts`, `expires`. Created only after the password is verified, deleted on
+  success, expiry, or 5 wrong attempts. Admins cannot sign in with a password alone.
 - **CapperProfile** — `headline`, `bio`, `avatarUrl`, `bannerUrl`, `specialties[]`, `sports[]`,
   `betTypes[]`, `dailyVolume`, `writtenAnalysis`, `biggestBetWon`, socials, offering model
   (`providerType` in the current schema), editable default storefront title/description/
