@@ -269,22 +269,50 @@ async function seedPersona(passwordHash: string, p: Persona) {
   }
 }
 
-async function main() {
-  const adminPassword = await bcrypt.hash("admin1234", 12);
+/**
+ * Demo data (demo cappers, plays, well-known passwords) is for local and preview
+ * databases only. It stays off unless explicitly asked for, so that pointing the
+ * seed at production can never plant a known-password account.
+ */
+const SEED_DEMO_DATA = process.env.SEED_DEMO_DATA === "true";
+const DEMO_PASSWORD = "capper1234";
+
+async function seedAdmin() {
+  const email = (
+    process.env.SEED_ADMIN_EMAIL ?? "admin@scl.local"
+  ).toLowerCase();
+  // Outside demo mode the password must be supplied — there is no default.
+  const password =
+    process.env.SEED_ADMIN_PASSWORD ?? (SEED_DEMO_DATA ? "admin1234" : null);
+  if (!password) {
+    throw new Error(
+      "SEED_ADMIN_PASSWORD is required. Set it to bootstrap an admin, or set " +
+        "SEED_DEMO_DATA=true for a local database with demo credentials.",
+    );
+  }
+  if (password.length < 12 && !SEED_DEMO_DATA) {
+    throw new Error("SEED_ADMIN_PASSWORD must be at least 12 characters.");
+  }
+
+  // `update` deliberately omits passwordHash: re-running the seed must never
+  // reset the password of an admin that already exists.
   await prisma.user.upsert({
-    where: { email: "admin@scl.local" },
+    where: { email },
     update: { role: "ADMIN" },
     create: {
-      email: "admin@scl.local",
+      email,
       username: "admin",
       displayName: "SCL Admin",
       role: "ADMIN",
       emailVerified: new Date(),
-      passwordHash: adminPassword,
+      passwordHash: await bcrypt.hash(password, 12),
     },
   });
+  return email;
+}
 
-  const capperPassword = await bcrypt.hash("capper1234", 12);
+async function seedDemoData() {
+  const capperPassword = await bcrypt.hash(DEMO_PASSWORD, 12);
   const capper = await prisma.user.upsert({
     where: { email: "capper@scl.local" },
     update: {
@@ -364,10 +392,23 @@ async function main() {
     await seedPersona(capperPassword, persona);
   }
 
+  console.log(`  capper@scl.local / ${DEMO_PASSWORD} (CAPPER)`);
+  console.log(
+    `  + ${PERSONAS.length} demo cappers (@scl.demo / ${DEMO_PASSWORD})`,
+  );
+}
+
+async function main() {
+  const adminEmail = await seedAdmin();
+
   console.log("Seeded:");
-  console.log("  admin@scl.local  / admin1234  (ADMIN)");
-  console.log("  capper@scl.local / capper1234 (CAPPER)");
-  console.log(`  + ${PERSONAS.length} demo cappers (@scl.demo / capper1234)`);
+  console.log(`  ${adminEmail} (ADMIN)`);
+
+  if (SEED_DEMO_DATA) {
+    await seedDemoData();
+  } else {
+    console.log("  demo data skipped (set SEED_DEMO_DATA=true to include it)");
+  }
 }
 
 main()
