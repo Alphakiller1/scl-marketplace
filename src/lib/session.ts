@@ -25,6 +25,7 @@ export async function getCurrentAccount() {
   const account = await prisma.user.findUnique({
     where: { id: user.id },
     select: {
+      role: true,
       accountStatus: true,
       emailVerified: true,
       termsAcceptances: {
@@ -37,8 +38,12 @@ export async function getCurrentAccount() {
   });
   if (!account) return null;
 
+  // Role comes from the DB, not the JWT: the token is minted at sign-in and lives
+  // for the session's lifetime, so a role change would otherwise not take effect
+  // until it expired. Every field below must win over the `...user` spread.
   return {
     ...user,
+    role: account.role,
     accountStatus: account.accountStatus,
     emailVerified: account.emailVerified,
     legalAcceptance: account.termsAcceptances[0] ?? null,

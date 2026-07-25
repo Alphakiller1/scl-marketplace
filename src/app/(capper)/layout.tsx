@@ -12,7 +12,7 @@ export default async function CapperLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Defense in depth (middleware already gates /dashboard).
+  // Defense in depth (`src/proxy.ts` already gates /dashboard).
   await requireCapperAccess();
 
   return (

@@ -20,7 +20,9 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Defense in depth (middleware already gates /admin to ADMIN role).
+  // Defense in depth: `src/proxy.ts` (Next 16's middleware) already gates /admin
+  // to ADMIN role, but it reads the role off the JWT at the edge. This check
+  // hits the DB, so a demoted admin loses access without waiting for expiry.
   await requireAdmin();
 
   return (

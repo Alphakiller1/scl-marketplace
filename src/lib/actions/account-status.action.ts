@@ -23,11 +23,13 @@ export async function updateAccountStatusAction(
     };
   }
 
+  // Cappers and customers are both managed from the admin panel; ADMIN accounts
+  // are deliberately excluded so one admin can't lock another one out.
   const target = await prisma.user.findFirst({
-    where: { id: parsed.data.userId, role: "CAPPER" },
-    select: { id: true, accountStatus: true },
+    where: { id: parsed.data.userId, role: { in: ["CAPPER", "CUSTOMER"] } },
+    select: { id: true, role: true, accountStatus: true },
   });
-  if (!target) return { ok: false, error: "Capper account not found." };
+  if (!target) return { ok: false, error: "Account not found." };
   if (target.accountStatus === parsed.data.status) return { ok: true };
 
   await prisma.$transaction([
@@ -46,7 +48,12 @@ export async function updateAccountStatusAction(
     }),
   ]);
 
-  revalidatePath("/admin/cappers");
-  revalidatePath("/dashboard");
+  if (target.role === "CUSTOMER") {
+    revalidatePath("/admin/customers");
+    revalidatePath("/account");
+  } else {
+    revalidatePath("/admin/cappers");
+    revalidatePath("/dashboard");
+  }
   return { ok: true };
 }

@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { AuthFormSkeleton, AuthHeader } from "@/components/scl/auth-header";
 import { PasswordField } from "@/components/scl/password-field";
 import { defaultPathForRole } from "@/lib/commerce-settings";
+import { safeCallbackPath } from "@/lib/safe-redirect";
 import { loginSchema, type LoginInput } from "@/lib/schemas/auth.schema";
 
 export default function LoginPage() {
@@ -28,7 +29,7 @@ export default function LoginPage() {
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const callbackUrl = params.get("callbackUrl");
+  const callbackUrl = safeCallbackPath(params.get("callbackUrl"));
 
   const {
     register,
