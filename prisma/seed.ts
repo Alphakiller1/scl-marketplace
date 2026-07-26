@@ -270,6 +270,17 @@ async function seedPersona(passwordHash: string, p: Persona) {
 }
 
 async function main() {
+  const target = process.env.SCL_SEED_TARGET?.trim().toLowerCase();
+  if (
+    process.env.NODE_ENV === "production" ||
+    process.env.VERCEL_ENV === "production" ||
+    target === "production"
+  ) {
+    throw new Error(
+      "The demo seed is disabled for production databases. Provision an existing owner account instead.",
+    );
+  }
+
   const adminPassword = await bcrypt.hash("admin1234", 12);
   await prisma.user.upsert({
     where: { email: "admin@scl.local" },

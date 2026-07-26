@@ -18,6 +18,7 @@ import {
 import { SclLogo } from "@/components/scl-logo";
 import { SignOutButton } from "@/components/sign-out-button";
 import { Button } from "@/components/ui/button";
+import type { WorkspaceDestination } from "@/lib/auth-routing";
 import {
   Sheet,
   SheetClose,
@@ -44,7 +45,11 @@ const MARKETING_NAV = [
 const navLinkClass =
   "border-border bg-surface-2/50 hover:bg-surface-2 focus-visible:ring-ring flex min-h-12 items-center gap-3 rounded-xl border px-4 text-base font-semibold outline-none transition-colors focus-visible:ring-2";
 
-export function MobileSiteNav({ authed = false }: { authed?: boolean }) {
+export function MobileSiteNav({
+  workspace,
+}: {
+  workspace?: WorkspaceDestination;
+}) {
   return (
     <Sheet>
       <SheetTrigger
@@ -92,19 +97,19 @@ export function MobileSiteNav({ authed = false }: { authed?: boolean }) {
         </nav>
 
         <SheetFooter className="border-border border-t">
-          {authed ? (
+          {workspace ? (
             <>
               <SheetClose
                 nativeButton={false}
                 render={
                   <Link
-                    href="/dashboard"
+                    href={workspace.href}
                     className="scl-cta-nav flex min-h-12 items-center justify-center gap-2 px-4"
                   />
                 }
               >
                 <LayoutDashboard className="size-4" aria-hidden />
-                Dashboard
+                {workspace.label}
               </SheetClose>
               <SignOutButton className="border-border min-h-12 w-full justify-center rounded-lg border" />
             </>
