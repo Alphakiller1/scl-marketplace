@@ -27,15 +27,22 @@ describe("store-connection helpers", () => {
     assert.equal(providerLabel("WHOP"), "Whop");
   });
 
-  it("uses storefront-approval language for pending statuses", () => {
+  it("maps provider workflow states to owner-facing labels", () => {
     assert.equal(
       storeStatusLabel("PENDING_SCL_ACCEPTANCE"),
-      "Pending Storefront Approval",
+      "Awaiting Affiliate Invite",
     );
     assert.equal(
       storeStatusLabel("PENDING_SCL_LINK_IMPORT"),
-      "Pending Storefront Approval",
+      "Pending SCL Review",
     );
+    assert.equal(
+      storeStatusLabel("LINKS_RECEIVED"),
+      "Approved · Links Received",
+    );
+    assert.equal(storeStatusLabel("LIVE"), "Storefront Live");
+    assert.equal(storeStatusLabel("NEEDS_ACTION"), "Needs Attention");
+    assert.equal(storeStatusLabel("DISABLED"), "Suspended");
   });
 
   it("adapts purchase CTA by platform", () => {

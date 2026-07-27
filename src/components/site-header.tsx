@@ -7,6 +7,7 @@ import { SclLogo } from "@/components/scl-logo";
 import { MobileSiteNav } from "@/components/scl/mobile-navigation";
 import { SignOutButton } from "@/components/sign-out-button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { getDefaultWorkspace } from "@/lib/auth-routing";
 
 /**
  * Marketing chrome. Auth is a Suspense island so public nav links paint
@@ -91,29 +92,30 @@ function SiteHeaderAuthFallback() {
       >
         Join SCL
       </Button>
-      <MobileSiteNav authed={false} />
+      <MobileSiteNav />
     </>
   );
 }
 
 async function SiteHeaderAuth() {
   const session = await auth();
-  const authed = Boolean(session?.user);
+  const user = session?.user;
 
-  if (authed) {
+  if (user) {
+    const workspace = getDefaultWorkspace(user.role);
     return (
       <>
         <Button
-          render={<Link href="/dashboard" />}
+          render={<Link href={workspace.href} />}
           nativeButton={false}
           variant="nav"
           size="sm"
           className="hidden min-h-10 sm:inline-flex"
         >
-          Dashboard
+          {workspace.label}
         </Button>
         <SignOutButton className="hidden min-h-10 sm:inline-flex" />
-        <MobileSiteNav authed />
+        <MobileSiteNav workspace={workspace} />
       </>
     );
   }

@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import type { StoreConnection, StoreProvider } from "@prisma/client";
+import { ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 import { StoreStatusPanel } from "@/components/scl/store-status-panel";
@@ -14,6 +15,7 @@ import {
 } from "@/lib/actions/store.action";
 import {
   SCL_AFFILIATE_EMAIL,
+  WINIBLE_CAPPER_REFERRAL_URL,
   WINIBLE_INVITE_VALUES,
   isPendingStoreStatus,
   providerLabel,
@@ -41,6 +43,7 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
         c.status !== "NOT_STARTED" &&
         c.status !== "INSTRUCTIONS_VIEWED",
     ) ||
+    connections.find((c) => c.status === "DISABLED") ||
     connections.find((c) => c.status === "INSTRUCTIONS_VIEWED") ||
     null;
 
@@ -49,6 +52,7 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
     (isPendingStoreStatus(active.status) ||
       active.status === "LIVE" ||
       active.status === "NEEDS_ACTION" ||
+      active.status === "DISABLED" ||
       active.status === "LINKS_RECEIVED" ||
       active.status === "PACKAGES_IMPORTED")
       ? 4
@@ -67,6 +71,7 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
       isPendingStoreStatus(connection.status) ||
       connection.status === "LIVE" ||
       connection.status === "NEEDS_ACTION" ||
+      connection.status === "DISABLED" ||
       connection.status === "LINKS_RECEIVED" ||
       connection.status === "PACKAGES_IMPORTED");
 
@@ -204,6 +209,25 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
                 Winible in just a few minutes so you can sell packages that
                 appear on SCL. Create your Winible storefront, then return here
                 and choose Winible to connect it.
+              </p>
+              <Button
+                variant="outline"
+                className="mt-3 min-h-11"
+                render={
+                  <a
+                    href={WINIBLE_CAPPER_REFERRAL_URL}
+                    target="_blank"
+                    rel="noreferrer"
+                  />
+                }
+                nativeButton={false}
+              >
+                Create a Winible storefront
+                <ExternalLink className="size-4" />
+              </Button>
+              <p className="text-muted-foreground mt-2 text-xs">
+                This opens SCL&apos;s Winible creator-onboarding referral. It is
+                not a customer package checkout link.
               </p>
             </div>
           ) : null}

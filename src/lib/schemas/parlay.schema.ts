@@ -1,7 +1,11 @@
 import { z } from "zod";
 
 import { SPORT_KEYS, UNIT_MAX, UNIT_MIN } from "@/lib/constants";
-import { GRADEABLE_OUTCOMES } from "@/lib/schemas/grading.schema";
+import {
+  ALL_OUTCOMES,
+  CORRECTION_REASON_MIN,
+  GRADEABLE_OUTCOMES,
+} from "@/lib/schemas/grading.schema";
 
 const optionalText = (max: number) =>
   z
@@ -61,18 +65,50 @@ export const createParlaySchema = z.object({
     .max(12, "Up to 12 legs"),
 });
 
-export const gradeParlaySchema = z.object({
-  parlayId: z.string().min(1),
-  reason: optionalText(280),
-  legs: z
-    .array(
-      z.object({
-        playId: z.string().min(1),
-        outcome: z.enum(GRADEABLE_OUTCOMES),
-      }),
-    )
-    .min(1),
-});
+export const gradeParlaySchema = z
+  .object({
+    parlayId: z.string().min(1),
+    reason: optionalText(280),
+    legs: z
+      .array(
+        z.object({
+          playId: z.string().min(1),
+          outcome: z.enum(GRADEABLE_OUTCOMES),
+          /** Present on correction forms to reject stale leg data. */
+          expectedOutcome: z.enum(ALL_OUTCOMES).optional(),
+        }),
+      )
+      .min(1),
+    /** Present on the settled-parlay detail form to reject stale corrections. */
+    expectedOutcome: z.enum(ALL_OUTCOMES).optional(),
+    expectedProfitUnits: z.number().finite().nullable().optional(),
+    confirmedPublicImpact: z.boolean().optional(),
+  })
+  .superRefine((value, context) => {
+    const ids = value.legs.map((leg) => leg.playId);
+    if (new Set(ids).size !== ids.length) {
+      context.addIssue({
+        code: "custom",
+        path: ["legs"],
+        message: "Each parlay leg can only be submitted once.",
+      });
+    }
+    if (value.expectedOutcome === undefined) return;
+    if ((value.reason?.trim().length ?? 0) < CORRECTION_REASON_MIN) {
+      context.addIssue({
+        code: "custom",
+        path: ["reason"],
+        message: `Correction reason must be at least ${CORRECTION_REASON_MIN} characters.`,
+      });
+    }
+    if (value.confirmedPublicImpact !== true) {
+      context.addIssue({
+        code: "custom",
+        path: ["confirmedPublicImpact"],
+        message: "Confirm the public record and statistics impact.",
+      });
+    }
+  });
 
 export type ParlayLegInput = z.infer<typeof parlayLegSchema>;
 export type CreateParlayFormInput = z.input<typeof createParlaySchema>;

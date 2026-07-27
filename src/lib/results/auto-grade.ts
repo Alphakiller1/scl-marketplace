@@ -155,6 +155,8 @@ async function gradeStraightPlays(
           playId: play.id,
           previousOutcome: "PENDING",
           newOutcome: outcome,
+          previousProfitUnits: null,
+          newProfitUnits: profitUnits,
           source: "AUTO",
           gradedById: null,
           reason: `Auto-graded from ${provider.name} settled results`,
@@ -242,6 +244,8 @@ async function gradeParlayLegs(
           playId: play.id,
           previousOutcome: "PENDING",
           newOutcome: outcome,
+          previousProfitUnits: null,
+          newProfitUnits: 0,
           source: "AUTO",
           gradedById: null,
           reason: `Auto-graded parlay leg from ${provider.name} settled results`,
@@ -273,6 +277,8 @@ async function gradePendingParlays(): Promise<number> {
     select: {
       id: true,
       units: true,
+      outcome: true,
+      profitUnits: true,
       legs: {
         select: { outcome: true, oddsAmerican: true },
       },
@@ -294,15 +300,29 @@ async function gradePendingParlays(): Promise<number> {
     );
     if (settlement.outcome === "PENDING") continue;
 
-    await prisma.parlay.update({
-      where: { id: parlay.id },
-      data: {
-        outcome: settlement.outcome,
-        profitUnits: settlement.profitUnits,
-        combinedOddsAmerican: settlement.effectiveOddsAmerican,
-        gradedAt: new Date(),
-      },
-    });
+    await prisma.$transaction([
+      prisma.parlay.update({
+        where: { id: parlay.id },
+        data: {
+          outcome: settlement.outcome,
+          profitUnits: settlement.profitUnits,
+          combinedOddsAmerican: settlement.effectiveOddsAmerican,
+          gradedAt: new Date(),
+        },
+      }),
+      prisma.parlayGradingAudit.create({
+        data: {
+          parlayId: parlay.id,
+          previousOutcome: parlay.outcome,
+          newOutcome: settlement.outcome,
+          previousProfitUnits: parlay.profitUnits,
+          newProfitUnits: settlement.profitUnits,
+          source: "AUTO",
+          gradedById: null,
+          reason: "Auto-settled from graded parlay legs",
+        },
+      }),
+    ]);
     graded++;
   }
 

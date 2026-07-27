@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { settleParlay } from "@/lib/grading";
+import { profitUnitsEqual } from "@/lib/grading-correction";
 import { isBookKey } from "@/lib/books";
 import { fetchLiveLine, verifyPick } from "@/lib/odds-api";
 import { decidePickIntegrity, marketKeysForMarket } from "@/lib/odds-verify";
@@ -281,27 +282,71 @@ export async function gradeParlayAction(
       error: parsed.error.issues[0]?.message ?? "Check the grade.",
     };
   }
-  const { parlayId, legs: legGrades, reason } = parsed.data;
+  const {
+    parlayId,
+    legs: legGrades,
+    reason,
+    expectedOutcome,
+    expectedProfitUnits,
+  } = parsed.data;
   if (!reason) {
     return { ok: false, error: "A reason is required to grade a parlay." };
   }
+  const auditReason = reason.trim();
 
   const parlay = await prisma.parlay.findUnique({
     where: { id: parlayId },
     select: {
       id: true,
       units: true,
-      legs: { select: { id: true, oddsAmerican: true, outcome: true } },
+      outcome: true,
+      profitUnits: true,
+      capper: {
+        select: {
+          user: {
+            select: { username: true },
+          },
+        },
+      },
+      legs: {
+        select: {
+          id: true,
+          oddsAmerican: true,
+          outcome: true,
+        },
+      },
     },
   });
   if (!parlay) return { ok: false, error: "Parlay not found." };
 
+  const currentProfitUnits =
+    parlay.profitUnits == null ? null : Number(parlay.profitUnits);
+  if (
+    (expectedOutcome !== undefined && parlay.outcome !== expectedOutcome) ||
+    (expectedProfitUnits !== undefined &&
+      !profitUnitsEqual(currentProfitUnits, expectedProfitUnits))
+  ) {
+    return {
+      ok: false,
+      error:
+        "This parlay settlement changed after you opened it. Refresh and review again.",
+    };
+  }
+
   const legById = new Map(parlay.legs.map((l) => [l.id, l]));
   for (const g of legGrades) {
-    if (!legById.has(g.playId)) {
+    const leg = legById.get(g.playId);
+    if (!leg) {
       return {
         ok: false,
         error: "A submitted leg does not belong to this parlay.",
+      };
+    }
+    if (g.expectedOutcome !== undefined && g.expectedOutcome !== leg.outcome) {
+      return {
+        ok: false,
+        error:
+          "A parlay leg changed after you opened it. Refresh and review again.",
       };
     }
   }
@@ -320,40 +365,100 @@ export async function gradeParlayAction(
     Number(parlay.units),
   );
 
-  const ops = [];
-  for (const leg of settledLegs) {
-    if (leg.newOutcome === leg.outcome) continue;
-    ops.push(
-      prisma.play.update({
+  const changedLegs = settledLegs.filter(
+    (leg) => leg.newOutcome !== leg.outcome,
+  );
+  const parentChanged =
+    settlement.outcome !== parlay.outcome ||
+    !profitUnitsEqual(settlement.profitUnits, currentProfitUnits);
+  if (!changedLegs.length && !parentChanged) return { ok: true };
+
+  const source = parlay.outcome === "PENDING" ? "MANUAL" : "ADMIN_OVERRIDE";
+  const applied = await prisma.$transaction(async (tx) => {
+    const fresh = await tx.parlay.findUnique({
+      where: { id: parlay.id },
+      select: {
+        outcome: true,
+        profitUnits: true,
+        legs: {
+          select: { id: true, outcome: true },
+        },
+      },
+    });
+    const freshProfitUnits =
+      fresh?.profitUnits == null ? null : Number(fresh.profitUnits);
+    const freshLegById = new Map(
+      fresh?.legs.map((leg) => [leg.id, leg.outcome]) ?? [],
+    );
+    const legsAreFresh =
+      fresh?.legs.length === parlay.legs.length &&
+      parlay.legs.every((leg) => freshLegById.get(leg.id) === leg.outcome);
+    if (
+      !fresh ||
+      fresh.outcome !== parlay.outcome ||
+      !profitUnitsEqual(freshProfitUnits, currentProfitUnits) ||
+      !legsAreFresh
+    ) {
+      return false;
+    }
+
+    for (const leg of changedLegs) {
+      await tx.play.update({
         where: { id: leg.id },
         data: { outcome: leg.newOutcome, gradedAt: new Date() },
-      }),
-      prisma.gradingAudit.create({
+      });
+      await tx.gradingAudit.create({
         data: {
           playId: leg.id,
           previousOutcome: leg.outcome,
           newOutcome: leg.newOutcome,
           source: leg.outcome === "PENDING" ? "MANUAL" : "ADMIN_OVERRIDE",
           gradedById: admin.id,
-          reason,
+          reason: auditReason,
         },
-      }),
-    );
-  }
-  ops.push(
-    prisma.parlay.update({
+      });
+    }
+    await tx.parlay.update({
       where: { id: parlay.id },
       data: {
         outcome: settlement.outcome,
         profitUnits: settlement.profitUnits,
         gradedAt: settlement.outcome === "PENDING" ? null : new Date(),
       },
-    }),
-  );
+    });
+    await tx.parlayGradingAudit.create({
+      data: {
+        parlayId: parlay.id,
+        previousOutcome: parlay.outcome,
+        newOutcome: settlement.outcome,
+        previousProfitUnits: currentProfitUnits,
+        newProfitUnits: settlement.profitUnits,
+        source,
+        gradedById: admin.id,
+        reason: auditReason,
+      },
+    });
+    return true;
+  });
 
-  await prisma.$transaction(ops);
+  if (!applied) {
+    return {
+      ok: false,
+      error:
+        "This parlay changed while you were saving. Refresh and review again.",
+    };
+  }
 
   revalidatePath("/admin/grading");
+  revalidatePath("/admin/plays");
+  revalidatePath(`/admin/plays/parlay/${parlay.id}`);
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/picks");
+  revalidatePath("/picks");
+  revalidatePath("/leaderboard");
+  revalidatePath("/discover");
+  revalidatePath("/");
+  const username = parlay.capper.user.username?.replace(/^@/, "");
+  if (username) revalidatePath(`/cappers/${username}`);
   return { ok: true };
 }

@@ -1,29 +1,36 @@
 import { PrismaClient } from "@prisma/client";
 
 /**
- * Ensure the platform owner can reach /admin/* in production.
+ * Promote an explicitly supplied, existing platform owner to ADMIN.
  * Also deactivate leftover e2e smoke packages so they never stay live.
  */
-const OWNER_EMAIL = "chase4sichi@gmail.com";
 const SMOKE_PACKAGE_TITLE = "SCL Smoke E2E Package";
 
 async function main() {
-  if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production") {
-    console.log("[ensure-owner-admin] skip non-production");
-    return;
+  if (process.env.VERCEL_ENV !== "production") {
+    throw new Error("This provisioning script only runs for production.");
   }
   if (!process.env.DATABASE_URL) {
-    console.log("[ensure-owner-admin] skip (no DATABASE_URL)");
-    return;
+    throw new Error("DATABASE_URL is required.");
+  }
+
+  const ownerEmail = process.env.OWNER_ADMIN_EMAIL?.trim().toLowerCase();
+  if (!ownerEmail) {
+    throw new Error("OWNER_ADMIN_EMAIL is required.");
   }
 
   const prisma = new PrismaClient();
   try {
     const result = await prisma.user.updateMany({
-      where: { email: OWNER_EMAIL },
+      where: { email: ownerEmail },
       data: { role: "ADMIN" },
     });
-    console.log(`[ensure-owner-admin] ${OWNER_EMAIL}: updated=${result.count}`);
+    if (result.count !== 1) {
+      throw new Error(
+        `Expected one existing owner account for ${ownerEmail}; updated=${result.count}.`,
+      );
+    }
+    console.log(`[ensure-owner-admin] ${ownerEmail}: updated=${result.count}`);
 
     const smoke = await prisma.package.updateMany({
       where: { title: SMOKE_PACKAGE_TITLE, isActive: true },

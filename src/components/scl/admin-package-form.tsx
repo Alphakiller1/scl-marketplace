@@ -81,7 +81,7 @@ export function AdminPackageForm({
       }
       if (res.packageId) setPackageId(res.packageId);
       if (publish) setIsActive(true);
-      toast.success(publish ? "Package published" : "Package saved");
+      toast.success(publish ? "Package saved and activated" : "Package saved");
       // After create, leave ?packageId=new so the new package opens for edit.
       if (wasCreate && res.packageId) {
         const url = new URL(window.location.href);
@@ -252,7 +252,7 @@ export function AdminPackageForm({
             onChange={(e) => setActive(e.target.checked)}
             className="size-4 accent-[color:var(--scl-pink)]"
           />
-          Active / live
+          Package active
         </label>
       </div>
 
@@ -267,7 +267,7 @@ export function AdminPackageForm({
           className="min-h-11"
           onClick={() => save(true)}
         >
-          Save & publish
+          Save & activate
         </Button>
         {packageId ? (
           <Button
@@ -281,6 +281,11 @@ export function AdminPackageForm({
           </Button>
         ) : null}
       </div>
+      <p className="text-muted-foreground text-xs leading-relaxed">
+        Activating a package makes it ready for publication. The storefront
+        remains hidden until an administrator records the separate “Mark live”
+        approval.
+      </p>
     </form>
   );
 }

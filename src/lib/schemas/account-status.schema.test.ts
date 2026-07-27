@@ -20,3 +20,35 @@ test("account status updates accept only known lifecycle states", () => {
     false,
   );
 });
+
+test("suspension and disable actions require an operational reason", () => {
+  assert.equal(
+    accountStatusUpdateSchema.safeParse({
+      userId: "capper_1",
+      status: "SUSPENDED",
+      expectedStatus: "ACTIVE",
+      reason: "bad",
+    }).success,
+    false,
+  );
+  assert.equal(
+    accountStatusUpdateSchema.safeParse({
+      userId: "capper_1",
+      status: "DISABLED",
+      expectedStatus: "SUSPENDED",
+      reason: "Repeated policy violation",
+    }).success,
+    true,
+  );
+});
+
+test("benign lifecycle changes may omit a reason", () => {
+  assert.equal(
+    accountStatusUpdateSchema.safeParse({
+      userId: "capper_1",
+      status: "ACTIVE",
+      expectedStatus: "PENDING",
+    }).success,
+    true,
+  );
+});

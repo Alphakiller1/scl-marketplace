@@ -71,3 +71,165 @@ ALTER TABLE "Play"
 
 Until this column exists, submit still accepts extreme prices; the review flag
 is omitted from the write (soft-degrade via `hasNeedsReviewColumn()`).
+
+## Policy documents — admin-managed legal copy
+
+Run before deploying the admin policy editor. Public policy pages continue to
+use bundled launch copy if these tables are unavailable, but editing and
+revision history require them.
+
+```sql
+DO $$
+BEGIN
+  CREATE TYPE "PolicySlug" AS ENUM (
+    'TERMS',
+    'PRIVACY',
+    'DISCLAIMER',
+    'RESPONSIBLE_GAMING'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END
+$$;
+
+CREATE TABLE IF NOT EXISTS "PolicyDocument" (
+  "slug" "PolicySlug" NOT NULL,
+  "title" TEXT NOT NULL,
+  "body" TEXT NOT NULL,
+  "version" TEXT NOT NULL,
+  "publishedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedById" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL,
+  CONSTRAINT "PolicyDocument_pkey" PRIMARY KEY ("slug"),
+  CONSTRAINT "PolicyDocument_updatedById_fkey"
+    FOREIGN KEY ("updatedById") REFERENCES "User"("id")
+    ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS "PolicyDocumentRevision" (
+  "id" TEXT NOT NULL,
+  "slug" "PolicySlug" NOT NULL,
+  "title" TEXT NOT NULL,
+  "body" TEXT NOT NULL,
+  "version" TEXT NOT NULL,
+  "editedById" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "PolicyDocumentRevision_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "PolicyDocumentRevision_slug_fkey"
+    FOREIGN KEY ("slug") REFERENCES "PolicyDocument"("slug")
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT "PolicyDocumentRevision_editedById_fkey"
+    FOREIGN KEY ("editedById") REFERENCES "User"("id")
+    ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS "PolicyDocument_updatedById_idx"
+  ON "PolicyDocument" ("updatedById");
+CREATE INDEX IF NOT EXISTS "PolicyDocumentRevision_slug_createdAt_idx"
+  ON "PolicyDocumentRevision" ("slug", "createdAt");
+CREATE INDEX IF NOT EXISTS "PolicyDocumentRevision_editedById_idx"
+  ON "PolicyDocumentRevision" ("editedById");
+```
+
+## Grading corrections — immutable settlement snapshots
+
+Run before deploying the admin settled-play correction detail route. This
+preserves the old and new profit calculation on straight-play audits and adds
+one parent-level audit event for every parlay settlement or correction.
+
+```sql
+ALTER TABLE "GradingAudit"
+  ADD COLUMN IF NOT EXISTS "previousProfitUnits" DECIMAL(10, 2),
+  ADD COLUMN IF NOT EXISTS "newProfitUnits" DECIMAL(10, 2);
+
+CREATE TABLE IF NOT EXISTS "ParlayGradingAudit" (
+  "id" TEXT NOT NULL,
+  "parlayId" TEXT NOT NULL,
+  "previousOutcome" "Outcome" NOT NULL,
+  "newOutcome" "Outcome" NOT NULL,
+  "previousProfitUnits" DECIMAL(10, 2),
+  "newProfitUnits" DECIMAL(10, 2),
+  "source" "GradingSource" NOT NULL,
+  "gradedById" TEXT,
+  "reason" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "ParlayGradingAudit_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "ParlayGradingAudit_parlayId_fkey"
+    FOREIGN KEY ("parlayId") REFERENCES "Parlay"("id")
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT "ParlayGradingAudit_gradedById_fkey"
+    FOREIGN KEY ("gradedById") REFERENCES "User"("id")
+    ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS "ParlayGradingAudit_parlayId_createdAt_idx"
+  ON "ParlayGradingAudit" ("parlayId", "createdAt");
+CREATE INDEX IF NOT EXISTS "ParlayGradingAudit_gradedById_idx"
+  ON "ParlayGradingAudit" ("gradedById");
+```
+
+## Storefront reviews — audited approval and suspension
+
+Run before deploying the audited Store Setup workflow. This adds the last
+human reviewer fields and preserves every approval, live transition, change
+request, suspension, restoration, notes update, and package-readiness change.
+
+```sql
+DO $$
+BEGIN
+  CREATE TYPE "StorefrontReviewAction" AS ENUM (
+    'APPROVED',
+    'MARKED_LIVE',
+    'CHANGES_REQUESTED',
+    'SUSPENDED',
+    'RESTORED',
+    'NOTES_UPDATED',
+    'PACKAGE_SYNC'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END
+$$;
+
+ALTER TABLE "StoreConnection"
+  ADD COLUMN IF NOT EXISTS "reviewedAt" TIMESTAMP(3),
+  ADD COLUMN IF NOT EXISTS "reviewedById" TEXT;
+
+CREATE TABLE IF NOT EXISTS "StorefrontReviewEvent" (
+  "id" TEXT NOT NULL,
+  "storeConnectionId" TEXT NOT NULL,
+  "action" "StorefrontReviewAction" NOT NULL,
+  "previousStatus" "StoreConnectionStatus" NOT NULL,
+  "newStatus" "StoreConnectionStatus" NOT NULL,
+  "reviewedById" TEXT NOT NULL,
+  "reason" TEXT,
+  "adminNotes" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "StorefrontReviewEvent_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "StorefrontReviewEvent_storeConnectionId_fkey"
+    FOREIGN KEY ("storeConnectionId") REFERENCES "StoreConnection"("id")
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT "StorefrontReviewEvent_reviewedById_fkey"
+    FOREIGN KEY ("reviewedById") REFERENCES "User"("id")
+    ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+DO $$
+BEGIN
+  ALTER TABLE "StoreConnection"
+    ADD CONSTRAINT "StoreConnection_reviewedById_fkey"
+    FOREIGN KEY ("reviewedById") REFERENCES "User"("id")
+    ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END
+$$;
+
+CREATE INDEX IF NOT EXISTS "StoreConnection_reviewedById_idx"
+  ON "StoreConnection"("reviewedById");
+CREATE INDEX IF NOT EXISTS "StorefrontReviewEvent_storeConnectionId_createdAt_idx"
+  ON "StorefrontReviewEvent"("storeConnectionId", "createdAt");
+CREATE INDEX IF NOT EXISTS "StorefrontReviewEvent_reviewedById_idx"
+  ON "StorefrontReviewEvent"("reviewedById");
+```

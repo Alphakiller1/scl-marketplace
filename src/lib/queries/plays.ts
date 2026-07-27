@@ -4,7 +4,6 @@ import type { Outcome } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import type { CapperSummary, TodayPick } from "@/lib/mock";
-import { UNIT_MIN } from "@/lib/constants";
 import { joinPlaysToPublicPicks } from "@/lib/public-picks";
 import {
   DEFAULT_PUBLIC_PICKS_FILTERS,
@@ -12,7 +11,7 @@ import {
 } from "@/lib/public-picks-ledger";
 import { buildPublicPicksScopeWhere } from "@/lib/public-picks-scope";
 import { hasQaNoteMarker } from "@/lib/public-eligibility";
-import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
+import { buildPublishedStraightPlayWhere } from "@/lib/queries/published-play-where";
 import {
   hasClvColumns,
   hasNotesPublicColumn,
@@ -72,8 +71,7 @@ export type ParlayView = {
 
 /** A record entry is either a straight play or a parlay; both share a createdAt for ordering. */
 export type RecordEntry =
-  | ({ kind: "play" } & PlayView)
-  | ({ kind: "parlay" } & ParlayView);
+  ({ kind: "play" } & PlayView) | ({ kind: "parlay" } & ParlayView);
 
 /** Merge plays + parlays into one most-recent-first record list (pure; no DB). */
 export function mergeRecordEntries(
@@ -250,19 +248,12 @@ export async function getPublicRecentPicksResult(
 ): Promise<{ picks: TodayPick[]; failed: boolean }> {
   try {
     const notesPublicReady = await hasNotesPublicColumn();
-    const excludeTest = await prismaExcludeTestHandlesLive();
+    const publicationWhere = await buildPublishedStraightPlayWhere();
     const scopeWhere = buildPublicPicksScopeWhere(filters, now);
     const plays = await prisma.play.findMany({
       where: {
+        ...publicationWhere,
         ...scopeWhere,
-        units: { gte: UNIT_MIN },
-        capper: {
-          user: {
-            accountStatus: "ACTIVE",
-            username: { not: null },
-            ...excludeTest,
-          },
-        },
       },
       select: {
         id: true,

@@ -3,6 +3,7 @@ import { ArrowRight, History } from "lucide-react";
 
 import { StatusBadge } from "@/components/scl/badges";
 import { EmptyState } from "@/components/scl/states";
+import { formatUnits } from "@/lib/format";
 import type { GradingAuditItem } from "@/lib/queries/grading";
 
 const OUTCOME_TO_STATUS = {
@@ -50,11 +51,21 @@ export function GradingAuditList({ items }: { items: GradingAuditItem[] }) {
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2 text-xs">
             <StatusBadge status={OUTCOME_TO_STATUS[a.previousOutcome]} />
+            {a.previousProfitUnits != null ? (
+              <span className="text-muted-foreground scl-data tabular-nums">
+                {formatUnits(a.previousProfitUnits)}
+              </span>
+            ) : null}
             <ArrowRight
               className="text-muted-foreground size-3.5"
               aria-hidden
             />
             <StatusBadge status={OUTCOME_TO_STATUS[a.newOutcome]} />
+            {a.newProfitUnits != null ? (
+              <span className="scl-data tabular-nums">
+                {formatUnits(a.newProfitUnits)}
+              </span>
+            ) : null}
             <span className="text-muted-foreground">
               {SOURCE_LABEL[a.source]} · {a.gradedBy}
             </span>

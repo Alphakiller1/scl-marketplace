@@ -50,20 +50,32 @@ function messageFor(
   }
   if (status === "PENDING_SCL_ACCEPTANCE") {
     return {
-      title: "Pending Storefront Approval",
+      title: "Awaiting affiliate invite",
       body: "Thanks — your Winible affiliate request is in. SCL will review it, import your package links, and notify you if anything else is needed. No further action is required right now.",
     };
   }
   if (status === "PENDING_SCL_LINK_IMPORT") {
     return {
-      title: "Pending Storefront Approval",
+      title: "Pending SCL review",
       body: "Thanks — you’ve added SCL as an affiliate on Whop. SCL will import your package links and publish them on your profile. No further action is required unless we contact you.",
     };
   }
   if (status === "NEEDS_ACTION") {
     return {
-      title: "Needs action",
+      title: "Storefront needs attention",
       body: "There’s an issue with this store connection. SCL will contact you with next steps.",
+    };
+  }
+  if (status === "DISABLED") {
+    return {
+      title: "Storefront suspended",
+      body: "This storefront and its packages are not publicly available on SCL. Contact SCL to resolve the review issue before it can be restored.",
+    };
+  }
+  if (status === "LINKS_RECEIVED" || status === "PACKAGES_IMPORTED") {
+    return {
+      title: "Storefront approved",
+      body: "SCL has approved the connection and is completing its package review. The storefront will appear publicly only after the final live approval.",
     };
   }
   return {
@@ -91,7 +103,7 @@ export function StoreStatusPanel({
         "border-border bg-card rounded-xl border p-5",
         pending && "border-amber-500/35",
         status === "LIVE" && "border-pos/35",
-        status === "NEEDS_ACTION" && "border-neg/35",
+        (status === "NEEDS_ACTION" || status === "DISABLED") && "border-neg/35",
         className,
       )}
     >

@@ -32,21 +32,27 @@ export function AccountStatusControl({
 
   async function save() {
     setPending(true);
-    const result = await updateAccountStatusAction({
-      userId,
-      status,
-      reason,
-    });
-    setPending(false);
+    try {
+      const result = await updateAccountStatusAction({
+        userId,
+        status,
+        expectedStatus: currentStatus,
+        reason,
+      });
 
-    if (!result.ok) {
-      toast.error(result.error);
-      return;
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+
+      toast.success("Account status updated");
+      setReason("");
+      router.refresh();
+    } catch {
+      toast.error("The status could not be saved. Try again.");
+    } finally {
+      setPending(false);
     }
-
-    toast.success("Account status updated");
-    setReason("");
-    router.refresh();
   }
 
   return (
@@ -67,7 +73,12 @@ export function AccountStatusControl({
         value={reason}
         onChange={(event) => setReason(event.target.value)}
         maxLength={200}
-        placeholder="Reason for change"
+        required={status === "SUSPENDED" || status === "DISABLED"}
+        placeholder={
+          status === "SUSPENDED" || status === "DISABLED"
+            ? "Reason required"
+            : "Reason for change"
+        }
         aria-label="Status change reason"
         className="min-h-10"
       />

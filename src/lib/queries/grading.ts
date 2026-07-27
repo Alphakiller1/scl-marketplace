@@ -51,6 +51,8 @@ export async function getRecentGradingAudits(limit = 25) {
       id: true,
       previousOutcome: true,
       newOutcome: true,
+      previousProfitUnits: true,
+      newProfitUnits: true,
       source: true,
       reason: true,
       createdAt: true,
@@ -71,6 +73,9 @@ export async function getRecentGradingAudits(limit = 25) {
     id: a.id,
     previousOutcome: a.previousOutcome,
     newOutcome: a.newOutcome,
+    previousProfitUnits:
+      a.previousProfitUnits == null ? null : Number(a.previousProfitUnits),
+    newProfitUnits: a.newProfitUnits == null ? null : Number(a.newProfitUnits),
     source: a.source,
     reason: a.reason,
     createdAt: a.createdAt,
