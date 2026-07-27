@@ -18,6 +18,37 @@ function isSameOrigin(request: NextRequest) {
   return origin === request.nextUrl.origin;
 }
 
+export async function GET() {
+  await requireAdmin();
+
+  if (!isAuthorizedPreview()) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "This release helper only runs on its exact preview.",
+      },
+      { status: 403 },
+    );
+  }
+
+  return new NextResponse(
+    `<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8"><title>SCL showcase release</title></head>
+  <body>
+    <main>
+      <h1>SCL admin showcase release</h1>
+      <p>Installs idempotent, non-public examples on existing ghost cappers.</p>
+      <form action="/api/admin/showcase-release" method="post">
+        <button type="submit">Install showcase</button>
+      </form>
+    </main>
+  </body>
+</html>`,
+    { headers: { "content-type": "text/html; charset=utf-8" } },
+  );
+}
+
 export async function POST(request: NextRequest) {
   await requireAdmin();
 
