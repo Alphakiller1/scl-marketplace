@@ -8,9 +8,8 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { acceptCurrentTermsAction } from "@/lib/actions/legal.action";
-import { CURRENT_POLICY_VERSION } from "@/lib/legal";
 
-export function AcceptTermsForm() {
+export function AcceptTermsForm({ policyVersion }: { policyVersion: string }) {
   const router = useRouter();
   const [accepted, setAccepted] = useState(false);
   const [pending, setPending] = useState(false);
@@ -37,7 +36,7 @@ export function AcceptTermsForm() {
       </div>
       <div>
         <p className="text-muted-foreground text-xs font-semibold uppercase">
-          Policy version {CURRENT_POLICY_VERSION}
+          Policy version {policyVersion}
         </p>
         <h1 className="mt-1 text-2xl font-bold">Review Account Policies</h1>
         <p className="text-muted-foreground mt-2 text-sm">

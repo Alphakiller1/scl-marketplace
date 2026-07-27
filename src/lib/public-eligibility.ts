@@ -70,6 +70,15 @@ export function isValidPublicStake(units: number): boolean {
  * (e.g. "disposable income", "test the waters") — anchored to the exact
  * fixtures QA leaves behind.
  */
+export const PUBLIC_QA_NOTE_PHRASES = [
+  "qa test",
+  "qatest",
+  "disposable qa",
+  "qa fixture",
+  "do not publish",
+  "test receipt",
+] as const;
+
 const QA_NOTE_MARKER =
   /\bqa\s*test\b|disposable\s*qa|\bqa\s*fixture\b|do not publish|\btest receipt\b/i;
 

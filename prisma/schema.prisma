@@ -46,10 +46,12 @@ model User {
   sessions           Session[]
   capperProfile      CapperProfile?
   termsAcceptances   TermsAcceptance[]
-  gradingActions     GradingAudit[]       @relation("GradedBy")
+  gradingActions     GradingAudit[]           @relation("GradedBy")
   passwordResetToken PasswordResetToken?
-  statusChanges      AccountStatusAudit[] @relation("AccountStatusSubject")
-  statusActions      AccountStatusAudit[] @relation("AccountStatusActor")
+  statusChanges      AccountStatusAudit[]     @relation("AccountStatusSubject")
+  statusActions      AccountStatusAudit[]     @relation("AccountStatusActor")
+  policyUpdates      PolicyDocument[]         @relation("PolicyUpdatedBy")
+  policyRevisions    PolicyDocumentRevision[] @relation("PolicyRevisionEditedBy")
 }
 
 model Account {
@@ -130,6 +132,47 @@ model RequestThrottle {
   count           Int
   windowStartedAt DateTime
   updatedAt       DateTime @updatedAt
+}
+
+// ---------- Admin-managed policy documents ----------
+
+enum PolicySlug {
+  TERMS
+  PRIVACY
+  DISCLAIMER
+  RESPONSIBLE_GAMING
+}
+
+model PolicyDocument {
+  slug        PolicySlug @id
+  title       String
+  body        String     @db.Text
+  version     String
+  publishedAt DateTime   @default(now())
+  updatedById String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  updatedBy User?                    @relation("PolicyUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  revisions PolicyDocumentRevision[]
+
+  @@index([updatedById])
+}
+
+model PolicyDocumentRevision {
+  id         String     @id @default(cuid())
+  slug       PolicySlug
+  title      String
+  body       String     @db.Text
+  version    String
+  editedById String?
+  createdAt  DateTime   @default(now())
+
+  document PolicyDocument @relation(fields: [slug], references: [slug], onDelete: Cascade)
+  editedBy User?          @relation("PolicyRevisionEditedBy", fields: [editedById], references: [id], onDelete: SetNull)
+
+  @@index([slug, createdAt])
+  @@index([editedById])
 }
 
 // ---------- Capper profile & packages ----------
@@ -348,34 +391,34 @@ enum VerificationTier {
 }
 
 model Play {
-  id           String    @id @default(cuid())
-  capperId     String
-  sport        String
-  league       String?
-  market       String
-  selection    String
-  oddsAmerican Int
+  id                   String    @id @default(cuid())
+  capperId             String
+  sport                String
+  league               String?
+  market               String
+  selection            String
+  oddsAmerican         Int
   /// What the capper tapped on the board (M5). Null = pre-guard rows.
   selectedOddsAmerican Int?
   /// True when the capper explicitly accepted a beyond-tolerance odds move (M5).
-  oddsMovedAccepted Boolean @default(false)
-  units        Decimal   @db.Decimal(10, 2) // standardized range 0.25–5 (enforced in Zod, see src/lib/constants.ts)
+  oddsMovedAccepted    Boolean   @default(false)
+  units                Decimal   @db.Decimal(10, 2) // standardized range 0.25–5 (enforced in Zod, see src/lib/constants.ts)
   /// Odds API bookmaker key captured at submit (src/lib/books.ts). Null = pre-book era / unknown.
-  book         String?
-  outcome      Outcome   @default(PENDING)
-  profitUnits  Decimal?  @db.Decimal(10, 2)
-  notes        String?
+  book                 String?
+  outcome              Outcome   @default(PENDING)
+  profitUnits          Decimal?  @db.Decimal(10, 2)
+  notes                String?
   /// When false, analysis is hidden on public pick cards (dashboard always shows).
-  notesPublic  Boolean   @default(true)
+  notesPublic          Boolean   @default(true)
   /// Last same-book American price at/before event start (CLV v1).
-  closingOddsAmerican Int?
-  clvPts       Decimal?  @db.Decimal(10, 4)
-  closingCapturedAt DateTime?
+  closingOddsAmerican  Int?
+  clvPts               Decimal?  @db.Decimal(10, 4)
+  closingCapturedAt    DateTime?
   /// Extreme American price at submit (≥+900 / ≤−2000) — allow but flag for admin review.
-  needsReview  Boolean   @default(false)
-  parlayId     String?
-  createdAt    DateTime  @default(now())
-  gradedAt     DateTime?
+  needsReview          Boolean   @default(false)
+  parlayId             String?
+  createdAt            DateTime  @default(now())
+  gradedAt             DateTime?
 
   // Pick integrity (docs/SCL_PICK_INTEGRITY.md) — all additive + defaulted so existing rows
   // and existing reads are unaffected. Populated by createPlay on the event-bound path.

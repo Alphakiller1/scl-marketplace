@@ -9,5 +9,5 @@ export default async function AcceptTermsPage() {
   const account = await requireActiveUser();
   if (account.legalAcceptance) redirect("/dashboard");
 
-  return <AcceptTermsForm />;
+  return <AcceptTermsForm policyVersion={account.currentPolicyVersion} />;
 }

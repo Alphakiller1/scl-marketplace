@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { getCurrentAccount } from "@/lib/session";
-import { CURRENT_POLICY_VERSION, legalAcceptanceSchema } from "@/lib/legal";
+import { legalAcceptanceSchema } from "@/lib/legal";
 
 type LegalAcceptanceResult = { ok: true } | { ok: false; error: string };
 
@@ -33,7 +33,7 @@ export async function acceptCurrentTermsAction(input: {
     await prisma.termsAcceptance.create({
       data: {
         userId: account.id,
-        policyVersion: CURRENT_POLICY_VERSION,
+        policyVersion: account.currentPolicyVersion,
       },
     });
   }

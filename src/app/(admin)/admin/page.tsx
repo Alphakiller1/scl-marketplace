@@ -1,5 +1,13 @@
 import Link from "next/link";
-import { ArrowRight, ClipboardCheck, Gavel, Store, Users } from "lucide-react";
+import {
+  ArrowRight,
+  ClipboardCheck,
+  ClipboardList,
+  FileText,
+  Gavel,
+  Store,
+  Users,
+} from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/card";
@@ -9,6 +17,13 @@ import { SectionHeader } from "@/components/scl/section";
 export const metadata = { title: "Admin" };
 
 const ADMIN_TOOLS = [
+  {
+    href: "/admin/plays",
+    title: "Published plays",
+    description:
+      "Inspect the committed plays currently eligible for the public ledger, with capper and settlement filters.",
+    icon: ClipboardList,
+  },
   {
     href: "/admin/grading",
     title: "Grading operations",
@@ -29,6 +44,13 @@ const ADMIN_TOOLS = [
     description:
       "Track Winible and Whop onboarding, review packages, manage links, and monitor clicks.",
     icon: Store,
+  },
+  {
+    href: "/admin/policies",
+    title: "Policy documents",
+    description:
+      "Publish Terms, Privacy, Disclaimer, and Responsible Gaming revisions with an audit history.",
+    icon: FileText,
   },
 ];
 
@@ -59,7 +81,7 @@ export default async function AdminOverviewPage() {
           title="Available tools"
           subtitle="These controls are live in the current admin panel"
         />
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {ADMIN_TOOLS.map((tool) => {
             const Icon = tool.icon;
             return (

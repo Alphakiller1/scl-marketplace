@@ -71,3 +71,63 @@ ALTER TABLE "Play"
 
 Until this column exists, submit still accepts extreme prices; the review flag
 is omitted from the write (soft-degrade via `hasNeedsReviewColumn()`).
+
+## Policy documents — admin-managed legal copy
+
+Run before deploying the admin policy editor. Public policy pages continue to
+use bundled launch copy if these tables are unavailable, but editing and
+revision history require them.
+
+```sql
+DO $$
+BEGIN
+  CREATE TYPE "PolicySlug" AS ENUM (
+    'TERMS',
+    'PRIVACY',
+    'DISCLAIMER',
+    'RESPONSIBLE_GAMING'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END
+$$;
+
+CREATE TABLE IF NOT EXISTS "PolicyDocument" (
+  "slug" "PolicySlug" NOT NULL,
+  "title" TEXT NOT NULL,
+  "body" TEXT NOT NULL,
+  "version" TEXT NOT NULL,
+  "publishedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedById" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL,
+  CONSTRAINT "PolicyDocument_pkey" PRIMARY KEY ("slug"),
+  CONSTRAINT "PolicyDocument_updatedById_fkey"
+    FOREIGN KEY ("updatedById") REFERENCES "User"("id")
+    ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS "PolicyDocumentRevision" (
+  "id" TEXT NOT NULL,
+  "slug" "PolicySlug" NOT NULL,
+  "title" TEXT NOT NULL,
+  "body" TEXT NOT NULL,
+  "version" TEXT NOT NULL,
+  "editedById" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "PolicyDocumentRevision_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "PolicyDocumentRevision_slug_fkey"
+    FOREIGN KEY ("slug") REFERENCES "PolicyDocument"("slug")
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT "PolicyDocumentRevision_editedById_fkey"
+    FOREIGN KEY ("editedById") REFERENCES "User"("id")
+    ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS "PolicyDocument_updatedById_idx"
+  ON "PolicyDocument" ("updatedById");
+CREATE INDEX IF NOT EXISTS "PolicyDocumentRevision_slug_createdAt_idx"
+  ON "PolicyDocumentRevision" ("slug", "createdAt");
+CREATE INDEX IF NOT EXISTS "PolicyDocumentRevision_editedById_idx"
+  ON "PolicyDocumentRevision" ("editedById");
+```

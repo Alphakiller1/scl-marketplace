@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   ClipboardList,
+  FileText,
   LayoutDashboard,
   LogIn,
   Menu,
@@ -219,6 +220,10 @@ export function MobileAppNav({ area, nav }: { area: string; nav: NavItem[] }) {
 function workspaceIcon(href: string) {
   if (href.includes("/picks/new")) return Plus;
   if (href.endsWith("/picks")) return ClipboardList;
+  if (href.endsWith("/plays")) return ClipboardList;
+  if (href.endsWith("/policies")) return FileText;
+  if (href.endsWith("/cappers")) return Users;
+  if (href.endsWith("/store-setup")) return Package;
   if (href.endsWith("/profile")) return UserRound;
   return LayoutDashboard;
 }

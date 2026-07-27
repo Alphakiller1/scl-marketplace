@@ -1,9 +1,10 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
-import { CURRENT_POLICY_VERSION } from "@/lib/legal";
+import { getCurrentTermsVersion } from "@/lib/queries/policies";
 
 export async function getCapperProfileByUserId(userId: string) {
+  const currentPolicyVersion = await getCurrentTermsVersion();
   return prisma.capperProfile.findUnique({
     where: { userId },
     select: {
@@ -34,7 +35,7 @@ export async function getCapperProfileByUserId(userId: string) {
           accountStatus: true,
           emailVerified: true,
           termsAcceptances: {
-            where: { policyVersion: CURRENT_POLICY_VERSION },
+            where: { policyVersion: currentPolicyVersion },
             select: { acceptedAt: true, policyVersion: true },
             orderBy: { acceptedAt: "desc" },
             take: 1,

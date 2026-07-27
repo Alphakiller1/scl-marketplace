@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { CURRENT_POLICY_VERSION } from "@/lib/legal";
+import { getCurrentTermsVersion } from "@/lib/queries/policies";
 
 /**
  * Current session user (or null). Server-only.
@@ -30,13 +30,14 @@ export const getCurrentAccount = cache(async () => {
   const user = await getCurrentUser();
   if (!user) return null;
 
+  const currentPolicyVersion = await getCurrentTermsVersion();
   const account = await prisma.user.findUnique({
     where: { id: user.id },
     select: {
       accountStatus: true,
       emailVerified: true,
       termsAcceptances: {
-        where: { policyVersion: CURRENT_POLICY_VERSION },
+        where: { policyVersion: currentPolicyVersion },
         select: { acceptedAt: true, policyVersion: true },
         orderBy: { acceptedAt: "desc" },
         take: 1,
@@ -50,6 +51,7 @@ export const getCurrentAccount = cache(async () => {
     accountStatus: account.accountStatus,
     emailVerified: account.emailVerified,
     legalAcceptance: account.termsAcceptances[0] ?? null,
+    currentPolicyVersion,
   };
 });
 
