@@ -23,19 +23,49 @@ export async function updateAccountStatusAction(
     };
   }
 
-  const target = await prisma.user.findFirst({
-    where: { id: parsed.data.userId, role: "CAPPER" },
-    select: { id: true, accountStatus: true },
-  });
-  if (!target) return { ok: false, error: "Capper account not found." };
-  if (target.accountStatus === parsed.data.status) return { ok: true };
+  const result = await prisma.$transaction(async (tx) => {
+    const target = await tx.user.findFirst({
+      where: { id: parsed.data.userId, role: "CAPPER" },
+      select: {
+        id: true,
+        username: true,
+        accountStatus: true,
+      },
+    });
+    if (!target) {
+      return { ok: false as const, error: "Capper account not found." };
+    }
+    if (
+      parsed.data.expectedStatus &&
+      target.accountStatus !== parsed.data.expectedStatus
+    ) {
+      return {
+        ok: false as const,
+        error:
+          "This account changed after you opened it. Refresh and review the latest status.",
+      };
+    }
+    if (target.accountStatus === parsed.data.status) {
+      return { ok: true as const, username: target.username };
+    }
 
-  await prisma.$transaction([
-    prisma.user.update({
-      where: { id: target.id },
+    const updated = await tx.user.updateMany({
+      where: {
+        id: target.id,
+        role: "CAPPER",
+        accountStatus: target.accountStatus,
+      },
       data: { accountStatus: parsed.data.status },
-    }),
-    prisma.accountStatusAudit.create({
+    });
+    if (updated.count !== 1) {
+      return {
+        ok: false as const,
+        error:
+          "This account changed while you were saving. Refresh and try again.",
+      };
+    }
+
+    await tx.accountStatusAudit.create({
       data: {
         userId: target.id,
         previousStatus: target.accountStatus,
@@ -43,10 +73,21 @@ export async function updateAccountStatusAction(
         changedById: admin.id,
         reason: parsed.data.reason || null,
       },
-    }),
-  ]);
+    });
+    return { ok: true as const, username: target.username };
+  });
+  if (!result.ok) return result;
 
   revalidatePath("/admin/cappers");
+  revalidatePath(`/admin/cappers/${parsed.data.userId}`);
   revalidatePath("/dashboard");
+  revalidatePath("/");
+  revalidatePath("/cappers");
+  revalidatePath("/discover");
+  revalidatePath("/leaderboard");
+  revalidatePath("/picks");
+  if (result.username) {
+    revalidatePath(`/cappers/${result.username.replace(/^@/, "")}`);
+  }
   return { ok: true };
 }
