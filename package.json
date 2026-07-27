@@ -19,6 +19,7 @@
     "db:studio": "prisma studio",
     "db:seed": "prisma db seed",
     "seed:ghosts": "tsx scripts/seed-ghosts.ts",
+    "seed:admin-showcase": "tsx scripts/seed-admin-showcase.ts",
     "db:import-legacy": "tsx scripts/import-legacy-cappers.ts",
     "postinstall": "prisma generate",
     "prepare": "husky",
