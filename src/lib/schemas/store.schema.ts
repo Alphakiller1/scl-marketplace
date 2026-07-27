@@ -1,4 +1,11 @@
+import { StoreConnectionStatus } from "@prisma/client";
 import { z } from "zod";
+
+import { isWinibleCreatorReferralUrl } from "@/lib/store-connection";
+import {
+  ADMIN_STOREFRONT_ACTIONS,
+  storefrontActionRequiresReason,
+} from "@/lib/storefront-review";
 
 export const storeProviderSchema = z.enum(["WINIBLE", "WHOP"]);
 
@@ -17,32 +24,69 @@ export const markInstructionsViewedSchema = z.object({
   provider: storeProviderSchema,
 });
 
-export const adminUpdateStoreConnectionSchema = z.object({
-  connectionId: z.string().min(1),
-  action: z.enum(["LINKS_RECEIVED", "NEEDS_ACTION", "DISABLED", "LIVE"]),
-  adminNotes: z.string().max(2000).optional(),
-});
+export const adminUpdateStoreConnectionSchema = z
+  .object({
+    connectionId: z.string().min(1),
+    action: z.enum(ADMIN_STOREFRONT_ACTIONS),
+    expectedStatus: z.nativeEnum(StoreConnectionStatus),
+    expectedUpdatedAt: z.string().datetime({ offset: true }),
+    reason: z.string().trim().max(500).optional(),
+    adminNotes: z.string().trim().max(2000).optional(),
+  })
+  .superRefine((input, context) => {
+    if (
+      storefrontActionRequiresReason(input.action) &&
+      (!input.reason || input.reason.length < 5)
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["reason"],
+        message: "Add a reason of at least 5 characters",
+      });
+    }
+    if (input.action === "SAVE_NOTES" && input.adminNotes == null) {
+      context.addIssue({
+        code: "custom",
+        path: ["adminNotes"],
+        message: "Internal notes are required",
+      });
+    }
+  });
 
 export type AdminUpdateStoreConnectionInput = z.infer<
   typeof adminUpdateStoreConnectionSchema
 >;
 
-export const adminPackageSchema = z.object({
-  id: z.string().optional(),
-  capperId: z.string().min(1),
-  storeConnectionId: z.string().optional().nullable(),
-  affiliateProvider: storeProviderSchema,
-  title: z.string().trim().min(2).max(120),
-  description: z.string().trim().max(2000).optional().or(z.literal("")),
-  promoOffer: z.string().trim().max(160).optional().or(z.literal("")),
-  checkoutUrl: z.string().trim().url("Enter a valid destination URL."),
-  priceCents: z.number().int().min(0).max(1_000_000).default(0),
-  billingPeriod: z
-    .enum(["ONE_TIME", "DAY", "WEEK", "MONTH", "SEASON", "YEAR"])
-    .default("MONTH"),
-  sortOrder: z.number().int().min(0).max(10_000).default(0),
-  isActive: z.boolean().default(false),
-});
+export const adminPackageSchema = z
+  .object({
+    id: z.string().optional(),
+    capperId: z.string().min(1),
+    storeConnectionId: z.string().optional().nullable(),
+    affiliateProvider: storeProviderSchema,
+    title: z.string().trim().min(2).max(120),
+    description: z.string().trim().max(2000).optional().or(z.literal("")),
+    promoOffer: z.string().trim().max(160).optional().or(z.literal("")),
+    checkoutUrl: z.string().trim().url("Enter a valid destination URL."),
+    priceCents: z.number().int().min(0).max(1_000_000).default(0),
+    billingPeriod: z
+      .enum(["ONE_TIME", "DAY", "WEEK", "MONTH", "SEASON", "YEAR"])
+      .default("MONTH"),
+    sortOrder: z.number().int().min(0).max(10_000).default(0),
+    isActive: z.boolean().default(false),
+  })
+  .superRefine((input, context) => {
+    if (
+      input.affiliateProvider === "WINIBLE" &&
+      isWinibleCreatorReferralUrl(input.checkoutUrl)
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["checkoutUrl"],
+        message:
+          "Use a Winible package or customer checkout link. The SCL creator-referral link belongs in capper onboarding.",
+      });
+    }
+  });
 
 export type AdminPackageInput = z.infer<typeof adminPackageSchema>;
 

@@ -60,6 +60,13 @@ export async function listStoreConnections(filters?: {
       },
       orderBy: [{ submittedAt: "asc" }, { updatedAt: "desc" }],
       include: {
+        reviewedBy: {
+          select: {
+            displayName: true,
+            username: true,
+            email: true,
+          },
+        },
         capper: {
           select: {
             id: true,
@@ -103,6 +110,30 @@ export async function listStoreConnections(filters?: {
     console.error("[listStoreConnections] database unavailable:", error);
     return [];
   }
+}
+
+export async function getStorefrontReviewHistory(storeConnectionId: string) {
+  return prisma.storefrontReviewEvent.findMany({
+    where: { storeConnectionId },
+    select: {
+      id: true,
+      action: true,
+      previousStatus: true,
+      newStatus: true,
+      reason: true,
+      adminNotes: true,
+      createdAt: true,
+      reviewedBy: {
+        select: {
+          displayName: true,
+          username: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 25,
+  });
 }
 
 export async function getConnectionById(id: string) {

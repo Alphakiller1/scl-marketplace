@@ -8,6 +8,10 @@ export const STORE_PROVIDERS = ["WINIBLE", "WHOP"] as const;
 
 export const SCL_AFFILIATE_EMAIL = "scleaderboard@gmail.com";
 
+/** SCL's Winible creator-onboarding referral; never use as a package checkout. */
+export const WINIBLE_CAPPER_REFERRAL_URL =
+  "https://winible.com/refer/usergif4lfuf?utm_source=1332059342148489371&utm_medium=winible_referral";
+
 export const WINIBLE_INVITE_VALUES = {
   email: SCL_AFFILIATE_EMAIL,
   rewardType: "Recurring payments",
@@ -17,6 +21,20 @@ export const WINIBLE_INVITE_VALUES = {
 
 export function providerLabel(provider: StoreProvider): string {
   return provider === "WINIBLE" ? "Winible" : "Whop";
+}
+
+export function isWinibleCreatorReferralUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.toLowerCase().replace(/^www\./, "");
+    return (
+      url.protocol === "https:" &&
+      hostname === "winible.com" &&
+      /^\/refer\/[a-z0-9_-]+\/?$/i.test(url.pathname)
+    );
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -49,19 +67,19 @@ export function storeStatusLabel(status: StoreConnectionStatus): string {
     case "INSTRUCTIONS_VIEWED":
       return "Instructions Viewed";
     case "PENDING_SCL_ACCEPTANCE":
-      return "Pending Storefront Approval";
+      return "Awaiting Affiliate Invite";
     case "PENDING_SCL_LINK_IMPORT":
-      return "Pending Storefront Approval";
+      return "Pending SCL Review";
     case "LINKS_RECEIVED":
-      return "Links Received";
+      return "Approved · Links Received";
     case "PACKAGES_IMPORTED":
-      return "Packages Imported";
+      return "Approved · Packages Imported";
     case "LIVE":
-      return "Live";
+      return "Storefront Live";
     case "NEEDS_ACTION":
-      return "Needs Action";
+      return "Needs Attention";
     case "DISABLED":
-      return "Disabled";
+      return "Suspended";
     default:
       return status;
   }

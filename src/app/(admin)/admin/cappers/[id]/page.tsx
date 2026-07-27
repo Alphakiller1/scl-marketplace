@@ -274,7 +274,15 @@ export default async function AdminCapperDetailPage({
                     }
                   />
                   <DetailLine
-                    label="Last reviewed / updated"
+                    label="Last human review"
+                    value={
+                      connection.reviewedAt
+                        ? `${connection.reviewedBy?.displayName?.trim() || connection.reviewedBy?.username || connection.reviewedBy?.email || "Administrator"} · ${dateTime.format(connection.reviewedAt)}`
+                        : "Not reviewed"
+                    }
+                  />
+                  <DetailLine
+                    label="Last operational update"
                     value={dateTime.format(connection.updatedAt)}
                   />
                 </dl>

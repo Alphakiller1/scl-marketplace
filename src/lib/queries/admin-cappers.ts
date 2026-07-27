@@ -223,7 +223,15 @@ export async function getAdminCapperDetail(userId: string) {
               packageImportStatus: true,
               submittedAt: true,
               adminNotes: true,
+              reviewedAt: true,
               updatedAt: true,
+              reviewedBy: {
+                select: {
+                  displayName: true,
+                  username: true,
+                  email: true,
+                },
+              },
               _count: { select: { packages: true } },
             },
             orderBy: { updatedAt: "desc" },

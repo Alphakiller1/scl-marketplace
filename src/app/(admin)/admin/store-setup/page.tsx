@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Store } from "lucide-react";
+import { History, Store } from "lucide-react";
 
 import { AdminPackageForm } from "@/components/scl/admin-package-form";
 import { AdminStoreActions } from "@/components/scl/admin-store-actions";
@@ -13,7 +13,11 @@ import {
   importStatusLabel,
   providerLabel,
 } from "@/lib/store-connection";
-import { listStoreConnections } from "@/lib/queries/store";
+import {
+  getStorefrontReviewHistory,
+  listStoreConnections,
+} from "@/lib/queries/store";
+import { storefrontReviewActionLabel } from "@/lib/storefront-review";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Store setup" };
@@ -41,6 +45,9 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
     selected?.packages[0] ||
     null;
   const creatingNew = Boolean(selected && sp.packageId === "new");
+  const reviewHistory = selected
+    ? await getStorefrontReviewHistory(selected.id)
+    : [];
 
   function detailHref(opts: {
     connectionId: string;
@@ -178,16 +185,23 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
                 </li>
               ))}
             </ul>
-            {selected.adminNotes ? (
-              <p className="border-border bg-surface-2 rounded-lg border p-3 text-sm">
-                <span className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-                  Admin notes
-                </span>
-                <br />
-                {selected.adminNotes}
+            <div className="bg-surface-2 rounded-lg p-3 text-sm">
+              <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                Last human review
               </p>
-            ) : null}
-            <AdminStoreActions connectionId={selected.id} />
+              <p className="mt-1">
+                {selected.reviewedAt
+                  ? `${selected.reviewedBy?.displayName?.trim() || selected.reviewedBy?.username || selected.reviewedBy?.email || "Administrator"} · ${selected.reviewedAt.toLocaleString()}`
+                  : "Not reviewed yet"}
+              </p>
+            </div>
+            <AdminStoreActions
+              key={selected.id}
+              connectionId={selected.id}
+              currentStatus={selected.status}
+              expectedUpdatedAt={selected.updatedAt.toISOString()}
+              initialAdminNotes={selected.adminNotes}
+            />
             {selected.capper.user.username ? (
               <Button
                 variant="ghost"
@@ -200,6 +214,60 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
                 View public profile
               </Button>
             ) : null}
+
+            <div className="space-y-3">
+              <SectionHeader
+                icon={History}
+                title="Review History"
+                subtitle="Append-only storefront decisions and package-readiness events"
+              />
+              {reviewHistory.length ? (
+                <ol className="border-border divide-border divide-y overflow-hidden rounded-xl border">
+                  {reviewHistory.map((event) => {
+                    const actor =
+                      event.reviewedBy.displayName?.trim() ||
+                      event.reviewedBy.username ||
+                      event.reviewedBy.email;
+                    return (
+                      <li key={event.id} className="bg-card space-y-2 p-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold">
+                            {storefrontReviewActionLabel(event.action)}
+                          </span>
+                          <StoreStatusChip status={event.previousStatus} />
+                          <span aria-hidden>→</span>
+                          <StoreStatusChip status={event.newStatus} />
+                        </div>
+                        {event.reason ? (
+                          <p className="text-sm">{event.reason}</p>
+                        ) : null}
+                        {event.adminNotes ? (
+                          <details className="text-sm">
+                            <summary className="text-muted-foreground min-h-10 cursor-pointer text-xs font-semibold uppercase">
+                              Notes snapshot
+                            </summary>
+                            <p className="bg-surface-2 mt-1 rounded-lg p-2 whitespace-pre-wrap">
+                              {event.adminNotes}
+                            </p>
+                          </details>
+                        ) : event.action === "NOTES_UPDATED" ? (
+                          <p className="text-muted-foreground text-xs">
+                            Internal notes cleared.
+                          </p>
+                        ) : null}
+                        <p className="text-muted-foreground text-xs">
+                          {actor} · {event.createdAt.toLocaleString()}
+                        </p>
+                      </li>
+                    );
+                  })}
+                </ol>
+              ) : (
+                <p className="border-border bg-surface-2 text-muted-foreground rounded-lg border p-3 text-sm">
+                  No storefront review events have been recorded.
+                </p>
+              )}
+            </div>
           </section>
 
           <section className="border-border bg-card space-y-4 rounded-xl border p-5">

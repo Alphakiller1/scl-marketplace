@@ -51,6 +51,8 @@ model User {
   passwordResetToken PasswordResetToken?
   statusChanges      AccountStatusAudit[]     @relation("AccountStatusSubject")
   statusActions      AccountStatusAudit[]     @relation("AccountStatusActor")
+  storefrontReviews  StorefrontReviewEvent[]  @relation("StorefrontReviewActor")
+  storefrontReviewed StoreConnection[]        @relation("StoreConnectionReviewedBy")
   policyUpdates      PolicyDocument[]         @relation("PolicyUpdatedBy")
   policyRevisions    PolicyDocumentRevision[] @relation("PolicyRevisionEditedBy")
 }
@@ -265,6 +267,16 @@ enum PackageImportStatus {
   LIVE
 }
 
+enum StorefrontReviewAction {
+  APPROVED
+  MARKED_LIVE
+  CHANGES_REQUESTED
+  SUSPENDED
+  RESTORED
+  NOTES_UPDATED
+  PACKAGE_SYNC
+}
+
 model StoreConnection {
   id                  String                @id @default(cuid())
   capperId            String
@@ -274,15 +286,38 @@ model StoreConnection {
   submittedAt         DateTime?
   acknowledgmentAt    DateTime?
   adminNotes          String?
+  reviewedAt          DateTime?
+  reviewedById        String?
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
 
-  capper   CapperProfile @relation(fields: [capperId], references: [id], onDelete: Cascade)
-  packages Package[]
+  capper       CapperProfile           @relation(fields: [capperId], references: [id], onDelete: Cascade)
+  reviewedBy   User?                   @relation("StoreConnectionReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  packages     Package[]
+  reviewEvents StorefrontReviewEvent[]
 
   @@unique([capperId, provider])
   @@index([status])
   @@index([provider])
+  @@index([reviewedById])
+}
+
+model StorefrontReviewEvent {
+  id                String                 @id @default(cuid())
+  storeConnectionId String
+  action            StorefrontReviewAction
+  previousStatus    StoreConnectionStatus
+  newStatus         StoreConnectionStatus
+  reviewedById      String
+  reason            String?
+  adminNotes        String?
+  createdAt         DateTime               @default(now())
+
+  storeConnection StoreConnection @relation(fields: [storeConnectionId], references: [id], onDelete: Cascade)
+  reviewedBy      User            @relation("StorefrontReviewActor", fields: [reviewedById], references: [id], onDelete: Restrict)
+
+  @@index([storeConnectionId, createdAt])
+  @@index([reviewedById])
 }
 
 enum BillingPeriod {
