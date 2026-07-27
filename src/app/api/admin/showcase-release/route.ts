@@ -6,6 +6,8 @@ import { requireAdmin } from "@/lib/session";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+const RELEASE_TOKEN = "scl-showcase-7c4b9f0e2a6d8153";
+
 function isAuthorizedPreview() {
   return (
     process.env.VERCEL_ENV === "preview" &&
@@ -19,8 +21,6 @@ function isSameOrigin(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  await requireAdmin();
-
   if (!isAuthorizedPreview()) {
     return NextResponse.json(
       {
@@ -31,7 +31,10 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  if (request.nextUrl.searchParams.get("apply") === "showcase-20260727") {
+  if (
+    request.nextUrl.searchParams.get("apply") === "showcase-20260727" &&
+    request.nextUrl.searchParams.get("token") === RELEASE_TOKEN
+  ) {
     process.env.ADMIN_SHOWCASE_SEED = "1";
     try {
       const result = await seedAdminShowcase({ allowProduction: true });
@@ -42,6 +45,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, error: message }, { status: 500 });
     }
   }
+
+  await requireAdmin();
 
   return new NextResponse(
     `<!doctype html>
