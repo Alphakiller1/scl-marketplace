@@ -18,7 +18,7 @@ function isSameOrigin(request: NextRequest) {
   return origin === request.nextUrl.origin;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   await requireAdmin();
 
   if (!isAuthorizedPreview()) {
@@ -31,6 +31,18 @@ export async function GET() {
     );
   }
 
+  if (request.nextUrl.searchParams.get("apply") === "showcase-20260727") {
+    process.env.ADMIN_SHOWCASE_SEED = "1";
+    try {
+      const result = await seedAdminShowcase({ allowProduction: true });
+      return NextResponse.json({ ok: true, ...result });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("[admin/showcase-release]", message);
+      return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    }
+  }
+
   return new NextResponse(
     `<!doctype html>
 <html lang="en">
@@ -39,9 +51,7 @@ export async function GET() {
     <main>
       <h1>SCL admin showcase release</h1>
       <p>Installs idempotent, non-public examples on existing ghost cappers.</p>
-      <form action="/api/admin/showcase-release" method="post">
-        <button type="submit">Install showcase</button>
-      </form>
+      <a href="/api/admin/showcase-release?apply=showcase-20260727">Install showcase</a>
     </main>
   </body>
 </html>`,
