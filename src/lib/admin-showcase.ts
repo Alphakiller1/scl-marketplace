@@ -179,167 +179,174 @@ export async function seedAdminShowcase(options?: {
     );
   }
 
-  return prisma.$transaction(async (tx) => {
-    const profileIds = profiles.map((profile) => profile.id);
+  return prisma.$transaction(
+    async (tx) => {
+      const profileIds = profiles.map((profile) => profile.id);
 
-    // Fail closed: old ghost packages for these examples cannot remain on a LIVE
-    // connection while the admin training states are installed.
-    await tx.storeConnection.updateMany({
-      where: { capperId: { in: profileIds } },
-      data: {
-        status: "DISABLED",
-        adminNotes:
-          "Ghost showcase — superseded example connection. Safe to inspect; not public.",
-        reviewedAt: new Date(),
-        reviewedById: admin.id,
-      },
-    });
-    await tx.capperProfile.updateMany({
-      where: { id: { in: profileIds } },
-      data: { storefrontEnabled: false },
-    });
+      // Fail closed: old ghost packages for these examples cannot remain on a LIVE
+      // connection while the admin training states are installed.
+      await tx.storeConnection.updateMany({
+        where: { capperId: { in: profileIds } },
+        data: {
+          status: "DISABLED",
+          adminNotes:
+            "Ghost showcase — superseded example connection. Safe to inspect; not public.",
+          reviewedAt: new Date(),
+          reviewedById: admin.id,
+        },
+      });
+      await tx.capperProfile.updateMany({
+        where: { id: { in: profileIds } },
+        data: { storefrontEnabled: false },
+      });
 
-    let packageCount = 0;
-    let clickCount = 0;
+      let packageCount = 0;
+      let clickCount = 0;
 
-    for (const item of SHOWCASE_CONNECTIONS) {
-      const profile = profileByHandle.get(item.handle)!;
-      const connectionId = `admin-showcase-${item.handle}-${item.provider.toLowerCase()}`;
-      const connection = await tx.storeConnection.upsert({
-        where: {
-          capperId_provider: {
+      for (const item of SHOWCASE_CONNECTIONS) {
+        const profile = profileByHandle.get(item.handle)!;
+        const connectionId = `admin-showcase-${item.handle}-${item.provider.toLowerCase()}`;
+        const connection = await tx.storeConnection.upsert({
+          where: {
+            capperId_provider: {
+              capperId: profile.id,
+              provider: item.provider,
+            },
+          },
+          create: {
+            id: connectionId,
             capperId: profile.id,
             provider: item.provider,
-          },
-        },
-        create: {
-          id: connectionId,
-          capperId: profile.id,
-          provider: item.provider,
-          status: item.status,
-          packageImportStatus: item.importStatus,
-          submittedAt: new Date("2026-07-20T14:00:00.000Z"),
-          acknowledgmentAt: new Date("2026-07-20T14:05:00.000Z"),
-          adminNotes: item.note,
-          reviewedAt: item.review ? new Date("2026-07-21T15:30:00.000Z") : null,
-          reviewedById: item.review ? admin.id : null,
-        },
-        update: {
-          status: item.status,
-          packageImportStatus: item.importStatus,
-          submittedAt: new Date("2026-07-20T14:00:00.000Z"),
-          acknowledgmentAt: new Date("2026-07-20T14:05:00.000Z"),
-          adminNotes: item.note,
-          reviewedAt: item.review ? new Date("2026-07-21T15:30:00.000Z") : null,
-          reviewedById: item.review ? admin.id : null,
-        },
-      });
-
-      const eventId = `admin-showcase-review-${item.handle}-${item.provider.toLowerCase()}`;
-      if (item.review) {
-        await tx.storefrontReviewEvent.upsert({
-          where: { id: eventId },
-          create: {
-            id: eventId,
-            storeConnectionId: connection.id,
-            action: item.review.action,
-            previousStatus: item.review.previousStatus,
-            newStatus: item.status,
-            reviewedById: admin.id,
-            reason: item.review.reason,
+            status: item.status,
+            packageImportStatus: item.importStatus,
+            submittedAt: new Date("2026-07-20T14:00:00.000Z"),
+            acknowledgmentAt: new Date("2026-07-20T14:05:00.000Z"),
             adminNotes: item.note,
-            createdAt: new Date("2026-07-21T15:30:00.000Z"),
+            reviewedAt: item.review
+              ? new Date("2026-07-21T15:30:00.000Z")
+              : null,
+            reviewedById: item.review ? admin.id : null,
           },
           update: {
-            storeConnectionId: connection.id,
-            action: item.review.action,
-            previousStatus: item.review.previousStatus,
-            newStatus: item.status,
-            reviewedById: admin.id,
-            reason: item.review.reason,
+            status: item.status,
+            packageImportStatus: item.importStatus,
+            submittedAt: new Date("2026-07-20T14:00:00.000Z"),
+            acknowledgmentAt: new Date("2026-07-20T14:05:00.000Z"),
             adminNotes: item.note,
+            reviewedAt: item.review
+              ? new Date("2026-07-21T15:30:00.000Z")
+              : null,
+            reviewedById: item.review ? admin.id : null,
           },
         });
-      } else {
-        await tx.storefrontReviewEvent.deleteMany({
-          where: { id: eventId },
-        });
-      }
 
-      if (!item.package) continue;
+        const eventId = `admin-showcase-review-${item.handle}-${item.provider.toLowerCase()}`;
+        if (item.review) {
+          await tx.storefrontReviewEvent.upsert({
+            where: { id: eventId },
+            create: {
+              id: eventId,
+              storeConnectionId: connection.id,
+              action: item.review.action,
+              previousStatus: item.review.previousStatus,
+              newStatus: item.status,
+              reviewedById: admin.id,
+              reason: item.review.reason,
+              adminNotes: item.note,
+              createdAt: new Date("2026-07-21T15:30:00.000Z"),
+            },
+            update: {
+              storeConnectionId: connection.id,
+              action: item.review.action,
+              previousStatus: item.review.previousStatus,
+              newStatus: item.status,
+              reviewedById: admin.id,
+              reason: item.review.reason,
+              adminNotes: item.note,
+            },
+          });
+        } else {
+          await tx.storefrontReviewEvent.deleteMany({
+            where: { id: eventId },
+          });
+        }
 
-      const packageId = `admin-showcase-package-${item.handle}`;
-      const showcasePackage = await tx.package.upsert({
-        where: { id: packageId },
-        create: {
-          id: packageId,
-          capperId: profile.id,
-          storeConnectionId: connection.id,
-          title: item.package.title,
-          description: item.package.description,
-          promoOffer: item.package.promoOffer,
-          priceCents: item.package.priceCents,
-          billingPeriod: "MONTH",
-          checkoutUrl: `https://example.com/scl-ghost/${item.handle}`,
-          affiliateProvider: item.provider,
-          providerType: "PREMIUM",
-          sortOrder: item.package.sortOrder,
-          isActive: false,
-        },
-        update: {
-          capperId: profile.id,
-          storeConnectionId: connection.id,
-          title: item.package.title,
-          description: item.package.description,
-          promoOffer: item.package.promoOffer,
-          priceCents: item.package.priceCents,
-          billingPeriod: "MONTH",
-          checkoutUrl: `https://example.com/scl-ghost/${item.handle}`,
-          affiliateProvider: item.provider,
-          providerType: "PREMIUM",
-          sortOrder: item.package.sortOrder,
-          isActive: false,
-        },
-      });
-      packageCount += 1;
+        if (!item.package) continue;
 
-      const trackingId = `admin-showcase-tracking-${item.handle}`;
-      const tracking = await tx.trackingUrl.upsert({
-        where: { slug: `ghost-showcase-${item.handle}` },
-        create: {
-          id: trackingId,
-          packageId: showcasePackage.id,
-          slug: `ghost-showcase-${item.handle}`,
-          targetUrl: `https://example.com/scl-ghost/${item.handle}`,
-        },
-        update: {
-          packageId: showcasePackage.id,
-          targetUrl: `https://example.com/scl-ghost/${item.handle}`,
-        },
-      });
-
-      for (let index = 0; index < item.package.clicks; index += 1) {
-        await tx.clickEvent.upsert({
-          where: { id: `admin-showcase-click-${item.handle}-${index + 1}` },
+        const packageId = `admin-showcase-package-${item.handle}`;
+        const showcasePackage = await tx.package.upsert({
+          where: { id: packageId },
           create: {
-            id: `admin-showcase-click-${item.handle}-${index + 1}`,
-            trackingUrlId: tracking.id,
-            referrer: "https://scl-marketplace.vercel.app/admin",
-            userAgent: "SCL ghost showcase",
-            createdAt: new Date(
-              Date.UTC(2026, 6, 22, 12 + (index % 8), index, 0),
-            ),
+            id: packageId,
+            capperId: profile.id,
+            storeConnectionId: connection.id,
+            title: item.package.title,
+            description: item.package.description,
+            promoOffer: item.package.promoOffer,
+            priceCents: item.package.priceCents,
+            billingPeriod: "MONTH",
+            checkoutUrl: `https://example.com/scl-ghost/${item.handle}`,
+            affiliateProvider: item.provider,
+            providerType: "PREMIUM",
+            sortOrder: item.package.sortOrder,
+            isActive: false,
           },
-          update: { trackingUrlId: tracking.id },
+          update: {
+            capperId: profile.id,
+            storeConnectionId: connection.id,
+            title: item.package.title,
+            description: item.package.description,
+            promoOffer: item.package.promoOffer,
+            priceCents: item.package.priceCents,
+            billingPeriod: "MONTH",
+            checkoutUrl: `https://example.com/scl-ghost/${item.handle}`,
+            affiliateProvider: item.provider,
+            providerType: "PREMIUM",
+            sortOrder: item.package.sortOrder,
+            isActive: false,
+          },
         });
-        clickCount += 1;
-      }
-    }
+        packageCount += 1;
 
-    return {
-      connections: SHOWCASE_CONNECTIONS.length,
-      packages: packageCount,
-      clicks: clickCount,
-    };
-  });
+        const trackingId = `admin-showcase-tracking-${item.handle}`;
+        const tracking = await tx.trackingUrl.upsert({
+          where: { slug: `ghost-showcase-${item.handle}` },
+          create: {
+            id: trackingId,
+            packageId: showcasePackage.id,
+            slug: `ghost-showcase-${item.handle}`,
+            targetUrl: `https://example.com/scl-ghost/${item.handle}`,
+          },
+          update: {
+            packageId: showcasePackage.id,
+            targetUrl: `https://example.com/scl-ghost/${item.handle}`,
+          },
+        });
+
+        for (let index = 0; index < item.package.clicks; index += 1) {
+          await tx.clickEvent.upsert({
+            where: { id: `admin-showcase-click-${item.handle}-${index + 1}` },
+            create: {
+              id: `admin-showcase-click-${item.handle}-${index + 1}`,
+              trackingUrlId: tracking.id,
+              referrer: "https://scl-marketplace.vercel.app/admin",
+              userAgent: "SCL ghost showcase",
+              createdAt: new Date(
+                Date.UTC(2026, 6, 22, 12 + (index % 8), index, 0),
+              ),
+            },
+            update: { trackingUrlId: tracking.id },
+          });
+          clickCount += 1;
+        }
+      }
+
+      return {
+        connections: SHOWCASE_CONNECTIONS.length,
+        packages: packageCount,
+        clicks: clickCount,
+      };
+    },
+    { maxWait: 10_000, timeout: 55_000 },
+  );
 }
