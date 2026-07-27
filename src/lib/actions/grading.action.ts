@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { profitUnitsEqual } from "@/lib/grading-correction";
 import { profitUnitsForOutcome } from "@/lib/odds";
 import { prisma } from "@/lib/prisma";
 import { ensureClosingAndClv } from "@/lib/results/closing-snapshot";
@@ -33,7 +34,8 @@ export async function gradePlayAction(
       error: parsed.error.issues[0]?.message ?? "Check the grade.",
     };
   }
-  const { playId, outcome, reason } = parsed.data;
+  const { playId, outcome, reason, expectedOutcome, expectedProfitUnits } =
+    parsed.data;
 
   const clvReady = await hasClvColumns();
   const play = await prisma.play.findUnique({
@@ -41,6 +43,7 @@ export async function gradePlayAction(
     select: {
       id: true,
       outcome: true,
+      profitUnits: true,
       oddsAmerican: true,
       units: true,
       parlayId: true,
@@ -51,6 +54,13 @@ export async function gradePlayAction(
       side: true,
       line: true,
       league: true,
+      capper: {
+        select: {
+          user: {
+            select: { username: true },
+          },
+        },
+      },
       ...(clvReady ? { closingOddsAmerican: true } : {}),
     },
   });
@@ -61,7 +71,19 @@ export async function gradePlayAction(
       error: "This play is a parlay leg — grade it through the parlay.",
     };
   }
-  if (play.outcome === outcome) return { ok: true };
+  const currentProfitUnits =
+    play.profitUnits == null ? null : Number(play.profitUnits);
+  if (
+    (expectedOutcome !== undefined && play.outcome !== expectedOutcome) ||
+    (expectedProfitUnits !== undefined &&
+      !profitUnitsEqual(currentProfitUnits, expectedProfitUnits))
+  ) {
+    return {
+      ok: false,
+      error:
+        "This settlement changed after you opened it. Refresh and review again.",
+    };
+  }
   if (!reason) {
     return {
       ok: false,
@@ -76,6 +98,12 @@ export async function gradePlayAction(
     play.oddsAmerican,
     Number(play.units),
   );
+  if (
+    play.outcome === outcome &&
+    profitUnitsEqual(currentProfitUnits, profitUnits)
+  ) {
+    return { ok: true };
+  }
 
   const existingClose =
     "closingOddsAmerican" in play
@@ -98,8 +126,22 @@ export async function gradePlayAction(
       })
     : { closingOddsAmerican: null, clvPts: null };
 
-  await prisma.$transaction([
-    prisma.play.update({
+  const applied = await prisma.$transaction(async (tx) => {
+    const fresh = await tx.play.findUnique({
+      where: { id: play.id },
+      select: { outcome: true, profitUnits: true },
+    });
+    const freshProfitUnits =
+      fresh?.profitUnits == null ? null : Number(fresh.profitUnits);
+    if (
+      !fresh ||
+      fresh.outcome !== play.outcome ||
+      !profitUnitsEqual(freshProfitUnits, currentProfitUnits)
+    ) {
+      return false;
+    }
+
+    await tx.play.update({
       where: { id: play.id },
       data: {
         outcome,
@@ -114,21 +156,40 @@ export async function gradePlayAction(
           : {}),
       },
       select: { id: true },
-    }),
-    prisma.gradingAudit.create({
+    });
+    await tx.gradingAudit.create({
       data: {
         playId: play.id,
         previousOutcome: play.outcome,
         newOutcome: outcome,
+        previousProfitUnits: currentProfitUnits,
+        newProfitUnits: profitUnits,
         source,
         gradedById: admin.id,
         reason,
       },
-    }),
-  ]);
+    });
+    return true;
+  });
+
+  if (!applied) {
+    return {
+      ok: false,
+      error:
+        "This settlement changed while you were saving. Refresh and review again.",
+    };
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/picks");
   revalidatePath("/admin/grading");
+  revalidatePath("/admin/plays");
+  revalidatePath(`/admin/plays/straight/${play.id}`);
+  revalidatePath("/picks");
+  revalidatePath("/leaderboard");
+  revalidatePath("/discover");
+  revalidatePath("/");
+  const username = play.capper.user.username?.replace(/^@/, "");
+  if (username) revalidatePath(`/cappers/${username}`);
   return { ok: true };
 }

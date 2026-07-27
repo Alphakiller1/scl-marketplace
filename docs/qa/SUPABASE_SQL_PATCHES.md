@@ -131,3 +131,40 @@ CREATE INDEX IF NOT EXISTS "PolicyDocumentRevision_slug_createdAt_idx"
 CREATE INDEX IF NOT EXISTS "PolicyDocumentRevision_editedById_idx"
   ON "PolicyDocumentRevision" ("editedById");
 ```
+
+## Grading corrections — immutable settlement snapshots
+
+Run before deploying the admin settled-play correction detail route. This
+preserves the old and new profit calculation on straight-play audits and adds
+one parent-level audit event for every parlay settlement or correction.
+
+```sql
+ALTER TABLE "GradingAudit"
+  ADD COLUMN IF NOT EXISTS "previousProfitUnits" DECIMAL(10, 2),
+  ADD COLUMN IF NOT EXISTS "newProfitUnits" DECIMAL(10, 2);
+
+CREATE TABLE IF NOT EXISTS "ParlayGradingAudit" (
+  "id" TEXT NOT NULL,
+  "parlayId" TEXT NOT NULL,
+  "previousOutcome" "Outcome" NOT NULL,
+  "newOutcome" "Outcome" NOT NULL,
+  "previousProfitUnits" DECIMAL(10, 2),
+  "newProfitUnits" DECIMAL(10, 2),
+  "source" "GradingSource" NOT NULL,
+  "gradedById" TEXT,
+  "reason" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "ParlayGradingAudit_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "ParlayGradingAudit_parlayId_fkey"
+    FOREIGN KEY ("parlayId") REFERENCES "Parlay"("id")
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT "ParlayGradingAudit_gradedById_fkey"
+    FOREIGN KEY ("gradedById") REFERENCES "User"("id")
+    ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS "ParlayGradingAudit_parlayId_createdAt_idx"
+  ON "ParlayGradingAudit" ("parlayId", "createdAt");
+CREATE INDEX IF NOT EXISTS "ParlayGradingAudit_gradedById_idx"
+  ON "ParlayGradingAudit" ("gradedById");
+```

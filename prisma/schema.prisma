@@ -47,6 +47,7 @@ model User {
   capperProfile      CapperProfile?
   termsAcceptances   TermsAcceptance[]
   gradingActions     GradingAudit[]           @relation("GradedBy")
+  parlayGradeActions ParlayGradingAudit[]     @relation("ParlayGradedBy")
   passwordResetToken PasswordResetToken?
   statusChanges      AccountStatusAudit[]     @relation("AccountStatusSubject")
   statusActions      AccountStatusAudit[]     @relation("AccountStatusActor")
@@ -452,8 +453,9 @@ model Parlay {
   createdAt            DateTime  @default(now())
   gradedAt             DateTime?
 
-  capper CapperProfile @relation(fields: [capperId], references: [id], onDelete: Cascade)
+  capper CapperProfile        @relation(fields: [capperId], references: [id], onDelete: Cascade)
   legs   Play[]
+  audits ParlayGradingAudit[]
 
   @@index([capperId])
 }
@@ -474,17 +476,38 @@ model OddsUsageDaily {
 }
 
 model GradingAudit {
-  id              String        @id @default(cuid())
-  playId          String
-  previousOutcome Outcome
-  newOutcome      Outcome
-  source          GradingSource
-  gradedById      String?
-  reason          String?
-  createdAt       DateTime      @default(now())
+  id                  String        @id @default(cuid())
+  playId              String
+  previousOutcome     Outcome
+  newOutcome          Outcome
+  previousProfitUnits Decimal?      @db.Decimal(10, 2)
+  newProfitUnits      Decimal?      @db.Decimal(10, 2)
+  source              GradingSource
+  gradedById          String?
+  reason              String?
+  createdAt           DateTime      @default(now())
 
   play     Play  @relation(fields: [playId], references: [id], onDelete: Cascade)
   gradedBy User? @relation("GradedBy", fields: [gradedById], references: [id], onDelete: SetNull)
 
   @@index([playId])
+}
+
+model ParlayGradingAudit {
+  id                  String        @id @default(cuid())
+  parlayId            String
+  previousOutcome     Outcome
+  newOutcome          Outcome
+  previousProfitUnits Decimal?      @db.Decimal(10, 2)
+  newProfitUnits      Decimal?      @db.Decimal(10, 2)
+  source              GradingSource
+  gradedById          String?
+  reason              String?
+  createdAt           DateTime      @default(now())
+
+  parlay   Parlay @relation(fields: [parlayId], references: [id], onDelete: Cascade)
+  gradedBy User?  @relation("ParlayGradedBy", fields: [gradedById], references: [id], onDelete: SetNull)
+
+  @@index([parlayId, createdAt])
+  @@index([gradedById])
 }

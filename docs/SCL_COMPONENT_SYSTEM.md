@@ -82,6 +82,9 @@ Numbers are the product. These render performance consistently everywhere.
 - `LeaderboardOverview` — data-route title and real aggregate metric band.
 - `CompetitionHero` — dual-column home hero: locked slides + elevated Rank-schema Live board
   (ink + radial atmosphere; no photographic plate). See `design/HOME_DESIGN_LAYER_SCHEMA.md`.
+- `AdminGradeCorrection` — settled straight/parlay correction form with before/after
+  calculation, stale-write guard, reason, and explicit public-impact confirmation.
+- `AdminSettlementAudit` — immutable outcome and profit history for settlement detail.
 
 ## States (`states.tsx`)
 

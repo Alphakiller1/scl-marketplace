@@ -21,7 +21,7 @@ const ADMIN_TOOLS = [
     href: "/admin/plays",
     title: "Published plays",
     description:
-      "Inspect the committed plays currently eligible for the public ledger, with capper and settlement filters.",
+      "Inspect the public ledger, review settlement history, and safely correct graded straight plays or parlays.",
     icon: ClipboardList,
   },
   {

@@ -109,6 +109,7 @@ export default async function AdminPublishedPlaysPage({
                 <TableHead>Proof</TableHead>
                 <TableHead>Settlement</TableHead>
                 <TableHead>Analysis</TableHead>
+                <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -176,6 +177,18 @@ export default async function AdminPublishedPlaysPage({
                           : play.notesPublic
                             ? "Public"
                             : "Hidden"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        render={
+                          <Link href={`/admin/plays/${play.kind}/${play.id}`} />
+                        }
+                        nativeButton={false}
+                        variant="outline"
+                        size="sm"
+                      >
+                        {play.outcome === "PENDING" ? "Review" : "Correct"}
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );
