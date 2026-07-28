@@ -291,6 +291,13 @@ model StoreConnection {
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
 
+  // Added fields for clearer admin workflow and tracking
+  affiliateAcceptedAt DateTime?
+  lastImportedAt      DateTime?
+  packageCount        Int     @default(0)
+  affiliatePercent    Float?
+  requiresAttention   Boolean @default(false)
+
   capper       CapperProfile           @relation(fields: [capperId], references: [id], onDelete: Cascade)
   reviewedBy   User?                   @relation("StoreConnectionReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
   packages     Package[]
@@ -300,6 +307,7 @@ model StoreConnection {
   @@index([status])
   @@index([provider])
   @@index([reviewedById])
+  @@index([requiresAttention])
 }
 
 model StorefrontReviewEvent {
