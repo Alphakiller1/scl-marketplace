@@ -64,6 +64,7 @@ async function syncConnectionFromLivePackages(
         status: true,
         packageImportStatus: true,
         adminNotes: true,
+        packageCount: true,
       },
     }),
   ]);
@@ -75,11 +76,22 @@ async function syncConnectionFromLivePackages(
     activePackageCount: liveCount,
   });
 
+  const now = new Date();
+
   await tx.storeConnection.update({
     where: { id: storeConnectionId },
     data: {
       packageImportStatus: readiness.packageImportStatus,
       status: readiness.status,
+      packageCount,
+      // update lastImportedAt when packages are imported or storefront is live
+      lastImportedAt:
+        readiness.packageImportStatus === "IMPORTED" ||
+        readiness.packageImportStatus === "LIVE"
+          ? now
+          : conn.packageCount !== packageCount
+          ? now
+          : undefined,
     },
   });
 
@@ -227,7 +239,7 @@ export async function submitStoreConnectionAction(
   if (updated.count !== 1) {
     return {
       ok: false,
-      error: "The storefront changed while submitting. Refresh and try again.",
+      error: "The storefront changed while submitting. Refresh its status.",
     };
   }
 
@@ -337,6 +349,15 @@ export async function adminUpdateStoreConnectionAction(
         adminNotes,
         reviewedAt: now,
         reviewedById: admin.id,
+        // workflow tracking fields
+        packageCount: packageCount,
+        affiliateAcceptedAt:
+          parsed.data.action === "APPROVE" ? now : undefined,
+        lastImportedAt:
+          packageImportStatus === "IMPORTED" || packageImportStatus === "LIVE"
+            ? now
+            : undefined,
+        requiresAttention: transition.targetStatus === "NEEDS_ACTION",
       },
     });
     if (updated.count !== 1) {
