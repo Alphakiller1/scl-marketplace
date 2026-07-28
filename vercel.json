@@ -1,4 +1,4 @@
-﻿{
+{
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run db:deploy && npm run build",
   "crons": [{ "path": "/api/cron/grade", "schedule": "0 8 * * *" }]
