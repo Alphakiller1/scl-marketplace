@@ -75,11 +75,14 @@ async function syncConnectionFromLivePackages(
     activePackageCount: liveCount,
   });
 
+  const now = new Date();
   await tx.storeConnection.update({
     where: { id: storeConnectionId },
     data: {
       packageImportStatus: readiness.packageImportStatus,
       status: readiness.status,
+      packageCount,
+      lastImportedAt: now,
     },
   });
 
@@ -325,6 +328,14 @@ export async function adminUpdateStoreConnectionAction(
           : conn.packageImportStatus;
     const now = new Date();
 
+    // Workflow field updates
+    const affiliateAcceptedAt =
+      parsed.data.action === "APPROVE" ? now : undefined;
+    const lastImportedAt =
+      parsed.data.action === "MARK_LIVE" ? now : undefined;
+    const requiresAttention =
+      transition.targetStatus === "NEEDS_ACTION" ? true : undefined;
+
     const updated = await tx.storeConnection.updateMany({
       where: {
         id: conn.id,
@@ -337,6 +348,10 @@ export async function adminUpdateStoreConnectionAction(
         adminNotes,
         reviewedAt: now,
         reviewedById: admin.id,
+        ...(affiliateAcceptedAt && { affiliateAcceptedAt }),
+        ...(lastImportedAt && { lastImportedAt }),
+        ...(requiresAttention !== undefined && { requiresAttention }),
+        ...(packageCount > 0 && { packageCount }),
       },
     });
     if (updated.count !== 1) {

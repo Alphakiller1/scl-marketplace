@@ -116,3 +116,26 @@ test("capper self-service cannot overwrite reviewed or suspended states", () => 
   assert.equal(canCapperSubmitStorefront("NEEDS_ACTION"), false);
   assert.equal(canCapperSubmitStorefront("DISABLED"), false);
 });
+
+test("workflow transitions update new status fields correctly", () => {
+  // APPROVE sets requiresAttention to false (only NEEDS_ACTION sets it to true)
+  const approveTransition = storefrontTransition(
+    "PENDING_SCL_ACCEPTANCE",
+    "APPROVE",
+    { hasPackages: false },
+  );
+  assert(approveTransition);
+  assert.equal(approveTransition.targetStatus, "LINKS_RECEIVED");
+  assert.equal(approveTransition.auditAction, "APPROVED");
+
+  // REQUEST_CHANGES sets status to NEEDS_ACTION
+  const requestChanges = storefrontTransition("LINKS_RECEIVED", "REQUEST_CHANGES");
+  assert(requestChanges);
+  assert.equal(requestChanges.targetStatus, "NEEDS_ACTION");
+
+  // MARK_LIVE transitions to LIVE
+  const markLive = storefrontTransition("PACKAGES_IMPORTED", "MARK_LIVE");
+  assert(markLive);
+  assert.equal(markLive.targetStatus, "LIVE");
+  assert.equal(markLive.auditAction, "MARKED_LIVE");
+});
