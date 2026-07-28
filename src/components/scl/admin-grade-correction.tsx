@@ -26,7 +26,7 @@ type GradeableOutcome = (typeof GRADEABLE_OUTCOMES)[number];
 type StraightCorrectionProps = {
   kind: "straight";
   id: string;
-  outcome: GradeableOutcome;
+  outcome: Outcome;
   profitUnits: number | null;
   oddsAmerican: number;
   units: number;
@@ -35,7 +35,7 @@ type StraightCorrectionProps = {
 type ParlayCorrectionProps = {
   kind: "parlay";
   id: string;
-  outcome: GradeableOutcome;
+  outcome: Outcome;
   profitUnits: number | null;
   units: number;
   legs: {
@@ -48,7 +48,8 @@ type ParlayCorrectionProps = {
 };
 
 type AdminGradeCorrectionProps =
-  StraightCorrectionProps | ParlayCorrectionProps;
+  | StraightCorrectionProps
+  | ParlayCorrectionProps;
 
 const OUTCOME_LABEL: Record<GradeableOutcome, string> = {
   WIN: "Win",
@@ -120,7 +121,7 @@ export function AdminGradeCorrection(props: AdminGradeCorrectionProps) {
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
   const [straightOutcome, setStraightOutcome] = useState<GradeableOutcome>(
-    props.outcome,
+    isGradeableOutcome(props.outcome) ? props.outcome : GRADEABLE_OUTCOMES[0],
   );
   const [legOutcomes, setLegOutcomes] = useState<Record<string, Outcome>>(
     props.kind === "parlay"
@@ -213,10 +214,11 @@ export function AdminGradeCorrection(props: AdminGradeCorrectionProps) {
           <Gavel className="size-5" aria-hidden />
         </span>
         <div>
-          <h2 className="font-semibold">Correct settled result</h2>
+          <h2 className="font-semibold">Grade or correct result</h2>
           <p className="text-muted-foreground mt-0.5 text-sm leading-relaxed">
-            Review the calculated change, document why it is needed, and confirm
-            the public impact before saving.
+            Backup for a stuck or mis-graded play. Review the calculated change,
+            document why it is needed, and confirm the public impact before
+            saving.
           </p>
         </div>
       </div>

@@ -1,4 +1,12 @@
-import { CheckCircle2, Clock, History, XCircle, Zap } from "lucide-react";
+import Link from "next/link";
+import {
+  CheckCircle2,
+  Clock,
+  History,
+  LifeBuoy,
+  XCircle,
+  Zap,
+} from "lucide-react";
 
 import { GradingAuditList } from "@/components/scl/grading-audit-list";
 import { SportTag } from "@/components/scl/badges";
@@ -59,7 +67,8 @@ export default async function AdminGradingPage() {
             <dd className="scl-data mt-1 text-sm font-semibold tabular-nums">
               {health.cliffRisk}
               <span className="text-muted-foreground ml-2 font-normal">
-                past {health.cliffWarningDays}d / lookback {health.lookbackDays}d
+                past {health.cliffWarningDays}d / lookback {health.lookbackDays}
+                d
               </span>
             </dd>
           </div>
@@ -88,21 +97,30 @@ export default async function AdminGradingPage() {
         {stuck.length ? (
           <ul className="divide-border border-border max-h-64 divide-y overflow-auto rounded-lg border text-sm">
             {stuck.map((p) => (
-              <li key={p.id} className="px-3 py-2">
-                <p className="flex flex-wrap items-center gap-2 font-medium break-words">
-                  <SportTag sport={p.sport} markOnly />
-                  <span>
-                    {p.selection}{" "}
-                    <span className="text-muted-foreground font-normal">
-                      · {p.market} · {p.sport}
+              <li key={p.id}>
+                <Link
+                  href={`/admin/plays/straight/${p.id}`}
+                  className="hover:bg-surface-2/60 focus-visible:ring-ring flex flex-col gap-1 px-3 py-2 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
+                >
+                  <p className="flex flex-wrap items-center gap-2 font-medium break-words">
+                    <SportTag sport={p.sport} markOnly />
+                    <span>
+                      {p.selection}{" "}
+                      <span className="text-muted-foreground font-normal">
+                        · {p.market} · {p.sport}
+                      </span>
                     </span>
-                  </span>
-                </p>
-                <p className="text-muted-foreground scl-data text-xs tabular-nums">
-                  @{p.handle ?? "?"} · {p.oddsAmerican} · {p.units}U · event{" "}
-                  {p.eventId ?? "null"} · start {p.eventStartsAt ?? "null"} ·{" "}
-                  {p.id}
-                </p>
+                    <span className="scl-link ml-auto inline-flex items-center gap-1 text-xs">
+                      <LifeBuoy className="size-3.5" aria-hidden />
+                      Backup override →
+                    </span>
+                  </p>
+                  <p className="text-muted-foreground scl-data text-xs tabular-nums">
+                    @{p.handle ?? "?"} · {p.oddsAmerican} · {p.units}U · event{" "}
+                    {p.eventId ?? "null"} · start {p.eventStartsAt ?? "null"} ·{" "}
+                    {p.id}
+                  </p>
+                </Link>
               </li>
             ))}
           </ul>
@@ -153,7 +171,7 @@ export default async function AdminGradingPage() {
                         ? "Running…"
                         : run.status === "SUCCESS"
                           ? `${run.graded} graded · ${run.skipped} skipped · ${run.parlaysGraded} parlays`
-                          : run.error ?? "Failed"}
+                          : (run.error ?? "Failed")}
                     </p>
                     {run.createdAt && (
                       <p className="text-muted-foreground text-xs tabular-nums">
