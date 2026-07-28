@@ -28,12 +28,15 @@ const MANUAL_MIGRATIONS = [
   '20260728033616_add_storeconnection_workflow',
 ];
 
-let anyFailed = false;
+// Migrations that were attempted but failed and need to be rolled back so
+// prisma migrate deploy will re-apply them cleanly.
+const ROLLBACK_MIGRATIONS = [
+  '20260728160025_add_grade_job_run',
+];
 
-for (const migration of MANUAL_MIGRATIONS) {
-  process.stdout.write(`  resolving ${migration} ... `);
-
-  const args = ['exec', '--', 'prisma', 'migrate', 'resolve', '--applied', migration];
+function runResolve(flag, migration) {
+  process.stdout.write(`  resolve --${flag} ${migration} ... `);
+  const args = ['exec', '--', 'prisma', 'migrate', 'resolve', `--${flag}`, migration];
   const result =
     process.platform === 'win32'
       ? spawnSync('cmd.exe', ['/d', '/s', '/c', `npm ${args.join(' ')}`], {
@@ -46,17 +49,34 @@ for (const migration of MANUAL_MIGRATIONS) {
 
   if (result.error) {
     process.stderr.write(`ERROR: ${result.error.message}\n`);
-    anyFailed = true;
-    continue;
+    return false;
   }
 
-  // P3008 = migration already applied (idempotent — safe to ignore)
-  if (result.status !== 0 && !output.includes('P3008') && !output.includes('already been applied')) {
+  // P3008 = already applied/rolled-back (idempotent — safe to ignore)
+  // P3010 = not found (never attempted — safe to ignore for rollback)
+  const isIgnorable =
+    output.includes('P3008') ||
+    output.includes('P3010') ||
+    output.includes('already been applied') ||
+    output.includes('not found');
+
+  if (result.status !== 0 && !isIgnorable) {
     process.stderr.write(`FAILED (exit ${result.status}):\n${output}\n`);
-    anyFailed = true;
-  } else {
-    process.stdout.write('OK\n');
+    return false;
   }
+
+  process.stdout.write('OK\n');
+  return true;
+}
+
+let anyFailed = false;
+
+for (const migration of MANUAL_MIGRATIONS) {
+  if (!runResolve('applied', migration)) anyFailed = true;
+}
+
+for (const migration of ROLLBACK_MIGRATIONS) {
+  if (!runResolve('rolled-back', migration)) anyFailed = true;
 }
 
 if (anyFailed) {
