@@ -8,6 +8,7 @@ import { StoreStatusChip } from "@/components/scl/store-status-chip";
 import { EmptyState } from "@/components/scl/states";
 import { SectionHeader } from "@/components/scl/section";
 import { Button } from "@/components/ui/button";
+import { AdminStoreListItem } from "@/components/scl/admin-store-list-item";
 import {
   adminChecklist,
   importStatusLabel,
@@ -103,7 +104,7 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
 
       {rows.length ? (
         <div className="border-border overflow-hidden rounded-xl border">
-          <div className="border-border bg-surface-2 text-muted-foreground hidden grid-cols-[1.2fr_6rem_1fr_7rem_1fr_auto] gap-3 border-b px-4 py-2 text-[0.65rem] font-semibold tracking-wide uppercase lg:grid">
+          <div className="border-border bg-surface-2 text-muted-foreground hidden grid-cols-[1.2fr_6rem_1fr_7rem_1fr_auto] gap-3 border-b px-4 py-2 text-[0.65rem] font-semibold tracking-wide uppercase">
             <span>Capper</span>
             <span>Platform</span>
             <span>Status</span>
@@ -112,46 +113,9 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
             <span>Open</span>
           </div>
           <div className="divide-border divide-y">
-            {rows.map((row) => {
-              const handle = row.capper.user.username;
-              const name =
-                row.capper.user.displayName?.trim() ||
-                (handle
-                  ? `@${handle.replace(/^@/, "")}`
-                  : row.capper.user.email);
-              return (
-                <article
-                  key={row.id}
-                  className="bg-card grid gap-3 p-4 lg:grid-cols-[1.2fr_6rem_1fr_7rem_1fr_auto] lg:items-center"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold">{name}</p>
-                    <p className="text-muted-foreground truncate text-xs">
-                      {row.capper.user.email}
-                    </p>
-                  </div>
-                  <ProviderBadge provider={row.provider} />
-                  <StoreStatusChip status={row.status} />
-                  <p className="text-muted-foreground text-xs tabular-nums">
-                    {row.submittedAt ? row.submittedAt.toLocaleString() : "—"}
-                  </p>
-                  <p className="text-muted-foreground text-xs">
-                    {importStatusLabel(row.packageImportStatus)}
-                  </p>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="min-h-10"
-                    render={
-                      <Link href={detailHref({ connectionId: row.id })} />
-                    }
-                    nativeButton={false}
-                  >
-                    Open
-                  </Button>
-                </article>
-              );
-            })}
+            {rows.map((row) => (
+              <AdminStoreListItem key={row.id} row={row} />
+            ))}
           </div>
         </div>
       ) : (
