@@ -546,3 +546,21 @@ model ParlayGradingAudit {
   @@index([parlayId, createdAt])
   @@index([gradedById])
 }
+
+model GradeJobRun {
+  id             String   @id @default(cuid())
+  createdAt      DateTime @default(now())
+  startedAt      DateTime?
+  finishedAt     DateTime?
+  provider       String
+  graded         Int      @default(0)
+  skipped        Int      @default(0)
+  parlaysGraded  Int      @default(0)
+  skippedByReason Json
+  status         String   // RUNNING | SUCCESS | FAILED
+  error          String?
+  meta           Json?
+
+  @@index([status])
+  @@index([createdAt])
+}
