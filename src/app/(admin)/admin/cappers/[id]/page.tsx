@@ -17,6 +17,7 @@ import { notFound } from "next/navigation";
 import { AccountStatusControl } from "@/components/scl/account-status-control";
 import { AccountStatusBadge } from "@/components/scl/account-trust";
 import { StatusBadge } from "@/components/scl/badges";
+import { AdminPackageForm } from "@/components/scl/admin-package-form";
 import { ProviderBadge } from "@/components/scl/provider-badge";
 import { SectionHeader } from "@/components/scl/section";
 import { StoreStatusChip } from "@/components/scl/store-status-chip";
@@ -56,6 +57,9 @@ export default async function AdminCapperDetailPage({
   const name =
     capper.displayName?.trim() || (handle ? `@${handle}` : capper.email);
   const latestAcceptance = capper.termsAcceptances[0] ?? null;
+  const winibleConnection =
+    profile?.storeConnections.find((connection) => connection.provider === "WINIBLE") ||
+    null;
 
   return (
     <div className="space-y-6">
@@ -316,6 +320,21 @@ export default async function AdminCapperDetailPage({
           </p>
         )}
       </section>
+
+      {profile ? (
+        <section className="border-border bg-card space-y-4 rounded-xl border p-4 sm:p-5">
+          <SectionHeader
+            icon={PackageOpen}
+            title="Quick Winible package"
+            subtitle="Fast manual fallback when Winible sync is unavailable — paste the link, price, promo, and description, then publish it to the capper profile."
+          />
+          <AdminPackageForm
+            capperId={profile.id}
+            storeConnectionId={winibleConnection?.id ?? null}
+            provider="WINIBLE"
+          />
+        </section>
+      ) : null}
 
       <section className="space-y-4">
         <SectionHeader

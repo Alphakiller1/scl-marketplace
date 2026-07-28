@@ -122,8 +122,9 @@ export function AdminPackageForm({
       }}
     >
       <p className="text-muted-foreground text-xs leading-relaxed">
-        Platform-agnostic package object. Fill these fields once — the public
-        card and CTA are generated automatically for {providerLabel(provider)}.
+        Quick package setup for {providerLabel(provider)}. Paste the storefront
+        or package link, then fill in the name, price, promo details, and
+        description once — SCL generates the public card and CTA automatically.
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -186,7 +187,11 @@ export function AdminPackageForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="dest">Affiliate purchase link</Label>
+        <Label htmlFor="dest">
+          {provider === "WINIBLE"
+            ? "Winible storefront/package link"
+            : "Whop storefront/package link"}
+        </Label>
         <Input
           id="dest"
           type="url"
@@ -194,13 +199,15 @@ export function AdminPackageForm({
           onChange={(e) => setCheckoutUrl(e.target.value)}
           placeholder={
             provider === "WHOP"
-              ? "Paste Whop product-specific affiliate link"
-              : "Paste Winible package affiliate link"
+              ? "Paste Whop product-specific link"
+              : "Paste Winible storefront or package link"
           }
           required
         />
         <p className="text-muted-foreground text-xs">
-          Admin-only destination. Public CTAs always use the SCL tracking URL.
+          Admin-only destination. Public CTAs always use the SCL tracking URL,
+          so you can publish the package without exposing the raw affiliate
+          link.
         </p>
       </div>
 
@@ -284,7 +291,8 @@ export function AdminPackageForm({
       <p className="text-muted-foreground text-xs leading-relaxed">
         Activating a package makes it ready for publication. The storefront
         remains hidden until an administrator records the separate “Mark live”
-        approval.
+        approval, but a manually entered Winible package can still be published
+        to the capper profile immediately.
       </p>
     </form>
   );
