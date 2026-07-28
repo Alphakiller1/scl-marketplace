@@ -5,14 +5,14 @@ import { getCurrentUser } from "@/lib/session";
 // ONE-TIME: marks the stuck failed migration as applied so future migrations can run.
 // The columns (User.isTest, Play.needsReview) were already added via the SQL runbook.
 // DELETE this file after running once in production.
-export async function POST() {
+
+async function resolveMigration() {
   const user = await getCurrentUser();
   if (!user || user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
     // Mark the failed migration as applied in the Prisma shadow migrations table.
-    // The scl schema prefix is required because all tables live in the scl schema.
     const result = await prisma.$executeRaw`
       UPDATE "scl"."_prisma_migrations"
       SET "finished_at" = now(),
@@ -26,11 +26,14 @@ export async function POST() {
       rowsUpdated: result,
       message:
         result > 0
-          ? "Migration marked as applied. Trigger a new Vercel deploy to apply pending migrations."
-          : "No rows updated — migration may already be resolved or not found.",
+          ? "✅ Migration marked as applied. Now trigger a new Vercel deploy to apply pending GradeJobRun migration."
+          : "ℹ️ No rows updated — migration may already be resolved.",
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ ok: false, error: msg }, { status: 500 });
   }
 }
+
+export const GET = resolveMigration;
+export const POST = resolveMigration;
