@@ -144,3 +144,26 @@ export async function getParlayGradingQueue() {
 export type ParlayQueueItem = Awaited<
   ReturnType<typeof getParlayGradingQueue>
 >[number];
+
+/** Recent automated cron grading runs — newest first. */
+export async function getRecentCronRuns(limit = 20) {
+  const runs = await prisma.gradeJobRun.findMany({
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      createdAt: true,
+      startedAt: true,
+      finishedAt: true,
+      provider: true,
+      graded: true,
+      skipped: true,
+      parlaysGraded: true,
+      status: true,
+      error: true,
+    },
+  });
+  return runs;
+}
+
+export type CronRunItem = Awaited<ReturnType<typeof getRecentCronRuns>>[number];
