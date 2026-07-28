@@ -1,12 +1,10 @@
 import Link from "next/link";
-import { Gavel, History, Layers, ListChecks } from "lucide-react";
+import { History, Layers, ListChecks, Zap } from "lucide-react";
 import { notFound } from "next/navigation";
 
-import { AdminGradeCorrection } from "@/components/scl/admin-grade-correction";
 import { AdminSettlementAudit } from "@/components/scl/admin-settlement-audit";
 import { PickTierBadge, SportTag, StatusBadge } from "@/components/scl/badges";
 import { SectionHeader } from "@/components/scl/section";
-import { Button } from "@/components/ui/button";
 import { formatOdds, formatUnits } from "@/lib/format";
 import {
   getAdminParlayCorrectionRecord,
@@ -51,9 +49,9 @@ export default async function AdminPlayCorrectionPage({
   return (
     <div className="space-y-6">
       <SectionHeader
-        icon={Gavel}
+        icon={ListChecks}
         title="Settlement Review"
-        subtitle="Correct a published result without erasing its prior history"
+        subtitle="Play details and grading history"
         href="/admin/plays?status=graded"
         hrefLabel="Back to published plays"
       />
@@ -175,49 +173,17 @@ export default async function AdminPlayCorrectionPage({
       ) : null}
 
       {record.outcome === "PENDING" ? (
-        <section className="border-border bg-card flex flex-col gap-4 rounded-xl border p-5 sm:flex-row sm:items-center sm:justify-between">
+        <section className="border-border bg-card flex items-start gap-3 rounded-xl border p-5">
+          <Zap className="text-muted-foreground mt-0.5 size-5 shrink-0" />
           <div>
-            <h2 className="font-semibold">This record is still pending</h2>
+            <h2 className="font-semibold">Awaiting auto-grade</h2>
             <p className="text-muted-foreground mt-1 text-sm">
-              Initial results belong in the grading queue. Corrections become
-              available after settlement.
+              This play will be settled automatically at the next cron run
+              (every 15 min). No manual action is needed.
             </p>
           </div>
-          <Button
-            render={<Link href="/admin/grading" />}
-            nativeButton={false}
-            className="w-full sm:w-auto"
-          >
-            Open grading queue
-          </Button>
         </section>
-      ) : record.kind === "straight" ? (
-        <AdminGradeCorrection
-          key={`${record.id}:${record.outcome}:${record.profitUnits ?? "open"}`}
-          kind="straight"
-          id={record.id}
-          outcome={record.outcome}
-          profitUnits={record.profitUnits}
-          oddsAmerican={record.oddsAmerican}
-          units={record.units}
-        />
-      ) : (
-        <AdminGradeCorrection
-          key={`${record.id}:${record.outcome}:${record.profitUnits ?? "open"}:${record.legs.map((leg) => leg.outcome).join("-")}`}
-          kind="parlay"
-          id={record.id}
-          outcome={record.outcome}
-          profitUnits={record.profitUnits}
-          units={record.units}
-          legs={record.legs.map((leg) => ({
-            id: leg.id,
-            selection: leg.selection,
-            market: leg.market,
-            oddsAmerican: leg.oddsAmerican,
-            outcome: leg.outcome,
-          }))}
-        />
-      )}
+      ) : null}
 
       <section className="space-y-4">
         <SectionHeader
