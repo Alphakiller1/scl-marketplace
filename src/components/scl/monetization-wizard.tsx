@@ -63,6 +63,7 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
   );
   const [ack, setAck] = useState(false);
   const [connection, setConnection] = useState<Conn | null>(active);
+  const [copiedReferral, setCopiedReferral] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const showStatus =
@@ -118,6 +119,13 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
       });
       setStep(4);
     });
+  }
+
+  function copyWinibleReferral() {
+    void navigator.clipboard.writeText(WINIBLE_CAPPER_REFERRAL_URL);
+    setCopiedReferral(true);
+    window.setTimeout(() => setCopiedReferral(false), 2000);
+    toast.success("Winible referral link copied");
   }
 
   return (
@@ -229,6 +237,28 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
                 This opens SCL&apos;s Winible creator-onboarding referral. It is
                 not a customer package checkout link.
               </p>
+              <div className="border-border bg-background mt-3 rounded-lg border p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide">
+                  If the page will not open
+                </p>
+                <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                  Copy the referral URL below, then open it directly in your
+                  browser.
+                </p>
+                <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <code className="bg-surface-2 min-w-0 flex-1 overflow-x-auto rounded-md px-2 py-1 text-xs">
+                    {WINIBLE_CAPPER_REFERRAL_URL}
+                  </code>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-h-10"
+                    onClick={copyWinibleReferral}
+                  >
+                    {copiedReferral ? "Copied" : "Copy link"}
+                  </Button>
+                </div>
+              </div>
             </div>
           ) : null}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
