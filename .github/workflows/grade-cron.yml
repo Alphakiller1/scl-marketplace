@@ -1,4 +1,4 @@
-﻿name: Grade pending picks
+name: Grade pending picks
 
 # Vercel Hobby only allows one daily cron. This workflow restores the intended
 # ~30m cadence by calling production /api/cron/grade with CRON_SECRET.
