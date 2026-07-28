@@ -288,6 +288,12 @@ model StoreConnection {
   adminNotes          String?
   reviewedAt          DateTime?
   reviewedById        String?
+  // Storefront workflow status fields
+  affiliateAcceptedAt DateTime?
+  lastImportedAt      DateTime?
+  packageCount        Int                   @default(0)
+  affiliatePercent    Float?
+  requiresAttention   Boolean               @default(false)
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
 
@@ -300,6 +306,7 @@ model StoreConnection {
   @@index([status])
   @@index([provider])
   @@index([reviewedById])
+  @@index([requiresAttention])
 }
 
 model StorefrontReviewEvent {

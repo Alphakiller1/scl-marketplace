@@ -23,14 +23,21 @@ import { cn } from "@/lib/utils";
 export const metadata = { title: "Store setup" };
 
 type Search = {
-  searchParams: Promise<{ id?: string; provider?: string; packageId?: string }>;
+  searchParams: Promise<{
+    id?: string;
+    provider?: string;
+    packageId?: string;
+    requiresAttention?: string;
+  }>;
 };
 
 export default async function AdminStoreSetupPage({ searchParams }: Search) {
   const sp = await searchParams;
+  const requiresAttentionFilter = sp.requiresAttention === "true";
   const rows = await listStoreConnections({
     provider:
       sp.provider === "WINIBLE" || sp.provider === "WHOP" ? sp.provider : "ALL",
+    requiresAttentionOnly: requiresAttentionFilter,
   });
   const selected =
     rows.find((r) => r.id === sp.id) ||
@@ -56,6 +63,7 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
     const params = new URLSearchParams();
     params.set("id", opts.connectionId);
     if (sp.provider) params.set("provider", sp.provider);
+    if (requiresAttentionFilter) params.set("requiresAttention", "true");
     if (opts.packageId) params.set("packageId", opts.packageId);
     return `/admin/store-setup?${params.toString()}`;
   }
@@ -89,8 +97,8 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
               <Link
                 href={
                   key === "ALL"
-                    ? "/admin/store-setup"
-                    : `/admin/store-setup?provider=${key}`
+                    ? `/admin/store-setup${requiresAttentionFilter ? "?requiresAttention=true" : ""}`
+                    : `/admin/store-setup?provider=${key}${requiresAttentionFilter ? "&requiresAttention=true" : ""}`
                 }
               />
             }
@@ -99,14 +107,33 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
             {label}
           </Button>
         ))}
+        <Button
+          size="sm"
+          variant={requiresAttentionFilter ? "default" : "outline"}
+          className="min-h-10"
+          render={
+            <Link
+              href={
+                requiresAttentionFilter
+                  ? `/admin/store-setup${sp.provider ? `?provider=${sp.provider}` : ""}`
+                  : `/admin/store-setup?requiresAttention=true${sp.provider ? `&provider=${sp.provider}` : ""}`
+              }
+            />
+          }
+          nativeButton={false}
+        >
+          Needs attention
+        </Button>
       </div>
 
       {rows.length ? (
         <div className="border-border overflow-hidden rounded-xl border">
-          <div className="border-border bg-surface-2 text-muted-foreground hidden grid-cols-[1.2fr_6rem_1fr_7rem_1fr_auto] gap-3 border-b px-4 py-2 text-[0.65rem] font-semibold tracking-wide uppercase lg:grid">
+          <div className="border-border bg-surface-2 text-muted-foreground hidden grid-cols-[1.2fr_6rem_1fr_1fr_6rem_1fr_1fr_auto] gap-3 border-b px-4 py-2 text-[0.65rem] font-semibold tracking-wide uppercase lg:grid">
             <span>Capper</span>
             <span>Platform</span>
             <span>Status</span>
+            <span>Packages</span>
+            <span>Affiliate %</span>
             <span>Submitted</span>
             <span>Import</span>
             <span>Open</span>
@@ -119,10 +146,17 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
                 (handle
                   ? `@${handle.replace(/^@/, "")}`
                   : row.capper.user.email);
+              const packageCountDisplay = row.packageCount || row.capper._count?.packages || 0;
+              const affiliatePercentDisplay = row.affiliatePercent
+                ? Number(row.affiliatePercent).toFixed(0)
+                : "—";
               return (
                 <article
                   key={row.id}
-                  className="bg-card grid gap-3 p-4 lg:grid-cols-[1.2fr_6rem_1fr_7rem_1fr_auto] lg:items-center"
+                  className={cn(
+                    "bg-card grid gap-3 p-4 lg:grid-cols-[1.2fr_6rem_1fr_1fr_6rem_1fr_1fr_auto] lg:items-center",
+                    row.requiresAttention && "ring-2 ring-inset ring-amber-400/30",
+                  )}
                 >
                   <div className="min-w-0">
                     <p className="truncate font-semibold">{name}</p>
@@ -132,6 +166,13 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
                   </div>
                   <ProviderBadge provider={row.provider} />
                   <StoreStatusChip status={row.status} />
+                  <p className="text-muted-foreground text-xs">
+                    {packageCountDisplay} package{packageCountDisplay !== 1 ? "s" : ""}
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    {affiliatePercentDisplay}
+                    {affiliatePercentDisplay !== "—" && "%"}
+                  </p>
                   <p className="text-muted-foreground text-xs tabular-nums">
                     {row.submittedAt ? row.submittedAt.toLocaleString() : "—"}
                   </p>
@@ -185,6 +226,34 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
                 </li>
               ))}
             </ul>
+            {selected.packageCount > 0 && (
+              <div className="bg-surface-2 rounded-lg p-3 text-sm space-y-1">
+                <div className="flex justify-between">
+                  <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                    Package count
+                  </p>
+                  <span>{selected.packageCount}</span>
+                </div>
+                {selected.affiliatePercent !== null && (
+                  <div className="flex justify-between">
+                    <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                      Affiliate %
+                    </p>
+                    <span>{Number(selected.affiliatePercent).toFixed(0)}%</span>
+                  </div>
+                )}
+                {selected.affiliateAcceptedAt && (
+                  <p className="text-muted-foreground text-xs">
+                    Accepted: {selected.affiliateAcceptedAt.toLocaleString()}
+                  </p>
+                )}
+                {selected.lastImportedAt && (
+                  <p className="text-muted-foreground text-xs">
+                    Last imported: {selected.lastImportedAt.toLocaleString()}
+                  </p>
+                )}
+              </div>
+            )}
             <div className="bg-surface-2 rounded-lg p-3 text-sm">
               <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
                 Last human review

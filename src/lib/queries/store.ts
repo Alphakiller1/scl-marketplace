@@ -22,6 +22,20 @@ export async function getCapperProfileIdForUser(userId: string) {
   return profile?.id ?? null;
 }
 
+export async function countStoreConnectionsRequiringAttention() {
+  try {
+    return await prisma.storeConnection.count({
+      where: { requiresAttention: true },
+    });
+  } catch (error) {
+    console.error(
+      "[countStoreConnectionsRequiringAttention] database unavailable:",
+      error,
+    );
+    return 0;
+  }
+}
+
 export async function listConnectionsForCapper(capperId: string) {
   try {
     return await prisma.storeConnection.findMany({
@@ -40,6 +54,7 @@ export async function listConnectionsForCapper(capperId: string) {
 export async function listStoreConnections(filters?: {
   provider?: StoreProvider | "ALL";
   pendingOnly?: boolean;
+  requiresAttentionOnly?: boolean;
 }) {
   const provider =
     filters?.provider && filters.provider !== "ALL"
@@ -57,8 +72,13 @@ export async function listStoreConnections(filters?: {
               },
             }
           : {}),
+        ...(filters?.requiresAttentionOnly ? { requiresAttention: true } : {}),
       },
-      orderBy: [{ submittedAt: "asc" }, { updatedAt: "desc" }],
+      orderBy: [
+        { requiresAttention: "desc" },
+        { submittedAt: "asc" },
+        { updatedAt: "desc" },
+      ],
       include: {
         reviewedBy: {
           select: {
