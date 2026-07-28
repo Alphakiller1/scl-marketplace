@@ -1,4 +1,4 @@
-import { ClipboardCheck, History, Layers, DatabaseZap } from "lucide-react";
+import { ClipboardCheck, History, Layers } from "lucide-react";
 
 import { AutoGradeButton } from "@/components/scl/auto-grade-button";
 import { SportTag } from "@/components/scl/badges";
@@ -16,64 +16,21 @@ import {
 } from "@/lib/queries/grading";
 import { getSchemaStatusReport } from "@/lib/results/schema-status";
 import { listAgedOutPendingPlays } from "@/lib/results/stuck-plays";
-import { prisma } from "@/lib/prisma";
 
 export const metadata = { title: "Grading" };
 
-/** Check if the GradeJobRun table exists yet (migration pending). */
-async function gradeJobRunTableExists(): Promise<boolean> {
-  try {
-    await prisma.$queryRaw`SELECT 1 FROM "scl"."GradeJobRun" LIMIT 1`;
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export default async function AdminGradingPage() {
-  const [queue, parlays, audits, health, schema, stuck, jobTableExists] =
-    await Promise.all([
-      getGradingQueue(),
-      getParlayGradingQueue(),
-      getRecentGradingAudits(),
-      getGradingHealthReport(),
-      getSchemaStatusReport(),
-      listAgedOutPendingPlays(),
-      gradeJobRunTableExists(),
-    ]);
+  const [queue, parlays, audits, health, schema, stuck] = await Promise.all([
+    getGradingQueue(),
+    getParlayGradingQueue(),
+    getRecentGradingAudits(),
+    getGradingHealthReport(),
+    getSchemaStatusReport(),
+    listAgedOutPendingPlays(),
+  ]);
 
   return (
     <div className="space-y-8">
-      {/* ONE-TIME: migration resolve banner — delete after GradeJobRun table exists */}
-      {!jobTableExists && (
-        <section className="border-amber-500/30 bg-amber-500/10 rounded-xl border p-4">
-          <div className="flex items-start gap-3">
-            <DatabaseZap className="text-amber-500 mt-0.5 size-5 shrink-0" />
-            <div className="min-w-0">
-              <p className="text-amber-200 text-sm font-semibold">
-                Pending DB migration
-              </p>
-              <p className="text-amber-300/80 mt-1 text-xs">
-                The{" "}
-                <code className="bg-amber-500/20 rounded px-1">
-                  GradeJobRun
-                </code>{" "}
-                table is not yet in the production database. Step 1: visit{" "}
-                <a
-                  href="/api/admin/resolve-migration"
-                  target="_blank"
-                  className="underline underline-offset-2"
-                >
-                  /api/admin/resolve-migration
-                </a>{" "}
-                to unblock the failed migration, then trigger a new Vercel
-                deploy to apply it.
-              </p>
-            </div>
-          </div>
-        </section>
-      )}
-
       <section className="border-border bg-card space-y-3 rounded-xl border p-4">
         <SectionHeader
           icon={History}
