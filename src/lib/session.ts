@@ -34,6 +34,7 @@ export const getCurrentAccount = cache(async () => {
   const account = await prisma.user.findUnique({
     where: { id: user.id },
     select: {
+      role: true,
       accountStatus: true,
       emailVerified: true,
       termsAcceptances: {
@@ -48,6 +49,10 @@ export const getCurrentAccount = cache(async () => {
 
   return {
     ...user,
+    // Authorize against the LIVE DB role, never the (possibly stale or
+    // over-privileged) role baked into the JWT at login. A demotion takes
+    // effect immediately — no re-login required — and a bad token can't grant admin.
+    role: account.role,
     accountStatus: account.accountStatus,
     emailVerified: account.emailVerified,
     legalAcceptance: account.termsAcceptances[0] ?? null,
