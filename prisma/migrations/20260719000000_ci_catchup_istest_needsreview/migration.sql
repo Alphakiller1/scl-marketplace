@@ -11,6 +11,6 @@
 -- so the unqualified table names resolve to the scl schema (matching the
 -- existing migrations).
 
-ALTER TABLE "User" ADD COLUMN "isTest" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "isTest" BOOLEAN NOT NULL DEFAULT false;
 
-ALTER TABLE "Play" ADD COLUMN "needsReview" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Play" ADD COLUMN IF NOT EXISTS "needsReview" BOOLEAN NOT NULL DEFAULT false;
