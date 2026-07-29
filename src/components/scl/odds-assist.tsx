@@ -575,6 +575,13 @@ export function EventDetail({
     </p>
   );
 
+  // Top-level bet-type category header so the board reads by type, not one flat list.
+  const betTypeHeader = (label: string) => (
+    <p className="scl-display border-b border-[color:var(--scl-line)] pb-1 text-xs font-bold tracking-[0.12em] text-[color:var(--scl-text)] uppercase">
+      {label}
+    </p>
+  );
+
   // Alt ladders sorted by proximity to the main line, capped until expanded per market.
   const altSections = altGroups.map(([market, opts]) => {
     const ref = shown.find(
@@ -598,15 +605,20 @@ export function EventDetail({
 
   return (
     <div className="space-y-3 px-3 pt-0.5 pb-3">
-      {/* 1 · Featured game lines — always visible */}
-      {featuredGroups.map(([market, opts]) => (
-        <div key={market}>
-          {marketLabel(market)}
-          <div className="flex flex-wrap gap-1.5">
-            {opts.map((s, i) => renderChip(s, `${market}-${i}`))}
-          </div>
-        </div>
-      ))}
+      {/* 1 · Full game lines — always visible, grouped under a bet-type header */}
+      {featuredGroups.length ? (
+        <section aria-label="Full game lines" className="space-y-2">
+          {betTypeHeader("Full Game")}
+          {featuredGroups.map(([market, opts]) => (
+            <div key={market}>
+              {marketLabel(market)}
+              <div className="flex flex-wrap gap-1.5">
+                {opts.map((s, i) => renderChip(s, `${market}-${i}`))}
+              </div>
+            </div>
+          ))}
+        </section>
+      ) : null}
 
       {detail === undefined ? <DetailSkeleton /> : null}
       {detail?.status === "error" ? (
@@ -618,6 +630,7 @@ export function EventDetail({
       {/* 2 · Player props — sticky search, category pills, player accordions */}
       {propSelections.length ? (
         <div className="space-y-2.5">
+          {betTypeHeader("Player Props")}
           <div className="bg-card z-10 space-y-2 pb-1 lg:sticky lg:top-0">
             <input
               type="text"
@@ -750,6 +763,7 @@ export function EventDetail({
       ) : null}
 
       {/* 3 · Alternate spread/total ladders — collapsed by default */}
+      {altSections.length ? betTypeHeader("Alternate Lines") : null}
       {altSections.map(({ market, visible, total, expanded }) => (
         <div key={market}>
           {marketLabel(`Alternate ${market}`)}
