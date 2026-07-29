@@ -52,6 +52,61 @@ export function playersForLeague(league: HeadshotLeague): PlayerHeadshot[] {
   return PLAYER_HEADSHOTS.filter((p) => p.league === league);
 }
 
+/**
+ * Pull the athlete name out of a player-prop selection.
+ *
+ * Board and seeded props read like "Aaron Judge Over 1.5 RBIs", and feed
+ * variants use a dash ("Aaron Judge - Home Runs Over 0.5"). We take the text
+ * before the Over/Under (or dash) and only accept it when it actually looks
+ * like a person's name, so team/total selections never resolve to a player.
+ */
+/**
+ * Market vocabulary that can otherwise pass as a surname — "Aces ML" and
+ * "Aces Team" are shaped exactly like "Aaron Judge".
+ */
+const NON_NAME_WORDS = new Set([
+  "ml",
+  "moneyline",
+  "team",
+  "total",
+  "totals",
+  "spread",
+  "line",
+  "puck",
+  "run",
+  "alt",
+  "first",
+  "half",
+  "quarter",
+  "inning",
+  "innings",
+  "period",
+  "props",
+  "prop",
+  "f5",
+  "f3",
+  "f7",
+  "1h",
+  "2h",
+  "tt",
+]);
+
+export function extractPlayerName(
+  selection: string | null | undefined,
+): string | null {
+  if (!selection) return null;
+  let head = selection.split(/\s+(?:Over|Under)\s+/i)[0] ?? "";
+  head = head.split(/\s+[-–—]\s+/)[0] ?? head;
+  const name = head.trim().replace(/\s{2,}/g, " ");
+  // Two-to-four words of name-ish characters (allows O'Neal, Jr., Guerrero Jr.).
+  if (!/^[A-Za-zÀ-ÿ'’.-]+(?: [A-Za-zÀ-ÿ'’.-]+){1,3}$/.test(name)) return null;
+  const words = name.toLowerCase().split(" ");
+  if (words.some((w) => NON_NAME_WORDS.has(w.replace(/[.']/g, "")))) {
+    return null;
+  }
+  return name;
+}
+
 /** Map a Play's sport/league string ("MLB" | "WNBA") to a headshot league. */
 export function toHeadshotLeague(
   value: string | null | undefined,

@@ -4,10 +4,7 @@ import { PlayerHeadshot } from "@/components/scl/player-headshot";
 import { StatValue } from "@/components/scl/stat-value";
 import { VerifiedBadge } from "@/components/scl/verified-badge";
 import { TeamMark } from "@/components/scl/team-mark";
-import {
-  resolvePlayerHeadshot,
-  toHeadshotLeague,
-} from "@/lib/player-headshots";
+import { extractPlayerName, toHeadshotLeague } from "@/lib/player-headshots";
 import { oddsSourceBoardLabel } from "@/lib/books";
 import { UNIT_MIN } from "@/lib/constants";
 import { formatOdds, formatUnits, signTone } from "@/lib/format";
@@ -136,10 +133,10 @@ export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
       <ul className="mt-2 space-y-1.5">
         {parlay.legs.map((leg) => {
           const team = teamIdentityFromSide(leg.side, leg.sport);
-          const propPlayer = resolvePlayerHeadshot(
-            leg.selection,
-            toHeadshotLeague(leg.sport),
-          );
+          const propPlayer =
+            leg.market === "Player Prop"
+              ? extractPlayerName(leg.selection)
+              : null;
           return (
             <li key={leg.id} className="flex min-w-0 items-start gap-2.5">
               <SportTag sport={leg.sport} markOnly className="mt-0.5" />

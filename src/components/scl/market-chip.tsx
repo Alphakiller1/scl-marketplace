@@ -9,10 +9,7 @@ import { bookShort } from "@/lib/books";
 import { cn } from "@/lib/utils";
 import { formatCaptureClock, formatOdds } from "@/lib/format";
 import { isExtremeAmericanOdds } from "@/lib/odds-board";
-import {
-  resolvePlayerHeadshot,
-  type HeadshotLeague,
-} from "@/lib/player-headshots";
+import { extractPlayerName, type HeadshotLeague } from "@/lib/player-headshots";
 
 /**
  * v2 odds chip — single row: label + odds.
@@ -46,7 +43,7 @@ export function MarketChip({
   className?: string;
 }) {
   const missing = oddsAmerican === null;
-  const propPlayer = resolvePlayerHeadshot(label, league);
+  const propPlayer = extractPlayerName(label);
   const extreme =
     !missing && typeof oddsAmerican === "number"
       ? isExtremeAmericanOdds(oddsAmerican)
