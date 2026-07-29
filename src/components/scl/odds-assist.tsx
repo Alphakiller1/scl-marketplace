@@ -513,6 +513,7 @@ export function EventDetail({
     {},
   );
   const [altExpanded, setAltExpanded] = useState<Record<string, boolean>>({});
+  const [tab, setTab] = useState<string | null>(null);
 
   const shown =
     detail?.status === "ready" && detail.selections.length > 0
@@ -575,13 +576,6 @@ export function EventDetail({
     </p>
   );
 
-  // Top-level bet-type category header so the board reads by type, not one flat list.
-  const betTypeHeader = (label: string) => (
-    <p className="scl-display border-b border-[color:var(--scl-line)] pb-1 text-xs font-bold tracking-[0.12em] text-[color:var(--scl-text)] uppercase">
-      {label}
-    </p>
-  );
-
   // Alt ladders sorted by proximity to the main line, capped until expanded per market.
   const altSections = altGroups.map(([market, opts]) => {
     const ref = shown.find(
@@ -603,12 +597,119 @@ export function EventDetail({
     };
   });
 
+  // ── Sportsbook market tabs ────────────────────────────────────────────────
+  // A book never dumps every market in one scroll: you choose a bet type first,
+  // then see only those prices. Tabs are built from what this event actually
+  // offers, and each game-market tab carries its own alternate ladder so the
+  // main line and its alternates live together instead of in separate sections.
+  const gameMarketTabs = MARKET_ORDER.filter((market) =>
+    shown.some((s) => s.market === market),
+  );
+  const tabs: { key: string; label: string; count: number }[] = [
+    ...(featuredGroups.length
+      ? [
+          {
+            key: "popular",
+            label: "Popular",
+            count: featuredGroups.reduce((n, [, opts]) => n + opts.length, 0),
+          },
+        ]
+      : []),
+    ...gameMarketTabs.map((market) => ({
+      key: `market:${market}`,
+      label: market,
+      count: shown.filter((s) => s.market === market).length,
+    })),
+    ...(propSelections.length
+      ? [
+          {
+            key: "props",
+            label: "Player Props",
+            count: propSelections.length,
+          },
+        ]
+      : []),
+  ];
+  const activeTab =
+    tab && tabs.some((t) => t.key === tab) ? tab : (tabs[0]?.key ?? "popular");
+
+  const marketBlock = (market: string) => {
+    const featured = shown.filter((s) => s.market === market && s.featured);
+    const alt = altSections.find((a) => a.market === market);
+    return (
+      <div className="space-y-3">
+        {featured.length ? (
+          <div>
+            {marketLabel("Main line")}
+            <div className="flex flex-wrap gap-1.5">
+              {featured.map((s, i) => renderChip(s, `main-${market}-${i}`))}
+            </div>
+          </div>
+        ) : null}
+        {alt && alt.total > 0 ? (
+          <div>
+            {marketLabel(`Alternate ${market}`)}
+            <div className="flex flex-wrap gap-1.5">
+              {alt.visible.map((s, i) => renderChip(s, `alt-${market}-${i}`))}
+            </div>
+            {alt.total > ALT_LINE_CAP ? (
+              <button
+                type="button"
+                onClick={() =>
+                  setAltExpanded((p) => ({ ...p, [market]: !alt.expanded }))
+                }
+                className="mt-2 inline-flex min-h-10 items-center text-xs font-medium text-[color:var(--scl-muted-data)] underline-offset-2 hover:underline"
+              >
+                {alt.expanded
+                  ? "Show fewer"
+                  : `Show all ${alt.total} ${market.toLowerCase()} lines`}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-3 px-3 pt-0.5 pb-3">
-      {/* 1 · Full game lines — always visible, grouped under a bet-type header */}
-      {featuredGroups.length ? (
-        <section aria-label="Full game lines" className="space-y-2">
-          {betTypeHeader("Full Game")}
+      {/* Market tabs — choose a bet type, then see only those prices. */}
+      {tabs.length > 1 ? (
+        <div
+          className="bg-card z-20 -mx-3 overflow-x-auto px-3 pb-1 sm:sticky sm:top-0"
+          role="tablist"
+          aria-label="Bet type"
+        >
+          <div className="flex w-max gap-1.5">
+            {tabs.map((t) => {
+              const active = t.key === activeTab;
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setTab(t.key)}
+                  className={cn(
+                    PROP_PILL_CLASS,
+                    "shrink-0 whitespace-nowrap",
+                    active ? PROP_PILL_ACTIVE : PROP_PILL_IDLE,
+                  )}
+                >
+                  {t.label}
+                  <span className="scl-data ml-1.5 text-[0.7em] font-bold tabular-nums opacity-70">
+                    {t.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Popular — the main game lines, exactly what a book opens on. */}
+      {activeTab === "popular" && featuredGroups.length ? (
+        <section aria-label="Popular lines" className="space-y-2">
           {featuredGroups.map(([market, opts]) => (
             <div key={market}>
               {marketLabel(market)}
@@ -620,6 +721,13 @@ export function EventDetail({
         </section>
       ) : null}
 
+      {/* A single game market: its main line + that market's alternate ladder. */}
+      {activeTab.startsWith("market:") ? (
+        <section aria-label={`${activeTab.slice(7)} lines`}>
+          {marketBlock(activeTab.slice(7))}
+        </section>
+      ) : null}
+
       {detail === undefined ? <DetailSkeleton /> : null}
       {detail?.status === "error" ? (
         <p className="text-muted-foreground text-xs">
@@ -627,11 +735,10 @@ export function EventDetail({
         </p>
       ) : null}
 
-      {/* 2 · Player props — sticky search, category pills, player accordions */}
-      {propSelections.length ? (
+      {/* Player props — search, stat pills, per-player accordions */}
+      {activeTab === "props" && propSelections.length ? (
         <div className="space-y-2.5">
-          {betTypeHeader("Player Props")}
-          <div className="bg-card z-10 space-y-2 pb-1 lg:sticky lg:top-0">
+          <div className="bg-card z-10 space-y-2 pb-1 lg:sticky lg:top-12">
             <input
               type="text"
               value={query}
@@ -761,30 +868,6 @@ export function EventDetail({
           ) : null}
         </div>
       ) : null}
-
-      {/* 3 · Alternate spread/total ladders — collapsed by default */}
-      {altSections.length ? betTypeHeader("Alternate Lines") : null}
-      {altSections.map(({ market, visible, total, expanded }) => (
-        <div key={market}>
-          {marketLabel(`Alternate ${market}`)}
-          <div className="flex flex-wrap gap-1.5">
-            {visible.map((s, i) => renderChip(s, `alt-${market}-${i}`))}
-          </div>
-          {total > ALT_LINE_CAP ? (
-            <button
-              type="button"
-              onClick={() =>
-                setAltExpanded((p) => ({ ...p, [market]: !expanded }))
-              }
-              className="mt-2 inline-flex min-h-10 items-center text-xs font-medium text-[color:var(--scl-muted-data)] underline-offset-2 hover:underline"
-            >
-              {expanded
-                ? "Show fewer"
-                : `Show all ${total} ${market.toLowerCase()} lines`}
-            </button>
-          ) : null}
-        </div>
-      ))}
     </div>
   );
 }
