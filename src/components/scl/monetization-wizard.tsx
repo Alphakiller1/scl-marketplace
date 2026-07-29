@@ -419,12 +419,11 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
               </ol>
               <div className="border-border bg-surface-2 rounded-lg border p-3">
                 <p className="font-semibold">
-                  Don’t have your Winible storefront yet?
+                  Don’t have a Winible storefront yet?
                 </p>
                 <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-                  Create it through SCL’s Winible link so your storefront is
-                  attributed to SCL, then come back and finish the affiliate
-                  steps above.
+                  Create your Winible storefront using the SCL link below, then
+                  return here to connect it to SCL.
                 </p>
                 <Button
                   variant="outline"
@@ -438,12 +437,12 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
                   }
                   nativeButton={false}
                 >
-                  Open Winible via SCL
+                  Head to Winible to Sign Up
                   <ExternalLink className="size-4" />
                 </Button>
                 <p className="text-muted-foreground mt-2 text-xs">
-                  This is SCL’s Winible creator-onboarding referral — not a
-                  customer package checkout link.
+                  Storefronts created through this link are affiliated with SCL
+                  through Winible’s affiliate program.
                 </p>
               </div>
             </div>
