@@ -25,15 +25,20 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           set -euo pipefail
-          CONN="${DIRECT_URL:-$DATABASE_URL}"
+          # Prefer the pooler (DATABASE_URL): the direct DIRECT_URL host
+          # (db.*.supabase.co) is IPv6-only and GitHub runners are IPv4-only, so a
+          # direct connection fails with "Network is unreachable". The pooler
+          # (aws-*.pooler.supabase.com) is IPv4 and runs these auto-committed DDLs
+          # fine in transaction mode.
+          CONN="${DATABASE_URL:-$DIRECT_URL}"
           if [ -z "$CONN" ]; then
-            echo "::error::No DIRECT_URL or DATABASE_URL secret configured." >&2
+            echo "::error::No DATABASE_URL or DIRECT_URL secret configured." >&2
             exit 1
           fi
           # Prisma connection strings carry query params libpq rejects (schema,
           # pgbouncer, connection_limit, …). Drop the query and force SSL; the
-          # SQL file sets search_path and fully-qualifies every table as scl.*.
+          # SQL fully-qualifies every table as scl.* so search_path is irrelevant.
           CONN_BASE="${CONN%%\?*}"
-          echo "Applying scripts/sql/2026-07-store-workflow-columns.sql (direct connection)…"
+          echo "Applying scripts/sql/2026-07-store-workflow-columns.sql (pooler)…"
           psql "${CONN_BASE}?sslmode=require" -v ON_ERROR_STOP=1 -f scripts/sql/2026-07-store-workflow-columns.sql
           echo "### ✅ StoreConnection workflow columns applied (idempotent)" >> "$GITHUB_STEP_SUMMARY"
