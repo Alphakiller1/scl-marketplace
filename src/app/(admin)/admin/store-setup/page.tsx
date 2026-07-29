@@ -2,6 +2,7 @@ import Link from "next/link";
 import { History, Store } from "lucide-react";
 
 import { AdminPackageForm } from "@/components/scl/admin-package-form";
+import { AdminPackageRowControls } from "@/components/scl/admin-package-row-controls";
 import { AdminStoreActions } from "@/components/scl/admin-store-actions";
 import { ProviderBadge } from "@/components/scl/provider-badge";
 import { StorefrontCoveragePanel } from "@/components/scl/storefront-coverage-panel";
@@ -378,35 +379,46 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
                   Packages on this connection
                 </p>
                 <div className="space-y-2">
-                  {selected.packages.map((pkg) => {
+                  {selected.packages.map((pkg, index) => {
                     const clicks = pkg.trackingUrls[0]?._count?.clicks ?? 0;
                     const active =
                       !creatingNew && selectedPackage?.id === pkg.id;
                     return (
-                      <Link
+                      <div
                         key={pkg.id}
-                        href={detailHref({
-                          connectionId: selected.id,
-                          packageId: pkg.id,
-                        })}
                         className={cn(
-                          "border-border flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm transition-colors",
+                          "border-border flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors",
                           active
                             ? "border-brand/50 bg-brand/5"
                             : "hover:bg-surface-2",
                         )}
                       >
-                        <span className="min-w-0 truncate font-medium">
-                          {pkg.title}
-                        </span>
-                        <span className="text-muted-foreground flex shrink-0 items-center gap-2 text-xs tabular-nums">
-                          <span>{clicks} clicks</span>
-                          <StoreStatusChip
-                            status={pkg.isActive ? "LIVE" : "NOT_STARTED"}
-                            label={pkg.isActive ? "Live" : "Draft"}
-                          />
-                        </span>
-                      </Link>
+                        <Link
+                          href={detailHref({
+                            connectionId: selected.id,
+                            packageId: pkg.id,
+                          })}
+                          className="flex min-w-0 flex-1 items-center justify-between gap-2"
+                        >
+                          <span className="min-w-0 truncate font-medium">
+                            {pkg.title}
+                          </span>
+                          <span className="text-muted-foreground flex shrink-0 items-center gap-2 text-xs tabular-nums">
+                            <span>{clicks} clicks</span>
+                            <StoreStatusChip
+                              status={pkg.isActive ? "LIVE" : "NOT_STARTED"}
+                              label={pkg.isActive ? "Live" : "Draft"}
+                            />
+                          </span>
+                        </Link>
+                        <AdminPackageRowControls
+                          packageId={pkg.id}
+                          title={pkg.title}
+                          isActive={pkg.isActive}
+                          isFirst={index === 0}
+                          isLast={index === selected.packages.length - 1}
+                        />
+                      </div>
                     );
                   })}
                 </div>

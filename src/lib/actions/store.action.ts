@@ -7,11 +7,13 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireCapperAccess } from "@/lib/session";
 import {
   adminPackageActiveSchema,
+  adminPackageReorderSchema,
   adminPackageSchema,
   adminUpdateStoreConnectionSchema,
   markInstructionsViewedSchema,
   submitStoreConnectionSchema,
   type AdminPackageActiveInput,
+  type AdminPackageReorderInput,
   type AdminPackageInput,
   type AdminUpdateStoreConnectionInput,
   type SubmitStoreConnectionInput,
@@ -521,6 +523,61 @@ export async function adminSetPackageActiveAction(
     });
     if (pkg.storeConnectionId) {
       await syncConnectionFromLivePackages(tx, pkg.storeConnectionId, admin.id);
+    }
+  });
+
+  await revalidateCommercePaths(pkg.capper.user.username, pkg.capper.user.id);
+  return { ok: true };
+}
+
+/**
+ * Move one package up or down in its capper's display order.
+ *
+ * Admins build a capper's SCL storefront from the affiliate links right after
+ * verifying the connection, so ordering has to be one click — not "open each
+ * package and retype a number". Swaps the neighbour's slot inside a transaction
+ * and normalizes the whole list to 0..n-1 so mixed/duplicate legacy sortOrder
+ * values can't wedge the sequence.
+ */
+export async function adminReorderPackageAction(
+  input: AdminPackageReorderInput,
+): Promise<ActionResult> {
+  await requireAdmin();
+  const parsed = adminPackageReorderSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid request." };
+
+  const pkg = await prisma.package.findUnique({
+    where: { id: parsed.data.packageId },
+    select: {
+      id: true,
+      capperId: true,
+      capper: {
+        select: { user: { select: { id: true, username: true } } },
+      },
+    },
+  });
+  if (!pkg) return { ok: false, error: "Package not found." };
+
+  await prisma.$transaction(async (tx) => {
+    const siblings = await tx.package.findMany({
+      where: { capperId: pkg.capperId },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+      select: { id: true },
+    });
+    const index = siblings.findIndex((s) => s.id === pkg.id);
+    const target = parsed.data.direction === "UP" ? index - 1 : index + 1;
+    // Already at the boundary — normalize only, never throw.
+    if (index !== -1 && target >= 0 && target < siblings.length) {
+      [siblings[index], siblings[target]] = [
+        siblings[target]!,
+        siblings[index]!,
+      ];
+    }
+    for (const [order, sibling] of siblings.entries()) {
+      await tx.package.update({
+        where: { id: sibling.id },
+        data: { sortOrder: order },
+      });
     }
   });
 

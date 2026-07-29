@@ -96,3 +96,12 @@ export const adminPackageActiveSchema = z.object({
 });
 
 export type AdminPackageActiveInput = z.infer<typeof adminPackageActiveSchema>;
+
+export const adminPackageReorderSchema = z.object({
+  packageId: z.string().min(1),
+  direction: z.enum(["UP", "DOWN"]),
+});
+
+export type AdminPackageReorderInput = z.infer<
+  typeof adminPackageReorderSchema
+>;
