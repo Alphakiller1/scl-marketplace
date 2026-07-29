@@ -30,7 +30,7 @@ describe("store-connection helpers", () => {
   it("maps provider workflow states to owner-facing labels", () => {
     assert.equal(
       storeStatusLabel("PENDING_SCL_ACCEPTANCE"),
-      "Awaiting Affiliate Invite",
+      "Awaiting SCL Acceptance",
     );
     assert.equal(
       storeStatusLabel("PENDING_SCL_LINK_IMPORT"),

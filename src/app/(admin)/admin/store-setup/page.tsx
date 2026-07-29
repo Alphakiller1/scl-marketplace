@@ -4,6 +4,7 @@ import { History, Store } from "lucide-react";
 import { AdminPackageForm } from "@/components/scl/admin-package-form";
 import { AdminStoreActions } from "@/components/scl/admin-store-actions";
 import { ProviderBadge } from "@/components/scl/provider-badge";
+import { StorefrontCoveragePanel } from "@/components/scl/storefront-coverage-panel";
 import { StoreStatusChip } from "@/components/scl/store-status-chip";
 import { EmptyState } from "@/components/scl/states";
 import { SectionHeader } from "@/components/scl/section";
@@ -14,6 +15,7 @@ import {
   providerLabel,
 } from "@/lib/store-connection";
 import {
+  getStorefrontCoverage,
   getStorefrontReviewHistory,
   listStoreConnections,
 } from "@/lib/queries/store";
@@ -34,11 +36,16 @@ type Search = {
 export default async function AdminStoreSetupPage({ searchParams }: Search) {
   const sp = await searchParams;
   const requiresAttentionFilter = sp.requiresAttention === "true";
-  const rows = await listStoreConnections({
-    provider:
-      sp.provider === "WINIBLE" || sp.provider === "WHOP" ? sp.provider : "ALL",
-    requiresAttentionOnly: requiresAttentionFilter,
-  });
+  const [rows, coverage] = await Promise.all([
+    listStoreConnections({
+      provider:
+        sp.provider === "WINIBLE" || sp.provider === "WHOP"
+          ? sp.provider
+          : "ALL",
+      requiresAttentionOnly: requiresAttentionFilter,
+    }),
+    getStorefrontCoverage(),
+  ]);
   const selected =
     rows.find((r) => r.id === sp.id) ||
     rows.find((r) =>
@@ -146,7 +153,8 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
                 (handle
                   ? `@${handle.replace(/^@/, "")}`
                   : row.capper.user.email);
-              const packageCountDisplay = row.packageCount || row.capper._count?.packages || 0;
+              const packageCountDisplay =
+                row.packageCount || row.capper._count?.packages || 0;
               const affiliatePercentDisplay = row.affiliatePercent
                 ? Number(row.affiliatePercent).toFixed(0)
                 : "—";
@@ -155,7 +163,8 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
                   key={row.id}
                   className={cn(
                     "bg-card grid gap-3 p-4 lg:grid-cols-[1.2fr_6rem_1fr_1fr_6rem_1fr_1fr_auto] lg:items-center",
-                    row.requiresAttention && "ring-2 ring-inset ring-amber-400/30",
+                    row.requiresAttention &&
+                      "ring-2 ring-amber-400/30 ring-inset",
                   )}
                 >
                   <div className="min-w-0">
@@ -167,7 +176,8 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
                   <ProviderBadge provider={row.provider} />
                   <StoreStatusChip status={row.status} />
                   <p className="text-muted-foreground text-xs">
-                    {packageCountDisplay} package{packageCountDisplay !== 1 ? "s" : ""}
+                    {packageCountDisplay} package
+                    {packageCountDisplay !== 1 ? "s" : ""}
                   </p>
                   <p className="text-muted-foreground text-xs">
                     {affiliatePercentDisplay}
@@ -227,7 +237,7 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
               ))}
             </ul>
             {selected.packageCount > 0 && (
-              <div className="bg-surface-2 rounded-lg p-3 text-sm space-y-1">
+              <div className="bg-surface-2 space-y-1 rounded-lg p-3 text-sm">
                 <div className="flex justify-between">
                   <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
                     Package count
@@ -435,6 +445,8 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
           </section>
         </div>
       ) : null}
+
+      <StorefrontCoveragePanel coverage={coverage} />
     </div>
   );
 }

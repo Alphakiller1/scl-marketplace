@@ -69,7 +69,9 @@ export function storeStatusLabel(status: StoreConnectionStatus): string {
     case "INSTRUCTIONS_VIEWED":
       return "Instructions Viewed";
     case "PENDING_SCL_ACCEPTANCE":
-      return "Awaiting Affiliate Invite";
+      // The capper has submitted; SCL is the party that must act next. Naming
+      // SCL keeps the chip from contradicting the "request submitted" status.
+      return "Awaiting SCL Acceptance";
     case "PENDING_SCL_LINK_IMPORT":
       return "Pending SCL Review";
     case "LINKS_RECEIVED":

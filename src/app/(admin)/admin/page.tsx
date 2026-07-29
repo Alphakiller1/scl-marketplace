@@ -13,6 +13,7 @@ import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/card";
 import { StatBlock } from "@/components/scl/stat";
 import { SectionHeader } from "@/components/scl/section";
+import { countStorefrontQueue } from "@/lib/queries/store";
 
 export const metadata = { title: "Admin" };
 
@@ -55,10 +56,11 @@ const ADMIN_TOOLS = [
 ];
 
 export default async function AdminOverviewPage() {
-  const [cappers, plays, pending] = await Promise.all([
+  const [cappers, plays, pending, storeQueue] = await Promise.all([
     prisma.capperProfile.count(),
     prisma.play.count(),
     prisma.play.count({ where: { outcome: "PENDING" } }),
+    countStorefrontQueue(),
   ]);
 
   return (
@@ -69,10 +71,27 @@ export default async function AdminOverviewPage() {
         subtitle="Operations across the SCL marketplace"
       />
       <Card className="p-4">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatBlock label="Cappers" value={cappers} />
           <StatBlock label="Plays" value={plays} />
           <StatBlock label="Pending grade" value={pending} tone="pink" />
+          <StatBlock
+            label="Storefronts awaiting SCL"
+            value={storeQueue}
+            tone={storeQueue > 0 ? "pink" : "default"}
+            sub={
+              storeQueue > 0 ? (
+                <Link
+                  href="/admin/store-setup?requiresAttention=true"
+                  className="hover:text-foreground underline underline-offset-2"
+                >
+                  Review queue
+                </Link>
+              ) : (
+                "Queue clear"
+              )
+            }
+          />
         </div>
       </Card>
 

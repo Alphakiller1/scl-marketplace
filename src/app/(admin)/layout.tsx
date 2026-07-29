@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { requireAdmin } from "@/lib/session";
 import { AppHeader } from "@/components/app-header";
 import { AdminRouteSkeleton } from "@/components/scl/admin-route-skeleton";
+import { countStorefrontQueue } from "@/lib/queries/store";
 
 const ADMIN_NAV = [
   { href: "/admin", label: "Overview" },
@@ -27,9 +28,18 @@ export default async function AdminLayout({
   // Admin data and authorization are request-specific; never prerender these routes.
   await connection();
 
+  // Storefront submissions awaiting SCL — surfaced in the nav so a capper who
+  // completed their affiliate steps is impossible to miss. Soft-fails to 0.
+  const storeQueue = await countStorefrontQueue();
+  const nav = ADMIN_NAV.map((item) =>
+    item.href === "/admin/store-setup" && storeQueue > 0
+      ? { ...item, label: `Store Setup (${storeQueue})` }
+      : item,
+  );
+
   return (
     <div className="flex min-h-screen flex-col">
-      <AppHeader area="Admin" nav={ADMIN_NAV} />
+      <AppHeader area="Admin" nav={nav} />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
         <Suspense fallback={<AdminRouteSkeleton />}>
           <AdminGate>{children}</AdminGate>
