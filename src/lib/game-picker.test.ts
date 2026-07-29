@@ -12,6 +12,17 @@ import {
 import type { OddsSelection } from "@/lib/odds-board";
 import { localDateKey } from "@/lib/slate";
 
+/**
+ * Deterministic clock for the slate fixtures. The fixtures are 19:00 local, and
+ * the board now excludes started games — so using the real `new Date()` made
+ * these tests fail after 7pm. Pin "now" to the morning of the same day.
+ */
+function localMorning(): Date {
+  const d = new Date();
+  d.setHours(8, 0, 0, 0);
+  return d;
+}
+
 function atLocalHour(daysFromNow: number, hour = 19): string {
   const d = new Date();
   d.setDate(d.getDate() + daysFromNow);
@@ -52,7 +63,7 @@ test("eventMatchesSearch matches teams, sport, and matchup text", () => {
 });
 
 test("filterGamePickerEvents applies day + category + search", () => {
-  const now = new Date();
+  const now = localMorning();
   const todayNba = filterGamePickerEvents(EVENTS, {
     day: "today",
     category: "NBA",
@@ -81,7 +92,7 @@ test("filterGamePickerEvents applies day + category + search", () => {
 });
 
 test("categoryCounts totals near-term slate", () => {
-  const now = new Date();
+  const now = localMorning();
   const { all, bySport } = categoryCounts(EVENTS, now);
   assert.equal(all, 3);
   assert.equal(bySport.NBA, 2);
