@@ -13,6 +13,12 @@ import {
 } from "@/lib/leaderboard";
 import { cn } from "@/lib/utils";
 
+// Shared control look: tighter height (40px mobile tap target → 36px desktop),
+// crisper radius, and a subtle top-highlight sheen + soft depth so the bar reads
+// sharp instead of chunky/flat.
+const FIELD_CLASS =
+  "border-input bg-surface-2 focus-visible:ring-ring h-10 rounded-[9px] border px-2.5 text-base shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_1px_1.5px_rgba(0,0,0,0.28)] outline-none transition-colors focus-visible:ring-2 lg:h-9 lg:text-sm";
+
 /**
  * Compact Rank-mode scope bar — never taller than the results.
  * Time scope uses blue active segments (navigation).
@@ -66,7 +72,7 @@ export function LeaderboardFilters({
         <ScopeForm
           filters={filters}
           action={action}
-          className="border-border scl-elevated rounded-[10px] border px-3 py-2"
+          className="border-border scl-elevated rounded-[10px] border px-2.5 py-1.5"
         />
       </div>
     </div>
@@ -102,9 +108,9 @@ function ScopeForm({
           <label
             key={window.key}
             className={cn(
-              "inline-flex min-h-11 cursor-pointer items-center rounded-[10px] border px-3 text-sm font-semibold tabular-nums transition-colors",
-              "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",
-              "has-[:checked]:border-[color:var(--scl-blue)] has-[:checked]:bg-[color:var(--scl-blue)] has-[:checked]:text-[color:var(--scl-blue-ink)]",
+              "inline-flex h-10 cursor-pointer items-center rounded-[9px] border px-3.5 text-sm font-semibold tabular-nums transition-colors lg:h-9",
+              "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] hover:text-[color:var(--scl-text)]",
+              "has-[:checked]:border-[color:var(--scl-blue)] has-[:checked]:bg-[color:var(--scl-blue)] has-[:checked]:text-[color:var(--scl-blue-ink)] has-[:checked]:shadow-[inset_0_1px_0_rgba(255,255,255,0.28)]",
             )}
           >
             <input
@@ -125,7 +131,7 @@ function ScopeForm({
           <select
             name="sport"
             defaultValue={filters.sport}
-            className="border-input bg-surface-2 focus-visible:ring-ring h-11 min-w-[7.5rem] rounded-[10px] border px-2 text-base outline-none focus-visible:ring-2 lg:text-sm"
+            className={cn(FIELD_CLASS, "min-w-[7.5rem]")}
           >
             <option value="ALL">All sports</option>
             {SPORTS.map((sport) => (
@@ -145,7 +151,7 @@ function ScopeForm({
             onChange={(event) => {
               event.currentTarget.form?.requestSubmit();
             }}
-            className="border-input bg-surface-2 focus-visible:ring-ring h-11 min-w-[7rem] rounded-[10px] border px-2 text-base outline-none focus-visible:ring-2 lg:text-sm"
+            className={cn(FIELD_CLASS, "min-w-[7rem]")}
           >
             {LEADERBOARD_SORTS.map((sort) => (
               <option key={sort.key} value={sort.key}>
@@ -160,7 +166,7 @@ function ScopeForm({
           <select
             name="minPicks"
             defaultValue={String(filters.minPicks)}
-            className="border-input bg-surface-2 focus-visible:ring-ring h-11 min-w-[6.5rem] rounded-[10px] border px-2 text-base outline-none focus-visible:ring-2 lg:text-sm"
+            className={cn(FIELD_CLASS, "min-w-[6.5rem]")}
           >
             {LEADERBOARD_MIN_PICKS.map((count) => (
               <option key={count} value={String(count)}>
@@ -175,7 +181,7 @@ function ScopeForm({
           <select
             name="record"
             defaultValue={filters.verifiedOnly ? "verified" : "all"}
-            className="border-input bg-surface-2 focus-visible:ring-ring h-11 min-w-[8rem] rounded-[10px] border px-2 text-base outline-none focus-visible:ring-2 lg:text-sm"
+            className={cn(FIELD_CLASS, "min-w-[8rem]")}
           >
             <option value="verified">Verified only</option>
             <option value="all">All records</option>
@@ -184,14 +190,14 @@ function ScopeForm({
 
         <label className="min-w-0 flex-1 basis-[10rem]">
           <span className="sr-only">Find a capper</span>
-          <span className="border-input bg-surface-2 focus-within:ring-ring flex h-11 items-center gap-2 rounded-[10px] border px-2 focus-within:ring-2">
+          <span className="border-input bg-surface-2 focus-within:ring-ring flex h-10 items-center gap-2 rounded-[9px] border px-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_1px_1.5px_rgba(0,0,0,0.28)] focus-within:ring-2 lg:h-9">
             <Search className="text-muted-foreground size-3.5" aria-hidden />
             <input
               type="search"
               name="q"
               defaultValue={filters.search}
               placeholder="Handle"
-              className="h-11 min-w-0 flex-1 bg-transparent text-base outline-none lg:text-sm"
+              className="h-full min-w-0 flex-1 bg-transparent text-base outline-none lg:text-sm"
             />
           </span>
         </label>
@@ -199,7 +205,7 @@ function ScopeForm({
         <Button
           type="submit"
           size="sm"
-          className="h-11 min-h-11 border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)] hover:bg-[color:var(--scl-blue)]/90"
+          className="h-10 min-h-0 rounded-[9px] border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] hover:bg-[color:var(--scl-blue)]/90 lg:h-9"
         >
           Apply
         </Button>
@@ -208,7 +214,7 @@ function ScopeForm({
           nativeButton={false}
           variant="outline"
           size="icon"
-          className="size-11"
+          className="size-10 rounded-[9px] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_1px_1.5px_rgba(0,0,0,0.28)] lg:size-9"
           aria-label="Reset leaderboard scope"
           title="Reset"
         >

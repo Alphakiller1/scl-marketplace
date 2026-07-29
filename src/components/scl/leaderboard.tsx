@@ -313,10 +313,10 @@ function ExpandControls({
             key={n}
             href={leaderboardHref(filters, { limit: n })}
             className={cn(
-              "inline-flex min-h-11 items-center rounded-[10px] border px-3 text-sm font-semibold tabular-nums",
+              "inline-flex h-10 items-center rounded-[9px] border px-3.5 text-sm font-semibold tabular-nums transition-colors lg:h-9",
               active
-                ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
-                : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-[color:var(--scl-blue)]",
+                ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.28)]"
+                : "border-border bg-card text-muted-foreground hover:text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] hover:border-[color:var(--scl-blue)]",
             )}
           >
             {n}
