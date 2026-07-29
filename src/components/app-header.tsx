@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AppNav } from "@/components/app-nav";
 import { SclLogo } from "@/components/scl-logo";
 import { MobileAppNav } from "@/components/scl/mobile-navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -30,24 +31,7 @@ export function AppHeader({
               {area}
             </span>
           </Link>
-          <nav className="text-muted-foreground hidden items-center gap-1 text-sm sm:flex">
-            {nav.map((n) => {
-              const primary = n.href.includes("/picks/new");
-              return (
-                <Link
-                  key={n.href}
-                  href={n.href}
-                  className={
-                    primary
-                      ? "scl-cta-brand inline-flex min-h-11 items-center px-3"
-                      : "hover:text-foreground inline-flex min-h-11 items-center px-3 transition-colors"
-                  }
-                >
-                  {n.label}
-                </Link>
-              );
-            })}
-          </nav>
+          <AppNav nav={nav} />
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <ThemeToggle />

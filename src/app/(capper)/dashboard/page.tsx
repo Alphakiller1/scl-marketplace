@@ -37,17 +37,14 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-7 sm:space-y-8">
-      <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="scl-display text-2xl font-bold tracking-[0.04em] uppercase">
-            Welcome{user?.name ? `, ${user.name}` : ""}
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
-            Your public record updates as board-checked plays grade. Pending
-            Tickets are not wins.
-          </p>
-        </div>
-        <NewPickButton className="w-full sm:w-auto" />
+      <div>
+        <h1 className="scl-display text-2xl font-bold tracking-[0.04em] uppercase">
+          Welcome{user?.name ? `, ${user.name}` : ""}
+        </h1>
+        <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+          Your public record updates as board-checked plays grade. Pending
+          Tickets are not wins.
+        </p>
       </div>
 
       {!verified ? (
