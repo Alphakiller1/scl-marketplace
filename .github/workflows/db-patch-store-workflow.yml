@@ -1,0 +1,35 @@
+name: DB patch — StoreConnection workflow columns
+
+# One-shot, manually dispatched patch that applies the missing
+# StoreConnection workflow columns + OddsUsageDaily to prod (migration
+# 20260728033616 drift). Idempotent — safe to re-run. Fixes the ghost seed
+# ("column packageCount does not exist") and the Winible store-connection
+# review workflow. Uses the direct (non-pooler) connection for DDL.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: db-patch-store-workflow
+  cancel-in-progress: false
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply idempotent StoreConnection workflow columns
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          CONN="${DIRECT_URL:-$DATABASE_URL}"
+          if [ -z "$CONN" ]; then
+            echo "::error::No DIRECT_URL or DATABASE_URL secret configured." >&2
+            exit 1
+          fi
+          echo "Applying scripts/sql/2026-07-store-workflow-columns.sql (direct connection)…"
+          psql "$CONN" -v ON_ERROR_STOP=1 -f scripts/sql/2026-07-store-workflow-columns.sql
+          echo "### ✅ StoreConnection workflow columns applied (idempotent)" >> "$GITHUB_STEP_SUMMARY"
