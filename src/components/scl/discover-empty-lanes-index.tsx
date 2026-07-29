@@ -69,7 +69,7 @@ export function DiscoverEmptyLanesIndex({
               className="scroll-mt-24"
             >
               <details className="group py-2">
-                <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-md px-0.5 text-left outline-none marker:content-none focus-visible:ring-2 focus-visible:ring-[color:var(--scl-blue)] [&::-webkit-details-marker]:hidden">
+                <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 rounded-md px-0.5 text-left outline-none marker:content-none focus-visible:ring-2 focus-visible:ring-[color:var(--scl-blue)] [&::-webkit-details-marker]:hidden">
                   <span className="min-w-0">
                     <span className="scl-display text-foreground block text-sm font-bold tracking-[0.04em]">
                       {lane.title}

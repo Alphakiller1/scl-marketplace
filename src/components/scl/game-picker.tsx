@@ -15,6 +15,7 @@ import { bookShort, isBookKey } from "@/lib/books";
 import {
   categoryCounts,
   filterGamePickerEvents,
+  preGameEvents,
   ODDS_BOARD_SPORTS,
 } from "@/lib/game-picker";
 import { dedupeOddsEvents } from "@/lib/odds-board";
@@ -141,7 +142,9 @@ export function GamePicker({
         ? bookChoice
         : profileBooks[0]!;
 
-  const events = slate?.events ?? [];
+  // Pre-game only, everywhere. Day defaults, counts, cards, and the focused
+  // matchup all read from this list so a started game is never selectable.
+  const events = preGameEvents(slate?.events ?? []);
   const todayEvents = filterBySlateDay(events, "today");
   const tomorrowEvents = filterBySlateDay(events, "tomorrow");
   const day: SlateDay =
@@ -276,7 +279,7 @@ export function GamePicker({
             ref={backButtonRef}
             type="button"
             onClick={closeMatchup}
-            className="hover:bg-surface-2 inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-[color:var(--scl-muted-data)] transition-colors hover:text-[color:var(--scl-text)]"
+            className="hover:bg-surface-2 inline-flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-[color:var(--scl-muted-data)] transition-colors hover:text-[color:var(--scl-text)]"
           >
             <ArrowLeft className="size-4" aria-hidden />
             Back to slate
@@ -427,7 +430,7 @@ export function GamePicker({
           type="button"
           onClick={requestCoverage}
           disabled={coverageSent}
-          className="flex min-h-11 w-full items-center justify-center rounded-[14px] border border-dashed border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] px-3 text-sm font-medium text-[color:var(--scl-muted-data)] transition-colors hover:bg-[color:var(--scl-ink-700)] disabled:opacity-60"
+          className="flex min-h-10 w-full items-center justify-center rounded-[14px] border border-dashed border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] px-3 text-sm font-medium text-[color:var(--scl-muted-data)] transition-colors hover:bg-[color:var(--scl-ink-700)] disabled:opacity-60"
         >
           {coverageSent
             ? "Coverage request recorded"
@@ -464,7 +467,7 @@ function BookRail({
             aria-pressed={isActive}
             aria-label={`Sportsbook ${bookShort(key)}`}
             className={cn(
-              "scl-data flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-[18px] border px-3.5 text-[11px] font-medium tracking-[0.08em] uppercase transition-colors",
+              "scl-data flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-[18px] border px-3.5 text-[11px] font-medium tracking-[0.08em] uppercase transition-colors",
               isActive
                 ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
                 : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",
@@ -502,7 +505,7 @@ function GameRow({
       id={triggerId}
       type="button"
       onClick={onToggle}
-      className="hover:bg-surface-2/60 flex min-h-11 w-full items-center gap-3 px-3 py-2.5 text-left transition-colors"
+      className="hover:bg-surface-2/60 flex min-h-10 w-full items-center gap-3 px-3 py-2.5 text-left transition-colors"
       aria-expanded={open}
       aria-label={`${event.away} at ${event.home}`}
     >

@@ -5,6 +5,8 @@ import {
   categoryCounts,
   eventMatchesSearch,
   filterGamePickerEvents,
+  isPreGame,
+  preGameEvents,
   selectionForActiveBook,
 } from "@/lib/game-picker";
 import type { OddsSelection } from "@/lib/odds-board";
@@ -118,4 +120,55 @@ test("selectionForActiveBook is honest null (no silent substitute)", () => {
     oddsAmerican: null,
     book: "betmgm",
   });
+});
+
+test("started games are never selectable on the board", () => {
+  const now = new Date("2026-07-29T20:00:00Z");
+  const started = {
+    id: "started",
+    sport: "MLB",
+    commenceTime: "2026-07-29T19:00:00Z", // 1h ago
+    home: "Dodgers",
+    away: "Padres",
+  };
+  const upcoming = {
+    id: "upcoming",
+    sport: "MLB",
+    commenceTime: "2026-07-29T23:00:00Z", // 3h out
+    home: "Yankees",
+    away: "Orioles",
+  };
+  const unparseable = {
+    id: "bad",
+    sport: "MLB",
+    commenceTime: "not-a-date",
+    home: "Cubs",
+    away: "Reds",
+  };
+
+  assert.equal(isPreGame(started, now), false);
+  assert.equal(isPreGame(upcoming, now), true);
+  // Can't prove it's pre-game → must not be offered.
+  assert.equal(isPreGame(unparseable, now), false);
+
+  assert.deepEqual(
+    preGameEvents([started, upcoming, unparseable], now).map((e) => e.id),
+    ["upcoming"],
+  );
+
+  // A game that started must not survive the board filter, even when its
+  // day/category/search all match.
+  const visible = filterGamePickerEvents([started, upcoming], {
+    day: "today",
+    category: "MLB",
+    search: "",
+    now,
+  });
+  assert.ok(
+    !visible.some((e) => e.id === "started"),
+    "started game leaked onto the board",
+  );
+
+  // Counts must not advertise started games as pre-game.
+  assert.equal(categoryCounts([started], now).all, 0);
 });

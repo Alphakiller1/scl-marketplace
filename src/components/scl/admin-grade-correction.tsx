@@ -70,7 +70,7 @@ const OUTCOME_TO_STATUS = {
 >;
 
 const SELECT_CLASS =
-  "border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 min-h-11 w-full rounded-lg border px-3 text-sm focus-visible:ring-[3px] focus-visible:outline-none";
+  "border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 min-h-10 w-full rounded-lg border px-3 text-sm focus-visible:ring-[3px] focus-visible:outline-none";
 
 function isGradeableOutcome(value: Outcome): value is GradeableOutcome {
   return value !== "PENDING";
@@ -342,7 +342,7 @@ export function AdminGradeCorrection(props: AdminGradeCorrectionProps) {
         </p>
       </div>
 
-      <label className="border-border bg-surface-2 flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm">
+      <label className="border-border bg-surface-2 flex min-h-10 cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm">
         <input
           type="checkbox"
           checked={confirmed}

@@ -109,7 +109,7 @@ function LineCard({
           <button
             type="button"
             onClick={() => onAccept(line)}
-            className="scl-cta-brand min-h-11 flex-1 px-4"
+            className="scl-cta-brand min-h-10 flex-1 px-4"
           >
             Accept{" "}
             {line.updatedOddsAmerican != null
@@ -121,7 +121,7 @@ function LineCard({
           <button
             type="button"
             onClick={() => onRemove(line)}
-            className="border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 min-h-11 flex-1 rounded-[10px] border px-4 text-sm font-semibold transition-colors"
+            className="border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 min-h-10 flex-1 rounded-[10px] border px-4 text-sm font-semibold transition-colors"
           >
             Choose another
           </button>
@@ -201,7 +201,7 @@ export function LineMovedPrompt({
         <button
           type="button"
           onClick={() => onAcceptAll(confirmable)}
-          className="scl-cta-brand min-h-11 w-full px-4"
+          className="scl-cta-brand min-h-10 w-full px-4"
         >
           Accept all
         </button>
@@ -210,7 +210,7 @@ export function LineMovedPrompt({
       <button
         type="button"
         onClick={onCancel}
-        className="border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 min-h-11 w-full rounded-[10px] border px-4 text-sm font-semibold transition-colors"
+        className="border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 min-h-10 w-full rounded-[10px] border px-4 text-sm font-semibold transition-colors"
       >
         Choose another
       </button>

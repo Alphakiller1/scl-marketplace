@@ -19,7 +19,7 @@ export function AppHeader({
         <div className="flex min-w-0 items-center gap-6">
           <Link
             href="/"
-            className="flex min-h-11 min-w-0 items-center gap-2 font-semibold"
+            className="flex min-h-10 min-w-0 items-center gap-2 font-semibold"
           >
             <span className="ring-border-strong flex size-8 items-center justify-center rounded-xl bg-[color:var(--scl-ink-800)] ring-1">
               <SclLogo className="size-5" />

@@ -39,7 +39,7 @@ import { formatHandle } from "@/lib/identity";
 import type { CapperProfileView } from "@/lib/queries/profile";
 
 const inputClass =
-  "border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 min-h-11 w-full rounded-lg border bg-transparent px-3 text-base shadow-xs focus-visible:ring-[3px] focus-visible:outline-none md:text-sm";
+  "border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 min-h-10 w-full rounded-lg border bg-transparent px-3 text-base shadow-xs focus-visible:ring-[3px] focus-visible:outline-none md:text-sm";
 
 export function ProfileForm({ profile }: { profile: CapperProfileView }) {
   const router = useRouter();
@@ -456,7 +456,7 @@ function Chip({
         className="peer sr-only"
         {...register}
       />
-      <span className="border-border text-muted-foreground peer-checked:border-brand peer-checked:bg-brand/10 peer-checked:text-foreground inline-flex min-h-11 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition-colors select-none md:min-h-9">
+      <span className="border-border text-muted-foreground peer-checked:border-brand peer-checked:bg-brand/10 peer-checked:text-foreground inline-flex min-h-10 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition-colors select-none md:min-h-9">
         {withLeagueMark ? (
           <LeagueMark leagueKey={value} size="sm" className="rounded-md" />
         ) : null}

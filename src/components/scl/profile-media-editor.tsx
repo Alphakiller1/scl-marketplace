@@ -70,7 +70,7 @@ export function ProfileMediaEditor({
         <Button
           type="button"
           variant="secondary"
-          className="absolute right-3 bottom-3 z-10 min-h-11 gap-1.5 sm:min-h-10"
+          className="absolute right-3 bottom-3 z-10 gap-1.5 sm:min-h-10"
           onClick={() => bannerInput.current?.click()}
           disabled={uploading !== null}
         >
@@ -100,7 +100,7 @@ export function ProfileMediaEditor({
           <Button
             type="button"
             variant="outline"
-            className="mt-3 min-h-11 gap-1.5 sm:min-h-10"
+            className="mt-3 gap-1.5 sm:min-h-10"
             onClick={() => avatarInput.current?.click()}
             disabled={uploading !== null}
           >

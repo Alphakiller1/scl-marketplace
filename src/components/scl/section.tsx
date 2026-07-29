@@ -40,7 +40,7 @@ export function SectionHeader({
       {href ? (
         <Link
           href={href}
-          className="inline-flex min-h-11 shrink-0 items-center gap-1 text-sm font-medium text-[color:var(--scl-muted-data)] hover:text-[color:var(--scl-text)] hover:underline"
+          className="inline-flex min-h-10 shrink-0 items-center gap-1 text-sm font-medium text-[color:var(--scl-muted-data)] hover:text-[color:var(--scl-text)] hover:underline"
         >
           {hrefLabel}
           <ArrowRight className="size-3.5" />

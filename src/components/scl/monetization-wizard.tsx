@@ -220,7 +220,7 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
               </p>
               <Button
                 variant="outline"
-                className="mt-3 min-h-11"
+                className="mt-3"
                 render={
                   <a
                     href={WINIBLE_CAPPER_REFERRAL_URL}
@@ -266,7 +266,6 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
               You will not paste affiliate links into SCL.
             </p>
             <Button
-              className="min-h-11"
               disabled={!provider || provider === "NONE" || pending}
               onClick={continueFromChooser}
             >
@@ -302,14 +301,10 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
             {providerLabel(provider)}, not SCL.
           </p>
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
-            <Button
-              variant="ghost"
-              className="min-h-11"
-              onClick={() => setStep(0)}
-            >
+            <Button variant="ghost" onClick={() => setStep(0)}>
               Back
             </Button>
-            <Button className="min-h-11" onClick={() => setStep(2)}>
+            <Button onClick={() => setStep(2)}>
               Continue to Connect Your Storefront
             </Button>
           </div>
@@ -449,14 +444,10 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
           )}
 
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
-            <Button
-              variant="ghost"
-              className="min-h-11"
-              onClick={() => setStep(1)}
-            >
+            <Button variant="ghost" onClick={() => setStep(1)}>
               Back
             </Button>
-            <Button className="min-h-11" onClick={() => setStep(3)}>
+            <Button onClick={() => setStep(3)}>
               {provider === "WHOP"
                 ? "I’ve Added SCL as an Affiliate on Whop"
                 : "I’ve Submitted My Winible Affiliate Request"}
@@ -485,18 +476,10 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
             <span>{ackCopy}</span>
           </label>
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
-            <Button
-              variant="ghost"
-              className="min-h-11"
-              onClick={() => setStep(2)}
-            >
+            <Button variant="ghost" onClick={() => setStep(2)}>
               Back
             </Button>
-            <Button
-              className="min-h-11"
-              disabled={!ack || pending}
-              onClick={submit}
-            >
+            <Button disabled={!ack || pending} onClick={submit}>
               {provider === "WHOP"
                 ? "I’ve Added SCL as an Affiliate"
                 : "I’ve Submitted My Affiliate Request"}

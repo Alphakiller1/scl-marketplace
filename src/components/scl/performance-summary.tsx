@@ -128,7 +128,7 @@ export function PerformanceSummary({
         <VerificationHelpLink />
         <a
           href="/responsible-gaming"
-          className="text-muted-foreground hover:text-foreground inline-flex min-h-11 items-center text-xs underline-offset-4 hover:underline"
+          className="text-muted-foreground hover:text-foreground inline-flex min-h-10 items-center text-xs underline-offset-4 hover:underline"
         >
           Responsible gaming
         </a>

@@ -329,13 +329,13 @@ export function EvidenceBrief({
           className="h-11 w-full max-w-md justify-start gap-1"
           aria-label="Trust lens"
         >
-          <TabsTrigger value="simple" className="min-h-11 px-3">
+          <TabsTrigger value="simple" className="min-h-10 px-3">
             Simple
           </TabsTrigger>
-          <TabsTrigger value="analyst" className="min-h-11 px-3">
+          <TabsTrigger value="analyst" className="min-h-10 px-3">
             Analyst
           </TabsTrigger>
-          <TabsTrigger value="audit" className="min-h-11 px-3">
+          <TabsTrigger value="audit" className="min-h-10 px-3">
             Audit
           </TabsTrigger>
         </TabsList>
@@ -400,7 +400,7 @@ export function EvidenceBrief({
         <VerificationHelpLink />
         <a
           href="/responsible-gaming"
-          className="text-muted-foreground hover:text-foreground inline-flex min-h-11 items-center text-xs underline-offset-4 hover:underline"
+          className="text-muted-foreground hover:text-foreground inline-flex min-h-10 items-center text-xs underline-offset-4 hover:underline"
         >
           Responsible gaming
         </a>
@@ -443,7 +443,7 @@ export function EvidenceBrief({
               </p>
             </div>
             <div
-              className="border-border bg-surface-2 inline-flex min-h-11 items-center rounded-[var(--scl-radius-chip)] border p-1"
+              className="border-border bg-surface-2 inline-flex min-h-10 items-center rounded-[var(--scl-radius-chip)] border p-1"
               role="group"
               aria-label="Performance chart window"
             >
@@ -454,7 +454,7 @@ export function EvidenceBrief({
                     key={window.value}
                     type="button"
                     className={cn(
-                      "scl-data min-h-11 min-w-11 rounded-md px-2 text-xs font-semibold tabular-nums",
+                      "scl-data min-h-10 min-w-11 rounded-md px-2 text-xs font-semibold tabular-nums",
                       active
                         ? "bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
                         : "text-muted-foreground hover:text-foreground",
@@ -486,7 +486,7 @@ export function EvidenceBrief({
               Inspectable receipts — newest first. Verified ≠ won.
             </p>
           </div>
-          <VerificationHelpLink className="text-muted-foreground hover:text-foreground inline-flex min-h-11 shrink-0 gap-1.5 self-start px-2 text-xs font-medium" />
+          <VerificationHelpLink className="text-muted-foreground hover:text-foreground inline-flex min-h-10 shrink-0 gap-1.5 self-start px-2 text-xs font-medium" />
         </div>
 
         {eligiblePlays.length || historyNextCursor ? (
@@ -719,7 +719,7 @@ function ProofHistoryLedger({
             {shown.length > initialRows.length ? (
               <button
                 type="button"
-                className="text-muted-foreground hover:text-foreground min-h-11 rounded-md px-3 text-xs font-semibold underline-offset-4 hover:underline"
+                className="text-muted-foreground hover:text-foreground min-h-10 rounded-md px-3 text-xs font-semibold underline-offset-4 hover:underline"
                 onClick={() => {
                   setShown(initialRows);
                   setNextCursor(initialNextCursor);
@@ -733,7 +733,7 @@ function ProofHistoryLedger({
             {canLoadMore ? (
               <button
                 type="button"
-                className="border-border bg-surface-2 hover:bg-surface-3 min-h-11 rounded-md border px-3 text-xs font-semibold"
+                className="border-border bg-surface-2 hover:bg-surface-3 min-h-10 rounded-md border px-3 text-xs font-semibold"
                 disabled={isLoading}
                 onClick={loadMore}
               >

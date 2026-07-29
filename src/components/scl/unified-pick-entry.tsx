@@ -398,7 +398,7 @@ function UnifiedPickEntryInner() {
           <Button
             type="button"
             variant="outline"
-            className="min-h-11 w-full"
+            className="w-full"
             onClick={() => setReceipt(null)}
           >
             Back to slip

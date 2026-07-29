@@ -69,7 +69,7 @@ export function AdminPolicyEditor({
               const slug = event.target.value as PolicySlugKey;
               router.push(`/admin/policies?document=${slug}`);
             }}
-            className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 min-h-11 w-full rounded-lg border px-3 text-sm outline-none focus-visible:ring-3"
+            className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 min-h-10 w-full rounded-lg border px-3 text-sm outline-none focus-visible:ring-3"
           >
             {POLICY_SLUGS.map((slug) => (
               <option key={slug} value={slug}>
@@ -141,11 +141,7 @@ export function AdminPolicyEditor({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Button
-          type="submit"
-          disabled={pending || !initial.storageReady}
-          className="min-h-11"
-        >
+        <Button type="submit" disabled={pending || !initial.storageReady}>
           {pending ? "Publishing…" : "Publish revision"}
         </Button>
         <Button
@@ -159,7 +155,7 @@ export function AdminPolicyEditor({
           nativeButton={false}
           type="button"
           variant="outline"
-          className="min-h-11"
+          className="min-h-10"
         >
           Preview public page
         </Button>

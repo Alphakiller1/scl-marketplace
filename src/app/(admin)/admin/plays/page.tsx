@@ -64,7 +64,7 @@ export default async function AdminPublishedPlaysPage({
           name="type"
           defaultValue={filters.recordType}
           aria-label="Filter by record type"
-          className="border-input bg-background min-h-11 rounded-lg border px-3 text-sm"
+          className="border-input bg-background min-h-10 rounded-lg border px-3 text-sm"
         >
           <option value="straight">Straight plays</option>
           <option value="parlay">Parlays</option>
@@ -73,7 +73,7 @@ export default async function AdminPublishedPlaysPage({
           name="sport"
           defaultValue={filters.sport}
           aria-label="Filter by sport"
-          className="border-input bg-background min-h-11 rounded-lg border px-3 text-sm"
+          className="border-input bg-background min-h-10 rounded-lg border px-3 text-sm"
         >
           <option value="all">All sports</option>
           {SPORTS.map((sport) => (
@@ -86,15 +86,13 @@ export default async function AdminPublishedPlaysPage({
           name="status"
           defaultValue={filters.status}
           aria-label="Filter by settlement"
-          className="border-input bg-background min-h-11 rounded-lg border px-3 text-sm"
+          className="border-input bg-background min-h-10 rounded-lg border px-3 text-sm"
         >
           <option value="all">All statuses</option>
           <option value="pending">Pending</option>
           <option value="graded">Graded</option>
         </select>
-        <Button type="submit" className="min-h-11">
-          Apply filters
-        </Button>
+        <Button type="submit">Apply filters</Button>
       </form>
 
       {result.rows.length ? (

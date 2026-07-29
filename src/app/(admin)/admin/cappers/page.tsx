@@ -25,7 +25,7 @@ import { getAdminCapperAccounts } from "@/lib/queries/admin-cappers";
 export const metadata = { title: "Capper accounts" };
 
 const selectClassName =
-  "border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 min-h-11 rounded-lg border px-3 text-sm outline-none focus-visible:ring-3";
+  "border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 min-h-10 rounded-lg border px-3 text-sm outline-none focus-visible:ring-3";
 
 export default async function AdminCappersPage({
   searchParams,
@@ -116,13 +116,12 @@ export default async function AdminCappersPage({
           ]}
         />
         <div className="flex items-end gap-2">
-          <Button type="submit" className="min-h-11 flex-1">
+          <Button type="submit" className="flex-1">
             <SlidersHorizontal className="size-4" />
             Apply
           </Button>
           <Button
             variant="ghost"
-            className="min-h-11"
             render={<Link href="/admin/cappers" />}
             nativeButton={false}
           >

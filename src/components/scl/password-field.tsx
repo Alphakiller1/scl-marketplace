@@ -28,7 +28,7 @@ export function PasswordField({
           {...inputProps}
           id={id}
           type={visible ? "text" : "password"}
-          className="min-h-11 pr-12"
+          className="min-h-10 pr-12"
         />
         <button
           type="button"

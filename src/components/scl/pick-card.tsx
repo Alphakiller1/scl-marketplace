@@ -95,7 +95,7 @@ function CapperTicketFooter({ pick }: { pick: TodayPick }) {
     <div className="flex items-center justify-between gap-2">
       <Link
         href={`/cappers/${pick.capper.handle}`}
-        className="focus-visible:ring-ring flex min-h-11 min-w-0 items-center gap-2 rounded-lg outline-none hover:underline focus-visible:ring-2"
+        className="focus-visible:ring-ring flex min-h-10 min-w-0 items-center gap-2 rounded-lg outline-none hover:underline focus-visible:ring-2"
       >
         <CapperAvatar
           name={pick.capper.name}

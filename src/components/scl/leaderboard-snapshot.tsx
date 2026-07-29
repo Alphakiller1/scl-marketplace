@@ -46,7 +46,7 @@ export function LeaderboardSnapshot({
         </div>
         <Link
           href="/leaderboard"
-          className="scl-link inline-flex min-h-11 shrink-0 items-center gap-1 text-sm font-medium"
+          className="scl-link inline-flex min-h-10 shrink-0 items-center gap-1 text-sm font-medium"
         >
           View Full Leaderboard
           <ArrowRight className="size-3.5" aria-hidden />

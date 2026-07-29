@@ -58,7 +58,7 @@ function ModeCard({
       href={href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex min-h-11 flex-col justify-center rounded-[14px] border px-3 py-3 transition-colors sm:min-h-[4.5rem] sm:px-4",
+        "flex min-h-10 flex-col justify-center rounded-[14px] border px-3 py-3 transition-colors sm:min-h-[4.5rem] sm:px-4",
         active
           ? "scl-fill-brand"
           : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)] hover:bg-[color:var(--scl-ink-700)]",

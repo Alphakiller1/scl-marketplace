@@ -88,7 +88,7 @@ function LoginForm() {
             id="email"
             type="email"
             autoComplete="email"
-            className="min-h-11"
+            className="min-h-10"
             {...register("email")}
           />
           {errors.email ? (
@@ -107,17 +107,13 @@ function LoginForm() {
         <div className="flex justify-end">
           <Link
             href="/forgot-password"
-            className="scl-link inline-flex min-h-11 items-center text-sm font-medium"
+            className="scl-link inline-flex min-h-10 items-center text-sm font-medium"
           >
             Forgot Password?
           </Link>
         </div>
 
-        <Button
-          type="submit"
-          className="min-h-11 w-full"
-          disabled={isSubmitting}
-        >
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting ? "Signing in…" : "Log in"}
         </Button>
       </form>
@@ -126,7 +122,7 @@ function LoginForm() {
         New to SCL?{" "}
         <Link
           href="/signup"
-          className="scl-link inline-flex min-h-11 items-center font-medium"
+          className="scl-link inline-flex min-h-10 items-center font-medium"
         >
           Create an account
         </Link>

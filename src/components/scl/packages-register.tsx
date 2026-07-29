@@ -130,7 +130,7 @@ function CapperCell({ row }: { row: RegisterRow }) {
   return (
     <Link
       href={`/cappers/${row.pkg.capperHandle}`}
-      className="focus-visible:ring-ring group inline-flex min-h-11 min-w-0 items-center gap-2 rounded-sm focus-visible:ring-2 focus-visible:outline-none"
+      className="focus-visible:ring-ring group inline-flex min-h-10 min-w-0 items-center gap-2 rounded-sm focus-visible:ring-2 focus-visible:outline-none"
     >
       <CapperAvatar name={name} src={row.capper?.avatarUrl} size="sm" />
       <span className="min-w-0">
@@ -187,7 +187,7 @@ function ExternalStorefront({ pkg }: { pkg: PublicMarketplacePackage }) {
         }
         nativeButton={false}
         variant="outline"
-        className="min-h-11 gap-1.5"
+        className="min-h-10 gap-1.5"
       >
         {packageCtaLabel(pkg.provider)}
         <ArrowUpRight className="size-4" aria-hidden />

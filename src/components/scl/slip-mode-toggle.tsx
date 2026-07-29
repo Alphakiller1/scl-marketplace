@@ -34,7 +34,7 @@ export function SlipModeToggle({
             aria-pressed={active}
             onClick={() => onChange(m)}
             className={cn(
-              "scl-display min-h-11 rounded-[10px] px-3 text-sm font-semibold tracking-[0.06em] uppercase transition-colors",
+              "scl-display min-h-10 rounded-[10px] px-3 text-sm font-semibold tracking-[0.06em] uppercase transition-colors",
               active
                 ? "bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
                 : "text-[color:var(--scl-text)] hover:bg-[color:var(--scl-ink-700)]",

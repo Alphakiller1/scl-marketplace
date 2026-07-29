@@ -39,7 +39,7 @@ export function DayToggle({
           disabled={loading}
           aria-pressed={day === d}
           className={cn(
-            "scl-display relative min-h-11 rounded-lg text-sm font-semibold tracking-[0.06em] uppercase transition-colors",
+            "scl-display relative min-h-10 rounded-lg text-sm font-semibold tracking-[0.06em] uppercase transition-colors",
             day === d
               ? "bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)] shadow-[inset_0_0_0_1px_var(--scl-blue-deep)]"
               : "text-[color:var(--scl-muted-data)] hover:text-[color:var(--scl-text)]",

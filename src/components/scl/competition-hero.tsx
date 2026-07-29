@@ -108,7 +108,7 @@ export function CompetitionHero({ board }: { board?: ReactNode }) {
                       nativeButton={false}
                       variant="brand"
                       size="lg"
-                      className="min-h-11 gap-2"
+                      className="min-h-10 gap-2"
                     >
                       {slide.cta}
                       <ArrowRight className="size-4" aria-hidden />

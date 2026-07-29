@@ -99,7 +99,7 @@ function TrustRow({
   complete: boolean;
 }) {
   return (
-    <div className="bg-surface-2 flex min-h-11 items-center gap-3 rounded-lg px-3">
+    <div className="bg-surface-2 flex min-h-10 items-center gap-3 rounded-lg px-3">
       <Icon className="text-muted-foreground size-4" aria-hidden />
       <div className="min-w-0 flex-1">
         <dt className="text-muted-foreground text-xs">{label}</dt>

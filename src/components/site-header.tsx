@@ -20,7 +20,7 @@ export function SiteHeader() {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
         <Link
           href="/"
-          className="flex min-h-11 min-w-0 items-center gap-2.5 font-semibold"
+          className="flex min-h-10 min-w-0 items-center gap-2.5 font-semibold"
         >
           <span className="ring-border-strong flex size-9 items-center justify-center rounded-xl bg-[color:var(--scl-ink-800)] ring-1">
             <SclLogo className="size-6" />

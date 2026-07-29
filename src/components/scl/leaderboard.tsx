@@ -271,7 +271,7 @@ function SortableTh({
         scroll={false}
         title={`Sort by ${label}`}
         className={cn(
-          "hover:text-foreground focus-visible:ring-ring inline-flex min-h-11 min-w-11 cursor-pointer items-center gap-0.5 rounded-md px-1 transition-colors focus-visible:ring-2 focus-visible:outline-none",
+          "hover:text-foreground focus-visible:ring-ring inline-flex min-h-10 min-w-11 cursor-pointer items-center gap-0.5 rounded-md px-1 transition-colors focus-visible:ring-2 focus-visible:outline-none",
           align === "right" && "justify-end",
           active
             ? "text-foreground underline decoration-[color:var(--scl-blue)] underline-offset-4"
@@ -381,7 +381,7 @@ function LeaderboardTableRow({
           <CapperAvatar name={capper.name} src={capper.avatarUrl} size="sm" />
           <Link
             href={`/cappers/${capper.handle}`}
-            className="focus-visible:ring-ring inline-flex min-h-11 min-w-0 items-center rounded-sm focus-visible:ring-2 focus-visible:outline-none"
+            className="focus-visible:ring-ring inline-flex min-h-10 min-w-0 items-center rounded-sm focus-visible:ring-2 focus-visible:outline-none"
           >
             <CapperIdentityLabel
               capper={capper}
@@ -497,7 +497,7 @@ export function LeaderboardMobileCard({
         <div className="min-w-0 flex-1">
           <Link
             href={`/cappers/${capper.handle}`}
-            className="focus-visible:ring-ring inline-flex min-h-11 items-center rounded-sm focus-visible:ring-2 focus-visible:outline-none"
+            className="focus-visible:ring-ring inline-flex min-h-10 items-center rounded-sm focus-visible:ring-2 focus-visible:outline-none"
           >
             <CapperIdentityLabel capper={capper} compact verified={false} />
           </Link>
@@ -530,7 +530,7 @@ export function LeaderboardMobileCard({
           </span>
         </div>
       </div>
-      <div className="bg-surface-2 flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 py-2">
+      <div className="bg-surface-2 flex min-h-10 items-center justify-between gap-3 rounded-lg px-3 py-2">
         <SampleMaturityMeter graded={graded} compact className="min-w-[4rem]" />
         {capper.recentForm.length ? (
           <RecentFormStrip form={capper.recentForm.slice(-5)} />

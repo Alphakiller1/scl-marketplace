@@ -37,7 +37,7 @@ export function ProfileTagInput({
           value={draft}
           maxLength={40}
           placeholder="Player Props"
-          className="min-h-11"
+          className="min-h-10"
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
@@ -65,7 +65,7 @@ export function ProfileTagInput({
           {value.map((tag) => (
             <span
               key={tag}
-              className="border-border bg-surface-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg border px-2.5 text-sm"
+              className="border-border bg-surface-2 inline-flex min-h-10 items-center gap-1.5 rounded-lg border px-2.5 text-sm"
             >
               {tag}
               <button

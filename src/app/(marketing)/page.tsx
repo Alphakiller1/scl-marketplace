@@ -256,7 +256,7 @@ export default function Home() {
               nativeButton={false}
               variant="brand"
               size="lg"
-              className="min-h-11 w-full shrink-0 gap-2 sm:w-auto"
+              className="min-h-10 w-full shrink-0 gap-2 sm:w-auto"
             >
               {TRACK_YOUR_RECORD_CTA}{" "}
               <ArrowRight className="size-4" aria-hidden />
