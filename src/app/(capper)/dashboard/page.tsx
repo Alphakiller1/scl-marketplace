@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { BarChart3, ClipboardList, MailWarning, Plus } from "lucide-react";
+import { BarChart3, ClipboardList, MailWarning } from "lucide-react";
 
 import { getCurrentUser } from "@/lib/session";
 import {
@@ -9,7 +8,7 @@ import {
 } from "@/lib/queries/plays";
 import { computeCapperStats, computeStatsBySport } from "@/lib/stats";
 import { buildPerformanceTrend } from "@/lib/leaderboard";
-import { Button } from "@/components/ui/button";
+import { NewPickButton } from "@/components/scl/new-pick-button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/scl/states";
 import { SectionHeader } from "@/components/scl/section";
@@ -48,13 +47,7 @@ export default async function DashboardPage() {
             Tickets are not wins.
           </p>
         </div>
-        <Button
-          render={<Link href="/dashboard/picks/new" />}
-          nativeButton={false}
-          className="min-h-11 w-full gap-1.5 sm:min-h-8 sm:w-auto"
-        >
-          <Plus className="size-4" /> New Pick
-        </Button>
+        <NewPickButton className="w-full sm:w-auto" />
       </div>
 
       {!verified ? (
@@ -126,14 +119,7 @@ export default async function DashboardPage() {
             icon={ClipboardList}
             title="No Plays Yet"
             description="Submit your first play to start building a verified record."
-            action={
-              <Button
-                render={<Link href="/dashboard/picks/new" />}
-                nativeButton={false}
-              >
-                New Pick
-              </Button>
-            }
+            action={<NewPickButton variant="outline" />}
           />
         )}
       </section>
