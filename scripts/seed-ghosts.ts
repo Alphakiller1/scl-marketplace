@@ -31,6 +31,10 @@ import {
 } from "@/lib/discover-lanes";
 import { settleParlay } from "@/lib/grading";
 import { computeCapperStats } from "@/lib/stats";
+import {
+  providerLabel,
+  WINIBLE_CAPPER_REFERRAL_URL,
+} from "@/lib/store-connection";
 import { computeVerifiedShare } from "@/lib/verification";
 
 const prisma = new PrismaClient();
@@ -38,6 +42,13 @@ const prisma = new PrismaClient();
 const DAY = 24 * 60 * 60 * 1000;
 const HOUR = 60 * 60 * 1000;
 const GHOST_DOMAIN = "@ghost.scl.demo";
+
+/**
+ * Ghost cappers have no real storefront, so their packages point at SCL's own
+ * Winible affiliate page. Previously this was `https://example.com/...`, which
+ * rendered every Subscribe button on the public marketplace a dead link.
+ */
+const GHOST_CHECKOUT_URL = WINIBLE_CAPPER_REFERRAL_URL;
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const round4 = (n: number) => Math.round(n * 10000) / 10000;
 
@@ -689,7 +700,10 @@ async function seedGhost(passwordHash: string, g: Ghost) {
 
   // Packages via a LIVE store connection.
   if (g.hasStore) {
-    const provider: StoreProvider = chance(0.5) ? "WHOP" : "WINIBLE";
+    // Ghost checkouts all resolve to SCL's Winible affiliate page, so the
+    // provider is pinned to WINIBLE — a "Subscribe on Whop" button that lands
+    // on winible.com would be a worse lie than the demo data already is.
+    const provider: StoreProvider = "WINIBLE";
     const conn = await prisma.storeConnection.create({
       data: {
         capperId,
@@ -733,11 +747,11 @@ async function seedGhost(passwordHash: string, g: Ghost) {
           capperId,
           storeConnectionId: conn.id,
           title: p.title,
-          description: `${sport} plays, posted pre-game and graded on SCL. Delivered via ${provider === "WHOP" ? "Whop" : "Winible"}.`,
+          description: `${sport} plays, posted pre-game and graded on SCL. Delivered via ${providerLabel(provider)}.`,
           promoOffer: p.promo,
           priceCents: p.priceCents,
           billingPeriod: p.period,
-          checkoutUrl: `https://example.com/${provider.toLowerCase()}/${g.username}`,
+          checkoutUrl: GHOST_CHECKOUT_URL,
           affiliateProvider: provider,
           providerType: g.providerType === "FREE" ? "PREMIUM" : g.providerType,
           sortOrder: p.sort,
@@ -755,7 +769,7 @@ async function seedGhost(passwordHash: string, g: Ghost) {
         data: {
           packageId: pkg.id,
           slug: `${slugBase}-${randInt(1000, 9999)}`,
-          targetUrl: `https://example.com/${provider.toLowerCase()}/${g.username}`,
+          targetUrl: GHOST_CHECKOUT_URL,
         },
       });
     }

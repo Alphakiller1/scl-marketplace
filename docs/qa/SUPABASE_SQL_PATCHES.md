@@ -233,3 +233,67 @@ CREATE INDEX IF NOT EXISTS "StorefrontReviewEvent_storeConnectionId_createdAt_id
 CREATE INDEX IF NOT EXISTS "StorefrontReviewEvent_reviewedById_idx"
   ON "StorefrontReviewEvent"("reviewedById");
 ```
+
+## Ghost package checkout links — replace dead `example.com` placeholders
+
+The ghost seed originally wrote `https://example.com/<provider>/<username>` as
+both `Package.checkoutUrl` and `TrackingUrl.targetUrl`. Because every live
+package on production is a ghost, **every** Subscribe button on every capper
+profile 302'd to a non-existent page. Repoint them at SCL's Winible affiliate
+landing page. Idempotent and self-scoping — it only touches placeholder rows.
+
+```sql
+SET search_path TO scl;
+
+-- 1. Redirect targets behind /go/[slug]
+UPDATE "TrackingUrl"
+SET "targetUrl" = 'https://www.winible.com/signup?onboarding=true&refer=usergif4lfuf'
+WHERE "targetUrl" LIKE 'https://example.com/%';
+
+-- 2. The package's own checkout URL (publication requires it to be non-null)
+UPDATE "Package"
+SET "checkoutUrl" = 'https://www.winible.com/signup?onboarding=true&refer=usergif4lfuf'
+WHERE "checkoutUrl" LIKE 'https://example.com/%';
+
+-- 3. Every ghost checkout now lands on Winible, so a "Subscribe on Whop"
+--    label would be wrong. Pin the placeholder packages to WINIBLE.
+UPDATE "Package"
+SET "affiliateProvider" = 'WINIBLE'::"StoreProvider"
+WHERE "checkoutUrl" = 'https://www.winible.com/signup?onboarding=true&refer=usergif4lfuf'
+  AND "affiliateProvider" = 'WHOP'::"StoreProvider";
+
+-- 4. Same for the parent store connection (guarded by the
+--    @@unique([capperId, provider]) constraint).
+UPDATE "StoreConnection" sc
+SET "provider" = 'WINIBLE'::"StoreProvider"
+WHERE sc."provider" = 'WHOP'::"StoreProvider"
+  AND EXISTS (
+    SELECT 1 FROM "Package" p
+    WHERE p."storeConnectionId" = sc."id"
+      AND p."checkoutUrl" = 'https://www.winible.com/signup?onboarding=true&refer=usergif4lfuf'
+  )
+  AND NOT EXISTS (
+    SELECT 1 FROM "StoreConnection" other
+    WHERE other."capperId" = sc."capperId"
+      AND other."provider" = 'WINIBLE'::"StoreProvider"
+  );
+```
+
+Verify — expect zero `example.com` rows and every slug on the Winible URL:
+
+```sql
+SET search_path TO scl;
+
+SELECT u."username", t."slug", p."affiliateProvider", t."targetUrl"
+FROM "TrackingUrl" t
+JOIN "Package" p       ON p."id" = t."packageId"
+JOIN "CapperProfile" c ON c."id" = p."capperId"
+JOIN "User" u          ON u."id" = c."userId"
+ORDER BY u."username", t."slug";
+```
+
+Then spot-check the redirect itself:
+
+```bash
+curl -sSI "https://scl-marketplace.vercel.app/go/<slug>" | grep -i '^location'
+```
