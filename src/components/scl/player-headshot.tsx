@@ -3,11 +3,7 @@
 import { useState } from "react";
 import { User } from "lucide-react";
 
-import {
-  espnHeadshotUrl,
-  resolvePlayerHeadshot,
-  type HeadshotLeague,
-} from "@/lib/player-headshots";
+import { extractPlayerName, type HeadshotLeague } from "@/lib/player-headshots";
 import { cn } from "@/lib/utils";
 
 function initials(name: string): string {
@@ -16,10 +12,13 @@ function initials(name: string): string {
 }
 
 /**
- * Avatar for a player-prop row. Resolves a real ESPN headshot from the player
- * named in `selection`; falls back to their initials if the image 404s, or a
- * generic person glyph when the prop names a player we don't have a headshot
- * for. Only mount this for player-prop selections.
+ * Avatar for a player-prop row.
+ *
+ * The athlete name is parsed out of the selection and resolved by
+ * `/api/player-image`, which looks anyone up in ESPN's athlete search — so this
+ * covers the whole live board, not a hand-picked roster. The browser/CDN cache
+ * the redirect target, and a miss degrades to initials (then a person glyph)
+ * instead of a broken image.
  */
 export function PlayerHeadshot({
   selection,
@@ -32,8 +31,14 @@ export function PlayerHeadshot({
   size?: number;
   className?: string;
 }) {
-  const player = resolvePlayerHeadshot(selection, league);
+  const name = extractPlayerName(selection);
   const [failed, setFailed] = useState(false);
+
+  const src = name
+    ? `/api/player-image?name=${encodeURIComponent(name)}${
+        league ? `&league=${league}` : ""
+      }`
+    : null;
 
   return (
     <span
@@ -44,10 +49,10 @@ export function PlayerHeadshot({
       style={{ width: size, height: size }}
       aria-hidden
     >
-      {player && !failed ? (
-        // eslint-disable-next-line @next/next/no-img-element -- external ESPN CDN, not a bundled asset
+      {src && !failed ? (
+        // eslint-disable-next-line @next/next/no-img-element -- resolves to an external ESPN CDN url, not a bundled asset
         <img
-          src={espnHeadshotUrl(player.league, player.espnId)}
+          src={src}
           alt=""
           width={size}
           height={size}
@@ -55,9 +60,9 @@ export function PlayerHeadshot({
           className="size-full object-cover"
           onError={() => setFailed(true)}
         />
-      ) : player ? (
+      ) : name ? (
         <span className="text-muted-foreground text-[0.6rem] font-bold">
-          {initials(player.name)}
+          {initials(name)}
         </span>
       ) : (
         <User className="text-muted-foreground size-[55%]" />
