@@ -1,13 +1,21 @@
 name: DB patch — StoreConnection workflow columns
 
-# One-shot, manually dispatched patch that applies the missing
-# StoreConnection workflow columns + OddsUsageDaily to prod (migration
-# 20260728033616 drift). Idempotent — safe to re-run. Fixes the ghost seed
-# ("column packageCount does not exist") and the Winible store-connection
-# review workflow. Uses the direct (non-pooler) connection for DDL.
+# One-shot, manually dispatched patch that applies the missing StoreConnection
+# workflow columns + OddsUsageDaily to prod (migration 20260728033616 drift).
+# Idempotent — safe to re-run. Fixes the ghost seed ("column packageCount does
+# not exist") and the Winible store-connection review workflow.
+#
+# The Supabase DB's direct host is IPv6-only and unreachable from IPv4-only
+# GitHub runners, so we don't connect to Postgres here — we POST a CRON_SECRET
+# authed endpoint and let Vercel (which reaches the DB) run the idempotent DDL.
 
 on:
   workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Prod base URL"
+        required: false
+        default: "https://scl-marketplace.vercel.app"
 
 concurrency:
   group: db-patch-store-workflow
@@ -17,28 +25,28 @@ jobs:
   patch:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Apply idempotent StoreConnection workflow columns
+      - name: Apply StoreConnection workflow columns via Vercel
         env:
-          DIRECT_URL: ${{ secrets.DIRECT_URL }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BASE_URL: ${{ github.event.inputs.base_url }}
         run: |
           set -euo pipefail
-          # Prefer the pooler (DATABASE_URL): the direct DIRECT_URL host
-          # (db.*.supabase.co) is IPv6-only and GitHub runners are IPv4-only, so a
-          # direct connection fails with "Network is unreachable". The pooler
-          # (aws-*.pooler.supabase.com) is IPv4 and runs these auto-committed DDLs
-          # fine in transaction mode.
-          CONN="${DATABASE_URL:-$DIRECT_URL}"
-          if [ -z "$CONN" ]; then
-            echo "::error::No DATABASE_URL or DIRECT_URL secret configured." >&2
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "::error::CRON_SECRET secret is not configured." >&2
             exit 1
           fi
-          # Prisma connection strings carry query params libpq rejects (schema,
-          # pgbouncer, connection_limit, …). Drop the query and force SSL; the
-          # SQL fully-qualifies every table as scl.* so search_path is irrelevant.
-          CONN_BASE="${CONN%%\?*}"
-          echo "Applying scripts/sql/2026-07-store-workflow-columns.sql (pooler)…"
-          psql "${CONN_BASE}?sslmode=require" -v ON_ERROR_STOP=1 -f scripts/sql/2026-07-store-workflow-columns.sql
-          echo "### ✅ StoreConnection workflow columns applied (idempotent)" >> "$GITHUB_STEP_SUMMARY"
+          BASE="${BASE_URL:-https://scl-marketplace.vercel.app}"
+          echo "POST ${BASE}/api/admin/db-patch"
+          HTTP=$(curl -sS -o /tmp/patch.json -w "%{http_code}" \
+            -X POST "${BASE}/api/admin/db-patch" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json")
+          echo "HTTP ${HTTP}"
+          cat /tmp/patch.json || true
+          echo
+          if [ "${HTTP}" != "200" ]; then
+            echo "::error::db-patch endpoint returned HTTP ${HTTP}" >&2
+            exit 1
+          fi
+          echo "### ✅ StoreConnection workflow columns applied" >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/patch.json >> "$GITHUB_STEP_SUMMARY"
