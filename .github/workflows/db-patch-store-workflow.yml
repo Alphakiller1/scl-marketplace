@@ -30,6 +30,10 @@ jobs:
             echo "::error::No DIRECT_URL or DATABASE_URL secret configured." >&2
             exit 1
           fi
+          # Prisma connection strings carry query params libpq rejects (schema,
+          # pgbouncer, connection_limit, …). Drop the query and force SSL; the
+          # SQL file sets search_path and fully-qualifies every table as scl.*.
+          CONN_BASE="${CONN%%\?*}"
           echo "Applying scripts/sql/2026-07-store-workflow-columns.sql (direct connection)…"
-          psql "$CONN" -v ON_ERROR_STOP=1 -f scripts/sql/2026-07-store-workflow-columns.sql
+          psql "${CONN_BASE}?sslmode=require" -v ON_ERROR_STOP=1 -f scripts/sql/2026-07-store-workflow-columns.sql
           echo "### ✅ StoreConnection workflow columns applied (idempotent)" >> "$GITHUB_STEP_SUMMARY"
