@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ChevronDown, Search } from "lucide-react";
+import { ArrowLeft, ChevronDown, LayoutGrid, Lock, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { Card } from "@/components/ui/card";
@@ -236,14 +236,24 @@ export function GamePicker({
 
   return (
     <Card className={cn("scl-elevated relative space-y-3 p-4", className)}>
-      <div className="scl-section-mark flex items-baseline justify-between gap-2">
-        <h2 className="scl-display text-sm font-semibold tracking-[0.08em] uppercase">
-          Market Board
-        </h2>
-        <span className="scl-data text-[0.625rem] tracking-[0.1em] text-[color:var(--scl-muted-data)] uppercase">
+      <div className="scl-section-mark flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <LayoutGrid
+            className="size-4 text-[color:var(--scl-blue)]"
+            aria-hidden
+          />
+          <h2 className="scl-display text-sm font-semibold tracking-[0.08em] uppercase">
+            {openEvent ? "Focused Matchup" : "Market Board"}
+          </h2>
+        </div>
+        <span
+          className="scl-data inline-flex items-center gap-1.5 rounded-full border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] px-2.5 py-1 text-[0.625rem] font-semibold tracking-[0.08em] text-[color:var(--scl-muted-data)] uppercase"
+          title="SCL accepts pre-game picks only — no live betting"
+        >
+          <Lock className="size-3 shrink-0" aria-hidden />
           {openEvent
-            ? "Focused Matchup"
-            : `Pre-Game Board · ${loading ? "…" : visible.length} Matchups`}
+            ? "Pre-game only"
+            : `${loading ? "…" : visible.length} pre-game`}
         </span>
       </div>
 
