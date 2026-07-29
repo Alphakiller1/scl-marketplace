@@ -1,12 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import type { StoreConnectionStatus } from "@prisma/client";
+
 import {
   canCapperOpenStorefrontSetup,
   canCapperSubmitStorefront,
   resolveStorefrontPackageReadiness,
   storefrontActionRequiresReason,
+  storefrontCoverageBucket,
   storefrontTransition,
+  furthestStorefrontStatus,
+  STOREFRONT_COVERAGE_BUCKETS,
 } from "@/lib/storefront-review";
 
 test("approval maps pending provider workflows onto the existing state model", () => {
@@ -129,7 +134,10 @@ test("workflow transitions update new status fields correctly", () => {
   assert.equal(approveTransition.auditAction, "APPROVED");
 
   // REQUEST_CHANGES sets status to NEEDS_ACTION
-  const requestChanges = storefrontTransition("LINKS_RECEIVED", "REQUEST_CHANGES");
+  const requestChanges = storefrontTransition(
+    "LINKS_RECEIVED",
+    "REQUEST_CHANGES",
+  );
   assert(requestChanges);
   assert.equal(requestChanges.targetStatus, "NEEDS_ACTION");
 
@@ -138,4 +146,70 @@ test("workflow transitions update new status fields correctly", () => {
   assert(markLive);
   assert.equal(markLive.targetStatus, "LIVE");
   assert.equal(markLive.auditAction, "MARKED_LIVE");
+});
+
+test("storefront coverage: every capper lands in exactly one bucket", () => {
+  const ALL_STATUSES: StoreConnectionStatus[] = [
+    "NOT_STARTED",
+    "INSTRUCTIONS_VIEWED",
+    "PENDING_SCL_ACCEPTANCE",
+    "PENDING_SCL_LINK_IMPORT",
+    "LINKS_RECEIVED",
+    "PACKAGES_IMPORTED",
+    "LIVE",
+    "NEEDS_ACTION",
+    "DISABLED",
+  ];
+
+  // Total function: no status escapes the bucket map, and each maps to a real bucket.
+  for (const status of ALL_STATUSES) {
+    const bucket = storefrontCoverageBucket([status]);
+    assert.ok(
+      STOREFRONT_COVERAGE_BUCKETS.includes(bucket),
+      `${status} produced unknown bucket ${bucket}`,
+    );
+  }
+
+  // No connection at all is the outreach list, not a crash.
+  assert.equal(storefrontCoverageBucket([]), "neverStarted");
+
+  // Revenue-state mapping.
+  assert.equal(storefrontCoverageBucket(["LIVE"]), "live");
+  assert.equal(
+    storefrontCoverageBucket(["PENDING_SCL_ACCEPTANCE"]),
+    "pipeline",
+  );
+  assert.equal(
+    storefrontCoverageBucket(["PENDING_SCL_LINK_IMPORT"]),
+    "pipeline",
+  );
+  assert.equal(storefrontCoverageBucket(["LINKS_RECEIVED"]), "pipeline");
+  assert.equal(storefrontCoverageBucket(["PACKAGES_IMPORTED"]), "pipeline");
+  assert.equal(storefrontCoverageBucket(["NEEDS_ACTION"]), "blocked");
+  assert.equal(storefrontCoverageBucket(["DISABLED"]), "blocked");
+
+  // Has a storefront but never synced to SCL's affiliate program.
+  assert.equal(storefrontCoverageBucket(["INSTRUCTIONS_VIEWED"]), "stalled");
+  assert.equal(storefrontCoverageBucket(["NOT_STARTED"]), "stalled");
+});
+
+test("storefront coverage: a capper is judged by their furthest connection", () => {
+  // Live on one provider beats an abandoned/suspended one — still earning.
+  assert.equal(storefrontCoverageBucket(["DISABLED", "LIVE"]), "live");
+  assert.equal(
+    storefrontCoverageBucket(["INSTRUCTIONS_VIEWED", "LIVE"]),
+    "live",
+  );
+  // Pending beats not-started: SCL owes them action.
+  assert.equal(
+    storefrontCoverageBucket(["NOT_STARTED", "PENDING_SCL_ACCEPTANCE"]),
+    "pipeline",
+  );
+  // Order must not matter.
+  assert.equal(
+    storefrontCoverageBucket(["LIVE", "DISABLED"]),
+    storefrontCoverageBucket(["DISABLED", "LIVE"]),
+  );
+  assert.equal(furthestStorefrontStatus([]), null);
+  assert.equal(furthestStorefrontStatus(["DISABLED", "LIVE"]), "LIVE");
 });

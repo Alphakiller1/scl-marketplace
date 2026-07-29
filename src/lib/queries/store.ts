@@ -9,6 +9,10 @@ import {
   publicPackagePublicationWhere,
 } from "@/lib/public-packages";
 import { formatPriceCents } from "@/lib/store-connection";
+import {
+  furthestStorefrontStatus,
+  storefrontCoverageBucket,
+} from "@/lib/storefront-review";
 
 export type StoreConnectionRow = Awaited<
   ReturnType<typeof listStoreConnections>
@@ -334,6 +338,8 @@ export async function listActiveMarketplacePackages(): Promise<
 
 // ── Admin storefront pipeline: alerting + roster coverage ────────────────────
 
+const GHOST_DOMAIN = "@ghost.scl.demo";
+
 /**
  * Submissions waiting on SCL — drives the admin nav badge + overview stat.
  * A capper confirming their Winible/Whop affiliate steps must be impossible
@@ -344,6 +350,10 @@ export async function countStorefrontQueue(): Promise<number> {
   try {
     return await prisma.storeConnection.count({
       where: {
+        // Never alert on demo data — matches getStorefrontCoverage.
+        capper: {
+          user: { NOT: { email: { endsWith: GHOST_DOMAIN } } },
+        },
         OR: [
           {
             status: {
@@ -359,8 +369,6 @@ export async function countStorefrontQueue(): Promise<number> {
     return 0;
   }
 }
-
-const GHOST_DOMAIN = "@ghost.scl.demo";
 
 export type StorefrontCoverageEntry = {
   capperId: string;
@@ -393,19 +401,6 @@ const EMPTY_COVERAGE: StorefrontCoverage = {
   neverStarted: [],
   blocked: [],
   failed: true,
-};
-
-// Higher = further along; a capper is bucketed by their furthest connection.
-const COVERAGE_RANK: Record<string, number> = {
-  NOT_STARTED: 0,
-  INSTRUCTIONS_VIEWED: 1,
-  DISABLED: 2,
-  NEEDS_ACTION: 3,
-  PENDING_SCL_ACCEPTANCE: 4,
-  PENDING_SCL_LINK_IMPORT: 5,
-  LINKS_RECEIVED: 6,
-  PACKAGES_IMPORTED: 7,
-  LIVE: 8,
 };
 
 /**
@@ -443,10 +438,11 @@ export async function getStorefrontCoverage(): Promise<StorefrontCoverage> {
     };
 
     for (const capper of cappers) {
-      const best = [...capper.storeConnections].sort(
-        (a, b) =>
-          (COVERAGE_RANK[b.status] ?? -1) - (COVERAGE_RANK[a.status] ?? -1),
-      )[0];
+      const furthest = furthestStorefrontStatus(
+        capper.storeConnections.map((c) => c.status),
+      );
+      const best =
+        capper.storeConnections.find((c) => c.status === furthest) ?? null;
       const entry: StorefrontCoverageEntry = {
         capperId: capper.id,
         handle: capper.user.username,
@@ -456,18 +452,10 @@ export async function getStorefrontCoverage(): Promise<StorefrontCoverage> {
         status: best?.status ?? null,
         submittedAt: best?.submittedAt ?? null,
       };
-      if (!best) coverage.neverStarted.push(entry);
-      else if (best.status === "LIVE") coverage.live.push(entry);
-      else if (
-        best.status === "PENDING_SCL_ACCEPTANCE" ||
-        best.status === "PENDING_SCL_LINK_IMPORT" ||
-        best.status === "LINKS_RECEIVED" ||
-        best.status === "PACKAGES_IMPORTED"
-      )
-        coverage.pipeline.push(entry);
-      else if (best.status === "NEEDS_ACTION" || best.status === "DISABLED")
-        coverage.blocked.push(entry);
-      else coverage.stalled.push(entry);
+      const bucket = storefrontCoverageBucket(
+        capper.storeConnections.map((c) => c.status),
+      );
+      coverage[bucket].push(entry);
     }
 
     return coverage;

@@ -34,6 +34,71 @@ const REVIEWABLE_STATUSES: StoreConnectionStatus[] = [
   "NEEDS_ACTION",
 ];
 
+/**
+ * Storefront-revenue state for one capper. Drives the admin roster-coverage
+ * view: who is earning, who SCL owes action to, who stalled mid-setup, and who
+ * never started (the Winible outreach list).
+ */
+export const STOREFRONT_COVERAGE_BUCKETS = [
+  "pipeline",
+  "live",
+  "stalled",
+  "neverStarted",
+  "blocked",
+] as const;
+
+export type StorefrontCoverageBucket =
+  (typeof STOREFRONT_COVERAGE_BUCKETS)[number];
+
+/** Higher = further along. A capper is judged by their furthest connection. */
+const COVERAGE_RANK: Record<StoreConnectionStatus, number> = {
+  NOT_STARTED: 0,
+  INSTRUCTIONS_VIEWED: 1,
+  DISABLED: 2,
+  NEEDS_ACTION: 3,
+  PENDING_SCL_ACCEPTANCE: 4,
+  PENDING_SCL_LINK_IMPORT: 5,
+  LINKS_RECEIVED: 6,
+  PACKAGES_IMPORTED: 7,
+  LIVE: 8,
+};
+
+/** The connection that best represents a capper's progress, or null when none. */
+export function furthestStorefrontStatus(
+  statuses: StoreConnectionStatus[],
+): StoreConnectionStatus | null {
+  if (!statuses.length) return null;
+  return statuses.reduce((best, status) =>
+    COVERAGE_RANK[status] > COVERAGE_RANK[best] ? status : best,
+  );
+}
+
+/**
+ * Bucket a capper by their furthest storefront connection. Total function —
+ * every capper lands in exactly one bucket, including those with no connection.
+ */
+export function storefrontCoverageBucket(
+  statuses: StoreConnectionStatus[],
+): StorefrontCoverageBucket {
+  const status = furthestStorefrontStatus(statuses);
+  if (!status) return "neverStarted";
+  switch (status) {
+    case "LIVE":
+      return "live";
+    case "PENDING_SCL_ACCEPTANCE":
+    case "PENDING_SCL_LINK_IMPORT":
+    case "LINKS_RECEIVED":
+    case "PACKAGES_IMPORTED":
+      return "pipeline";
+    case "NEEDS_ACTION":
+    case "DISABLED":
+      return "blocked";
+    case "NOT_STARTED":
+    case "INSTRUCTIONS_VIEWED":
+      return "stalled";
+  }
+}
+
 export function storefrontTransition(
   currentStatus: StoreConnectionStatus,
   action: AdminStorefrontAction,
