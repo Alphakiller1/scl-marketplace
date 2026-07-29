@@ -372,6 +372,10 @@ export async function countStorefrontQueue(): Promise<number> {
 
 export type StorefrontCoverageEntry = {
   capperId: string;
+  /** User id — admin capper page target for cappers with no connection yet. */
+  userId: string;
+  /** Furthest connection's id — links straight to its approval screen. */
+  connectionId: string | null;
   handle: string | null;
   displayName: string | null;
   email: string;
@@ -419,10 +423,15 @@ export async function getStorefrontCoverage(): Promise<StorefrontCoverage> {
       select: {
         id: true,
         user: {
-          select: { username: true, displayName: true, email: true },
+          select: { id: true, username: true, displayName: true, email: true },
         },
         storeConnections: {
-          select: { provider: true, status: true, submittedAt: true },
+          select: {
+            id: true,
+            provider: true,
+            status: true,
+            submittedAt: true,
+          },
         },
       },
       orderBy: { createdAt: "asc" },
@@ -445,6 +454,8 @@ export async function getStorefrontCoverage(): Promise<StorefrontCoverage> {
         capper.storeConnections.find((c) => c.status === furthest) ?? null;
       const entry: StorefrontCoverageEntry = {
         capperId: capper.id,
+        userId: capper.user.id,
+        connectionId: best?.id ?? null,
         handle: capper.user.username,
         displayName: capper.user.displayName,
         email: capper.user.email,

@@ -217,10 +217,37 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
       {selected ? (
         <div className="grid gap-5 lg:grid-cols-2">
           <section className="border-border bg-card space-y-4 rounded-xl border p-5">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="scl-display text-base font-bold tracking-[0.05em] uppercase">
-                Request detail
+            {/* Whose storefront this is must be unmistakable — an admin is
+                approving a specific capper, not an anonymous "request". */}
+            <div className="border-border border-b pb-3">
+              <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
+                Storefront for
+              </p>
+              <h2 className="scl-display mt-0.5 text-lg font-bold tracking-[0.02em] normal-case">
+                {selected.capper.user.displayName?.trim() ||
+                  (selected.capper.user.username
+                    ? `@${selected.capper.user.username.replace(/^@/, "")}`
+                    : selected.capper.user.email)}
               </h2>
+              <p className="text-muted-foreground mt-0.5 truncate text-xs">
+                {selected.capper.user.username
+                  ? `@${selected.capper.user.username.replace(/^@/, "")} · `
+                  : ""}
+                {selected.capper.user.email}
+              </p>
+              {selected.capper.user.username ? (
+                <Link
+                  href={`/cappers/${selected.capper.user.username.replace(/^@/, "")}`}
+                  className="scl-link mt-1 inline-flex text-xs"
+                >
+                  View public profile ↗
+                </Link>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="scl-display text-base font-bold tracking-[0.05em] uppercase">
+                Request detail
+              </h3>
               <ProviderBadge provider={selected.provider} />
               <StoreStatusChip status={selected.status} />
             </div>
