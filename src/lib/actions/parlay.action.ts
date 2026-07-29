@@ -95,6 +95,13 @@ export async function createParlay(
       };
     }
     const eventStartsAt = new Date(l.eventStartsAt);
+    // No live betting — every leg must be pre-game. A started leg rejects the parlay.
+    if (eventStartsAt.getTime() <= Date.now()) {
+      return {
+        ok: false,
+        error: `Leg ${i + 1}: this event has already started. SCL only accepts pre-game picks — no live betting.`,
+      };
+    }
     const marketKeys = marketKeysForMarket(l.market);
     const key = moveKey({
       eventId: l.eventId,
