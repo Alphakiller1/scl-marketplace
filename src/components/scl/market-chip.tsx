@@ -4,10 +4,15 @@ import { Check } from "lucide-react";
 
 import { BettingTitle } from "@/components/scl/betting-title";
 import { BookMark } from "@/components/scl/book-mark";
+import { PlayerHeadshot } from "@/components/scl/player-headshot";
 import { bookShort } from "@/lib/books";
 import { cn } from "@/lib/utils";
 import { formatCaptureClock, formatOdds } from "@/lib/format";
 import { isExtremeAmericanOdds } from "@/lib/odds-board";
+import {
+  resolvePlayerHeadshot,
+  type HeadshotLeague,
+} from "@/lib/player-headshots";
 
 /**
  * v2 odds chip — single row: label + odds.
@@ -20,6 +25,7 @@ export function MarketChip({
   oddsAmerican,
   book,
   oddsCapturedAt,
+  league,
   selected,
   disabled,
   onClick,
@@ -32,12 +38,15 @@ export function MarketChip({
   book?: string;
   /** Bookmaker last_update ISO — shown inline when the price is extreme. */
   oddsCapturedAt?: string;
+  /** Player-prop league hint so a named player shows a real headshot. */
+  league?: HeadshotLeague;
   selected?: boolean;
   disabled?: boolean;
   onClick?: () => void;
   className?: string;
 }) {
   const missing = oddsAmerican === null;
+  const propPlayer = resolvePlayerHeadshot(label, league);
   const extreme =
     !missing && typeof oddsAmerican === "number"
       ? isExtremeAmericanOdds(oddsAmerican)
@@ -68,6 +77,14 @@ export function MarketChip({
     >
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex min-w-0 items-center gap-1.5">
+          {propPlayer ? (
+            <PlayerHeadshot
+              selection={label}
+              league={league}
+              size={22}
+              className="shrink-0"
+            />
+          ) : null}
           <BettingTitle
             text={label}
             className={cn(

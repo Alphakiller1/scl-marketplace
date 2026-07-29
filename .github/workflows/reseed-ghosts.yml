@@ -1,0 +1,67 @@
+name: Re-seed ghost cappers (MLB + WNBA)
+
+# Manually dispatched: wipes the @ghost.scl.demo demo cappers and re-seeds them
+# in chunks via the CRON_SECRET-authed seed endpoint (Vercel runs the seed; the
+# runner just drives it, same reason as the db-patch workflow). The roster is 30
+# cappers, so 10 chunks × 3 covers everyone.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Prod base URL"
+        required: false
+        default: "https://scl-marketplace.vercel.app"
+      chunks:
+        description: "Number of seed chunks"
+        required: false
+        default: "10"
+      limit:
+        description: "Cappers per chunk"
+        required: false
+        default: "3"
+
+concurrency:
+  group: reseed-ghosts
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wipe + re-seed ghost cappers
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BASE_URL: ${{ github.event.inputs.base_url }}
+          CHUNKS: ${{ github.event.inputs.chunks }}
+          LIMIT: ${{ github.event.inputs.limit }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "::error::CRON_SECRET secret is not configured." >&2
+            exit 1
+          fi
+          BASE="${BASE_URL:-https://scl-marketplace.vercel.app}"
+          CHUNKS="${CHUNKS:-10}"
+          LIMIT="${LIMIT:-3}"
+          post() { # $1 = json body, $2 = label
+            local http
+            http=$(curl -sS -o /tmp/seed.json -w "%{http_code}" \
+              -X POST "${BASE}/api/admin/seed-ghosts" \
+              -H "Authorization: Bearer ${CRON_SECRET}" \
+              -H "Content-Type: application/json" \
+              -d "$1")
+            echo "  $2 → HTTP ${http}"
+            cat /tmp/seed.json; echo
+            if [ "${http}" != "200" ]; then
+              echo "::error::seed step '$2' returned HTTP ${http}" >&2
+              exit 1
+            fi
+          }
+          echo "== wipe existing ghosts =="
+          post '{"wipeOnly":true}' "wipe"
+          for i in $(seq 0 $((CHUNKS - 1))); do
+            offset=$((i * LIMIT))
+            post "{\"skipWipe\":true,\"offset\":${offset},\"limit\":${LIMIT}}" "seed offset=${offset}"
+          done
+          echo "### ✅ Ghost cappers re-seeded (MLB + WNBA)" >> "$GITHUB_STEP_SUMMARY"

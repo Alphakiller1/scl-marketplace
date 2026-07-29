@@ -29,6 +29,7 @@ import {
   type DiscoverCapperInput,
   type DiscoverPlayRow,
 } from "@/lib/discover-lanes";
+import { playersForLeague } from "@/lib/player-headshots";
 import { settleParlay } from "@/lib/grading";
 import { computeCapperStats } from "@/lib/stats";
 import { computeVerifiedShare } from "@/lib/verification";
@@ -92,7 +93,7 @@ const gauss = (mean: number, sd: number) => {
 };
 
 // ── sport catalog ────────────────────────────────────────────────────────────
-type SportKey = "NBA" | "MLB" | "NFL" | "NHL" | "NCAAB" | "NCAAF";
+type SportKey = "MLB" | "WNBA";
 type SportCfg = {
   league: string;
   markets: string[];
@@ -101,27 +102,9 @@ type SportCfg = {
   spread: [number, number]; // abs spread range
 };
 const SPORTS: Record<SportKey, SportCfg> = {
-  NBA: {
-    league: "NBA",
-    markets: ["Spread", "Total", "Moneyline", "Player Prop"],
-    teams: [
-      "Celtics",
-      "Nuggets",
-      "Knicks",
-      "Thunder",
-      "Timberwolves",
-      "Mavericks",
-      "Suns",
-      "Bucks",
-      "76ers",
-      "Heat",
-    ],
-    totalPts: [210, 238],
-    spread: [1.5, 12.5],
-  },
   MLB: {
     league: "MLB",
-    markets: ["Moneyline", "Run Line", "Total", "First 5"],
+    markets: ["Moneyline", "Run Line", "Total", "First 5", "Player Prop"],
     teams: [
       "Dodgers",
       "Braves",
@@ -137,73 +120,25 @@ const SPORTS: Record<SportKey, SportCfg> = {
     totalPts: [7, 10.5],
     spread: [1.5, 1.5],
   },
-  NFL: {
-    league: "NFL",
-    markets: ["Spread", "Total", "Moneyline", "Team Total"],
+  WNBA: {
+    league: "WNBA",
+    markets: ["Moneyline", "Spread", "Total", "Player Prop"],
     teams: [
-      "Chiefs",
-      "49ers",
-      "Ravens",
-      "Lions",
-      "Bills",
-      "Eagles",
-      "Cowboys",
-      "Dolphins",
-      "Packers",
-      "Bengals",
+      "Aces",
+      "Liberty",
+      "Sun",
+      "Lynx",
+      "Sky",
+      "Storm",
+      "Mercury",
+      "Fever",
+      "Wings",
+      "Dream",
+      "Mystics",
+      "Sparks",
     ],
-    totalPts: [38.5, 52.5],
-    spread: [1.5, 13.5],
-  },
-  NHL: {
-    league: "NHL",
-    markets: ["Puck Line", "Moneyline", "Total"],
-    teams: [
-      "Oilers",
-      "Bruins",
-      "Rangers",
-      "Panthers",
-      "Avalanche",
-      "Stars",
-      "Hurricanes",
-      "Golden Knights",
-    ],
-    totalPts: [5.5, 6.5],
-    spread: [1.5, 1.5],
-  },
-  NCAAB: {
-    league: "NCAAB",
-    markets: ["Spread", "Total", "Moneyline"],
-    teams: [
-      "UNC",
-      "Duke",
-      "Gonzaga",
-      "Houston",
-      "Purdue",
-      "Kansas",
-      "UConn",
-      "Marquette",
-      "Tennessee",
-      "Arizona",
-    ],
-    totalPts: [128, 158],
-    spread: [1.5, 15.5],
-  },
-  NCAAF: {
-    league: "NCAAF",
-    markets: ["Spread", "Total", "Team Total", "Moneyline"],
-    teams: [
-      "Georgia",
-      "Michigan",
-      "Ohio State",
-      "Texas",
-      "Alabama",
-      "Oregon",
-      "Penn State",
-      "LSU",
-    ],
-    totalPts: [41.5, 66.5],
-    spread: [2.5, 24.5],
+    totalPts: [155, 172],
+    spread: [1.5, 12.5],
   },
 };
 const BOOKS = ["draftkings", "fanduel", "betmgm", "caesars", "espnbet"];
@@ -251,12 +186,31 @@ function makeSelection(sport: SportKey): {
     };
   }
   if (market === "Player Prop") {
-    const stat = pick(["Pts", "Reb", "Ast", "3PM", "PRA"]);
-    const line = round2(4.5 + rand() * 26);
+    const isMlb = sport === "MLB";
+    const players = playersForLeague(isMlb ? "mlb" : "wnba");
+    const player = pick(players).name;
+    // [stat label, line lo, line hi]
+    const props: [string, number, number][] = isMlb
+      ? [
+          ["Total Bases", 1.5, 2.5],
+          ["Hits", 0.5, 1.5],
+          ["RBIs", 0.5, 1.5],
+          ["Home Runs", 0.5, 0.5],
+          ["Runs Scored", 0.5, 1.5],
+        ]
+      : [
+          ["Points", 15.5, 25.5],
+          ["Rebounds", 6.5, 11.5],
+          ["Assists", 4.5, 8.5],
+          ["3-Pointers Made", 1.5, 3.5],
+          ["Pts+Reb+Ast", 25.5, 38.5],
+        ];
+    const [stat, lo, hi] = pick(props);
+    const line = round2(lo + rand() * (hi - lo));
     const ou = chance(0.6) ? "Over" : "Under";
     return {
       market,
-      selection: `${team} Star ${ou} ${line} ${stat}`,
+      selection: `${player} ${ou} ${line} ${stat}`,
       side: ou,
       line,
     };
@@ -302,36 +256,39 @@ const HEADLINES: Record<Tier, string> = {
 };
 
 const HANDLE_POOL: [string, string, SportKey[]][] = [
-  ["linehawk", "Line Hawk", ["NBA", "NCAAB"]],
+  // MLB-leaning
+  ["linehawk", "Line Hawk", ["MLB", "WNBA"]],
   ["diamondedge", "Diamond Edge", ["MLB"]],
-  ["gridironmetrics", "Gridiron Metrics", ["NFL", "NCAAF"]],
-  ["icecoldpucks", "Ice Cold Pucks", ["NHL"]],
-  ["hardwoodmodel", "Hardwood Model", ["NBA"]],
   ["firstpitchvalue", "First Pitch Value", ["MLB"]],
-  ["covermerchant", "Cover Merchant", ["NFL"]],
-  ["tempofree", "Tempo Free", ["NCAAB"]],
-  ["closingline", "Closing Line", ["NBA", "MLB"]],
-  ["sharpwire", "Sharp Wire", ["NFL", "NBA"]],
   ["runlinerick", "Run Line Rick", ["MLB"]],
-  ["propshopper", "Prop Shopper", ["NBA", "NFL"]],
-  ["numberhunter", "Number Hunter", ["NFL", "NCAAF"]],
-  ["puckluck", "Puck Luck", ["NHL"]],
-  ["midmajormoney", "Mid Major Money", ["NCAAB"]],
-  ["totalsguru", "Totals Guru", ["MLB", "NBA"]],
-  ["dogpound", "Dog Pound", ["NFL", "NHL"]],
-  ["chalkboard", "Chalk Board", ["NBA"]],
-  ["fadethepublic", "Fade The Public", ["NFL"]],
   ["springtraining", "Spring Training", ["MLB"]],
-  ["bracketology", "Bracketology", ["NCAAB"]],
-  ["saturdayslate", "Saturday Slate", ["NCAAF"]],
-  ["latenightliner", "Late Night Liner", ["NBA", "NHL"]],
-  ["moneypuck", "Money Puck", ["NHL"]],
-  ["bigunitbets", "Big Unit Bets", ["MLB", "NFL"]],
-  ["freezeout", "Freeze Out", ["NHL", "NBA"]],
-  ["thehandle", "The Handle", ["NFL", "NBA", "MLB"]],
-  ["risingline", "Rising Line", ["NCAAB", "NBA"]],
-  ["earlybird", "Early Bird", ["MLB", "NHL"]],
-  ["contrarian", "Contrarian", ["NFL", "NCAAF"]],
+  ["bigunitbets", "Big Unit Bets", ["MLB"]],
+  ["earlybird", "Early Bird", ["MLB"]],
+  ["bullpenbrain", "Bullpen Brain", ["MLB"]],
+  ["moundmetrics", "Mound Metrics", ["MLB"]],
+  ["rbimachine", "RBI Machine", ["MLB"]],
+  ["firstfiveframes", "First Five Frames", ["MLB"]],
+  ["baseknocks", "Base Knocks", ["MLB"]],
+  // WNBA-leaning
+  ["hoopathena", "Hoop Athena", ["WNBA"]],
+  ["dubnation", "Dub Nation W", ["WNBA"]],
+  ["acesangle", "Aces Angle", ["WNBA"]],
+  ["libertylines", "Liberty Lines", ["WNBA"]],
+  ["backcourtbets", "Backcourt Bets", ["WNBA"]],
+  ["paintprops", "Paint Props", ["WNBA"]],
+  ["transitiongame", "Transition Game", ["WNBA"]],
+  ["leaguewsharp", "League W Sharp", ["WNBA"]],
+  ["womenshoopsiq", "Women's Hoops IQ", ["WNBA"]],
+  ["downtownthrees", "Downtown Threes", ["WNBA"]],
+  // Both
+  ["closingline", "Closing Line", ["MLB", "WNBA"]],
+  ["sharpwire", "Sharp Wire", ["WNBA", "MLB"]],
+  ["totalsguru", "Totals Guru", ["MLB", "WNBA"]],
+  ["propshopper", "Prop Shopper", ["WNBA", "MLB"]],
+  ["numberhunter", "Number Hunter", ["MLB", "WNBA"]],
+  ["thehandle", "The Handle", ["MLB", "WNBA"]],
+  ["fadethepublic", "Fade The Public", ["WNBA", "MLB"]],
+  ["contrarian", "Contrarian", ["MLB", "WNBA"]],
 ];
 
 function buildRoster(): Ghost[] {

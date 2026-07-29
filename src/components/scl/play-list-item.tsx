@@ -1,8 +1,13 @@
 import { SportTag, StatusBadge } from "@/components/scl/badges";
 import { BookMark } from "@/components/scl/book-mark";
+import { PlayerHeadshot } from "@/components/scl/player-headshot";
 import { StatValue } from "@/components/scl/stat-value";
 import { VerifiedBadge } from "@/components/scl/verified-badge";
 import { TeamMark } from "@/components/scl/team-mark";
+import {
+  resolvePlayerHeadshot,
+  toHeadshotLeague,
+} from "@/lib/player-headshots";
 import { oddsSourceBoardLabel } from "@/lib/books";
 import { UNIT_MIN } from "@/lib/constants";
 import { formatOdds, formatUnits, signTone } from "@/lib/format";
@@ -54,7 +59,16 @@ export function PlayListItem({
         />
       </div>
       <div className="mt-2 flex min-w-0 items-start gap-2.5">
-        {team ? <TeamMark team={team} size="sm" className="mt-0.5" /> : null}
+        {play.market === "Player Prop" ? (
+          <PlayerHeadshot
+            selection={play.selection}
+            league={toHeadshotLeague(play.sport)}
+            size={30}
+            className="mt-0.5"
+          />
+        ) : team ? (
+          <TeamMark team={team} size="sm" className="mt-0.5" />
+        ) : null}
         <p className="min-w-0 flex-1 font-semibold break-words">
           {play.selection}
         </p>
@@ -122,10 +136,21 @@ export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
       <ul className="mt-2 space-y-1.5">
         {parlay.legs.map((leg) => {
           const team = teamIdentityFromSide(leg.side, leg.sport);
+          const propPlayer = resolvePlayerHeadshot(
+            leg.selection,
+            toHeadshotLeague(leg.sport),
+          );
           return (
             <li key={leg.id} className="flex min-w-0 items-start gap-2.5">
               <SportTag sport={leg.sport} markOnly className="mt-0.5" />
-              {team ? (
+              {propPlayer ? (
+                <PlayerHeadshot
+                  selection={leg.selection}
+                  league={toHeadshotLeague(leg.sport)}
+                  size={24}
+                  className="mt-0.5"
+                />
+              ) : team ? (
                 <TeamMark team={team} size="sm" className="mt-0.5" />
               ) : null}
               <p className="min-w-0 flex-1 text-sm font-medium break-words">
