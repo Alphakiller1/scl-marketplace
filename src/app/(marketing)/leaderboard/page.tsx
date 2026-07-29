@@ -8,10 +8,7 @@ import {
 import { LeaderboardFilters } from "@/components/scl/leaderboard-filters";
 import { LeaderboardOverview } from "@/components/scl/leaderboard-overview";
 import { LeaderboardRankingRail } from "@/components/scl/leaderboard-ranking-rail";
-import {
-  parseLeaderboardFilters,
-  summarizeLeaderboard,
-} from "@/lib/leaderboard";
+import { parseLeaderboardFilters } from "@/lib/leaderboard";
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 
 export const metadata: Metadata = {
@@ -30,14 +27,13 @@ export default async function LeaderboardPage({
 }) {
   const filters = parseLeaderboardFilters(await searchParams);
   const { cappers, unranked, failed } = await getLeaderboardResult(filters);
-  const summary = summarizeLeaderboard(cappers, unranked);
 
   return (
     <div
       className="mx-auto max-w-[1400px] px-4 py-4 sm:px-6 sm:py-5"
       data-visual-mode="rank"
     >
-      <LeaderboardOverview summary={summary} />
+      <LeaderboardOverview />
       <LeaderboardFilters filters={filters} />
 
       {/* Wide desktop: ~10/2 — main board + ~236px explanation rail */}
