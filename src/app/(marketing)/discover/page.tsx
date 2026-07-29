@@ -70,7 +70,7 @@ export default async function DiscoverPage() {
           render={<Link href="/leaderboard" />}
           nativeButton={false}
           variant="nav"
-          className="min-h-11 shrink-0 gap-2"
+          className="min-h-10 shrink-0 gap-2"
         >
           Open Leaderboard
           <ArrowRight className="size-4" aria-hidden />

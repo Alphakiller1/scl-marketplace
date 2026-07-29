@@ -65,7 +65,7 @@ export default async function PicksPage({
               and graded results.
             </p>
           </div>
-          <VerificationHelpLink className="text-muted-foreground hover:text-foreground inline-flex min-h-11 shrink-0 gap-1.5 self-start px-2 text-xs font-medium sm:self-auto" />
+          <VerificationHelpLink className="text-muted-foreground hover:text-foreground inline-flex min-h-10 shrink-0 gap-1.5 self-start px-2 text-xs font-medium sm:self-auto" />
         </div>
         <VerificationLegend className="mt-4" />
       </header>

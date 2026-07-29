@@ -59,7 +59,7 @@ const MARKET_ORDER = ["Moneyline", "Spread", "Total"] as const;
 const ALT_LINE_CAP = 8;
 
 const PROP_PILL_CLASS =
-  "scl-display min-h-11 rounded-[22px] border px-3.5 text-[15px] font-semibold tracking-[0.05em] transition-colors";
+  "scl-display min-h-10 rounded-[22px] border px-3.5 text-[15px] font-semibold tracking-[0.05em] transition-colors";
 
 const PROP_PILL_ACTIVE =
   "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]";
@@ -313,7 +313,7 @@ export function OddsAssist({
                     day: day === "today" ? "tomorrow" : "today",
                   })
                 }
-                className="inline-flex min-h-11 items-center font-medium text-[color:var(--scl-muted-data)] underline-offset-2 hover:underline"
+                className="inline-flex min-h-10 items-center font-medium text-[color:var(--scl-muted-data)] underline-offset-2 hover:underline"
               >
                 {day === "today" ? "check Tomorrow" : "check Today"}
               </button>{" "}
@@ -697,7 +697,7 @@ export function EventDetail({
                       setPlayerOpen((p) => ({ ...p, [player]: !open }))
                     }
                     aria-expanded={open}
-                    className="hover:bg-surface-2 flex min-h-11 w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors"
+                    className="hover:bg-surface-2 flex min-h-10 w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors"
                   >
                     <span className="min-w-0 truncate font-medium">
                       {player}
@@ -737,7 +737,7 @@ export function EventDetail({
                               [player]: !showAll,
                             }))
                           }
-                          className="min-h-11 text-xs font-medium text-[color:var(--scl-muted-data)] underline-offset-2 hover:underline"
+                          className="min-h-10 text-xs font-medium text-[color:var(--scl-muted-data)] underline-offset-2 hover:underline"
                         >
                           {showAll
                             ? "Show fewer"
@@ -776,7 +776,7 @@ export function EventDetail({
               onClick={() =>
                 setAltExpanded((p) => ({ ...p, [market]: !expanded }))
               }
-              className="mt-2 inline-flex min-h-11 items-center text-xs font-medium text-[color:var(--scl-muted-data)] underline-offset-2 hover:underline"
+              className="mt-2 inline-flex min-h-10 items-center text-xs font-medium text-[color:var(--scl-muted-data)] underline-offset-2 hover:underline"
             >
               {expanded
                 ? "Show fewer"

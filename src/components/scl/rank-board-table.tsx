@@ -255,7 +255,7 @@ function RankBoardMobileRow({
       <Link
         href={`/cappers/${capper.handle}`}
         className={cn(
-          "focus-visible:ring-ring flex min-h-11 items-center gap-2 px-2.5 py-1.5 focus-visible:ring-2 focus-visible:outline-none sm:min-h-12",
+          "focus-visible:ring-ring flex min-h-10 items-center gap-2 px-2.5 py-1.5 focus-visible:ring-2 focus-visible:outline-none sm:min-h-12",
           compact ? "gap-1.5 px-2" : null,
         )}
         aria-label={`Open ${capper.handle} profile`}

@@ -264,14 +264,13 @@ export function AdminPackageForm({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" disabled={pending} className="min-h-11">
+        <Button type="submit" disabled={pending}>
           Save package
         </Button>
         <Button
           type="button"
           variant="secondary"
           disabled={pending}
-          className="min-h-11"
           onClick={() => save(true)}
         >
           Save & activate
@@ -281,7 +280,6 @@ export function AdminPackageForm({
             type="button"
             variant="outline"
             disabled={pending}
-            className="min-h-11"
             onClick={() => setActive(false)}
           >
             Deactivate

@@ -136,7 +136,7 @@ export function PublicPicksLedger({
 
       <div className="border-border bg-surface-2/45 flex flex-col gap-3 border-y px-3 py-3 sm:px-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex min-w-0 flex-wrap items-end gap-2.5">
-          <div className="mr-1 hidden min-h-11 items-center gap-2 text-sm font-medium lg:flex">
+          <div className="mr-1 hidden min-h-10 items-center gap-2 text-sm font-medium lg:flex">
             <Filter
               className="size-4 text-[color:var(--scl-blue)]"
               aria-hidden
@@ -177,7 +177,7 @@ export function PublicPicksLedger({
             ]}
           />
         </div>
-        <div className="flex min-h-11 items-center justify-between gap-3 lg:justify-end">
+        <div className="flex min-h-10 items-center justify-between gap-3 lg:justify-end">
           <p className="scl-data text-foreground text-sm font-semibold tabular-nums">
             {isPending ? "Updating Scope…" : filterLabel(filtered.length)}
           </p>
@@ -297,7 +297,7 @@ function ScopeSelect({
           if (nextValue != null) onValueChange(nextValue);
         }}
       >
-        <SelectTrigger className="bg-background min-h-11 w-full min-w-0 text-base sm:w-40 sm:text-sm">
+        <SelectTrigger className="bg-background min-h-10 w-full min-w-0 text-base sm:w-40 sm:text-sm">
           <SelectValue>
             {options.find(([optionValue]) => optionValue === value)?.[1] ??
               value}
@@ -351,7 +351,7 @@ function DesktopLedgerRows({
         <td className="px-3 py-3">
           <Link
             href={`/cappers/${pick.capper.handle}`}
-            className="focus-visible:ring-ring flex min-h-11 min-w-0 items-center gap-2 rounded-lg outline-none hover:underline focus-visible:ring-2"
+            className="focus-visible:ring-ring flex min-h-10 min-w-0 items-center gap-2 rounded-lg outline-none hover:underline focus-visible:ring-2"
           >
             <CapperAvatar
               name={pick.capper.name}
@@ -444,7 +444,7 @@ function MobileLedgerRow({
       <button
         type="button"
         className={cn(
-          "focus-visible:ring-ring grid min-h-11 w-full grid-cols-[minmax(0,1fr)_auto] gap-3 px-3 py-3.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset sm:px-4",
+          "focus-visible:ring-ring grid min-h-10 w-full grid-cols-[minmax(0,1fr)_auto] gap-3 px-3 py-3.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset sm:px-4",
           open &&
             "border-l-2 border-l-[color:var(--scl-pink)] pl-2.5 sm:pl-3.5",
         )}
@@ -475,7 +475,7 @@ function MobileLedgerRow({
             <PickTierBadge tier={pick.verificationTier ?? "SELF_REPORTED"} />
           </span>
         </span>
-        <span className="flex min-h-11 flex-col items-end justify-between gap-2">
+        <span className="flex min-h-10 flex-col items-end justify-between gap-2">
           <time
             className="scl-data text-muted-foreground text-[0.7rem] tabular-nums"
             dateTime={new Date(pick.postedAt).toISOString()}
@@ -580,7 +580,7 @@ function ExpandedEvidence({
         footerAction={
           <Link
             href={`/cappers/${pick.capper.handle}`}
-            className="focus-visible:ring-ring text-foreground inline-flex min-h-11 items-center text-sm font-semibold underline-offset-4 outline-none hover:underline focus-visible:ring-2"
+            className="focus-visible:ring-ring text-foreground inline-flex min-h-10 items-center text-sm font-semibold underline-offset-4 outline-none hover:underline focus-visible:ring-2"
           >
             Inspect @{pick.capper.handle}&apos;s public record
           </Link>
@@ -592,7 +592,7 @@ function ExpandedEvidence({
 
 function AuditRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="border-border grid min-h-11 grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-3 border-b py-2.5">
+    <div className="border-border grid min-h-10 grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-3 border-b py-2.5">
       <dt className="scl-eyebrow">{label}</dt>
       <dd className="scl-data text-foreground min-w-0 text-sm font-semibold tabular-nums">
         {value}

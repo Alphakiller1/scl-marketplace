@@ -8,31 +8,31 @@ export function SiteFooter() {
         <nav className="flex flex-wrap gap-x-5 gap-y-1">
           <Link
             href="/#how-verification-works"
-            className="hover:text-foreground inline-flex min-h-11 items-center"
+            className="hover:text-foreground inline-flex min-h-10 items-center"
           >
             How Verification Works
           </Link>
           <Link
             href="/terms"
-            className="hover:text-foreground inline-flex min-h-11 items-center"
+            className="hover:text-foreground inline-flex min-h-10 items-center"
           >
             Terms
           </Link>
           <Link
             href="/privacy"
-            className="hover:text-foreground inline-flex min-h-11 items-center"
+            className="hover:text-foreground inline-flex min-h-10 items-center"
           >
             Privacy
           </Link>
           <Link
             href="/responsible-gaming"
-            className="hover:text-foreground inline-flex min-h-11 items-center"
+            className="hover:text-foreground inline-flex min-h-10 items-center"
           >
             Responsible Gaming
           </Link>
           <Link
             href="/disclaimer"
-            className="hover:text-foreground inline-flex min-h-11 items-center"
+            className="hover:text-foreground inline-flex min-h-10 items-center"
           >
             Disclaimer
           </Link>

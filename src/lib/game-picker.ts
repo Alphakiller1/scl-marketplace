@@ -60,7 +60,33 @@ export function countEventsBySport(
 }
 
 /**
+ * Drop events that have already started.
+ *
+ * SCL accepts pre-game picks only. The submit actions reject started events, but
+ * the board must never *offer* one — otherwise a capper picks a live game, taps
+ * submit, and eats a rejection. This is the single source of that rule for the
+ * board, its counts, and its "N pre-game" label.
+ */
+export function isPreGame(
+  event: Pick<GamePickerEvent, "commenceTime">,
+  now: Date = new Date(),
+): boolean {
+  const start = Date.parse(event.commenceTime);
+  // Unparseable start time can't be proven pre-game — exclude it.
+  if (Number.isNaN(start)) return false;
+  return start > now.getTime();
+}
+
+export function preGameEvents<T extends GamePickerEvent>(
+  events: readonly T[],
+  now: Date = new Date(),
+): T[] {
+  return events.filter((e) => isPreGame(e, now));
+}
+
+/**
  * Filter the loaded multi-sport slate by day, category ("all" | sport key), and search.
+ * Started events are excluded first — they are never selectable.
  */
 export function filterGamePickerEvents<T extends GamePickerEvent>(
   events: readonly T[],
@@ -71,7 +97,8 @@ export function filterGamePickerEvents<T extends GamePickerEvent>(
     now?: Date;
   },
 ): T[] {
-  const dayEvents = filterBySlateDay(events, opts.day, opts.now);
+  const live = preGameEvents(events, opts.now);
+  const dayEvents = filterBySlateDay(live, opts.day, opts.now);
   const byCategory =
     opts.category === "all" || !opts.category
       ? dayEvents
@@ -84,7 +111,8 @@ export function categoryCounts(
   events: readonly GamePickerEvent[],
   now = new Date(),
 ): { all: number; bySport: Record<string, number> } {
-  const near = nearTermEvents(events, now);
+  // Counts must match what the board will actually show — pre-game only.
+  const near = nearTermEvents(preGameEvents(events, now), now);
   return { all: near.length, bySport: countEventsBySport(near) };
 }
 

@@ -46,7 +46,7 @@ export function AppNav({ nav }: { nav: { href: string; label: string }[] }) {
             href={n.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "inline-flex min-h-11 items-center border-b-2 px-3 transition-colors",
+              "inline-flex min-h-10 items-center border-b-2 px-3 transition-colors",
               active
                 ? "border-[color:var(--scl-blue)] font-semibold text-[color:var(--scl-text)]"
                 : "border-transparent text-[color:var(--scl-muted-data)] hover:text-[color:var(--scl-text)]",

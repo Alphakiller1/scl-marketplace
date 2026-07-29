@@ -61,7 +61,7 @@ function MarketplaceEmpty({ failed = false }: { failed?: boolean }) {
               render={<Link href="/discover" />}
               nativeButton={false}
               variant="nav"
-              className="min-h-11 gap-2"
+              className="min-h-10 gap-2"
             >
               Inspect public records
               <ArrowRight className="size-4" aria-hidden />
@@ -70,7 +70,7 @@ function MarketplaceEmpty({ failed = false }: { failed?: boolean }) {
               render={<Link href="/leaderboard" />}
               nativeButton={false}
               variant="outline"
-              className="min-h-11"
+              className="min-h-10"
             >
               View leaderboard
             </Button>
@@ -107,7 +107,7 @@ export default async function PackagesPage() {
             </div>
             <Link
               href="#how-packages-work"
-              className="focus-visible:ring-ring inline-flex min-h-11 items-center text-sm font-semibold underline underline-offset-4 focus-visible:ring-2 focus-visible:outline-none"
+              className="focus-visible:ring-ring inline-flex min-h-10 items-center text-sm font-semibold underline underline-offset-4 focus-visible:ring-2 focus-visible:outline-none"
             >
               How packages work
             </Link>

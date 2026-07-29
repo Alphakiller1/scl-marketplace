@@ -24,7 +24,7 @@ export default function AuthLayout({
         <Link
           href="/"
           aria-label="SCL Home"
-          className="pointer-events-auto inline-flex min-h-11 items-center"
+          className="pointer-events-auto inline-flex min-h-10 items-center"
         >
           <BrandLockup />
         </Link>

@@ -55,14 +55,14 @@ export function SlipConflictPrompt({
         <button
           type="button"
           onClick={onReplace}
-          className="scl-cta-brand min-h-11 px-4"
+          className="scl-cta-brand min-h-10 px-4"
         >
           Replace
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="scl-cta-nav min-h-11 px-4"
+          className="scl-cta-nav min-h-10 px-4"
         >
           Cancel
         </button>

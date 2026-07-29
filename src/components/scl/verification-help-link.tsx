@@ -19,7 +19,7 @@ export function VerificationHelpLink({ className }: { className?: string }) {
   return (
     <Dialog>
       <DialogTrigger
-        className={`scl-link inline-flex min-h-11 items-center text-xs font-medium ${className ?? ""}`}
+        className={`scl-link inline-flex min-h-10 items-center text-xs font-medium ${className ?? ""}`}
       >
         How verification works
       </DialogTrigger>

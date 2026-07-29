@@ -47,7 +47,7 @@ export function ParlayLegCard({
         className,
       )}
     >
-      <div className="flex min-h-11 items-stretch">
+      <div className="flex min-h-10 items-stretch">
         <button
           type="button"
           onClick={onToggle}
@@ -93,7 +93,7 @@ export function ParlayLegCard({
             type="button"
             onClick={onRemove}
             aria-label={`Remove leg ${index + 1}`}
-            className="text-muted-foreground hover:text-foreground hover:bg-surface-2 flex min-h-11 min-w-11 shrink-0 items-center justify-center border-l border-[color:var(--scl-line)]"
+            className="text-muted-foreground hover:text-foreground hover:bg-surface-2 flex min-h-10 min-w-11 shrink-0 items-center justify-center border-l border-[color:var(--scl-line)]"
           >
             <Trash2 className="size-4" />
           </button>

@@ -64,7 +64,7 @@ export default function SignupPage() {
             render={<Link href="/login" />}
             nativeButton={false}
             variant="outline"
-            className="min-h-11 w-full"
+            className="min-h-10 w-full"
           >
             Back to log in
           </Button>
@@ -85,7 +85,7 @@ export default function SignupPage() {
           <Button
             render={<Link href={done.verifyUrl} />}
             nativeButton={false}
-            className="min-h-11 w-full"
+            className="min-h-10 w-full"
           >
             Verify &amp; continue
           </Button>
@@ -100,7 +100,7 @@ export default function SignupPage() {
           render={<Link href="/login" />}
           nativeButton={false}
           variant="outline"
-          className="min-h-11 w-full"
+          className="min-h-10 w-full"
         >
           Back to log in
         </Button>
@@ -159,14 +159,14 @@ export default function SignupPage() {
             I accept the{" "}
             <Link
               href="/terms"
-              className="scl-link inline-flex min-h-11 items-center align-middle"
+              className="scl-link inline-flex min-h-10 items-center align-middle"
             >
               Terms Of Service
             </Link>{" "}
             and{" "}
             <Link
               href="/privacy"
-              className="scl-link inline-flex min-h-11 items-center align-middle"
+              className="scl-link inline-flex min-h-10 items-center align-middle"
             >
               Privacy Policy
             </Link>
@@ -177,11 +177,7 @@ export default function SignupPage() {
           <p className="text-neg text-xs">{errors.acceptTerms.message}</p>
         ) : null}
 
-        <Button
-          type="submit"
-          className="min-h-11 w-full"
-          disabled={isSubmitting}
-        >
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting ? "Creating account…" : "Start tracking"}
         </Button>
       </form>
@@ -190,7 +186,7 @@ export default function SignupPage() {
         Already registered?{" "}
         <Link
           href="/login"
-          className="scl-link inline-flex min-h-11 items-center font-medium"
+          className="scl-link inline-flex min-h-10 items-center font-medium"
         >
           Log in
         </Link>
@@ -221,7 +217,7 @@ function Field({
         id={id}
         type={type}
         autoComplete={autoComplete}
-        className="min-h-11"
+        className="min-h-10"
         {...register}
       />
       {error ? <p className="text-neg text-xs">{error}</p> : null}

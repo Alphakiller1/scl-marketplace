@@ -60,7 +60,7 @@ export function CapperCard({
         <div className="min-w-0 flex-1">
           <Link
             href={`/cappers/${capper.handle}`}
-            className="focus-visible:ring-ring relative z-10 flex min-h-11 items-center rounded-lg outline-none before:absolute before:inset-0 hover:underline focus-visible:ring-2 sm:min-h-8"
+            className="focus-visible:ring-ring relative z-10 flex min-h-10 items-center rounded-lg outline-none before:absolute before:inset-0 hover:underline focus-visible:ring-2 sm:min-h-8"
           >
             <CapperIdentityLabel capper={capper} compact className="relative" />
           </Link>
