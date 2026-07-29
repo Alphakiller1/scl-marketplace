@@ -182,6 +182,17 @@ async function preparePlayLine(
   }
 
   const eventStartsAt = new Date(d.eventStartsAt);
+  // No live betting — SCL only accepts pre-game picks. Once the event has
+  // started, the pick is rejected outright (never logged as live/self-reported).
+  if (eventStartsAt.getTime() <= Date.now()) {
+    return {
+      status: "error",
+      error:
+        "This event has already started. SCL only accepts pre-game picks — no live betting.",
+      selection: d.selection,
+      market: d.market,
+    };
+  }
   const marketKeys = marketKeysForMarket(d.market);
   const key = moveKey({
     eventId: d.eventId,

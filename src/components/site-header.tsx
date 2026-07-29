@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { SclLogo } from "@/components/scl-logo";
 import { MobileSiteNav } from "@/components/scl/mobile-navigation";
+import { SiteNav } from "@/components/scl/site-nav";
 import { SignOutButton } from "@/components/sign-out-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getDefaultWorkspace } from "@/lib/auth-routing";
@@ -29,36 +30,7 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="text-muted-foreground hidden items-center gap-1 text-sm sm:flex">
-          <Link
-            href="/picks"
-            prefetch
-            className="inline-flex min-h-11 items-center px-3 text-[color:var(--scl-text)] underline-offset-4 transition-colors hover:underline hover:decoration-[color:var(--scl-blue)]"
-          >
-            Picks
-          </Link>
-          <Link
-            href="/leaderboard"
-            prefetch
-            className="inline-flex min-h-11 items-center px-3 text-[color:var(--scl-text)] underline-offset-4 transition-colors hover:underline hover:decoration-[color:var(--scl-blue)]"
-          >
-            Leaderboard
-          </Link>
-          <Link
-            href="/discover"
-            prefetch
-            className="inline-flex min-h-11 items-center px-3 text-[color:var(--scl-text)] underline-offset-4 transition-colors hover:underline hover:decoration-[color:var(--scl-blue)]"
-          >
-            Discover
-          </Link>
-          <Link
-            href="/packages"
-            prefetch
-            className="inline-flex min-h-11 items-center px-3 text-[color:var(--scl-text)] underline-offset-4 transition-colors hover:underline hover:decoration-[color:var(--scl-blue)]"
-          >
-            Packages
-          </Link>
-        </nav>
+        <SiteNav />
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <ThemeToggle />
