@@ -120,7 +120,6 @@ export function StorefrontCoveragePanel({
               {entries.length ? (
                 <ul className="mt-2.5 flex flex-wrap gap-1.5">
                   {entries.map((entry) => {
-                    const handle = entry.handle?.replace(/^@/, "");
                     const label = nameFor(entry);
                     const status = entry.status
                       ? storeStatusLabel(
@@ -129,28 +128,26 @@ export function StorefrontCoveragePanel({
                           >[0],
                         )
                       : null;
-                    const chip = (
-                      <span
-                        className={cn(
-                          "border-border bg-card inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-md border px-2 py-1 text-xs",
-                          handle && "hover:border-[color:var(--scl-blue)]",
-                        )}
-                      >
-                        <span className="truncate">{label}</span>
-                        {status ? (
-                          <span className="text-muted-foreground shrink-0 text-[0.65rem]">
-                            {status}
-                          </span>
-                        ) : null}
-                      </span>
-                    );
+                    // Admin destinations only. A capper awaiting approval is
+                    // usually not publicly eligible yet, so linking to
+                    // /cappers/<handle> 404s — send admins to the screen where
+                    // they can actually act on this storefront.
+                    const href = entry.connectionId
+                      ? `/admin/store-setup?id=${entry.connectionId}`
+                      : `/admin/cappers/${entry.userId}`;
                     return (
                       <li key={entry.capperId} className="min-w-0">
-                        {handle ? (
-                          <Link href={`/cappers/${handle}`}>{chip}</Link>
-                        ) : (
-                          chip
-                        )}
+                        <Link
+                          href={href}
+                          className="border-border bg-card inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-md border px-2 py-1 text-xs hover:border-[color:var(--scl-blue)]"
+                        >
+                          <span className="truncate">{label}</span>
+                          {status ? (
+                            <span className="text-muted-foreground shrink-0 text-[0.65rem]">
+                              {status}
+                            </span>
+                          ) : null}
+                        </Link>
                       </li>
                     );
                   })}
