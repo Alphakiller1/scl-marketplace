@@ -10,7 +10,7 @@ export const SCL_AFFILIATE_EMAIL = "scleaderboard@gmail.com";
 
 /** SCL's Winible creator-onboarding referral; never use as a package checkout. */
 export const WINIBLE_CAPPER_REFERRAL_URL =
-  "https://winible.com/refer/usergif4lfuf?utm_source=1332059342148489371&utm_medium=winible_referral";
+  "https://www.winible.com/signup?onboarding=true&refer=usergif4lfuf";
 
 export const WINIBLE_INVITE_VALUES = {
   email: SCL_AFFILIATE_EMAIL,
@@ -27,10 +27,12 @@ export function isWinibleCreatorReferralUrl(value: string): boolean {
   try {
     const url = new URL(value);
     const hostname = url.hostname.toLowerCase().replace(/^www\./, "");
+    if (url.protocol !== "https:" || hostname !== "winible.com") return false;
+    // The SCL onboarding referral is identified either by a /refer/<code> path
+    // (legacy) or a ?refer=<code> query (current signup?onboarding=true&refer=…).
     return (
-      url.protocol === "https:" &&
-      hostname === "winible.com" &&
-      /^\/refer\/[a-z0-9_-]+\/?$/i.test(url.pathname)
+      /^\/refer\/[a-z0-9_-]+\/?$/i.test(url.pathname) ||
+      url.searchParams.has("refer")
     );
   } catch {
     return false;
