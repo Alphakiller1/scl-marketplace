@@ -80,7 +80,7 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
     if (provider === "WHOP") {
       return `I understand that connecting my Whop store to SCL requires adding Sports Cappers Leaderboard (${SCL_AFFILIATE_EMAIL}) as an affiliate on Whop. I understand that Whop controls its own affiliate attribution and commission rules, and that SCL will use product-specific affiliate links from our Whop dashboard on my SCL profile and package pages.`;
     }
-    return `I understand that connecting my Winible store to SCL requires designating Sports Cappers Leaderboard as an affiliate partner in Winible. I understand that Winible controls its own affiliate attribution and commission rules, and that SCL will use the affiliate links provided by Winible on my SCL profile and package pages.`;
+    return `I confirm that I’ve completed the Winible affiliate setup and designated Sports Cappers Leaderboard as my affiliate partner in Winible. I understand SCL will use the affiliate links provided by Winible on my SCL profile and package pages. I understand that Winible controls its own affiliate attribution and commission rules.`;
   }, [provider]);
 
   function continueFromChooser() {
@@ -471,8 +471,9 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
             Confirm submission
           </h2>
           <p className="text-muted-foreground text-sm">
-            Packages will not go live until SCL imports links. Do not mark this
-            complete until you finished the {providerLabel(provider)} steps.
+            Packages won’t appear on your SCL profile until SCL imports your{" "}
+            {providerLabel(provider)} affiliate links. Only check the box after
+            you’ve completed all of the {providerLabel(provider)} steps.
           </p>
           <label className="flex items-start gap-3 text-sm leading-relaxed">
             <input
