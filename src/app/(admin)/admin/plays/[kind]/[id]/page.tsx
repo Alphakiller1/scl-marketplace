@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { History, Layers, ListChecks, Zap } from "lucide-react";
+import { History, Layers, LifeBuoy, ListChecks, Zap } from "lucide-react";
 import { notFound } from "next/navigation";
 
+import { AdminGradeCorrection } from "@/components/scl/admin-grade-correction";
 import { AdminSettlementAudit } from "@/components/scl/admin-settlement-audit";
 import { PickTierBadge, SportTag, StatusBadge } from "@/components/scl/badges";
 import { SectionHeader } from "@/components/scl/section";
@@ -178,12 +179,46 @@ export default async function AdminPlayCorrectionPage({
           <div>
             <h2 className="font-semibold">Awaiting auto-grade</h2>
             <p className="text-muted-foreground mt-1 text-sm">
-              This play will be settled automatically at the next cron run
-              (every 15 min). No manual action is needed.
+              Auto-grading settles this play at the next cron run (every 15
+              min). No action is needed — use the override below only if it gets
+              stuck.
             </p>
           </div>
         </section>
       ) : null}
+
+      <section className="space-y-4">
+        <SectionHeader
+          icon={LifeBuoy}
+          title="Admin override — backup only"
+          subtitle="Auto-grading is the source of truth and settles every play automatically. Use this only to force a stuck play or correct a mis-grade; every override is logged with a required reason."
+        />
+        {record.kind === "straight" ? (
+          <AdminGradeCorrection
+            kind="straight"
+            id={record.id}
+            outcome={record.outcome}
+            profitUnits={record.profitUnits}
+            oddsAmerican={record.oddsAmerican}
+            units={record.units}
+          />
+        ) : (
+          <AdminGradeCorrection
+            kind="parlay"
+            id={record.id}
+            outcome={record.outcome}
+            profitUnits={record.profitUnits}
+            units={record.units}
+            legs={record.legs.map((leg) => ({
+              id: leg.id,
+              selection: leg.selection,
+              market: leg.market,
+              oddsAmerican: leg.oddsAmerican,
+              outcome: leg.outcome,
+            }))}
+          />
+        )}
+      </section>
 
       <section className="space-y-4">
         <SectionHeader
