@@ -12,16 +12,16 @@ function timeline(
   const steps =
     provider === "WHOP"
       ? [
-          "Choose Whop and review storefront connection",
-          "Add Sports Cappers Leaderboard as an affiliate",
-          "SCL imports your package links from Whop",
-          "Your storefront goes live on SCL",
+          "Choose Whop and review the connection process",
+          "Add Sports Cappers Leaderboard as an affiliate on Whop",
+          "SCL verifies your affiliate connection and imports your package links",
+          "Your packages go live on your SCL profile",
         ]
       : [
-          "Choose Winible and review storefront connection",
-          "Submit affiliate invite in Winible",
-          "SCL reviews your request and imports package links",
-          "Your storefront goes live on SCL",
+          "Choose Winible and review the connection process",
+          "Complete the Winible affiliate setup",
+          "SCL verifies your affiliate connection and imports your package links",
+          "Your packages go live on your SCL profile",
         ];
 
   let current = 0;
@@ -50,8 +50,8 @@ function messageFor(
   }
   if (status === "PENDING_SCL_ACCEPTANCE") {
     return {
-      title: "Awaiting affiliate invite",
-      body: "Thanks — your Winible affiliate request is in. SCL will review it, import your package links, and notify you if anything else is needed. No further action is required right now.",
+      title: "Affiliate request submitted",
+      body: "Thanks for submitting your Winible affiliate request. Our team will verify your affiliate connection, import your package links, and notify you if anything else is needed. No further action is required at this time.",
     };
   }
   if (status === "PENDING_SCL_LINK_IMPORT") {

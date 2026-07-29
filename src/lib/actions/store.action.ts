@@ -225,6 +225,9 @@ export async function submitStoreConnectionAction(
       packageImportStatus: "NOT_STARTED",
       submittedAt: now,
       acknowledgmentAt: now,
+      // A capper confirming their affiliate steps must surface to admins
+      // immediately — this lights the admin nav badge + Needs-attention queue.
+      requiresAttention: true,
     },
   });
   if (updated.count !== 1) {
@@ -331,8 +334,7 @@ export async function adminUpdateStoreConnectionAction(
     // Workflow field updates
     const affiliateAcceptedAt =
       parsed.data.action === "APPROVE" ? now : undefined;
-    const lastImportedAt =
-      parsed.data.action === "MARK_LIVE" ? now : undefined;
+    const lastImportedAt = parsed.data.action === "MARK_LIVE" ? now : undefined;
     const requiresAttention =
       transition.targetStatus === "NEEDS_ACTION" ? true : undefined;
 

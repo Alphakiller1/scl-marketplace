@@ -331,3 +331,148 @@ export async function listActiveMarketplacePackages(): Promise<
 > {
   return (await listActiveMarketplacePackagesResult()).packages;
 }
+
+// ── Admin storefront pipeline: alerting + roster coverage ────────────────────
+
+/**
+ * Submissions waiting on SCL — drives the admin nav badge + overview stat.
+ * A capper confirming their Winible/Whop affiliate steps must be impossible
+ * for admins to miss: this counts every connection pending SCL action or
+ * explicitly flagged for attention.
+ */
+export async function countStorefrontQueue(): Promise<number> {
+  try {
+    return await prisma.storeConnection.count({
+      where: {
+        OR: [
+          {
+            status: {
+              in: ["PENDING_SCL_ACCEPTANCE", "PENDING_SCL_LINK_IMPORT"],
+            },
+          },
+          { requiresAttention: true },
+        ],
+      },
+    });
+  } catch (error) {
+    console.error("[countStorefrontQueue] database unavailable:", error);
+    return 0;
+  }
+}
+
+const GHOST_DOMAIN = "@ghost.scl.demo";
+
+export type StorefrontCoverageEntry = {
+  capperId: string;
+  handle: string | null;
+  displayName: string | null;
+  email: string;
+  provider: StoreProvider | null;
+  status: string | null;
+  submittedAt: Date | null;
+};
+
+export type StorefrontCoverage = {
+  /** Storefront live on the marketplace — SCL is earning. */
+  live: StorefrontCoverageEntry[];
+  /** Capper says done; awaiting SCL acceptance / link import / go-live. */
+  pipeline: StorefrontCoverageEntry[];
+  /** Chose a provider but never submitted — likely has a storefront, not synced. */
+  stalled: StorefrontCoverageEntry[];
+  /** No storefront connection at all — market Winible onboarding to them. */
+  neverStarted: StorefrontCoverageEntry[];
+  /** Needs-action or suspended — revenue currently blocked. */
+  blocked: StorefrontCoverageEntry[];
+  failed: boolean;
+};
+
+const EMPTY_COVERAGE: StorefrontCoverage = {
+  live: [],
+  pipeline: [],
+  stalled: [],
+  neverStarted: [],
+  blocked: [],
+  failed: true,
+};
+
+// Higher = further along; a capper is bucketed by their furthest connection.
+const COVERAGE_RANK: Record<string, number> = {
+  NOT_STARTED: 0,
+  INSTRUCTIONS_VIEWED: 1,
+  DISABLED: 2,
+  NEEDS_ACTION: 3,
+  PENDING_SCL_ACCEPTANCE: 4,
+  PENDING_SCL_LINK_IMPORT: 5,
+  LINKS_RECEIVED: 6,
+  PACKAGES_IMPORTED: 7,
+  LIVE: 8,
+};
+
+/**
+ * Every real, active capper bucketed by storefront-revenue state so admins can
+ * see who is earning, who is waiting on SCL, who stalled mid-setup, and who has
+ * never started (the outreach list). Ghost demo accounts are excluded — this is
+ * an operations view, not a public surface.
+ */
+export async function getStorefrontCoverage(): Promise<StorefrontCoverage> {
+  try {
+    const cappers = await prisma.capperProfile.findMany({
+      where: {
+        user: { accountStatus: "ACTIVE" },
+        NOT: { user: { email: { endsWith: GHOST_DOMAIN } } },
+      },
+      select: {
+        id: true,
+        user: {
+          select: { username: true, displayName: true, email: true },
+        },
+        storeConnections: {
+          select: { provider: true, status: true, submittedAt: true },
+        },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    const coverage: StorefrontCoverage = {
+      live: [],
+      pipeline: [],
+      stalled: [],
+      neverStarted: [],
+      blocked: [],
+      failed: false,
+    };
+
+    for (const capper of cappers) {
+      const best = [...capper.storeConnections].sort(
+        (a, b) =>
+          (COVERAGE_RANK[b.status] ?? -1) - (COVERAGE_RANK[a.status] ?? -1),
+      )[0];
+      const entry: StorefrontCoverageEntry = {
+        capperId: capper.id,
+        handle: capper.user.username,
+        displayName: capper.user.displayName,
+        email: capper.user.email,
+        provider: best?.provider ?? null,
+        status: best?.status ?? null,
+        submittedAt: best?.submittedAt ?? null,
+      };
+      if (!best) coverage.neverStarted.push(entry);
+      else if (best.status === "LIVE") coverage.live.push(entry);
+      else if (
+        best.status === "PENDING_SCL_ACCEPTANCE" ||
+        best.status === "PENDING_SCL_LINK_IMPORT" ||
+        best.status === "LINKS_RECEIVED" ||
+        best.status === "PACKAGES_IMPORTED"
+      )
+        coverage.pipeline.push(entry);
+      else if (best.status === "NEEDS_ACTION" || best.status === "DISABLED")
+        coverage.blocked.push(entry);
+      else coverage.stalled.push(entry);
+    }
+
+    return coverage;
+  } catch (error) {
+    console.error("[getStorefrontCoverage] database unavailable:", error);
+    return EMPTY_COVERAGE;
+  }
+}
