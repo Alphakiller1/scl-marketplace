@@ -30,6 +30,7 @@ import {
   type DiscoverPlayRow,
 } from "@/lib/discover-lanes";
 import { playersForLeague } from "@/lib/player-headshots";
+import { WINIBLE_CAPPER_REFERRAL_URL } from "@/lib/store-connection";
 import { settleParlay } from "@/lib/grading";
 import { computeCapperStats } from "@/lib/stats";
 import { computeVerifiedShare } from "@/lib/verification";
@@ -646,7 +647,9 @@ async function seedGhost(passwordHash: string, g: Ghost) {
 
   // Packages via a LIVE store connection.
   if (g.hasStore) {
-    const provider: StoreProvider = chance(0.5) ? "WHOP" : "WINIBLE";
+    // Pin ghosts to WINIBLE: their checkout links land on SCL's Winible referral,
+    // so a "Subscribe on Whop" button resolving to winible.com would be a lie.
+    const provider: StoreProvider = "WINIBLE";
     const conn = await prisma.storeConnection.create({
       data: {
         capperId,
@@ -690,11 +693,13 @@ async function seedGhost(passwordHash: string, g: Ghost) {
           capperId,
           storeConnectionId: conn.id,
           title: p.title,
-          description: `${sport} plays, posted pre-game and graded on SCL. Delivered via ${provider === "WHOP" ? "Whop" : "Winible"}.`,
+          description: `${sport} plays, posted pre-game and graded on SCL. Delivered via Winible.`,
           promoOffer: p.promo,
           priceCents: p.priceCents,
           billingPeriod: p.period,
-          checkoutUrl: `https://example.com/${provider.toLowerCase()}/${g.username}`,
+          // Demo checkouts land on SCL's real Winible referral page — never a
+          // fabricated per-capper storefront that 404s.
+          checkoutUrl: WINIBLE_CAPPER_REFERRAL_URL,
           affiliateProvider: provider,
           providerType: g.providerType === "FREE" ? "PREMIUM" : g.providerType,
           sortOrder: p.sort,
@@ -712,7 +717,7 @@ async function seedGhost(passwordHash: string, g: Ghost) {
         data: {
           packageId: pkg.id,
           slug: `${slugBase}-${randInt(1000, 9999)}`,
-          targetUrl: `https://example.com/${provider.toLowerCase()}/${g.username}`,
+          targetUrl: WINIBLE_CAPPER_REFERRAL_URL,
         },
       });
     }
