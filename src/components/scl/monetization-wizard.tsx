@@ -310,7 +310,7 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
               Back
             </Button>
             <Button className="min-h-11" onClick={() => setStep(2)}>
-              Continue to {providerLabel(provider)} Setup
+              Continue to Connect Your Storefront
             </Button>
           </div>
         </Card>
@@ -364,11 +364,17 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
             <div className="space-y-3 text-sm">
               <ol className="space-y-3">
                 <li className="border-border rounded-lg border p-3">
-                  <p className="font-semibold">1. Open Affiliates</p>
+                  <p className="font-semibold">
+                    1. Open the Affiliates tab in your Winible dashboard
+                  </p>
                   <p className="text-muted-foreground mt-1">
-                    In Winible, open <strong>Affiliates</strong> in the
+                    You&apos;ll find <strong>Affiliates</strong> in the
                     left-hand menu.
                   </p>
+                  <StepShot
+                    src="/winible-steps/1-affiliates-tab.png"
+                    alt="Winible dashboard with the Affiliates tab highlighted in the left-hand menu"
+                  />
                 </li>
                 <li className="border-border rounded-lg border p-3">
                   <p className="font-semibold">2. Invite Affiliate</p>
@@ -376,9 +382,15 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
                     Under the Affiliate tab, click{" "}
                     <strong>Invite Affiliate</strong>.
                   </p>
+                  <StepShot
+                    src="/winible-steps/2-invite-affiliate.png"
+                    alt="Winible Affiliates page with the Invite Affiliate button highlighted"
+                  />
                 </li>
                 <li className="border-border rounded-lg border p-3">
-                  <p className="font-semibold">3. Use SCL form values</p>
+                  <p className="font-semibold">
+                    3. Fill in the SCL affiliate information below
+                  </p>
                   <dl className="mt-2 grid gap-1 text-xs sm:grid-cols-2">
                     <div className="border-border bg-surface-2 rounded-md border px-2 py-1.5">
                       <dt className="text-muted-foreground">Email</dt>
@@ -399,6 +411,10 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
                       <dd>{WINIBLE_INVITE_VALUES.plans}</dd>
                     </div>
                   </dl>
+                  <StepShot
+                    src="/winible-steps/3-invite-form.png"
+                    alt="Winible Invite Affiliate form filled with SCL's email, reward type, amount, and plans"
+                  />
                 </li>
               </ol>
               <div className="border-border bg-surface-2 rounded-lg border p-3">
@@ -489,5 +505,26 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
         </Card>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * Optional instructional screenshot under a setup step. Owner drops real
+ * Winible screenshots into `public/winible-steps/` (1-affiliates-tab.png,
+ * 2-invite-affiliate.png, 3-invite-form.png) and they render; while the file
+ * is missing, the slot hides itself instead of showing a broken image.
+ */
+function StepShot({ src, alt }: { src: string; alt: string }) {
+  const [missing, setMissing] = useState(false);
+  if (missing) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- optional owner-dropped asset; must hide on 404
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      className="border-border mt-2.5 w-full max-w-md rounded-lg border shadow-[var(--scl-shadow-card)]"
+      onError={() => setMissing(true)}
+    />
   );
 }
