@@ -14,6 +14,7 @@ import { ChevronDown, ListChecks, Receipt, ShieldCheck } from "lucide-react";
 import { CumulativeUnitsChart } from "@/components/scl/cumulative-units-chart";
 import { ClvTrackerPanel } from "@/components/scl/clv-tracker-panel";
 import { LeagueRef, TeamRef } from "@/components/scl/entity-marks";
+import { PlayerHeadshot } from "@/components/scl/player-headshot";
 import { ProofReceipt } from "@/components/scl/proof-receipt";
 import { ProvisionalRecordHelp } from "@/components/scl/provisional-record-help";
 import {
@@ -35,6 +36,7 @@ import type { CapperSummary } from "@/lib/mock";
 import { profitUnitsForOutcome } from "@/lib/odds";
 import { pickContextLabel } from "@/lib/pick-identity";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
+import { toHeadshotLeague } from "@/lib/player-headshots";
 import {
   PROFILE_CHART_WINDOWS,
   buildProfileChartSeries,
@@ -132,7 +134,15 @@ function playToProofReceipt(
       key={`${play.id}-${density}`}
       selectionTitle={play.selection}
       leadingMark={
-        <TeamRef name={play.side} sport={play.sport} size="md" knownOnly />
+        play.market === "Player Prop" ? (
+          <PlayerHeadshot
+            selection={play.selection}
+            league={toHeadshotLeague(play.sport)}
+            size={26}
+          />
+        ) : (
+          <TeamRef name={play.side} sport={play.sport} size="md" knownOnly />
+        )
       }
       eventLine={
         <span className="inline-flex flex-wrap items-center gap-1.5 tracking-normal normal-case">
@@ -641,8 +651,18 @@ function ProofHistoryLedger({
                       timeZone: "UTC",
                     })}
                   </td>
-                  <td className="truncate py-2.5 pr-2 font-medium">
-                    {play.selection}
+                  <td className="py-2.5 pr-2 font-medium">
+                    <span className="flex min-w-0 items-center gap-2">
+                      {play.market === "Player Prop" ? (
+                        <PlayerHeadshot
+                          selection={play.selection}
+                          league={toHeadshotLeague(play.sport)}
+                          size={22}
+                          className="shrink-0"
+                        />
+                      ) : null}
+                      <span className="truncate">{play.selection}</span>
+                    </span>
                   </td>
                   <td className="scl-data text-muted-foreground hidden py-2.5 pr-2 tabular-nums sm:table-cell">
                     {formatOdds(play.oddsAmerican)}
