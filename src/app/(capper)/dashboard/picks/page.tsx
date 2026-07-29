@@ -29,8 +29,6 @@ export default async function MyPicksPage() {
             ? `${entries.length} submitted ${entries.length === 1 ? "Ticket" : "Tickets"} — pending until graded`
             : "Your public record is built from board-checked Tickets"
         }
-        href="/dashboard/picks/new"
-        hrefLabel="New Pick"
       />
       {entries.length ? (
         <div className="space-y-2">
