@@ -33,7 +33,7 @@ export function AppNav({ nav }: { nav: { href: string; label: string }[] }) {
             <Link
               key={n.href}
               href={n.href}
-              className="scl-cta-brand inline-flex min-h-11 items-center px-3"
+              className="scl-cta-brand inline-flex h-9 items-center px-3.5"
             >
               {n.label}
             </Link>
