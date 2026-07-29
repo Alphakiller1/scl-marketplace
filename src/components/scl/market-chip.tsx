@@ -1,5 +1,7 @@
 "use client";
 
+import { Check } from "lucide-react";
+
 import { BettingTitle } from "@/components/scl/betting-title";
 import { BookMark } from "@/components/scl/book-mark";
 import { bookShort } from "@/lib/books";
@@ -55,12 +57,12 @@ export function MarketChip({
           : undefined
       }
       className={cn(
-        "flex min-h-12 w-full items-center justify-between gap-2 rounded-[var(--scl-radius-chip)] border px-3 py-2 text-left transition-[background-color,box-shadow,border-color] duration-150 ease-in-out",
+        "group flex min-h-[3.25rem] w-full items-center justify-between gap-2 rounded-[var(--scl-radius-chip)] border px-3.5 py-2 text-left transition-all duration-150 ease-out active:translate-y-px",
         selected
-          ? "scl-fill-brand cursor-default"
-          : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-700)] hover:bg-[color:var(--scl-ink-600)]",
+          ? "scl-fill-brand cursor-default shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--scl-pink-ink)_55%,transparent)]"
+          : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-700)] hover:border-[color:var(--scl-blue)] hover:bg-[color:var(--scl-ink-600)] hover:shadow-[var(--scl-shadow-card)]",
         missing &&
-          "cursor-default opacity-60 hover:bg-[color:var(--scl-ink-700)]",
+          "cursor-default opacity-55 hover:border-[color:var(--scl-line)] hover:bg-[color:var(--scl-ink-700)] hover:shadow-none",
         className,
       )}
     >
@@ -106,13 +108,15 @@ export function MarketChip({
       </span>
       <span
         className={cn(
-          "scl-data shrink-0 text-sm font-semibold tabular-nums",
+          "scl-data flex shrink-0 items-center gap-1 text-[0.95rem] leading-none font-bold tabular-nums",
           selected
             ? "text-[color:var(--scl-pink-ink)]"
-            : "text-[color:var(--scl-text)]",
+            : missing
+              ? "text-[color:var(--scl-muted-label)]"
+              : "text-[color:var(--scl-text)]",
         )}
       >
-        {selected ? "✓ " : ""}
+        {selected ? <Check className="size-3.5 shrink-0" aria-hidden /> : null}
         {missing ? "—" : formatOdds(oddsAmerican)}
       </span>
     </button>

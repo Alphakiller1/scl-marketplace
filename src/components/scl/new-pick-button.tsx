@@ -21,7 +21,10 @@ export function NewPickButton({
       render={<Link href="/dashboard/picks/new" />}
       nativeButton={false}
       variant={variant}
-      className={cn("min-h-11 gap-1.5", className)}
+      className={cn(
+        "min-h-11 gap-1.5 font-semibold tracking-[0.01em] shadow-[var(--scl-shadow-card)] transition-transform active:translate-y-px",
+        className,
+      )}
     >
       <Plus className="size-4" aria-hidden />
       New Pick
