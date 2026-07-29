@@ -335,8 +335,13 @@ export async function adminUpdateStoreConnectionAction(
     const affiliateAcceptedAt =
       parsed.data.action === "APPROVE" ? now : undefined;
     const lastImportedAt = parsed.data.action === "MARK_LIVE" ? now : undefined;
-    const requiresAttention =
-      transition.targetStatus === "NEEDS_ACTION" ? true : undefined;
+    // Always write this explicitly. Capper submissions set requiresAttention so
+    // admins get alerted; if we only ever set `true`, the flag would stick
+    // forever and the nav badge / Needs-attention filter would never clear.
+    // An admin acting on the connection IS the acknowledgement — the only state
+    // that stays flagged is NEEDS_ACTION. The badge still counts pending-SCL
+    // statuses separately (countStorefrontQueue), so nothing gets lost.
+    const requiresAttention = transition.targetStatus === "NEEDS_ACTION";
 
     const updated = await tx.storeConnection.updateMany({
       where: {
@@ -352,7 +357,7 @@ export async function adminUpdateStoreConnectionAction(
         reviewedById: admin.id,
         ...(affiliateAcceptedAt && { affiliateAcceptedAt }),
         ...(lastImportedAt && { lastImportedAt }),
-        ...(requiresAttention !== undefined && { requiresAttention }),
+        requiresAttention,
         ...(packageCount > 0 && { packageCount }),
       },
     });
