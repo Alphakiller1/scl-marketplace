@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DayToggle } from "@/components/scl/day-toggle";
 import { MarketChip } from "@/components/scl/market-chip";
+import { PlayerHeadshot } from "@/components/scl/player-headshot";
 import { SkeletonCard } from "@/components/scl/states";
 import { TeamMark } from "@/components/scl/team-mark";
 import { cn } from "@/lib/utils";
@@ -14,6 +15,7 @@ import { formatCaptureClock, formatOdds } from "@/lib/format";
 import { bookShort } from "@/lib/books";
 import { selectionForActiveBook } from "@/lib/game-picker";
 import { pickKey } from "@/lib/slip";
+import { toHeadshotLeague } from "@/lib/player-headshots";
 import {
   availablePropMarkets,
   filterPlayerPropGroups,
@@ -75,6 +77,27 @@ function marketOrder(market: string): number {
 
 function isGameMarket(market: string): boolean {
   return (MARKET_ORDER as readonly string[]).includes(market);
+}
+
+/**
+ * Inside a player's accordion the name is already the header, so repeating
+ * "Aaron Judge" on every chip (plus his face three times) is noise. Strip the
+ * leading player name and the market tail so chips read like a book: "Over 1.5".
+ */
+function propChipLabel(
+  selection: string,
+  player: string,
+  market: string,
+): string {
+  let label = selection;
+  if (player && label.toLowerCase().startsWith(player.toLowerCase())) {
+    label = label.slice(player.length).trim();
+  }
+  label = label.replace(/\s+[-–—]\s+/, " ").trim();
+  if (market && label.toLowerCase().endsWith(market.toLowerCase())) {
+    label = label.slice(0, -market.length).trim();
+  }
+  return label || selection;
 }
 
 function groupByMarket(
@@ -538,7 +561,11 @@ export function EventDetail({
   // Search auto-opens matching players so a named prop is ≤2 taps (type + chip).
   const searching = q.length > 0;
 
-  const renderChip = (s: OddsSelection, key: string) => {
+  const renderChip = (
+    s: OddsSelection,
+    key: string,
+    labelOverride?: string,
+  ) => {
     const priced = selectionForActiveBook(s, activeBook);
     const pick: OddsPick | null =
       priced.oddsAmerican === null
@@ -560,7 +587,7 @@ export function EventDetail({
     return (
       <MarketChip
         key={key}
-        label={s.selection}
+        label={labelOverride ?? s.selection}
         oddsAmerican={priced.oddsAmerican}
         book={priced.book}
         oddsCapturedAt={priced.oddsCapturedAt}
@@ -641,7 +668,7 @@ export function EventDetail({
         {featured.length ? (
           <div>
             {marketLabel("Main line")}
-            <div className="flex flex-wrap gap-1.5">
+            <div className="grid grid-cols-2 gap-1.5">
               {featured.map((s, i) => renderChip(s, `main-${market}-${i}`))}
             </div>
           </div>
@@ -649,7 +676,7 @@ export function EventDetail({
         {alt && alt.total > 0 ? (
           <div>
             {marketLabel(`Alternate ${market}`)}
-            <div className="flex flex-wrap gap-1.5">
+            <div className="grid grid-cols-2 gap-1.5">
               {alt.visible.map((s, i) => renderChip(s, `alt-${market}-${i}`))}
             </div>
             {alt.total > ALT_LINE_CAP ? (
@@ -713,7 +740,7 @@ export function EventDetail({
           {featuredGroups.map(([market, opts]) => (
             <div key={market}>
               {marketLabel(market)}
-              <div className="flex flex-wrap gap-1.5">
+              <div className="grid grid-cols-2 gap-1.5">
                 {opts.map((s, i) => renderChip(s, `${market}-${i}`))}
               </div>
             </div>
@@ -806,7 +833,12 @@ export function EventDetail({
                     aria-expanded={open}
                     className="hover:bg-surface-2 flex min-h-10 w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors"
                   >
-                    <span className="min-w-0 truncate font-medium">
+                    <PlayerHeadshot
+                      selection={player}
+                      league={toHeadshotLeague(event.sport)}
+                      size={28}
+                    />
+                    <span className="min-w-0 flex-1 truncate font-medium">
                       {player}
                     </span>
                     <span className="text-muted-foreground flex shrink-0 items-center gap-1.5 text-xs">
@@ -828,9 +860,13 @@ export function EventDetail({
                       {visibleMarkets.map(([market, opts]) => (
                         <div key={market}>
                           {marketLabel(market)}
-                          <div className="flex flex-wrap gap-1.5">
+                          <div className="grid grid-cols-2 gap-1.5">
                             {opts.map((s, i) =>
-                              renderChip(s, `${player}-${market}-${i}`),
+                              renderChip(
+                                s,
+                                `${player}-${market}-${i}`,
+                                propChipLabel(s.selection, player, market),
+                              ),
                             )}
                           </div>
                         </div>
@@ -877,7 +913,7 @@ function DetailSkeleton() {
   return (
     <div className="space-y-1.5" aria-hidden>
       <Skeleton className="h-2.5 w-16 rounded" />
-      <div className="flex flex-wrap gap-1.5">
+      <div className="grid grid-cols-2 gap-1.5">
         {Array.from({ length: 6 }).map((_, i) => (
           <Skeleton key={i} className="h-10 w-20 rounded-md" />
         ))}
