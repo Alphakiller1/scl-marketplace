@@ -238,6 +238,69 @@ def num(v):
         return None
 
 
+# --------------------------------------------------------------------------
+# Storefront packages (legacy `aff_subscriptions`)
+# --------------------------------------------------------------------------
+
+_PERIOD_PATTERNS = [
+    (r"/\s*day|per\s+day|\bdaily\b|\b1\s*day\b", "DAY"),
+    (r"/\s*w(?:k|eek)|per\s+week|\bweekly\b|\b(?:3|5|7)\s*days?\b", "WEEK"),
+    (r"/\s*mo(?:nth)?|per\s+month|\bmonthly\b|\b30\s*days?\b", "MONTH"),
+    (r"\bseason\b|\bplayoffs?\b", "SEASON"),
+    (r"/\s*(?:yr|year)|per\s+year|\byearly\b|\bannual\b", "YEAR"),
+]
+
+
+def html_to_text(raw: str | None) -> str:
+    """Legacy descriptions are HTML, double-escaped by the dump."""
+    import html as _html
+
+    s = _html.unescape(_html.unescape(raw or ""))
+    s = re.sub(r"<br\s*/?>|</p>|</div>|</h\d>", " \n", s, flags=re.I)
+    s = re.sub(r"<[^>]+>", " ", s)
+    s = _html.unescape(s)
+    s = s.replace("\xa0", " ")
+    return demojibake(re.sub(r"[ \t]+", " ", s).strip()) or ""
+
+
+def parse_package_price(text: str) -> tuple[int, str, bool]:
+    """(cents, billingPeriod, confident).
+
+    A description may quote several prices ("$5/week or $15/month"); the first
+    is taken and the row is marked unconfident so a human can confirm it. When
+    no price is found cents is 0, which renders no price label at all rather
+    than claiming the offer is free — the checkout page remains authoritative.
+    """
+    prices = re.findall(r"\$\s?(\d{1,5}(?:\.\d{1,2})?)", text)
+    low = text.lower()
+
+    period = "MONTH"
+    for pat, name in _PERIOD_PATTERNS:
+        if re.search(pat, low):
+            period = name
+            break
+
+    if not prices:
+        return 0, period, False
+    cents = int(round(float(prices[0]) * 100))
+    # More than one distinct non-zero price means the offer bundles tiers.
+    distinct = {p for p in prices if float(p) > 0}
+    return cents, period, len(distinct) <= 1
+
+
+def parse_package_title(text: str) -> str:
+    """Leading label before the price/colon; falls back to the first few words."""
+    head = text.split("\n")[0].strip()
+    if ":" in head[:70]:
+        title = head.split(":", 1)[0]
+    elif "$" in head:
+        title = head.split("$", 1)[0]
+    else:
+        title = " ".join(head.split()[:7])
+    title = re.sub(r"[\s\-–—•|]+$", "", title.strip())
+    return (title or "Package")[:100]
+
+
 def stat_cell(row: dict, prefix: str, warn: Counter | None = None) -> dict | None:
     """One (sport | total) slice of a legacy stats row, or None if unusable.
 
@@ -333,8 +396,56 @@ def event_iso(rdate: str, ltime) -> str | None:
     return f"{rdate}T{hh:02d}:{mm:02d}:00{ET_OFFSET}"
 
 
+# UTF-8 text that was stored through a latin-1/cp1252 column comes back as a run
+# of Latin-1/cp1252 characters: 🔥 becomes "ðŸ”¥", ✅ becomes "âœ…".
+#
+# The legacy descriptions are MIXED — corrupted runs sit alongside characters
+# that were stored correctly (— • –), so re-encoding the whole string always
+# fails on one of the good ones. Repair each run on its own instead.
+_MOJI_LEAD = "Â-ô"
+# cp1252 renderings of UTF-8 continuation bytes 0x80-0xBF.
+_MOJI_CONT = (
+    "-¿€‚ƒ„…†‡ˆ‰"
+    "Š‹ŒŽ‘’“”•–—"
+    "˜™š›œžŸ"
+)
+_MOJI_RUN = re.compile(f"[{_MOJI_LEAD}][{_MOJI_CONT}]+")
+
+# Reverse cp1252 table, falling back to the identity mapping for 0x00-0xFF so
+# byte values cp1252 leaves undefined (0x81, 0x8D, 0x8F, 0x90, 0x9D) still round-trip.
+_CP1252_TO_BYTE: dict[str, int] = {chr(b): b for b in range(256)}
+for _b in range(0x80, 0xA0):
+    try:
+        _CP1252_TO_BYTE[bytes([_b]).decode("cp1252")] = _b
+    except UnicodeDecodeError:
+        pass
+
+
+def demojibake(s: str | None) -> str | None:
+    """Undo UTF-8-read-as-cp1252 corruption, run by run."""
+    if not s:
+        return s
+
+    def fix(m: re.Match[str]) -> str:
+        run = m.group(0)
+        # A run can mix cp1252-only characters (Ÿ -> 0x9F) with byte values
+        # cp1252 leaves undefined (0x8F), so neither codec handles it alone.
+        # Recover each original byte individually instead.
+        try:
+            raw = bytes(_CP1252_TO_BYTE[ch] for ch in run)
+        except KeyError:
+            return run
+        try:
+            decoded = raw.decode("utf-8")
+        except UnicodeDecodeError:
+            return run
+        return run if "�" in decoded else decoded
+
+    return _MOJI_RUN.sub(fix, s)
+
+
 def clean(v) -> str | None:
-    s = (v or "").strip()
+    s = demojibake((v or "").strip())
     return s or None
 
 
@@ -402,6 +513,8 @@ def main() -> int:
     ap.add_argument("--out", required=True)
     ap.add_argument("--records-out",
                     help="also write carried-over aggregate records to this path")
+    ap.add_argument("--packages-out",
+                    help="also write storefront packages to this path")
     ap.add_argument("--captured-at", default="2026-07-30T21:17:00-04:00",
                     help="when the legacy export was taken (stamped on records)")
     ap.add_argument("--include-pending", action="store_true",
@@ -607,6 +720,74 @@ def main() -> int:
             json.dump(records_out, fh, indent=2, ensure_ascii=False)
             fh.write("\n")
 
+    # ---- storefront packages --------------------------------------------
+    pkg_stats = {"rows": 0, "cappers": 0, "unconfident": 0, "nolink": 0, "noprice": 0}
+    if args.packages_out:
+        username_for = {c["account_number"]: clean(c.get("user")) for c in cappers}
+        packages_out = []
+        package_review: list[dict] = []
+        seen_ref: set[str] = set()
+        for r in rows(site, "aff_subscriptions"):
+            acct = r.get("Acct")
+            username = username_for.get(acct)
+            if not username or acct in ("0", "", None):
+                continue
+            ref = clean(r.get("xinfo"))
+            checkout = clean(r.get("code"))
+            if not ref or ref in seen_ref:
+                continue
+            if not checkout or not checkout.lower().startswith("http"):
+                pkg_stats["nolink"] += 1
+                continue  # no checkout URL => the offer cannot publish
+            seen_ref.add(ref)
+
+            text = html_to_text(r.get("description"))
+            cents, period, confident = parse_package_price(text)
+            if cents == 0:
+                pkg_stats["noprice"] += 1
+            if not confident:
+                pkg_stats["unconfident"] += 1
+
+            # A wrong price is worse than no price. Offers quoting several
+            # figures ("$25 now just $12.50!", "$5/week or $15/month") are
+            # published at 0, which renders no price label at all — the
+            # checkout page stays authoritative — and are listed for review.
+            if not confident:
+                package_review.append({
+                    "username": username,
+                    "legacyRef": ref,
+                    "title": parse_package_title(text),
+                    "bestGuessCents": cents,
+                    "billingPeriod": period,
+                    "sourceText": text[:200],
+                })
+
+            packages_out.append({
+                "username": username,
+                # Legacy affiliate code — unique per offer, so it keys both the
+                # idempotent upsert and a stable /go slug across re-runs.
+                "legacyRef": ref,
+                "title": parse_package_title(text),
+                "description": text[:600] or None,
+                "priceCents": cents if confident else 0,
+                "billingPeriod": period,
+                "checkoutUrl": checkout,
+                "affiliateProvider": "WINIBLE" if "winible" in checkout.lower() else None,
+                "sortOrder": int(num(r.get("odr")) or 0),
+                "isActive": (r.get("dstatus") or "").strip().upper() == "Y",
+            })
+
+        pkg_stats["rows"] = len(packages_out)
+        pkg_stats["cappers"] = len({p["username"] for p in packages_out})
+        with open(args.packages_out, "w", encoding="utf-8") as fh:
+            json.dump(packages_out, fh, indent=2, ensure_ascii=False)
+            fh.write("\n")
+        review_path = args.packages_out.replace(".json", "-review.json")
+        with open(review_path, "w", encoding="utf-8") as fh:
+            json.dump(package_review, fh, indent=2, ensure_ascii=False)
+            fh.write("\n")
+        pkg_stats["review_path"] = review_path
+
     # ---- report --------------------------------------------------------
     total = sum(len(c.get("plays", [])) for c in out)
     withplays = sum(1 for c in out if c.get("plays"))
@@ -620,6 +801,12 @@ def main() -> int:
         assert DST_WINDOW[0] <= min(dates) and max(dates) <= DST_WINDOW[1], \
             "dates fall outside US Eastern DST — the fixed -04:00 offset is no longer exact"
     print(f"  units (stake)  : from `urisk`; profit from `uret`")
+    if args.packages_out:
+        print(f"\nWrote {args.packages_out}")
+        print(f"  packages       : {pkg_stats['rows']} across {pkg_stats['cappers']} cappers")
+        print(f"  no price parsed: {pkg_stats['noprice']} (render without a price label)")
+        print(f"  ambiguous price: {pkg_stats['unconfident']} -> published with no price label; see {pkg_stats.get('review_path')}")
+        print(f"  skipped, no checkout link: {pkg_stats['nolink']}")
     if args.records_out:
         print(f"\nWrote {args.records_out}")
         print(f"  cappers        : {rec_stats['cappers']}")

@@ -44,6 +44,8 @@ next-env.d.ts
 # Legacy capper import data (real exports — keep out of git; .example.json is tracked)
 prisma/legacy-cappers.json
 prisma/legacy-records.json
+prisma/legacy-packages.json
+prisma/legacy-packages-review.json
 
 # Local visual QA artifacts (do not commit)
 qa-screenshots*/

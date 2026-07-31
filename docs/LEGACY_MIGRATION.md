@@ -139,6 +139,44 @@ The importer refuses to attach records to a profile that is not `isLegacy`, so
 carried-over totals can never inflate a natively-grown capper. Surfaces that
 include them render the `Legacy` badge with the carried count.
 
+## Storefront packages
+
+`aff_subscriptions` holds the previous platform's affiliate offers — 122 across
+56 cappers, almost all Winible checkout links.
+
+```bash
+# Run AFTER db:import-legacy — offers attach to the profiles it creates.
+npm run db:import-legacy-packages -- prisma/legacy-packages.json
+```
+
+Three things the importer has to get right:
+
+- **Every package gets a `TrackingUrl`.** `listActiveMarketplacePackages`
+  filters out any package without one, so an offer imported without a slug
+  exists in the database and is invisible on `/packages`.
+- **`storeConnectionId` stays null.** The public predicate accepts either a LIVE
+  store connection or no connection at all; these offers were already live.
+- **The slug is deterministic** — `<username>-<legacyRef>`, where `legacyRef` is
+  the legacy affiliate code (unique per offer). That keeps re-runs idempotent
+  and means a shared `/go/` link never breaks.
+
+### Prices are deliberately conservative
+
+Legacy offers carry no price column; the figure lives inside the HTML blurb,
+and some quote several ("$25 now just $12.50!", "$5/week or $15/month"). Any
+offer whose price is ambiguous is published at **0**, which renders no price
+label at all rather than the wrong one — the checkout page stays authoritative.
+Those rows are written to `prisma/legacy-packages-review.json` for a human to
+confirm. At the time of writing: 81 confident, 28 with no price in the copy, 13
+ambiguous.
+
+### Text encoding
+
+The legacy tables stored UTF-8 through a latin-1/cp1252 column, so emoji come
+back mangled (`ðŸ”¥` for 🔥). The extractor repairs this run by run — the
+descriptions mix corrupted spans with characters that were stored correctly
+(— • –), so re-encoding a whole string always fails on one of the good ones.
+
 ## Phase 2 follow-up
 
 A **profile claim flow** (let a real capper take ownership of their imported
