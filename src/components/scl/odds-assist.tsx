@@ -668,7 +668,7 @@ export function EventDetail({
         {featured.length ? (
           <div>
             {marketLabel("Main line")}
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
               {featured.map((s, i) => renderChip(s, `main-${market}-${i}`))}
             </div>
           </div>
@@ -676,7 +676,7 @@ export function EventDetail({
         {alt && alt.total > 0 ? (
           <div>
             {marketLabel(`Alternate ${market}`)}
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
               {alt.visible.map((s, i) => renderChip(s, `alt-${market}-${i}`))}
             </div>
             {alt.total > ALT_LINE_CAP ? (
@@ -740,7 +740,7 @@ export function EventDetail({
           {featuredGroups.map(([market, opts]) => (
             <div key={market}>
               {marketLabel(market)}
-              <div className="grid grid-cols-2 gap-1.5">
+              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                 {opts.map((s, i) => renderChip(s, `${market}-${i}`))}
               </div>
             </div>
@@ -860,7 +860,7 @@ export function EventDetail({
                       {visibleMarkets.map(([market, opts]) => (
                         <div key={market}>
                           {marketLabel(market)}
-                          <div className="grid grid-cols-2 gap-1.5">
+                          <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                             {opts.map((s, i) =>
                               renderChip(
                                 s,
@@ -913,7 +913,7 @@ function DetailSkeleton() {
   return (
     <div className="space-y-1.5" aria-hidden>
       <Skeleton className="h-2.5 w-16 rounded" />
-      <div className="grid grid-cols-2 gap-1.5">
+      <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
         {Array.from({ length: 6 }).map((_, i) => (
           <Skeleton key={i} className="h-10 w-20 rounded-md" />
         ))}
