@@ -19,11 +19,31 @@ export type CapperStats = {
 };
 
 /**
+ * Settled results carried over from the previous SCL platform, which pruned
+ * individual picks beyond a rolling 90-day window. Folded into the totals
+ * before win%/ROI are derived so those stay consistent with the record shown.
+ *
+ * Callers must pass the `PRE_IMPORT` scope, which already has the imported
+ * plays subtracted out — passing a full legacy total alongside the plays it
+ * contains would double-count the overlap.
+ */
+export type StatsBaseline = {
+  wins: number;
+  losses: number;
+  pushes: number;
+  stakedUnits: number;
+  units: number; // net profit in units
+};
+
+/**
  * Derive a capper's headline stats from their plays. Void plays are excluded
  * from the record and ROI (stake returned); pending plays count only as pending.
  * Win% is wins / (wins + losses); ROI is net profit / total staked on settled.
  */
-export function computeCapperStats(plays: PlayForStats[]): CapperStats {
+export function computeCapperStats(
+  plays: PlayForStats[],
+  baseline?: StatsBaseline | null,
+): CapperStats {
   let wins = 0;
   let losses = 0;
   let pushes = 0;
@@ -52,12 +72,20 @@ export function computeCapperStats(plays: PlayForStats[]): CapperStats {
     profit += p.profitUnits ?? 0;
   }
 
+  if (baseline) {
+    wins += baseline.wins;
+    losses += baseline.losses;
+    pushes += baseline.pushes;
+    staked += baseline.stakedUnits;
+    profit += baseline.units;
+  }
+
   const decided = wins + losses;
   return {
     wins,
     losses,
     pushes,
-    pending,
+    pending, // carried-over records are settled by definition — never pending
     settled: wins + losses + pushes,
     stakedUnits: staked,
     winPct: decided > 0 ? (wins / decided) * 100 : 0,

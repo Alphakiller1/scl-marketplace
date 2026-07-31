@@ -237,6 +237,7 @@ model CapperProfile {
   parlays          Parlay[]
   packages         Package[]
   storeConnections StoreConnection[]
+  legacyRecords    LegacyRecord[]
 
   @@index([providerType])
 }
@@ -555,19 +556,67 @@ model ParlayGradingAudit {
 }
 
 model GradeJobRun {
-  id             String   @id @default(cuid())
-  createdAt      DateTime @default(now())
-  startedAt      DateTime?
-  finishedAt     DateTime?
-  provider       String
-  graded         Int      @default(0)
-  skipped        Int      @default(0)
-  parlaysGraded  Int      @default(0)
+  id              String    @id @default(cuid())
+  createdAt       DateTime  @default(now())
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  provider        String
+  graded          Int       @default(0)
+  skipped         Int       @default(0)
+  parlaysGraded   Int       @default(0)
   skippedByReason Json
-  status         String   // RUNNING | SUCCESS | FAILED
-  error          String?
-  meta           Json?
+  status          String // RUNNING | SUCCESS | FAILED
+  error           String?
+  meta            Json?
 
   @@index([status])
   @@index([createdAt])
+}
+
+/// Aggregate results carried over from the previous SCL platform
+/// (sportscappersleaderboard.com), which pruned individual picks on a rolling
+/// 90-day basis and kept only these summary totals beyond that. There is no
+/// pick-level evidence behind them, so they are stored separately from `Play`
+/// and always surfaced with explicit legacy provenance.
+enum LegacyRecordScope {
+  /// The leaderboard baseline: the capper's legacy season total MINUS the plays
+  /// that were imported as real `Play` rows. Adding this to computed stats
+  /// reproduces the legacy season total exactly, with no window double-counting.
+  PRE_IMPORT
+  CURRENT_SEASON
+  CURRENT_YEAR
+  YEAR_2025
+  SEASON_2025
+  LAST_7D
+  LAST_30D
+  LAST_60D
+  LAST_90D
+}
+
+model LegacyRecord {
+  id       String            @id @default(cuid())
+  capperId String
+  scope    LegacyRecordScope
+  /// A canonical SPORT_KEY, or "ALL" for the combined total. A sentinel rather
+  /// than null so the uniqueness constraint actually holds (Postgres treats
+  /// NULLs as distinct, which would allow duplicate combined-total rows).
+  sport    String
+
+  wins        Int     @default(0)
+  losses      Int     @default(0)
+  pushes      Int     @default(0)
+  /// Units risked, matching the legacy platform's risk-denominated convention
+  /// (a favorite lays juice to win one unit), so ROI = unitsNet / unitsRisked.
+  unitsRisked Decimal @db.Decimal(12, 2)
+  unitsNet    Decimal @db.Decimal(12, 2)
+
+  /// When the legacy export these totals came from was taken.
+  capturedAt DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  capper CapperProfile @relation(fields: [capperId], references: [id], onDelete: Cascade)
+
+  @@unique([capperId, scope, sport])
+  @@index([scope, sport])
 }

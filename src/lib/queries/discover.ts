@@ -97,6 +97,23 @@ async function loadDiscoverLanes(): Promise<{
         user: {
           select: { username: true, emailVerified: true },
         },
+        // Carried-over totals from the previous SCL platform. Discover's base
+        // summary is all-time (it feeds the "Proven Over Time" lane), so it
+        // takes the same PRE_IMPORT baseline the leaderboard does — otherwise
+        // the same capper would show two different records across surfaces.
+        // Lane-level windowed and specialty math stays play-only on purpose:
+        // the legacy export carries totals, not per-pick or per-market detail.
+        legacyRecords: {
+          where: { scope: "PRE_IMPORT", sport: "ALL" },
+          select: {
+            wins: true,
+            losses: true,
+            pushes: true,
+            unitsRisked: true,
+            unitsNet: true,
+          },
+          take: 1,
+        },
         plays: {
           where: {
             parlayId: null,
@@ -172,12 +189,23 @@ async function loadDiscoverLanes(): Promise<{
         })),
       ].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
+      const legacyRecord = p.legacyRecords[0];
+      const legacyBaseline = legacyRecord
+        ? {
+            wins: legacyRecord.wins,
+            losses: legacyRecord.losses,
+            pushes: legacyRecord.pushes,
+            stakedUnits: Number(legacyRecord.unitsRisked),
+            units: Number(legacyRecord.unitsNet),
+          }
+        : null;
       const stats = computeCapperStats(
         positions.map((x) => ({
           outcome: x.outcome,
           units: x.units,
           profitUnits: x.profitUnits,
         })),
+        legacyBaseline,
       );
       const performanceTrend = buildPerformanceTrend(
         positions.map((x) => ({
@@ -248,6 +276,9 @@ async function loadDiscoverLanes(): Promise<{
         }),
         joinedAt: p.createdAt,
         isLegacy: p.isLegacy || undefined,
+        legacyCarriedResults: legacyBaseline
+          ? legacyBaseline.wins + legacyBaseline.losses + legacyBaseline.pushes
+          : undefined,
         activity: computeCapperActivity(positions.map((x) => x.createdAt)),
       };
 

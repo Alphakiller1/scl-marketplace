@@ -66,6 +66,13 @@ export type CapperSummary = {
   };
   storefront?: StorefrontSummary;
   isLegacy?: boolean; // record imported from the previous SCL platform
+  /**
+   * Settled results folded in from the previous platform's stored totals, which
+   * have no pick-level evidence behind them. Present only when the displayed
+   * record actually includes them, so surfaces can say so rather than implying
+   * every result here is SCL-verified.
+   */
+  legacyCarriedResults?: number;
   /** Pick counts in recent windows (straight + parlay positions). */
   activity?: {
     last3Days: number;
