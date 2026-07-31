@@ -119,6 +119,22 @@ Where it applies:
   export carries totals with no per-pick sequence, so seeding them would invent
   a shape the source never had.
 
+### Source data quality
+
+The legacy accumulator is not always sound, so the extractor reports what it
+had to correct and drops what it cannot reason about:
+
+- **Negative counts** (a regrade decrementing twice — 4 rows, all NCAAF) are
+  floored to zero. That is not a number of results, it is a bug; the valid
+  wins/losses in the same slice are kept.
+- **Slices with no units risked** are dropped (2 rows). A push-only slice
+  returns the stake and carries neither a W/L record nor a computable ROI, and
+  decided results with zero risk are a genuine source error.
+
+Both are counted in the run's `row warnings` — a clean run should print none
+beyond these. The Zod contract rejects either shape independently, so a
+regression cannot reach the database silently.
+
 The importer refuses to attach records to a profile that is not `isLegacy`, so
 carried-over totals can never inflate a natively-grown capper. Surfaces that
 include them render the `Legacy` badge with the carried count.

@@ -238,16 +238,43 @@ def num(v):
         return None
 
 
-def stat_cell(row: dict, prefix: str) -> dict | None:
-    """One (sport | total) slice of a legacy stats row, or None if it's empty."""
-    w = int(num(row.get(f"{prefix}_w")) or 0)
-    l = int(num(row.get(f"{prefix}_l")) or 0)
-    p = int(num(row.get(f"{prefix}_p")) or 0)
+def stat_cell(row: dict, prefix: str, warn: Counter | None = None) -> dict | None:
+    """One (sport | total) slice of a legacy stats row, or None if unusable.
+
+    The legacy accumulator is not always sound — some slices carry a NEGATIVE
+    count (a regrade decrementing twice), which is not a number of results but a
+    bug. Those are floored at zero so the valid part of the slice survives, and
+    counted so a run never hides it.
+    """
+    def count(suffix: str) -> int:
+        n = int(num(row.get(f"{prefix}_{suffix}")) or 0)
+        if n < 0:
+            if warn is not None:
+                warn[f"negative {suffix} count in legacy stats — floored to 0"] += 1
+            return 0
+        return n
+
+    w, l, p = count("w"), count("l"), count("p")
     if w + l + p <= 0:
         return None
+
+    risk = round(num(row.get(f"{prefix}_ur")) or 0.0, 2)
+    if risk <= 0:
+        # Push-only slices are recorded with no accumulated risk (the stake is
+        # returned), so they carry neither a W/L record nor a computable ROI.
+        # Decided results with no risk are a genuine source error. Both are
+        # dropped rather than stored as a row the app can't reason about.
+        if warn is not None:
+            warn[
+                "push-only slice with no risk — dropped"
+                if w + l == 0
+                else "decided results with no units risked — dropped"
+            ] += 1
+        return None
+
     return {
         "wins": w, "losses": l, "pushes": p,
-        "unitsRisked": round(num(row.get(f"{prefix}_ur")) or 0.0, 2),
+        "unitsRisked": risk,
         "unitsNet": round(num(row.get(f"{prefix}_ue")) or 0.0, 2),
     }
 
@@ -266,6 +293,10 @@ def sub_cell(total: dict, imported: dict | None) -> dict | None:
         "unitsNet": round(total["unitsNet"] - imported["unitsNet"], 2),
     }
     if out["wins"] + out["losses"] + out["pushes"] == 0:
+        return None
+    # Same rule as `stat_cell`: a residual the app can't compute ROI from is
+    # not worth storing, and must never reach the leaderboard baseline.
+    if out["unitsRisked"] <= 0:
         return None
     return out
 
@@ -540,7 +571,7 @@ def main() -> int:
                 if not row:
                     continue
                 for prefix, sport in [("TOT", ALL_SPORTS), *STAT_SPORTS.items()]:
-                    cell = stat_cell(row, prefix)
+                    cell = stat_cell(row, prefix, warn)
                     if cell:
                         entries.append({"scope": scope, "sport": sport, **cell})
 
@@ -550,7 +581,7 @@ def main() -> int:
             season = scoped.get("CURRENT_SEASON", {}).get(acct)
             if season:
                 for prefix, sport in [("TOT", ALL_SPORTS), *STAT_SPORTS.items()]:
-                    total = stat_cell(season, prefix)
+                    total = stat_cell(season, prefix, warn)
                     if not total:
                         continue
                     imported = totals_from_plays(
