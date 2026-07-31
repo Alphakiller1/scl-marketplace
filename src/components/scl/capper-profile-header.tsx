@@ -63,7 +63,9 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                 {capper.verified ? (
                   <VerificationBadge size="sm" withLabel />
                 ) : null}
-                {capper.isLegacy ? <LegacyBadge /> : null}
+                {capper.isLegacy ? (
+                  <LegacyBadge carriedResults={capper.legacyCarriedResults} />
+                ) : null}
               </div>
               {identity.secondary ? (
                 <span className="text-muted-foreground mt-0.5 block text-sm break-all">

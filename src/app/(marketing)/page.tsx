@@ -96,8 +96,12 @@ function SectionSkeleton({ className }: { className?: string }) {
 
 async function HomeHero() {
   const updatedAt = new Date();
+  // Ranks every public record, not only email-verified accounts. Cappers
+  // carried over from the previous platform are unclaimed by design (no
+  // password until they claim the handle), so gating on account verification
+  // hid the entire imported roster and left the hero board empty.
   const { cappers, failed } = await getLeaderboardResult({
-    verifiedOnly: true,
+    verifiedOnly: false,
   });
   const snapshot = sortLeaderboard(cappers, "units")
     .slice(0, 5)
@@ -142,10 +146,14 @@ async function HomeLiveStrip() {
 
 async function HomeTopBoard() {
   const [leaderboard, featured] = await Promise.all([
-    getLeaderboardResult({ verifiedOnly: true }),
+    getLeaderboardResult({ verifiedOnly: false }),
     getFeaturedGradedPlay(),
   ]);
-  const topCappers = sortLeaderboard(leaderboard.cappers, "verified")
+  // Sorted by net units rather than board-verified share. Verified share only
+  // exists for picks SCL captured pre-game against a live market, which a
+  // record imported from another platform can never have — sorting by it put
+  // every carried-over capper at zero and emptied the list.
+  const topCappers = sortLeaderboard(leaderboard.cappers, "units")
     .slice(0, 10)
     .map(slimBoardCapper);
 

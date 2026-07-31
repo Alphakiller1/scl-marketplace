@@ -797,10 +797,14 @@ function MetricRow({
   clvScale: ReturnType<typeof perfScale>;
   showClv: boolean;
 }) {
+  // These cells render `truncateValue={false}` so a value is never ellipsised
+  // mid-number. Record is by far the widest stat — a carried-over legacy record
+  // reads 1714-1569-12 — so on the six-across layout it gets a wider track and
+  // every cell gets a real gap. Equal tracks let it run flush into the ROI value.
   return (
     <div
       data-profile-metric-row
-      className="grid grid-cols-2 gap-y-4 sm:grid-cols-3 xl:grid-cols-6"
+      className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3 xl:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_1fr]"
     >
       <MetricCell>
         <RecordStat record={capper.record} truncateValue={false} />

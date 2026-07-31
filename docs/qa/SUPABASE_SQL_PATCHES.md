@@ -233,3 +233,60 @@ CREATE INDEX IF NOT EXISTS "StorefrontReviewEvent_storeConnectionId_createdAt_id
 CREATE INDEX IF NOT EXISTS "StorefrontReviewEvent_reviewedById_idx"
   ON "StorefrontReviewEvent"("reviewedById");
 ```
+
+## LegacyRecord — carried-over totals from the previous SCL platform
+
+The old platform pruned individual picks on a rolling 90-day basis and kept only
+summary totals beyond that. `LegacyRecord` stores those totals so a capper's
+history still counts, while keeping them separable from pick-backed `Play` data.
+
+`PRE_IMPORT` is the leaderboard baseline: the legacy season total **minus** the
+plays that were imported as real `Play` rows. Adding it to computed stats
+reproduces the legacy season total without double-counting the overlap.
+
+```sql
+SET search_path TO scl;
+
+DO $$
+BEGIN
+  CREATE TYPE "LegacyRecordScope" AS ENUM (
+    'PRE_IMPORT', 'CURRENT_SEASON', 'CURRENT_YEAR', 'YEAR_2025', 'SEASON_2025',
+    'LAST_7D', 'LAST_30D', 'LAST_60D', 'LAST_90D'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END
+$$;
+
+CREATE TABLE IF NOT EXISTS "LegacyRecord" (
+  "id"          TEXT NOT NULL,
+  "capperId"    TEXT NOT NULL,
+  "scope"       "LegacyRecordScope" NOT NULL,
+  "sport"       TEXT NOT NULL,
+  "wins"        INTEGER NOT NULL DEFAULT 0,
+  "losses"      INTEGER NOT NULL DEFAULT 0,
+  "pushes"      INTEGER NOT NULL DEFAULT 0,
+  "unitsRisked" DECIMAL(12,2) NOT NULL,
+  "unitsNet"    DECIMAL(12,2) NOT NULL,
+  "capturedAt"  TIMESTAMP(3) NOT NULL,
+  "createdAt"   TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt"   TIMESTAMP(3) NOT NULL,
+  CONSTRAINT "LegacyRecord_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX IF NOT EXISTS "LegacyRecord_scope_sport_idx"
+  ON "LegacyRecord"("scope", "sport");
+CREATE UNIQUE INDEX IF NOT EXISTS "LegacyRecord_capperId_scope_sport_key"
+  ON "LegacyRecord"("capperId", "scope", "sport");
+
+DO $$
+BEGIN
+  ALTER TABLE "LegacyRecord"
+    ADD CONSTRAINT "LegacyRecord_capperId_fkey"
+    FOREIGN KEY ("capperId") REFERENCES "CapperProfile"("id")
+    ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END
+$$;
+```

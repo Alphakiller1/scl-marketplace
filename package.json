@@ -21,6 +21,8 @@
     "db:seed": "prisma db seed",
     "seed:ghosts": "tsx scripts/seed-ghosts.ts",
     "db:import-legacy": "tsx scripts/import-legacy-cappers.ts",
+    "db:import-legacy-records": "tsx scripts/import-legacy-records.ts",
+    "db:import-legacy-packages": "tsx scripts/import-legacy-packages.ts",
     "postinstall": "prisma generate",
     "prepare": "husky",
     "seed": "tsx prisma/seed.ts"

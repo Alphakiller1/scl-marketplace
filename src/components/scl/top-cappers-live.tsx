@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Window chips open the full leaderboard for that window.
- * Home Top Cappers itself is verified-share → units (not ROI) — chips must
+ * Home Top Cappers itself is net units (not ROI) — chips must
  * preserve that sort story when exiting to /leaderboard.
  */
 const WINDOW_CHIPS = [
@@ -48,7 +48,7 @@ export function TopCappersLive({
             </h2>
           </div>
           <p className="text-muted-foreground mt-1 text-xs leading-snug sm:mt-1.5 sm:text-sm sm:leading-relaxed">
-            Ranked By Board-Verified Share, Then Units.
+            Ranked By Net Units.
           </p>
         </div>
         <div
@@ -91,10 +91,10 @@ export function TopCappersLive({
           <RankBoardTable
             cappers={cappers}
             density="live"
-            caption="Top Cappers Ranked By Board-Verified Share, Then Units."
+            caption="Top Cappers Ranked By Net Units."
           />
           <Link
-            href="/leaderboard?sort=verified"
+            href="/leaderboard?sort=units"
             className="scl-link inline-flex min-h-10 items-center gap-1 text-sm font-medium"
           >
             View Full Leaderboard

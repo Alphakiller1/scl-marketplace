@@ -91,18 +91,38 @@ export function TrophyBadge({
   );
 }
 
-/** Marks a capper whose record was imported from the previous SCL platform. */
-export function LegacyBadge({ className }: { className?: string }) {
+/**
+ * Marks a capper whose record was imported from the previous SCL platform.
+ *
+ * `carriedResults` is the number of settled results folded in from that
+ * platform's stored totals. It pruned individual picks beyond a rolling 90-day
+ * window, so those results have no per-pick evidence behind them — when any are
+ * included the badge says so rather than letting the total read as fully
+ * SCL-verified.
+ */
+export function LegacyBadge({
+  className,
+  carriedResults,
+}: {
+  className?: string;
+  carriedResults?: number;
+}) {
+  const label =
+    carriedResults && carriedResults > 0
+      ? `Includes ${carriedResults.toLocaleString()} Settled Results Carried Over From The Previous SCL Platform — Totals Only, No Per-Pick Record`
+      : "Record Imported From The Previous SCL Platform";
+
   return (
     <span
       className={cn(
         "border-border bg-surface-3 text-muted-foreground inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium",
         className,
       )}
-      title="Record Imported From The Previous SCL Platform"
+      title={label}
     >
-      <History className="size-3" />
-      Legacy
+      <History className="size-3" aria-hidden />
+      <span className="sr-only">{label}</span>
+      <span aria-hidden>Legacy</span>
     </span>
   );
 }

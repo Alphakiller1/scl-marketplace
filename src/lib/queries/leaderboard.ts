@@ -15,7 +15,7 @@ import {
 import { UNIT_MIN } from "@/lib/constants";
 import { hasQaNoteMarker } from "@/lib/public-eligibility";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
-import { computeCapperStats } from "@/lib/stats";
+import { computeCapperStats, type StatsBaseline } from "@/lib/stats";
 import { computeVerifiedShare } from "@/lib/verification";
 import type { CapperSummary, FormResult } from "@/lib/mock";
 import { resolveStorefrontIdentity } from "@/lib/storefront";
@@ -106,6 +106,24 @@ async function fetchRankableProfiles(
         },
         orderBy: { createdAt: "asc" },
       },
+      // Results carried over from the previous SCL platform. Only the
+      // PRE_IMPORT scope is fetched: it is the legacy season total with the
+      // imported plays already subtracted, so adding it to the computed stats
+      // can never double-count the ~90 days that exist in both.
+      legacyRecords: {
+        where: {
+          scope: "PRE_IMPORT",
+          sport: filters.sport === "ALL" ? "ALL" : filters.sport,
+        },
+        select: {
+          wins: true,
+          losses: true,
+          pushes: true,
+          unitsRisked: true,
+          unitsNet: true,
+        },
+        take: 1,
+      },
       // Parlays are positions of record alongside straight plays. A parlay matches a
       // sport filter when any leg is that sport.
       parlays: {
@@ -160,7 +178,32 @@ function deriveForm(settled: Outcome[]): {
   return { recentForm: forms.slice(-6), streak };
 }
 
-function summarize(p: ProfileRow): CapperSummary | null {
+/**
+ * Carried-over totals only apply to the all-time board. The trailing windows
+ * (7d/30d/90d) are about current form, and the legacy figures are a frozen
+ * snapshot from the export date — folding them into a rolling window would
+ * make a capper's "past 7 days" grow stale results it never earned that week.
+ */
+function baselineFor(
+  p: ProfileRow,
+  applyBaseline: boolean,
+): StatsBaseline | null {
+  if (!applyBaseline) return null;
+  const rec = p.legacyRecords[0];
+  if (!rec) return null;
+  return {
+    wins: rec.wins,
+    losses: rec.losses,
+    pushes: rec.pushes,
+    stakedUnits: Number(rec.unitsRisked),
+    units: Number(rec.unitsNet),
+  };
+}
+
+function summarize(
+  p: ProfileRow,
+  applyBaseline: boolean,
+): CapperSummary | null {
   const username = p.user.username;
   if (!username) return null;
 
@@ -187,13 +230,18 @@ function summarize(p: ProfileRow): CapperSummary | null {
     })),
   ].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
+  const legacyBaseline = baselineFor(p, applyBaseline);
   const stats = computeCapperStats(
     positions.map((x) => ({
       outcome: x.outcome,
       units: x.units,
       profitUnits: x.profitUnits,
     })),
+    legacyBaseline,
   );
+  // Form, streak and trend stay play-derived. The legacy export carries totals
+  // only — no per-pick sequence — so seeding them here would be inventing a
+  // shape the source data never had.
   const performanceTrend = buildPerformanceTrend(
     positions.map((x) => ({ outcome: x.outcome, profitUnits: x.profitUnits })),
   );
@@ -265,6 +313,9 @@ function summarize(p: ProfileRow): CapperSummary | null {
     joinedAt: p.createdAt,
     socials: undefined, // dormant — external links no longer rendered
     isLegacy: p.isLegacy || undefined,
+    legacyCarriedResults: legacyBaseline
+      ? legacyBaseline.wins + legacyBaseline.losses + legacyBaseline.pushes
+      : undefined,
     activity,
   };
 }
@@ -298,8 +349,9 @@ export async function getPublicCapperEvidenceByIds(
       capperIds,
     );
     return {
+      // All-time evidence, so carried-over totals apply.
       cappers: profiles
-        .map(summarize)
+        .map((p) => summarize(p, true))
         .filter((capper): capper is CapperSummary => capper !== null),
       failed: false,
     };
@@ -327,7 +379,7 @@ async function loadLeaderboardResult(filters: LeaderboardFilters): Promise<{
   }
 
   const cappers = profiles
-    .map(summarize)
+    .map((p) => summarize(p, filters.window === "all"))
     .filter((c): c is CapperSummary => c !== null);
 
   const { ranked, unranked } = partitionLeaderboard(cappers, filters);

@@ -69,7 +69,9 @@ export function CapperCard({
               <SportTag key={sport} sport={sport} />
             ))}
             <StreakChip streak={capper.streak} gradedCount={graded} />
-            {capper.isLegacy ? <LegacyBadge /> : null}
+            {capper.isLegacy ? (
+              <LegacyBadge carriedResults={capper.legacyCarriedResults} />
+            ) : null}
           </div>
           {specialties.length || lastPick ? (
             <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">

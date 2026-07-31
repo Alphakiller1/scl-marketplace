@@ -67,6 +67,116 @@ npm run db:import-legacy -- path/to/legacy-cappers.json
 > /preview only. Because the local `.env` currently points at the production
 > pooler, run imports against the intended database deliberately.
 
+## Extracting from the raw cPanel export
+
+`scripts/extract-legacy-mysql.py` converts the legacy MySQL dumps straight into
+both import files, so nothing is hand-transcribed:
+
+```bash
+python scripts/extract-legacy-mysql.py   --site        ~/Downloads/scleaderboard_sclsite.sql   --records     ~/Downloads/scleaderboard_sclsite_records.sql   --out         prisma/legacy-cappers.json   --records-out prisma/legacy-records.json
+```
+
+Two things about the source data are worth knowing before trusting the output:
+
+**Stakes.** Legacy `Units` is the amount played _to win_, not the amount risked.
+The real stake is `urisk` (it equals risk-to-win(Units, odds) on 4432/4433 rows)
+and realized profit is `uret` (`-urisk` on 100% of losses). The extractor maps
+`units <- urisk` and `profitUnits <- uret`. Reading `Units` as the stake would
+understate every favorite's risk and inflate ROI across the board.
+
+**History depth.** The old platform pruned individual picks on a rolling 90-day
+basis — `stats90` accounts for exactly the number of surviving pick rows. Only
+~16% of its recorded history has pick-level detail; the rest survives only as
+the stored totals described below.
+
+## Carried-over records (aggregate totals)
+
+`LegacyRecord` holds the totals the old platform kept after pruning the picks
+behind them, so a capper's history still counts toward their standing.
+
+```bash
+# Run AFTER db:import-legacy — records attach to profiles it creates.
+npm run db:import-legacy-records -- prisma/legacy-records.json
+```
+
+Scope names in the legacy database are misleading and were decoded against the
+live site: `stats1` is the current **year** (not one day) and drives
+current-year.php; `stats_current` is the current **season** and drives
+current-season.php.
+
+**`PRE_IMPORT` is the only scope that affects standings.** It is the legacy
+season total _minus_ the plays imported as real `Play` rows, so adding it to
+computed stats reproduces the legacy season total without counting the ~90 days
+present in both. Verified across all 84 cappers at extraction time.
+
+Where it applies:
+
+- **All-time** leaderboard, public profile, and Discover's base summary — yes.
+- **Trailing windows** (7d/30d/90d), Discover's windowed and specialty lanes —
+  no. Those are about current form, and the legacy figures are a frozen snapshot
+  from the export date.
+- **Form, streak, and performance trend** stay play-derived everywhere. The
+  export carries totals with no per-pick sequence, so seeding them would invent
+  a shape the source never had.
+
+### Source data quality
+
+The legacy accumulator is not always sound, so the extractor reports what it
+had to correct and drops what it cannot reason about:
+
+- **Negative counts** (a regrade decrementing twice — 4 rows, all NCAAF) are
+  floored to zero. That is not a number of results, it is a bug; the valid
+  wins/losses in the same slice are kept.
+- **Slices with no units risked** are dropped (2 rows). A push-only slice
+  returns the stake and carries neither a W/L record nor a computable ROI, and
+  decided results with zero risk are a genuine source error.
+
+Both are counted in the run's `row warnings` — a clean run should print none
+beyond these. The Zod contract rejects either shape independently, so a
+regression cannot reach the database silently.
+
+The importer refuses to attach records to a profile that is not `isLegacy`, so
+carried-over totals can never inflate a natively-grown capper. Surfaces that
+include them render the `Legacy` badge with the carried count.
+
+## Storefront packages
+
+`aff_subscriptions` holds the previous platform's affiliate offers — 122 across
+56 cappers, almost all Winible checkout links.
+
+```bash
+# Run AFTER db:import-legacy — offers attach to the profiles it creates.
+npm run db:import-legacy-packages -- prisma/legacy-packages.json
+```
+
+Three things the importer has to get right:
+
+- **Every package gets a `TrackingUrl`.** `listActiveMarketplacePackages`
+  filters out any package without one, so an offer imported without a slug
+  exists in the database and is invisible on `/packages`.
+- **`storeConnectionId` stays null.** The public predicate accepts either a LIVE
+  store connection or no connection at all; these offers were already live.
+- **The slug is deterministic** — `<username>-<legacyRef>`, where `legacyRef` is
+  the legacy affiliate code (unique per offer). That keeps re-runs idempotent
+  and means a shared `/go/` link never breaks.
+
+### Prices are deliberately conservative
+
+Legacy offers carry no price column; the figure lives inside the HTML blurb,
+and some quote several ("$25 now just $12.50!", "$5/week or $15/month"). Any
+offer whose price is ambiguous is published at **0**, which renders no price
+label at all rather than the wrong one — the checkout page stays authoritative.
+Those rows are written to `prisma/legacy-packages-review.json` for a human to
+confirm. At the time of writing: 81 confident, 28 with no price in the copy, 13
+ambiguous.
+
+### Text encoding
+
+The legacy tables stored UTF-8 through a latin-1/cp1252 column, so emoji come
+back mangled (`ðŸ”¥` for 🔥). The extractor repairs this run by run — the
+descriptions mix corrupted spans with characters that were stored correctly
+(— • –), so re-encoding a whole string always fails on one of the good ones.
+
 ## Phase 2 follow-up
 
 A **profile claim flow** (let a real capper take ownership of their imported

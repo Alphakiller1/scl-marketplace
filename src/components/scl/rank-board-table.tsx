@@ -169,7 +169,10 @@ export function RankBoardTable({
                   </td>
                   <td
                     className={cn(
-                      "scl-data text-right align-middle tabular-nums",
+                      // nowrap keeps W-L-P atomic: a four-digit carried-over
+                      // record (1714-1569-12) otherwise breaks at its hyphens
+                      // into three lines and inflates every row's height.
+                      "scl-data text-right align-middle whitespace-nowrap tabular-nums",
                       cell,
                     )}
                   >
