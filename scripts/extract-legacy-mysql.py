@@ -21,6 +21,7 @@ risk and inflate ROI across the board.
 from __future__ import annotations
 
 import argparse
+import html as _html_mod
 import json
 import re
 import sys
@@ -253,12 +254,10 @@ _PERIOD_PATTERNS = [
 
 def html_to_text(raw: str | None) -> str:
     """Legacy descriptions are HTML, double-escaped by the dump."""
-    import html as _html
-
-    s = _html.unescape(_html.unescape(raw or ""))
+    s = _html_mod.unescape(_html_mod.unescape(raw or ""))
     s = re.sub(r"<br\s*/?>|</p>|</div>|</h\d>", " \n", s, flags=re.I)
     s = re.sub(r"<[^>]+>", " ", s)
-    s = _html.unescape(s)
+    s = _html_mod.unescape(s)
     s = s.replace("\xa0", " ")
     return demojibake(re.sub(r"[ \t]+", " ", s).strip()) or ""
 
@@ -298,7 +297,7 @@ def parse_package_title(text: str) -> str:
     else:
         title = " ".join(head.split()[:7])
     title = re.sub(r"[\s\-–—•|]+$", "", title.strip())
-    return (title or "Package")[:100]
+    return clip(title or "Package", 100)
 
 
 def stat_cell(row: dict, prefix: str, warn: Counter | None = None) -> dict | None:
@@ -442,6 +441,23 @@ def demojibake(s: str | None) -> str | None:
         return run if "�" in decoded else decoded
 
     return _MOJI_RUN.sub(fix, s)
+
+
+def clip(s: str, limit: int) -> str:
+    """Truncate to `limit` UTF-16 code units, which is what the Zod contracts
+    count. Python slices by code point, so an emoji (one code point, two UTF-16
+    units) would silently push a repaired string past a JS-side max."""
+    if not s:
+        return s
+    out = []
+    used = 0
+    for ch in s:
+        w = 2 if ord(ch) > 0xFFFF else 1
+        if used + w > limit:
+            break
+        out.append(ch)
+        used += w
+    return "".join(out)
 
 
 def clean(v) -> str | None:
@@ -617,7 +633,7 @@ def main() -> int:
             continue
 
         prof = profiles.get(acct, {})
-        rec: dict = {"username": username, "displayName": display[:60]}
+        rec: dict = {"username": username, "displayName": clip(display, 60)}
         email = email_for.get(acct)
         if email:
             rec["email"] = email
@@ -645,14 +661,14 @@ def main() -> int:
         if big_win:
             bio_bits.append(f"Biggest win: {big_win}")
         if bio_bits:
-            rec["bio"] = " · ".join(bio_bits)[:800]
+            rec["bio"] = clip(" · ".join(bio_bits), 800)
 
         for src, dst in (("inst", "instagram"), ("twit", "twitter"),
                          ("face", "facebook"), ("tik", "tiktok"),
                          ("other_social", "website")):
             v = clean(prof.get(src))
             if v:
-                rec[dst] = v[:200]
+                rec[dst] = clip(v, 200)
 
         ps = plays_by_acct.get(str(acct), [])
         if ps:
@@ -733,7 +749,11 @@ def main() -> int:
             if not username or acct in ("0", "", None):
                 continue
             ref = clean(r.get("xinfo"))
-            checkout = clean(r.get("code"))
+            # The legacy column stores the URL HTML-escaped, because the old PHP
+            # site interpolated it straight into markup. Left as-is, Winible
+            # receives `amp;a=...` instead of `a=...` and the affiliate code and
+            # coupon are silently dropped.
+            checkout = clean(_html_mod.unescape(r.get("code") or ""))
             if not ref or ref in seen_ref:
                 continue
             if not checkout or not checkout.lower().startswith("http"):
@@ -759,7 +779,7 @@ def main() -> int:
                     "title": parse_package_title(text),
                     "bestGuessCents": cents,
                     "billingPeriod": period,
-                    "sourceText": text[:200],
+                    "sourceText": clip(text, 200),
                 })
 
             packages_out.append({
@@ -768,7 +788,7 @@ def main() -> int:
                 # idempotent upsert and a stable /go slug across re-runs.
                 "legacyRef": ref,
                 "title": parse_package_title(text),
-                "description": text[:600] or None,
+                "description": clip(text, 600) or None,
                 "priceCents": cents if confident else 0,
                 "billingPeriod": period,
                 "checkoutUrl": checkout,

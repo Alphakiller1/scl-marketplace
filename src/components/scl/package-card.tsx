@@ -76,6 +76,9 @@ export function PackageCard({
               href={pkg.trackingPath}
               target="_blank"
               rel="noopener noreferrer"
+              // /go/[slug] writes a ClickEvent on every GET — prefetching it
+              // would record a click nobody made. See packages-register.tsx.
+              prefetch={false}
             />
           }
           nativeButton={false}
