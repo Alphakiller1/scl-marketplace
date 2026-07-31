@@ -56,3 +56,4 @@ qa-screenshots*/
 
 tmp/
 
+__pycache__/

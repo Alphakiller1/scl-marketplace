@@ -136,6 +136,10 @@ BET_TYPES = {
     "straight bets": "STRAIGHT", "parlays": "PARLAY", "prop bets": "PROP",
     "teaser bets": "TEASER", "totals": "TOTAL",
 }
+# Legacy `cappers_profiles.bet_vol` reads like "MODERATE (6-10 PICKS)".
+DAILY_VOLUMES = {
+    "low": "LOW", "moderate": "MODERATE", "high": "HIGH", "very high": "VERY_HIGH",
+}
 OUTCOMES = {"W": "WIN", "L": "LOSS", "P": "PUSH"}
 
 # Legacy stat tables -> LegacyRecordScope. The names are misleading and were
@@ -258,8 +262,12 @@ def html_to_text(raw: str | None) -> str:
     s = re.sub(r"<br\s*/?>|</p>|</div>|</h\d>", " \n", s, flags=re.I)
     s = re.sub(r"<[^>]+>", " ", s)
     s = _html_mod.unescape(s)
+    # Repair encoding BEFORE touching \xa0. 0xA0 is a legitimate UTF-8
+    # continuation byte — 🧠 is F0 9F A7 A0 — so collapsing it to a space first
+    # truncates the sequence and leaves the emoji unrecoverable.
+    s = demojibake(s) or ""
     s = s.replace("\xa0", " ")
-    return demojibake(re.sub(r"[ \t]+", " ", s).strip()) or ""
+    return re.sub(r"[ \t]+", " ", s).strip()
 
 
 def parse_package_price(text: str) -> tuple[int, str, bool]:
@@ -401,15 +409,6 @@ def event_iso(rdate: str, ltime) -> str | None:
 # The legacy descriptions are MIXED — corrupted runs sit alongside characters
 # that were stored correctly (— • –), so re-encoding the whole string always
 # fails on one of the good ones. Repair each run on its own instead.
-_MOJI_LEAD = "Â-ô"
-# cp1252 renderings of UTF-8 continuation bytes 0x80-0xBF.
-_MOJI_CONT = (
-    "-¿€‚ƒ„…†‡ˆ‰"
-    "Š‹ŒŽ‘’“”•–—"
-    "˜™š›œžŸ"
-)
-_MOJI_RUN = re.compile(f"[{_MOJI_LEAD}][{_MOJI_CONT}]+")
-
 # Reverse cp1252 table, falling back to the identity mapping for 0x00-0xFF so
 # byte values cp1252 leaves undefined (0x81, 0x8D, 0x8F, 0x90, 0x9D) still round-trip.
 _CP1252_TO_BYTE: dict[str, int] = {chr(b): b for b in range(256)}
@@ -419,6 +418,14 @@ for _b in range(0x80, 0xA0):
     except UnicodeDecodeError:
         pass
 
+# Derive the character classes from that table rather than hand-listing them.
+# cp1252 maps 0x80-0x9F to scattered code points (0x9C is the ligature, 0x85 an
+# ellipsis), and a hand-written class is far too easy to get subtly wrong — one
+# missing character silently leaves a whole emoji unrepaired.
+_LEAD_CHARS = "".join(ch for ch, b in _CP1252_TO_BYTE.items() if 0xC2 <= b <= 0xF4)
+_CONT_CHARS = "".join(ch for ch, b in _CP1252_TO_BYTE.items() if 0x80 <= b <= 0xBF)
+_MOJI_RUN = re.compile(f"[{re.escape(_LEAD_CHARS)}][{re.escape(_CONT_CHARS)}]+")
+
 
 def demojibake(s: str | None) -> str | None:
     """Undo UTF-8-read-as-cp1252 corruption, run by run."""
@@ -427,18 +434,29 @@ def demojibake(s: str | None) -> str | None:
 
     def fix(m: re.Match[str]) -> str:
         run = m.group(0)
-        # A run can mix cp1252-only characters (Ÿ -> 0x9F) with byte values
-        # cp1252 leaves undefined (0x8F), so neither codec handles it alone.
-        # Recover each original byte individually instead.
-        try:
-            raw = bytes(_CP1252_TO_BYTE[ch] for ch in run)
-        except KeyError:
-            return run
-        try:
-            decoded = raw.decode("utf-8")
-        except UnicodeDecodeError:
-            return run
-        return run if "�" in decoded else decoded
+        # Decode the longest valid prefix rather than all-or-nothing. The run is
+        # matched greedily, so it can absorb a trailing character that is not
+        # part of the sequence — an &nbsp; unescapes to  , which is a legal
+        # UTF-8 continuation byte, and swallowing it turns a good 3-byte emoji
+        # into an invalid 4-byte one. Shrinking from the end recovers the emoji
+        # and leaves the stray character alone.
+        #
+        # A run can also mix cp1252-only characters (0x9F) with byte values
+        # cp1252 leaves undefined (0x8F), so bytes are recovered individually.
+        for end in range(len(run), 1, -1):
+            seg = run[:end]
+            try:
+                raw = bytes(_CP1252_TO_BYTE[ch] for ch in seg)
+            except KeyError:
+                continue
+            try:
+                decoded = raw.decode("utf-8")
+            except UnicodeDecodeError:
+                continue
+            if "�" in decoded:
+                continue
+            return decoded + run[end:]
+        return run
 
     return _MOJI_RUN.sub(fix, s)
 
@@ -651,17 +669,40 @@ def main() -> int:
         if bts:
             rec["betTypes"] = bts
 
-        # Legacy has no free-form bio; the staking note and best-win blurb are
-        # the only prose the capper actually wrote, so carry those across.
-        bio_bits = []
+        # The capper's own words. `cappers.profile` is the rich HTML blurb shown
+        # on their legacy profile page; `cappers_profiles.writeup` is the same
+        # field in the newer table. Prefer whichever is longer — some accounts
+        # only ever filled in one of them.
+        prose_candidates = [
+            html_to_text(c.get("profile")),
+            html_to_text(prof.get("writeup")),
+        ]
+        prose = max(prose_candidates, key=len)
+
+        # A short opening line is a tagline, not a paragraph — promote it to the
+        # headline so the profile leads with it instead of burying it.
+        lines = [ln.strip() for ln in prose.split("\n") if ln.strip()]
+        if len(lines) > 1 and len(lines[0]) <= 120:
+            rec["headline"] = clip(lines[0], 160)
+            prose = " ".join(lines[1:])
+        elif lines:
+            prose = " ".join(lines)
+
         unit_size = clean(prof.get("unit_size"))
         big_win = clean(prof.get("big_win"))
+        # Staking convention is genuinely useful context and has no field of its
+        # own, so it tails the bio when there is room for it.
         if unit_size:
-            bio_bits.append(f"Unit sizing: {unit_size}")
+            note = f"Unit sizing: {unit_size}"
+            prose = f"{prose} · {note}" if prose else note
+        if prose:
+            rec["bio"] = clip(prose, 800)
         if big_win:
-            bio_bits.append(f"Biggest win: {big_win}")
-        if bio_bits:
-            rec["bio"] = clip(" · ".join(bio_bits), 800)
+            rec["biggestBetWon"] = clip(big_win, 120)
+
+        vol = (prof.get("bet_vol") or "").split("(")[0].strip().lower()
+        if vol in DAILY_VOLUMES:
+            rec["dailyVolume"] = DAILY_VOLUMES[vol]
 
         for src, dst in (("inst", "instagram"), ("twit", "twitter"),
                          ("face", "facebook"), ("tik", "tiktok"),

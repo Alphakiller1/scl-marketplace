@@ -51,6 +51,8 @@ async function importCapper(c: LegacyCapperInput) {
     specialties: c.specialties,
     betTypes: c.betTypes,
     providerType: c.providerType,
+    dailyVolume: c.dailyVolume,
+    biggestBetWon: c.biggestBetWon,
     instagram: c.instagram,
     twitter: c.twitter,
     facebook: c.facebook,
