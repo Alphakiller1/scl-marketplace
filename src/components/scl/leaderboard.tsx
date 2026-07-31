@@ -167,22 +167,25 @@ export function Leaderboard({
               >
                 <span className="sr-only">Compare</span>
               </th>
-              <th
-                scope="col"
-                className="w-16 px-1.5 py-2 text-left font-semibold"
-              >
-                {filters ? (
-                  <SortableTh
-                    sortKey="units"
-                    label="Rank"
-                    filters={filters}
-                    activeSort={activeSort}
-                    align="left"
-                  />
-                ) : (
-                  "Rank"
-                )}
-              </th>
+              {/* SortableTh renders its own <th>; wrapping it in another one is
+                  invalid HTML and was tripping a hydration error on this page. */}
+              {filters ? (
+                <SortableTh
+                  sortKey="units"
+                  label="Rank"
+                  filters={filters}
+                  activeSort={activeSort}
+                  align="left"
+                  className="w-16"
+                />
+              ) : (
+                <th
+                  scope="col"
+                  className="w-16 px-1.5 py-2 text-left font-semibold"
+                >
+                  Rank
+                </th>
+              )}
               <th
                 scope="col"
                 className="min-w-[9.5rem] px-1.5 py-2 text-left font-semibold"
