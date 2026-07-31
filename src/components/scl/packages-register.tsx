@@ -183,6 +183,11 @@ function ExternalStorefront({ pkg }: { pkg: PublicMarketplacePackage }) {
             href={pkg.trackingPath}
             target="_blank"
             rel="noopener noreferrer"
+            // /go/[slug] writes a ClickEvent on every GET, so prefetching it
+            // records a click nobody made. Next prefetches links on hover and
+            // in-viewport by default, which silently inflated the count for
+            // every offer rendered on the page.
+            prefetch={false}
           />
         }
         nativeButton={false}
