@@ -67,7 +67,12 @@ export function parseLeaderboardFilters(
     minPicks: LEADERBOARD_MIN_PICKS.includes(requestedMinPicks as never)
       ? requestedMinPicks
       : 0,
-    verifiedOnly: first(params.record) !== "all",
+    // Defaults to every public record. "Verified only" stays available and
+    // still means exactly what it says (email-verified accounts), but it can't
+    // be the default: cappers carried over from the previous platform are
+    // unclaimed until they take ownership of their handle, so defaulting to it
+    // showed an empty board rather than the roster.
+    verifiedOnly: first(params.record) === "verified",
     search: (first(params.q) ?? "").trim().slice(0, 40),
     limit: LEADERBOARD_LIMITS.includes(requestedLimit as never)
       ? (requestedLimit as LeaderboardLimit)
@@ -95,7 +100,9 @@ export function leaderboardHref(
   if (next.window !== "all") params.set("window", next.window);
   if (next.sort !== "units") params.set("sort", next.sort);
   if (next.minPicks !== 0) params.set("minPicks", String(next.minPicks));
-  if (!next.verifiedOnly) params.set("record", "all");
+  // Mirrors the parse above: all records is the default, so only the narrower
+  // "verified" choice needs to survive in the URL.
+  if (next.verifiedOnly) params.set("record", "verified");
   if (next.search) params.set("q", next.search);
   if (next.limit !== DEFAULT_LEADERBOARD_LIMIT) {
     params.set("limit", String(next.limit));

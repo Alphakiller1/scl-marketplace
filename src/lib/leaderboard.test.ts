@@ -346,3 +346,35 @@ test("leaderboard summary keeps ranked count separate from scoped totals", () =>
     profitableCappers: 1,
   });
 });
+
+test("the board defaults to every public record, not verified-only", () => {
+  // Cappers carried over from the previous platform are unclaimed by design
+  // (no password until they claim the handle), so an email-verified default
+  // would hide the entire imported roster behind an empty board.
+  assert.equal(parseLeaderboardFilters({}).verifiedOnly, false);
+  assert.equal(parseLeaderboardFilters({ record: "all" }).verifiedOnly, false);
+  assert.equal(
+    parseLeaderboardFilters({ record: "nonsense" }).verifiedOnly,
+    false,
+  );
+});
+
+test("'Verified only' is still selectable and still means email-verified", () => {
+  assert.equal(
+    parseLeaderboardFilters({ record: "verified" }).verifiedOnly,
+    true,
+  );
+});
+
+test("the record filter round-trips through the URL", () => {
+  const base = parseLeaderboardFilters({});
+  // Default carries no param...
+  assert.equal(leaderboardHref(base), "/leaderboard");
+  // ...and the narrower choice survives a round trip.
+  const href = leaderboardHref(base, { verifiedOnly: true });
+  assert.equal(href, "/leaderboard?record=verified");
+  const parsed = parseLeaderboardFilters(
+    Object.fromEntries(new URL(href, "https://x").searchParams),
+  );
+  assert.equal(parsed.verifiedOnly, true);
+});
