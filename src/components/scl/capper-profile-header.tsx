@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import type { CapperSummary } from "@/lib/mock";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
 import {
@@ -76,6 +78,27 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
               {capper.headline ? (
                 <p className="text-muted-foreground mt-1 max-w-2xl text-sm leading-snug sm:text-base">
                   {capper.headline}
+                </p>
+              ) : null}
+
+              {/*
+                An imported profile nobody has taken ownership of yet. Claiming
+                runs through the ordinary password-reset flow — it sets a
+                password and verifies the address in one step — but a capper who
+                never signed up would never think to click "Forgot password",
+                so the route is surfaced here instead. Setting emailVerified is
+                what makes this disappear, so it self-retires on claim.
+              */}
+              {capper.isLegacy && !capper.verified ? (
+                <p className="text-muted-foreground mt-2 text-sm">
+                  Is this you?{" "}
+                  <Link
+                    href="/forgot-password"
+                    className="scl-link font-medium underline underline-offset-2"
+                  >
+                    Claim this profile
+                  </Link>{" "}
+                  to log in and keep posting.
                 </p>
               ) : null}
 

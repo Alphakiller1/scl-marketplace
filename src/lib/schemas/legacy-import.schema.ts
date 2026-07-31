@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { BetType, Outcome, ProviderType } from "@prisma/client";
+import { BetType, DailyVolume, Outcome, ProviderType } from "@prisma/client";
 
 /**
  * Contract for importing cappers from the legacy SCL platform.
@@ -53,6 +53,10 @@ export const legacyCapperSchema = z.object({
   specialties: z.array(z.string()).optional(),
   betTypes: z.array(z.nativeEnum(BetType)).optional(),
   providerType: z.nativeEnum(ProviderType).optional(),
+  /** Legacy `cappers_profiles.bet_vol` — how much a capper releases per day. */
+  dailyVolume: z.nativeEnum(DailyVolume).optional(),
+  /** Legacy `cappers_profiles.big_win` — free text, e.g. "25 Units". */
+  biggestBetWon: z.string().max(120).optional(),
   /** Marks the imported record as verified (emailVerified) on the new platform. */
   verified: z.boolean().optional(),
   instagram: z.string().optional(),
