@@ -58,8 +58,9 @@ export default async function AdminCapperDetailPage({
     capper.displayName?.trim() || (handle ? `@${handle}` : capper.email);
   const latestAcceptance = capper.termsAcceptances[0] ?? null;
   const winibleConnection =
-    profile?.storeConnections.find((connection) => connection.provider === "WINIBLE") ||
-    null;
+    profile?.storeConnections.find(
+      (connection) => connection.provider === "WINIBLE",
+    ) || null;
 
   return (
     <div className="space-y-6">
@@ -118,7 +119,12 @@ export default async function AdminCapperDetailPage({
           </div>
         </div>
 
-        <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <dl
+          className={cn(
+            "grid gap-3 sm:grid-cols-2",
+            summary?.carriedRecord ? "xl:grid-cols-6" : "xl:grid-cols-5",
+          )}
+        >
           <Metric
             label="Straight plays"
             value={summary?.straightCount.toLocaleString() ?? "0"}
@@ -127,10 +133,24 @@ export default async function AdminCapperDetailPage({
             label="Parlays"
             value={summary?.parlayCount.toLocaleString() ?? "0"}
           />
+          {/*
+            Results carried over from the previous platform. Shown as its own
+            metric rather than folded into the play counts, because it has no
+            pick-level evidence behind it — the distinction is the whole point.
+            Net units below does include it, so ROI reads against the full book.
+          */}
+          {summary?.carriedRecord ? (
+            <Metric
+              label="Carried record"
+              value={`${summary.carriedRecord.w}-${summary.carriedRecord.l}-${summary.carriedRecord.p}`}
+              hint={`${summary.carriedSettled.toLocaleString()} settled · ${formatUnits(summary.carriedUnits)}`}
+            />
+          ) : null}
           <Metric
             label="Net units"
             value={summary ? formatUnits(summary.netUnits) : "0U"}
             tone={summary ? signTone(summary.netUnits) : "muted"}
+            hint={summary?.carriedRecord ? "includes carried" : undefined}
           />
           <Metric
             label="Packages"
@@ -143,7 +163,13 @@ export default async function AdminCapperDetailPage({
         </dl>
       </section>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(20rem,0.7fr)]">
+      {/*
+        items-start, and the denser column is the wider one. Account Control is
+        a short form; Profile is a long attribute list. Stretching them to equal
+        height left a screen's worth of dead space under the controls, which
+        read as a broken panel rather than a compact one.
+      */}
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(24rem,1.1fr)]">
         <section className="border-border bg-card space-y-4 rounded-xl border p-4 sm:p-5">
           <SectionHeader
             icon={ShieldCheck}
@@ -321,21 +347,6 @@ export default async function AdminCapperDetailPage({
         )}
       </section>
 
-      {profile ? (
-        <section className="border-border bg-card space-y-4 rounded-xl border p-4 sm:p-5">
-          <SectionHeader
-            icon={PackageOpen}
-            title="Quick Winible package"
-            subtitle="Fast manual fallback when Winible sync is unavailable — paste the link, price, promo, and description, then publish it to the capper profile."
-          />
-          <AdminPackageForm
-            capperId={profile.id}
-            storeConnectionId={winibleConnection?.id ?? null}
-            provider="WINIBLE"
-          />
-        </section>
-      ) : null}
-
       <section className="space-y-4">
         <SectionHeader
           icon={PackageOpen}
@@ -417,6 +428,21 @@ export default async function AdminCapperDetailPage({
           </p>
         )}
       </section>
+
+      {profile ? (
+        <section className="border-border bg-card space-y-4 rounded-xl border p-4 sm:p-5">
+          <SectionHeader
+            icon={PackageOpen}
+            title="Quick Winible package"
+            subtitle="Fast manual fallback when Winible sync is unavailable — paste the link, price, promo, and description, then publish it to the capper profile."
+          />
+          <AdminPackageForm
+            capperId={profile.id}
+            storeConnectionId={winibleConnection?.id ?? null}
+            provider="WINIBLE"
+          />
+        </section>
+      ) : null}
 
       <section className="space-y-4">
         <SectionHeader
@@ -549,13 +575,16 @@ function Metric({
   label,
   value,
   tone = "muted",
+  hint,
 }: {
   label: string;
   value: string;
   tone?: "pos" | "neg" | "muted";
+  /** Secondary line — provenance or a qualifier the number needs to be read correctly. */
+  hint?: string;
 }) {
   return (
-    <div className="bg-surface-2 rounded-lg p-3">
+    <div className="bg-surface-2 min-w-0 rounded-lg p-3">
       <dt className="text-muted-foreground text-xs font-semibold uppercase">
         {label}
       </dt>
@@ -568,6 +597,11 @@ function Metric({
       >
         {value}
       </dd>
+      {hint ? (
+        <dd className="text-muted-foreground mt-0.5 text-[0.7rem] leading-snug">
+          {hint}
+        </dd>
+      ) : null}
     </div>
   );
 }

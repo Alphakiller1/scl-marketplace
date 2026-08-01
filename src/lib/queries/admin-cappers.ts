@@ -112,7 +112,16 @@ export async function getAdminCapperAccounts(filters: AdminCapperFilters) {
             select: {
               plays: true,
               parlays: true,
+              packages: true,
             },
+          },
+          // The carried-over record, so an imported capper doesn't read as
+          // "0 plays" in the index. PRE_IMPORT already excludes the plays
+          // counted above, so the two never overlap.
+          legacyRecords: {
+            where: { scope: "PRE_IMPORT", sport: "ALL" },
+            select: { wins: true, losses: true, pushes: true, unitsNet: true },
+            take: 1,
           },
           storeConnections: {
             select: {
@@ -269,7 +278,7 @@ export async function getAdminCapperDetail(userId: string) {
 
   if (!user?.capperProfile) return user ? { ...user, summary: null } : null;
 
-  const [straightSummary, parlaySummary] = await Promise.all([
+  const [straightSummary, parlaySummary, carried] = await Promise.all([
     prisma.play.aggregate({
       where: { capperId: user.capperProfile.id, parlayId: null },
       _count: { _all: true },
@@ -280,16 +289,39 @@ export async function getAdminCapperDetail(userId: string) {
       _count: { _all: true },
       _sum: { profitUnits: true },
     }),
+    // Results carried over from the previous platform. Without this an admin
+    // reviewing an imported capper sees "0 plays · 0U" for someone with a
+    // four-figure record, which is the opposite of an informed decision.
+    // PRE_IMPORT already has the imported plays subtracted, so adding it to the
+    // counts above never double-counts the overlap.
+    prisma.legacyRecord.findFirst({
+      where: {
+        capperId: user.capperProfile.id,
+        scope: "PRE_IMPORT",
+        sport: "ALL",
+      },
+      select: { wins: true, losses: true, pushes: true, unitsNet: true },
+    }),
   ]);
+
+  const carriedSettled = carried
+    ? carried.wins + carried.losses + carried.pushes
+    : 0;
 
   return {
     ...user,
     summary: {
       straightCount: straightSummary._count._all,
       parlayCount: parlaySummary._count._all,
+      carriedSettled,
+      carriedRecord: carried
+        ? { w: carried.wins, l: carried.losses, p: carried.pushes }
+        : null,
+      carriedUnits: carried ? Number(carried.unitsNet) : 0,
       netUnits:
         Number(straightSummary._sum.profitUnits ?? 0) +
-        Number(parlaySummary._sum.profitUnits ?? 0),
+        Number(parlaySummary._sum.profitUnits ?? 0) +
+        (carried ? Number(carried.unitsNet) : 0),
       packageCount: user.capperProfile.packages.length,
       clickCount: user.capperProfile.packages.reduce(
         (total, pkg) =>

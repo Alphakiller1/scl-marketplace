@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { History, Store } from "lucide-react";
 
+import { AdminCapperPackageInventory } from "@/components/scl/admin-capper-package-inventory";
 import { AdminPackageForm } from "@/components/scl/admin-package-form";
 import { AdminPackageRowControls } from "@/components/scl/admin-package-row-controls";
 import { AdminStoreActions } from "@/components/scl/admin-store-actions";
@@ -16,6 +17,7 @@ import {
   providerLabel,
 } from "@/lib/store-connection";
 import {
+  getCapperPackagesForReview,
   getStorefrontCoverage,
   getStorefrontReviewHistory,
   listStoreConnections,
@@ -60,9 +62,14 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
     selected?.packages[0] ||
     null;
   const creatingNew = Boolean(selected && sp.packageId === "new");
-  const reviewHistory = selected
-    ? await getStorefrontReviewHistory(selected.id)
-    : [];
+  // Everything this capper already sells, across every provider — including
+  // offers with no store connection, which is all of the carried-over ones.
+  const [reviewHistory, capperPackages] = selected
+    ? await Promise.all([
+        getStorefrontReviewHistory(selected.id),
+        getCapperPackagesForReview(selected.capper.id),
+      ])
+    : [[], []];
 
   function detailHref(opts: {
     connectionId: string;
@@ -378,6 +385,18 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
           </section>
 
           <section className="border-border bg-card space-y-4 rounded-xl border p-5">
+            {/*
+              What this capper already sells, before the form for adding more.
+              The panel below only knows about packages on the connection being
+              reviewed, so an admin approving a second provider — or any
+              storefront for a carried-over capper, whose offers have no
+              connection — would otherwise be told "no packages yet".
+            */}
+            <AdminCapperPackageInventory
+              packages={capperPackages}
+              currentConnectionId={selected.id}
+            />
+
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="scl-display text-base font-bold tracking-[0.05em] uppercase">
                 Package object · {providerLabel(selected.provider)}
