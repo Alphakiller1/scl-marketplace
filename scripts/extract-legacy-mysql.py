@@ -295,6 +295,21 @@ def parse_package_price(text: str) -> tuple[int, str, bool]:
     return cents, period, len(distinct) <= 1
 
 
+def store_provider(checkout_url: str) -> str | None:
+    """Which storefront the offer checks out on, from its host.
+
+    Drives the package CTA ("Subscribe on Whop" vs "Subscribe on Winible") and
+    the storefront badge, so a missed host silently degrades to a generic
+    "Subscribe" button.
+    """
+    host = checkout_url.lower()
+    if "winible.com" in host:
+        return "WINIBLE"
+    if "whop.com" in host:
+        return "WHOP"
+    return None
+
+
 def parse_package_title(text: str) -> str:
     """Leading label before the price/colon; falls back to the first few words."""
     head = text.split("\n")[0].strip()
@@ -833,7 +848,7 @@ def main() -> int:
                 "priceCents": cents if confident else 0,
                 "billingPeriod": period,
                 "checkoutUrl": checkout,
-                "affiliateProvider": "WINIBLE" if "winible" in checkout.lower() else None,
+                "affiliateProvider": store_provider(checkout),
                 "sortOrder": int(num(r.get("odr")) or 0),
                 "isActive": (r.get("dstatus") or "").strip().upper() == "Y",
             })
