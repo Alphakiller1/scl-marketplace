@@ -81,9 +81,9 @@ let anyFailed = false;
 // the production DATABASE_URL, and `prisma migrate resolve` writes to the
 // migration history table. A preview build rewriting production's migration
 // history is exactly the drift this script exists to repair.
-if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production") {
+if (process.env.VERCEL_ENV !== "production") {
   process.stdout.write(
-    `Skipping migration resolve on VERCEL_ENV=${process.env.VERCEL_ENV}.
+    `Skipping migration resolve on VERCEL_ENV=${process.env.VERCEL_ENV ?? "(unset)"}.
 `,
   );
   process.exit(0);

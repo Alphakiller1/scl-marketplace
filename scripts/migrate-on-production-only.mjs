@@ -19,11 +19,12 @@ import { spawnSync } from "node:child_process";
 
 const env = process.env.VERCEL_ENV;
 
-// Local builds (no VERCEL_ENV) keep the old behaviour so `npm run build` is
-// unchanged for developers.
-if (env && env !== "production") {
+// Only a real production deploy migrates. CI builds have no database, so an
+// unset VERCEL_ENV must skip as well — otherwise `next build` in CI dies on
+// P1001 trying to reach localhost.
+if (env !== "production") {
   console.log(
-    `[migrate] VERCEL_ENV=${env} — skipping "prisma migrate deploy"; only production builds migrate.`,
+    `[migrate] VERCEL_ENV=${env ?? "(unset)"} — skipping "prisma migrate deploy"; only production deploys migrate.`,
   );
   process.exit(0);
 }

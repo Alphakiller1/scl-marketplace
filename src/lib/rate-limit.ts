@@ -1,5 +1,9 @@
-import "server-only";
-
+// No `server-only` guard, matching `prisma.ts` and `public-eligibility-prisma.ts`
+// in the same chain: the Milestone 3 smoke test imports `/go/[slug]` directly
+// under tsx, and `server-only` throws outside the bundler. The real protection
+// is unchanged — this imports `prisma`, which cannot run in a browser — and
+// `whop-webhook.ts` already establishes the precedent of dropping the guard
+// where it costs testability.
 import { createHash } from "crypto";
 
 import { prisma } from "@/lib/prisma";
