@@ -23,7 +23,11 @@ import { SectionHeader } from "@/components/scl/section";
 import { StoreStatusChip } from "@/components/scl/store-status-chip";
 import { Button } from "@/components/ui/button";
 import { formatUnits, signTone } from "@/lib/format";
-import { formatPriceCents, importStatusLabel } from "@/lib/store-connection";
+import {
+  formatPriceCents,
+  importStatusLabel,
+  providerLabel,
+} from "@/lib/store-connection";
 import { getAdminCapperDetail } from "@/lib/queries/admin-cappers";
 import { cn } from "@/lib/utils";
 
@@ -57,10 +61,17 @@ export default async function AdminCapperDetailPage({
   const name =
     capper.displayName?.trim() || (handle ? `@${handle}` : capper.email);
   const latestAcceptance = capper.termsAcceptances[0] ?? null;
-  const winibleConnection =
+  // The quick-package form was pinned to Winible. For a Whop capper that both
+  // mislabelled the storefront as "not started" and would have created the
+  // package under the wrong platform — the form's Platform field is read-only
+  // and takes whatever provider it is handed.
+  const primaryConnection =
     profile?.storeConnections.find(
-      (connection) => connection.provider === "WINIBLE",
-    ) || null;
+      (connection) => connection.status === "LIVE",
+    ) ??
+    profile?.storeConnections[0] ??
+    null;
+  const quickPackageProvider = primaryConnection?.provider ?? "WINIBLE";
 
   return (
     <div className="space-y-6">
@@ -427,19 +438,59 @@ export default async function AdminCapperDetailPage({
             No packages have been created for this capper.
           </p>
         )}
+
+        {/*
+          Attribution for offer changes. Package price and visibility decide
+          what the public can buy, so "who hid this and when" needs an answer
+          that does not depend on someone remembering.
+        */}
+        {profile?.packageAudits.length ? (
+          <div className="border-border overflow-hidden rounded-xl border">
+            <p className="border-border text-muted-foreground border-b px-4 py-2 text-xs font-semibold tracking-wide uppercase">
+              Recent package changes
+            </p>
+            <ul className="divide-border divide-y">
+              {profile.packageAudits.map((event) => (
+                <li
+                  key={event.id}
+                  className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-4 py-2.5 text-sm"
+                >
+                  <span className="min-w-0">
+                    <span className="font-medium">
+                      {event.summary ?? event.action}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {" · "}
+                      {event.actor.displayName?.trim() ||
+                        (event.actor.username
+                          ? `@${event.actor.username.replace(/^@/, "")}`
+                          : event.actor.email)}
+                    </span>
+                  </span>
+                  <time
+                    dateTime={event.createdAt.toISOString()}
+                    className="text-muted-foreground shrink-0 text-xs tabular-nums"
+                  >
+                    {dateTime.format(event.createdAt)}
+                  </time>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </section>
 
       {profile ? (
         <section className="border-border bg-card space-y-4 rounded-xl border p-4 sm:p-5">
           <SectionHeader
             icon={PackageOpen}
-            title="Quick Winible package"
-            subtitle="Fast manual fallback when Winible sync is unavailable — paste the link, price, promo, and description, then publish it to the capper profile."
+            title={`Quick ${providerLabel(quickPackageProvider)} package`}
+            subtitle={`Fast manual fallback when ${providerLabel(quickPackageProvider)} sync is unavailable — paste the link, price, promo, and description, then publish it to the capper profile.`}
           />
           <AdminPackageForm
             capperId={profile.id}
-            storeConnectionId={winibleConnection?.id ?? null}
-            provider="WINIBLE"
+            storeConnectionId={primaryConnection?.id ?? null}
+            provider={quickPackageProvider}
           />
         </section>
       ) : null}

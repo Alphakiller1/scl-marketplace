@@ -290,3 +290,77 @@ EXCEPTION
 END
 $$;
 ```
+
+## PackageAuditEvent — attribution for admin package changes
+
+Storefront transitions are audited through `StorefrontReviewEvent`, but that
+requires a `storeConnectionId` and records a status change. It cannot cover
+package edits, and cannot cover packages with no connection at all — which is
+every offer carried over from the previous platform. Package price, title and
+visibility are revenue-affecting and publicly visible, so they need their own
+trail.
+
+`packageId` is nulled rather than cascaded on delete: an audit trail should
+outlive the thing it describes.
+
+```sql
+SET search_path TO scl;
+
+DO $$
+BEGIN
+  CREATE TYPE "PackageAuditAction" AS ENUM (
+    'CREATED', 'UPDATED', 'ACTIVATED', 'DEACTIVATED', 'REORDERED'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END
+$$;
+
+CREATE TABLE IF NOT EXISTS "PackageAuditEvent" (
+  "id"        TEXT NOT NULL,
+  "packageId" TEXT,
+  "capperId"  TEXT NOT NULL,
+  "action"    "PackageAuditAction" NOT NULL,
+  "actorId"   TEXT NOT NULL,
+  "summary"   TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "PackageAuditEvent_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX IF NOT EXISTS "PackageAuditEvent_capperId_createdAt_idx"
+  ON "PackageAuditEvent"("capperId", "createdAt");
+CREATE INDEX IF NOT EXISTS "PackageAuditEvent_packageId_idx"
+  ON "PackageAuditEvent"("packageId");
+CREATE INDEX IF NOT EXISTS "PackageAuditEvent_actorId_idx"
+  ON "PackageAuditEvent"("actorId");
+
+DO $$
+BEGIN
+  ALTER TABLE "PackageAuditEvent"
+    ADD CONSTRAINT "PackageAuditEvent_packageId_fkey"
+    FOREIGN KEY ("packageId") REFERENCES "Package"("id")
+    ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$$;
+
+DO $$
+BEGIN
+  ALTER TABLE "PackageAuditEvent"
+    ADD CONSTRAINT "PackageAuditEvent_capperId_fkey"
+    FOREIGN KEY ("capperId") REFERENCES "CapperProfile"("id")
+    ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$$;
+
+DO $$
+BEGIN
+  ALTER TABLE "PackageAuditEvent"
+    ADD CONSTRAINT "PackageAuditEvent_actorId_fkey"
+    FOREIGN KEY ("actorId") REFERENCES "User"("id")
+    ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$$;
+```

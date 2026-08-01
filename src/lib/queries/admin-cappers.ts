@@ -192,6 +192,22 @@ export async function getAdminCapperDetail(userId: string) {
       capperProfile: {
         select: {
           id: true,
+          // Who changed this capper's offers, and when. Package price and
+          // visibility are revenue-affecting; an unattributed change to them
+          // is exactly the kind of thing an audit exists to answer.
+          packageAudits: {
+            select: {
+              id: true,
+              action: true,
+              summary: true,
+              createdAt: true,
+              actor: {
+                select: { displayName: true, username: true, email: true },
+              },
+            },
+            orderBy: { createdAt: "desc" },
+            take: 10,
+          },
           headline: true,
           bio: true,
           specialties: true,
