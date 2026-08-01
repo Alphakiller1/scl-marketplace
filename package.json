@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "prebuild": "node scripts/resolve-prod-migration.mjs",
-    "build": "prisma migrate deploy && next build",
+    "build": "node scripts/migrate-on-production-only.mjs && next build",
     "start": "next start",
     "lint": "eslint",
     "lint:fix": "eslint --fix",

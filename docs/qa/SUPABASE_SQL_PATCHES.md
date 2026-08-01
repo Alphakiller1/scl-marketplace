@@ -1,7 +1,10 @@
 # Supabase SQL Patches — Owner Runbook
 
 Run these in the **Supabase SQL Editor** (Production).  
-Additive only — no `prisma migrate deploy` in Vercel `buildCommand`.
+Additive only. These are a **fallback**, not the primary path: `npm run build`
+is `prisma migrate deploy && next build`, so Vercel already applies migrations
+on deploy. Apply a patch here when a migration has not landed — or to make an
+additive change without waiting for one.
 
 If `DATABASE_URL` uses `?schema=scl`, either set the search path first or
 qualify tables as `scl."Play"` / `scl."OddsUsageDaily"`.

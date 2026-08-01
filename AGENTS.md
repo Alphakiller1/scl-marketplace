@@ -127,13 +127,17 @@ already in the repo.
   SQL from `docs/qa/SUPABASE_SQL_PATCHES.md` (especially `User.isTest` and
   `Play.closingOddsAmerican`) then restart `npm run dev` so schema-feature caches refresh.
 - **Ghost populate (temporary):** `@ghost.scl.demo` accounts publish on public
-  surfaces unless `SCL_ALLOW_GHOST_PUBLICATION=0`. Seed production with
+  surfaces only when `SCL_ALLOW_GHOST_PUBLICATION=1` (opt-in). Seed production with
   `GHOST_SEED=1 GHOST_SEED_FORCE=1 npm run seed:ghosts` against the production
   `DATABASE_URL`. Set the env to `0` and wipe ghosts when the real roster is enough.
 - **Auth host gotcha:** `.env` sets `AUTH_URL=http://localhost:3000`. Browse and sign in via
   `http://localhost:3000`, not `http://127.0.0.1:3000`, or Auth.js cookies/session will not
   stick and login will look broken.
-- **Seed logins (local):** `admin@scl.local` / `admin1234`, `capper@scl.local` / `capper1234`.
+- **Seed logins (local only):** printed by `npm run db:seed`. These accounts are
+  **local development only** — the seed refuses to run against production, and
+  `ensure-owner-admin` disables any `@scl.local` account it finds there. One was
+  found live and ACTIVE in production with the seed password still working; do
+  not reintroduce them, and never document a working credential in this repo.
 - **Pick entry:** board-verified logging needs `ODDS_API_KEY` in `.env`; without it the board
   rejects free-text event entry.
 - **IA / structure notes:** see `docs/SCL_STRUCTURE_AUDIT.md` for the latest public + capper
