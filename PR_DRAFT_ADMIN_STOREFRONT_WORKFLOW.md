@@ -3,6 +3,7 @@
 ## Summary
 
 This PR completes the admin storefront workflow feature by:
+
 1. Adding new database fields to `StoreConnection` for tracking workflow status
 2. Creating and applying a Prisma migration to support the new fields
 3. Updating server-side queries and actions to handle workflow state
@@ -12,6 +13,7 @@ This PR completes the admin storefront workflow feature by:
 ### Database Schema Changes
 
 **New StoreConnection fields:**
+
 - `affiliateAcceptedAt` (DateTime?) — timestamp when APPROVE action is taken
 - `lastImportedAt` (DateTime?) — timestamp when packages are imported/synced
 - `packageCount` (Int, default 0) — running count of packages on this connection
@@ -23,11 +25,13 @@ This PR completes the admin storefront workflow feature by:
 ### Server-Side Changes
 
 **Queries (src/lib/queries/store.ts):**
+
 - `listStoreConnections()` now accepts `requiresAttentionOnly` filter
 - Results are sorted by `requiresAttention DESC` first, then by submission time
 - New query: `countStoreConnectionsRequiringAttention()` for dashboard badge
 
 **Actions (src/lib/actions/store.action.ts):**
+
 - `adminUpdateStoreConnectionAction()` sets `affiliateAcceptedAt` on APPROVE
 - Sets `requiresAttention = true` when transitioning to NEEDS_ACTION
 - Sets `requiresAttention = false` implicitly for other transitions
@@ -37,19 +41,22 @@ This PR completes the admin storefront workflow feature by:
 ### UI Enhancements
 
 **Admin Store Setup List (src/app/(admin)/admin/store-setup/page.tsx):**
+
 - New columns display `packageCount` and `affiliatePercent`
 - Rows with `requiresAttention = true` are highlighted with `ring-2 ring-amber-400/30`
 - New filter button "Needs attention" filters to show only items requiring triage
 - Filter state is preserved in query params alongside provider filter
 
 **Request Detail Panel:**
+
 - Displays `packageCount`, `affiliatePercent`, `affiliateAcceptedAt`, and `lastImportedAt`
 - Only shown when `packageCount > 0`
 
 ### Feature Flag
 
 New environment variable `FEATURE_ADMIN_STOREFRONT_WORKFLOW` gates the functionality.
-- Default: `""`  (disabled in production)
+
+- Default: `""` (disabled in production)
 - Local dev: `"true"` (enabled for QA/testing)
 
 To enable in production, set `FEATURE_ADMIN_STOREFRONT_WORKFLOW=true` in Vercel environment variables.
@@ -57,6 +64,7 @@ To enable in production, set `FEATURE_ADMIN_STOREFRONT_WORKFLOW=true` in Vercel 
 ### Tests
 
 **Unit tests (src/lib/storefront-review.test.ts):**
+
 - Added `workflow transitions update new status fields correctly` test
 - Verifies that APPROVE, REQUEST_CHANGES, and MARK_LIVE transitions route correctly
 - Existing tests for transition logic remain unchanged and passing
@@ -88,6 +96,7 @@ npm run dev
 ### Deployment Instructions
 
 1. **Pre-deploy (CI/CD):**
+
    ```bash
    npx prisma migrate deploy  # Apply migration to production DB
    npx prisma generate        # Regenerate Prisma client
