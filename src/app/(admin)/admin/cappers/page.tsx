@@ -149,6 +149,7 @@ export default async function AdminCappersPage({
                     ? `@${account.username.replace(/^@/, "")}`
                     : account.email);
                 const latestPick = profile?.plays[0]?.createdAt ?? null;
+                const carried = profile?.legacyRecords[0] ?? null;
 
                 return (
                   <article
@@ -193,10 +194,25 @@ export default async function AdminCappersPage({
                         {profile?._count.plays ?? 0} plays ·{" "}
                         {profile?._count.parlays ?? 0} parlays
                       </p>
+                      {/*
+                        An imported capper has almost no plays on SCL yet but can
+                        carry a four-figure record from the previous platform.
+                        Showing only the play count made them read as inactive.
+                      */}
+                      {carried ? (
+                        <p className="text-muted-foreground mt-1 text-xs tabular-nums">
+                          <span className="text-foreground font-semibold">
+                            +{carried.wins}-{carried.losses}-{carried.pushes}
+                          </span>{" "}
+                          carried
+                        </p>
+                      ) : null}
                       <p className="text-muted-foreground mt-1 text-xs">
                         {latestPick
                           ? `Last pick ${latestPick.toLocaleDateString()}`
-                          : "No picks yet"}
+                          : carried
+                            ? "No picks on SCL yet"
+                            : "No picks yet"}
                       </p>
                     </div>
 

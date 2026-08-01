@@ -23,7 +23,11 @@ import { SectionHeader } from "@/components/scl/section";
 import { StoreStatusChip } from "@/components/scl/store-status-chip";
 import { Button } from "@/components/ui/button";
 import { formatUnits, signTone } from "@/lib/format";
-import { formatPriceCents, importStatusLabel } from "@/lib/store-connection";
+import {
+  formatPriceCents,
+  importStatusLabel,
+  providerLabel,
+} from "@/lib/store-connection";
 import { getAdminCapperDetail } from "@/lib/queries/admin-cappers";
 import { cn } from "@/lib/utils";
 
@@ -57,9 +61,17 @@ export default async function AdminCapperDetailPage({
   const name =
     capper.displayName?.trim() || (handle ? `@${handle}` : capper.email);
   const latestAcceptance = capper.termsAcceptances[0] ?? null;
-  const winibleConnection =
-    profile?.storeConnections.find((connection) => connection.provider === "WINIBLE") ||
+  // The quick-package form was pinned to Winible. For a Whop capper that both
+  // mislabelled the storefront as "not started" and would have created the
+  // package under the wrong platform — the form's Platform field is read-only
+  // and takes whatever provider it is handed.
+  const primaryConnection =
+    profile?.storeConnections.find(
+      (connection) => connection.status === "LIVE",
+    ) ??
+    profile?.storeConnections[0] ??
     null;
+  const quickPackageProvider = primaryConnection?.provider ?? "WINIBLE";
 
   return (
     <div className="space-y-6">
@@ -118,7 +130,12 @@ export default async function AdminCapperDetailPage({
           </div>
         </div>
 
-        <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <dl
+          className={cn(
+            "grid gap-3 sm:grid-cols-2",
+            summary?.carriedRecord ? "xl:grid-cols-6" : "xl:grid-cols-5",
+          )}
+        >
           <Metric
             label="Straight plays"
             value={summary?.straightCount.toLocaleString() ?? "0"}
@@ -127,10 +144,24 @@ export default async function AdminCapperDetailPage({
             label="Parlays"
             value={summary?.parlayCount.toLocaleString() ?? "0"}
           />
+          {/*
+            Results carried over from the previous platform. Shown as its own
+            metric rather than folded into the play counts, because it has no
+            pick-level evidence behind it — the distinction is the whole point.
+            Net units below does include it, so ROI reads against the full book.
+          */}
+          {summary?.carriedRecord ? (
+            <Metric
+              label="Carried record"
+              value={`${summary.carriedRecord.w}-${summary.carriedRecord.l}-${summary.carriedRecord.p}`}
+              hint={`${summary.carriedSettled.toLocaleString()} settled · ${formatUnits(summary.carriedUnits)}`}
+            />
+          ) : null}
           <Metric
             label="Net units"
             value={summary ? formatUnits(summary.netUnits) : "0U"}
             tone={summary ? signTone(summary.netUnits) : "muted"}
+            hint={summary?.carriedRecord ? "includes carried" : undefined}
           />
           <Metric
             label="Packages"
@@ -143,7 +174,13 @@ export default async function AdminCapperDetailPage({
         </dl>
       </section>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(20rem,0.7fr)]">
+      {/*
+        items-start, and the denser column is the wider one. Account Control is
+        a short form; Profile is a long attribute list. Stretching them to equal
+        height left a screen's worth of dead space under the controls, which
+        read as a broken panel rather than a compact one.
+      */}
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(24rem,1.1fr)]">
         <section className="border-border bg-card space-y-4 rounded-xl border p-4 sm:p-5">
           <SectionHeader
             icon={ShieldCheck}
@@ -321,21 +358,6 @@ export default async function AdminCapperDetailPage({
         )}
       </section>
 
-      {profile ? (
-        <section className="border-border bg-card space-y-4 rounded-xl border p-4 sm:p-5">
-          <SectionHeader
-            icon={PackageOpen}
-            title="Quick Winible package"
-            subtitle="Fast manual fallback when Winible sync is unavailable — paste the link, price, promo, and description, then publish it to the capper profile."
-          />
-          <AdminPackageForm
-            capperId={profile.id}
-            storeConnectionId={winibleConnection?.id ?? null}
-            provider="WINIBLE"
-          />
-        </section>
-      ) : null}
-
       <section className="space-y-4">
         <SectionHeader
           icon={PackageOpen}
@@ -416,7 +438,62 @@ export default async function AdminCapperDetailPage({
             No packages have been created for this capper.
           </p>
         )}
+
+        {/*
+          Attribution for offer changes. Package price and visibility decide
+          what the public can buy, so "who hid this and when" needs an answer
+          that does not depend on someone remembering.
+        */}
+        {profile?.packageAudits.length ? (
+          <div className="border-border overflow-hidden rounded-xl border">
+            <p className="border-border text-muted-foreground border-b px-4 py-2 text-xs font-semibold tracking-wide uppercase">
+              Recent package changes
+            </p>
+            <ul className="divide-border divide-y">
+              {profile.packageAudits.map((event) => (
+                <li
+                  key={event.id}
+                  className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-4 py-2.5 text-sm"
+                >
+                  <span className="min-w-0">
+                    <span className="font-medium">
+                      {event.summary ?? event.action}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {" · "}
+                      {event.actor.displayName?.trim() ||
+                        (event.actor.username
+                          ? `@${event.actor.username.replace(/^@/, "")}`
+                          : event.actor.email)}
+                    </span>
+                  </span>
+                  <time
+                    dateTime={event.createdAt.toISOString()}
+                    className="text-muted-foreground shrink-0 text-xs tabular-nums"
+                  >
+                    {dateTime.format(event.createdAt)}
+                  </time>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </section>
+
+      {profile ? (
+        <section className="border-border bg-card space-y-4 rounded-xl border p-4 sm:p-5">
+          <SectionHeader
+            icon={PackageOpen}
+            title={`Quick ${providerLabel(quickPackageProvider)} package`}
+            subtitle={`Fast manual fallback when ${providerLabel(quickPackageProvider)} sync is unavailable — paste the link, price, promo, and description, then publish it to the capper profile.`}
+          />
+          <AdminPackageForm
+            capperId={profile.id}
+            storeConnectionId={primaryConnection?.id ?? null}
+            provider={quickPackageProvider}
+          />
+        </section>
+      ) : null}
 
       <section className="space-y-4">
         <SectionHeader
@@ -549,13 +626,16 @@ function Metric({
   label,
   value,
   tone = "muted",
+  hint,
 }: {
   label: string;
   value: string;
   tone?: "pos" | "neg" | "muted";
+  /** Secondary line — provenance or a qualifier the number needs to be read correctly. */
+  hint?: string;
 }) {
   return (
-    <div className="bg-surface-2 rounded-lg p-3">
+    <div className="bg-surface-2 min-w-0 rounded-lg p-3">
       <dt className="text-muted-foreground text-xs font-semibold uppercase">
         {label}
       </dt>
@@ -568,6 +648,11 @@ function Metric({
       >
         {value}
       </dd>
+      {hint ? (
+        <dd className="text-muted-foreground mt-0.5 text-[0.7rem] leading-snug">
+          {hint}
+        </dd>
+      ) : null}
     </div>
   );
 }

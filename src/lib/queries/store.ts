@@ -475,3 +475,67 @@ export async function getStorefrontCoverage(): Promise<StorefrontCoverage> {
     return EMPTY_COVERAGE;
   }
 }
+
+/**
+ * Every package a capper currently has, regardless of which store connection
+ * (if any) it hangs off.
+ *
+ * The review panel otherwise only lists packages attached to the connection
+ * being reviewed, which hides two common cases: offers under the capper's
+ * *other* provider, and offers with no connection at all — which is every
+ * package carried over from the previous platform. Approving a new storefront
+ * without seeing those means approving blind.
+ */
+export async function getCapperPackagesForReview(capperId: string) {
+  try {
+    const packages = await prisma.package.findMany({
+      where: { capperId },
+      orderBy: [
+        { isActive: "desc" },
+        { sortOrder: "asc" },
+        { createdAt: "asc" },
+      ],
+      select: {
+        id: true,
+        title: true,
+        priceCents: true,
+        billingPeriod: true,
+        isActive: true,
+        sortOrder: true,
+        checkoutUrl: true,
+        affiliateProvider: true,
+        storeConnectionId: true,
+        updatedAt: true,
+        storeConnection: { select: { provider: true, status: true } },
+        trackingUrls: {
+          select: { slug: true, _count: { select: { clicks: true } } },
+          orderBy: { createdAt: "asc" },
+        },
+      },
+    });
+
+    return packages.map((pkg) => ({
+      id: pkg.id,
+      title: pkg.title,
+      priceLabel: formatPriceCents(pkg.priceCents, pkg.billingPeriod),
+      isActive: pkg.isActive,
+      sortOrder: pkg.sortOrder,
+      hasCheckoutUrl: Boolean(pkg.checkoutUrl),
+      // Falls back to the connection's provider: a carried-over offer records
+      // the provider on the package itself and has no connection.
+      provider: pkg.affiliateProvider ?? pkg.storeConnection?.provider ?? null,
+      connectionStatus: pkg.storeConnection?.status ?? null,
+      storeConnectionId: pkg.storeConnectionId,
+      /** No connection at all — imported, or created before onboarding existed. */
+      unattached: pkg.storeConnectionId === null,
+      trackingSlug: pkg.trackingUrls[0]?.slug ?? null,
+      clicks: pkg.trackingUrls.reduce((n, u) => n + u._count.clicks, 0),
+      updatedAt: pkg.updatedAt,
+      /** Publishable only with both a checkout URL and a tracking slug. */
+      publishable: Boolean(pkg.checkoutUrl) && pkg.trackingUrls.length > 0,
+    }));
+  } catch (error) {
+    console.error("[getCapperPackagesForReview] database unavailable:", error);
+    return [];
+  }
+}

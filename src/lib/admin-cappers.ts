@@ -1,11 +1,19 @@
 export const ADMIN_CAPPERS_PAGE_SIZE = 30;
 
 export type AdminCapperStatusFilter =
-  "all" | "pending" | "active" | "suspended" | "disabled";
+  | "all"
+  | "pending"
+  | "active"
+  | "suspended"
+  | "disabled";
 export type AdminCapperVerificationFilter = "all" | "verified" | "unverified";
 export type AdminCapperScopeFilter = "all" | "public" | "test";
 export type AdminCapperStorefrontFilter =
-  "all" | "none" | "pending" | "live" | "attention";
+  | "all"
+  | "none"
+  | "pending"
+  | "live"
+  | "attention";
 
 export type AdminCapperFilters = {
   search: string;

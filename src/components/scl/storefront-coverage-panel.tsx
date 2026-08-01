@@ -118,7 +118,7 @@ export function StorefrontCoveragePanel({
                 {bucket.hint}
               </p>
               {entries.length ? (
-                <ul className="mt-2.5 flex flex-wrap gap-1.5">
+                <CoverageList count={entries.length} label={bucket.label}>
                   {entries.map((entry) => {
                     const label = nameFor(entry);
                     const status = entry.status
@@ -151,7 +151,7 @@ export function StorefrontCoveragePanel({
                       </li>
                     );
                   })}
-                </ul>
+                </CoverageList>
               ) : (
                 <p className="text-muted-foreground mt-2 text-xs italic">
                   None.
@@ -162,5 +162,39 @@ export function StorefrontCoveragePanel({
         })}
       </div>
     </section>
+  );
+}
+
+/**
+ * Buckets are wildly uneven — one holds a couple of pending storefronts, the
+ * onboarding backlog holds the entire roster. Rendering every chip inline made
+ * the long bucket bury the short ones, which are the actionable ones. Anything
+ * past a screenful collapses behind a native disclosure so the counts stay
+ * comparable at a glance; `<details>` keeps it keyboard- and screen-reader
+ * friendly without a client component.
+ */
+const COVERAGE_INLINE_LIMIT = 24;
+
+function CoverageList({
+  count,
+  label,
+  children,
+}: {
+  count: number;
+  label: string;
+  children: React.ReactNode;
+}) {
+  const list = <ul className="mt-2.5 flex flex-wrap gap-1.5">{children}</ul>;
+  if (count <= COVERAGE_INLINE_LIMIT) return list;
+  return (
+    <details className="group mt-2.5">
+      <summary className="text-muted-foreground hover:text-foreground inline-flex min-h-10 cursor-pointer items-center text-xs font-medium">
+        <span className="group-open:hidden">
+          Show all {count} &middot; {label}
+        </span>
+        <span className="hidden group-open:inline">Hide {label}</span>
+      </summary>
+      {list}
+    </details>
   );
 }

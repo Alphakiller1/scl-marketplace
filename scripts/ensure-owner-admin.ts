@@ -39,6 +39,26 @@ async function main() {
     console.log(
       `[ensure-owner-admin] smoke packages deactivated=${smoke.count}`,
     );
+
+    // Seed accounts must never be usable in production. `admin@scl.local` was
+    // found live and ACTIVE with the seed password `admin1234` still working —
+    // a credential published in a public repo. The demo seed refuses to run
+    // against production now, but that guard postdates the account, so this
+    // sweeps up anything already there and keeps it swept on every deploy.
+    //
+    // Runs only after the real owner has been promoted above, so it can never
+    // leave the platform without an admin.
+    const seedAccounts = await prisma.user.updateMany({
+      where: {
+        email: { endsWith: "@scl.local" },
+        accountStatus: { not: "DISABLED" },
+        NOT: { email: ownerEmail },
+      },
+      data: { accountStatus: "DISABLED" },
+    });
+    console.log(
+      `[ensure-owner-admin] seed accounts disabled=${seedAccounts.count}`,
+    );
   } finally {
     await prisma.$disconnect();
   }

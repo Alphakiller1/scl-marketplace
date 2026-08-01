@@ -39,10 +39,17 @@ async function runGrade(req: NextRequest) {
   }
 
   // Prevent overlapping runs
-  const running = await prisma.gradeJobRun.findFirst({ where: { status: "RUNNING" } });
+  const running = await prisma.gradeJobRun.findFirst({
+    where: { status: "RUNNING" },
+  });
   if (running) {
-    console.warn(`[cron/grade] overlapping run prevented — existing run ${running.id}`);
-    return NextResponse.json({ error: "Run already in progress", runId: running.id }, { status: 409 });
+    console.warn(
+      `[cron/grade] overlapping run prevented — existing run ${running.id}`,
+    );
+    return NextResponse.json(
+      { error: "Run already in progress", runId: running.id },
+      { status: 409 },
+    );
   }
 
   const provider = process.env.RESULTS_PROVIDER || "default";
@@ -54,7 +61,10 @@ async function runGrade(req: NextRequest) {
     },
   });
 
-  await prisma.gradeJobRun.update({ where: { id: job.id }, data: { startedAt: new Date() } });
+  await prisma.gradeJobRun.update({
+    where: { id: job.id },
+    data: { startedAt: new Date() },
+  });
 
   let clvSnapshots = 0;
   let clvBackfilled = 0;
@@ -70,7 +80,10 @@ async function runGrade(req: NextRequest) {
     const result = await autoGradePending(getResultsProvider());
     const health = await getGradingHealthReport();
 
-    const stuckPlays = (result.skippedByReason?.aged_out ?? 0) > 0 ? await listAgedOutPendingPlays() : [];
+    const stuckPlays =
+      (result.skippedByReason?.aged_out ?? 0) > 0
+        ? await listAgedOutPendingPlays()
+        : [];
 
     // Update job run with final stats
     await prisma.gradeJobRun.update({
@@ -125,6 +138,9 @@ async function runGrade(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ error: "Grade job failed", message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Grade job failed", message },
+      { status: 500 },
+    );
   }
 }

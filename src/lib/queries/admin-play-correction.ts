@@ -58,7 +58,8 @@ export type AdminParlayCorrectionRecord = AdminCorrectionBase & {
 };
 
 export type AdminCorrectionRecord =
-  AdminStraightCorrectionRecord | AdminParlayCorrectionRecord;
+  | AdminStraightCorrectionRecord
+  | AdminParlayCorrectionRecord;
 
 function actorLabel(
   actor: {

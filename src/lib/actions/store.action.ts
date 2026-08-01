@@ -486,6 +486,22 @@ export async function adminSavePackageAction(
       });
     }
 
+    // Price, title and visibility are revenue-affecting and publicly visible,
+    // so every save is attributed. `d.id` distinguishes an edit from a create.
+    await tx.packageAuditEvent.create({
+      data: {
+        packageId: pkg.id,
+        capperId: capper.id,
+        actorId: admin.id,
+        action: d.id ? "UPDATED" : "CREATED",
+        summary: `${d.id ? "Updated" : "Created"} "${d.title}" · ${
+          d.priceCents > 0
+            ? `$${(d.priceCents / 100).toFixed(2)}`
+            : "no price shown"
+        } · ${d.isActive ? "live" : "hidden"}`,
+      },
+    });
+
     if (storeConnectionId) {
       await syncConnectionFromLivePackages(tx, storeConnectionId, admin.id);
     }
@@ -508,6 +524,8 @@ export async function adminSetPackageActiveAction(
     where: { id: parsed.data.packageId },
     select: {
       id: true,
+      title: true,
+      capperId: true,
       storeConnectionId: true,
       capper: {
         select: { user: { select: { id: true, username: true } } },
@@ -520,6 +538,17 @@ export async function adminSetPackageActiveAction(
     await tx.package.update({
       where: { id: pkg.id },
       data: { isActive: parsed.data.isActive },
+    });
+    // Taking an offer down (or putting one up) changes what the public can buy,
+    // so it is attributed like any other storefront decision.
+    await tx.packageAuditEvent.create({
+      data: {
+        packageId: pkg.id,
+        capperId: pkg.capperId,
+        actorId: admin.id,
+        action: parsed.data.isActive ? "ACTIVATED" : "DEACTIVATED",
+        summary: `${parsed.data.isActive ? "Published" : "Hid"} "${pkg.title}"`,
+      },
     });
     if (pkg.storeConnectionId) {
       await syncConnectionFromLivePackages(tx, pkg.storeConnectionId, admin.id);
@@ -542,7 +571,7 @@ export async function adminSetPackageActiveAction(
 export async function adminReorderPackageAction(
   input: AdminPackageReorderInput,
 ): Promise<ActionResult> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const parsed = adminPackageReorderSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid request." };
 
@@ -579,6 +608,17 @@ export async function adminReorderPackageAction(
         data: { sortOrder: order },
       });
     }
+    // Display order decides which offer a visitor sees first, so it is
+    // attributed too — one event for the move, not one per sibling rewritten.
+    await tx.packageAuditEvent.create({
+      data: {
+        packageId: pkg.id,
+        capperId: pkg.capperId,
+        actorId: admin.id,
+        action: "REORDERED",
+        summary: `Moved ${parsed.data.direction === "UP" ? "up" : "down"} in display order`,
+      },
+    });
   });
 
   await revalidateCommercePaths(pkg.capper.user.username, pkg.capper.user.id);

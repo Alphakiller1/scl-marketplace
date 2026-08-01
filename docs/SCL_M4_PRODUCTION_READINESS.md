@@ -30,7 +30,7 @@ already shipped). This is the **launch** milestone.
 
 1. **Wipe the 30 fabricated ghost cappers** before real traffic — a "verified records" board must
    not carry invented ones. One `reseed-ghosts.yml` dispatch with `{wipeOnly:true}`.
-2. **Rotate default admin credentials** (`admin@scl.local` / `admin1234`) — documented in a now-public repo.
+2. ~~**Rotate default admin credentials**~~ — RESOLVED 2026-08-01. The seed admin was found live and ACTIVE in production with the seed password still working. It is now DISABLED, `ensure-owner-admin` disables any `@scl.local` account on every production deploy, and the credential is out of the docs.
 3. **Rotate the prod DB password** — shared in plaintext during development.
 
 ## Method note

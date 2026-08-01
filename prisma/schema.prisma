@@ -55,6 +55,7 @@ model User {
   storefrontReviewed StoreConnection[]        @relation("StoreConnectionReviewedBy")
   policyUpdates      PolicyDocument[]         @relation("PolicyUpdatedBy")
   policyRevisions    PolicyDocumentRevision[] @relation("PolicyRevisionEditedBy")
+  packageAudits      PackageAuditEvent[]      @relation("PackageAuditActor")
 }
 
 model Account {
@@ -232,12 +233,13 @@ model CapperProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   plays            Play[]
   parlays          Parlay[]
   packages         Package[]
   storeConnections StoreConnection[]
   legacyRecords    LegacyRecord[]
+  packageAudits    PackageAuditEvent[]
 
   @@index([providerType])
 }
@@ -357,9 +359,10 @@ model Package {
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
-  capper          CapperProfile    @relation(fields: [capperId], references: [id], onDelete: Cascade)
-  storeConnection StoreConnection? @relation(fields: [storeConnectionId], references: [id], onDelete: SetNull)
-  trackingUrls    TrackingUrl[]
+  capper             CapperProfile       @relation(fields: [capperId], references: [id], onDelete: Cascade)
+  storeConnection    StoreConnection?    @relation(fields: [storeConnectionId], references: [id], onDelete: SetNull)
+  trackingUrls       TrackingUrl[]
+  packageAuditEvents PackageAuditEvent[]
 
   @@index([capperId])
   @@index([storeConnectionId])
@@ -619,4 +622,42 @@ model LegacyRecord {
 
   @@unique([capperId, scope, sport])
   @@index([scope, sport])
+}
+
+/// Append-only record of administrator changes to a capper's packages.
+///
+/// Storefront transitions are audited through `StorefrontReviewEvent`, but that
+/// requires a `storeConnectionId` and records a status change — it cannot cover
+/// package edits, and cannot cover packages with no connection at all (every
+/// offer carried over from the previous platform). Package price, title and
+/// visibility are revenue-affecting and publicly visible, so they need
+/// attribution of their own.
+enum PackageAuditAction {
+  CREATED
+  UPDATED
+  ACTIVATED
+  DEACTIVATED
+  REORDERED
+}
+
+model PackageAuditEvent {
+  id        String             @id @default(cuid())
+  /// Nulled rather than cascaded when a package is deleted: the point of an
+  /// audit trail is that it outlives the thing it describes.
+  packageId String?
+  /// Kept independently so a capper's history survives package deletion.
+  capperId  String
+  action    PackageAuditAction
+  actorId   String
+  /// What actually changed, in words — "price 25.00 -> 40.00", "hidden".
+  summary   String?
+  createdAt DateTime           @default(now())
+
+  package Package?      @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  capper  CapperProfile @relation(fields: [capperId], references: [id], onDelete: Cascade)
+  actor   User          @relation("PackageAuditActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([capperId, createdAt])
+  @@index([packageId])
+  @@index([actorId])
 }

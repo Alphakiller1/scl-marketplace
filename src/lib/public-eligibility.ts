@@ -101,7 +101,7 @@ type PrismaExcludeOpts = {
   includeIsTestColumn?: boolean;
   /**
    * Permit reserved ghost-domain accounts (temporary demo populate).
-   * Live queries enable this unless `SCL_ALLOW_GHOST_PUBLICATION=0`.
+   * Live queries enable this only when `SCL_ALLOW_GHOST_PUBLICATION=1`.
    * Known QA handles remain excluded.
    */
   allowGhostAccounts?: boolean;
