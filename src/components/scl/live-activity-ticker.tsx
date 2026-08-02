@@ -182,8 +182,6 @@ export function LiveActivityTicker({ items }: { items: LiveTickerItem[] }) {
   const marqueeItems = buildMarqueeItems(items);
   const halfCount = marqueeItems.length / 2;
   const durationSec = Math.max(32, Math.round(halfCount * 3.1));
-  const hasRecentWin = items.some((item) => item.kind === "win");
-
   return (
     <section
       aria-label="Recent winning wagers and live board activity"
@@ -204,7 +202,7 @@ export function LiveActivityTicker({ items }: { items: LiveTickerItem[] }) {
               className="size-3.5 text-[color:var(--scl-blue)]"
               aria-hidden
             />
-            {hasRecentWin ? "Recent winning wagers" : "Live board activity"}
+            Recent winning wagers &amp; activity
           </p>
         </div>
 
