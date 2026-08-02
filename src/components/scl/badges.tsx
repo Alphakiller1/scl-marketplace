@@ -137,12 +137,15 @@ export function SportTag({
   withMark = true,
   /** Dense surfaces: mark only (title carries the league name). */
   markOnly = false,
+  forceLabel = false,
 }: {
   sport: string;
   className?: string;
   /** When false, render the label chip without a LeagueMark (e.g. beside a larger mark). */
   withMark?: boolean;
   markOnly?: boolean;
+  /** Show the text beside its mark even when both use the same acronym. */
+  forceLabel?: boolean;
 }) {
   const label = SPORT_LABEL.get(sport) ?? sport;
   const league = getLeagueIdentity(sport);
@@ -152,7 +155,7 @@ export function SportTag({
     label.replace(/[^a-zA-Z0-9]/g, "").toUpperCase() ===
     initials.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
   const showMark = withMark;
-  const showLabel = !markOnly && (!showMark || !labelRedundant);
+  const showLabel = !markOnly && (forceLabel || !showMark || !labelRedundant);
 
   if (showMark && !showLabel) {
     return (

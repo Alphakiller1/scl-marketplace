@@ -6,6 +6,7 @@ import { PackagesRegister } from "@/components/scl/packages-register";
 import { Button } from "@/components/ui/button";
 import { STOREFRONT_PAYMENT_DISCLAIMER } from "@/lib/cold-start-copy";
 import { getPublicCapperEvidenceByIds } from "@/lib/queries/leaderboard";
+import { getPackagePerformanceEvidence } from "@/lib/queries/package-performance";
 import { listActiveMarketplacePackagesResult } from "@/lib/queries/store";
 
 export const metadata: Metadata = {
@@ -20,7 +21,7 @@ const STEPS = [
   {
     number: "01",
     title: "Inspect the record",
-    body: "Review all-time record, ROI, units, sample maturity, and board-verified share.",
+    body: "Review the picks attributed to that package, including record, ROI, units, and sample maturity.",
   },
   {
     number: "02",
@@ -83,12 +84,20 @@ function MarketplaceEmpty({ failed = false }: { failed?: boolean }) {
 
 export default async function PackagesPage() {
   const marketplace = await listActiveMarketplacePackagesResult();
-  const evidence =
+  const [evidence, packagePerformance] =
     !marketplace.failed && marketplace.packages.length > 0
-      ? await getPublicCapperEvidenceByIds(
-          marketplace.packages.map((pkg) => pkg.capperId),
-        )
-      : { cappers: [], failed: false };
+      ? await Promise.all([
+          getPublicCapperEvidenceByIds(
+            marketplace.packages.map((pkg) => pkg.capperId),
+          ),
+          getPackagePerformanceEvidence(
+            marketplace.packages.map((pkg) => pkg.id),
+          ),
+        ])
+      : [
+          { cappers: [], failed: false },
+          { evidence: {}, failed: false },
+        ];
 
   return (
     <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
@@ -135,11 +144,12 @@ export default async function PackagesPage() {
           <PackagesRegister
             packages={marketplace.packages}
             cappers={evidence.cappers}
-            evidenceFailed={evidence.failed}
+            packageEvidence={packagePerformance.evidence}
+            evidenceFailed={packagePerformance.failed}
           />
           <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
-            Verified share describes board verification at submission, not pick
-            outcomes. Past performance is not a guarantee of future results.
+            Package performance includes only picks explicitly attributed to
+            that offer. Past performance is not a guarantee of future results.
           </p>
         </>
       ) : (

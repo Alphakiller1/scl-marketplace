@@ -10,7 +10,6 @@ import {
 import { RankMovementIndicator } from "@/components/scl/indicators";
 import { RankBadge, BUILDING_RECORD_LABEL } from "@/components/scl/rank-badge";
 import { ProfileActionGroup } from "@/components/scl/profile-action-group";
-import { ProvisionalRecordHelp } from "@/components/scl/provisional-record-help";
 import { formatLastPickDate } from "@/lib/capper-activity";
 import { identityDisplayLinesFromCapper } from "@/lib/identity";
 import { isProvisional } from "@/lib/sample";
@@ -109,7 +108,7 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                   aria-label="Sports and specialties"
                 >
                   {capper.topSport ? (
-                    <SportTag sport={capper.topSport} withMark={false} />
+                    <SportTag sport={capper.topSport} forceLabel />
                   ) : null}
                   {specialties.map((specialty) => (
                     <span
@@ -143,10 +142,7 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                       ) : null}
                     </span>
                   ) : (
-                    <span className="inline-flex flex-wrap items-center gap-1.5">
-                      <span>{BUILDING_RECORD_LABEL}</span>
-                      <ProvisionalRecordHelp label="What This Means" />
-                    </span>
+                    <span>{BUILDING_RECORD_LABEL}</span>
                   )}
                 </span>
                 {verifiedPct != null ? (
@@ -156,7 +152,7 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                       <span className="text-foreground font-semibold tabular-nums">
                         {verifiedPct}%
                       </span>{" "}
-                      verified
+                      odds verified
                     </span>
                   </>
                 ) : null}
@@ -174,10 +170,7 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
               </div>
             </div>
 
-            <ProfileActionGroup
-              handle={capper.handle}
-              className="mt-3 shrink-0 lg:mt-0 lg:justify-end"
-            />
+            <ProfileActionGroup className="mt-3 shrink-0 lg:mt-0 lg:justify-end" />
           </div>
         </div>
       </div>

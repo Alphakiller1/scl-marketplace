@@ -27,8 +27,8 @@ export function VerifiedBadge({
           "inline-flex min-h-8 items-center rounded-md border border-[color:var(--scl-pink)] px-2 text-[color:var(--scl-text)]",
           className,
         )}
-        aria-label="Fully board-verified record"
-        title="All picks on this record were board-verified."
+        aria-label="All pick odds verified"
+        title="Every pick in this record has stored odds-verification evidence."
       >
         <ShieldCheck className="size-3.5 shrink-0" aria-hidden />
       </span>
@@ -44,14 +44,14 @@ export function VerifiedBadge({
             "scl-data text-muted-foreground inline-flex items-center gap-1 text-[0.7rem] font-semibold",
             className,
           )}
-          aria-label={`${pct} percent of picks board-verified`}
-          title={`${pct}% of this capper's picks were board-verified. Only verified picks count toward rank.`}
+          aria-label={`${pct} percent of pick odds verified`}
+          title={`${pct}% of this capper's picks have stored odds-verification evidence.`}
         >
           <ShieldCheck
             className="size-3.5 shrink-0 text-[color:var(--scl-pink)]"
             aria-hidden
           />
-          {`${pct}% board-verified`}
+          {`${pct}% odds-verified`}
         </span>
       );
     }
@@ -61,8 +61,8 @@ export function VerifiedBadge({
           "inline-flex min-h-8 items-center rounded-md border border-[color:var(--scl-line)] px-2 text-[color:var(--scl-muted-label)]",
           className,
         )}
-        aria-label={`${pct} percent of picks board-verified`}
-        title={`${pct}% of this capper's picks were board-verified. Only verified picks count toward rank.`}
+        aria-label={`${pct} percent of pick odds verified`}
+        title={`${pct}% of this capper's picks have stored odds-verification evidence.`}
       >
         <ShieldCheck className="size-3.5 shrink-0" aria-hidden />
       </span>
@@ -81,7 +81,7 @@ export function VerifiedBadge({
           : "text-muted-foreground border border-[color:var(--scl-line)]",
         className,
       )}
-      aria-label={verified ? "Board-Verified Pick" : "Logged pick"}
+      aria-label={verified ? "Odds-Verified Pick" : "Odds Not Verified"}
     >
       {verified ? (
         <ShieldCheck
@@ -89,7 +89,7 @@ export function VerifiedBadge({
           aria-hidden
         />
       ) : null}
-      {verified ? "Verified" : "Logged"}
+      {verified ? "Odds Verified" : "Odds Not Verified"}
     </span>
   );
 }

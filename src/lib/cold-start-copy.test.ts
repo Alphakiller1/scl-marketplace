@@ -32,11 +32,11 @@ test("cold-start copy stays free of hype promises", () => {
 test("how-ranking copy matches GPT P2 sweep", () => {
   assert.equal(
     HOW_RANKING_WORKS_BULLETS[0],
-    "Within the selected scope, a public rank requires the minimum graded sample and non-negative ROI and units.",
+    "Within the selected scope, a public rank requires the minimum graded sample.",
   );
   assert.equal(
     HOW_RANKING_WORKS_BULLETS[1],
-    "Records below the sample threshold or with negative ROI or units remain visible under Building a Record and are not ranked.",
+    "Records below the sample threshold remain visible under Building a Record and are not ranked.",
   );
   assert.equal(
     HOW_RANKING_WORKS_BULLETS[2],
@@ -44,6 +44,6 @@ test("how-ranking copy matches GPT P2 sweep", () => {
   );
   assert.equal(
     HOW_RANKING_VERIFIED_NOTE,
-    "Verified share is the percentage of tracked picks checked against the board at submission. It does not describe pick outcomes.",
+    "Odds-Verified share is the percentage of tracked picks whose submitted prices were checked against available sportsbook odds. It does not describe pick outcomes.",
   );
 });

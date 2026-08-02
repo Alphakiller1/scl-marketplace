@@ -25,7 +25,10 @@ export function SiteHeader() {
           <span className="ring-border-strong flex size-9 items-center justify-center rounded-xl bg-[color:var(--scl-ink-800)] ring-1">
             <SclLogo className="size-6" />
           </span>
-          <span className="scl-display text-lg font-bold tracking-[0.08em] uppercase">
+          <span className="scl-display hidden text-sm font-bold tracking-[0.03em] sm:inline lg:text-base">
+            Sports Cappers Leaderboard
+          </span>
+          <span className="scl-display text-lg font-bold tracking-[0.08em] uppercase sm:hidden">
             SCL
           </span>
         </Link>

@@ -12,6 +12,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { hasQaNoteMarker, isValidPublicStake } from "@/lib/public-eligibility";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
+import { publicPickEmbargoState } from "@/lib/public-pick-embargo";
 import { getPublicCapperEvidenceByIds } from "@/lib/queries/leaderboard";
 import type { PlayView } from "@/lib/queries/plays";
 import {
@@ -87,6 +88,7 @@ export async function getPublicProfileHistoryPage(
         verificationTier: true,
         side: true,
         eventStartsAt: true,
+        eventLabel: true,
         book: true,
         notes: true,
         ...(notesPublicReady ? { notesPublic: true } : {}),
@@ -102,40 +104,49 @@ export async function getPublicProfileHistoryPage(
     visible.push(
       ...rows
         .filter((row) => !hasQaNoteMarker(row.notes))
-        .map((row) => ({
-          id: row.id,
-          sport: row.sport,
-          league: row.league,
-          market: row.market,
-          selection: row.selection,
-          oddsAmerican: row.oddsAmerican,
-          units: Number(row.units),
-          outcome: row.outcome,
-          profitUnits: row.profitUnits == null ? null : Number(row.profitUnits),
-          createdAt: row.createdAt,
-          verificationTier: row.verificationTier,
-          side: row.side,
-          eventStartsAt: row.eventStartsAt,
-          book: row.book,
-          notes:
-            "notesPublic" in row &&
-            (row as { notesPublic?: boolean }).notesPublic === false
-              ? null
-              : row.notes,
-          notesPublic:
-            "notesPublic" in row
-              ? ((row as { notesPublic?: boolean }).notesPublic ?? true)
-              : true,
-          closingOddsAmerican:
-            "closingOddsAmerican" in row
-              ? ((row as { closingOddsAmerican?: number | null })
-                  .closingOddsAmerican ?? null)
-              : null,
-          clvPts:
-            "clvPts" in row && (row as { clvPts?: unknown }).clvPts != null
-              ? Number((row as { clvPts: unknown }).clvPts)
-              : null,
-        }))
+        .map((row) => {
+          const embargo = publicPickEmbargoState(row);
+          return {
+            id: row.id,
+            sport: row.sport,
+            league: row.league,
+            market: row.market,
+            selection: embargo.isEmbargoed ? "Pick hidden" : row.selection,
+            oddsAmerican: embargo.isEmbargoed ? 0 : row.oddsAmerican,
+            units: Number(row.units),
+            outcome: row.outcome,
+            profitUnits:
+              row.profitUnits == null ? null : Number(row.profitUnits),
+            createdAt: row.createdAt,
+            verificationTier: row.verificationTier,
+            side: embargo.isEmbargoed ? null : row.side,
+            eventStartsAt: row.eventStartsAt,
+            eventLabel: row.eventLabel,
+            book: embargo.isEmbargoed ? null : row.book,
+            notes:
+              embargo.isEmbargoed ||
+              ("notesPublic" in row &&
+                (row as { notesPublic?: boolean }).notesPublic === false)
+                ? null
+                : row.notes,
+            notesPublic:
+              "notesPublic" in row
+                ? ((row as { notesPublic?: boolean }).notesPublic ?? true)
+                : true,
+            closingOddsAmerican:
+              embargo.isEmbargoed || !("closingOddsAmerican" in row)
+                ? null
+                : ((row as { closingOddsAmerican?: number | null })
+                    .closingOddsAmerican ?? null),
+            clvPts:
+              embargo.isEmbargoed ||
+              !("clvPts" in row) ||
+              (row as { clvPts?: unknown }).clvPts == null
+                ? null
+                : Number((row as { clvPts: unknown }).clvPts),
+            ...embargo,
+          };
+        })
         .filter((play) => isValidPublicStake(play.units)),
     );
   }

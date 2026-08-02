@@ -6,7 +6,6 @@ import { CapperIdentityLabel } from "@/components/scl/capper-identity-label";
 import { SportTag } from "@/components/scl/badges";
 import { RankBadge } from "@/components/scl/rank-badge";
 import { SampleMaturityMeter } from "@/components/scl/sample-maturity-meter";
-import { VerifiedShareMeter } from "@/components/scl/verified-share-meter";
 import { formatRecord, formatRoi, formatUnits } from "@/lib/format";
 import type { CapperSummary } from "@/lib/mock";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
@@ -37,13 +36,10 @@ export function RankBoardTable({
 }) {
   const compact = density === "snapshot";
   const cell = compact ? "px-1.5 py-1.5" : "px-2.5 py-2";
-  /** Dedicated columns so Sample / Verified meters never collide. */
+  /** Dedicated sample column keeps its maturity meter readable. */
   const sampleCol = compact
     ? "w-[5.5rem] min-w-[5.5rem]"
     : "w-[6rem] min-w-[6rem]";
-  const verifiedCol = compact
-    ? "w-[6.75rem] min-w-[6.75rem]"
-    : "w-[7.25rem] min-w-[7.25rem]";
 
   return (
     <div className={cn(className)}>
@@ -90,13 +86,11 @@ export function RankBoardTable({
               </th>
               <th className={cn("scl-eyebrow text-left", cell)}>Sports</th>
               <th className={cn("scl-eyebrow text-right", cell)}>Record</th>
+              <th className={cn("scl-eyebrow text-right", cell)}>Win%</th>
               <th className={cn("scl-eyebrow text-right", cell)}>ROI</th>
               <th className={cn("scl-eyebrow text-right", cell)}>Units</th>
               <th className={cn("scl-eyebrow text-right", sampleCol, cell)}>
                 Sample
-              </th>
-              <th className={cn("scl-eyebrow text-right", verifiedCol, cell)}>
-                Verified
               </th>
               <th className={cn(compact ? "w-6 px-1 py-1.5" : "w-8 px-1 py-2")}>
                 <span className="sr-only">Open</span>
@@ -186,6 +180,14 @@ export function RankBoardTable({
                     className={cn(
                       "scl-data text-right align-middle font-semibold tabular-nums",
                       cell,
+                    )}
+                  >
+                    {capper.winPct.toFixed(1)}%
+                  </td>
+                  <td
+                    className={cn(
+                      "scl-data text-right align-middle font-semibold tabular-nums",
+                      cell,
                       perfToneClass(roiScale.tone),
                     )}
                     title={roiScale.ariaLabel}
@@ -205,11 +207,6 @@ export function RankBoardTable({
                   <td className={cn(cell, sampleCol, "align-middle")}>
                     <div className="ml-auto w-full max-w-full">
                       <SampleMaturityMeter graded={graded} compact />
-                    </div>
-                  </td>
-                  <td className={cn(cell, verifiedCol, "align-middle")}>
-                    <div className="ml-auto w-full max-w-full">
-                      <VerifiedShareMeter pct={capper.verifiedShare} compact />
                     </div>
                   </td>
                   <td
@@ -304,8 +301,8 @@ function RankBoardMobileRow({
             <span className="inline-flex w-[3.25rem] shrink-0 items-center">
               <SampleMaturityMeter graded={graded} compact />
             </span>
-            <span className="inline-flex w-[3.5rem] shrink-0 items-center">
-              <VerifiedShareMeter pct={capper.verifiedShare} compact />
+            <span className="scl-data tabular-nums">
+              {capper.winPct.toFixed(1)}%
             </span>
           </span>
         </span>

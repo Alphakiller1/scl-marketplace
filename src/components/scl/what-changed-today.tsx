@@ -42,7 +42,7 @@ export function WhatChangedToday({
             ) : (
               <span>
                 {" "}
-                Rank And Unit Changes Appear After Board-Verified Picks Are
+                Rank And Unit Changes Appear After Odds-Verified Picks Are
                 Graded.
               </span>
             )}

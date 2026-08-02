@@ -14,6 +14,7 @@ import {
 } from "@/lib/odds";
 import { moveKey, resolveCaptureOdds } from "@/lib/odds-movement";
 import type { AcceptedMove, MovedLinePayload } from "@/lib/odds-movement";
+import { validatePackageAttribution } from "@/lib/package-attribution";
 import { prisma } from "@/lib/prisma";
 import {
   createParlaySchema,
@@ -68,6 +69,13 @@ export async function createParlay(
   if (!profile) return { ok: false, error: "No capper profile found." };
 
   const d = parsed.data;
+  const packageIds = await validatePackageAttribution(profile.id, d.packageIds);
+  if (!packageIds) {
+    return {
+      ok: false,
+      error: "One or more selected packages are unavailable.",
+    };
+  }
   const now = new Date();
 
   // Verification is the universal standard: every leg must be board-bound; each is
@@ -135,7 +143,7 @@ export async function createParlay(
       acceptedMoves,
       moveKey: key,
       eventId: l.eventId,
-      eventLabel: l.selection,
+      eventLabel: l.eventLabel ?? l.selection,
       market: l.market,
       selection: l.selection,
       side: l.side,
@@ -217,6 +225,9 @@ export async function createParlay(
       capperId: profile.id,
       units: d.units,
       combinedOddsAmerican,
+      packageLinks: {
+        create: packageIds.map((packageId) => ({ packageId })),
+      },
       legs: {
         create: decided.map(
           ({
@@ -237,6 +248,7 @@ export async function createParlay(
             oddsMovedAccepted,
             units: 0, // the parlay carries the stake; legs are components
             eventId: l.eventId,
+            eventLabel: l.eventLabel ?? null,
             eventStartsAt,
             side: l.side,
             line: l.line ?? null,

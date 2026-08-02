@@ -4,8 +4,7 @@ import { VerificationLegend } from "@/components/scl/verification-legend";
 import { cn } from "@/lib/utils";
 
 /**
- * Homepage evidence field — verification / receipt context rail (4-col).
- * Pink verification mark stays dominant; clarifies authenticity ≠ result.
+ * Owner-approved public explanation of SCL's two verification stages.
  */
 export function HomeVerificationRail({ className }: { className?: string }) {
   return (
@@ -25,17 +24,15 @@ export function HomeVerificationRail({ className }: { className?: string }) {
           </h2>
         </div>
         <p className="text-muted-foreground mt-1.5 text-xs leading-snug sm:mt-2 sm:text-sm sm:leading-relaxed">
-          Account checks and pick authenticity are separate. Board-verified
-          means odds were captured pre-game and checked against the live market
-          — not that the pick won.
+          SCL verifies both the market available when a pick is submitted and
+          the result recorded after the event concludes.
         </p>
       </div>
 
       <VerificationLegend />
 
       <p className="text-muted-foreground text-xs leading-snug sm:text-sm sm:leading-relaxed">
-        The pink stamp is the trust mark. Settlement (win / loss / push) is a
-        separate result signal and never replaces verification.
+        Transparency and trust, all in one verified record.
       </p>
     </aside>
   );

@@ -4,8 +4,8 @@ import { test } from "node:test";
 import { HERO_SLIDES } from "@/lib/hero-slides";
 
 /**
- * Owner lock — design/MOCKUP_FIDELITY_HOME_CONTRACT.md
- * Visual fidelity work must not rewrite hero CTA language.
+ * Owner lock — updated from the August 2026 modernization feedback.
+ * Visual fidelity work must not rewrite this approved launch language.
  */
 test("hero CTA language remains owner-locked", () => {
   assert.deepEqual(
@@ -24,7 +24,7 @@ test("hero CTA language remains owner-locked", () => {
         title: "Apply As A Founding Capper",
         cta: "Track Your Record",
         href: "/signup",
-        body: "Build a public, inspectable record from day one — every pick, timestamp, line, and result visible before you send bettors anywhere.",
+        body: "Build a public, inspectable record from day one — every pick, timestamp, line, and result verified. Because transparency matters.",
       },
       {
         id: "discover",
@@ -32,7 +32,7 @@ test("hero CTA language remains owner-locked", () => {
         title: "Find & Tail The Best Cappers In The World",
         cta: "Explore Leaderboard",
         href: "/leaderboard",
-        body: "Compare board-verified records by units, ROI, and sample size — then follow the cappers whose process holds up under inspection.",
+        body: "Follow the Leaderboard, Win More Bets — compare verified records by units, ROI, and sample size.",
       },
       {
         id: "verify",
@@ -40,7 +40,7 @@ test("hero CTA language remains owner-locked", () => {
         title: "Sell, Track, & Verify Your Predictions",
         cta: "Track Your Record",
         href: "/signup",
-        body: "Log board-verified plays, earn a public rank others can check, and keep payments on your own storefront. SCL does not process payments.",
+        body: "Log verified plays, earn a public rank others can check, and keep payments on your own storefront. SCL does not process payments.",
       },
     ],
   );

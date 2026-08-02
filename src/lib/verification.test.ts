@@ -22,16 +22,22 @@ test("isVerifiedTier: only VERIFIED and AUTO_VERIFIED clear the bar", () => {
   assert.equal(isVerifiedTier("SELF_REPORTED"), false);
 });
 
-test("verificationTierMeta: verified tones vs muted; legacy tier is Logged", () => {
+test("verificationTierMeta uses the public Odds Verification terminology", () => {
   assert.equal(verificationTierMeta("VERIFIED").tone, "verified");
   assert.equal(verificationTierMeta("AUTO_VERIFIED").tone, "verified");
   assert.equal(verificationTierMeta("SELF_REPORTED").tone, "muted");
-  assert.equal(verificationTierMeta("VERIFIED").short, "Verified");
-  assert.equal(verificationTierMeta("SELF_REPORTED").short, "Logged");
-  assert.equal(verificationTierMeta("SELF_REPORTED").label, "Logged");
+  assert.equal(verificationTierMeta("VERIFIED").short, "Odds Verified");
+  assert.equal(
+    verificationTierMeta("SELF_REPORTED").short,
+    "Not Odds Verified",
+  );
+  assert.equal(
+    verificationTierMeta("SELF_REPORTED").label,
+    "Odds Not Verified",
+  );
   assert.match(
     verificationTierMeta("SELF_REPORTED").description,
-    /not board-checked/i,
+    /without a stored market-price check/i,
   );
 });
 
@@ -56,7 +62,7 @@ test("submissionReceiptCopy: verified straight pick", () => {
     oddsVerified: true,
     tier: "VERIFIED",
   });
-  assert.equal(copy.headline, "Pick Verified");
+  assert.equal(copy.headline, "Pick Submitted");
   assert.equal(copy.summary, "Dream ML -315");
   assert.equal(copy.context, "Moneyline");
   assert.equal(copy.statusLine, "Odds captured pre-game");
@@ -75,8 +81,8 @@ test("submissionReceiptCopy: self-reported straight does not claim verified", ()
     oddsVerified: false,
     tier: "SELF_REPORTED",
   });
-  assert.equal(copy.headline, "Logged");
-  assert.match(copy.statusLine, /not board-verified/i);
+  assert.equal(copy.headline, "Pick Submitted");
+  assert.match(copy.statusLine, /not verified/i);
   assert.equal(copy.tone, "muted");
   assert.doesNotMatch(copy.headline, /verified/i);
 });
@@ -109,6 +115,6 @@ test("submissionReceiptCopy: mixed-tier parlay stays honest", () => {
     tiers: ["VERIFIED", "VERIFIED", "SELF_REPORTED"],
   });
   assert.equal(copy.headline, "Parlay Submitted");
-  assert.match(copy.statusLine, /self-reported/i);
+  assert.match(copy.statusLine, /2 of 3 legs odds-verified/i);
   assert.equal(copy.tone, "muted");
 });

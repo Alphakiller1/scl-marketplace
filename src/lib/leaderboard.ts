@@ -168,8 +168,6 @@ function primarySortValue(
       return capper.avgClv ?? Number.NEGATIVE_INFINITY;
     case "sample":
       return capper.settledPicks ?? 0;
-    case "verified":
-      return capper.verifiedShare ?? Number.NEGATIVE_INFINITY;
     case "form":
       return capper.streak;
     case "units":
@@ -204,11 +202,7 @@ export function isLeaderboardEligible(
   filters: LeaderboardFilters,
 ): boolean {
   const settledPicks = capper.settledPicks ?? 0;
-  const base =
-    settledPicks > 0 &&
-    settledPicks >= filters.minPicks &&
-    capper.units >= 0 &&
-    capper.roi >= 0;
+  const base = settledPicks > 0 && settledPicks >= filters.minPicks;
   if (!base) return false;
   // CLV rank: need signal-sized sample and at least one stored close.
   if (filters.sort === "clv") {
@@ -236,8 +230,6 @@ export function isBuildingARecord(
   if (input.settledPicks == null) return false;
   const settledPicks = input.settledPicks;
   if (!(settledPicks > 0 && settledPicks >= minPicks)) return true;
-  if (typeof input.units === "number" && input.units < 0) return true;
-  if (typeof input.roi === "number" && input.roi < 0) return true;
   return false;
 }
 

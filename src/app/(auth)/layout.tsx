@@ -1,13 +1,12 @@
 import Link from "next/link";
-import { LockKeyhole, Scale, ShieldCheck } from "lucide-react";
+import { Clock3, ShieldCheck } from "lucide-react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SclLogo } from "@/components/scl-logo";
 
 const trustSignals = [
-  { icon: ShieldCheck, label: "Records", value: "Board Timestamped" },
-  { icon: LockKeyhole, label: "Access", value: "Email Verified" },
-  { icon: Scale, label: "Payments", value: "Off-Platform" },
+  { icon: Clock3, label: "Picks", value: "Entered Before Lock" },
+  { icon: ShieldCheck, label: "Records", value: "Independently Verified" },
 ];
 
 export default function AuthLayout({
@@ -36,15 +35,15 @@ export default function AuthLayout({
 
           <div className="max-w-md">
             <p className="scl-eyebrow text-[color:var(--scl-muted-label)]">
-              Sports Capper Leaderboard
+              Sports Cappers Leaderboard
             </p>
             <p className="scl-display mt-3 text-4xl leading-[1.08] font-bold tracking-[0.02em]">
-              Trust starts with a visible record
+              Trust starts with a verified record
             </p>
             <p className="text-muted-foreground mt-4 max-w-sm">
-              Sign in to log board-verified picks, climb public rankings, and
-              keep your storefront payments where they already live. SCL does
-              not process payments.
+              Sign in to track your picks and climb the leaderboard. Top
+              performing cappers earn marketing exposure. Integrate your
+              storefront to optimize sales.
             </p>
           </div>
 
@@ -70,9 +69,6 @@ export default function AuthLayout({
             <div className="border-border bg-card rounded-xl border p-4 shadow-sm sm:p-7">
               {children}
             </div>
-            <p className="text-muted-foreground mt-5 text-center text-xs">
-              Sports Capper Leaderboard Account Security
-            </p>
           </div>
         </main>
       </div>
@@ -86,8 +82,8 @@ function BrandLockup() {
       <span className="ring-border-strong flex size-9 items-center justify-center rounded-xl bg-[color:var(--scl-ink-800)] ring-1">
         <SclLogo className="size-6" />
       </span>
-      <span className="scl-display text-lg font-bold tracking-[0.08em] uppercase">
-        SCL
+      <span className="scl-display text-sm font-bold tracking-[0.04em] sm:text-base">
+        Sports Cappers Leaderboard
       </span>
     </span>
   );

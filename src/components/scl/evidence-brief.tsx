@@ -9,7 +9,12 @@ import {
   useTransition,
   type ReactNode,
 } from "react";
-import { ChevronDown, ListChecks, Receipt, ShieldCheck } from "lucide-react";
+import {
+  ChevronDown,
+  ListChecks,
+  LockKeyhole,
+  ShieldCheck,
+} from "lucide-react";
 
 import { CumulativeUnitsChart } from "@/components/scl/cumulative-units-chart";
 import { ClvTrackerPanel } from "@/components/scl/clv-tracker-panel";
@@ -26,8 +31,6 @@ import {
 } from "@/components/scl/stat";
 import { SampleMaturityMeter } from "@/components/scl/sample-maturity-meter";
 import { EmptyState } from "@/components/scl/states";
-import { VerificationHelpLink } from "@/components/scl/verification-help-link";
-import { VerificationLegend } from "@/components/scl/verification-legend";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { loadPublicProfileHistory } from "@/app/actions/public-profile-history";
 import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
@@ -62,7 +65,7 @@ function VerifiedMeter({ pct }: { pct: number | null }) {
   if (pct == null) {
     return (
       <StatBlock
-        label="Verified"
+        label="Odds Verified"
         value="—"
         className="min-w-[4.5rem]"
         truncateValue={false}
@@ -78,13 +81,13 @@ function VerifiedMeter({ pct }: { pct: number | null }) {
         />
         <span
           className="scl-data text-foreground min-w-[3.5ch] text-lg font-semibold whitespace-nowrap tabular-nums sm:text-xl"
-          aria-label={`${pct} percent board-verified`}
+          aria-label={`${pct} percent odds-verified`}
         >
           {pct}%
         </span>
       </div>
       <span className="scl-eyebrow text-[color:var(--scl-muted-label)]">
-        Verified
+        Odds Verified
       </span>
       <div
         className="bg-surface-2 border-border h-1.5 overflow-hidden rounded-full border"
@@ -92,7 +95,7 @@ function VerifiedMeter({ pct }: { pct: number | null }) {
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={pct}
-        aria-label="Verified share meter"
+        aria-label="Odds verification share meter"
       >
         <div
           className="h-full rounded-full bg-[color:var(--scl-pink)]"
@@ -109,6 +112,23 @@ function playToProofReceipt(
 ): ReactNode {
   // Public receipts must never show 0U / sub-minimum stakes (data error).
   if (!isValidPublicStake(play.units)) return null;
+  if (play.isEmbargoed) {
+    return (
+      <div className="border-border bg-surface-2/40 flex min-h-40 flex-col items-center justify-center border-y px-5 py-8 text-center">
+        <LockKeyhole
+          className="size-5 text-[color:var(--scl-blue)]"
+          aria-hidden
+        />
+        <p className="scl-display text-foreground mt-3 font-semibold">
+          Paid selection temporarily hidden
+        </p>
+        <p className="text-muted-foreground mt-1 max-w-md text-sm leading-relaxed">
+          The complete pick and receipt publish 90 minutes after the scheduled
+          event start.
+        </p>
+      </div>
+    );
+  }
   const state = deriveProofReceiptState({
     outcome: play.outcome,
     eventStartsAt: play.eventStartsAt,
@@ -124,11 +144,13 @@ function playToProofReceipt(
     );
   const toWin =
     receiptUnits == null ? "—" : formatUnits(receiptUnits, true, settled);
-  const market = pickContextLabel({
-    sport: play.sport,
-    league: play.league,
-    market: play.market,
-  });
+  const eventContext =
+    play.eventLabel ??
+    pickContextLabel({
+      sport: play.sport,
+      league: play.league,
+      market: play.market,
+    });
   return (
     <ProofReceipt
       key={`${play.id}-${density}`}
@@ -147,9 +169,9 @@ function playToProofReceipt(
       eventLine={
         <span className="inline-flex flex-wrap items-center gap-1.5 tracking-normal normal-case">
           <LeagueRef sport={play.sport} />
-          {market ? (
+          {eventContext ? (
             <span className="scl-data tracking-[0.06em] uppercase">
-              {market}
+              {eventContext}
             </span>
           ) : null}
         </span>
@@ -174,9 +196,8 @@ function playToProofReceipt(
 }
 
 /**
- * Capper profile Evidence Brief — Trust Lens metrics + Latest Proof as peers,
- * followed by deep-dive charts and Proof history. Marketplace remains a
- * downstream, full-width page section so proof stays visually dominant.
+ * Capper profile evidence summary, performance trend, and expandable pick
+ * history. Package offers remain a downstream full-width page section.
  */
 export function EvidenceBrief({
   capper,
@@ -235,9 +256,6 @@ export function EvidenceBrief({
     return "simple";
   });
   const [chartWindow, setChartWindow] = useState<ProfileChartWindow>("all");
-  const [loadedProofByHandle, setLoadedProofByHandle] = useState<
-    Record<string, PlayView>
-  >({});
 
   function onLensChange(next: string | number | null) {
     const v = String(next ?? "simple") as TrustLens;
@@ -259,54 +277,12 @@ export function EvidenceBrief({
   const showClv = signal || lens === "analyst" || lens === "audit";
   const showAuditMeta = lens === "audit";
   const showDeepAnalysis = lens === "analyst" || lens === "audit";
-  const featured =
-    eligiblePlays[0] ?? loadedProofByHandle[capper.handle] ?? null;
-  const rememberLoadedProof = useCallback(
-    (rows: PlayView[]) => {
-      const first = rows.find((play) => isValidPublicStake(play.units));
-      if (!first) return;
-      setLoadedProofByHandle((current) =>
-        current[capper.handle]
-          ? current
-          : { ...current, [capper.handle]: first },
-      );
-    },
-    [capper.handle],
-  );
   const historyLedgerKey = `${capper.handle}:${historyNextCursor ?? "end"}:${eligiblePlays
     .map(
       (play) =>
         `${play.id}:${play.outcome}:${play.profitUnits ?? "open"}:${play.createdAt.getTime()}`,
     )
     .join(",")}`;
-
-  const latestProof = (
-    <section aria-label="Featured proof receipt" className="min-w-0 space-y-2">
-      <div className="scl-section-mark lg:pt-0 lg:[&::before]:mb-0 lg:[&::before]:hidden">
-        <h2 className="scl-display text-base font-semibold tracking-[0.02em] normal-case">
-          Latest proof
-        </h2>
-        <p className="text-muted-foreground mt-0.5 hidden text-xs leading-snug sm:block">
-          Expanded paper receipt — inspectable capture, close, and CLV.
-        </p>
-      </div>
-      {featured ? (
-        playToProofReceipt(featured, "expanded-paper")
-      ) : playsError ? (
-        <EmptyState
-          icon={Receipt}
-          title="Couldn't load latest proof"
-          description="Try again shortly."
-        />
-      ) : (
-        <EmptyState
-          icon={Receipt}
-          title="No tracked plays yet"
-          description={`${emptyName} hasn't posted a graded play yet. When they do, the proof receipt appears here — timestamps, lines, and results included.`}
-        />
-      )}
-    </section>
-  );
 
   const evidenceRecord = (
     <section className="border-border min-w-0 border-y py-3 sm:py-4 lg:pr-6">
@@ -330,13 +306,13 @@ export function EvidenceBrief({
           aria-label="Trust lens"
         >
           <TabsTrigger value="simple" className="min-h-10 px-3">
-            Simple
+            Overview
           </TabsTrigger>
           <TabsTrigger value="analyst" className="min-h-10 px-3">
-            Analyst
+            Performance
           </TabsTrigger>
           <TabsTrigger value="audit" className="min-h-10 px-3">
-            Audit
+            Pick Audit
           </TabsTrigger>
         </TabsList>
 
@@ -395,43 +371,17 @@ export function EvidenceBrief({
           ) : null}
         </TabsContent>
       </Tabs>
-
-      <div className="border-border mt-2 hidden flex-wrap items-center gap-x-4 gap-y-1.5 border-t pt-2 sm:mt-3 sm:flex sm:pt-2.5">
-        <VerificationHelpLink />
-        <a
-          href="/responsible-gaming"
-          className="text-muted-foreground hover:text-foreground inline-flex min-h-10 items-center text-xs underline-offset-4 hover:underline"
-        >
-          Responsible gaming
-        </a>
-      </div>
     </section>
   );
 
   return (
     <div className={cn("space-y-5 sm:space-y-6", className)}>
-      {/*
-        Desktop (lg+): Evidence | Latest Proof peers; Marketplace always a
-        full-width band under the peers (no 3-col rail — avoids squeezing
-        the evidence stats and reads cleaner than a sidebar ad).
-        Mobile: stacked Evidence then Proof (unchanged). Storefront never
-        injects above Meta on mobile — page owns that band.
-      */}
-      <div
-        data-profile-evidence-grid
-        className={cn(
-          "grid items-start gap-4 sm:gap-5 lg:gap-0",
-          "lg:grid-cols-[minmax(0,1.7fr)_minmax(400px,0.9fr)]",
-        )}
-      >
+      <div data-profile-evidence-grid className="space-y-5 sm:space-y-6">
         {evidenceRecord}
-        <div className="border-border min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:border-l lg:pl-6">
-          {latestProof}
-        </div>
         <section
           data-profile-performance-trend
           aria-label="Performance trend"
-          className="border-border mt-1 min-w-0 space-y-3 border-b pb-5 lg:col-start-1 lg:row-start-2 lg:mt-6 lg:border-b-0 lg:pr-6 lg:pb-0"
+          className="border-border min-w-0 space-y-3 border-b pb-5"
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
@@ -480,26 +430,21 @@ export function EvidenceBrief({
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="scl-display text-base font-semibold tracking-[0.02em] normal-case">
-              Proof history
+              Pick History
             </h2>
             <p className="text-muted-foreground mt-1 text-sm">
-              Inspectable receipts — newest first. Verified ≠ won.
+              Click the arrow to view the associated bet slip.
             </p>
           </div>
-          <VerificationHelpLink className="text-muted-foreground hover:text-foreground inline-flex min-h-10 shrink-0 gap-1.5 self-start px-2 text-xs font-medium" />
         </div>
 
         {eligiblePlays.length || historyNextCursor ? (
-          <>
-            <VerificationLegend className="mt-4" />
-            <ProofHistoryLedger
-              key={historyLedgerKey}
-              plays={eligiblePlays}
-              handle={capper.handle}
-              initialNextCursor={historyNextCursor ?? null}
-              onRowsLoaded={rememberLoadedProof}
-            />
-          </>
+          <ProofHistoryLedger
+            key={historyLedgerKey}
+            plays={eligiblePlays}
+            handle={capper.handle}
+            initialNextCursor={historyNextCursor ?? null}
+          />
         ) : playsError ? (
           <EmptyState
             className="mt-4"
@@ -526,12 +471,10 @@ function ProofHistoryLedger({
   plays,
   handle,
   initialNextCursor,
-  onRowsLoaded,
 }: {
   plays: PlayView[];
   handle: string;
   initialNextCursor: string | null;
-  onRowsLoaded: (rows: PlayView[]) => void;
 }) {
   const allInitial = useMemo(
     () => plays.filter((play) => isValidPublicStake(play.units)),
@@ -566,7 +509,6 @@ function ProofHistoryLedger({
       try {
         const requestedCursor = nextCursor;
         const page = await loadPublicProfileHistory(handle, requestedCursor);
-        onRowsLoaded(page.plays);
         setShown((current) => {
           const byId = new Map(current.map((play) => [play.id, play]));
           for (const play of page.plays) byId.set(play.id, play);
@@ -576,10 +518,10 @@ function ProofHistoryLedger({
           page.nextCursor === requestedCursor ? null : page.nextCursor,
         );
       } catch {
-        setLoadError("Proof history could not load. Try again.");
+        setLoadError("Pick history could not load. Try again.");
       }
     });
-  }, [handle, isLoading, localRemaining, nextCursor, onRowsLoaded]);
+  }, [handle, isLoading, localRemaining, nextCursor]);
 
   useEffect(() => {
     // A page can be entirely hidden QA receipts. Advance automatically until
@@ -661,11 +603,18 @@ function ProofHistoryLedger({
                           className="shrink-0"
                         />
                       ) : null}
-                      <span className="truncate">{play.selection}</span>
+                      <span className="min-w-0">
+                        <span className="block truncate">{play.selection}</span>
+                        {play.eventLabel ? (
+                          <span className="text-muted-foreground mt-0.5 block truncate text-[0.65rem] font-normal">
+                            {play.eventLabel}
+                          </span>
+                        ) : null}
+                      </span>
                     </span>
                   </td>
                   <td className="scl-data text-muted-foreground hidden py-2.5 pr-2 tabular-nums sm:table-cell">
-                    {formatOdds(play.oddsAmerican)}
+                    {play.isEmbargoed ? "—" : formatOdds(play.oddsAmerican)}
                   </td>
                   <td
                     className={cn(

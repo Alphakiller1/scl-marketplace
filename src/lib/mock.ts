@@ -118,6 +118,10 @@ export type TodayPick = {
   clvPts?: number | null;
   notes?: string | null;
   notesPublic?: boolean;
+  /** True when the server has removed the paid selection during its embargo. */
+  isEmbargoed?: boolean;
+  /** Scheduled public reveal time; null when the event start is unavailable. */
+  embargoedUntil?: Date | null;
   gradingHealthy?: boolean;
 };
 

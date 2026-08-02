@@ -34,7 +34,7 @@ import { hasSignal } from "@/lib/sample";
 import { cn } from "@/lib/utils";
 
 const LEAGUES_EMPTY =
-  "No board-verified league activity was tracked in the last 14 days.";
+  "No odds-verified league activity was tracked in the last 14 days.";
 
 /** Desktop Top Leagues tracks. */
 const LEAGUE_LIST_COLS =
@@ -508,7 +508,7 @@ export function LeagueActionReport({
       <EmptyState
         icon={Activity}
         title="No Tracked Activity In This Window"
-        description="No Board-Verified Bet Types Or Leagues Were Tracked In The Last 14 Days."
+        description="No Odds-Verified Bet Types Or Leagues Were Tracked In The Last 14 Days."
       />
     );
   }
@@ -535,7 +535,7 @@ export function LeagueActionReport({
         </div>
         <div className="grid gap-2.5 sm:grid-cols-3">
           <MetricTile
-            label="Board-Verified Picks"
+            label="Odds-Verified Picks"
             value={trackedPicks}
             icon={ShieldCheck}
             tone="pink"

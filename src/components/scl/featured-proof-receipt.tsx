@@ -66,7 +66,7 @@ export function FeaturedProofReceipt({
             description={
               failed
                 ? "Try Again Shortly."
-                : "A Proof Receipt Appears Here After A Board-Verified Pick Is Graded."
+                : "A Proof Receipt Appears Here After An Odds-Verified Pick Is Graded."
             }
           />
         </div>

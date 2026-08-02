@@ -127,7 +127,7 @@ describe("honest closing / CLV / evidence", () => {
 
 describe("stamp vocabulary", () => {
   it("verified uses pink; win uses settlement tone", () => {
-    assert.equal(proofStampLabel("captured"), "Verified");
+    assert.equal(proofStampLabel("captured"), "Odds Verified");
     assert.equal(proofStampTone("captured"), "pink");
     assert.equal(proofStampTone("won"), "win");
     assert.equal(proofStampTone("loss"), "loss");

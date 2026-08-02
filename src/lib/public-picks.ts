@@ -2,6 +2,7 @@ import { deriveLifecycle } from "@/lib/lifecycle";
 import type { CapperSummary, TodayPick } from "@/lib/mock";
 import { pickContextLabel } from "@/lib/pick-identity";
 import { isValidPublicStake } from "@/lib/public-eligibility";
+import { publicPickEmbargoState } from "@/lib/public-pick-embargo";
 import type { VerificationTier } from "@/lib/verification";
 
 /** Ranked + building-a-record cappers for public recent-feed identity joins. */
@@ -27,6 +28,7 @@ export type PublicPlayJoinRow = {
   createdAt: Date;
   verificationTier: VerificationTier;
   side: string | null;
+  eventLabel?: string | null;
   eventStartsAt: Date | null;
   book?: string | null;
   closingOddsAmerican?: number | null;
@@ -42,6 +44,7 @@ export type PublicPlayJoinRow = {
 export function joinPlaysToPublicPicks(
   plays: PublicPlayJoinRow[],
   cappers: CapperSummary[],
+  now: Date = new Date(),
 ): TodayPick[] {
   const capperById = new Map(cappers.map((capper) => [capper.id, capper]));
 
@@ -49,6 +52,7 @@ export function joinPlaysToPublicPicks(
     const capper = capperById.get(play.capperId);
     if (!capper) return [];
     if (!isValidPublicStake(Number(play.units))) return [];
+    const embargo = publicPickEmbargoState(play, now);
     return [
       {
         id: play.id,
@@ -64,13 +68,15 @@ export function joinPlaysToPublicPicks(
         capperRank: capper.rank,
         capperSettledPicks: capper.settledPicks ?? 0,
         sport: play.sport,
-        event: pickContextLabel({
-          sport: play.sport,
-          league: play.league,
-          market: play.market,
-        }),
-        selection: play.selection,
-        oddsAmerican: play.oddsAmerican,
+        event:
+          play.eventLabel ??
+          pickContextLabel({
+            sport: play.sport,
+            league: play.league,
+            market: play.market,
+          }),
+        selection: embargo.isEmbargoed ? "Pick hidden" : play.selection,
+        oddsAmerican: embargo.isEmbargoed ? 0 : play.oddsAmerican,
         units: Number(play.units),
         status: deriveLifecycle({
           outcome: play.outcome,
@@ -79,15 +85,24 @@ export function joinPlaysToPublicPicks(
         postedAt: play.createdAt,
         gameTime: play.outcome === "PENDING" ? "Pending" : "Graded",
         verificationTier: play.verificationTier,
-        side: play.side,
+        side: embargo.isEmbargoed ? null : play.side,
         market: play.market,
         profitUnits: play.profitUnits == null ? null : Number(play.profitUnits),
-        book: play.book ?? null,
+        book: embargo.isEmbargoed ? null : (play.book ?? null),
         eventStartsAt: play.eventStartsAt,
-        closingOddsAmerican: play.closingOddsAmerican ?? null,
-        clvPts: play.clvPts == null ? null : Number(play.clvPts),
-        notes: play.notesPublic === false ? null : (play.notes ?? null),
+        closingOddsAmerican: embargo.isEmbargoed
+          ? null
+          : (play.closingOddsAmerican ?? null),
+        clvPts:
+          embargo.isEmbargoed || play.clvPts == null
+            ? null
+            : Number(play.clvPts),
+        notes:
+          embargo.isEmbargoed || play.notesPublic === false
+            ? null
+            : (play.notes ?? null),
         notesPublic: play.notesPublic ?? true,
+        ...embargo,
       } satisfies TodayPick,
     ];
   });

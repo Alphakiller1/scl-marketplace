@@ -40,6 +40,7 @@ export const parlayLegSchema = z.object({
   // Event binding — every leg is a board pick (docs/SCL_PICK_INTEGRITY.md); createParlay
   // rejects any leg missing these and verifies each one.
   eventId: optionalText(64),
+  eventLabel: optionalText(160),
   eventStartsAt: z
     .string()
     .datetime({ offset: true })
@@ -59,6 +60,7 @@ export const parlayLegSchema = z.object({
 /** A parlay carries the stake; its legs are components (units live on the parlay). */
 export const createParlaySchema = z.object({
   units: unitsField,
+  packageIds: z.array(z.string().min(1)).max(10).optional().default([]),
   legs: z
     .array(parlayLegSchema)
     .min(2, "A parlay needs at least 2 legs")

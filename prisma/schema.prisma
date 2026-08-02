@@ -363,6 +363,8 @@ model Package {
   storeConnection    StoreConnection?    @relation(fields: [storeConnectionId], references: [id], onDelete: SetNull)
   trackingUrls       TrackingUrl[]
   packageAuditEvents PackageAuditEvent[]
+  playLinks          PlayPackage[]
+  parlayLinks        ParlayPackage[]
 
   @@index([capperId])
   @@index([storeConnectionId])
@@ -470,6 +472,7 @@ model Play {
   // Pick integrity (docs/SCL_PICK_INTEGRITY.md) — all additive + defaulted so existing rows
   // and existing reads are unaffected. Populated by createPlay on the event-bound path.
   eventId          String? // official schedule/odds event id (C2 event binding)
+  eventLabel       String? // human-readable matchup captured with the board event
   eventStartsAt    DateTime? // scheduled first pitch/tip; drives the C1 pre-game lock
   loggedPreGame    Boolean          @default(false) // createdAt < eventStartsAt (C1)
   line             Decimal?         @db.Decimal(10, 2) // structured point/total (C2)
@@ -480,9 +483,10 @@ model Play {
   verificationTier VerificationTier @default(SELF_REPORTED) // public trust tier (M2-3)
   status           PickStatus       @default(COMMITTED) // DRAFT is editable; COMMITTED is locked (C4)
 
-  capper CapperProfile  @relation(fields: [capperId], references: [id], onDelete: Cascade)
-  parlay Parlay?        @relation(fields: [parlayId], references: [id], onDelete: SetNull)
-  audits GradingAudit[]
+  capper       CapperProfile  @relation(fields: [capperId], references: [id], onDelete: Cascade)
+  parlay       Parlay?        @relation(fields: [parlayId], references: [id], onDelete: SetNull)
+  audits       GradingAudit[]
+  packageLinks PlayPackage[]
 
   @@index([capperId])
   @@index([outcome])
@@ -499,11 +503,38 @@ model Parlay {
   createdAt            DateTime  @default(now())
   gradedAt             DateTime?
 
-  capper CapperProfile        @relation(fields: [capperId], references: [id], onDelete: Cascade)
-  legs   Play[]
-  audits ParlayGradingAudit[]
+  capper       CapperProfile        @relation(fields: [capperId], references: [id], onDelete: Cascade)
+  legs         Play[]
+  audits       ParlayGradingAudit[]
+  packageLinks ParlayPackage[]
 
   @@index([capperId])
+}
+
+/// Immutable attribution between a straight pick and the offers it was sold in.
+model PlayPackage {
+  playId    String
+  packageId String
+  createdAt DateTime @default(now())
+
+  play    Play    @relation(fields: [playId], references: [id], onDelete: Cascade)
+  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@id([playId, packageId])
+  @@index([packageId, createdAt])
+}
+
+/// Immutable attribution between a parlay and the offers it was sold in.
+model ParlayPackage {
+  parlayId  String
+  packageId String
+  createdAt DateTime @default(now())
+
+  parlay  Parlay  @relation(fields: [parlayId], references: [id], onDelete: Cascade)
+  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@id([parlayId, packageId])
+  @@index([packageId, createdAt])
 }
 
 /// Daily Odds API credit usage rollup (purpose + sport scoped).

@@ -74,7 +74,7 @@ describe("CLV zero-state copy (GPT P2)", () => {
   it("locks empty / provisional / platform empty strings", () => {
     assert.equal(
       CLV_TRACKER_EMPTY_BODY,
-      "No closing snapshots are available for this record. CLV appears after SCL captures a closing line for a board-verified pick. Historical picks without a close remain em dashes.",
+      "No closing snapshots are available for this record. CLV appears after SCL captures a closing line for an Odds-Verified pick. Historical picks without a close remain em dashes.",
     );
     assert.equal(
       CLV_TRACKER_PROVISIONAL_BODY,
@@ -82,7 +82,7 @@ describe("CLV zero-state copy (GPT P2)", () => {
     );
     assert.equal(
       PLATFORM_CLV_EMPTY_BODY,
-      "No board-verified closing snapshots are available across publicly listed cappers. Platform CLV remains unavailable until SCL captures closing lines for future board-verified picks.",
+      "No Odds-Verified closing snapshots are available across publicly listed cappers. Platform CLV remains unavailable until SCL captures closing lines for future Odds-Verified picks.",
     );
   });
 });

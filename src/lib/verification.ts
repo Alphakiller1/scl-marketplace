@@ -29,31 +29,31 @@ export const VERIFICATION_TIER_META: Record<
   VerificationTierMeta
 > = {
   AUTO_VERIFIED: {
-    label: "Auto-Verified",
-    short: "Verified",
+    label: "Odds Verified Automatically",
+    short: "Odds Verified",
     description:
       "Captured automatically from an authorized source, logged pre-game, with odds checked against the market.",
     tone: "verified",
   },
   VERIFIED: {
-    label: "Verified",
-    short: "Verified",
+    label: "Odds Verified",
+    short: "Odds Verified",
     description:
       "Logged pre-game against a real event, with the claimed odds checked against the live market.",
     tone: "verified",
   },
   SELF_REPORTED: {
-    label: "Logged",
-    short: "Logged",
+    label: "Odds Not Verified",
+    short: "Not Odds Verified",
     description:
-      "Historical entry not board-checked; does not count toward verified rank.",
+      "Historical entry without a stored market-price check. Its result can still be graded and shown in the public record.",
     tone: "muted",
   },
 };
 
 /** Account-level Verified badge (profile / identity) — not a pick authenticity claim. */
 export const ACCOUNT_VERIFIED_TOOLTIP =
-  "Verified Account — identity confirmed and record tracked by SCL. Individual picks are marked board-verified or logged.";
+  "Verified Account — identity confirmed and record tracked by SCL. Pick odds and record results are verified separately.";
 
 export function verificationTierMeta(
   tier: VerificationTier,
@@ -184,10 +184,10 @@ export function submissionReceiptCopy(receipt: SubmissionReceipt): ReceiptCopy {
     return {
       headline:
         receipt.submittedCount === 1
-          ? "Pick Verified"
+          ? "Pick Submitted"
           : receipt.submittedCount === 0
             ? "No Picks Submitted"
-            : `${receipt.submittedCount} Picks Verified`,
+            : `${receipt.submittedCount} Picks Submitted`,
       summary: receipt.summaryLine,
       context: null,
       statusLine:
@@ -205,7 +205,7 @@ export function submissionReceiptCopy(receipt: SubmissionReceipt): ReceiptCopy {
         : `${receipt.oddsAmerican}`;
     if (verified) {
       return {
-        headline: "Pick Verified",
+        headline: "Pick Submitted",
         summary: `${receipt.selection} ${odds}`,
         context: receipt.market,
         statusLine: receipt.loggedPreGame
@@ -216,11 +216,11 @@ export function submissionReceiptCopy(receipt: SubmissionReceipt): ReceiptCopy {
       };
     }
     return {
-      headline: "Logged",
+      headline: "Pick Submitted",
       summary: `${receipt.selection} ${odds}`,
       context: receipt.market,
       statusLine:
-        "Odds could not be verified — saved to your record, not board-verified",
+        "Odds were not verified against a stored market snapshot; the result will still be graded",
       gradingLine: "Still graded automatically after the event settles",
       tone: "muted",
     };
@@ -252,7 +252,7 @@ export function submissionReceiptCopy(receipt: SubmissionReceipt): ReceiptCopy {
       summary,
       context: null,
       statusLine:
-        "Odds could not be verified on every leg — saved, not board-verified",
+        "Odds were not verified on every leg; the result will still be graded",
       gradingLine: "Still graded automatically after results settle",
       tone: "muted",
     };
@@ -261,7 +261,7 @@ export function submissionReceiptCopy(receipt: SubmissionReceipt): ReceiptCopy {
     headline: "Parlay Submitted",
     summary,
     context: null,
-    statusLine: `${receipt.verifiedLegCount} of ${receipt.legCount} legs odds-verified — unverified legs count as self-reported`,
+    statusLine: `${receipt.verifiedLegCount} of ${receipt.legCount} legs odds-verified`,
     gradingLine: "Graded automatically after results settle",
     tone: "muted",
   };

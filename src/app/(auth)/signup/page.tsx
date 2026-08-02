@@ -113,14 +113,14 @@ export default function SignupPage() {
       <AuthHeader
         icon={UserRoundPlus}
         eyebrow="Capper Onboarding"
-        title="Create your SCL identity"
-        description="Start a secure account and claim the handle attached to your public record."
+        title="Create your SCL Profile"
+        description="Start a secure account and claim the username attached to your public record."
       />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <Field
           id="username"
-          label="SCL Handle"
+          label="SCL Username"
           autoComplete="username"
           register={register("username")}
           error={errors.username?.message}

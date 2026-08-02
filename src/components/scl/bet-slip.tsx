@@ -16,6 +16,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UNIT_MAX, UNIT_MIN, UNIT_STEP } from "@/lib/constants";
+import type { PickPackageOption } from "@/lib/actions/package-options.action";
 import { formatCapturedHmEt } from "@/lib/format-capture";
 import { formatOdds } from "@/lib/format";
 import {
@@ -42,6 +43,9 @@ export function BetSlip({
   onRemoveMovedLeg,
   onCancelMoved,
   onDismissUnavailable,
+  packageOptions = [],
+  selectedPackageIds = [],
+  onPackageSelectionChange,
   className,
 }: {
   onSubmit: () => void;
@@ -52,6 +56,9 @@ export function BetSlip({
   onRemoveMovedLeg?: (line: MovedLinePayload) => void;
   onCancelMoved?: () => void;
   onDismissUnavailable?: () => void;
+  packageOptions?: PickPackageOption[];
+  selectedPackageIds?: string[];
+  onPackageSelectionChange?: (ids: string[]) => void;
   className?: string;
 }) {
   const {
@@ -323,6 +330,45 @@ export function BetSlip({
           );
         })}
       </ul>
+
+      {packageOptions.length > 0 ? (
+        <fieldset className="rounded-[12px] border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] p-3">
+          <legend className="px-1 text-sm font-semibold">
+            Package attribution
+          </legend>
+          <p className="text-muted-foreground mb-2 text-xs leading-relaxed">
+            Select every package that receives this pick. Leave blank for a
+            public-record-only pick.
+          </p>
+          <div className="space-y-1">
+            {packageOptions.map((option) => {
+              const checked = selectedPackageIds.includes(option.id);
+              const atLimit = selectedPackageIds.length >= 10;
+              return (
+                <label
+                  key={option.id}
+                  className="hover:bg-surface-2 flex min-h-10 cursor-pointer items-center gap-2 rounded-md px-2 text-sm"
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={!checked && atLimit}
+                    onChange={() => {
+                      onPackageSelectionChange?.(
+                        checked
+                          ? selectedPackageIds.filter((id) => id !== option.id)
+                          : [...selectedPackageIds, option.id],
+                      );
+                    }}
+                    className="size-4 rounded border-[color:var(--scl-line)]"
+                  />
+                  <span>{option.title}</span>
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+      ) : null}
 
       {mode === "parlay" ? (
         <div className="space-y-1.5">

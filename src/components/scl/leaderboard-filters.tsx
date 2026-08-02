@@ -176,18 +176,6 @@ function ScopeForm({
           </select>
         </label>
 
-        <label className="min-w-0">
-          <span className="sr-only">Record trust</span>
-          <select
-            name="record"
-            defaultValue={filters.verifiedOnly ? "verified" : "all"}
-            className={cn(FIELD_CLASS, "min-w-[8rem]")}
-          >
-            <option value="verified">Verified only</option>
-            <option value="all">All records</option>
-          </select>
-        </label>
-
         <label className="min-w-0 flex-1 basis-[10rem]">
           <span className="sr-only">Find a capper</span>
           <span className="border-input bg-surface-2 focus-within:ring-ring flex h-10 items-center gap-2 rounded-[9px] border px-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_1px_1.5px_rgba(0,0,0,0.28)] focus-within:ring-2 lg:h-9">

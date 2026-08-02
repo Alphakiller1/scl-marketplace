@@ -3,7 +3,6 @@ import { ReceiptText } from "lucide-react";
 
 import { PublicPicksLedger } from "@/components/scl/public-picks-ledger";
 import { EmptyState } from "@/components/scl/states";
-import { VerificationHelpLink } from "@/components/scl/verification-help-link";
 import { VerificationLegend } from "@/components/scl/verification-legend";
 import { getGradingHealth } from "@/lib/grading-health";
 import { parsePublicPicksLedgerFilters } from "@/lib/public-picks-ledger";
@@ -65,7 +64,6 @@ export default async function PicksPage({
               and graded results.
             </p>
           </div>
-          <VerificationHelpLink className="text-muted-foreground hover:text-foreground inline-flex min-h-10 shrink-0 gap-1.5 self-start px-2 text-xs font-medium sm:self-auto" />
         </div>
         <VerificationLegend className="mt-4" />
       </header>

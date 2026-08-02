@@ -264,7 +264,7 @@ test("DISCOVER_LANES locks exact titles and empty copy", () => {
   }
   assert.equal(
     DISCOVER_LANES.find((l) => l.id === "newly_credible")?.explainer,
-    "Newer Cappers With A High Board-Verified Share And A Growing Graded Sample.",
+    "Newer Cappers With A High Odds-Verified Share And A Growing Graded Sample.",
   );
   assert.equal(
     discoverLaneEmptyDescription("proven"),

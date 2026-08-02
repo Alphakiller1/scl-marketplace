@@ -45,13 +45,6 @@ export function CapperStorefront({
           {STOREFRONT_PAYMENT_DISCLAIMER}
         </p>
         <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
-          <a
-            href="/responsible-gaming"
-            className="text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
-          >
-            Responsible gaming
-          </a>
-          {" · "}
           Records are informational and do not guarantee future outcomes.
         </p>
       </section>
@@ -100,14 +93,6 @@ export function CapperStorefront({
 
       <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
         {PAYMENT_OUTCOME_DISCLAIMER}
-      </p>
-      <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
-        <a
-          href="/responsible-gaming"
-          className="text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
-        >
-          Responsible gaming
-        </a>
       </p>
     </section>
   );

@@ -138,3 +138,45 @@ test("joinPlaysToPublicPicks never surfaces email as display identity", () => {
   assert.equal(pick.capper.displayName, null);
   assert.ok(!String(pick.capper.name).includes("@"));
 });
+
+test("joinPlaysToPublicPicks scrubs a pending selection before its release", () => {
+  const now = new Date("2026-08-04T22:00:00.000Z");
+  const [pick] = joinPlaysToPublicPicks(
+    [
+      play({
+        id: "sealed",
+        capperId: "u1",
+        selection: "Yankees -1.5",
+        side: "Yankees",
+        oddsAmerican: -110,
+        book: "draftkings",
+        notes: "Private paid analysis",
+        eventStartsAt: new Date("2026-08-04T23:00:00.000Z"),
+      }),
+    ],
+    [capper({ id: "u1", handle: "safehandle" })],
+    now,
+  );
+
+  assert.equal(pick.isEmbargoed, true);
+  assert.equal(pick.selection, "Pick hidden");
+  assert.equal(pick.oddsAmerican, 0);
+  assert.equal(pick.side, null);
+  assert.equal(pick.book, null);
+  assert.equal(pick.notes, null);
+  assert.equal(JSON.stringify(pick).includes("Yankees -1.5"), false);
+  assert.equal(JSON.stringify(pick).includes("Private paid analysis"), false);
+});
+
+test("joinPlaysToPublicPicks reveals a pending selection at the release time", () => {
+  const start = new Date("2026-08-04T23:00:00.000Z");
+  const [pick] = joinPlaysToPublicPicks(
+    [play({ id: "released", capperId: "u1", eventStartsAt: start })],
+    [capper({ id: "u1", handle: "safehandle" })],
+    new Date("2026-08-05T00:30:00.000Z"),
+  );
+
+  assert.equal(pick.isEmbargoed, false);
+  assert.equal(pick.selection, "Yankees");
+  assert.equal(pick.oddsAmerican, -120);
+});

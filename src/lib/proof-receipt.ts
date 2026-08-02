@@ -98,7 +98,7 @@ export function proofStampLabel(state: ProofReceiptState): string {
     case "capturing":
       return "Capturing";
     case "captured":
-      return "Verified";
+      return "Odds Verified";
     case "pending":
       return "Pending";
     case "line-moved":
@@ -122,7 +122,7 @@ export function proofStampLabel(state: ProofReceiptState): string {
     case "source-unavailable":
       return "Unavailable";
     default:
-      return "Logged";
+      return "Recorded";
   }
 }
 
@@ -227,9 +227,9 @@ export function proofReceiptTextSummary(opts: {
     `Odds ${opts.odds}`,
     `Stake ${opts.stake}`,
     proofStampLabel(opts.state),
-    `Close ${opts.closingLine}`,
+    `Closing Line ${opts.closingLine}`,
     `CLV ${opts.clv}`,
-    `Evidence ${opts.evidenceId}`,
+    `Receipt ID ${opts.evidenceId}`,
   ].filter(Boolean);
   return bits.join(" · ");
 }

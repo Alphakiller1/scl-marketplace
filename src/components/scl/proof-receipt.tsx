@@ -225,7 +225,7 @@ export function ProofReceipt({
       )}
       data-density={density}
       data-state={state}
-      aria-label={`Proof receipt: ${selectionTitle}. ${stamp}${showSettlementLine ? `, ${settlementLabel}` : ""}. Source ${sourceBoard}. Evidence ${evidenceId || "unavailable"}`}
+      aria-label={`Proof receipt: ${selectionTitle}. ${stamp}${showSettlementLine ? `, ${settlementLabel}` : ""}. Source ${sourceBoard}. Receipt ID ${evidenceId || "unavailable"}`}
     >
       <div
         className={cn(
@@ -248,7 +248,7 @@ export function ProofReceipt({
         </div>
 
         <p className="scl-eyebrow mb-1.5 pr-20 text-[color:var(--scl-muted-label)] sm:pr-24">
-          SCL · Proof Receipt
+          Sports Cappers Leaderboard
         </p>
         <div className="flex min-w-0 items-start gap-2.5 pr-16 sm:pr-20">
           {leadingMark ? (
@@ -317,10 +317,14 @@ export function ProofReceipt({
               : `grid-cols-2 ${padX} py-3 sm:grid-cols-3`,
           )}
         >
-          <ProofCell label="Close" value={closingLine} title={closeTitle} />
+          <ProofCell
+            label="Closing Line"
+            value={closingLine}
+            title={closeTitle}
+          />
           <ProofCell label="CLV" value={clv} title={clvTitle} />
           <ProofCell
-            label="Evidence"
+            label="Receipt ID"
             value={evidence}
             title={evidenceId || undefined}
             wrap

@@ -28,7 +28,7 @@ const interData = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl()),
   title: {
-    default: "SCL — Sports Capper Leaderboard",
+    default: "SCL — Sports Cappers Leaderboard",
     template: "%s · SCL",
   },
   description:

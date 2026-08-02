@@ -5,6 +5,7 @@
 
 export type SlipPick = {
   eventId: string;
+  eventLabel?: string;
   market: string;
   side: string;
   line?: number;
@@ -187,6 +188,7 @@ export function toSlipLeg(
     selection: pick.selection,
     oddsAmerican: pick.oddsAmerican,
     eventId: pick.eventId,
+    eventLabel: pick.eventLabel,
     eventStartsAt: pick.eventStartsAt,
     side: pick.side,
     line: pick.line,

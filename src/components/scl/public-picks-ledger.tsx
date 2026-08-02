@@ -58,6 +58,12 @@ function formatCaptureTime(value: Date): string {
   return `${CAPTURE_FORMAT.format(new Date(value))} ET`;
 }
 
+function embargoMessage(pick: TodayPick): string {
+  return pick.embargoedUntil
+    ? `Selection unlocks ${formatCaptureTime(pick.embargoedUntil)}`
+    : "Selection unlocks after the event start is confirmed";
+}
+
 function receiptUnits(pick: TodayPick): string {
   const graded = isPublicPickGraded(pick);
   const outcome =
@@ -373,11 +379,11 @@ function DesktopLedgerRows({
             {pick.selection}
           </p>
           <p className="text-muted-foreground mt-0.5 truncate text-xs">
-            {pick.event}
+            {pick.isEmbargoed ? embargoMessage(pick) : pick.event}
           </p>
         </td>
         <td className="scl-data text-foreground px-3 py-3 text-sm font-semibold tabular-nums">
-          {formatOdds(pick.oddsAmerican)}
+          {pick.isEmbargoed ? "—" : formatOdds(pick.oddsAmerican)}
         </td>
         <td className="scl-data text-foreground px-3 py-3 text-sm font-semibold tabular-nums">
           {formatUnits(pick.units, true, false)}
@@ -464,7 +470,7 @@ function MobileLedgerRow({
               @{pick.capper.handle}
             </span>
             <span className="scl-data text-foreground text-sm font-semibold tabular-nums">
-              {formatOdds(pick.oddsAmerican)}
+              {pick.isEmbargoed ? "Odds hidden" : formatOdds(pick.oddsAmerican)}
             </span>
             <span className="scl-data text-muted-foreground text-xs tabular-nums">
               {formatUnits(pick.units, true, false)}
@@ -511,6 +517,30 @@ function ExpandedEvidence({
   gradingHealthy: boolean;
   compact?: boolean;
 }) {
+  if (pick.isEmbargoed) {
+    return (
+      <div
+        id={id}
+        className="border-border bg-surface-2/30 border-y px-5 py-8 text-center"
+      >
+        <p className="scl-eyebrow text-[color:var(--scl-blue)]">
+          Paid pick protected
+        </p>
+        <h3 className="scl-display text-foreground mt-2 text-lg font-semibold">
+          The selection is temporarily hidden
+        </h3>
+        <p className="text-muted-foreground mx-auto mt-2 max-w-xl text-sm leading-relaxed">
+          {embargoMessage(pick)}. SCL publishes the complete selection, line,
+          odds, and receipt 90 minutes after the scheduled start.
+        </p>
+        <p className="text-muted-foreground mt-3 text-xs">
+          {pick.sport} · {pick.event} · Captured{" "}
+          {formatCaptureTime(pick.postedAt)}
+        </p>
+      </div>
+    );
+  }
+
   const boardVerified = Boolean(
     pick.verificationTier && isVerifiedTier(pick.verificationTier),
   );
@@ -534,7 +564,7 @@ function ExpandedEvidence({
           />
           <AuditRow
             label="Submission Proof"
-            value={boardVerified ? "Board-verified" : "Logged"}
+            value={boardVerified ? "Odds verified" : "Odds not verified"}
           />
           <AuditRow
             label="Settlement"
