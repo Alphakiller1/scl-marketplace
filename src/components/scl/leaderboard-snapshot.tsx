@@ -40,6 +40,9 @@ export function LeaderboardSnapshot({
           <p className="text-muted-foreground mt-1 text-xs leading-snug sm:mt-1.5 sm:text-sm sm:leading-relaxed">
             Board Standings — Ranked By Net Units
           </p>
+          <p className="text-muted-foreground mt-1 text-[0.68rem] leading-snug">
+            Rankings update after game results are graded.
+          </p>
           <p className="scl-data text-muted-foreground mt-1 text-[0.65rem] tabular-nums sm:mt-1.5 sm:text-[0.7rem]">
             {formatUpdatedAgo(updatedAt)}
           </p>
