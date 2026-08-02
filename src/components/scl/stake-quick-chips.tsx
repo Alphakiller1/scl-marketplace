@@ -31,7 +31,7 @@ export function StakeQuickChips({
             onClick={() => onChange(u)}
             aria-pressed={active}
             className={cn(
-              "scl-data min-h-10 min-w-11 rounded-[var(--scl-radius-chip)] border px-3 text-sm font-semibold tabular-nums transition-colors",
+              "scl-data h-8 min-w-10 rounded-[var(--scl-radius-chip)] border px-2.5 text-xs leading-none font-semibold tabular-nums transition-colors",
               active
                 ? "scl-fill-brand"
                 : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground",

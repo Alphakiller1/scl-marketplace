@@ -80,10 +80,6 @@ function receiptUnits(pick: TodayPick): string {
   return value == null ? "—" : formatUnits(value, true, graded);
 }
 
-function filterLabel(count: number): string {
-  return `${count} ${count === 1 ? "record" : "records"} shown`;
-}
-
 export function PublicPicksLedger({
   picks,
   initialFilters,
@@ -184,11 +180,10 @@ export function PublicPicksLedger({
           />
         </div>
         <div className="flex min-h-10 items-center justify-between gap-3 lg:justify-end">
-          <p className="scl-data text-foreground text-sm font-semibold tabular-nums">
-            {isPending ? "Updating Scope…" : filterLabel(filtered.length)}
-          </p>
-          <p className="text-muted-foreground hidden text-xs sm:block">
-            Open one row to inspect its receipt.
+          <p className="text-muted-foreground text-xs" role="status">
+            {isPending
+              ? "Updating scope…"
+              : "Open one row to inspect its receipt."}
           </p>
         </div>
       </div>

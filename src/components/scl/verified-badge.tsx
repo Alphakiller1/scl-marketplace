@@ -24,7 +24,7 @@ export function VerifiedBadge({
     return (
       <span
         className={cn(
-          "inline-flex min-h-8 items-center rounded-md border border-[color:var(--scl-pink)] px-2 text-[color:var(--scl-text)]",
+          "inline-flex h-6 items-center rounded-full border border-[color:var(--scl-pink)] px-2 text-[color:var(--scl-text)]",
           className,
         )}
         aria-label="All pick odds verified"
@@ -58,7 +58,7 @@ export function VerifiedBadge({
     return (
       <span
         className={cn(
-          "inline-flex min-h-8 items-center rounded-md border border-[color:var(--scl-line)] px-2 text-[color:var(--scl-muted-label)]",
+          "inline-flex h-6 items-center rounded-full border border-[color:var(--scl-line)] px-2 text-[color:var(--scl-muted-label)]",
           className,
         )}
         aria-label={`${pct} percent of pick odds verified`}
@@ -75,7 +75,7 @@ export function VerifiedBadge({
   return (
     <span
       className={cn(
-        "inline-flex min-h-8 items-center gap-1 rounded-md px-2 text-[0.7rem] font-semibold tracking-wide",
+        "inline-flex h-6 items-center gap-1 rounded-full px-2 text-[0.68rem] leading-none font-semibold tracking-wide",
         verified
           ? "border border-[color:var(--scl-pink)] text-[color:var(--scl-text)]"
           : "text-muted-foreground border border-[color:var(--scl-line)]",

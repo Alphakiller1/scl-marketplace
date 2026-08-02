@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 export const revalidate = 60;
 
 export default async function DiscoverPage() {
-  const { lanes, publicRecordCount, failed } = await getDiscoverLanes();
+  const { lanes, failed } = await getDiscoverLanes();
   const filledLanes = lanes.filter((lane) => lane.entries.length > 0);
   const emptyLanes = lanes.filter((lane) => lane.entries.length === 0);
 
@@ -27,12 +27,7 @@ export default async function DiscoverPage() {
       className="mx-auto max-w-[1400px] min-w-0 px-4 py-4 sm:px-6 sm:py-5 lg:px-8"
       data-visual-mode="rank"
     >
-      <DiscoverOverview
-        matchedLaneCount={filledLanes.length}
-        totalLaneCount={lanes.length}
-        publicRecordCount={publicRecordCount}
-        failed={failed}
-      />
+      <DiscoverOverview />
       <DiscoverLaneIndex lanes={lanes} failed={failed} />
 
       <div className="mt-7 space-y-9">

@@ -9,7 +9,12 @@ import {
   useTransition,
   type ReactNode,
 } from "react";
-import { ChevronDown, ListChecks, LockKeyhole } from "lucide-react";
+import {
+  ChevronDown,
+  ListChecks,
+  LockKeyhole,
+  ReceiptText,
+} from "lucide-react";
 
 import { CumulativeUnitsChart } from "@/components/scl/cumulative-units-chart";
 import { ClvTrackerPanel } from "@/components/scl/clv-tracker-panel";
@@ -47,7 +52,6 @@ import {
 import {
   deriveProofReceiptState,
   formatClvPts,
-  formatEvidenceId,
   type ProofReceiptDensity,
 } from "@/lib/proof-receipt";
 import type { PlayView } from "@/lib/queries/plays";
@@ -317,7 +321,7 @@ export function EvidenceBrief({
                 </label>
               ) : null}
               <div
-                className="border-border bg-surface-2 inline-flex min-h-10 items-center rounded-[var(--scl-radius-chip)] border p-1"
+                className="border-border bg-surface-2 inline-flex h-8 items-center rounded-[var(--scl-radius-chip)] border p-0.5"
                 role="group"
                 aria-label="Performance chart window"
               >
@@ -328,7 +332,7 @@ export function EvidenceBrief({
                       key={window.value}
                       type="button"
                       className={cn(
-                        "scl-data min-h-10 min-w-11 rounded-md px-2 text-xs font-semibold tabular-nums",
+                        "scl-data h-7 min-w-9 rounded-full px-2 text-[0.68rem] leading-none font-semibold tabular-nums",
                         active
                           ? "bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
                           : "text-muted-foreground hover:text-foreground",
@@ -463,13 +467,11 @@ function ProofHistoryLedger({
     >
       <table className="w-full table-fixed text-left text-xs">
         <caption className="sr-only">
-          Full proof history. Use Inspect to open one canonical proof receipt.
+          Full proof history. Select Ticket to open one canonical proof receipt.
         </caption>
         <thead className="text-muted-foreground border-border border-b text-[0.6rem] tracking-[0.08em] uppercase">
           <tr>
-            <th className="w-12 py-2 pr-2 font-medium">
-              <span className="sr-only">Inspect</span>
-            </th>
+            <th className="w-20 py-2 pr-2 font-medium">Ticket</th>
             <th className="hidden w-[6.5rem] py-2 pr-2 font-medium sm:table-cell">
               Date
             </th>
@@ -485,9 +487,6 @@ function ProofHistoryLedger({
             </th>
             <th className="w-14 py-2 pr-2 font-medium">Result</th>
             <th className="w-16 py-2 pr-2 text-right font-medium">Units</th>
-            <th className="hidden w-24 py-2 text-right font-medium md:table-cell">
-              Receipt ID
-            </th>
           </tr>
         </thead>
         <tbody className="divide-border divide-y">
@@ -508,15 +507,17 @@ function ProofHistoryLedger({
                   <td className="py-1 pr-2 align-middle">
                     <button
                       type="button"
-                      className="text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex size-11 items-center justify-center rounded-md focus-visible:ring-2 focus-visible:outline-none"
+                      className="border-border bg-surface-2 text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex h-7 items-center gap-1 rounded-full border px-2 text-[0.65rem] font-semibold hover:border-[color:var(--scl-blue)] focus-visible:ring-2 focus-visible:outline-none"
                       aria-expanded={expanded}
                       aria-controls={`proof-history-${play.id}`}
-                      aria-label={`${expanded ? "Close" : "Inspect"} receipt for ${play.selection}`}
+                      aria-label={`${expanded ? "Close" : "Open"} ticket for ${play.selection}`}
                       onClick={() => setExpandedId(expanded ? null : play.id)}
                     >
+                      <ReceiptText className="size-3" aria-hidden />
+                      <span>{expanded ? "Close" : "View"}</span>
                       <ChevronDown
                         className={cn(
-                          "size-4 transition-transform duration-200 motion-reduce:transition-none",
+                          "size-3 transition-transform duration-200 motion-reduce:transition-none",
                           expanded && "rotate-180",
                         )}
                         aria-hidden
@@ -578,17 +579,11 @@ function ProofHistoryLedger({
                       ? "—"
                       : formatUnits(play.profitUnits, true, false)}
                   </td>
-                  <td
-                    className="scl-data text-muted-foreground hidden truncate py-2.5 text-right tabular-nums md:table-cell"
-                    title={play.id}
-                  >
-                    {formatEvidenceId(play.id)}
-                  </td>
                 </tr>
                 {expanded ? (
                   <tr id={`proof-history-${play.id}`}>
                     <td
-                      colSpan={9}
+                      colSpan={8}
                       className="bg-surface-2 px-2 py-3 sm:px-4 sm:py-4"
                     >
                       <div className="mx-auto max-w-3xl">
@@ -604,10 +599,7 @@ function ProofHistoryLedger({
       </table>
 
       {canLoadMore || shown.length > initialRows.length ? (
-        <div className="border-border flex flex-wrap items-center justify-between gap-2 border-t px-2 py-2 sm:px-3">
-          <p className="text-muted-foreground text-xs tabular-nums">
-            Showing {shown.length} receipts
-          </p>
+        <div className="border-border flex flex-wrap items-center justify-end gap-2 border-t px-2 py-2 sm:px-3">
           <div className="flex items-center gap-2">
             {shown.length > initialRows.length ? (
               <button

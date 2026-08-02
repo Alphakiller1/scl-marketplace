@@ -29,7 +29,7 @@ export function ProvisionalRecordHelp({
     <Dialog>
       <DialogTrigger
         className={cn(
-          "border-border text-muted-foreground inline-flex min-h-10 items-center gap-1.5 rounded-md border px-2.5 text-[0.7rem] font-semibold tracking-wide uppercase",
+          "border-border text-muted-foreground inline-flex h-7 items-center gap-1 rounded-full border px-2 text-[0.65rem] leading-none font-semibold tracking-wide uppercase",
           iconOnly && "size-10 justify-center px-0",
           className,
         )}

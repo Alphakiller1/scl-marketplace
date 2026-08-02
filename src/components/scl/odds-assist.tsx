@@ -62,7 +62,7 @@ const MARKET_ORDER = ["Moneyline", "Spread", "Total"] as const;
 const ALT_LINE_CAP = 8;
 
 const PROP_PILL_CLASS =
-  "scl-display min-h-10 rounded-[22px] border px-3.5 text-[15px] font-semibold tracking-[0.05em] transition-colors";
+  "scl-display h-8 rounded-full border px-2.5 text-sm leading-none font-semibold tracking-[0.04em] transition-colors";
 
 const PROP_PILL_ACTIVE =
   "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]";

@@ -140,7 +140,7 @@ export function Leaderboard({
 
   return (
     <div className="space-y-3">
-      <div className="border-border scl-elevated hidden overflow-x-auto rounded-[14px] border md:block">
+      <div className="border-border scl-elevated hidden overflow-hidden rounded-[14px] border xl:block">
         <table
           className={cn(
             "w-full border-collapse text-sm",
@@ -221,13 +221,13 @@ export function Leaderboard({
         </table>
       </div>
 
-      <div className="space-y-2 md:hidden">
+      <div className="space-y-2 xl:hidden">
         {visible.map((capper, index) => (
           <LeaderboardMobileCard
             key={capper.id}
             capper={capper}
             rank={place(capper, index)}
-            compact={compactMobile}
+            compact={compactMobile || !compactDesktop}
             primaryMetric={primaryMetric}
           />
         ))}

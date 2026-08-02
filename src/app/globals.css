@@ -128,7 +128,7 @@
   /* Inter tabular for odds/units/ROI — distinct from Barlow UI/display. */
   --scl-font-data: var(--font-inter-data), "Inter", ui-sans-serif, sans-serif;
   --scl-radius-card: 14px;
-  --scl-radius-chip: 10px;
+  --scl-radius-chip: 999px;
   --scl-radius-receipt: 6px;
   --scl-shadow-card: 0 8px 24px rgba(0, 0, 0, 0.12);
   --scl-shadow-slip: 0 12px 30px rgba(0, 0, 0, 0.18);
@@ -615,11 +615,11 @@
   @keyframes scl-ticket-stamp-in {
     from {
       opacity: 0;
-      transform: scale(1.15) rotate(12deg);
+      transform: scale(1.08);
     }
     to {
       opacity: 1;
-      transform: scale(1) rotate(6deg);
+      transform: scale(1);
     }
   }
   .scl-ticket-settling .scl-ticket-capture {
@@ -678,7 +678,7 @@
     .scl-ticket-settling .scl-ticket-stamp {
       animation: none;
       opacity: 1;
-      transform: scale(1) rotate(6deg);
+      transform: scale(1);
     }
     .scl-board-fade-in {
       animation: none;

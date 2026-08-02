@@ -55,7 +55,7 @@ export function PerformanceSummary({
           <RoiStat roi={capper.roi} gradedCount={graded} />
           {provisional ? (
             <span
-              className="border-border text-muted-foreground inline-flex min-h-8 items-center rounded-md border px-2 text-[0.7rem] font-semibold tracking-wide uppercase"
+              className="border-border text-muted-foreground inline-flex h-6 items-center rounded-full border px-2 text-[0.65rem] leading-none font-semibold tracking-wide uppercase"
               title="Small graded sample — ROI is provisional"
             >
               Provisional

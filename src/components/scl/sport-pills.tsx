@@ -92,19 +92,19 @@ export function SportPills({
             onClick={() => onChange(s.key)}
             aria-pressed={active}
             className={cn(
-              "scl-display flex min-h-10 shrink-0 items-center gap-2 rounded-[22px] border px-3.5 text-[15px] font-semibold tracking-[0.05em] transition-opacity",
+              "scl-display flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs leading-none font-semibold tracking-[0.04em] transition-opacity",
               active
                 ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
                 : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",
               zero && !active && "opacity-[0.42]",
             )}
           >
-            <LeagueMark leagueKey={s.key} size="sm" className="rounded-md" />
+            <LeagueMark leagueKey={s.key} size="sm" />
             {s.label}
             {known ? (
               <span
                 className={cn(
-                  "scl-data rounded-[9px] border px-1.5 py-0.5 text-[10px] font-medium",
+                  "scl-data rounded-full border px-1.5 py-0.5 text-[10px] leading-none font-medium",
                   active
                     ? "border-transparent bg-black/18 text-[color:var(--scl-blue-ink)]"
                     : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-950)] text-[color:var(--scl-muted-label)]",

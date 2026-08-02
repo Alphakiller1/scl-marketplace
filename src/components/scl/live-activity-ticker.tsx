@@ -94,7 +94,7 @@ function TickerChip({
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center gap-2 rounded-[var(--scl-radius-chip)] border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] px-3 py-1.5 text-sm shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]",
+        "inline-flex shrink-0 items-center gap-1.5 rounded-[var(--scl-radius-chip)] border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] px-2.5 py-1 text-xs shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]",
         item.kind === "win" &&
           "border-[color-mix(in_srgb,var(--scl-win)_35%,var(--scl-line))]",
         item.kind === "clv" &&
