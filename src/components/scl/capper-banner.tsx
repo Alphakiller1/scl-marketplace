@@ -29,8 +29,8 @@ export function CapperBanner({
   heightClass = "h-28 w-full sm:h-36 lg:h-40",
   collapseWhenEmpty = false,
 }: CapperBannerProps) {
-  const [failed, setFailed] = useState(false);
-  const usable = Boolean(src?.trim()) && !failed;
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const usable = Boolean(src?.trim()) && failedSrc !== src;
 
   if (!usable) {
     if (collapseWhenEmpty) return null;
@@ -70,7 +70,7 @@ export function CapperBanner({
         sizes="100vw"
         priority={priority}
         className="object-cover"
-        onError={() => setFailed(true)}
+        onError={() => setFailedSrc(src ?? null)}
       />
     </div>
   );

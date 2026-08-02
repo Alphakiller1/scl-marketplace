@@ -48,3 +48,9 @@ test("approach completes with provider + bet types (volume optional)", () => {
   const approach = completion.items.find((i) => i.id === "approach");
   assert.equal(approach?.complete, true);
 });
+
+test("a filled About section counts without a hidden length threshold", () => {
+  const completion = calculateProfileCompletion({ bio: "Ice in my veins." });
+  const about = completion.items.find((item) => item.id === "bio");
+  assert.equal(about?.complete, true);
+});

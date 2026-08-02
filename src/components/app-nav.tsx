@@ -33,6 +33,14 @@ export function AppNav({ nav }: { nav: { href: string; label: string }[] }) {
             <Link
               key={n.href}
               href={n.href}
+              onClick={(event) => {
+                if (pathname !== n.href) return;
+                // A receipt is client state on this same route. A normal
+                // same-URL Next navigation preserves it, so deliberately
+                // start a fresh entry session when New Pick is clicked again.
+                event.preventDefault();
+                window.location.assign(n.href);
+              }}
               className="scl-cta-brand inline-flex h-9 items-center px-3.5"
             >
               {n.label}

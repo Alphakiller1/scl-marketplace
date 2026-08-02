@@ -28,12 +28,16 @@ export type SlipSelection = SlipPick & {
   units: number;
   /** ISO when the line was tapped onto the slip (board capture clock for UI). */
   capturedAt: string;
+  /** Analysis belongs to this straight pick, never to the whole singles batch. */
+  notes: string;
+  notesPublic: boolean;
 };
 
 export type SlipMode = "singles" | "parlay";
 
 export type SlipConflictKind =
   | "duplicate"
+  | "book"
   | "moneyline"
   | "spread"
   | "total"
@@ -104,7 +108,7 @@ export function conflictKey(p: {
 
 function conflictKindFor(
   market: string,
-): Exclude<SlipConflictKind, "duplicate"> {
+): Exclude<SlipConflictKind, "duplicate" | "book"> {
   if (market === "Moneyline") return "moneyline";
   if (market === "Spread") return "spread";
   if (market === "Total") return "total";
@@ -112,7 +116,7 @@ function conflictKindFor(
 }
 
 function conflictMessage(
-  kind: Exclude<SlipConflictKind, "duplicate">,
+  kind: Exclude<SlipConflictKind, "duplicate" | "book">,
   market: string,
 ): string {
   switch (kind) {
@@ -148,6 +152,15 @@ export function findConflict(
         message: "That leg is already in your slip",
       };
     }
+  }
+
+  const lockedBook = existingLegs.find((leg) => leg.book)?.book;
+  if (lockedBook && pick.book && pick.book !== lockedBook) {
+    return {
+      kind: "book",
+      index: existingLegs.findIndex((leg) => leg.book === lockedBook),
+      message: `This parlay is locked to ${lockedBook}. Remove its legs before choosing another sportsbook.`,
+    };
   }
 
   for (let i = 0; i < existingLegs.length; i++) {
@@ -222,6 +235,8 @@ export function toSlipSelection(
     book: pick.book,
     units,
     capturedAt,
+    notes: "",
+    notesPublic: true,
   };
 }
 
@@ -238,6 +253,14 @@ export function findInternalParlayConflicts(
       const a = selections[i]!;
       const b = selections[j]!;
       if (pickKey(a) === pickKey(b)) continue;
+      if (a.book && b.book && a.book !== b.book) {
+        out.push({
+          a: i,
+          b: j,
+          message: `Parlay legs must use one sportsbook. ${a.book} and ${b.book} cannot be combined.`,
+        });
+        continue;
+      }
       if (conflictKey(a) !== conflictKey(b)) continue;
       const kind = conflictKindFor(b.market);
       out.push({ a: i, b: j, message: conflictMessage(kind, b.market) });

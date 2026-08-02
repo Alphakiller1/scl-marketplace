@@ -39,10 +39,8 @@ type SlipStoreValue = {
   setMode: (mode: SlipMode) => void;
   setParlayUnits: (units: number) => void;
   setSelectionUnits: (id: string, units: number) => void;
-  slipNotes: string;
-  setSlipNotes: (notes: string) => void;
-  notesPublic: boolean;
-  setNotesPublic: (v: boolean) => void;
+  setSelectionNotes: (id: string, notes: string) => void;
+  setSelectionNotesPublic: (id: string, value: boolean) => void;
   addPick: (pick: OddsPick) => void;
   removeSelection: (id: string) => void;
   clearSlip: () => void;
@@ -65,8 +63,6 @@ export function SlipStoreProvider({
   const [pendingConflict, setPendingConflict] =
     useState<PendingConflict | null>(null);
   const [unitsDropWarned, setUnitsDropWarned] = useState(false);
-  const [slipNotes, setSlipNotes] = useState("");
-  const [notesPublic, setNotesPublic] = useState(true);
 
   const selectedKeys = useMemo(
     () => selectedKeysFromSelections(selections),
@@ -170,8 +166,6 @@ export function SlipStoreProvider({
   const clearSlip = useCallback(() => {
     setSelections([]);
     setPendingConflict(null);
-    setSlipNotes("");
-    setNotesPublic(true);
   }, []);
 
   const setSelectionUnits = useCallback((id: string, units: number) => {
@@ -179,6 +173,25 @@ export function SlipStoreProvider({
       curr.map((s) => (s.id === id ? { ...s, units } : s)),
     );
   }, []);
+
+  const setSelectionNotes = useCallback((id: string, notes: string) => {
+    setSelections((curr) =>
+      curr.map((selection) =>
+        selection.id === id ? { ...selection, notes } : selection,
+      ),
+    );
+  }, []);
+
+  const setSelectionNotesPublic = useCallback(
+    (id: string, notesPublic: boolean) => {
+      setSelections((curr) =>
+        curr.map((selection) =>
+          selection.id === id ? { ...selection, notesPublic } : selection,
+        ),
+      );
+    },
+    [],
+  );
 
   const value = useMemo<SlipStoreValue>(
     () => ({
@@ -191,10 +204,8 @@ export function SlipStoreProvider({
       setMode,
       setParlayUnits,
       setSelectionUnits,
-      slipNotes,
-      setSlipNotes,
-      notesPublic,
-      setNotesPublic,
+      setSelectionNotes,
+      setSelectionNotesPublic,
       addPick,
       removeSelection,
       clearSlip,
@@ -210,8 +221,8 @@ export function SlipStoreProvider({
       internalConflicts,
       setMode,
       setSelectionUnits,
-      slipNotes,
-      notesPublic,
+      setSelectionNotes,
+      setSelectionNotesPublic,
       addPick,
       removeSelection,
       clearSlip,
