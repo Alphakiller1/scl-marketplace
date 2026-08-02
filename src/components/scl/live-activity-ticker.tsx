@@ -156,15 +156,28 @@ function TickerChip({
  * Live board marquee — wins, positive CLV, new posts (sport + handle only).
  * Hidden when empty; pauses on hover; static under reduced motion.
  */
-export function LiveActivityTicker({
-  items,
-  failed = false,
-}: {
-  items: LiveTickerItem[];
-  failed?: boolean;
-}) {
-  if (failed && items.length === 0) return null;
-  if (items.length === 0) return null;
+export function LiveActivityTicker({ items }: { items: LiveTickerItem[] }) {
+  if (items.length === 0) {
+    return (
+      <section
+        aria-label="Recent winning wagers"
+        className="scl-board relative overflow-hidden rounded-none border-x-0 border-t-0"
+      >
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3.5 sm:px-6">
+          <p className="scl-eyebrow flex items-center gap-1.5 text-[color:var(--scl-muted-label)]">
+            <Activity
+              className="size-3.5 text-[color:var(--scl-blue)]"
+              aria-hidden
+            />
+            Recent winning wagers
+          </p>
+          <p className="text-muted-foreground text-xs sm:text-sm">
+            Verified wins will appear here after game results are graded.
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   const marqueeItems = buildMarqueeItems(items);
   const halfCount = marqueeItems.length / 2;
