@@ -115,7 +115,7 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                   {specialties.map((specialty) => (
                     <span
                       key={specialty}
-                      className="border-border bg-surface-2 text-muted-foreground inline-flex rounded-md border px-2 py-0.5 text-[0.7rem] font-semibold tracking-wide"
+                      className="border-border bg-surface-2 text-muted-foreground inline-flex rounded-full border px-1.5 py-1 text-[0.65rem] leading-none font-semibold tracking-wide"
                     >
                       {specialty}
                     </span>

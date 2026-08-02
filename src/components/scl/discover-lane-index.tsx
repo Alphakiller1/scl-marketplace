@@ -30,12 +30,7 @@ export function DiscoverLaneIndex({
                   {lane.title}
                 </span>
                 <span className="text-muted-foreground mt-1 block text-[0.65rem] font-semibold tracking-wide uppercase">
-                  {lane.primaryLabel} ·{" "}
-                  {failed
-                    ? "Unavailable"
-                    : lane.entries.length
-                      ? `${lane.entries.length} shown`
-                      : "No Match"}
+                  {failed ? "Unavailable" : lane.primaryLabel}
                 </span>
               </span>
               <span

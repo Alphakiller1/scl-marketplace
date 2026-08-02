@@ -47,7 +47,10 @@ export function RankBoardTable({
 
       {/* Dense Rank list on phones — one shell, hairline rows (~52px), full schema. */}
       <ul
-        className="border-border divide-border divide-y overflow-hidden rounded-[var(--scl-radius-card)] border bg-[color:var(--scl-ink-800)] lg:hidden"
+        className={cn(
+          "border-border divide-border divide-y overflow-hidden rounded-[var(--scl-radius-card)] border bg-[color:var(--scl-ink-800)]",
+          compact ? "block" : "lg:hidden",
+        )}
         aria-label={caption}
       >
         {cappers.map((capper, i) => (
@@ -62,7 +65,8 @@ export function RankBoardTable({
 
       <div
         className={cn(
-          "border-border hidden overflow-x-auto rounded-[var(--scl-radius-card)] border bg-[color:var(--scl-ink-800)] lg:block",
+          "border-border overflow-hidden rounded-[var(--scl-radius-card)] border bg-[color:var(--scl-ink-800)]",
+          compact ? "hidden" : "hidden lg:block",
         )}
       >
         <table

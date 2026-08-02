@@ -78,7 +78,7 @@ export function CapperCard({
               {specialties.map((specialty) => (
                 <span
                   key={specialty}
-                  className="border-border bg-surface-2 inline-flex min-h-7 items-center rounded-md border px-2 font-medium"
+                  className="border-border bg-surface-2 inline-flex h-6 items-center rounded-full border px-2 text-[0.68rem] leading-none font-medium"
                 >
                   {specialty}
                 </span>

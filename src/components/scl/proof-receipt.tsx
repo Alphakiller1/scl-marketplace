@@ -239,7 +239,7 @@ export function ProofReceipt({
             STAMP_CLASS[tone],
             preferVerified &&
               "shadow-[0_0_0_1px_color-mix(in_oklab,var(--scl-pink)_35%,transparent)]",
-            settling ? "rotate-12 opacity-0" : "rotate-6 opacity-100",
+            settling ? "scale-95 opacity-0" : "scale-100 opacity-100",
           )}
           aria-hidden={settling ? true : undefined}
         >

@@ -25,7 +25,7 @@ export function StoreStatusChip({
   return (
     <span
       className={cn(
-        "inline-flex min-h-7 items-center gap-1.5 rounded-md border px-2 text-[0.7rem] font-semibold tracking-wide uppercase",
+        "inline-flex h-6 items-center gap-1.5 rounded-full border px-2 text-[0.65rem] leading-none font-semibold tracking-wide uppercase",
         TONE_CLASS[tone],
         className,
       )}

@@ -81,7 +81,7 @@ export function LeagueMark({
           alt=""
           width={px}
           height={px}
-          className="size-full object-contain"
+          className="size-full object-contain drop-shadow-[0_0_1px_rgba(255,255,255,0.55)]"
           loading="eager"
           decoding="async"
           referrerPolicy="no-referrer"

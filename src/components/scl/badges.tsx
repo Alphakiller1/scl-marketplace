@@ -115,14 +115,16 @@ export function LegacyBadge({
   return (
     <span
       className={cn(
-        "border-border bg-surface-3 text-muted-foreground inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium",
+        "border-border bg-surface-3 text-muted-foreground inline-flex items-center gap-1.5 rounded-full border py-0.5 pr-2 pl-1 text-[0.68rem] leading-none font-semibold",
         className,
       )}
       title={label}
     >
-      <History className="size-3" aria-hidden />
+      <span className="inline-flex size-4 items-center justify-center rounded-full bg-[color:var(--scl-blue)]/20 text-[color:var(--scl-blue)] ring-1 ring-[color:var(--scl-blue)]/35">
+        <History className="size-2.5" aria-hidden />
+      </span>
       <span className="sr-only">{label}</span>
-      <span aria-hidden>Legacy</span>
+      <span aria-hidden>Legacy Capper</span>
     </span>
   );
 }
@@ -159,8 +161,14 @@ export function SportTag({
 
   if (showMark && !showLabel) {
     return (
-      <span className={cn("inline-flex shrink-0", className)} title={label}>
-        <LeagueMark leagueKey={sport} size="sm" className="rounded-full" />
+      <span
+        className={cn(
+          "inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-[color:var(--scl-blue)]/25 bg-[color:var(--scl-blue)]/10 p-px",
+          className,
+        )}
+        title={label}
+      >
+        <LeagueMark leagueKey={sport} size="sm" />
         <span className="sr-only">{label}</span>
       </span>
     );
@@ -169,15 +177,13 @@ export function SportTag({
   return (
     <span
       className={cn(
-        "bg-surface-3 text-muted-foreground inline-flex items-center rounded-md text-[0.7rem] font-semibold tracking-wide uppercase",
-        showMark ? "gap-1 py-0.5 pr-2 pl-0.5" : "px-2 py-0.5",
+        "bg-surface-3 text-muted-foreground border-border inline-flex items-center rounded-full border text-[0.65rem] leading-none font-semibold tracking-wide uppercase",
+        showMark ? "gap-1 py-0.5 pr-1.5 pl-0.5" : "px-1.5 py-1",
         className,
       )}
       title={label}
     >
-      {showMark ? (
-        <LeagueMark leagueKey={sport} size="sm" className="rounded-md" />
-      ) : null}
+      {showMark ? <LeagueMark leagueKey={sport} size="sm" /> : null}
       {showLabel ? label : null}
     </span>
   );
@@ -252,7 +258,7 @@ export function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex min-h-8 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
+        "inline-flex h-6 items-center gap-1 rounded-full px-2 text-[0.68rem] leading-none font-semibold",
         s.className,
         className,
       )}

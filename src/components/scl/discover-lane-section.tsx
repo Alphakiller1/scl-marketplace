@@ -51,7 +51,7 @@ export function DiscoverLaneSection({
               </p>
             </div>
           </div>
-          <dl className="flex shrink-0 items-center gap-4 pl-6 sm:pl-0">
+          <dl className="shrink-0 pl-6 sm:pl-0">
             <div>
               <dt className="scl-eyebrow text-[color:var(--scl-muted-data)]">
                 Primary Measure
@@ -60,16 +60,6 @@ export function DiscoverLaneSection({
                 {lane.primaryLabel}
               </dd>
             </div>
-            {lane.entries.length ? (
-              <div className="border-l border-[color:var(--scl-line)] pl-4 text-right">
-                <dt className="scl-eyebrow text-[color:var(--scl-muted-data)]">
-                  Preview
-                </dt>
-                <dd className="scl-data mt-0.5 text-sm font-bold tabular-nums">
-                  {lane.entries.length} Shown
-                </dd>
-              </div>
-            ) : null}
           </dl>
         </div>
       </div>
