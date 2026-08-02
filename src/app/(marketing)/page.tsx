@@ -17,6 +17,7 @@ import { TopCappersLive } from "@/components/scl/top-cappers-live";
 import { LiveActivityTicker } from "@/components/scl/live-activity-ticker";
 
 import { appUrl } from "@/lib/app-url";
+import { SCL_BRAND_NAME, SCL_TITLE } from "@/lib/brand";
 import { slimBoardCapper } from "@/lib/board-capper";
 import {
   BOTTOM_BAND_BODY,
@@ -33,7 +34,7 @@ import { getPlatformClvSummary } from "@/lib/queries/platform-clv";
 
 export const revalidate = 60;
 
-const HOME_TITLE = "SCL — Sports Cappers Leaderboard";
+const HOME_TITLE = SCL_TITLE;
 const HOME_DESCRIPTION =
   "Inspect verified sports capper records, public picks, timestamps, and leaderboard history. Transparent records for bettors and founding cappers — SCL does not process payments.";
 
@@ -69,7 +70,7 @@ export async function generateMetadata(): Promise<Metadata> {
           url: ogImage,
           width: 1200,
           height: 630,
-          alt: "SCL Sports Cappers Leaderboard",
+          alt: `SCL ${SCL_BRAND_NAME}`,
         },
       ],
     },

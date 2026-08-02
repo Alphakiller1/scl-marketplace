@@ -20,6 +20,7 @@ import { SclLogo } from "@/components/scl-logo";
 import { SignOutButton } from "@/components/sign-out-button";
 import { Button } from "@/components/ui/button";
 import type { WorkspaceDestination } from "@/lib/auth-routing";
+import { SCL_BRAND_NAME } from "@/lib/brand";
 import {
   Sheet,
   SheetClose,
@@ -236,7 +237,7 @@ function BrandLabel({ label }: { label: string }) {
       </span>
       <div>
         <p className="scl-display text-sm font-bold tracking-[0.02em]">
-          Sports Cappers Leaderboard
+          {SCL_BRAND_NAME}
         </p>
         <p className="text-muted-foreground text-xs">{label}</p>
       </div>

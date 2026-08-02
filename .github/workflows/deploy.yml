@@ -1,7 +1,8 @@
 name: Deploy (Vercel)
 
-# On push to main, ask Vercel to rebuild the live site from main.
-# Preferred: one Deploy Hook URL (simplest). Fallback: Vercel CLI token trio.
+# Vercel's Git integration deploys every push to main. This workflow verifies
+# that exact commit after the native deployment becomes healthy. Manual runs
+# retain the Deploy Hook / CLI path as an operational recovery mechanism.
 # Secrets live under GitHub → Environments → Production.
 # See docs/SCL_DEPLOYMENT.md.
 
@@ -21,6 +22,7 @@ jobs:
     steps:
       - name: Trigger Vercel Deploy Hook
         id: hook
+        if: github.event_name == 'workflow_dispatch'
         env:
           VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
         run: |
@@ -45,7 +47,7 @@ jobs:
 
       - name: Check CLI token fallback
         id: cfg
-        if: steps.hook.outputs.hook != 'true'
+        if: github.event_name == 'workflow_dispatch' && steps.hook.outputs.hook != 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}

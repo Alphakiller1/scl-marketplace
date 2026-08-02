@@ -129,7 +129,11 @@ async function main() {
     new Request(`http://localhost:3000/go/${SMOKE_SLUG}`, {
       headers: {
         referer: "http://localhost:3000/cappers/capper",
-        "user-agent": "SCL-M3-Smoke",
+        "user-agent":
+          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/140 Safari/537.36",
+        "sec-fetch-mode": "navigate",
+        "sec-fetch-dest": "document",
+        "sec-fetch-user": "?1",
       },
     }),
     { params: Promise.resolve({ slug: SMOKE_SLUG }) },

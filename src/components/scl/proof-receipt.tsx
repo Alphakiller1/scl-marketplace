@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { BettingTitle } from "@/components/scl/betting-title";
 import { BookMark } from "@/components/scl/book-mark";
+import { SCL_BRAND_NAME } from "@/lib/brand";
 import {
   bookLabel,
   formatOddsCaptureSourceLine,
@@ -247,7 +248,7 @@ export function ProofReceipt({
         </div>
 
         <p className="scl-eyebrow mb-1.5 pr-20 text-[color:var(--scl-muted-label)] sm:pr-24">
-          Sports Cappers Leaderboard
+          {SCL_BRAND_NAME}
         </p>
         <div className="flex min-w-0 items-start gap-2.5 pr-16 sm:pr-20">
           {leadingMark ? (

@@ -88,6 +88,18 @@ function EvidenceStrip({
     );
   }
 
+  if (!evidence || evidence.settledPicks === 0) {
+    return (
+      <div>
+        <p className="text-sm font-semibold">No attributed picks yet</p>
+        <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+          This offer has no graded picks explicitly linked to it. The capper’s
+          overall public record remains available on their profile.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-4 lg:grid-cols-4 lg:items-end">
@@ -116,6 +128,14 @@ function EvidenceStrip({
 
 function CapperCell({ row }: { row: RegisterRow }) {
   const name = row.capper?.name || row.pkg.capperName;
+  const publicRecord =
+    row.capper && (row.capper.settledPicks ?? 0) > 0
+      ? `${formatRecord(
+          row.capper.record.w,
+          row.capper.record.l,
+          row.capper.record.p,
+        )} · ${formatRoi(row.capper.roi)} ROI`
+      : "Open public capper profile";
   return (
     <Link
       href={`/cappers/${row.pkg.capperHandle}`}
@@ -127,7 +147,7 @@ function CapperCell({ row }: { row: RegisterRow }) {
           @{row.pkg.capperHandle.replace(/^@/, "")}
         </span>
         <span className="text-muted-foreground block text-xs">
-          Inspect public record
+          {publicRecord}
         </span>
       </span>
     </Link>
@@ -203,7 +223,7 @@ export function PackagesRegister({
 }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"featured" | "name" | "units" | "roi">(
-    "units",
+    "featured",
   );
   const rows = useMemo(() => {
     const cappersById = new Map(cappers.map((capper) => [capper.id, capper]));
@@ -274,9 +294,9 @@ export function PackagesRegister({
               onChange={(event) => setSort(event.target.value as typeof sort)}
               className="border-input bg-background min-h-10 rounded-md border px-3 text-base sm:text-sm"
             >
-              <option value="units">Package units</option>
-              <option value="roi">Package ROI</option>
               <option value="featured">Featured order</option>
+              <option value="units">Attributed units</option>
+              <option value="roi">Attributed ROI</option>
               <option value="name">Capper name</option>
             </select>
           </label>
@@ -305,7 +325,7 @@ export function PackagesRegister({
                 <tr className="border-border bg-background border-b">
                   {[
                     "Capper",
-                    "Package record",
+                    "Attributed package record",
                     "Offer",
                     "External storefront",
                   ].map((label) => (

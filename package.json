@@ -4,7 +4,6 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node scripts/resolve-prod-migration.mjs",
     "build": "node scripts/migrate-on-production-only.mjs && next build",
     "start": "next start",
     "lint": "eslint",
