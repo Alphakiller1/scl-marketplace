@@ -14,7 +14,6 @@ import { HomeVerificationRail } from "@/components/scl/home-verification-rail";
 import { PlatformClvSummary } from "@/components/scl/platform-clv-summary";
 import { SectionHeader } from "@/components/scl/section";
 import { TopCappersLive } from "@/components/scl/top-cappers-live";
-import { WhatChangedToday } from "@/components/scl/what-changed-today";
 import { LiveActivityTicker } from "@/components/scl/live-activity-ticker";
 
 import { appUrl } from "@/lib/app-url";
@@ -26,10 +25,7 @@ import {
 } from "@/lib/cold-start-copy";
 import { sortLeaderboard } from "@/lib/leaderboard";
 import { platformReportSubtitle } from "@/lib/league-action";
-import {
-  getFeaturedGradedPlay,
-  getTodaysGradedMoves,
-} from "@/lib/queries/home-live";
+import { getFeaturedGradedPlay } from "@/lib/queries/home-live";
 import { getLiveActivityTicker } from "@/lib/queries/live-activity-ticker";
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 import { getLeagueActionReport } from "@/lib/queries/league-action";
@@ -121,27 +117,8 @@ async function HomeHero() {
 }
 
 async function HomeLiveStrip() {
-  const [liveTicker, todaysMoves] = await Promise.all([
-    getLiveActivityTicker(),
-    getTodaysGradedMoves(),
-  ]);
-
-  if (liveTicker.items.length > 0) {
-    return (
-      <LiveActivityTicker items={liveTicker.items} failed={liveTicker.failed} />
-    );
-  }
-
-  return (
-    <div className="border-border border-b bg-[color:var(--scl-ink-900)]">
-      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
-        <WhatChangedToday
-          moves={todaysMoves.moves}
-          failed={todaysMoves.failed}
-        />
-      </div>
-    </div>
-  );
+  const liveTicker = await getLiveActivityTicker();
+  return <LiveActivityTicker items={liveTicker.items} />;
 }
 
 async function HomeTopBoard() {
