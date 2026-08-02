@@ -99,9 +99,16 @@ export function findGame(
 ): SettledGame | null {
   const sportGames = games.filter((g) => g.sport === play.sport);
 
+  // An event-bound play grades against that event or not at all.
+  //
+  // This used to fall through to the name matching below when the event was
+  // absent from the settled set — which is exactly the case while the game is
+  // still being played. The settled pool spans two weeks of scoreboard history,
+  // so "Houston Astros" then matched a DIFFERENT, already-final Astros game and
+  // graded a live pick with an old result: a bet settled WIN in the 3rd inning
+  // at 0-0. Absent means not finished yet; the correct answer is to wait.
   if (play.eventId) {
-    const byId = sportGames.find((g) => g.eventId === play.eventId);
-    if (byId) return byId;
+    return sportGames.find((g) => g.eventId === play.eventId) ?? null;
   }
 
   const matchup = parseMatchupSides(play.selection);

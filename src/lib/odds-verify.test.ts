@@ -178,9 +178,17 @@ test("marketKeysForMarket maps game markets to featured + alternate keys", () =>
     "totals",
     "alternate_totals",
   ]);
-  // prop display labels resolve back to their Odds API key
-  assert.deepEqual(marketKeysForMarket("Strikeouts"), ["pitcher_strikeouts"]);
-  assert.deepEqual(marketKeysForMarket("Points"), ["player_points"]);
+  // Prop display labels resolve back to their Odds API key, bundled with the
+  // alternate variant: milestone "X+" lines (6+ strikeouts) live only there, so
+  // verifying against the featured key alone could not price such a pick.
+  assert.deepEqual(marketKeysForMarket("Strikeouts"), [
+    "pitcher_strikeouts",
+    "pitcher_strikeouts_alternate",
+  ]);
+  assert.deepEqual(marketKeysForMarket("Points"), [
+    "player_points",
+    "player_points_alternate",
+  ]);
   // a raw key (or anything unrecognized) is passed through, trimmed
   assert.deepEqual(marketKeysForMarket("  pitcher_strikeouts "), [
     "pitcher_strikeouts",
