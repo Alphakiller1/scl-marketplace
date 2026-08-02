@@ -382,12 +382,13 @@ export type PickIntegrityDecision =
   | { accept: false; reason: string };
 
 /**
- * The single trust gate for a submitted pick. Pure — the server action supplies `now`, the event
- * start, and the fetched verify result. Two things hard-reject; everything else is accepted but
- * may land as SELF_REPORTED (which keeps it off the verified leaderboard):
+ * The single trust gate for a newly submitted pick. Pure — the server action supplies `now`, the
+ * event start, and the fetched verify result. Historical SELF_REPORTED rows remain readable, but
+ * every new submission must clear all three checks:
  *
  *   C1 — a known start time that has already passed (no post-game logging, ever).
- *   C3 — a claimed price better than the market beyond tolerance (fabricated odds).
+ *   C2 — the pick is bound to a known event and structured selection.
+ *   C3 — the submitted odds can be authenticated against the covered market.
  *
  * VERIFIED requires the full strict path: event-bound + logged pre-game + odds verified. The same
  * bar reached through an authorized connector is AUTO_VERIFIED.
@@ -407,15 +408,25 @@ export function decidePickIntegrity(
   const loggedPreGame =
     eventStartsAt !== null && now.getTime() < eventStartsAt.getTime();
 
-  if (verify && verify.status === "rejected") {
+  if (verify?.status === "rejected") {
     return { accept: false, reason: verify.reason };
   }
-  const oddsVerified = verify?.status === "verified";
-
-  let tier: VerificationTierValue = "SELF_REPORTED";
-  if (eventBound && loggedPreGame && oddsVerified) {
-    tier = source === "MANUAL" ? "VERIFIED" : "AUTO_VERIFIED";
+  if (!eventBound || !loggedPreGame) {
+    return {
+      accept: false,
+      reason: "Select a pre-game line from the SCL odds board.",
+    };
+  }
+  if (!verify || verify.status !== "verified") {
+    return {
+      accept: false,
+      reason:
+        verify?.reason ??
+        "SCL could not authenticate these odds. Refresh the board and try again.",
+    };
   }
 
-  return { accept: true, loggedPreGame, oddsVerified, tier };
+  const tier = source === "MANUAL" ? "VERIFIED" : "AUTO_VERIFIED";
+
+  return { accept: true, loggedPreGame, oddsVerified: true, tier };
 }

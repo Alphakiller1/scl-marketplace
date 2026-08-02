@@ -22,12 +22,14 @@ const READY_ENV = {
   CRON_SECRET: "cron-secret",
   WHOP_WEBHOOK_SECRET: "whop-secret",
   SCL_ALLOW_GHOST_PUBLICATION: "0",
+  VERCEL_ENV: "production",
+  VERCEL_GIT_COMMIT_SHA: "a".repeat(40),
 };
 
 test("release configuration is ready when launch-critical services exist", () => {
   const checks = evaluateReleaseConfiguration(READY_ENV);
   assert.deepEqual(releaseReadinessSummary(checks), {
-    ready: 8,
+    ready: 10,
     warning: 0,
     blocked: 0,
   });
@@ -39,9 +41,11 @@ test("release configuration blocks unsafe launch defaults", () => {
     DIRECT_URL: undefined,
     AUTH_SECRET: "short",
     EMAIL_FROM: "no-reply@scl.local",
+    SUPPORT_EMAIL_TO: undefined,
     ODDS_API_KEY: undefined,
     CRON_SECRET: undefined,
     SCL_ALLOW_GHOST_PUBLICATION: "1",
+    VERCEL_GIT_COMMIT_SHA: undefined,
   });
 
   const blocked = checks
@@ -51,9 +55,11 @@ test("release configuration blocks unsafe launch defaults", () => {
     "database-config",
     "authentication-config",
     "transactional-email",
+    "support-mailbox",
     "odds-provider",
     "grading-cron",
     "ghost-publication",
+    "release-identity",
   ]);
 });
 

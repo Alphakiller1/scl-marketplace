@@ -19,6 +19,9 @@ the production deployment under the repo's _Deployments/Environments_, updating 
 4. Add the **Environment Variables** below, then **Deploy**.
 5. After the first deploy, set `AUTH_URL` to the production URL Vercel gives you
    (e.g. `https://scl-marketplace.vercel.app`) and redeploy.
+6. Under **Settings → Environment Variables**, enable **Automatically expose System
+   Environment Variables**. The live release gate requires `VERCEL_GIT_COMMIT_SHA`
+   to prove the production alias is serving the exact merged commit.
 
 That's it — every push to `main` should auto-deploy.
 

@@ -51,21 +51,32 @@ export async function submitSupportRequest(
     };
   }
 
-  const requestIdentity = await getRequestIdentity();
-  const [requestAllowed, emailAllowed] = await Promise.all([
-    consumeRateLimit({
-      scope: "support-request",
-      identity: requestIdentity,
-      limit: 5,
-      windowMs: 60 * 60 * 1000,
-    }),
-    consumeRateLimit({
-      scope: "support-email",
-      identity: parsed.data.email,
-      limit: 5,
-      windowMs: 60 * 60 * 1000,
-    }),
-  ]);
+  let requestAllowed = false;
+  let emailAllowed = false;
+  try {
+    const requestIdentity = await getRequestIdentity();
+    [requestAllowed, emailAllowed] = await Promise.all([
+      consumeRateLimit({
+        scope: "support-request",
+        identity: requestIdentity,
+        limit: 5,
+        windowMs: 60 * 60 * 1000,
+      }),
+      consumeRateLimit({
+        scope: "support-email",
+        identity: parsed.data.email,
+        limit: 5,
+        windowMs: 60 * 60 * 1000,
+      }),
+    ]);
+  } catch (error) {
+    console.error("[support] rate-limit check failed", error);
+    return {
+      status: "error",
+      message:
+        "Support requests are temporarily unavailable. Email support@scl.com directly and include the page you were viewing.",
+    };
+  }
   if (!requestAllowed || !emailAllowed) {
     return {
       status: "error",

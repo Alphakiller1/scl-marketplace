@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { activePublicPackageWhere } from "@/lib/public-packages";
 
 /** Deduplicate untrusted ids and verify every selected package is live and owned. */
 export async function validatePackageAttribution(
@@ -16,9 +17,7 @@ export async function validatePackageAttribution(
     where: {
       id: { in: uniqueIds },
       capperId,
-      isActive: true,
-      checkoutUrl: { not: null },
-      trackingUrls: { some: {} },
+      ...activePublicPackageWhere,
     },
     select: { id: true },
   });

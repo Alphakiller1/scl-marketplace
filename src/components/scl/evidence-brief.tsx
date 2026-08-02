@@ -9,12 +9,7 @@ import {
   useTransition,
   type ReactNode,
 } from "react";
-import {
-  ChevronDown,
-  ListChecks,
-  LockKeyhole,
-  ShieldCheck,
-} from "lucide-react";
+import { ChevronDown, ListChecks, LockKeyhole } from "lucide-react";
 
 import { CumulativeUnitsChart } from "@/components/scl/cumulative-units-chart";
 import { ClvTrackerPanel } from "@/components/scl/clv-tracker-panel";
@@ -60,51 +55,6 @@ import { cn } from "@/lib/utils";
 
 const LENS_KEY = "scl-trust-lens";
 type TrustLens = "simple" | "analyst" | "audit";
-
-function VerifiedMeter({ pct }: { pct: number | null }) {
-  if (pct == null) {
-    return (
-      <StatBlock
-        label="Odds Verified"
-        value="—"
-        className="min-w-[4.5rem]"
-        truncateValue={false}
-      />
-    );
-  }
-  return (
-    <div className="flex min-w-[5.5rem] flex-col gap-1">
-      <div className="flex items-center gap-1.5">
-        <ShieldCheck
-          className="size-4 shrink-0 text-[color:var(--scl-pink)]"
-          aria-hidden
-        />
-        <span
-          className="scl-data text-foreground min-w-[3.5ch] text-lg font-semibold whitespace-nowrap tabular-nums sm:text-xl"
-          aria-label={`${pct} percent odds-verified`}
-        >
-          {pct}%
-        </span>
-      </div>
-      <span className="scl-eyebrow text-[color:var(--scl-muted-label)]">
-        Odds Verified
-      </span>
-      <div
-        className="bg-surface-2 border-border h-1.5 overflow-hidden rounded-full border"
-        role="meter"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={pct}
-        aria-label="Odds verification share meter"
-      >
-        <div
-          className="h-full rounded-full bg-[color:var(--scl-pink)]"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
-  );
-}
 
 function playToProofReceipt(
   play: PlayView,
@@ -223,10 +173,6 @@ export function EvidenceBrief({
   const graded = capper.settledPicks ?? 0;
   const provisional = isProvisional(graded);
   const signal = hasSignal(graded);
-  const verifiedPct =
-    capper.verifiedShare != null && capper.verifiedShare > 0
-      ? Math.round(capper.verifiedShare)
-      : null;
   const eligiblePlays = useMemo(
     () => plays.filter((play) => isValidPublicStake(play.units)),
     [plays],
@@ -324,7 +270,6 @@ export function EvidenceBrief({
             capper={capper}
             graded={graded}
             provisional={provisional}
-            verifiedPct={verifiedPct}
             avgClv={avgClv}
             clvScale={clvScale}
             showClv={false}
@@ -340,7 +285,6 @@ export function EvidenceBrief({
             capper={capper}
             graded={graded}
             provisional={provisional}
-            verifiedPct={verifiedPct}
             avgClv={displayAvgClv}
             clvScale={clvScale}
             showClv={showClv}
@@ -356,7 +300,6 @@ export function EvidenceBrief({
             capper={capper}
             graded={graded}
             provisional={provisional}
-            verifiedPct={verifiedPct}
             avgClv={displayAvgClv}
             clvScale={clvScale}
             showClv
@@ -733,7 +676,6 @@ function MetricRow({
   capper,
   graded,
   provisional,
-  verifiedPct,
   avgClv,
   clvScale,
   showClv,
@@ -741,19 +683,18 @@ function MetricRow({
   capper: CapperSummary;
   graded: number;
   provisional: boolean;
-  verifiedPct: number | null;
   avgClv?: number | null;
   clvScale: ReturnType<typeof perfScale>;
   showClv: boolean;
 }) {
   // These cells render `truncateValue={false}` so a value is never ellipsised
   // mid-number. Record is by far the widest stat — a carried-over legacy record
-  // reads 1714-1569-12 — so on the six-across layout it gets a wider track and
+  // reads 1714-1569-12 — so on the five-across layout it gets a wider track and
   // every cell gets a real gap. Equal tracks let it run flush into the ROI value.
   return (
     <div
       data-profile-metric-row
-      className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3 xl:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_1fr]"
+      className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3 xl:grid-cols-[1.5fr_1fr_1fr_1fr_1fr]"
     >
       <MetricCell>
         <RecordStat record={capper.record} truncateValue={false} />
@@ -785,9 +726,6 @@ function MetricRow({
           value={graded.toLocaleString()}
           truncateValue={false}
         />
-      </MetricCell>
-      <MetricCell>
-        <VerifiedMeter pct={verifiedPct} />
       </MetricCell>
       <MetricCell last>
         {showClv ? (

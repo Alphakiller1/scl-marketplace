@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { activePublicPackageWhere } from "@/lib/public-packages";
 import { getCurrentAccount } from "@/lib/session";
 
 export type PickPackageOption = { id: string; title: string };
@@ -13,11 +14,7 @@ export async function getPickPackageOptions(): Promise<PickPackageOption[]> {
     where: { userId: account.id },
     select: {
       packages: {
-        where: {
-          isActive: true,
-          checkoutUrl: { not: null },
-          trackingUrls: { some: {} },
-        },
+        where: activePublicPackageWhere,
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
         select: { id: true, title: true },
       },

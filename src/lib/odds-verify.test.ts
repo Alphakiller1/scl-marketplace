@@ -261,7 +261,7 @@ test("decidePickIntegrity: C3 hard-rejects fabricated odds with the verify reaso
   if (!d.accept) assert.equal(d.reason, REJECTED.reason);
 });
 
-test("decidePickIntegrity: pre-game but unverifiable market → accepted as SELF_REPORTED", () => {
+test("decidePickIntegrity: pre-game but unverifiable market is rejected", () => {
   const d = decidePickIntegrity({
     now: BEFORE,
     eventStartsAt: START,
@@ -269,15 +269,11 @@ test("decidePickIntegrity: pre-game but unverifiable market → accepted as SELF
     verify: UNVERIFIABLE,
     source: "MANUAL",
   });
-  assert.equal(d.accept, true);
-  if (d.accept) {
-    assert.equal(d.tier, "SELF_REPORTED");
-    assert.equal(d.oddsVerified, false);
-    assert.equal(d.loggedPreGame, true); // logged pre-game, just couldn't price-check
-  }
+  assert.equal(d.accept, false);
+  if (!d.accept) assert.equal(d.reason, UNVERIFIABLE.reason);
 });
 
-test("decidePickIntegrity: legacy free-text pick (no event) → SELF_REPORTED, not pre-game", () => {
+test("decidePickIntegrity: free-text pick without an event is rejected", () => {
   const d = decidePickIntegrity({
     now: BEFORE,
     eventStartsAt: null,
@@ -285,11 +281,9 @@ test("decidePickIntegrity: legacy free-text pick (no event) → SELF_REPORTED, n
     verify: null,
     source: "MANUAL",
   });
-  assert.equal(d.accept, true);
-  if (d.accept) {
-    assert.equal(d.tier, "SELF_REPORTED");
-    assert.equal(d.loggedPreGame, false);
-    assert.equal(d.oddsVerified, false);
+  assert.equal(d.accept, false);
+  if (!d.accept) {
+    assert.equal(d.reason, "Select a pre-game line from the SCL odds board.");
   }
 });
 

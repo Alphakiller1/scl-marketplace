@@ -22,10 +22,6 @@ import { isProvisional } from "@/lib/sample";
 export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
   const identity = identityDisplayLinesFromCapper(capper);
   const avatarName = identity.primary.replace(/^@/, "") || capper.handle;
-  const verifiedPct =
-    capper.verifiedShare != null && capper.verifiedShare > 0
-      ? Math.round(capper.verifiedShare)
-      : null;
   const lastPickLabel = formatLastPickDate(capper.lastPlayAt);
   const specialties = (capper.specialties ?? [])
     .filter(
@@ -145,17 +141,6 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                     <span>{BUILDING_RECORD_LABEL}</span>
                   )}
                 </span>
-                {verifiedPct != null ? (
-                  <>
-                    <span className="border-border h-4 border-l" aria-hidden />
-                    <span title="Share of tracked picks logged pre-game and checked against the live market">
-                      <span className="text-foreground font-semibold tabular-nums">
-                        {verifiedPct}%
-                      </span>{" "}
-                      odds verified
-                    </span>
-                  </>
-                ) : null}
                 {lastPickLabel ? (
                   <>
                     <span className="border-border h-4 border-l" aria-hidden />

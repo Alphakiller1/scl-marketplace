@@ -7,7 +7,11 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const health = await getCoreSchemaHealth();
-  const status = health.ready ? "ok" : "degraded";
+  const release = process.env.VERCEL_GIT_COMMIT_SHA ?? "local";
+  const releaseIdentified =
+    process.env.VERCEL_ENV !== "production" || release !== "local";
+  const ready = health.ready && releaseIdentified;
+  const status = ready ? "ok" : "degraded";
 
   return NextResponse.json(
     {
@@ -17,11 +21,12 @@ export async function GET() {
         packageAttribution: health.playPackage && health.parlayPackage,
         eventLabels: health.eventLabel,
       },
-      release: process.env.VERCEL_GIT_COMMIT_SHA ?? "local",
+      deployment: { releaseIdentified },
+      release,
       checkedAt: new Date().toISOString(),
     },
     {
-      status: health.ready ? 200 : 503,
+      status: ready ? 200 : 503,
       headers: { "Cache-Control": "no-store" },
     },
   );

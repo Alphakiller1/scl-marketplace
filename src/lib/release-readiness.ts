@@ -13,6 +13,10 @@ function isConfigured(value: string | undefined) {
   return Boolean(value?.trim());
 }
 
+function isEmailAddress(value: string | undefined) {
+  return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value?.trim() ?? "");
+}
+
 function usesSclSchema(value: string | undefined) {
   return Boolean(value && /[?&]schema=scl(?:&|$)/i.test(value));
 }
@@ -30,11 +34,15 @@ export function evaluateReleaseConfiguration(
     /^https:\/\//i.test(env.AUTH_URL?.trim() ?? "");
   const emailConfigured =
     isConfigured(env.RESEND_API_KEY) &&
-    isConfigured(env.EMAIL_FROM) &&
+    isEmailAddress(env.EMAIL_FROM) &&
     !/@scl\.local$/i.test(env.EMAIL_FROM?.trim() ?? "");
+  const supportConfigured = isEmailAddress(env.SUPPORT_EMAIL_TO);
   const mediaConfigured =
     isConfigured(env.SUPABASE_URL) &&
     isConfigured(env.SUPABASE_SERVICE_ROLE_KEY);
+  const releaseIdentityConfigured =
+    env.VERCEL_ENV?.trim() !== "production" ||
+    isConfigured(env.VERCEL_GIT_COMMIT_SHA);
 
   return [
     {
@@ -57,11 +65,19 @@ export function evaluateReleaseConfiguration(
     },
     {
       id: "transactional-email",
-      label: "Account and support email",
+      label: "Transactional email",
       status: emailConfigured ? "ready" : "blocked",
       detail: emailConfigured
-        ? `Resend delivery is configured${isConfigured(env.SUPPORT_EMAIL_TO) ? " with an explicit support inbox" : " with the support@scl.com fallback inbox"}.`
+        ? "Resend delivery uses an explicit, non-.local sender address."
         : "RESEND_API_KEY and a verified, non-.local EMAIL_FROM are required for signup, password reset, and support delivery.",
+    },
+    {
+      id: "support-mailbox",
+      label: "Support mailbox",
+      status: supportConfigured ? "ready" : "blocked",
+      detail: supportConfigured
+        ? `Support requests route to ${env.SUPPORT_EMAIL_TO!.trim()}.`
+        : "Set SUPPORT_EMAIL_TO to the monitored mailbox that receives support requests.",
     },
     {
       id: "profile-media",
@@ -96,6 +112,16 @@ export function evaluateReleaseConfiguration(
         env.SCL_ALLOW_GHOST_PUBLICATION?.trim() === "1"
           ? "SCL_ALLOW_GHOST_PUBLICATION=1 exposes fabricated demo records; disable it before launch."
           : "Ghost/demo accounts are excluded from public marketplace surfaces.",
+    },
+    {
+      id: "release-identity",
+      label: "Deployment identity",
+      status: releaseIdentityConfigured ? "ready" : "blocked",
+      detail: releaseIdentityConfigured
+        ? env.VERCEL_ENV?.trim() === "production"
+          ? "Vercel exposes the deployed Git commit to the production health gate."
+          : "The commit-identity gate is enforced on production deployments."
+        : "Enable Automatically expose System Environment Variables in Vercel so production exposes VERCEL_GIT_COMMIT_SHA.",
     },
     {
       id: "whop-webhook",
