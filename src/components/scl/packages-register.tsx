@@ -292,8 +292,8 @@ export function PackagesRegister({
           <div className="hidden lg:block">
             <table className="w-full table-fixed border-collapse">
               <caption className="sr-only">
-                Active external offers with performance from picks attributed
-                to each package
+                Active external offers with performance from picks attributed to
+                each package
               </caption>
               <colgroup>
                 <col className="w-[16%]" />

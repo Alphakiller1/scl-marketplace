@@ -122,7 +122,6 @@ export function PerformanceSummary({
       {signal ? (
         <ClvExplainer className="text-muted-foreground mt-3 text-xs leading-relaxed" />
       ) : null}
-
     </Card>
   );
 }
