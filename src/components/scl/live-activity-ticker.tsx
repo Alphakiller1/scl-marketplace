@@ -169,10 +169,11 @@ export function LiveActivityTicker({
   const marqueeItems = buildMarqueeItems(items);
   const halfCount = marqueeItems.length / 2;
   const durationSec = Math.max(32, Math.round(halfCount * 3.1));
+  const hasRecentWin = items.some((item) => item.kind === "win");
 
   return (
     <section
-      aria-label="Live board activity"
+      aria-label="Recent winning wagers and live board activity"
       className="scl-board relative overflow-hidden rounded-none border-x-0 border-t-0"
     >
       <div
@@ -190,7 +191,7 @@ export function LiveActivityTicker({
               className="size-3.5 text-[color:var(--scl-blue)]"
               aria-hidden
             />
-            Live
+            {hasRecentWin ? "Recent winning wagers" : "Live board activity"}
           </p>
         </div>
 

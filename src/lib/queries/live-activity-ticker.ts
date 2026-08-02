@@ -169,7 +169,19 @@ export async function getLiveActivityTicker(): Promise<LiveActivityTickerPayload
       });
     }
 
-    items.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+    // Keep recent wins at the front of the marquee so a burst of pending picks
+    // cannot hide the owner-requested winning-wager feed. Within each activity
+    // type, preserve newest-first ordering.
+    const kindPriority: Record<LiveTickerKind, number> = {
+      win: 0,
+      clv: 1,
+      posted: 2,
+    };
+    items.sort(
+      (a, b) =>
+        kindPriority[a.kind] - kindPriority[b.kind] ||
+        new Date(b.at).getTime() - new Date(a.at).getTime(),
+    );
 
     return { items: items.slice(0, MAX_ITEMS), failed: false };
   } catch (err) {
