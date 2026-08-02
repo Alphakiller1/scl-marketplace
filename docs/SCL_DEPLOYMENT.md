@@ -37,10 +37,14 @@ manually “promoting” deployments.
 | `AUTH_TRUST_HOST`               | `true`                                                                                  | required for Auth.js on Vercel               |
 | `EMAIL_FROM`                    | a verified sender, e.g. `no-reply@yourdomain`                                           | optional until email is live                 |
 | `RESEND_API_KEY`                | your Resend API key                                                                     | optional; dev logs the link if unset         |
+| `SUPPORT_EMAIL_TO`              | monitored support inbox                                                                 | required for launch support delivery         |
 | `SUPABASE_URL`                  | Supabase project API URL                                                                | **required for avatar/cover uploads**        |
 | `SUPABASE_SERVICE_ROLE_KEY`     | Supabase service-role key                                                               | server only; never expose to the browser     |
 | `SUPABASE_PROFILE_MEDIA_BUCKET` | `scl-profile-media`                                                                     | optional bucket-name override                |
 | `ODDS_API_KEY`                  | The Odds API key                                                                        | later (odds-assist/grading)                  |
+| `CRON_SECRET`                   | strong shared secret                                                                    | required by automatic grading                |
+| `SCL_ALLOW_GHOST_PUBLICATION`   | unset or `0`                                                                            | never set to `1` for launch                  |
+| `WHOP_WEBHOOK_SECRET`           | Whop signing secret                                                                     | optional while using the manual workflow     |
 
 #### Profile media uploads (avatar / cover)
 
@@ -114,6 +118,12 @@ step. One URL. Every push to `main` tells Vercel: “rebuild the live site from 
 That’s it. You do not need `VERCEL_TOKEN` / org / project IDs if the hook is set.
 
 Once `VERCEL_DEPLOY_HOOK_URL` is saved under Environments → Production, every push to `main` rebuilds the live site automatically.
+
+The deploy workflow does not stop at an accepted hook. It polls `/api/health`
+until the production alias reports the exact Git commit being deployed and the
+launch schema is ready, then verifies the home, leaderboard, packages,
+verification, support, and login routes. A green deploy job therefore means the
+live alias changed successfully; it does not merely mean Vercel accepted a build.
 
 ### Fallback (CLI tokens)
 

@@ -26,6 +26,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     page("/discover", 0.8, "daily"),
     page("/picks", 0.8, "hourly"),
     page("/packages", 0.7, "daily"),
+    page("/verification", 0.6, "monthly"),
+    page("/support", 0.5, "monthly"),
     page("/signup", 0.6, "monthly"),
     page("/login", 0.4, "monthly"),
     page("/terms", 0.2, "yearly"),

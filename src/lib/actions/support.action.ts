@@ -3,6 +3,8 @@
 import { z } from "zod";
 
 import { sendSupportEmail } from "@/lib/email";
+import { consumeRateLimit } from "@/lib/rate-limit";
+import { getRequestIdentity } from "@/lib/request-identity";
 
 const supportSchema = z.object({
   email: z.string().trim().email("Enter a valid email address."),
@@ -46,6 +48,29 @@ export async function submitSupportRequest(
       status: "error",
       message: "Check the highlighted fields and try again.",
       errors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const requestIdentity = await getRequestIdentity();
+  const [requestAllowed, emailAllowed] = await Promise.all([
+    consumeRateLimit({
+      scope: "support-request",
+      identity: requestIdentity,
+      limit: 5,
+      windowMs: 60 * 60 * 1000,
+    }),
+    consumeRateLimit({
+      scope: "support-email",
+      identity: parsed.data.email,
+      limit: 5,
+      windowMs: 60 * 60 * 1000,
+    }),
+  ]);
+  if (!requestAllowed || !emailAllowed) {
+    return {
+      status: "error",
+      message:
+        "Too many support requests were submitted. Email support@scl.com directly if the issue is urgent.",
     };
   }
 
