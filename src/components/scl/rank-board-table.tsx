@@ -124,19 +124,25 @@ export function RankBoardTable({
               return (
                 <tr
                   key={capper.id}
-                  className="border-border relative min-h-14 border-b last:border-b-0 hover:bg-[color:var(--scl-ink-700)]/80"
+                  className="border-border min-h-14 border-b last:border-b-0 hover:bg-[color:var(--scl-ink-700)]/80"
                 >
                   <td className={cn(cell, "align-middle")}>
-                    <RankBadge
-                      rank={rank}
-                      settledPicks={graded}
-                      variant="ledger"
-                    />
+                    <Link
+                      href={`/cappers/${capper.handle}`}
+                      className="focus-visible:ring-ring inline-flex rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                      aria-label={`Open rank ${rank}, ${capper.handle} profile`}
+                    >
+                      <RankBadge
+                        rank={rank}
+                        settledPicks={graded}
+                        variant="ledger"
+                      />
+                    </Link>
                   </td>
                   <td className={cn(cell, "align-middle")}>
                     <Link
                       href={`/cappers/${capper.handle}`}
-                      className="focus-visible:ring-ring flex min-w-0 items-center gap-2 rounded-sm after:absolute after:inset-0 after:z-[1] after:content-[''] focus-visible:ring-2 focus-visible:outline-none"
+                      className="focus-visible:ring-ring flex min-w-0 items-center gap-2 rounded-sm focus-visible:ring-2 focus-visible:outline-none"
                       aria-label={`Open ${capper.handle} profile`}
                     >
                       <CapperAvatar
@@ -215,14 +221,20 @@ export function RankBoardTable({
                   </td>
                   <td
                     className={cn(
-                      "pointer-events-none align-middle text-[color:var(--scl-muted-data)]",
+                      "align-middle text-[color:var(--scl-muted-data)]",
                       compact ? "px-1 py-1.5" : "px-1 py-1.5",
                     )}
                   >
-                    <ChevronRight
-                      className={compact ? "size-3.5" : "size-4"}
-                      aria-hidden
-                    />
+                    <Link
+                      href={`/cappers/${capper.handle}`}
+                      className="focus-visible:ring-ring inline-flex size-8 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                      aria-label={`Open ${capper.handle} profile`}
+                    >
+                      <ChevronRight
+                        className={compact ? "size-3.5" : "size-4"}
+                        aria-hidden
+                      />
+                    </Link>
                   </td>
                 </tr>
               );
