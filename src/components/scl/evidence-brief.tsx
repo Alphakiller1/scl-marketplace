@@ -362,7 +362,7 @@ export function EvidenceBrief({
               Pick History
             </h2>
             <p className="text-muted-foreground mt-1 text-sm">
-              Click the arrow to view the associated bet slip.
+              Select View to open the associated ticket in place.
             </p>
           </div>
         </div>
