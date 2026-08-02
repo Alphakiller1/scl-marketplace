@@ -56,7 +56,7 @@ export const HERO_SUBHEAD =
 /** Fable Step 2 — hero secondary / bottom band (not founding recruitment). */
 export const TRACK_YOUR_RECORD_CTA = "Track Your Record";
 
-export const BOTTOM_BAND_HEADLINE = "Build A Record People Can Inspect";
+export const BOTTOM_BAND_HEADLINE = "Build A Record People Can Trust";
 
 export const BOTTOM_BAND_BODY =
   "Log Odds-Verified Plays. Earn A Public Rank Others Can Check.";

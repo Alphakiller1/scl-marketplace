@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { ChevronDown, Trophy } from "lucide-react";
+import { ArrowUpRight, ChevronDown, Trophy } from "lucide-react";
 
 import { CapperAvatar } from "@/components/scl/capper-avatar";
 import { CapperIdentityLabel } from "@/components/scl/capper-identity-label";
@@ -81,7 +81,7 @@ export function Leaderboard({
 
   const ordered = useMemo(() => {
     if (!filters) return cappers;
-    return sortLeaderboard(cappers, activeSort);
+    return sortLeaderboard(cappers, activeSort, filters.direction ?? "desc");
   }, [cappers, filters, activeSort]);
 
   const scopedLimit =
@@ -178,6 +178,12 @@ export function Leaderboard({
               >
                 Capper
               </th>
+              <th
+                scope="col"
+                className="min-w-[8rem] px-1.5 py-2 text-left font-semibold"
+              >
+                Package
+              </th>
               <th scope="col" className="px-1.5 py-2 text-left font-semibold">
                 Sports
               </th>
@@ -195,6 +201,12 @@ export function Leaderboard({
                   className={col.thClassName}
                 />
               ))}
+              <th
+                scope="col"
+                className="w-14 px-1.5 py-2 text-center font-semibold"
+              >
+                Buy
+              </th>
             </tr>
           </thead>
           <tbody className="divide-border divide-y">
@@ -244,14 +256,20 @@ function SortableTh({
   className?: string;
 }) {
   const active = (activeSort ?? filters?.sort) === sortKey;
+  const direction = filters?.direction ?? "desc";
   const href = filters
-    ? leaderboardHref(filters, { sort: sortKey })
+    ? leaderboardHref(filters, {
+        sort: sortKey,
+        direction: active && direction === "desc" ? "asc" : "desc",
+      })
     : `/leaderboard?sort=${sortKey}`;
 
   return (
     <th
       scope="col"
-      aria-sort={active ? "descending" : "none"}
+      aria-sort={
+        active ? (direction === "asc" ? "ascending" : "descending") : "none"
+      }
       className={cn(
         "px-1.5 py-0 font-semibold",
         align === "right" ? "text-right" : "text-left",
@@ -273,7 +291,10 @@ function SortableTh({
         {label}
         {active ? (
           <ChevronDown
-            className="size-3.5 text-[color:var(--scl-blue)]"
+            className={cn(
+              "size-3.5 text-[color:var(--scl-blue)]",
+              direction === "asc" && "rotate-180",
+            )}
             aria-hidden
           />
         ) : null}
@@ -369,6 +390,18 @@ function LeaderboardTableRow({
         </div>
       </td>
       <td className="px-1.5 py-2 align-middle">
+        <span
+          className="text-muted-foreground block max-w-36 truncate text-xs"
+          title={capper.publicOffers?.featuredTitle}
+        >
+          {capper.publicOffers
+            ? capper.publicOffers.count > 1
+              ? `${capper.publicOffers.featuredTitle} +${capper.publicOffers.count - 1}`
+              : capper.publicOffers.featuredTitle
+            : "—"}
+        </span>
+      </td>
+      <td className="px-1.5 py-2 align-middle">
         <div className="flex flex-wrap items-center gap-1">
           {sports.map((sport) => (
             <SportTag key={sport} sport={sport} markOnly className="shrink-0" />
@@ -419,6 +452,23 @@ function LeaderboardTableRow({
           </div>
         ) : (
           <span className="text-muted-foreground tabular-nums">—</span>
+        )}
+      </td>
+      <td className="px-1.5 py-2 text-center align-middle">
+        {capper.publicOffers ? (
+          <Link
+            href={capper.publicOffers.purchasePath}
+            target="_blank"
+            rel="noopener noreferrer"
+            prefetch={false}
+            className="focus-visible:ring-ring hover:bg-surface-3 inline-flex size-10 items-center justify-center rounded-lg focus-visible:ring-2 focus-visible:outline-none"
+            aria-label={`Buy ${capper.publicOffers.featuredTitle} from @${capper.handle}`}
+            title={`Open ${capper.publicOffers.featuredTitle}`}
+          >
+            <ArrowUpRight className="size-4" aria-hidden />
+          </Link>
+        ) : (
+          <span className="text-muted-foreground">—</span>
         )}
       </td>
     </tr>
@@ -497,6 +547,20 @@ export function LeaderboardMobileCard({
           <span className="text-muted-foreground text-xs">Form —</span>
         )}
       </div>
+      {capper.publicOffers ? (
+        <Link
+          href={capper.publicOffers.purchasePath}
+          target="_blank"
+          rel="noopener noreferrer"
+          prefetch={false}
+          className="scl-link inline-flex min-h-10 items-center gap-1.5 text-sm font-semibold"
+        >
+          {capper.publicOffers.count > 1
+            ? `View ${capper.publicOffers.count} packages`
+            : "View package"}
+          <ArrowUpRight className="size-4" aria-hidden />
+        </Link>
+      ) : null}
     </article>
   );
 }

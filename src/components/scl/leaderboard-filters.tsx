@@ -143,6 +143,18 @@ function ScopeForm({
         </label>
 
         <label className="min-w-0">
+          <span className="sr-only">Sort direction</span>
+          <select
+            name="dir"
+            defaultValue={filters.direction ?? "desc"}
+            className={cn(FIELD_CLASS, "min-w-[8rem]")}
+          >
+            <option value="desc">High to low</option>
+            <option value="asc">Low to high</option>
+          </select>
+        </label>
+
+        <label className="min-w-0">
           <span className="sr-only">Rank by</span>
           <select
             name="sort"

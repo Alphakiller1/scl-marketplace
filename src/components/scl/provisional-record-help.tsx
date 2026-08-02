@@ -19,21 +19,30 @@ import { cn } from "@/lib/utils";
 export function ProvisionalRecordHelp({
   className,
   label = "Provisional",
+  iconOnly = false,
 }: {
   className?: string;
   label?: string;
+  iconOnly?: boolean;
 }) {
   return (
     <Dialog>
       <DialogTrigger
         className={cn(
           "border-border text-muted-foreground inline-flex min-h-10 items-center gap-1.5 rounded-md border px-2.5 text-[0.7rem] font-semibold tracking-wide uppercase",
+          iconOnly && "size-10 justify-center px-0",
           className,
         )}
         aria-label={`${label}: what provisional record means`}
       >
-        {label}
-        <CircleHelp className="size-3.5 shrink-0 opacity-80" aria-hidden />
+        {iconOnly ? <span className="sr-only">{label}</span> : label}
+        <CircleHelp
+          className={cn(
+            "shrink-0 opacity-80",
+            iconOnly ? "size-4" : "size-3.5",
+          )}
+          aria-hidden
+        />
       </DialogTrigger>
       <DialogContent className="sm:max-w-md" showCloseButton>
         <DialogHeader>

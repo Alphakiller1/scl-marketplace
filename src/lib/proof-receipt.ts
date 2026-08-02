@@ -104,7 +104,7 @@ export function proofStampLabel(state: ProofReceiptState): string {
     case "line-moved":
       return "Line moved";
     case "live":
-      return "Live";
+      return "Pending";
     case "awaiting-grade":
       return "Awaiting";
     case "won":
@@ -217,7 +217,6 @@ export function proofReceiptTextSummary(opts: {
   odds: string;
   stake: string;
   state: ProofReceiptState;
-  closingLine: string;
   clv: string;
   evidenceId: string;
 }): string {
@@ -227,7 +226,6 @@ export function proofReceiptTextSummary(opts: {
     `Odds ${opts.odds}`,
     `Stake ${opts.stake}`,
     proofStampLabel(opts.state),
-    `Closing Line ${opts.closingLine}`,
     `CLV ${opts.clv}`,
     `Receipt ID ${opts.evidenceId}`,
   ].filter(Boolean);

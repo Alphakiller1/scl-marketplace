@@ -200,8 +200,8 @@ const STATUS_STYLES: Record<
     className: "bg-muted/60 text-muted-foreground",
   },
   live: {
-    label: "Live",
-    title: "Event is in progress — grade follows the final",
+    label: "Pending",
+    title: "Event is in progress — the result remains pending until grading",
     className: "bg-live/15 text-foreground ring-1 ring-live/30",
     live: true,
   },

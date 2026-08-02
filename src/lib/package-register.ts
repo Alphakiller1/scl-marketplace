@@ -1,4 +1,5 @@
 import type { CapperSummary } from "@/lib/mock";
+import type { ProfileChartSeries } from "@/lib/profile-chart-window";
 import { isProvisional } from "@/lib/sample";
 
 export type PackageEvidence = {
@@ -8,6 +9,15 @@ export type PackageEvidence = {
   units: number | null;
   verifiedShare: number | null;
   provisional: boolean;
+};
+
+export type ProfilePackageInsight = {
+  id: string;
+  title: string;
+  evidence: PackageEvidence | null;
+  chartSeries: ProfileChartSeries;
+  chartSeriesBySport: Record<string, ProfileChartSeries>;
+  sports: string[];
 };
 
 /**

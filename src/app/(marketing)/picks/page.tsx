@@ -13,7 +13,7 @@ import { publicFeedCappers } from "@/lib/public-picks";
 export const metadata: Metadata = {
   title: { absolute: "Latest picks · SCL" },
   description:
-    "A chronological ledger of tracked public picks, capture evidence, and graded results.",
+    "A chronological ledger of pick submissions, timestamped bet slips, and graded results.",
 };
 
 export const revalidate = 60;
@@ -60,7 +60,7 @@ export default async function PicksPage({
               Latest picks
             </h1>
             <p className="text-muted-foreground mt-2 text-sm leading-relaxed sm:text-base">
-              A chronological ledger of public submissions, capture evidence,
+              A chronological ledger of pick submissions, timestamped bet slips,
               and graded results.
             </p>
           </div>

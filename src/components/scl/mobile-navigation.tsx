@@ -235,7 +235,9 @@ function BrandLabel({ label }: { label: string }) {
         <SclLogo className="size-6" />
       </span>
       <div>
-        <p className="scl-display font-bold tracking-[0.08em] uppercase">SCL</p>
+        <p className="scl-display text-sm font-bold tracking-[0.02em]">
+          Sports Cappers Leaderboard
+        </p>
         <p className="text-muted-foreground text-xs">{label}</p>
       </div>
     </div>

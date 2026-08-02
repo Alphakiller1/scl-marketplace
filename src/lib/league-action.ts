@@ -100,7 +100,7 @@ export function platformReportSubtitle(windowDays: number): string {
 
 /** Metric label for categories with tracked volume (singular-aware). */
 export function platformReportSegmentLabel(n: number): string {
-  return n === 1 ? "Active Segment" : "Active Segments";
+  return n === 1 ? "Active Bet Type" : "Active Bet Types";
 }
 
 /** Metric label for tracked leagues (singular-aware). */

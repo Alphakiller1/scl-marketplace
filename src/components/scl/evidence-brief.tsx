@@ -26,11 +26,14 @@ import {
 } from "@/components/scl/stat";
 import { SampleMaturityMeter } from "@/components/scl/sample-maturity-meter";
 import { EmptyState } from "@/components/scl/states";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { loadPublicProfileHistory } from "@/app/actions/public-profile-history";
 import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
 import { formatOdds, formatUnits } from "@/lib/format";
 import type { CapperSummary } from "@/lib/mock";
+import type {
+  PackageEvidence,
+  ProfilePackageInsight,
+} from "@/lib/package-register";
 import { profitUnitsForOutcome } from "@/lib/odds";
 import { pickContextLabel } from "@/lib/pick-identity";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
@@ -49,12 +52,9 @@ import {
 } from "@/lib/proof-receipt";
 import type { PlayView } from "@/lib/queries/plays";
 import { isValidPublicStake } from "@/lib/public-eligibility";
-import { hasSignal, isProvisional } from "@/lib/sample";
+import { isProvisional } from "@/lib/sample";
 import { isVerifiedTier } from "@/lib/verification";
 import { cn } from "@/lib/utils";
-
-const LENS_KEY = "scl-trust-lens";
-type TrustLens = "simple" | "analyst" | "audit";
 
 function playToProofReceipt(
   play: PlayView,
@@ -156,6 +156,8 @@ export function EvidenceBrief({
   avgClv,
   clvTracker: clvTrackerProp,
   chartSeries: chartSeriesProp,
+  chartSeriesBySport = {},
+  packageInsights = [],
   historyNextCursor,
   emptyName,
   className,
@@ -166,13 +168,14 @@ export function EvidenceBrief({
   avgClv?: number | null;
   clvTracker?: ClvTrackerSummary;
   chartSeries?: ProfileChartSeries;
+  chartSeriesBySport?: Record<string, ProfileChartSeries>;
+  packageInsights?: ProfilePackageInsight[];
   historyNextCursor?: string | null;
   emptyName: string;
   className?: string;
 }) {
   const graded = capper.settledPicks ?? 0;
   const provisional = isProvisional(graded);
-  const signal = hasSignal(graded);
   const eligiblePlays = useMemo(
     () => plays.filter((play) => isValidPublicStake(play.units)),
     [plays],
@@ -191,38 +194,38 @@ export function EvidenceBrief({
     gradedCount: clvTracker.snapshotCount,
   });
 
-  const [lens, setLens] = useState<TrustLens>(() => {
-    if (typeof window === "undefined") return "simple";
-    try {
-      const raw = localStorage.getItem(LENS_KEY);
-      if (raw === "simple" || raw === "analyst" || raw === "audit") return raw;
-    } catch {
-      /* ignore */
-    }
-    return "simple";
-  });
+  const [selectedPackageId, setSelectedPackageId] = useState(
+    packageInsights[0]?.id ?? "all",
+  );
+  const [chartSport, setChartSport] = useState("ALL");
   const [chartWindow, setChartWindow] = useState<ProfileChartWindow>("all");
-
-  function onLensChange(next: string | number | null) {
-    const v = String(next ?? "simple") as TrustLens;
-    if (v !== "simple" && v !== "analyst" && v !== "audit") return;
-    setLens(v);
-    try {
-      localStorage.setItem(LENS_KEY, v);
-    } catch {
-      /* ignore */
-    }
-  }
 
   const chartSeries = useMemo(
     () => chartSeriesProp ?? buildProfileChartSeries(eligiblePlays, new Date()),
     [chartSeriesProp, eligiblePlays],
   );
-  const cumulative = chartSeries[chartWindow];
-
-  const showClv = signal || lens === "analyst" || lens === "audit";
-  const showAuditMeta = lens === "audit";
-  const showDeepAnalysis = lens === "analyst" || lens === "audit";
+  const activePackage = packageInsights.find(
+    (pkg) => pkg.id === selectedPackageId,
+  );
+  const availableSports = activePackage
+    ? activePackage.sports
+    : Object.keys(chartSeriesBySport).sort();
+  const effectiveSport = availableSports.includes(chartSport)
+    ? chartSport
+    : "ALL";
+  const activeChartSeries = activePackage
+    ? effectiveSport === "ALL"
+      ? activePackage.chartSeries
+      : (activePackage.chartSeriesBySport[effectiveSport] ??
+        activePackage.chartSeries)
+    : effectiveSport === "ALL"
+      ? chartSeries
+      : (chartSeriesBySport[effectiveSport] ?? chartSeries);
+  const cumulative = activeChartSeries[chartWindow];
+  const activeMetrics = evidenceMetrics(
+    capper,
+    activePackage ? activePackage.evidence : undefined,
+  );
   const historyLedgerKey = `${capper.handle}:${historyNextCursor ?? "end"}:${eligiblePlays
     .map(
       (play) =>
@@ -237,83 +240,41 @@ export function EvidenceBrief({
           Evidence Brief
         </h2>
         <div className="flex flex-wrap items-center gap-2">
-          {provisional ? <ProvisionalRecordHelp /> : null}
+          {packageInsights.length > 0 ? (
+            <label className="flex min-w-0 items-center gap-2">
+              <span className="scl-eyebrow text-[color:var(--scl-muted-data)]">
+                Package view
+              </span>
+              <select
+                value={selectedPackageId}
+                onChange={(event) => setSelectedPackageId(event.target.value)}
+                className="border-input bg-background min-h-10 max-w-64 rounded-md border px-3 text-sm"
+              >
+                {packageInsights.map((pkg) => (
+                  <option key={pkg.id} value={pkg.id}>
+                    {pkg.title}
+                  </option>
+                ))}
+                <option value="all">Full capper record</option>
+              </select>
+            </label>
+          ) : null}
+          {provisional ? <ProvisionalRecordHelp iconOnly /> : null}
         </div>
       </div>
-
-      <Tabs
-        value={lens}
-        onValueChange={onLensChange}
-        className="mt-1.5 sm:mt-2"
-      >
-        <TabsList
-          variant="line"
-          className="h-11 w-full max-w-md justify-start gap-1"
-          aria-label="Trust lens"
-        >
-          <TabsTrigger value="simple" className="min-h-10 px-3">
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="analyst" className="min-h-10 px-3">
-            Performance
-          </TabsTrigger>
-          <TabsTrigger value="audit" className="min-h-10 px-3">
-            Pick Audit
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent
-          value="simple"
-          className="mt-2 space-y-2 sm:mt-3 sm:space-y-3"
-        >
-          <MetricRow
-            capper={capper}
-            graded={graded}
-            provisional={provisional}
-            avgClv={avgClv}
-            clvScale={clvScale}
-            showClv={false}
-          />
-          <SampleMaturityMeter graded={graded} className="hidden sm:block" />
-        </TabsContent>
-
-        <TabsContent
-          value="analyst"
-          className="mt-2 space-y-2 sm:mt-3 sm:space-y-3"
-        >
-          <MetricRow
-            capper={capper}
-            graded={graded}
-            provisional={provisional}
-            avgClv={displayAvgClv}
-            clvScale={clvScale}
-            showClv={showClv}
-          />
-          <SampleMaturityMeter graded={graded} showLegend />
-        </TabsContent>
-
-        <TabsContent
-          value="audit"
-          className="mt-2 space-y-2 sm:mt-3 sm:space-y-3"
-        >
-          <MetricRow
-            capper={capper}
-            graded={graded}
-            provisional={provisional}
-            avgClv={displayAvgClv}
-            clvScale={clvScale}
-            showClv
-          />
-          <SampleMaturityMeter graded={graded} showLegend />
-          {showAuditMeta ? (
-            <p className="text-muted-foreground text-xs leading-relaxed">
-              Audit lens shows Evidence IDs and Close/CLV on each receipt.
-              Historical plays without a closing snapshot stay as em-dashes —
-              CLV only populates forward when a close is captured.
-            </p>
-          ) : null}
-        </TabsContent>
-      </Tabs>
+      <div className="mt-3 space-y-3">
+        <MetricRow
+          metrics={activeMetrics}
+          avgClv={activePackage ? null : displayAvgClv}
+          clvScale={clvScale}
+        />
+        <SampleMaturityMeter graded={activeMetrics.graded} showLegend />
+        <p className="text-muted-foreground text-xs leading-relaxed">
+          Receipt IDs uniquely identify each timestamped submission. CLV appears
+          only when SCL captures a verified market close; unavailable values
+          remain em dashes rather than estimates.
+        </p>
+      </div>
     </section>
   );
 
@@ -332,40 +293,61 @@ export function EvidenceBrief({
                 Performance trend
               </h2>
               <p className="text-muted-foreground mt-0.5 text-xs leading-snug">
-                Cumulative units from public single-pick receipts in this scope.
+                {activePackage
+                  ? `Cumulative units from receipts assigned to ${activePackage.title}.`
+                  : "Cumulative units from all public single-pick receipts."}
               </p>
             </div>
-            <div
-              className="border-border bg-surface-2 inline-flex min-h-10 items-center rounded-[var(--scl-radius-chip)] border p-1"
-              role="group"
-              aria-label="Performance chart window"
-            >
-              {PROFILE_CHART_WINDOWS.map((window) => {
-                const active = chartWindow === window.value;
-                return (
-                  <button
-                    key={window.value}
-                    type="button"
-                    className={cn(
-                      "scl-data min-h-10 min-w-11 rounded-md px-2 text-xs font-semibold tabular-nums",
-                      active
-                        ? "bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                    aria-pressed={active}
-                    onClick={() => setChartWindow(window.value)}
+            <div className="flex flex-wrap items-center gap-2">
+              {availableSports.length > 0 ? (
+                <label>
+                  <span className="sr-only">Chart sport</span>
+                  <select
+                    value={effectiveSport}
+                    onChange={(event) => setChartSport(event.target.value)}
+                    className="border-input bg-background min-h-10 rounded-md border px-3 text-xs font-semibold"
                   >
-                    {window.label}
-                  </button>
-                );
-              })}
+                    <option value="ALL">All sports</option>
+                    {availableSports.map((sport) => (
+                      <option key={sport} value={sport}>
+                        {sport}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+              <div
+                className="border-border bg-surface-2 inline-flex min-h-10 items-center rounded-[var(--scl-radius-chip)] border p-1"
+                role="group"
+                aria-label="Performance chart window"
+              >
+                {PROFILE_CHART_WINDOWS.map((window) => {
+                  const active = chartWindow === window.value;
+                  return (
+                    <button
+                      key={window.value}
+                      type="button"
+                      className={cn(
+                        "scl-data min-h-10 min-w-11 rounded-md px-2 text-xs font-semibold tabular-nums",
+                        active
+                          ? "bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                      aria-pressed={active}
+                      onClick={() => setChartWindow(window.value)}
+                    >
+                      {window.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
           <CumulativeUnitsChart
             points={cumulative.points}
             gradedCount={cumulative.gradedCount}
           />
-          {showDeepAnalysis ? <ClvTrackerPanel summary={clvTracker} /> : null}
+          {!activePackage ? <ClvTrackerPanel summary={clvTracker} /> : null}
         </section>
       </div>
 
@@ -492,13 +474,19 @@ function ProofHistoryLedger({
               Date
             </th>
             <th className="py-2 pr-2 font-medium">Pick</th>
+            <th className="hidden w-40 py-2 pr-2 font-medium md:table-cell">
+              Game
+            </th>
             <th className="hidden w-16 py-2 pr-2 font-medium sm:table-cell">
               Line
+            </th>
+            <th className="hidden w-16 py-2 pr-2 font-medium md:table-cell">
+              CLV
             </th>
             <th className="w-14 py-2 pr-2 font-medium">Result</th>
             <th className="w-16 py-2 pr-2 text-right font-medium">Units</th>
             <th className="hidden w-24 py-2 text-right font-medium md:table-cell">
-              Proof
+              Receipt ID
             </th>
           </tr>
         </thead>
@@ -507,6 +495,13 @@ function ProofHistoryLedger({
             const expanded = expandedId === play.id;
             const resultLabel = proofResultLabel(play);
             const resultClass = proofResultClass(play.outcome);
+            const game =
+              play.eventLabel ??
+              pickContextLabel({
+                sport: play.sport,
+                league: play.league,
+                market: play.market,
+              });
             return (
               <Fragment key={play.id}>
                 <tr>
@@ -548,16 +543,22 @@ function ProofHistoryLedger({
                       ) : null}
                       <span className="min-w-0">
                         <span className="block truncate">{play.selection}</span>
-                        {play.eventLabel ? (
-                          <span className="text-muted-foreground mt-0.5 block truncate text-[0.65rem] font-normal">
-                            {play.eventLabel}
+                        {game ? (
+                          <span className="text-muted-foreground mt-0.5 block truncate text-[0.65rem] font-normal md:hidden">
+                            {game}
                           </span>
                         ) : null}
                       </span>
                     </span>
                   </td>
+                  <td className="text-muted-foreground hidden truncate py-2.5 pr-2 md:table-cell">
+                    {game ?? "—"}
+                  </td>
                   <td className="scl-data text-muted-foreground hidden py-2.5 pr-2 tabular-nums sm:table-cell">
                     {play.isEmbargoed ? "—" : formatOdds(play.oddsAmerican)}
+                  </td>
+                  <td className="scl-data text-muted-foreground hidden py-2.5 pr-2 tabular-nums md:table-cell">
+                    {play.isEmbargoed ? "—" : formatClvPts(play.clvPts)}
                   </td>
                   <td
                     className={cn(
@@ -587,7 +588,7 @@ function ProofHistoryLedger({
                 {expanded ? (
                   <tr id={`proof-history-${play.id}`}>
                     <td
-                      colSpan={7}
+                      colSpan={9}
                       className="bg-surface-2 px-2 py-3 sm:px-4 sm:py-4"
                     >
                       <div className="mx-auto max-w-3xl">
@@ -661,7 +662,7 @@ function proofResultLabel(play: PlayView): string {
   if (state === "loss") return "Loss";
   if (state === "push") return "Push";
   if (state === "void") return "Void";
-  if (state === "live") return "Live";
+  if (state === "live") return "Pending";
   if (state === "awaiting-grade") return "Awaiting";
   return "Pending";
 }
@@ -672,20 +673,47 @@ function proofResultClass(outcome: PlayView["outcome"]): string {
   return "text-muted-foreground";
 }
 
+type EvidenceMetrics = {
+  record: CapperSummary["record"] | null;
+  winPct: number | null;
+  roi: number | null;
+  units: number | null;
+  graded: number;
+};
+
+function evidenceMetrics(
+  capper: CapperSummary,
+  evidence: PackageEvidence | null | undefined,
+): EvidenceMetrics {
+  if (evidence === undefined) {
+    return {
+      record: capper.record,
+      winPct: capper.winPct,
+      roi: capper.roi,
+      units: capper.units,
+      graded: capper.settledPicks ?? 0,
+    };
+  }
+
+  const record = evidence?.record ?? null;
+  const decisions = record ? record.w + record.l : 0;
+  return {
+    record,
+    winPct: decisions > 0 && record ? (record.w / decisions) * 100 : null,
+    roi: evidence?.roi ?? null,
+    units: evidence?.units ?? null,
+    graded: evidence?.settledPicks ?? 0,
+  };
+}
+
 function MetricRow({
-  capper,
-  graded,
-  provisional,
+  metrics,
   avgClv,
   clvScale,
-  showClv,
 }: {
-  capper: CapperSummary;
-  graded: number;
-  provisional: boolean;
+  metrics: EvidenceMetrics;
   avgClv?: number | null;
   clvScale: ReturnType<typeof perfScale>;
-  showClv: boolean;
 }) {
   // These cells render `truncateValue={false}` so a value is never ellipsised
   // mid-number. Record is by far the widest stat — a carried-over legacy record
@@ -694,55 +722,63 @@ function MetricRow({
   return (
     <div
       data-profile-metric-row
-      className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3 xl:grid-cols-[1.5fr_1fr_1fr_1fr_1fr]"
+      className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3 xl:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_1fr]"
     >
       <MetricCell>
-        <RecordStat record={capper.record} truncateValue={false} />
+        {metrics.record ? (
+          <RecordStat record={metrics.record} truncateValue={false} />
+        ) : (
+          <StatBlock label="Record" value="—" truncateValue={false} />
+        )}
       </MetricCell>
       <MetricCell>
-        <div className="space-y-1.5">
-          <RoiStat
-            roi={capper.roi}
-            gradedCount={graded}
+        {metrics.winPct != null ? (
+          <WinRateStat
+            winPct={metrics.winPct}
+            gradedCount={metrics.graded}
             truncateValue={false}
           />
-          {provisional ? (
-            <span className="border-border text-muted-foreground inline-flex min-h-10 items-center rounded-md border px-2 text-[0.7rem] font-semibold tracking-wide uppercase">
-              Provisional
-            </span>
-          ) : null}
-        </div>
+        ) : (
+          <StatBlock label="Win%" value="—" truncateValue={false} />
+        )}
       </MetricCell>
       <MetricCell>
-        <UnitStat
-          units={capper.units}
-          gradedCount={graded}
-          truncateValue={false}
-        />
+        {metrics.roi != null ? (
+          <RoiStat
+            roi={metrics.roi}
+            gradedCount={metrics.graded}
+            truncateValue={false}
+          />
+        ) : (
+          <StatBlock label="ROI" value="—" truncateValue={false} />
+        )}
+      </MetricCell>
+      <MetricCell>
+        {metrics.units != null ? (
+          <UnitStat
+            units={metrics.units}
+            gradedCount={metrics.graded}
+            truncateValue={false}
+          />
+        ) : (
+          <StatBlock label="Units" value="—" truncateValue={false} />
+        )}
       </MetricCell>
       <MetricCell>
         <StatBlock
           label="Sample"
-          value={graded.toLocaleString()}
+          value={metrics.graded.toLocaleString()}
           truncateValue={false}
         />
       </MetricCell>
       <MetricCell last>
-        {showClv ? (
-          <StatBlock
-            label="CLV"
-            value={avgClv != null ? formatClvPts(avgClv) : "—"}
-            valueClassName={perfToneClass(clvScale.tone)}
-            aria-label={clvScale.ariaLabel}
-            truncateValue={false}
-          />
-        ) : (
-          <WinRateStat
-            winPct={capper.winPct}
-            gradedCount={graded}
-            truncateValue={false}
-          />
-        )}
+        <StatBlock
+          label="CLV"
+          value={avgClv != null ? formatClvPts(avgClv) : "—"}
+          valueClassName={perfToneClass(clvScale.tone)}
+          aria-label={clvScale.ariaLabel}
+          truncateValue={false}
+        />
       </MetricCell>
     </div>
   );

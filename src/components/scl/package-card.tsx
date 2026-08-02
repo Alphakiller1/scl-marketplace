@@ -63,13 +63,14 @@ export function PackageCard({
         ) : null}
       </div>
       <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-1">
-        {pkg.priceLabel ? (
-          <p className="nums text-sm font-semibold tabular-nums">
-            {pkg.priceLabel}
+        <div>
+          <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
+            Price and duration
           </p>
-        ) : (
-          <span />
-        )}
+          <p className="nums text-foreground mt-0.5 text-lg font-bold tabular-nums">
+            {pkg.priceLabel ?? "See provider for current price"}
+          </p>
+        </div>
         <Button
           render={
             <Link

@@ -30,6 +30,7 @@ test("leaderboard filters reject unsupported query values", () => {
       sport: "ALL",
       window: "all",
       sort: "units",
+      direction: "desc",
       minPicks: 0,
       verifiedOnly: false,
       search: "edge",
@@ -57,6 +58,22 @@ test("leaderboard filters accept clv sort and limit", () => {
   assert.equal(parseLeaderboardFilters({ sort: "sample" }).sort, "sample");
   assert.equal(parseLeaderboardFilters({ sort: "verified" }).sort, "units");
   assert.equal(parseLeaderboardFilters({ sort: "form" }).sort, "form");
+  assert.equal(parseLeaderboardFilters({ dir: "asc" }).direction, "asc");
+});
+
+test("sortLeaderboard supports ascending metric order", () => {
+  const sorted = sortLeaderboard(
+    [
+      { id: "a", name: "A", units: 7, settledPicks: 12 } as CapperSummary,
+      { id: "b", name: "B", units: -2, settledPicks: 12 } as CapperSummary,
+    ],
+    "units",
+    "asc",
+  );
+  assert.deepEqual(
+    sorted.map((capper) => capper.id),
+    ["b", "a"],
+  );
 });
 
 test("sortLeaderboard ranks by avgClv when sort=clv", () => {

@@ -214,7 +214,7 @@ function PerfCell({
 
 function betTypeTiming(cat: LeagueActionCategoryItem): string | null {
   if (cat.preGame == null || cat.live == null) return null;
-  return `${cat.preGame.toLocaleString()} pre-game · ${cat.live.toLocaleString()} live`;
+  return `${cat.preGame.toLocaleString()} entered before start · ${cat.live.toLocaleString()} entered after start`;
 }
 
 /** Mobile card — stacks metrics; no horizontal min-width. */

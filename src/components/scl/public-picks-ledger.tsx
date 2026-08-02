@@ -178,7 +178,7 @@ export function PublicPicksLedger({
             options={[
               ["all", "All"],
               ["pending", "Ungraded"],
-              ["live", "Live"],
+              ["live", "In progress"],
               ["graded", "Graded"],
             ]}
           />

@@ -65,6 +65,12 @@ export type CapperSummary = {
     website?: string;
   };
   storefront?: StorefrontSummary;
+  /** Public package summary used by leaderboard Package and Buy columns. */
+  publicOffers?: {
+    count: number;
+    featuredTitle: string;
+    purchasePath: string;
+  };
   isLegacy?: boolean; // record imported from the previous SCL platform
   /**
    * Settled results folded in from the previous platform's stored totals, which

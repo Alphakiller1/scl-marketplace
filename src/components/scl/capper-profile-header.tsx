@@ -23,15 +23,21 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
   const identity = identityDisplayLinesFromCapper(capper);
   const avatarName = identity.primary.replace(/^@/, "") || capper.handle;
   const lastPickLabel = formatLastPickDate(capper.lastPlayAt);
+  const sports = capper.sports?.length
+    ? capper.sports
+    : capper.topSport
+      ? [capper.topSport]
+      : [];
   const specialties = (capper.specialties ?? [])
     .filter(
       (specialty) =>
         specialty.trim().length > 0 &&
-        specialty.trim().toLowerCase() !==
-          (capper.topSport ?? "").toLowerCase(),
+        !sports.some(
+          (sport) => sport.toLowerCase() === specialty.trim().toLowerCase(),
+        ),
     )
     .slice(0, 2);
-  const hasCoverage = Boolean(capper.topSport || specialties.length);
+  const hasCoverage = sports.length > 0 || specialties.length > 0;
 
   return (
     <header className="border-border relative overflow-hidden border-b bg-[linear-gradient(165deg,color-mix(in_srgb,var(--scl-ink-800)_70%,var(--scl-ink-900))_0%,var(--scl-ink-900)_100%)]">
@@ -103,9 +109,9 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                   className="mt-2 flex flex-wrap items-center gap-1.5"
                   aria-label="Sports and specialties"
                 >
-                  {capper.topSport ? (
-                    <SportTag sport={capper.topSport} forceLabel />
-                  ) : null}
+                  {sports.map((sport) => (
+                    <SportTag key={sport} sport={sport} forceLabel />
+                  ))}
                   {specialties.map((specialty) => (
                     <span
                       key={specialty}

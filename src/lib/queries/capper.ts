@@ -27,6 +27,7 @@ export type PublicCapper = {
   avgClv: number | null;
   clvTracker: ClvTrackerSummary;
   chartSeries?: ProfileChartSeries;
+  chartSeriesBySport: Record<string, ProfileChartSeries>;
   historyNextCursor: string | null;
 };
 
@@ -194,6 +195,7 @@ export const getPublicCapperByHandle = cache(
     let avgClv: number | null = null;
     let clvTracker = summarizeClvTracker([]);
     let chartSeries: ProfileChartSeries | undefined;
+    let chartSeriesBySport: Record<string, ProfileChartSeries> = {};
     let historyNextCursor: string | null = null;
 
     const [historyResult, chartResult, clvResult] = await Promise.allSettled([
@@ -211,6 +213,7 @@ export const getPublicCapperByHandle = cache(
           createdAt: true,
           outcome: true,
           profitUnits: true,
+          sport: true,
           notes: true,
         },
       }),
@@ -243,17 +246,26 @@ export const getPublicCapperByHandle = cache(
     }
 
     if (chartResult.status === "fulfilled") {
-      chartSeries = buildProfileChartSeries(
-        chartResult.value
-          .filter((row) => !hasQaNoteMarker(row.notes))
-          .map((row) => ({
-            createdAt: row.createdAt,
-            outcome: row.outcome,
-            profitUnits:
-              row.profitUnits == null ? null : Number(row.profitUnits),
-          }))
-          .reverse(),
-        new Date(),
+      const chartRows = chartResult.value
+        .filter((row) => !hasQaNoteMarker(row.notes))
+        .map((row) => ({
+          createdAt: row.createdAt,
+          outcome: row.outcome,
+          profitUnits: row.profitUnits == null ? null : Number(row.profitUnits),
+          sport: row.sport,
+        }))
+        .reverse();
+      const chartNow = new Date();
+      chartSeries = buildProfileChartSeries(chartRows, chartNow);
+      const sports = [...new Set(chartRows.map((row) => row.sport))];
+      chartSeriesBySport = Object.fromEntries(
+        sports.map((sport) => [
+          sport,
+          buildProfileChartSeries(
+            chartRows.filter((row) => row.sport === sport),
+            chartNow,
+          ),
+        ]),
       );
     } else {
       console.error(
@@ -285,6 +297,7 @@ export const getPublicCapperByHandle = cache(
       avgClv,
       clvTracker,
       chartSeries,
+      chartSeriesBySport,
       historyNextCursor,
     };
   },
