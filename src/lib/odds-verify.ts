@@ -35,6 +35,9 @@ export const CORE_MARKETS = [
 /**
  * Curated player-prop market keys per SCL sport. Kept intentionally small — verify the props
  * cappers actually post, not every market The Odds API sells (each extra market is credits).
+ *
+ * Listed as FEATURED keys only; {@link propMarketKeysWithAlternates} appends the `_alternate`
+ * variant of each when the board and verification request them.
  */
 export const PROP_MARKETS_BY_SPORT: Record<string, readonly string[]> = {
   MLB: [
@@ -56,9 +59,23 @@ export const PROP_MARKETS_BY_SPORT: Record<string, readonly string[]> = {
   NHL: ["player_points", "player_shots_on_goal"],
 };
 
+/**
+ * A curated prop key plus its alternate variant.
+ *
+ * The Odds API exposes milestone "X+" lines (6+ strikeouts, 2+ hits) ONLY under the
+ * `_alternate` key — the featured key carries just the single main line. Requesting
+ * only the featured key is why alternate lines that are visible at the book never
+ * appeared on the board. Game lines already did this via `alternate_spreads` /
+ * `alternate_totals`; props were the gap.
+ */
+export function propMarketKeysWithAlternates(propKey: string): string[] {
+  return [propKey, `${propKey}_alternate`];
+}
+
 /** All markets requested in the single bundled per-event call for a sport. */
 export function verificationMarkets(sclSport: string): string[] {
-  return [...CORE_MARKETS, ...(PROP_MARKETS_BY_SPORT[sclSport] ?? [])];
+  const props = PROP_MARKETS_BY_SPORT[sclSport] ?? [];
+  return [...CORE_MARKETS, ...props.flatMap(propMarketKeysWithAlternates)];
 }
 
 /**
@@ -102,8 +119,10 @@ export const GAME_MARKET_KEYS: Record<string, string[]> = {
 export function marketKeysForMarket(market: string): string[] {
   const m = market.trim();
   if (GAME_MARKET_KEYS[m]) return GAME_MARKET_KEYS[m];
+  // A pick logged at a milestone line (6+ strikeouts) lives in the alternate
+  // market, so verification has to look in both or it would fail to price it.
   const propKey = PROP_LABEL_TO_KEY[m];
-  if (propKey) return [propKey];
+  if (propKey) return propMarketKeysWithAlternates(propKey);
   return [m];
 }
 
