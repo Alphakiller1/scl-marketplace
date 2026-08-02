@@ -23,7 +23,7 @@ export function PerformanceBySport({ items }: { items: SportStats[] }) {
             key={s.sport}
             className="bg-card grid grid-cols-[minmax(0,1fr)_5rem_5rem_5rem] items-center gap-3 px-4 py-2.5 text-sm"
           >
-            <SportTag sport={s.sport} />
+            <SportTag sport={s.sport} forceLabel />
             <span className="nums text-right tabular-nums">
               {s.wins}-{s.losses}
               {s.pushes ? `-${s.pushes}` : ""}

@@ -30,13 +30,15 @@ const STEPS = [
   "Status",
 ] as const;
 
+const SUPPORTED_PROVIDERS = ["WINIBLE", "WHOP"] as const;
+
 type Conn = Pick<
   StoreConnection,
   "id" | "provider" | "status" | "packageImportStatus" | "submittedAt"
 >;
 
 export function MonetizationWizard({ connections }: { connections: Conn[] }) {
-  const active =
+  const initialActive =
     connections.find(
       (c) =>
         c.status !== "DISABLED" &&
@@ -47,22 +49,24 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
     connections.find((c) => c.status === "INSTRUCTIONS_VIEWED") ||
     null;
 
+  const [allConnections, setAllConnections] = useState<Conn[]>(connections);
+
   const [step, setStep] = useState(() =>
-    active &&
-    (isPendingStoreStatus(active.status) ||
-      active.status === "LIVE" ||
-      active.status === "NEEDS_ACTION" ||
-      active.status === "DISABLED" ||
-      active.status === "LINKS_RECEIVED" ||
-      active.status === "PACKAGES_IMPORTED")
+    initialActive &&
+    (isPendingStoreStatus(initialActive.status) ||
+      initialActive.status === "LIVE" ||
+      initialActive.status === "NEEDS_ACTION" ||
+      initialActive.status === "DISABLED" ||
+      initialActive.status === "LINKS_RECEIVED" ||
+      initialActive.status === "PACKAGES_IMPORTED")
       ? 4
       : 0,
   );
   const [provider, setProvider] = useState<StoreProvider | "NONE" | null>(
-    active?.provider ?? null,
+    initialActive?.provider ?? null,
   );
   const [ack, setAck] = useState(false);
-  const [connection, setConnection] = useState<Conn | null>(active);
+  const [connection, setConnection] = useState<Conn | null>(initialActive);
   const [copiedReferral, setCopiedReferral] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -75,6 +79,22 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
       connection.status === "DISABLED" ||
       connection.status === "LINKS_RECEIVED" ||
       connection.status === "PACKAGES_IMPORTED");
+
+  const connectedProviders = new Set(
+    allConnections.map((item) => item.provider),
+  );
+  const remainingProviders = SUPPORTED_PROVIDERS.filter(
+    (item) => !connectedProviders.has(item),
+  );
+
+  function startAnotherConnection() {
+    const nextProvider =
+      remainingProviders.length === 1 ? remainingProviders[0] : null;
+    setConnection(null);
+    setProvider(nextProvider);
+    setAck(false);
+    setStep(0);
+  }
 
   const ackCopy = useMemo(() => {
     if (provider === "WHOP") {
@@ -107,7 +127,7 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
         return;
       }
       toast.success("Store setup submitted to SCL");
-      setConnection({
+      const submitted: Conn = {
         id: connection?.id || "local",
         provider,
         status:
@@ -116,7 +136,12 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
             : "PENDING_SCL_ACCEPTANCE",
         packageImportStatus: "NOT_STARTED",
         submittedAt: new Date(),
-      });
+      };
+      setConnection(submitted);
+      setAllConnections((current) => [
+        ...current.filter((item) => item.provider !== provider),
+        submitted,
+      ]);
       setStep(4);
     });
   }
@@ -154,11 +179,47 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
         ))}
       </nav>
 
-      {showStatus && connection ? (
-        <StoreStatusPanel
-          provider={connection.provider}
-          status={connection.status}
-        />
+      {allConnections.length ? (
+        <section
+          className="space-y-3"
+          aria-labelledby="platform-connections-title"
+        >
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 id="platform-connections-title" className="font-semibold">
+                Your Platform Connections
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                Each platform has its own affiliate review and package status.
+              </p>
+            </div>
+            {showStatus && remainingProviders.length ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={startAnotherConnection}
+              >
+                Connect Another Platform
+              </Button>
+            ) : null}
+          </div>
+          <div className="grid gap-3 xl:grid-cols-2">
+            {allConnections.map((item) => (
+              <StoreStatusPanel
+                key={item.provider}
+                provider={item.provider}
+                status={item.status}
+                className="h-full"
+              />
+            ))}
+          </div>
+          {showStatus && remainingProviders.length === 0 ? (
+            <p className="text-muted-foreground text-xs">
+              Winible and Whop are both connected. SCL reviews and publishes
+              packages for each platform separately.
+            </p>
+          ) : null}
+        </section>
       ) : null}
 
       {!showStatus && step === 0 ? (
@@ -178,7 +239,7 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
                 [
                   "WINIBLE",
                   "Winible",
-                  "Invite SCL as an affiliate. SCL accepts via email, then imports package links.",
+                  "Invite SCL as an affiliate. SCL accepts the relationship, reviews the package details, and manually publishes approved links.",
                 ],
                 [
                   "WHOP",
@@ -191,23 +252,38 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
                   "Don’t have a platform yet? We’ll help you get set up with Winible.",
                 ],
               ] as const
-            ).map(([id, title, body]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setProvider(id)}
-                aria-pressed={provider === id}
-                className={cn(
-                  "border-border bg-surface-2 rounded-xl border p-4 text-left transition-colors",
-                  provider === id && "border-brand ring-brand/30 ring-2",
-                )}
-              >
-                <p className="font-semibold">{title}</p>
-                <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-                  {body}
-                </p>
-              </button>
-            ))}
+            ).map(([id, title, body]) => {
+              const existing =
+                id !== "NONE"
+                  ? allConnections.find((item) => item.provider === id)
+                  : null;
+              const unavailable = Boolean(
+                existing &&
+                existing.status !== "NOT_STARTED" &&
+                existing.status !== "INSTRUCTIONS_VIEWED",
+              );
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setProvider(id)}
+                  disabled={unavailable}
+                  aria-pressed={provider === id}
+                  className={cn(
+                    "border-border bg-surface-2 rounded-xl border p-4 text-left transition-colors",
+                    provider === id && "border-brand ring-brand/30 ring-2",
+                    unavailable && "cursor-not-allowed opacity-50",
+                  )}
+                >
+                  <p className="font-semibold">{title}</p>
+                  <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                    {unavailable
+                      ? "Already connected — review its status above."
+                      : body}
+                  </p>
+                </button>
+              );
+            })}
           </div>
           {provider === "NONE" ? (
             <div className="border-border bg-surface-2 rounded-lg border p-4 text-sm">
@@ -283,8 +359,9 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
           <ul className="border-brand/30 bg-brand/10 space-y-2.5 rounded-lg border p-4 text-sm leading-relaxed">
             <li>No monthly SCL platform fees.</li>
             <li>
-              SCL automatically imports and displays your existing{" "}
-              {providerLabel(provider)} packages.
+              SCL reviews your approved {providerLabel(provider)} affiliate
+              relationship, then manually adds and publishes the package links
+              supplied by the platform.
             </li>
             <li>
               You continue selling through your existing storefront—your
@@ -462,9 +539,10 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
             Confirm submission
           </h2>
           <p className="text-muted-foreground text-sm">
-            Packages won’t appear on your SCL profile until SCL imports your{" "}
-            {providerLabel(provider)} affiliate links. Only check the box after
-            you’ve completed all of the {providerLabel(provider)} steps.
+            Packages won’t appear on your SCL profile until SCL reviews your{" "}
+            {providerLabel(provider)} affiliate relationship and manually adds
+            the approved package links. Only check the box after you’ve
+            completed all of the {providerLabel(provider)} steps.
           </p>
           <label className="flex items-start gap-3 text-sm leading-relaxed">
             <input

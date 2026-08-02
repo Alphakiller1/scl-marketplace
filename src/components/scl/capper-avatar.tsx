@@ -60,9 +60,9 @@ export function CapperAvatar({
   /** Prefer LCP on the public profile hero avatar. */
   priority?: boolean;
 }) {
-  const [failed, setFailed] = useState(false);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const config = SIZE_CONFIG[size];
-  const showImage = Boolean(src) && !failed;
+  const showImage = Boolean(src) && failedSrc !== src;
 
   return (
     <Avatar className={cn(config.className, "rounded-xl", className)}>
@@ -75,7 +75,7 @@ export function CapperAvatar({
           sizes={config.sizes}
           priority={priority}
           className="aspect-square size-full rounded-xl object-cover"
-          onError={() => setFailed(true)}
+          onError={() => setFailedSrc(src)}
         />
       ) : (
         <AvatarFallback

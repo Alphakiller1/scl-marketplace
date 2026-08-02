@@ -70,7 +70,7 @@ export function ProfileMediaEditor({
         <Button
           type="button"
           variant="secondary"
-          className="absolute right-3 bottom-3 z-10 gap-1.5 sm:min-h-10"
+          className="absolute top-3 right-3 z-10 gap-1.5 sm:min-h-10"
           onClick={() => bannerInput.current?.click()}
           disabled={uploading !== null}
         >
@@ -93,14 +93,14 @@ export function ProfileMediaEditor({
           }}
         />
 
-        <div className="flex items-end justify-between gap-3 px-4 pb-4 sm:px-5 sm:pb-5">
+        <div className="flex flex-wrap items-end justify-between gap-3 px-4 pb-4 sm:px-5 sm:pb-5">
           <div className="bg-card -mt-8 rounded-xl p-1">
             <CapperAvatar name={name} src={avatarUrl ?? undefined} size="xl" />
           </div>
           <Button
             type="button"
             variant="outline"
-            className="mt-3 gap-1.5 sm:min-h-10"
+            className="mt-3 shrink-0 gap-1.5 sm:min-h-10"
             onClick={() => avatarInput.current?.click()}
             disabled={uploading !== null}
           >

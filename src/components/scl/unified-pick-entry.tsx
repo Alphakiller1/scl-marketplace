@@ -90,8 +90,6 @@ function UnifiedPickEntryInner() {
     addPick,
     clearSlip,
     removeSelection,
-    slipNotes,
-    notesPublic,
   } = useSlipStore();
   const isLg = useIsLg();
   const [receipt, setReceipt] = useState<SubmissionReceipt | null>(null);
@@ -183,8 +181,8 @@ function UnifiedPickEntryInner() {
           const res = await createPlay(
             selectionToPlayInput(
               selections[0]!,
-              slipNotes,
-              notesPublic,
+              selections[0]!.notes,
+              selections[0]!.notesPublic,
               selectedPackageIds,
             ),
             acceptedMoves,
@@ -211,7 +209,7 @@ function UnifiedPickEntryInner() {
 
         const res = await createPlays(
           selections.map((s) =>
-            selectionToPlayInput(s, slipNotes, notesPublic, selectedPackageIds),
+            selectionToPlayInput(s, s.notes, s.notesPublic, selectedPackageIds),
           ),
           acceptedMoves,
         );
@@ -319,8 +317,8 @@ function UnifiedPickEntryInner() {
           const res = await createPlay(
             selectionToPlayInput(
               remaining[0]!,
-              slipNotes,
-              notesPublic,
+              remaining[0]!.notes,
+              remaining[0]!.notesPublic,
               selectedPackageIds,
             ),
             acceptedSoFar,
@@ -346,7 +344,7 @@ function UnifiedPickEntryInner() {
         }
         const res = await createPlays(
           remaining.map((s) =>
-            selectionToPlayInput(s, slipNotes, notesPublic, selectedPackageIds),
+            selectionToPlayInput(s, s.notes, s.notesPublic, selectedPackageIds),
           ),
           acceptedSoFar,
         );
@@ -462,7 +460,15 @@ function UnifiedPickEntryInner() {
         )}
       >
         <div className="min-w-0">
-          <GamePicker onPick={addPick} selectedKeys={selectedKeys} />
+          <GamePicker
+            onPick={addPick}
+            selectedKeys={selectedKeys}
+            lockedBook={
+              mode === "parlay"
+                ? (selections.find((selection) => selection.book)?.book ?? null)
+                : null
+            }
+          />
         </div>
 
         {isLg ? (

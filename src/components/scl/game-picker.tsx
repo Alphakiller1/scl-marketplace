@@ -47,6 +47,7 @@ export function GamePicker({
   onPick,
   selectedKeys,
   books: booksProp,
+  lockedBook,
   onRequestCoverage,
   className,
 }: {
@@ -54,6 +55,8 @@ export function GamePicker({
   selectedKeys?: Set<string>;
   /** CapperProfile.books override; when omitted, read from `/api/odds` response. */
   books?: readonly string[];
+  /** A parlay's first leg locks every later leg to the same sportsbook. */
+  lockedBook?: string | null;
   /** Interest only — must not create a pick. */
   onRequestCoverage?: (ctx: {
     search: string;
@@ -135,12 +138,14 @@ export function GamePicker({
 
   // Prefer the capper's explicit rail choice; otherwise first profile book (or none).
   const activeBook =
-    profileBooks.length === 0
-      ? null
-      : bookChoice &&
-          profileBooks.includes(bookChoice as (typeof profileBooks)[number])
-        ? bookChoice
-        : profileBooks[0]!;
+    lockedBook && isBookKey(lockedBook) && profileBooks.includes(lockedBook)
+      ? lockedBook
+      : profileBooks.length === 0
+        ? null
+        : bookChoice &&
+            profileBooks.includes(bookChoice as (typeof profileBooks)[number])
+          ? bookChoice
+          : profileBooks[0]!;
 
   // Pre-game only, everywhere. Day defaults, counts, cards, and the focused
   // matchup all read from this list so a started game is never selectable.
@@ -268,6 +273,7 @@ export function GamePicker({
           <BookRail
             books={profileBooks}
             active={activeBook}
+            locked={lockedBook ?? null}
             onChange={setBookChoice}
           />
         </div>
@@ -445,10 +451,12 @@ export function GamePicker({
 function BookRail({
   books,
   active,
+  locked,
   onChange,
 }: {
   books: readonly string[];
   active: string | null;
+  locked: string | null;
   onChange: (book: string) => void;
 }) {
   return (
@@ -459,18 +467,26 @@ function BookRail({
     >
       {books.map((key) => {
         const isActive = active === key;
+        const disabled = Boolean(locked && key !== locked);
         return (
           <button
             key={key}
             type="button"
             onClick={() => onChange(key)}
+            disabled={disabled}
             aria-pressed={isActive}
             aria-label={`Sportsbook ${bookShort(key)}`}
+            title={
+              disabled
+                ? `This parlay is locked to ${bookShort(locked!)}. Remove all legs to change sportsbooks.`
+                : undefined
+            }
             className={cn(
               "scl-data flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full border px-2.5 text-[10px] leading-none font-medium tracking-[0.08em] uppercase transition-colors",
               isActive
                 ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
                 : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",
+              disabled && "cursor-not-allowed opacity-40",
             )}
           >
             <BookMark bookKey={key} size={16} />

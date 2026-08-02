@@ -61,10 +61,10 @@ export const OFFERING_MODELS: { value: ProviderType; label: string }[] = [
 ];
 
 export const DAILY_VOLUMES: { value: DailyVolume; label: string }[] = [
-  { value: "LOW", label: "Low" },
-  { value: "MODERATE", label: "Moderate" },
-  { value: "HIGH", label: "High" },
-  { value: "VERY_HIGH", label: "Very High" },
+  { value: "LOW", label: "Low (1-5)" },
+  { value: "MODERATE", label: "Moderate (6-10)" },
+  { value: "HIGH", label: "High (11-15)" },
+  { value: "VERY_HIGH", label: "Very High (16+)" },
 ];
 
 export const BET_TYPES: { value: BetType; label: string }[] = [

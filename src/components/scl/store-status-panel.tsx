@@ -14,13 +14,13 @@ function timeline(
       ? [
           "Choose Whop and review the connection process",
           "Add Sports Cappers Leaderboard as an affiliate on Whop",
-          "SCL verifies your affiliate connection and imports your package links",
+          "SCL verifies the connection and manually adds the approved package links",
           "Your packages go live on your SCL profile",
         ]
       : [
           "Choose Winible and review the connection process",
           "Complete the Winible affiliate setup",
-          "SCL verifies your affiliate connection and imports your package links",
+          "SCL verifies the connection and manually adds the approved package links",
           "Your packages go live on your SCL profile",
         ];
 
@@ -51,13 +51,13 @@ function messageFor(
   if (status === "PENDING_SCL_ACCEPTANCE") {
     return {
       title: "Affiliate request submitted",
-      body: "Thanks for submitting your Winible affiliate request. Our team will verify your affiliate connection, import your package links, and notify you if anything else is needed. No further action is required at this time.",
+      body: "Thanks for submitting your Winible affiliate request. Our team will verify the relationship, review the package details available in Winible, manually add the approved links to SCL, and contact you if anything else is needed.",
     };
   }
   if (status === "PENDING_SCL_LINK_IMPORT") {
     return {
       title: "Pending SCL review",
-      body: "Thanks — you’ve added SCL as an affiliate on Whop. SCL will import your package links and publish them on your profile. No further action is required unless we contact you.",
+      body: "Thanks — you’ve added SCL as an affiliate on Whop. SCL will verify the relationship, review the package details available in Whop, and manually publish the approved links on your profile. No further action is required unless we contact you.",
     };
   }
   if (status === "NEEDS_ACTION") {

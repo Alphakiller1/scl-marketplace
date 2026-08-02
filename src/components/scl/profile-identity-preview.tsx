@@ -83,11 +83,9 @@ export function ProfileIdentityPreview({
 
         <div className="mt-3 flex min-h-6 flex-wrap gap-1.5">
           {profile.sports.length ? (
-            profile.sports
-
-              .slice(0, 4)
-
-              .map((sport) => <SportTag key={sport} sport={sport} />)
+            [...new Set(profile.sports)].map((sport) => (
+              <SportTag key={sport} sport={sport} forceLabel />
+            ))
           ) : (
             <span className="text-muted-foreground text-xs">
               Sports Coverage Appears Here

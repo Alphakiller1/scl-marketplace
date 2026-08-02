@@ -79,7 +79,7 @@ export function calculateProfileCompletion(
     {
       id: "bio",
       label: "About Section",
-      complete: hasText(profile.bio, 80),
+      complete: hasText(profile.bio),
     },
     {
       id: "sports",

@@ -70,10 +70,8 @@ export function BetSlip({
     setMode,
     setParlayUnits,
     setSelectionUnits,
-    slipNotes,
-    setSlipNotes,
-    notesPublic,
-    setNotesPublic,
+    setSelectionNotes,
+    setSelectionNotesPublic,
     removeSelection,
     resolveConflictReplace,
     resolveConflictCancel,
@@ -324,6 +322,42 @@ export function BetSlip({
                     value={s.units}
                     onChange={(u) => setSelectionUnits(s.id, u)}
                   />
+                  <details className="border-border mt-3 rounded-lg border bg-[color:var(--scl-ink-900)] p-3">
+                    <summary className="cursor-pointer text-sm font-semibold">
+                      Analysis for {s.selection} (optional)
+                    </summary>
+                    <div className="mt-3 space-y-2">
+                      <Label htmlFor={`analysis-${s.id}`} className="sr-only">
+                        Analysis for {s.selection}
+                      </Label>
+                      <textarea
+                        id={`analysis-${s.id}`}
+                        value={s.notes}
+                        onChange={(event) =>
+                          setSelectionNotes(s.id, event.target.value)
+                        }
+                        placeholder="Optional. Why this number — keep it factual."
+                        maxLength={1000}
+                        rows={3}
+                        className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring min-h-20 w-full resize-y rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
+                      />
+                      <label className="flex min-h-10 cursor-pointer items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={s.notesPublic}
+                          onChange={(event) =>
+                            setSelectionNotesPublic(s.id, event.target.checked)
+                          }
+                          className="size-4 rounded border-[color:var(--scl-line)]"
+                        />
+                        Show this analysis on its public pick card
+                      </label>
+                      <p className="text-muted-foreground text-xs">
+                        Each pick keeps its own analysis. Analysis locks when
+                        the pick grades.
+                      </p>
+                    </div>
+                  </details>
                 </div>
               ) : null}
             </li>
@@ -390,40 +424,6 @@ export function BetSlip({
             Stake lives on the parlay; legs are components.
           </p>
         </div>
-      ) : null}
-
-      {mode === "singles" && selections.length > 0 ? (
-        <details className="rounded-[12px] border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] p-3">
-          <summary className="cursor-pointer text-sm font-semibold">
-            Analysis (optional)
-          </summary>
-          <div className="mt-3 space-y-2">
-            <Label htmlFor="slip-analysis" className="sr-only">
-              Analysis
-            </Label>
-            <textarea
-              id="slip-analysis"
-              value={slipNotes}
-              onChange={(e) => setSlipNotes(e.target.value)}
-              placeholder="Optional. Why this number — keep it factual."
-              maxLength={1000}
-              rows={3}
-              className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring min-h-20 w-full resize-y rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
-            />
-            <label className="flex min-h-10 cursor-pointer items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={notesPublic}
-                onChange={(e) => setNotesPublic(e.target.checked)}
-                className="size-4 rounded border-[color:var(--scl-line)]"
-              />
-              Show on my public pick card
-            </label>
-            <p className="text-muted-foreground text-xs">
-              Analysis locks when the pick grades.
-            </p>
-          </div>
-        </details>
       ) : null}
 
       {unavailableLines?.length ? (
