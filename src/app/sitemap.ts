@@ -34,5 +34,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     page("/privacy", 0.2, "yearly"),
     page("/disclaimer", 0.2, "yearly"),
     page("/responsible-gaming", 0.2, "yearly"),
+    page("/refund-policy", 0.2, "yearly"),
   ];
 }

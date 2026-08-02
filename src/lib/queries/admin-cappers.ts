@@ -166,6 +166,12 @@ export async function getAdminCapperDetail(userId: string) {
         select: {
           id: true,
           policyVersion: true,
+          termsVersion: true,
+          privacyVersion: true,
+          responsibleGamingVersion: true,
+          refundVersion: true,
+          consentTextVersion: true,
+          acceptanceSource: true,
           acceptedAt: true,
         },
         orderBy: { acceptedAt: "desc" },

@@ -37,6 +37,12 @@ export function SiteFooter() {
             Responsible Gaming
           </Link>
           <Link
+            href="/refund-policy"
+            className="hover:text-foreground inline-flex min-h-10 items-center"
+          >
+            Refund Policy
+          </Link>
+          <Link
             href="/disclaimer"
             className="hover:text-foreground inline-flex min-h-10 items-center"
           >

@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 
 import { getDefaultPolicyDocument } from "@/lib/policy-defaults";
-import { POLICY_METADATA } from "@/lib/policy-metadata";
+import {
+  POLICY_METADATA,
+  requiresPolicyAcceptance,
+} from "@/lib/policy-metadata";
 import { prisma } from "@/lib/prisma";
 import {
   policyDocumentSchema,
@@ -36,14 +39,13 @@ export async function savePolicyDocumentAction(
       current.title !== next.title || current.body !== next.body;
 
     if (
-      next.slug === "TERMS" &&
+      requiresPolicyAcceptance(next.slug) &&
       contentChanged &&
       current.version === next.version
     ) {
       return {
         ok: false,
-        error:
-          "Increase the Terms version before publishing changed Terms copy. This ensures every capper is asked to accept the revision.",
+        error: `Increase the ${POLICY_METADATA[next.slug].label} version before publishing changed copy. This ensures every account is asked to accept the revision.`,
       };
     }
 
@@ -78,7 +80,7 @@ export async function savePolicyDocumentAction(
 
     revalidatePath(POLICY_METADATA[next.slug].path);
     revalidatePath("/admin/policies");
-    if (next.slug === "TERMS") {
+    if (requiresPolicyAcceptance(next.slug)) {
       revalidatePath("/accept-terms");
       revalidatePath("/dashboard");
     }

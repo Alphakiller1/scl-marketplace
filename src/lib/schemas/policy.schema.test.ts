@@ -12,6 +12,14 @@ const validPolicy = {
 
 test("policy documents accept bounded plain-text content", () => {
   assert.equal(policyDocumentSchema.safeParse(validPolicy).success, true);
+  assert.equal(
+    policyDocumentSchema.safeParse({
+      ...validPolicy,
+      slug: "REFUND",
+      title: "Refund Policy",
+    }).success,
+    true,
+  );
 });
 
 test("policy document versions reject spaces and unsafe punctuation", () => {

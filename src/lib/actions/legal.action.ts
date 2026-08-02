@@ -4,12 +4,15 @@ import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { getCurrentAccount } from "@/lib/session";
-import { legalAcceptanceSchema } from "@/lib/legal";
+import { CONSENT_TEXT_VERSION, legalAcceptanceSchema } from "@/lib/legal";
+import { getCurrentPolicyBundle } from "@/lib/queries/policies";
 
 type LegalAcceptanceResult = { ok: true } | { ok: false; error: string };
 
 export async function acceptCurrentTermsAction(input: {
-  acceptTerms: boolean;
+  confirmEligibility: boolean;
+  acceptPolicies: boolean;
+  acknowledgeResponsibleGaming: boolean;
 }): Promise<LegalAcceptanceResult> {
   const account = await getCurrentAccount();
   if (!account) return { ok: false, error: "Log in to continue." };
@@ -30,10 +33,17 @@ export async function acceptCurrentTermsAction(input: {
   }
 
   if (!account.legalAcceptance) {
+    const policyBundle = await getCurrentPolicyBundle();
     await prisma.termsAcceptance.create({
       data: {
         userId: account.id,
-        policyVersion: account.currentPolicyVersion,
+        policyVersion: policyBundle.id,
+        termsVersion: policyBundle.termsVersion,
+        privacyVersion: policyBundle.privacyVersion,
+        responsibleGamingVersion: policyBundle.responsibleGamingVersion,
+        refundVersion: policyBundle.refundVersion,
+        consentTextVersion: CONSENT_TEXT_VERSION,
+        acceptanceSource: "RECONSENT",
       },
     });
   }

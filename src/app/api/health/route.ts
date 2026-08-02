@@ -20,6 +20,8 @@ export async function GET() {
       schema: {
         packageAttribution: health.playPackage && health.parlayPackage,
         eventLabels: health.eventLabel,
+        policyAcceptance: health.policyAcceptance,
+        refundPolicy: health.refundPolicy,
       },
       deployment: { releaseIdentified },
       release,

@@ -11,6 +11,8 @@ type CoreSchemaRow = {
   playPackage: boolean;
   parlayPackage: boolean;
   eventLabel: boolean;
+  policyAcceptance: boolean;
+  refundPolicy: boolean;
 };
 
 export type CoreSchemaHealth = CoreSchemaRow & {
@@ -30,17 +32,47 @@ export async function getCoreSchemaHealth(): Promise<CoreSchemaHealth> {
           WHERE table_schema = current_schema()
             AND table_name = 'Play'
             AND column_name = 'eventLabel'
-        ) AS "eventLabel"
+        ) AS "eventLabel",
+        (
+          SELECT count(*) = 6
+          FROM information_schema.columns
+          WHERE table_schema = current_schema()
+            AND table_name = 'TermsAcceptance'
+            AND column_name IN (
+              'termsVersion',
+              'privacyVersion',
+              'responsibleGamingVersion',
+              'refundVersion',
+              'consentTextVersion',
+              'acceptanceSource'
+            )
+        ) AS "policyAcceptance",
+        EXISTS (
+          SELECT 1
+          FROM pg_enum enum_value
+          JOIN pg_type enum_type ON enum_type.oid = enum_value.enumtypid
+          JOIN pg_namespace enum_namespace ON enum_namespace.oid = enum_type.typnamespace
+          WHERE enum_namespace.nspname = current_schema()
+            AND enum_type.typname = 'PolicySlug'
+            AND enum_value.enumlabel = 'REFUND'
+        ) AS "refundPolicy"
     `;
     const schema = row ?? {
       playPackage: false,
       parlayPackage: false,
       eventLabel: false,
+      policyAcceptance: false,
+      refundPolicy: false,
     };
     return {
       database: true,
       ...schema,
-      ready: schema.playPackage && schema.parlayPackage && schema.eventLabel,
+      ready:
+        schema.playPackage &&
+        schema.parlayPackage &&
+        schema.eventLabel &&
+        schema.policyAcceptance &&
+        schema.refundPolicy,
     };
   } catch (error) {
     console.error("[release-readiness] database health check failed", error);
@@ -49,6 +81,8 @@ export async function getCoreSchemaHealth(): Promise<CoreSchemaHealth> {
       playPackage: false,
       parlayPackage: false,
       eventLabel: false,
+      policyAcceptance: false,
+      refundPolicy: false,
       ready: false,
     };
   }
@@ -107,8 +141,8 @@ export async function getReleaseReadinessReport() {
         label: "Launch database migration",
         status: schema.ready ? "ready" : "blocked",
         detail: schema.ready
-          ? "Package attribution tables and human-readable event labels are live."
-          : "The production package-attribution migration has not completed yet.",
+          ? "Package attribution, event labels, refund policies, and versioned policy acceptance are live."
+          : "One or more launch migrations for packages, event labels, or policy acceptance has not completed.",
       },
       {
         id: "package-links",

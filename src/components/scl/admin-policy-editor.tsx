@@ -12,6 +12,7 @@ import { savePolicyDocumentAction } from "@/lib/actions/policy.action";
 import {
   POLICY_METADATA,
   POLICY_SLUGS,
+  requiresPolicyAcceptance,
   type PolicySlugKey,
 } from "@/lib/policy-metadata";
 
@@ -90,10 +91,11 @@ export function AdminPolicyEditor({
         </div>
       </div>
 
-      {initial.slug === "TERMS" ? (
+      {requiresPolicyAcceptance(initial.slug) ? (
         <p className="border-border bg-surface-2 text-muted-foreground rounded-lg border p-3 text-sm leading-relaxed">
-          Changing the Terms copy requires a new version. After publication,
-          capper accounts must accept that version before using capper tools.
+          Changing this required policy requires a new version. After
+          publication, accounts must accept the updated policy bundle before
+          using capper tools.
         </p>
       ) : null}
 

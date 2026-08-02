@@ -23,9 +23,17 @@ export const signupSchema = z
     email: z.string().trim().toLowerCase().email("Enter a valid email"),
     password: passwordSchema,
     confirmPassword: z.string(),
-    acceptTerms: z.boolean().refine((v) => v === true, {
-      message: "You must accept the terms to continue",
+    confirmEligibility: z.boolean().refine((value) => value === true, {
+      message: "Confirm that you meet the age and eligibility requirements",
     }),
+    acceptPolicies: z.boolean().refine((value) => value === true, {
+      message: "Accept and acknowledge the required policies to continue",
+    }),
+    acknowledgeResponsibleGaming: z
+      .boolean()
+      .refine((value) => value === true, {
+        message: "Acknowledge the Responsible Gaming Policy to continue",
+      }),
   })
   .refine((d) => d.password === d.confirmPassword, {
     message: "Passwords do not match",

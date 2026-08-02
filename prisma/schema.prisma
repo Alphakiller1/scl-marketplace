@@ -105,10 +105,17 @@ model PasswordResetToken {
 }
 
 model TermsAcceptance {
-  id            String   @id @default(cuid())
-  userId        String
-  policyVersion String
-  acceptedAt    DateTime @default(now())
+  id                       String   @id @default(cuid())
+  userId                   String
+  /// Stable version of the complete required-policy bundle accepted by the user.
+  policyVersion            String
+  termsVersion             String?
+  privacyVersion           String?
+  responsibleGamingVersion String?
+  refundVersion            String?
+  consentTextVersion       String?
+  acceptanceSource         String?
+  acceptedAt               DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -145,6 +152,7 @@ enum PolicySlug {
   PRIVACY
   DISCLAIMER
   RESPONSIBLE_GAMING
+  REFUND
 }
 
 model PolicyDocument {

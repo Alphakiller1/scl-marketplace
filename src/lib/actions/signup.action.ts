@@ -7,7 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { signupSchema, type SignupInput } from "@/lib/schemas/auth.schema";
 import { createVerificationToken } from "@/lib/tokens";
 import { sendVerificationEmail } from "@/lib/email";
-import { getCurrentTermsVersion } from "@/lib/queries/policies";
+import { CONSENT_TEXT_VERSION } from "@/lib/legal";
+import { getCurrentPolicyBundle } from "@/lib/queries/policies";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getRequestIdentity } from "@/lib/request-identity";
 
@@ -57,10 +58,19 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
     };
   }
 
-  const [passwordHash, currentPolicyVersion] = await Promise.all([
+  const [passwordHash, policyBundle] = await Promise.all([
     bcrypt.hash(password, 12),
-    getCurrentTermsVersion(),
+    getCurrentPolicyBundle(),
   ]);
+  const acceptanceData = {
+    policyVersion: policyBundle.id,
+    termsVersion: policyBundle.termsVersion,
+    privacyVersion: policyBundle.privacyVersion,
+    responsibleGamingVersion: policyBundle.responsibleGamingVersion,
+    refundVersion: policyBundle.refundVersion,
+    consentTextVersion: CONSENT_TEXT_VERSION,
+    acceptanceSource: "SIGNUP",
+  };
 
   // Look up any account already on this email or this handle (separately, so we know which
   // one collided).
@@ -101,7 +111,7 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
           ...newAccountState,
           capperProfile: { upsert: { create: {}, update: {} } },
           termsAcceptances: {
-            create: { policyVersion: currentPolicyVersion },
+            create: acceptanceData,
           },
         },
         select: { id: true },
@@ -116,7 +126,7 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
           ...newAccountState,
           capperProfile: { create: {} },
           termsAcceptances: {
-            create: { policyVersion: currentPolicyVersion },
+            create: acceptanceData,
           },
         },
         select: { id: true },
