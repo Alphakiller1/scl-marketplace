@@ -5,6 +5,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { appUrl } from "@/lib/app-url";
+import { SCL_TITLE } from "@/lib/brand";
 
 const barlow = Barlow({
   variable: "--font-barlow",
@@ -28,7 +29,7 @@ const interData = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl()),
   title: {
-    default: "SCL — Sports Cappers Leaderboard",
+    default: SCL_TITLE,
     template: "%s · SCL",
   },
   description:

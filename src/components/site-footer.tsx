@@ -1,10 +1,14 @@
 import Link from "next/link";
 
+import { SCL_BRAND_NAME } from "@/lib/brand";
+
 export function SiteFooter() {
   return (
     <footer className="border-border border-t">
       <div className="text-muted-foreground mx-auto flex max-w-[1400px] flex-col gap-4 px-4 py-10 text-sm leading-relaxed sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-        <p>© {new Date().getFullYear()} Sports Cappers Leaderboard</p>
+        <p>
+          © {new Date().getFullYear()} {SCL_BRAND_NAME}
+        </p>
         <nav className="flex flex-wrap gap-x-5 gap-y-1">
           <Link
             href="/verification"

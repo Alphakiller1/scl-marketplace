@@ -5,6 +5,7 @@ import { SclLogo } from "@/components/scl-logo";
 import { MobileAppNav } from "@/components/scl/mobile-navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SignOutButton } from "@/components/sign-out-button";
+import { SCL_BRAND_NAME } from "@/lib/brand";
 
 export function AppHeader({
   area,
@@ -25,7 +26,7 @@ export function AppHeader({
               <SclLogo className="size-5" />
             </span>
             <span className="scl-display max-w-[8.75rem] text-[0.7rem] leading-tight font-bold tracking-[0.02em] sm:max-w-none sm:text-sm">
-              Sports Cappers Leaderboard
+              {SCL_BRAND_NAME}
             </span>
             <span className="bg-surface-3 text-muted-foreground hidden max-w-20 truncate rounded-md px-1.5 py-0.5 text-[0.7rem] font-semibold tracking-wide uppercase md:inline-flex">
               {area}

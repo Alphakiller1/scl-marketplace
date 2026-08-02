@@ -3,6 +3,7 @@ import { Clock3, ShieldCheck } from "lucide-react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SclLogo } from "@/components/scl-logo";
+import { SCL_BRAND_NAME } from "@/lib/brand";
 
 const trustSignals = [
   { icon: Clock3, label: "Picks", value: "Entered Before Lock" },
@@ -35,7 +36,7 @@ export default function AuthLayout({
 
           <div className="max-w-md">
             <p className="scl-eyebrow text-[color:var(--scl-muted-label)]">
-              Sports Cappers Leaderboard
+              {SCL_BRAND_NAME}
             </p>
             <p className="scl-display mt-3 text-4xl leading-[1.08] font-bold tracking-[0.02em]">
               Trust starts with a verified record
@@ -83,7 +84,7 @@ function BrandLockup() {
         <SclLogo className="size-6" />
       </span>
       <span className="scl-display text-sm font-bold tracking-[0.04em] sm:text-base">
-        Sports Cappers Leaderboard
+        {SCL_BRAND_NAME}
       </span>
     </span>
   );

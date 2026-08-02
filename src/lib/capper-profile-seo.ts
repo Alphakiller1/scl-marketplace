@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { appUrl } from "@/lib/app-url";
+import { SCL_BRAND_NAME } from "@/lib/brand";
 import { formatHandle, identityDisplayLinesFromCapper } from "@/lib/identity";
 import { isBuildingARecord } from "@/lib/leaderboard";
 import type { CapperSummary } from "@/lib/mock";
@@ -35,7 +36,7 @@ export function buildCapperProfileMetadata(capper: CapperSummary): Metadata {
 
   const description = building
     ? `Review ${name}'s building record on SCL, including graded picks, timestamps, verification status, and storefront links where available.`
-    : `Review ${name}'s public capper record, graded picks, units, ROI, timestamps, and verification status on Sports Cappers Leaderboard.`;
+    : `Review ${name}'s public capper record, graded picks, units, ROI, timestamps, and verification status on ${SCL_BRAND_NAME}.`;
 
   return {
     title,

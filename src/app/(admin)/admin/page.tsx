@@ -1,8 +1,11 @@
 import Link from "next/link";
 import {
+  AlertTriangle,
   ArrowRight,
+  CheckCircle2,
   ClipboardCheck,
   ClipboardList,
+  Clock3,
   FileText,
   Gavel,
   Store,
@@ -56,6 +59,63 @@ const ADMIN_TOOLS = [
     icon: FileText,
   },
 ];
+
+const CAPABILITY_STATUS = {
+  live: {
+    label: "Live",
+    icon: CheckCircle2,
+    className: "text-[color:var(--scl-perf-win-text)]",
+  },
+  limited: {
+    label: "Limited",
+    icon: AlertTriangle,
+    className: "text-amber-500",
+  },
+  planned: {
+    label: "Planned",
+    icon: Clock3,
+    className: "text-muted-foreground",
+  },
+} as const;
+
+const OWNER_CAPABILITIES = [
+  {
+    capability: "Published plays and grading corrections",
+    status: "live",
+    detail:
+      "Search every published straight play and parlay, correct misgrades, and retain the audit trail.",
+  },
+  {
+    capability: "Capper and storefront operations",
+    status: "live",
+    detail:
+      "Manage account status, approve or suspend storefronts, edit packages and links, order visibility, affiliate percentage, and internal notes.",
+  },
+  {
+    capability: "Policies and consent",
+    status: "live",
+    detail:
+      "Publish policy revisions and review the versioned acceptance state recorded for each account.",
+  },
+  {
+    capability: "Performance and commerce insight",
+    status: "limited",
+    detail:
+      "Package clicks and affiliate setup are available. Sales and conversion data remain provider-controlled until a verified Whop or Winible integration exists.",
+  },
+  {
+    capability: "Bulk capper email",
+    status: "planned",
+    detail:
+      "Intentionally gated until a verified broadcast sender, audience consent rules, unsubscribe handling, and delivery reporting are approved.",
+  },
+  {
+    capability: "Customer accounts and customer email",
+    status: "planned",
+    detail:
+      "Begins when SCL introduces first-party customer accounts and a lawful marketing-consent model.",
+  },
+] as const;
 
 export default async function AdminOverviewPage() {
   const [cappers, plays, pending, storeQueue, releaseReadiness] =
@@ -139,6 +199,38 @@ export default async function AdminOverviewPage() {
             );
           })}
         </div>
+      </section>
+
+      <section className="space-y-4">
+        <SectionHeader
+          title="Owner capability matrix"
+          subtitle="What is operational now, what depends on external platforms, and what remains intentionally gated"
+        />
+        <Card className="overflow-hidden">
+          <div className="divide-border divide-y">
+            {OWNER_CAPABILITIES.map((item) => {
+              const status = CAPABILITY_STATUS[item.status];
+              const StatusIcon = status.icon;
+              return (
+                <div
+                  key={item.capability}
+                  className="grid gap-2 px-4 py-4 sm:grid-cols-[minmax(12rem,0.85fr)_minmax(0,1.5fr)_auto] sm:items-center"
+                >
+                  <p className="font-semibold">{item.capability}</p>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    {item.detail}
+                  </p>
+                  <span
+                    className={`inline-flex w-fit items-center gap-1.5 text-xs font-semibold ${status.className}`}
+                  >
+                    <StatusIcon className="size-4" aria-hidden />
+                    {status.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
       </section>
     </div>
   );

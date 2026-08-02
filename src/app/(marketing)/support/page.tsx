@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import { LifeBuoy, Mail } from "lucide-react";
 
 import { SupportForm } from "@/components/scl/support-form";
+import { SCL_BRAND_NAME } from "@/lib/brand";
 
 export const metadata: Metadata = {
   title: "Support",
-  description: "Contact Sports Cappers Leaderboard support.",
+  description: `Contact ${SCL_BRAND_NAME} support.`,
 };
 
 export default function SupportPage() {

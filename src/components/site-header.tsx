@@ -9,6 +9,7 @@ import { SiteNav } from "@/components/scl/site-nav";
 import { SignOutButton } from "@/components/sign-out-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getDefaultWorkspace } from "@/lib/auth-routing";
+import { SCL_BRAND_NAME } from "@/lib/brand";
 
 /**
  * Marketing chrome. Auth is a Suspense island so public nav links paint
@@ -26,7 +27,7 @@ export function SiteHeader() {
             <SclLogo className="size-6" />
           </span>
           <span className="scl-display max-w-[9.5rem] text-[0.7rem] leading-tight font-bold tracking-[0.02em] sm:max-w-none sm:text-sm lg:text-base">
-            Sports Cappers Leaderboard
+            {SCL_BRAND_NAME}
           </span>
         </Link>
 

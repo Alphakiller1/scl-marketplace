@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { shouldRecordPackageClick } from "@/lib/package-click";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 import { publicPackagePublicationWhere } from "@/lib/public-packages";
@@ -61,6 +62,10 @@ export async function GET(
       request.headers.get("x-real-ip") ||
       "unknown";
     try {
+      if (!shouldRecordPackageClick(request.headers)) {
+        return NextResponse.redirect(tracking.targetUrl, { status: 302 });
+      }
+
       const record = await consumeRateLimit({
         scope: `go:${slug}`,
         identity: client,

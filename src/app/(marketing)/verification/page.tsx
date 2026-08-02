@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { BadgeCheck, Clock3, LineChart, ShieldCheck } from "lucide-react";
 
+import { SCL_BRAND_NAME } from "@/lib/brand";
+
 export const metadata: Metadata = {
   title: "How Verification Works",
-  description:
-    "How Sports Cappers Leaderboard authenticates submitted odds and independently grades pick results.",
+  description: `How ${SCL_BRAND_NAME} authenticates submitted odds and independently grades pick results.`,
 };
 
 const stages = [
@@ -16,7 +17,7 @@ const stages = [
   {
     icon: BadgeCheck,
     title: "Record Verification",
-    body: "Pick results are automatically graded by Sports Cappers Leaderboard, independently from the capper who submitted the pick.",
+    body: `Pick results are automatically graded by ${SCL_BRAND_NAME}, independently from the capper who submitted the pick.`,
   },
 ] as const;
 

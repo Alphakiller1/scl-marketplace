@@ -110,8 +110,9 @@ export default async function PackagesPage() {
             <div>
               <h1 className="scl-page-title text-foreground">Packages</h1>
               <p className="text-muted-foreground mt-2 max-w-3xl text-sm leading-relaxed sm:text-base">
-                Inspect a capper&apos;s public evidence before opening an offer
-                on an external storefront.
+                Compare each capper&apos;s overall public record with the picks
+                specifically attributed to an offer before opening its external
+                storefront.
               </p>
             </div>
             <Link
