@@ -137,7 +137,6 @@ export function ProofReceipt({
     closingLine === "—" || clv === "—"
       ? missingCloseOrClvTooltip(eventStartsAt)
       : undefined;
-  const closeTitle = closingLine === "—" ? emptyCloseClvTitle : undefined;
   const clvTitle = clv === "—" ? emptyCloseClvTitle : undefined;
   const captureLine = formatOddsCaptureSourceLine({
     capturedAt,
@@ -162,7 +161,6 @@ export function ProofReceipt({
       odds,
       stake,
       state,
-      closingLine,
       clv,
       evidenceId: evidence,
     });
@@ -218,6 +216,7 @@ export function ProofReceipt({
         "bg-card border-border relative w-full max-w-full min-w-0 overflow-x-clip overflow-y-hidden rounded-[var(--scl-radius-card)] border shadow-[var(--scl-shadow-card)]",
         paper &&
           "scl-proof-paper rounded-[var(--scl-radius-receipt)] border-2 border-[color:var(--border)]",
+        density === "share-image" && "aspect-[4/5]",
         settling && "scl-ticket-settling",
         compact && "rounded-[12px]",
         density === "share-image" && "max-w-md",
@@ -225,7 +224,7 @@ export function ProofReceipt({
       )}
       data-density={density}
       data-state={state}
-      aria-label={`Proof receipt: ${selectionTitle}. ${stamp}${showSettlementLine ? `, ${settlementLabel}` : ""}. Source ${sourceBoard}. Evidence ${evidenceId || "unavailable"}`}
+      aria-label={`Proof receipt: ${selectionTitle}. ${stamp}${showSettlementLine ? `, ${settlementLabel}` : ""}. Source ${sourceBoard}. Receipt ID ${evidenceId || "unavailable"}`}
     >
       <div
         className={cn(
@@ -248,7 +247,7 @@ export function ProofReceipt({
         </div>
 
         <p className="scl-eyebrow mb-1.5 pr-20 text-[color:var(--scl-muted-label)] sm:pr-24">
-          SCL · Proof Receipt
+          Sports Cappers Leaderboard
         </p>
         <div className="flex min-w-0 items-start gap-2.5 pr-16 sm:pr-20">
           {leadingMark ? (
@@ -314,17 +313,16 @@ export function ProofReceipt({
             "border-border grid min-w-0 gap-2 border-t border-dashed",
             compact
               ? "grid-cols-2 px-3.5 py-2.5 sm:px-4"
-              : `grid-cols-2 ${padX} py-3 sm:grid-cols-3`,
+              : `grid-cols-2 ${padX} py-3`,
           )}
         >
-          <ProofCell label="Close" value={closingLine} title={closeTitle} />
           <ProofCell label="CLV" value={clv} title={clvTitle} />
           <ProofCell
-            label="Evidence"
+            label="Receipt ID"
             value={evidence}
             title={evidenceId || undefined}
             wrap
-            className="col-span-2 min-w-0 sm:col-span-1"
+            className="min-w-0"
           />
         </div>
       ) : null}

@@ -23,7 +23,7 @@ export default async function AdminPoliciesPage({
       <SectionHeader
         icon={FileText}
         title="Policy Documents"
-        subtitle="Publish plain-text legal and responsible-gaming copy with an immutable revision record"
+        subtitle="Publish versioned legal, privacy, refund, and responsible-gaming copy with an immutable revision record"
       />
 
       <Card className="p-4 sm:p-5">

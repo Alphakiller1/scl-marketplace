@@ -76,9 +76,9 @@ function LoginForm() {
     <>
       <AuthHeader
         icon={LogIn}
-        eyebrow="Capper Access"
+        eyebrow="Account Access"
         title="Welcome back"
-        description="Open your dashboard to log picks, review graded results, and manage your public profile."
+        description="Sign in to open the workspace assigned to your account. Admin accounts go directly to the Admin Console."
       />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>

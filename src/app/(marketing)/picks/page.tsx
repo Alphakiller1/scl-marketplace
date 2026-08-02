@@ -3,7 +3,6 @@ import { ReceiptText } from "lucide-react";
 
 import { PublicPicksLedger } from "@/components/scl/public-picks-ledger";
 import { EmptyState } from "@/components/scl/states";
-import { VerificationHelpLink } from "@/components/scl/verification-help-link";
 import { VerificationLegend } from "@/components/scl/verification-legend";
 import { getGradingHealth } from "@/lib/grading-health";
 import { parsePublicPicksLedgerFilters } from "@/lib/public-picks-ledger";
@@ -14,7 +13,7 @@ import { publicFeedCappers } from "@/lib/public-picks";
 export const metadata: Metadata = {
   title: { absolute: "Latest picks · SCL" },
   description:
-    "A chronological ledger of tracked public picks, capture evidence, and graded results.",
+    "A chronological ledger of pick submissions, timestamped bet slips, and graded results.",
 };
 
 export const revalidate = 60;
@@ -61,11 +60,10 @@ export default async function PicksPage({
               Latest picks
             </h1>
             <p className="text-muted-foreground mt-2 text-sm leading-relaxed sm:text-base">
-              A chronological ledger of public submissions, capture evidence,
+              A chronological ledger of pick submissions, timestamped bet slips,
               and graded results.
             </p>
           </div>
-          <VerificationHelpLink className="text-muted-foreground hover:text-foreground inline-flex min-h-10 shrink-0 gap-1.5 self-start px-2 text-xs font-medium sm:self-auto" />
         </div>
         <VerificationLegend className="mt-4" />
       </header>

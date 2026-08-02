@@ -10,7 +10,7 @@ export const SCL_AFFILIATE_EMAIL = "scleaderboard@gmail.com";
 
 /** SCL's Winible creator-onboarding referral; never use as a package checkout. */
 export const WINIBLE_CAPPER_REFERRAL_URL =
-  "https://www.winible.com/signup?onboarding=true&refer=usergif4lfuf";
+  "https://winible.com/refer/usergif4lfuf?utm_source=1332059342148489371&utm_medium=winible_referral";
 
 export const WINIBLE_INVITE_VALUES = {
   email: SCL_AFFILIATE_EMAIL,

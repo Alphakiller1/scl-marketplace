@@ -130,9 +130,9 @@ export function summarizeClvTracker(
 export const CLV_TRACKER_EMPTY_TITLE = "CLV Not Available Yet";
 
 export const CLV_TRACKER_EMPTY_BODY =
-  "No closing snapshots are available for this record. CLV appears after SCL captures a closing line for a board-verified pick. Historical picks without a close remain em dashes.";
+  "No closing snapshots are available for this record. CLV appears after SCL captures a closing line for an Odds-Verified pick. Historical picks without a close remain em dashes.";
 
 export const CLV_TRACKER_PROVISIONAL_BODY = `CLV distribution requires ${MIN_GRADED_FOR_SIGNAL} closing snapshots. Until then, the distribution remains unavailable.`;
 
 export const PLATFORM_CLV_EMPTY_BODY =
-  "No board-verified closing snapshots are available across publicly listed cappers. Platform CLV remains unavailable until SCL captures closing lines for future board-verified picks.";
+  "No Odds-Verified closing snapshots are available across publicly listed cappers. Platform CLV remains unavailable until SCL captures closing lines for future Odds-Verified picks.";

@@ -13,6 +13,7 @@ type InventoryPackage = {
   unattached: boolean;
   trackingSlug: string | null;
   clicks: number;
+  attributedPicks: number;
   publishable: boolean;
 };
 
@@ -115,6 +116,9 @@ export function AdminCapperPackageInventory({
                     {" · "}
                     {pkg.clicks.toLocaleString()}{" "}
                     {pkg.clicks === 1 ? "click" : "clicks"}
+                    {" · "}
+                    {pkg.attributedPicks.toLocaleString()} attributed
+                    {pkg.attributedPicks === 1 ? " pick" : " picks"}
                     {pkg.trackingSlug ? null : " · no tracking URL"}
                   </p>
                 </div>

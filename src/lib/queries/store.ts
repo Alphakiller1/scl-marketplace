@@ -511,6 +511,7 @@ export async function getCapperPackagesForReview(capperId: string) {
           select: { slug: true, _count: { select: { clicks: true } } },
           orderBy: { createdAt: "asc" },
         },
+        _count: { select: { playLinks: true, parlayLinks: true } },
       },
     });
 
@@ -530,6 +531,7 @@ export async function getCapperPackagesForReview(capperId: string) {
       unattached: pkg.storeConnectionId === null,
       trackingSlug: pkg.trackingUrls[0]?.slug ?? null,
       clicks: pkg.trackingUrls.reduce((n, u) => n + u._count.clicks, 0),
+      attributedPicks: pkg._count.playLinks + pkg._count.parlayLinks,
       updatedAt: pkg.updatedAt,
       /** Publishable only with both a checkout URL and a tracking slug. */
       publishable: Boolean(pkg.checkoutUrl) && pkg.trackingUrls.length > 0,

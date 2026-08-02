@@ -20,17 +20,17 @@ import { MIN_GRADED_FOR_SIGNAL } from "@/lib/sample";
 test("platform report copy uses publicly listed + singular-aware counts", () => {
   assert.equal(
     platformReportSubtitle(30),
-    "Board-Verified Bet Types From Publicly Listed Cappers — Last 30 Days.",
+    "Odds-Verified Bet Types From Publicly Listed Cappers — Last 30 Days.",
   );
   assert.equal(
     PLATFORM_REPORT_ELIGIBILITY_FOOTNOTE,
-    "Board-Verified Picks From Publicly Listed Cappers, Including Ranked Cappers And Cappers Building A Record. Test Accounts Are Excluded. ROI And Units Appear Only After The Minimum Graded Sample Is Met.",
+    "Odds-Verified Picks From Publicly Listed Cappers, Including Ranked Cappers And Cappers Building A Record. Test Accounts Are Excluded. ROI And Units Appear Only After The Minimum Graded Sample Is Met.",
   );
   assert.equal(countLabel(1, "graded pick", "graded picks"), "1 graded pick");
   assert.equal(countLabel(2, "graded pick", "graded picks"), "2 graded picks");
   assert.equal(countLabel(1, "capper", "cappers"), "1 capper");
-  assert.equal(platformReportSegmentLabel(1), "Active Segment");
-  assert.equal(platformReportSegmentLabel(3), "Active Segments");
+  assert.equal(platformReportSegmentLabel(1), "Active Bet Type");
+  assert.equal(platformReportSegmentLabel(3), "Active Bet Types");
   assert.equal(platformReportLeagueLabel(1), "Tracked League");
   assert.equal(platformReportLeagueLabel(2), "Tracked Leagues");
 });

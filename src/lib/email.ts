@@ -4,6 +4,15 @@ const apiKey = process.env.RESEND_API_KEY;
 const from = process.env.EMAIL_FROM ?? "no-reply@scl.local";
 const resend = apiKey ? new Resend(apiKey) : null;
 
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 function appUrl() {
   const base =
     process.env.AUTH_URL ??
@@ -87,5 +96,46 @@ export async function sendPasswordResetEmail(email: string, token: string) {
   } catch (err) {
     console.error(`[email] reset send threw for ${email}:`, err);
     return { delivered: false as const, link };
+  }
+}
+
+export async function sendSupportEmail(input: {
+  email: string;
+  category: string;
+  message: string;
+  pageUrl?: string;
+}) {
+  const supportTo = process.env.SUPPORT_EMAIL_TO ?? "support@scl.com";
+
+  if (!resend) {
+    console.info("[email:dev] support request", { ...input, to: supportTo });
+    return { delivered: false as const };
+  }
+
+  try {
+    const { error } = await resend.emails.send({
+      from,
+      to: supportTo,
+      replyTo: input.email,
+      subject: `[SCL Support] ${input.category}`,
+      html: `
+        <div style="font-family:system-ui,sans-serif;max-width:640px;margin:auto">
+          <h2>New SCL support request</h2>
+          <p><strong>From:</strong> ${escapeHtml(input.email)}</p>
+          <p><strong>Category:</strong> ${escapeHtml(input.category)}</p>
+          <p><strong>Page:</strong> ${escapeHtml(input.pageUrl || "Not supplied")}</p>
+          <hr />
+          <p style="white-space:pre-wrap">${escapeHtml(input.message)}</p>
+        </div>
+      `,
+    });
+    if (error) {
+      console.error(`[email] support send failed: ${error.message}`);
+      return { delivered: false as const };
+    }
+    return { delivered: true as const };
+  } catch (error) {
+    console.error("[email] support send threw:", error);
+    return { delivered: false as const };
   }
 }

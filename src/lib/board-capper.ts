@@ -26,5 +26,6 @@ export function slimBoardCapper(capper: CapperSummary): CapperSummary {
     verifiedShare: capper.verifiedShare,
     sports: capper.sports,
     specialties: capper.specialties,
+    publicOffers: capper.publicOffers,
   };
 }

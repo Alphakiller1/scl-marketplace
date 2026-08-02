@@ -48,9 +48,8 @@ export const LEADERBOARD_TIMEFRAMES = [
 export const LEADERBOARD_SORTS = [
   { key: "units", label: "Units" },
   { key: "roi", label: "ROI" },
-  { key: "winPct", label: "Record" },
+  { key: "winPct", label: "Win%" },
   { key: "sample", label: "Sample" },
-  { key: "verified", label: "Verified" },
   { key: "form", label: "Form" },
   { key: "clv", label: "CLV" },
 ] as const;

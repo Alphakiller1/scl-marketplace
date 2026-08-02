@@ -1,13 +1,13 @@
 # SCL — Launch-Readiness Audit
 
-**Date:** 2026-07-29 · **Build audited:** main `89c5c3a` (post #308–#318) · **Target:** https://scl-marketplace.vercel.app
+**Date:** 2026-08-01 · **Release candidate:** PR #341 · **Target:** https://scl-marketplace.vercel.app
 **Method:** live HTTP matrix (65-link crawl, TTFB, SEO signals), full quality gates, code sweeps (buttons, zoom/density, security), ops checks. Complements the design-fidelity scores in `VISUAL_MATRIX_AUDIT.md` (build `8322ca4` — partially stale; deltas noted below).
 
 ---
 
 ## Verdict
 
-The platform is **mechanically sound** — every route serves, every crawled link resolves, tests are green, grading runs itself, and the recent incident work (pool exhaustion, schema drift) is closed. What stands between here and a real launch is **not stability; it's trust artifacts**: fabricated demo records on a "verified" board, demo checkout links, and default admin credentials.
+The release candidate is mechanically sound and now includes a live release gate in the Admin Console. Ghost records are private by default, the leaked seed administrator is disabled, paid picks are server-embargoed, and package performance is tied only to explicitly attributed picks. Production launch still requires a verified real owner administrator and a green post-deploy health check after the PR is merged.
 
 ## Scorecard (this audit)
 
@@ -25,12 +25,14 @@ The platform is **mechanically sound** — every route serves, every crawled lin
 
 ## Launch blockers (must close before real traffic)
 
-| #   | Blocker                                                      | Why                                                                                                               | Action                                                                                                                                    |
-| --- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **30 fabricated ghost cappers on a public "verified" board** | The product's premise is verifiable records; launching with invented ones undermines it the moment anyone checks  | Wipe via `reseed-ghosts.yml` `{wipeOnly:true}` (or set `SCL_ALLOW_GHOST_PUBLICATION=0`) once real roster exists. Owner decision on timing |
-| 2   | ~~**Default admin credentials**~~ RESOLVED 2026-08-01        | The seed admin was live and ACTIVE in production with the seed password still working, published in a public repo | Account DISABLED in production; `ensure-owner-admin` now disables any `@scl.local` account on every deploy; credential removed from docs  |
-| 3   | **Prod DB password rotation** (standing item)                | Was shared in plaintext during development                                                                        | Rotate in Supabase; update Vercel + GitHub secrets                                                                                        |
-| 4   | **Demo Subscribe links**                                     | Every package checkout pointed at dead `example.com`                                                              | ✅ Fixed this pass — seeder now uses SCL's real Winible referral; prod re-seeded                                                          |
+| #   | Blocker                                                                   | Why                                                                                                               | Action                                                                                                                     |
+| --- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| 1   | ~~**30 fabricated ghost cappers on a public "verified" board**~~ RESOLVED | Ghost accounts are excluded unless publication is explicitly enabled                                              | Keep `SCL_ALLOW_GHOST_PUBLICATION` unset or `0`; wipe ghosts when the admin demonstration data is no longer needed         |
+| 2   | ~~**Default admin credentials**~~ RESOLVED 2026-08-01                     | The seed admin was live and ACTIVE in production with the seed password still working, published in a public repo | Account DISABLED in production; the owner-provisioning workflow keeps seed accounts disabled when a real owner is promoted |
+| 3   | **Prod DB password rotation** (standing item)                             | Was shared in plaintext during development                                                                        | Rotate in Supabase; update Vercel + GitHub secrets                                                                         |
+| 4   | **Demo Subscribe links**                                                  | Every package checkout pointed at dead `example.com`                                                              | ✅ Fixed this pass — seeder now uses SCL's real Winible referral; prod re-seeded                                           |
+| 5   | **Real owner administrator**                                              | Seed credentials are disabled, so a verified owner must hold the production ADMIN role                            | Run **Provision existing production owner** with the owner's existing verified account email                               |
+| 6   | **Production service configuration**                                      | Signup verification, support delivery, odds verification, grading, and media need their provider credentials      | Resolve every blocked item in **Admin → Launch readiness** before merging                                                  |
 
 ## Post-launch hygiene (should, not must)
 

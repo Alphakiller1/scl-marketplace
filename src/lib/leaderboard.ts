@@ -26,11 +26,13 @@ export const DEFAULT_LEADERBOARD_LIMIT: LeaderboardLimit = 10;
 
 export type LeaderboardWindow = (typeof LEADERBOARD_WINDOWS)[number]["key"];
 export type LeaderboardSort = (typeof LEADERBOARD_SORTS)[number]["key"];
+export type LeaderboardSortDirection = "desc" | "asc";
 
 export type LeaderboardFilters = {
   sport: string;
   window: LeaderboardWindow;
   sort: LeaderboardSort;
+  direction?: LeaderboardSortDirection;
   minPicks: number;
   verifiedOnly: boolean;
   search: string;
@@ -64,6 +66,7 @@ export function parseLeaderboardFilters(
     sort: LEADERBOARD_SORTS.some((item) => item.key === requestedSort)
       ? (requestedSort as LeaderboardSort)
       : "units",
+    direction: first(params.dir) === "asc" ? "asc" : "desc",
     minPicks: LEADERBOARD_MIN_PICKS.includes(requestedMinPicks as never)
       ? requestedMinPicks
       : 0,
@@ -87,6 +90,7 @@ export function leaderboardHref(
     sport: string;
     window: string;
     sort: string;
+    direction: LeaderboardSortDirection;
     minPicks: number;
     verifiedOnly: boolean;
     search: string;
@@ -99,6 +103,7 @@ export function leaderboardHref(
   if (next.sport !== "ALL") params.set("sport", next.sport);
   if (next.window !== "all") params.set("window", next.window);
   if (next.sort !== "units") params.set("sort", next.sort);
+  if (next.direction === "asc") params.set("dir", "asc");
   if (next.minPicks !== 0) params.set("minPicks", String(next.minPicks));
   // Mirrors the parse above: all records is the default, so only the narrower
   // "verified" choice needs to survive in the URL.
@@ -168,8 +173,6 @@ function primarySortValue(
       return capper.avgClv ?? Number.NEGATIVE_INFINITY;
     case "sample":
       return capper.settledPicks ?? 0;
-    case "verified":
-      return capper.verifiedShare ?? Number.NEGATIVE_INFINITY;
     case "form":
       return capper.streak;
     case "units":
@@ -181,10 +184,14 @@ function primarySortValue(
 export function sortLeaderboard(
   cappers: CapperSummary[],
   sort: LeaderboardSort,
+  direction: LeaderboardSortDirection = "desc",
 ): CapperSummary[] {
   const ranked = [...cappers];
   ranked.sort((a, b) => {
-    const primary = primarySortValue(b, sort) - primarySortValue(a, sort);
+    const primary =
+      direction === "asc"
+        ? primarySortValue(a, sort) - primarySortValue(b, sort)
+        : primarySortValue(b, sort) - primarySortValue(a, sort);
     return (
       primary ||
       (b.settledPicks ?? 0) - (a.settledPicks ?? 0) ||
@@ -204,11 +211,7 @@ export function isLeaderboardEligible(
   filters: LeaderboardFilters,
 ): boolean {
   const settledPicks = capper.settledPicks ?? 0;
-  const base =
-    settledPicks > 0 &&
-    settledPicks >= filters.minPicks &&
-    capper.units >= 0 &&
-    capper.roi >= 0;
+  const base = settledPicks > 0 && settledPicks >= filters.minPicks;
   if (!base) return false;
   // CLV rank: need signal-sized sample and at least one stored close.
   if (filters.sort === "clv") {
@@ -236,8 +239,6 @@ export function isBuildingARecord(
   if (input.settledPicks == null) return false;
   const settledPicks = input.settledPicks;
   if (!(settledPicks > 0 && settledPicks >= minPicks)) return true;
-  if (typeof input.units === "number" && input.units < 0) return true;
-  if (typeof input.roi === "number" && input.roi < 0) return true;
   return false;
 }
 
@@ -271,12 +272,20 @@ export function partitionLeaderboard(
     else building.push(capper);
   }
 
-  const ranked = sortLeaderboard(eligible, filters.sort);
+  const ranked = sortLeaderboard(
+    eligible,
+    filters.sort,
+    filters.direction ?? "desc",
+  );
   ranked.forEach((capper, index) => {
     capper.rank = index + 1;
   });
 
-  const unranked = sortLeaderboard(building, filters.sort);
+  const unranked = sortLeaderboard(
+    building,
+    filters.sort,
+    filters.direction ?? "desc",
+  );
   unranked.forEach((capper) => {
     capper.rank = 0;
   });

@@ -32,6 +32,7 @@ export type PlayView = {
   verificationTier: VerificationTier;
   /** Structured board side when present — never invent from free-text selection. */
   side: string | null;
+  eventLabel?: string | null;
   /** Scheduled event start (C2) — drives the pre-game/live/awaiting-grade lifecycle. */
   eventStartsAt: Date | null;
   /** Odds API bookmaker key at capture (M5 §4 source surfacing). */
@@ -42,6 +43,9 @@ export type PlayView = {
   closingOddsAmerican?: number | null;
   /** CLV pts when computed — null → em-dash. */
   clvPts?: number | null;
+  /** Server-side disclosure state for pending paid selections. */
+  isEmbargoed?: boolean;
+  embargoedUntil?: Date | null;
 };
 
 export type ParlayLegView = {
@@ -118,6 +122,7 @@ export async function getCapperPlays(
       verificationTier: true,
       side: true,
       eventStartsAt: true,
+      eventLabel: true,
       book: true,
       notes: true,
       ...(notesPublicReady ? { notesPublic: true } : {}),
@@ -139,6 +144,7 @@ export async function getCapperPlays(
     verificationTier: p.verificationTier,
     side: p.side,
     eventStartsAt: p.eventStartsAt,
+    eventLabel: p.eventLabel,
     book: p.book,
     notes: p.notes,
     notesPublic:
@@ -271,6 +277,7 @@ export async function getPublicRecentPicksResult(
         verificationTier: true,
         side: true,
         eventStartsAt: true,
+        eventLabel: true,
         book: true,
         closingOddsAmerican: true,
         clvPts: true,
@@ -286,7 +293,10 @@ export async function getPublicRecentPicksResult(
       .filter((p) => !hasQaNoteMarker(p.notes))
       .slice(0, take);
 
-    return { picks: joinPlaysToPublicPicks(visible, cappers), failed: false };
+    return {
+      picks: joinPlaysToPublicPicks(visible, cappers, now),
+      failed: false,
+    };
   } catch (error) {
     console.error("[getPublicRecentPicks] database unavailable:", error);
     return { picks: [], failed: true };

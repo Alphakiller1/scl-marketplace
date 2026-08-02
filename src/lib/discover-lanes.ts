@@ -71,7 +71,7 @@ export const DISCOVER_LANES: readonly DiscoverLaneMeta[] = [
     id: "verified_month",
     title: "Best Verified ROI Over 30 Days",
     explainer:
-      "Recent ROI From Graded Picks That Were Board-Verified At Submission.",
+      "Recent ROI From Graded Picks That Were Odds-Verified At Submission.",
     primaryLabel: "30-Day ROI",
     empty:
       "No Capper Has Enough Verified, Graded Picks In The Current 30-Day Window.",
@@ -88,8 +88,8 @@ export const DISCOVER_LANES: readonly DiscoverLaneMeta[] = [
     id: "newly_credible",
     title: "Newly Credible",
     explainer:
-      "Newer Cappers With A High Board-Verified Share And A Growing Graded Sample.",
-    primaryLabel: "Verified Share",
+      "Newer Cappers With A High Odds-Verified Share And A Growing Graded Sample.",
+    primaryLabel: "Odds-Verified Share",
     empty:
       "No Newer Capper Currently Meets Both The Verification And Sample Requirements.",
   },

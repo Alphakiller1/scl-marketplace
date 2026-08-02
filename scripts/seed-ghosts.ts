@@ -687,6 +687,7 @@ async function seedGhost(passwordHash: string, g: Ghost) {
       period: BillingPeriod;
       sort: number;
     }[];
+    const createdPackageIds: string[] = [];
     for (const p of pkgs) {
       const pkg = await prisma.package.create({
         data: {
@@ -706,6 +707,7 @@ async function seedGhost(passwordHash: string, g: Ghost) {
           isActive: true,
         },
       });
+      createdPackageIds.push(pkg.id);
       // Public marketplace requires a TrackingUrl slug (/go/[slug]) — without it
       // listActiveMarketplacePackages filters the package out.
       const slugBase = `${g.username}-${p.title}`
@@ -721,6 +723,35 @@ async function seedGhost(passwordHash: string, g: Ghost) {
         },
       });
     }
+
+    // Give the demo marketplace real package-specific samples. Positions are
+    // partitioned across offers so their records are visibly different.
+    const [straightPositions, parlayPositions] = await Promise.all([
+      prisma.play.findMany({
+        where: { capperId, parlayId: null, outcome: { not: "PENDING" } },
+        orderBy: { createdAt: "desc" },
+        select: { id: true },
+      }),
+      prisma.parlay.findMany({
+        where: { capperId, outcome: { not: "PENDING" } },
+        orderBy: { createdAt: "desc" },
+        select: { id: true },
+      }),
+    ]);
+    await prisma.playPackage.createMany({
+      data: straightPositions.map((play, index) => ({
+        playId: play.id,
+        packageId: createdPackageIds[index % createdPackageIds.length]!,
+      })),
+      skipDuplicates: true,
+    });
+    await prisma.parlayPackage.createMany({
+      data: parlayPositions.map((parlay, index) => ({
+        parlayId: parlay.id,
+        packageId: createdPackageIds[index % createdPackageIds.length]!,
+      })),
+      skipDuplicates: true,
+    });
   }
 }
 

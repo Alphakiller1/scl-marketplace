@@ -12,6 +12,7 @@ import { isBookKey } from "@/lib/books";
 import { fetchLiveLine, verifyPick } from "@/lib/odds-api";
 import { moveKey, resolveCaptureOdds } from "@/lib/odds-movement";
 import type { AcceptedMove, MovedLinePayload } from "@/lib/odds-movement";
+import { validatePackageAttribution } from "@/lib/package-attribution";
 import {
   decidePickIntegrity,
   marketKeysForMarket,
@@ -41,6 +42,7 @@ type ReadyPlayData = {
   notesPublic: boolean;
   needsReview: boolean;
   eventId: string;
+  eventLabel: string | null;
   eventStartsAt: Date;
   side: string;
   line: number | null;
@@ -102,6 +104,7 @@ async function requireActiveCapper(): Promise<AccountGate> {
 
 type ReadyWrite = {
   moveKey: string;
+  packageIds: string[];
   data: {
     sport: string;
     league: string | null;
@@ -115,6 +118,7 @@ type ReadyWrite = {
     notesPublic: boolean;
     needsReview: boolean;
     eventId: string;
+    eventLabel: string | null;
     eventStartsAt: Date;
     side: string;
     line: number | null;
@@ -229,7 +233,7 @@ async function preparePlayLine(
     acceptedMoves: opts.acceptedMoves,
     moveKey: key,
     eventId: d.eventId,
-    eventLabel: d.selection,
+    eventLabel: d.eventLabel ?? d.selection,
     market: d.market,
     selection: d.selection,
     side: d.side,
@@ -279,6 +283,7 @@ async function preparePlayLine(
     status: "ready",
     ready: {
       moveKey: key,
+      packageIds: d.packageIds,
       data: {
         sport: d.sport,
         league: d.league ?? null,
@@ -292,6 +297,7 @@ async function preparePlayLine(
         notesPublic: d.notesPublic ?? true,
         needsReview: isExtremeAmericanOdds(capture.selectedOddsAmerican),
         eventId: d.eventId,
+        eventLabel: d.eventLabel ?? null,
         eventStartsAt,
         side: d.side,
         line: d.line ?? null,
@@ -349,11 +355,25 @@ export async function createPlay(
     return { ok: false, error: prep.error };
   }
 
+  const packageIds = await validatePackageAttribution(
+    profile.id,
+    prep.ready.packageIds,
+  );
+  if (!packageIds) {
+    return {
+      ok: false,
+      error: "One or more selected packages are unavailable.",
+    };
+  }
+
   const play = await prisma.play.create({
     data: {
       capperId: profile.id,
       ...(await playCreateData(prep.ready.data)),
       source: "MANUAL",
+      packageLinks: {
+        create: packageIds.map((packageId) => ({ packageId })),
+      },
     },
     select: { createdAt: true },
   });
@@ -448,6 +468,20 @@ export async function createPlays(
     return { ok: false, unavailable: shaped.unavailable };
   }
 
+  const requestedPackageIds = [
+    ...new Set(readyWrites.flatMap((ready) => ready.packageIds)),
+  ];
+  const validPackageIds = await validatePackageAttribution(
+    profile.id,
+    requestedPackageIds,
+  );
+  if (!validPackageIds) {
+    return {
+      ok: false,
+      error: "One or more selected packages are unavailable.",
+    };
+  }
+
   // Write every ready line independently (only shaped.ready — never stale/needsConfirm).
   const readyByKey = new Map(readyWrites.map((r) => [r.moveKey, r]));
   const writtenReceipts: StraightReceipt[] = [];
@@ -460,6 +494,9 @@ export async function createPlays(
         capperId: profile.id,
         ...(await playCreateData(ready.data)),
         source: "MANUAL",
+        packageLinks: {
+          create: ready.packageIds.map((packageId) => ({ packageId })),
+        },
       },
       select: { createdAt: true },
     });

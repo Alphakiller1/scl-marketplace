@@ -51,24 +51,24 @@ export const FOUNDING_BANNER_SECONDARY =
 export const HERO_HEADLINE = "Verified Records For Bettors And Cappers";
 
 export const HERO_SUBHEAD =
-  "SCL Helps Bettors Inspect Capper History And Helps Serious Cappers Build Trust With Transparent, Board-Verified Records.";
+  "SCL Helps Bettors Inspect Capper History And Helps Serious Cappers Build Trust With Transparent, Independently Graded Records.";
 
 /** Fable Step 2 — hero secondary / bottom band (not founding recruitment). */
 export const TRACK_YOUR_RECORD_CTA = "Track Your Record";
 
-export const BOTTOM_BAND_HEADLINE = "Build A Record People Can Inspect";
+export const BOTTOM_BAND_HEADLINE = "Build A Record People Can Trust";
 
 export const BOTTOM_BAND_BODY =
-  "Log Board-Verified Plays. Earn A Public Rank Others Can Check.";
+  "Log Odds-Verified Plays. Earn A Public Rank Others Can Check.";
 
 /** Rank-mode right rail — factual eligibility copy (GPT review welcome). */
 export const HOW_RANKING_WORKS_TITLE = "How ranking works";
 
 export const HOW_RANKING_WORKS_BULLETS = [
-  "Within the selected scope, a public rank requires the minimum graded sample and non-negative ROI and units.",
-  "Records below the sample threshold or with negative ROI or units remain visible under Building a Record and are not ranked.",
+  "Within the selected scope, a public rank requires the minimum graded sample.",
+  "Records below the sample threshold remain visible under Building a Record and are not ranked.",
   "CLV sorting requires the minimum sample and at least one stored closing line.",
 ] as const;
 
 export const HOW_RANKING_VERIFIED_NOTE =
-  "Verified share is the percentage of tracked picks checked against the board at submission. It does not describe pick outcomes.";
+  "Odds-Verified share is the percentage of tracked picks whose submitted prices were checked against available sportsbook odds. It does not describe pick outcomes.";

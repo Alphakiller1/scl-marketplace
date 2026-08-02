@@ -21,6 +21,7 @@ import type { CapperSummary, FormResult } from "@/lib/mock";
 import { resolveStorefrontIdentity } from "@/lib/storefront";
 import { computeCapperActivity } from "@/lib/capper-activity";
 import { hasClvColumns } from "@/lib/results/schema-features";
+import { activePublicPackageWhere } from "@/lib/public-packages";
 
 /**
  * Live leaderboard data — computed from real plays, never fabricated. Only
@@ -32,6 +33,7 @@ const DEFAULT_FILTERS: LeaderboardFilters = {
   sport: "ALL",
   window: "all",
   sort: "units",
+  direction: "desc",
   minPicks: 0,
   verifiedOnly: false,
   search: "",
@@ -123,6 +125,18 @@ async function fetchRankableProfiles(
           unitsNet: true,
         },
         take: 1,
+      },
+      packages: {
+        where: activePublicPackageWhere,
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        select: {
+          title: true,
+          trackingUrls: {
+            select: { slug: true },
+            orderBy: { createdAt: "asc" },
+            take: 1,
+          },
+        },
       },
       // Parlays are positions of record alongside straight plays. A parlay matches a
       // sport filter when any leg is that sport.
@@ -261,6 +275,7 @@ function summarize(
 
   const displayName = null; // dormant — public identity is username-only
   const activity = computeCapperActivity(positions.map((x) => x.createdAt));
+  const publicPackages = p.packages.filter((pkg) => pkg.trackingUrls[0]?.slug);
 
   const clvValues = plays
     .map((pl) =>
@@ -310,6 +325,13 @@ function summarize(
       description: p.storefrontDescription,
       enabled: p.storefrontEnabled,
     }),
+    publicOffers: publicPackages[0]
+      ? {
+          count: publicPackages.length,
+          featuredTitle: publicPackages[0].title,
+          purchasePath: `/go/${publicPackages[0].trackingUrls[0]!.slug}`,
+        }
+      : undefined,
     joinedAt: p.createdAt,
     socials: undefined, // dormant — external links no longer rendered
     isLegacy: p.isLegacy || undefined,
@@ -419,6 +441,7 @@ export const getLeaderboardResult = cache(async function getLeaderboardResult(
     sport: filters.sport,
     window: filters.window,
     sort: filters.sort,
+    direction: filters.direction ?? "desc",
     minPicks: filters.minPicks,
     verifiedOnly: filters.verifiedOnly,
     search: filters.search,

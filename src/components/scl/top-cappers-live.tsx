@@ -12,15 +12,15 @@ import { cn } from "@/lib/utils";
  * preserve that sort story when exiting to /leaderboard.
  */
 const WINDOW_CHIPS = [
-  { id: "7d", label: "7D", href: "/leaderboard?window=7d&sort=verified" },
-  { id: "30d", label: "30D", href: "/leaderboard?window=30d&sort=verified" },
-  { id: "90d", label: "90D", href: "/leaderboard?window=90d&sort=verified" },
-  { id: "all", label: "ALL", href: "/leaderboard?window=all&sort=verified" },
+  { id: "7d", label: "7D", href: "/leaderboard?window=7d&sort=units" },
+  { id: "30d", label: "30D", href: "/leaderboard?window=30d&sort=units" },
+  { id: "90d", label: "90D", href: "/leaderboard?window=90d&sort=units" },
+  { id: "all", label: "ALL", href: "/leaderboard?window=all&sort=units" },
 ] as const;
 
 /**
  * Top Cappers — Rank-schema dense table via shared RankBoardTable.
- * Sort on this surface: verified share → units (see home page.tsx).
+ * Sort on this surface: net units (see home page.tsx).
  */
 export function TopCappersLive({
   cappers,
@@ -69,7 +69,7 @@ export function TopCappersLive({
                     : "border-border text-muted-foreground hover:text-foreground border bg-transparent",
                 )}
                 aria-current={active ? "page" : undefined}
-                title={`Open ${chip.label} Leaderboard (Verified Sort)`}
+                title={`Open ${chip.label} Leaderboard (Net Units Sort)`}
               >
                 {chip.label}
               </Link>

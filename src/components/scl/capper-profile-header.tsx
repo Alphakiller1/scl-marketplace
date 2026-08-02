@@ -10,7 +10,6 @@ import {
 import { RankMovementIndicator } from "@/components/scl/indicators";
 import { RankBadge, BUILDING_RECORD_LABEL } from "@/components/scl/rank-badge";
 import { ProfileActionGroup } from "@/components/scl/profile-action-group";
-import { ProvisionalRecordHelp } from "@/components/scl/provisional-record-help";
 import { formatLastPickDate } from "@/lib/capper-activity";
 import { identityDisplayLinesFromCapper } from "@/lib/identity";
 import { isProvisional } from "@/lib/sample";
@@ -23,20 +22,22 @@ import { isProvisional } from "@/lib/sample";
 export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
   const identity = identityDisplayLinesFromCapper(capper);
   const avatarName = identity.primary.replace(/^@/, "") || capper.handle;
-  const verifiedPct =
-    capper.verifiedShare != null && capper.verifiedShare > 0
-      ? Math.round(capper.verifiedShare)
-      : null;
   const lastPickLabel = formatLastPickDate(capper.lastPlayAt);
+  const sports = capper.sports?.length
+    ? capper.sports
+    : capper.topSport
+      ? [capper.topSport]
+      : [];
   const specialties = (capper.specialties ?? [])
     .filter(
       (specialty) =>
         specialty.trim().length > 0 &&
-        specialty.trim().toLowerCase() !==
-          (capper.topSport ?? "").toLowerCase(),
+        !sports.some(
+          (sport) => sport.toLowerCase() === specialty.trim().toLowerCase(),
+        ),
     )
     .slice(0, 2);
-  const hasCoverage = Boolean(capper.topSport || specialties.length);
+  const hasCoverage = sports.length > 0 || specialties.length > 0;
 
   return (
     <header className="border-border relative overflow-hidden border-b bg-[linear-gradient(165deg,color-mix(in_srgb,var(--scl-ink-800)_70%,var(--scl-ink-900))_0%,var(--scl-ink-900)_100%)]">
@@ -108,9 +109,9 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                   className="mt-2 flex flex-wrap items-center gap-1.5"
                   aria-label="Sports and specialties"
                 >
-                  {capper.topSport ? (
-                    <SportTag sport={capper.topSport} withMark={false} />
-                  ) : null}
+                  {sports.map((sport) => (
+                    <SportTag key={sport} sport={sport} forceLabel />
+                  ))}
                   {specialties.map((specialty) => (
                     <span
                       key={specialty}
@@ -143,23 +144,9 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                       ) : null}
                     </span>
                   ) : (
-                    <span className="inline-flex flex-wrap items-center gap-1.5">
-                      <span>{BUILDING_RECORD_LABEL}</span>
-                      <ProvisionalRecordHelp label="What This Means" />
-                    </span>
+                    <span>{BUILDING_RECORD_LABEL}</span>
                   )}
                 </span>
-                {verifiedPct != null ? (
-                  <>
-                    <span className="border-border h-4 border-l" aria-hidden />
-                    <span title="Share of tracked picks logged pre-game and checked against the live market">
-                      <span className="text-foreground font-semibold tabular-nums">
-                        {verifiedPct}%
-                      </span>{" "}
-                      verified
-                    </span>
-                  </>
-                ) : null}
                 {lastPickLabel ? (
                   <>
                     <span className="border-border h-4 border-l" aria-hidden />
@@ -174,10 +161,7 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
               </div>
             </div>
 
-            <ProfileActionGroup
-              handle={capper.handle}
-              className="mt-3 shrink-0 lg:mt-0 lg:justify-end"
-            />
+            <ProfileActionGroup className="mt-3 shrink-0 lg:mt-0 lg:justify-end" />
           </div>
         </div>
       </div>

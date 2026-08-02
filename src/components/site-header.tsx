@@ -25,8 +25,8 @@ export function SiteHeader() {
           <span className="ring-border-strong flex size-9 items-center justify-center rounded-xl bg-[color:var(--scl-ink-800)] ring-1">
             <SclLogo className="size-6" />
           </span>
-          <span className="scl-display text-lg font-bold tracking-[0.08em] uppercase">
-            SCL
+          <span className="scl-display max-w-[9.5rem] text-[0.7rem] leading-tight font-bold tracking-[0.02em] sm:max-w-none sm:text-sm lg:text-base">
+            Sports Cappers Leaderboard
           </span>
         </Link>
 

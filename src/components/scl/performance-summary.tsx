@@ -13,7 +13,6 @@ import {
 import { RecentFormStrip, StreakChip } from "@/components/scl/indicators";
 import { PerformanceSparkline } from "@/components/scl/performance-sparkline";
 import { ProvisionalRecordHelp } from "@/components/scl/provisional-record-help";
-import { VerificationHelpLink } from "@/components/scl/verification-help-link";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
 import { isProvisional, hasSignal } from "@/lib/sample";
 
@@ -123,16 +122,6 @@ export function PerformanceSummary({
       {signal ? (
         <ClvExplainer className="text-muted-foreground mt-3 text-xs leading-relaxed" />
       ) : null}
-
-      <div className="border-border mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t pt-3">
-        <VerificationHelpLink />
-        <a
-          href="/responsible-gaming"
-          className="text-muted-foreground hover:text-foreground inline-flex min-h-10 items-center text-xs underline-offset-4 hover:underline"
-        >
-          Responsible gaming
-        </a>
-      </div>
     </Card>
   );
 }

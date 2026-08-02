@@ -65,6 +65,12 @@ export type CapperSummary = {
     website?: string;
   };
   storefront?: StorefrontSummary;
+  /** Public package summary used by leaderboard Package and Buy columns. */
+  publicOffers?: {
+    count: number;
+    featuredTitle: string;
+    purchasePath: string;
+  };
   isLegacy?: boolean; // record imported from the previous SCL platform
   /**
    * Settled results folded in from the previous platform's stored totals, which
@@ -118,6 +124,10 @@ export type TodayPick = {
   clvPts?: number | null;
   notes?: string | null;
   notesPublic?: boolean;
+  /** True when the server has removed the paid selection during its embargo. */
+  isEmbargoed?: boolean;
+  /** Scheduled public reveal time; null when the event start is unavailable. */
+  embargoedUntil?: Date | null;
   gradingHealthy?: boolean;
 };
 

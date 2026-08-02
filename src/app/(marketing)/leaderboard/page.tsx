@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { CompareTray } from "@/components/scl/compare-tray";
 import {
   BuildingRecordSection,
   Leaderboard,
@@ -45,7 +44,7 @@ export default async function LeaderboardPage({
             showExpand
             rankByPosition
             failed={failed}
-            emptyDescription="No cappers meet the selected ranking filters. Records below the sample threshold or with negative ROI or units remain visible under Building a Record."
+            emptyDescription="No cappers meet the selected ranking filters. Records below the sample threshold remain visible under Building a Record."
           />
         </section>
         <div className="min-w-0">
@@ -54,9 +53,6 @@ export default async function LeaderboardPage({
       </div>
 
       <BuildingRecordSection cappers={unranked} failed={failed} />
-      <CompareTray />
-      {/* Spacer so compare tray does not cover Building a Record on mobile */}
-      <div className="h-16" aria-hidden />
     </div>
   );
 }

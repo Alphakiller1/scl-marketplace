@@ -13,7 +13,7 @@ import {
 test("the supplied Winible creator referral link is accepted for onboarding", () => {
   assert.equal(
     WINIBLE_CAPPER_REFERRAL_URL,
-    "https://www.winible.com/signup?onboarding=true&refer=usergif4lfuf",
+    "https://winible.com/refer/usergif4lfuf?utm_source=1332059342148489371&utm_medium=winible_referral",
   );
   assert.equal(isWinibleCreatorReferralUrl(WINIBLE_CAPPER_REFERRAL_URL), true);
   assert.equal(

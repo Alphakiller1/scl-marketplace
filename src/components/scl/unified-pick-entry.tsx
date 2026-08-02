@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { BetSlip } from "@/components/scl/bet-slip";
@@ -12,6 +12,10 @@ import { SlipStoreProvider, useSlipStore } from "@/components/scl/slip-store";
 import { VerificationReceipt } from "@/components/scl/verification-receipt";
 import { Button } from "@/components/ui/button";
 import { createParlay } from "@/lib/actions/parlay.action";
+import {
+  getPickPackageOptions,
+  type PickPackageOption,
+} from "@/lib/actions/package-options.action";
 import { createPlay, createPlays } from "@/lib/actions/play.action";
 import type { SportKey } from "@/lib/constants";
 import { formatOdds } from "@/lib/format";
@@ -55,6 +59,7 @@ function selectionToPlayInput(
   s: ReturnType<typeof useSlipStore>["selections"][number],
   notes?: string,
   notesPublic = true,
+  packageIds: string[] = [],
 ) {
   return {
     sport: s.sport as SportKey,
@@ -65,7 +70,9 @@ function selectionToPlayInput(
     units: s.units,
     notes: notes?.trim() || undefined,
     notesPublic,
+    packageIds,
     eventId: s.eventId,
+    eventLabel: s.eventLabel,
     eventStartsAt: s.eventStartsAt,
     side: s.side,
     line: s.line,
@@ -94,6 +101,18 @@ function UnifiedPickEntryInner() {
   >(null);
   const [acceptedSoFar, setAcceptedSoFar] = useState<AcceptedMove[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [packageOptions, setPackageOptions] = useState<PickPackageOption[]>([]);
+  const [selectedPackageIds, setSelectedPackageIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    void getPickPackageOptions().then((options) => {
+      if (active) setPackageOptions(options);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const dockOdds = useMemo(() => {
     if (selections.length === 0) return null;
@@ -162,7 +181,12 @@ function UnifiedPickEntryInner() {
 
         if (selections.length === 1) {
           const res = await createPlay(
-            selectionToPlayInput(selections[0]!, slipNotes, notesPublic),
+            selectionToPlayInput(
+              selections[0]!,
+              slipNotes,
+              notesPublic,
+              selectedPackageIds,
+            ),
             acceptedMoves,
           );
           if (res.ok) {
@@ -187,7 +211,7 @@ function UnifiedPickEntryInner() {
 
         const res = await createPlays(
           selections.map((s) =>
-            selectionToPlayInput(s, slipNotes, notesPublic),
+            selectionToPlayInput(s, slipNotes, notesPublic, selectedPackageIds),
           ),
           acceptedMoves,
         );
@@ -215,6 +239,7 @@ function UnifiedPickEntryInner() {
       const res = await createParlay(
         {
           units: parlayUnits,
+          packageIds: selectedPackageIds,
           legs: selections.map((s) => toSlipLeg(s)),
         },
         acceptedMoves,
@@ -292,7 +317,12 @@ function UnifiedPickEntryInner() {
       if (mode === "singles") {
         if (remaining.length === 1) {
           const res = await createPlay(
-            selectionToPlayInput(remaining[0]!, slipNotes),
+            selectionToPlayInput(
+              remaining[0]!,
+              slipNotes,
+              notesPublic,
+              selectedPackageIds,
+            ),
             acceptedSoFar,
           );
           if (res.ok) {
@@ -315,7 +345,9 @@ function UnifiedPickEntryInner() {
           return;
         }
         const res = await createPlays(
-          remaining.map((s) => selectionToPlayInput(s, slipNotes)),
+          remaining.map((s) =>
+            selectionToPlayInput(s, slipNotes, notesPublic, selectedPackageIds),
+          ),
           acceptedSoFar,
         );
         if (res.ok) {
@@ -379,6 +411,9 @@ function UnifiedPickEntryInner() {
         setAcceptedSoFar([]);
       }}
       onDismissUnavailable={() => setUnavailableLines(null)}
+      packageOptions={packageOptions}
+      selectedPackageIds={selectedPackageIds}
+      onPackageSelectionChange={setSelectedPackageIds}
     />
   );
 

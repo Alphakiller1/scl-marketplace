@@ -585,7 +585,7 @@ export default async function AdminCapperDetailPage({
           <SectionHeader
             icon={Scale}
             title="Policy Acceptance History"
-            subtitle="Most recent recorded terms versions"
+            subtitle="Auditable versions of every required policy acknowledgement"
           />
           {capper.termsAcceptances.length ? (
             <ol className="border-border divide-border divide-y overflow-hidden rounded-xl border">
@@ -594,9 +594,26 @@ export default async function AdminCapperDetailPage({
                   key={acceptance.id}
                   className="bg-card flex flex-wrap items-center justify-between gap-2 p-4"
                 >
-                  <span className="font-semibold">
-                    Version {acceptance.policyVersion}
-                  </span>
+                  <div className="min-w-0">
+                    <p className="font-semibold">
+                      Bundle {acceptance.policyVersion}
+                    </p>
+                    {acceptance.termsVersion ? (
+                      <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                        Terms {acceptance.termsVersion} · Privacy{" "}
+                        {acceptance.privacyVersion} · Responsible Gaming{" "}
+                        {acceptance.responsibleGamingVersion} · Refund{" "}
+                        {acceptance.refundVersion}
+                        {acceptance.acceptanceSource
+                          ? ` · ${acceptance.acceptanceSource.toLowerCase()}`
+                          : ""}
+                      </p>
+                    ) : (
+                      <p className="text-muted-foreground mt-1 text-xs">
+                        Legacy acceptance record
+                      </p>
+                    )}
+                  </div>
                   <time className="text-muted-foreground text-sm tabular-nums">
                     {dateTime.format(acceptance.acceptedAt)}
                   </time>

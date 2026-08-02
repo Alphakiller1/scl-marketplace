@@ -52,7 +52,7 @@ export function VerificationHelpLink({ className }: { className?: string }) {
             </span>
             <div className="min-w-0 space-y-1">
               <p className="text-foreground text-sm font-semibold">
-                Board-verified pick
+                Odds-verified pick
               </p>
               <p className="text-muted-foreground text-xs leading-relaxed">
                 {VERIFICATION_TIER_META.VERIFIED.description}

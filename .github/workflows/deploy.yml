@@ -96,3 +96,41 @@ jobs:
           URL=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
           echo "Deployed: $URL"
           echo "### ✅ Production deploy: $URL" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify live release and core routes
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL || 'https://scl-marketplace.vercel.app' }}
+        run: |
+          echo "Waiting for $PRODUCTION_URL to serve $EXPECTED_SHA"
+          ready=false
+          for attempt in $(seq 1 60); do
+            code=$(curl -L -sS --max-time 20 -o /tmp/scl-health.json -w "%{http_code}" \
+              "$PRODUCTION_URL/api/health" || true)
+            if [ "$code" = "200" ] && node -e '
+              const health = require("/tmp/scl-health.json");
+              const expected = process.argv[1];
+              if (health.status !== "ok") process.exit(1);
+              if (health.release !== expected) process.exit(1);
+            ' "$EXPECTED_SHA"; then
+              ready=true
+              break
+            fi
+            echo "Attempt $attempt/60: HTTP $code; production has not reached the expected healthy release yet."
+            sleep 10
+          done
+
+          if [ "$ready" != "true" ]; then
+            echo "Production health verification failed."
+            cat /tmp/scl-health.json || true
+            exit 1
+          fi
+
+          for path in / /leaderboard /packages /verification /support /login; do
+            code=$(curl -L -sS --max-time 30 -o /dev/null -w "%{http_code}" "$PRODUCTION_URL$path")
+            echo "$path -> HTTP $code"
+            test "$code" = "200"
+          done
+
+          echo "### ✅ Live release verified" >> "$GITHUB_STEP_SUMMARY"
+          echo "Commit \`$EXPECTED_SHA\` is healthy and all core public routes returned HTTP 200." >> "$GITHUB_STEP_SUMMARY"

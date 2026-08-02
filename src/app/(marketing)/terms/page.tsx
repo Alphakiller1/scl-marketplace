@@ -2,7 +2,7 @@ import { LegalPage } from "@/components/legal-page";
 import { PolicyText } from "@/components/policy-text";
 import { getPublicPolicyDocument } from "@/lib/queries/policies";
 
-export const metadata = { title: "Terms & Conditions" };
+export const metadata = { title: "Terms of Service" };
 
 export default async function TermsPage() {
   const policy = await getPublicPolicyDocument("TERMS");

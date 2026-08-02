@@ -1,10 +1,9 @@
-import { ShieldCheck } from "lucide-react";
+import { BadgeCheck, ShieldCheck } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 /**
- * Short persistent legend clarifying pick trust tiers (authenticity, not result).
- * Account identity uses a separate pink "Verified" badge — do not conflate the two.
+ * Shared owner-approved explanation of the two verification stages.
  */
 export function VerificationLegend({ className }: { className?: string }) {
   return (
@@ -20,18 +19,22 @@ export function VerificationLegend({ className }: { className?: string }) {
           aria-hidden
         />
         <span>
-          <span className="text-foreground font-medium">Board-verified</span> —
-          odds captured pre-game &amp; checked against the live market
+          <span className="text-foreground font-medium">Odds Verification</span>
+          {" — "}odds synchronized across multiple sportsbooks so bettors can
+          shop lines and trust their authenticity
         </span>
       </span>
       <span className="inline-flex items-center gap-1.5">
-        <span
-          className="border-border size-3 shrink-0 rounded-full border"
+        <BadgeCheck
+          className="size-3.5 text-[color:var(--scl-blue)]"
           aria-hidden
         />
         <span>
-          <span className="text-foreground font-medium">Logged</span> —
-          historical entry not board-checked
+          <span className="text-foreground font-medium">
+            Record Verification
+          </span>
+          {" — "}pick results automatically graded by Sports Cappers
+          Leaderboard, independently from the capper
         </span>
       </span>
     </p>

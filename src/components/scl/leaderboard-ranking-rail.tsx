@@ -1,7 +1,6 @@
-import { Info, ShieldCheck } from "lucide-react";
+import { Info } from "lucide-react";
 
 import {
-  HOW_RANKING_VERIFIED_NOTE,
   HOW_RANKING_WORKS_BULLETS,
   HOW_RANKING_WORKS_TITLE,
 } from "@/lib/cold-start-copy";
@@ -42,19 +41,6 @@ export function LeaderboardRankingRail({ className }: { className?: string }) {
         </p>
         <p className="text-muted-foreground text-xs leading-snug">
           {MATURITY_LEGEND}
-        </p>
-      </div>
-
-      <div className="border-border space-y-1 border-t pt-3">
-        <p className="scl-eyebrow flex items-center gap-1 text-[color:var(--scl-muted-label)]">
-          <ShieldCheck
-            className="size-3 text-[color:var(--scl-pink)]"
-            aria-hidden
-          />
-          Verified share
-        </p>
-        <p className="text-muted-foreground text-xs leading-snug">
-          {HOW_RANKING_VERIFIED_NOTE}
         </p>
       </div>
     </aside>

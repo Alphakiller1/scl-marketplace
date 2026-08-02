@@ -81,26 +81,26 @@ export const LEAGUE_ACTION_CATEGORY_EMPTY: Record<
   LeagueActionCategoryKey,
   string
 > = {
-  singles: "No board-verified singles tracked in the last 14 days.",
-  parlays: "No board-verified parlays tracked in the last 14 days.",
-  props: "No board-verified player props tracked in the last 14 days.",
-  sides: "No board-verified sides tracked in the last 14 days.",
-  totals: "No board-verified totals tracked in the last 14 days.",
-  futures: "No board-verified futures tracked in the last 14 days.",
+  singles: "No Odds-Verified singles tracked in the last 14 days.",
+  parlays: "No Odds-Verified parlays tracked in the last 14 days.",
+  props: "No Odds-Verified player props tracked in the last 14 days.",
+  sides: "No Odds-Verified sides tracked in the last 14 days.",
+  totals: "No Odds-Verified totals tracked in the last 14 days.",
+  futures: "No Odds-Verified futures tracked in the last 14 days.",
 };
 
 /** Matches leaderboard public-surface eligibility tone (ranked + building). */
 export const PLATFORM_REPORT_ELIGIBILITY_FOOTNOTE =
-  "Board-Verified Picks From Publicly Listed Cappers, Including Ranked Cappers And Cappers Building A Record. Test Accounts Are Excluded. ROI And Units Appear Only After The Minimum Graded Sample Is Met.";
+  "Odds-Verified Picks From Publicly Listed Cappers, Including Ranked Cappers And Cappers Building A Record. Test Accounts Are Excluded. ROI And Units Appear Only After The Minimum Graded Sample Is Met.";
 
 /** Homepage section subtitle (GPT-locked voice — no “most successful” hype). */
 export function platformReportSubtitle(windowDays: number): string {
-  return `Board-Verified Bet Types From Publicly Listed Cappers — Last ${windowDays} Days.`;
+  return `Odds-Verified Bet Types From Publicly Listed Cappers — Last ${windowDays} Days.`;
 }
 
 /** Metric label for categories with tracked volume (singular-aware). */
 export function platformReportSegmentLabel(n: number): string {
-  return n === 1 ? "Active Segment" : "Active Segments";
+  return n === 1 ? "Active Bet Type" : "Active Bet Types";
 }
 
 /** Metric label for tracked leagues (singular-aware). */

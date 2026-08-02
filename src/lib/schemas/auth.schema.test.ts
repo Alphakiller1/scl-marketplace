@@ -27,11 +27,36 @@ test("signup normalizes public handles and email addresses", () => {
     email: " CAPPPER@EXAMPLE.COM ",
     password: "long-passphrase",
     confirmPassword: "long-passphrase",
-    acceptTerms: true,
+    confirmEligibility: true,
+    acceptPolicies: true,
+    acknowledgeResponsibleGaming: true,
   });
 
   assert.equal(parsed.username, "chase_analytics");
   assert.equal(parsed.email, "cappper@example.com");
+});
+
+test("signup requires every legal and responsible-gaming acknowledgement", () => {
+  const base = {
+    username: "policy_ready",
+    email: "policy@example.com",
+    password: "long-passphrase",
+    confirmPassword: "long-passphrase",
+    confirmEligibility: true,
+    acceptPolicies: true,
+    acknowledgeResponsibleGaming: true,
+  };
+
+  for (const field of [
+    "confirmEligibility",
+    "acceptPolicies",
+    "acknowledgeResponsibleGaming",
+  ] as const) {
+    assert.equal(
+      signupSchema.safeParse({ ...base, [field]: false }).success,
+      false,
+    );
+  }
 });
 
 test("password reset requires a valid token and matching passwords", () => {

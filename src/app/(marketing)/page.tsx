@@ -37,7 +37,7 @@ import { getPlatformClvSummary } from "@/lib/queries/platform-clv";
 
 export const revalidate = 60;
 
-const HOME_TITLE = "SCL — Sports Capper Leaderboard";
+const HOME_TITLE = "SCL — Sports Cappers Leaderboard";
 const HOME_DESCRIPTION =
   "Inspect verified sports capper records, public picks, timestamps, and leaderboard history. Transparent records for bettors and founding cappers — SCL does not process payments.";
 
@@ -73,7 +73,7 @@ export async function generateMetadata(): Promise<Metadata> {
           url: ogImage,
           width: 1200,
           height: 630,
-          alt: "SCL Sports Capper Leaderboard",
+          alt: "SCL Sports Cappers Leaderboard",
         },
       ],
     },
@@ -149,7 +149,7 @@ async function HomeTopBoard() {
     getLeaderboardResult({ verifiedOnly: false }),
     getFeaturedGradedPlay(),
   ]);
-  // Sorted by net units rather than board-verified share. Verified share only
+  // Sorted by net units rather than Odds-Verified share. Verification share only
   // exists for picks SCL captured pre-game against a live market, which a
   // record imported from another platform can never have — sorting by it put
   // every carried-over capper at zero and emptied the list.
@@ -208,7 +208,7 @@ async function HomePlatformClv() {
       <SectionHeader
         icon={Activity}
         title="Platform CLV"
-        subtitle="Pricing Vs Close On Board-Verified Picks With A Stored Closing Line"
+        subtitle="Pricing Vs Close On Odds-Verified Picks With A Stored Closing Line"
         href="/leaderboard?sort=clv"
       />
       <PlatformClvSummary summary={summary} failed={failed} />

@@ -46,7 +46,7 @@ export function DiscoverLaneCard({ entry }: { entry: DiscoverLaneEntry }) {
   } else if (primaryKind === "verifiedShare" && primaryValue != null) {
     primaryDisplay = `${Math.round(primaryValue)}%`;
     primaryClass = "text-foreground";
-    primaryAria = `${Math.round(primaryValue)} percent board-verified`;
+    primaryAria = `${Math.round(primaryValue)} percent Odds-Verified`;
   }
 
   return (

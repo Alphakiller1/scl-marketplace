@@ -37,6 +37,7 @@ export type OddsPick = {
   oddsAmerican: number;
   // Event binding (C2) — makes the pick eligible for the strict/verified path.
   eventId: string;
+  eventLabel?: string;
   eventStartsAt: string; // ISO commence time
   side: string;
   /** SCL sport key from the board event (for createPlay / parlay legs). */
@@ -575,6 +576,7 @@ export function EventDetail({
             selection: s.selection,
             oddsAmerican: priced.oddsAmerican,
             eventId: event.id,
+            eventLabel: `${event.away} @ ${event.home}`,
             eventStartsAt: event.commenceTime,
             side: s.side,
             sport: event.sport,

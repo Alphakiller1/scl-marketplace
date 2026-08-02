@@ -143,6 +143,18 @@ function ScopeForm({
         </label>
 
         <label className="min-w-0">
+          <span className="sr-only">Sort direction</span>
+          <select
+            name="dir"
+            defaultValue={filters.direction ?? "desc"}
+            className={cn(FIELD_CLASS, "min-w-[8rem]")}
+          >
+            <option value="desc">High to low</option>
+            <option value="asc">Low to high</option>
+          </select>
+        </label>
+
+        <label className="min-w-0">
           <span className="sr-only">Rank by</span>
           <select
             name="sort"
@@ -173,18 +185,6 @@ function ScopeForm({
                 {count === 0 ? "Any sample" : `${count}+ picks`}
               </option>
             ))}
-          </select>
-        </label>
-
-        <label className="min-w-0">
-          <span className="sr-only">Record trust</span>
-          <select
-            name="record"
-            defaultValue={filters.verifiedOnly ? "verified" : "all"}
-            className={cn(FIELD_CLASS, "min-w-[8rem]")}
-          >
-            <option value="verified">Verified only</option>
-            <option value="all">All records</option>
           </select>
         </label>
 

@@ -11,8 +11,10 @@ import {
 
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/card";
+import { AdminReleaseReadiness } from "@/components/scl/admin-release-readiness";
 import { StatBlock } from "@/components/scl/stat";
 import { SectionHeader } from "@/components/scl/section";
+import { getReleaseReadinessReport } from "@/lib/queries/release-readiness";
 import { countStorefrontQueue } from "@/lib/queries/store";
 
 export const metadata = { title: "Admin" };
@@ -56,12 +58,14 @@ const ADMIN_TOOLS = [
 ];
 
 export default async function AdminOverviewPage() {
-  const [cappers, plays, pending, storeQueue] = await Promise.all([
-    prisma.capperProfile.count(),
-    prisma.play.count(),
-    prisma.play.count({ where: { outcome: "PENDING" } }),
-    countStorefrontQueue(),
-  ]);
+  const [cappers, plays, pending, storeQueue, releaseReadiness] =
+    await Promise.all([
+      prisma.capperProfile.count(),
+      prisma.play.count(),
+      prisma.play.count({ where: { outcome: "PENDING" } }),
+      countStorefrontQueue(),
+      getReleaseReadinessReport(),
+    ]);
 
   return (
     <div className="space-y-8">
@@ -94,6 +98,11 @@ export default async function AdminOverviewPage() {
           />
         </div>
       </Card>
+
+      <AdminReleaseReadiness
+        checks={releaseReadiness.checks}
+        summary={releaseReadiness.summary}
+      />
 
       <section className="space-y-4">
         <SectionHeader

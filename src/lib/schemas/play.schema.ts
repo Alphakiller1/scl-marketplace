@@ -33,11 +33,13 @@ export const playSchema = z.object({
     ),
   notes: optionalText(1000),
   notesPublic: z.boolean().optional().default(true),
+  packageIds: z.array(z.string().min(1)).max(10).optional().default([]),
 
   // Pick-integrity binding
   // supplies them for the strict/verified path; a legacy free-text pick omits them and lands as
   // SELF_REPORTED. The server never trusts these — it re-derives the lock and re-fetches odds.
   eventId: optionalText(64),
+  eventLabel: optionalText(160),
   eventStartsAt: z
     .string()
     .datetime({ offset: true })

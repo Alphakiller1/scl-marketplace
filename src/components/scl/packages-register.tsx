@@ -1,17 +1,16 @@
+"use client";
+
 import Link from "next/link";
-import { ArrowUpRight, ShieldCheck } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowUpRight, Search, ShieldCheck } from "lucide-react";
 
 import { CapperAvatar } from "@/components/scl/capper-avatar";
 import { ProviderBadge } from "@/components/scl/provider-badge";
 import { SampleMaturityMeter } from "@/components/scl/sample-maturity-meter";
-import { VerifiedShareMeter } from "@/components/scl/verified-share-meter";
 import { Button } from "@/components/ui/button";
 import { formatRecord, formatRoi, formatUnits } from "@/lib/format";
 import type { CapperSummary } from "@/lib/mock";
-import {
-  indexPackageEvidence,
-  type PackageEvidence,
-} from "@/lib/package-register";
+import type { PackageEvidence } from "@/lib/package-register";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
 import type { PublicMarketplacePackage } from "@/lib/queries/store";
 import { packageCtaLabel } from "@/lib/store-connection";
@@ -91,27 +90,17 @@ function EvidenceStrip({
 
   return (
     <div>
-      <div className="grid grid-cols-3 gap-x-3 gap-y-4 lg:grid-cols-[0.75fr_0.75fr_0.75fr_1.35fr_1.2fr] lg:items-end">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-4 lg:grid-cols-4 lg:items-end">
         <EvidenceMetric label="Record" evidence={evidence} />
         <EvidenceMetric label="ROI" evidence={evidence} />
         <EvidenceMetric label="Units" evidence={evidence} />
-        <div className="col-span-2 min-w-0 lg:col-span-1">
+        <div className="min-w-0">
           <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
             Sample
           </p>
           <SampleMaturityMeter
             graded={evidence?.settledPicks ?? 0}
             compact
-            className="mt-1 justify-start"
-          />
-        </div>
-        <div className="min-w-0">
-          <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
-            Verified
-          </p>
-          <VerifiedShareMeter
-            pct={evidence?.verifiedShare}
-            showZero={Boolean(evidence && evidence.settledPicks > 0)}
             className="mt-1 justify-start"
           />
         </div>
@@ -174,7 +163,7 @@ function ExternalStorefront({ pkg }: { pkg: PublicMarketplacePackage }) {
           External price
         </p>
         <p className="nums text-foreground mt-0.5 text-sm font-semibold tabular-nums">
-          {pkg.priceLabel ?? "Shown by provider"}
+          {pkg.priceLabel ?? "See provider for current price"}
         </p>
       </div>
       <Button
@@ -204,23 +193,55 @@ function ExternalStorefront({ pkg }: { pkg: PublicMarketplacePackage }) {
 export function PackagesRegister({
   packages,
   cappers,
+  packageEvidence,
   evidenceFailed = false,
 }: {
   packages: PublicMarketplacePackage[];
   cappers: CapperSummary[];
+  packageEvidence: Record<string, PackageEvidence | null>;
   evidenceFailed?: boolean;
 }) {
-  const cappersById = new Map(cappers.map((capper) => [capper.id, capper]));
-  const evidenceById = indexPackageEvidence(cappers);
-  const rows: RegisterRow[] = packages.map((pkg) => ({
-    pkg,
-    capper: cappersById.get(pkg.capperId) ?? null,
-    evidence: evidenceById.get(pkg.capperId) ?? null,
-  }));
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<"featured" | "name" | "units" | "roi">(
+    "units",
+  );
+  const rows = useMemo(() => {
+    const cappersById = new Map(cappers.map((capper) => [capper.id, capper]));
+    const normalized = query.trim().toLowerCase().replace(/^@/, "");
+    const next: RegisterRow[] = packages
+      .map((pkg) => ({
+        pkg,
+        capper: cappersById.get(pkg.capperId) ?? null,
+        evidence: packageEvidence[pkg.id] ?? null,
+      }))
+      .filter((row) => {
+        if (!normalized) return true;
+        return [row.pkg.capperHandle, row.pkg.capperName, row.pkg.title].some(
+          (value) => value.toLowerCase().includes(normalized),
+        );
+      });
+
+    if (sort === "name") {
+      next.sort((a, b) => a.pkg.capperHandle.localeCompare(b.pkg.capperHandle));
+    } else if (sort === "units") {
+      next.sort(
+        (a, b) =>
+          (b.evidence?.units ?? Number.NEGATIVE_INFINITY) -
+          (a.evidence?.units ?? Number.NEGATIVE_INFINITY),
+      );
+    } else if (sort === "roi") {
+      next.sort(
+        (a, b) =>
+          (b.evidence?.roi ?? Number.NEGATIVE_INFINITY) -
+          (a.evidence?.roi ?? Number.NEGATIVE_INFINITY),
+      );
+    }
+    return next;
+  }, [cappers, packageEvidence, packages, query, sort]);
 
   return (
     <section className="border-border mt-6 border-y" aria-label="Public offers">
-      <div className="bg-surface-2 border-border flex flex-col gap-2 border-b px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+      <div className="bg-surface-2 border-border flex flex-col gap-3 border-b px-3 py-3 sm:px-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex items-center gap-2">
           <ShieldCheck
             className="size-4 text-[color:var(--scl-pink)]"
@@ -230,84 +251,122 @@ export function PackagesRegister({
             {rows.length} public offer{rows.length === 1 ? "" : "s"}
           </p>
         </div>
-        <p className="text-muted-foreground text-xs leading-relaxed">
-          Evidence scope: all-time public record
-        </p>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+          <label className="min-w-0">
+            <span className="scl-eyebrow mb-1 block">
+              Find a capper or offer
+            </span>
+            <span className="border-input bg-background flex min-h-10 items-center gap-2 rounded-md border px-3">
+              <Search className="text-muted-foreground size-4" aria-hidden />
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search cappers"
+                className="min-w-0 bg-transparent text-base outline-none sm:w-48 sm:text-sm"
+              />
+            </span>
+          </label>
+          <label>
+            <span className="scl-eyebrow mb-1 block">Sort</span>
+            <select
+              value={sort}
+              onChange={(event) => setSort(event.target.value as typeof sort)}
+              className="border-input bg-background min-h-10 rounded-md border px-3 text-base sm:text-sm"
+            >
+              <option value="units">Package units</option>
+              <option value="roi">Package ROI</option>
+              <option value="featured">Featured order</option>
+              <option value="name">Capper name</option>
+            </select>
+          </label>
+        </div>
       </div>
 
-      <div className="hidden lg:block">
-        <table className="w-full table-fixed border-collapse">
-          <caption className="sr-only">
-            Active external offers with each capper&apos;s all-time public
-            evidence
-          </caption>
-          <colgroup>
-            <col className="w-[16%]" />
-            <col className="w-[44%]" />
-            <col className="w-[25%]" />
-            <col className="w-[15%]" />
-          </colgroup>
-          <thead>
-            <tr className="border-border bg-background border-b">
-              {["Capper", "Public record", "Offer", "External storefront"].map(
-                (label) => (
-                  <th
-                    key={label}
-                    scope="col"
-                    className="scl-eyebrow px-3 py-3 text-left text-[color:var(--scl-muted-data)] first:pl-4 last:pr-4"
+      {rows.length === 0 ? (
+        <p className="text-muted-foreground px-4 py-10 text-center text-sm">
+          No public offers match this search.
+        </p>
+      ) : (
+        <>
+          <div className="hidden lg:block">
+            <table className="w-full table-fixed border-collapse">
+              <caption className="sr-only">
+                Active external offers with performance from picks attributed to
+                each package
+              </caption>
+              <colgroup>
+                <col className="w-[16%]" />
+                <col className="w-[44%]" />
+                <col className="w-[25%]" />
+                <col className="w-[15%]" />
+              </colgroup>
+              <thead>
+                <tr className="border-border bg-background border-b">
+                  {[
+                    "Capper",
+                    "Package record",
+                    "Offer",
+                    "External storefront",
+                  ].map((label) => (
+                    <th
+                      key={label}
+                      scope="col"
+                      className="scl-eyebrow px-3 py-3 text-left text-[color:var(--scl-muted-data)] first:pl-4 last:pr-4"
+                    >
+                      {label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr
+                    key={row.pkg.id}
+                    className="border-border border-b last:border-b-0"
                   >
-                    {label}
-                  </th>
-                ),
-              )}
-            </tr>
-          </thead>
-          <tbody>
+                    <td className="px-3 py-5 pl-4 align-top">
+                      <CapperCell row={row} />
+                    </td>
+                    <td className="px-3 py-5 align-top">
+                      <EvidenceStrip
+                        evidence={row.evidence}
+                        unavailable={evidenceFailed}
+                      />
+                    </td>
+                    <td className="px-3 py-5 align-top">
+                      <OfferDetails pkg={row.pkg} />
+                    </td>
+                    <td className="px-3 py-5 pr-4 align-top">
+                      <ExternalStorefront pkg={row.pkg} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="divide-border divide-y lg:hidden">
             {rows.map((row) => (
-              <tr
-                key={row.pkg.id}
-                className="border-border border-b last:border-b-0"
-              >
-                <td className="px-3 py-5 pl-4 align-top">
-                  <CapperCell row={row} />
-                </td>
-                <td className="px-3 py-5 align-top">
+              <article key={row.pkg.id} className="px-3 py-5 sm:px-4">
+                <CapperCell row={row} />
+                <div className="border-border mt-4 border-y py-4">
                   <EvidenceStrip
                     evidence={row.evidence}
                     unavailable={evidenceFailed}
                   />
-                </td>
-                <td className="px-3 py-5 align-top">
+                </div>
+                <div className="mt-4">
                   <OfferDetails pkg={row.pkg} />
-                </td>
-                <td className="px-3 py-5 pr-4 align-top">
+                </div>
+                <div className="mt-4">
                   <ExternalStorefront pkg={row.pkg} />
-                </td>
-              </tr>
+                </div>
+              </article>
             ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="divide-border divide-y lg:hidden">
-        {rows.map((row) => (
-          <article key={row.pkg.id} className="px-3 py-5 sm:px-4">
-            <CapperCell row={row} />
-            <div className="border-border mt-4 border-y py-4">
-              <EvidenceStrip
-                evidence={row.evidence}
-                unavailable={evidenceFailed}
-              />
-            </div>
-            <div className="mt-4">
-              <OfferDetails pkg={row.pkg} />
-            </div>
-            <div className="mt-4">
-              <ExternalStorefront pkg={row.pkg} />
-            </div>
-          </article>
-        ))}
-      </div>
+          </div>
+        </>
+      )}
     </section>
   );
 }

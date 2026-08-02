@@ -148,7 +148,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
               </p>
             </div>
 
-            <Field htmlFor="username" label="SCL Handle">
+            <Field htmlFor="username" label="SCL Username">
               <Input
                 id="username"
                 value={handleLabel || `@${username}`}

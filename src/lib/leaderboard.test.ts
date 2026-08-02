@@ -30,6 +30,7 @@ test("leaderboard filters reject unsupported query values", () => {
       sport: "ALL",
       window: "all",
       sort: "units",
+      direction: "desc",
       minPicks: 0,
       verifiedOnly: false,
       search: "edge",
@@ -55,8 +56,24 @@ test("leaderboard filters accept clv sort and limit", () => {
   assert.equal(parseLeaderboardFilters({ sort: "clv" }).sort, "clv");
   assert.equal(parseLeaderboardFilters({ limit: "20" }).limit, 20);
   assert.equal(parseLeaderboardFilters({ sort: "sample" }).sort, "sample");
-  assert.equal(parseLeaderboardFilters({ sort: "verified" }).sort, "verified");
+  assert.equal(parseLeaderboardFilters({ sort: "verified" }).sort, "units");
   assert.equal(parseLeaderboardFilters({ sort: "form" }).sort, "form");
+  assert.equal(parseLeaderboardFilters({ dir: "asc" }).direction, "asc");
+});
+
+test("sortLeaderboard supports ascending metric order", () => {
+  const sorted = sortLeaderboard(
+    [
+      { id: "a", name: "A", units: 7, settledPicks: 12 } as CapperSummary,
+      { id: "b", name: "B", units: -2, settledPicks: 12 } as CapperSummary,
+    ],
+    "units",
+    "asc",
+  );
+  assert.deepEqual(
+    sorted.map((capper) => capper.id),
+    ["b", "a"],
+  );
 });
 
 test("sortLeaderboard ranks by avgClv when sort=clv", () => {
@@ -74,7 +91,7 @@ test("sortLeaderboard ranks by avgClv when sort=clv", () => {
   );
 });
 
-test("sortLeaderboard ranks by sample / verified / form", () => {
+test("sortLeaderboard ranks by sample and form", () => {
   const sortedSample = sortLeaderboard(
     [
       { id: "a", name: "A", settledPicks: 12 } as CapperSummary,
@@ -84,28 +101,6 @@ test("sortLeaderboard ranks by sample / verified / form", () => {
   );
   assert.deepEqual(
     sortedSample.map((c) => c.id),
-    ["b", "a"],
-  );
-
-  const sortedVerified = sortLeaderboard(
-    [
-      {
-        id: "a",
-        name: "A",
-        verifiedShare: 40,
-        settledPicks: 12,
-      } as CapperSummary,
-      {
-        id: "b",
-        name: "B",
-        verifiedShare: 90,
-        settledPicks: 12,
-      } as CapperSummary,
-    ],
-    "verified",
-  );
-  assert.deepEqual(
-    sortedVerified.map((c) => c.id),
     ["b", "a"],
   );
 
@@ -209,14 +204,14 @@ test("below-minimum-sample cappers are not ranking-eligible", () => {
   );
 });
 
-test("net-negative cappers are not ranking-eligible", () => {
+test("net-negative cappers remain ranking-eligible once the sample is met", () => {
   const filters = parseLeaderboardFilters({ minPicks: "10" });
   assert.equal(
     isLeaderboardEligible(
       { settledPicks: 20, units: -0.01, roi: -0.1 } as CapperSummary,
       filters,
     ),
-    false,
+    true,
   );
   assert.equal(
     isLeaderboardEligible(
@@ -239,14 +234,14 @@ test("isBuildingARecord agrees with the leaderboard partition gate", () => {
   // Higher threshold matches leaderboard min-sample filter.
   assert.equal(isBuildingARecord({ settledPicks: 9 }, 10), true);
   assert.equal(isBuildingARecord({ settledPicks: 10 }, 10), false);
-  // Net-negative cappers are also unranked once performance is known.
+  // Performance affects position, not whether a sufficiently mature record exists.
   assert.equal(
     isBuildingARecord({ settledPicks: 10, units: -0.25, roi: -2 }, 10),
-    true,
+    false,
   );
 });
 
-test("partitionLeaderboard ranks non-negative eligible cappers and clears unranked places", () => {
+test("partitionLeaderboard ranks every sample-eligible capper and clears unranked places", () => {
   const filters = parseLeaderboardFilters({ minPicks: "10", sort: "units" });
   const cappers = [
     {
@@ -304,6 +299,7 @@ test("partitionLeaderboard ranks non-negative eligible cappers and clears unrank
     [
       { id: "d", rank: 1 },
       { id: "a", rank: 2 },
+      { id: "e", rank: 3 },
     ],
   );
   assert.deepEqual(
@@ -311,7 +307,6 @@ test("partitionLeaderboard ranks non-negative eligible cappers and clears unrank
     [
       { id: "c", rank: 0 },
       { id: "b", rank: 0 },
-      { id: "e", rank: 0 },
     ],
   );
 });

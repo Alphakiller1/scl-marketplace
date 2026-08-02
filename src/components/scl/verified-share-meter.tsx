@@ -43,7 +43,7 @@ export function VerifiedShareMeter({
         compact ? "w-full min-w-0" : "min-w-[4.5rem]",
         className,
       )}
-      title={`${rounded}% of this capper's picks were board-verified.`}
+      title={`${rounded}% of this capper's picks were Odds-Verified.`}
     >
       <div className="flex min-w-0 items-center gap-0.5">
         <ShieldCheck
@@ -52,7 +52,7 @@ export function VerifiedShareMeter({
         />
         <span
           className="scl-data text-foreground text-sm font-semibold tabular-nums"
-          aria-label={`${rounded} percent board-verified`}
+          aria-label={`${rounded} percent Odds-Verified`}
         >
           {rounded}%
         </span>
@@ -64,7 +64,7 @@ export function VerifiedShareMeter({
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={fill}
-          aria-label={`Verified share ${rounded} percent`}
+          aria-label={`Odds-Verified share ${rounded} percent`}
         >
           <div
             className="h-full rounded-full bg-[color:var(--scl-pink)]"

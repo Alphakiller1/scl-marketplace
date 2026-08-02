@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { ChevronDown, Trophy } from "lucide-react";
+import { ArrowUpRight, ChevronDown, Trophy } from "lucide-react";
 
 import { CapperAvatar } from "@/components/scl/capper-avatar";
 import { CapperIdentityLabel } from "@/components/scl/capper-identity-label";
@@ -16,9 +16,7 @@ import { RankBadge } from "@/components/scl/rank-badge";
 import { SampleMaturityMeter } from "@/components/scl/sample-maturity-meter";
 import { EmptyState } from "@/components/scl/states";
 import { StatValue } from "@/components/scl/stat-value";
-import { VerifiedShareMeter } from "@/components/scl/verified-share-meter";
 import { LEADERBOARD_TABLE_MIN_WIDTH } from "@/components/scl/leaderboard-table";
-import { useCompareTray } from "@/lib/compare-store";
 import { formatRecord, formatRoi, formatUnits } from "@/lib/format";
 import {
   LEADERBOARD_LIMITS,
@@ -38,7 +36,7 @@ const METRIC_SORTS: {
   align?: "left" | "right";
   thClassName?: string;
 }[] = [
-  { key: "winPct", label: "Record", align: "right" },
+  { key: "winPct", label: "Win%", align: "right" },
   { key: "roi", label: "ROI", align: "right" },
   { key: "units", label: "Units", align: "right" },
   {
@@ -46,12 +44,6 @@ const METRIC_SORTS: {
     label: "Sample",
     align: "right",
     thClassName: "min-w-[5.75rem]",
-  },
-  {
-    key: "verified",
-    label: "Verified",
-    align: "right",
-    thClassName: "min-w-[6.5rem]",
   },
   { key: "form", label: "Form", align: "right" },
 ];
@@ -89,7 +81,7 @@ export function Leaderboard({
 
   const ordered = useMemo(() => {
     if (!filters) return cappers;
-    return sortLeaderboard(cappers, activeSort);
+    return sortLeaderboard(cappers, activeSort, filters.direction ?? "desc");
   }, [cappers, filters, activeSort]);
 
   const scopedLimit =
@@ -161,12 +153,6 @@ export function Leaderboard({
           </caption>
           <thead>
             <tr className="text-muted-foreground border-border border-b text-[0.65rem] font-semibold tracking-wide uppercase">
-              <th
-                scope="col"
-                className="w-10 px-1.5 py-2 text-left font-semibold"
-              >
-                <span className="sr-only">Compare</span>
-              </th>
               {/* SortableTh renders its own <th>; wrapping it in another one is
                   invalid HTML and was tripping a hydration error on this page. */}
               {filters ? (
@@ -192,8 +178,17 @@ export function Leaderboard({
               >
                 Capper
               </th>
+              <th
+                scope="col"
+                className="min-w-[8rem] px-1.5 py-2 text-left font-semibold"
+              >
+                Package
+              </th>
               <th scope="col" className="px-1.5 py-2 text-left font-semibold">
                 Sports
+              </th>
+              <th scope="col" className="px-1.5 py-2 text-right font-semibold">
+                Record
               </th>
               {METRIC_SORTS.map((col) => (
                 <SortableTh
@@ -206,6 +201,12 @@ export function Leaderboard({
                   className={col.thClassName}
                 />
               ))}
+              <th
+                scope="col"
+                className="w-14 px-1.5 py-2 text-center font-semibold"
+              >
+                Buy
+              </th>
             </tr>
           </thead>
           <tbody className="divide-border divide-y">
@@ -255,14 +256,20 @@ function SortableTh({
   className?: string;
 }) {
   const active = (activeSort ?? filters?.sort) === sortKey;
+  const direction = filters?.direction ?? "desc";
   const href = filters
-    ? leaderboardHref(filters, { sort: sortKey })
+    ? leaderboardHref(filters, {
+        sort: sortKey,
+        direction: active && direction === "desc" ? "asc" : "desc",
+      })
     : `/leaderboard?sort=${sortKey}`;
 
   return (
     <th
       scope="col"
-      aria-sort={active ? "descending" : "none"}
+      aria-sort={
+        active ? (direction === "asc" ? "ascending" : "descending") : "none"
+      }
       className={cn(
         "px-1.5 py-0 font-semibold",
         align === "right" ? "text-right" : "text-left",
@@ -284,7 +291,10 @@ function SortableTh({
         {label}
         {active ? (
           <ChevronDown
-            className="size-3.5 text-[color:var(--scl-blue)]"
+            className={cn(
+              "size-3.5 text-[color:var(--scl-blue)]",
+              direction === "asc" && "rotate-180",
+            )}
             aria-hidden
           />
         ) : null}
@@ -344,24 +354,8 @@ function LeaderboardTableRow({
   ).slice(0, 3);
   const roiScale = perfScale("roi", capper.roi, { gradedCount: graded });
   const unitsScale = perfScale("units", capper.units, { gradedCount: graded });
-  const { toggle, isSelected, canAdd } = useCompareTray();
-  const selected = isSelected(capper.handle);
-  const compareDisabled = !selected && !canAdd;
-
   return (
     <tr className="hover:bg-surface-2/80 group min-h-[4.5rem]">
-      <td className="px-1.5 py-2 align-middle">
-        <label className="inline-flex size-11 cursor-pointer items-center justify-center rounded-md">
-          <input
-            type="checkbox"
-            className="size-6 accent-[color:var(--scl-blue)]"
-            checked={selected}
-            disabled={compareDisabled}
-            aria-label={`Compare @${capper.handle}`}
-            onChange={() => toggle(capper.handle)}
-          />
-        </label>
-      </td>
       <td className="px-1.5 py-2 align-middle">
         <div className="flex items-center gap-1.5">
           <RankBadge
@@ -396,6 +390,18 @@ function LeaderboardTableRow({
         </div>
       </td>
       <td className="px-1.5 py-2 align-middle">
+        <span
+          className="text-muted-foreground block max-w-36 truncate text-xs"
+          title={capper.publicOffers?.featuredTitle}
+        >
+          {capper.publicOffers
+            ? capper.publicOffers.count > 1
+              ? `${capper.publicOffers.featuredTitle} +${capper.publicOffers.count - 1}`
+              : capper.publicOffers.featuredTitle
+            : "—"}
+        </span>
+      </td>
+      <td className="px-1.5 py-2 align-middle">
         <div className="flex flex-wrap items-center gap-1">
           {sports.map((sport) => (
             <SportTag key={sport} sport={sport} markOnly className="shrink-0" />
@@ -406,6 +412,11 @@ function LeaderboardTableRow({
         <StatValue tone="text" className="text-sm font-semibold tabular-nums">
           {formatRecord(capper.record.w, capper.record.l, capper.record.p)}
         </StatValue>
+      </td>
+      <td className="px-1.5 py-2 text-right align-middle">
+        <span className="scl-data text-sm font-semibold tabular-nums">
+          {capper.winPct.toFixed(1)}%
+        </span>
       </td>
       <td className="px-1.5 py-2 text-right align-middle">
         <span
@@ -434,9 +445,6 @@ function LeaderboardTableRow({
           <SampleMaturityMeter graded={graded} compact />
         </div>
       </td>
-      <td className="min-w-[6.5rem] overflow-hidden px-1.5 py-2 text-right align-middle">
-        <VerifiedShareMeter pct={capper.verifiedShare} compact />
-      </td>
       <td className="px-1.5 py-2 text-right align-middle">
         {capper.recentForm.length ? (
           <div className="flex justify-end">
@@ -444,6 +452,23 @@ function LeaderboardTableRow({
           </div>
         ) : (
           <span className="text-muted-foreground tabular-nums">—</span>
+        )}
+      </td>
+      <td className="px-1.5 py-2 text-center align-middle">
+        {capper.publicOffers ? (
+          <Link
+            href={capper.publicOffers.purchasePath}
+            target="_blank"
+            rel="noopener noreferrer"
+            prefetch={false}
+            className="focus-visible:ring-ring hover:bg-surface-3 inline-flex size-10 items-center justify-center rounded-lg focus-visible:ring-2 focus-visible:outline-none"
+            aria-label={`Buy ${capper.publicOffers.featuredTitle} from @${capper.handle}`}
+            title={`Open ${capper.publicOffers.featuredTitle}`}
+          >
+            <ArrowUpRight className="size-4" aria-hidden />
+          </Link>
+        ) : (
+          <span className="text-muted-foreground">—</span>
         )}
       </td>
     </tr>
@@ -465,10 +490,6 @@ export function LeaderboardMobileCard({
   const graded = capper.settledPicks ?? 0;
   const roiScale = perfScale("roi", capper.roi, { gradedCount: graded });
   const unitsScale = perfScale("units", capper.units, { gradedCount: graded });
-  const { toggle, isSelected, canAdd } = useCompareTray();
-  const selected = isSelected(capper.handle);
-  const compareDisabled = !selected && !canAdd;
-
   if (compact) {
     return (
       <CompactCapperRow
@@ -482,16 +503,6 @@ export function LeaderboardMobileCard({
   return (
     <article className="border-border scl-elevated flex min-h-40 flex-col gap-3 rounded-[14px] border p-3.5">
       <div className="flex items-start gap-3">
-        <label className="-m-2 inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-md">
-          <input
-            type="checkbox"
-            className="size-6 accent-[color:var(--scl-blue)]"
-            checked={selected}
-            disabled={compareDisabled}
-            aria-label={`Compare @${capper.handle}`}
-            onChange={() => toggle(capper.handle)}
-          />
-        </label>
         <div className="flex flex-col items-center gap-0.5">
           <RankBadge rank={rank ?? capper.rank} settledPicks={graded} />
           <RankMovementIndicator delta={capper.rankDelta} />
@@ -526,12 +537,7 @@ export function LeaderboardMobileCard({
           value={formatUnits(capper.units)}
           className={perfToneClass(unitsScale.tone)}
         />
-        <div className="flex flex-col items-center gap-1">
-          <VerifiedShareMeter pct={capper.verifiedShare} />
-          <span className="text-muted-foreground text-[0.7rem] font-medium tracking-wide uppercase">
-            Verified
-          </span>
-        </div>
+        <MobileStat label="Win%" value={`${capper.winPct.toFixed(1)}%`} />
       </div>
       <div className="bg-surface-2 flex min-h-10 items-center justify-between gap-3 rounded-lg px-3 py-2">
         <SampleMaturityMeter graded={graded} compact className="min-w-[4rem]" />
@@ -541,6 +547,20 @@ export function LeaderboardMobileCard({
           <span className="text-muted-foreground text-xs">Form —</span>
         )}
       </div>
+      {capper.publicOffers ? (
+        <Link
+          href={capper.publicOffers.purchasePath}
+          target="_blank"
+          rel="noopener noreferrer"
+          prefetch={false}
+          className="scl-link inline-flex min-h-10 items-center gap-1.5 text-sm font-semibold"
+        >
+          {capper.publicOffers.count > 1
+            ? `View ${capper.publicOffers.count} packages`
+            : "View package"}
+          <ArrowUpRight className="size-4" aria-hidden />
+        </Link>
+      ) : null}
     </article>
   );
 }

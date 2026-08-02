@@ -3,7 +3,10 @@ import { notFound } from "next/navigation";
 import { CapperProfileHeader } from "@/components/scl/capper-profile-header";
 import { CapperStorefront } from "@/components/scl/capper-storefront";
 import { EvidenceBrief } from "@/components/scl/evidence-brief";
+import { ProfileTopPackages } from "@/components/scl/profile-top-packages";
 import type { CapperSummary } from "@/lib/mock";
+import type { PackageEvidence } from "@/lib/package-register";
+import { buildProfileChartSeries } from "@/lib/profile-chart-window";
 import type { PlayView } from "@/lib/queries/plays";
 
 /**
@@ -80,13 +83,30 @@ export default function DesktopProfileCompositionQaPage() {
       trackingPath: "/packages",
       capperName: capper.name,
       capperHandle: capper.handle,
+      promoOffer: null,
     },
   ];
+  const packageEvidence: PackageEvidence = {
+    settledPicks: capper.settledPicks ?? 0,
+    record: capper.record,
+    roi: capper.roi,
+    units: capper.units,
+    verifiedShare: null,
+    provisional: false,
+  };
+  const packageChart = buildProfileChartSeries(
+    plays,
+    new Date(Date.UTC(2026, 6, 18)),
+  );
 
   return (
     <div className="overflow-x-hidden pb-6 sm:pb-8" data-visual-mode="proof">
       <CapperProfileHeader capper={capper} />
       <div className="mx-auto mt-4 max-w-[1400px] px-4 sm:px-6 lg:px-8">
+        <ProfileTopPackages
+          packages={[{ pkg: packages[0], evidence: packageEvidence }]}
+          totalCount={1}
+        />
         <p className="text-muted-foreground mb-3 text-xs tracking-[0.08em] uppercase">
           QA fixture · desktop profile composition
         </p>
@@ -94,6 +114,16 @@ export default function DesktopProfileCompositionQaPage() {
           capper={capper}
           plays={plays}
           avgClv={1.2}
+          packageInsights={[
+            {
+              id: packages[0].id,
+              title: packages[0].title,
+              evidence: packageEvidence,
+              chartSeries: packageChart,
+              chartSeriesBySport: { MLB: packageChart },
+              sports: ["MLB"],
+            },
+          ]}
           emptyName={capper.name}
         />
         <div className="border-border mt-8 border-t pt-6">
