@@ -422,11 +422,9 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
           {provider === "WHOP" ? (
             <div className="space-y-3 text-sm">
               <p className="border-border bg-surface-2 rounded-lg border p-3 leading-relaxed">
-                Whop may send SCL an affiliate notification email in some cases.
-                Either way, once the relationship is established our Whop
-                dashboard shows affiliate percentage, individual package links,
-                checkout links, and the company storefront — enough to manage
-                Whop packages the same way as Winible.
+                Add Sports Cappers Leaderboard as an affiliate in Whop. Once
+                your affiliate relationship is established, SCL will import your
+                package links and publish them on your SCL profile.
               </p>
               <ol className="space-y-3">
                 <li className="border-border rounded-lg border p-3">
@@ -438,18 +436,20 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
                 </li>
                 <li className="border-border rounded-lg border p-3">
                   <p className="font-semibold">
-                    2. Prefer product-specific links
+                    2. Use Package-Specific Affiliate Links
                   </p>
                   <p className="text-muted-foreground mt-1">
-                    SCL will copy product-specific affiliate links so each
-                    package maps to the correct Whop product.
+                    Use package-specific affiliate links whenever possible so
+                    SCL can correctly map each package to your storefront.
                   </p>
                 </li>
                 <li className="border-border rounded-lg border p-3">
-                  <p className="font-semibold">3. Recurring commissions</p>
+                  <p className="font-semibold">
+                    3. Select Recurring Commissions
+                  </p>
                   <p className="text-muted-foreground mt-1">
-                    When available, configure recurring commissions rather than
-                    first payment only.
+                    Set the commission type to Recurring (not First Payment
+                    Only) before submitting your affiliate request.
                   </p>
                 </li>
               </ol>
