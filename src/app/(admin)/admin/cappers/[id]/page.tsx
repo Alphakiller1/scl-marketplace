@@ -364,8 +364,8 @@ export default async function AdminCapperDetailPage({
           title="Packages & Clicks"
           subtitle="Current display order, visibility, platform, price, and tracked traffic"
           href={
-            profile?.storeConnections[0]
-              ? `/admin/store-setup?id=${profile.storeConnections[0].id}`
+            primaryConnection
+              ? `/admin/store-setup?id=${primaryConnection.id}`
               : undefined
           }
           hrefLabel="Manage packages"
