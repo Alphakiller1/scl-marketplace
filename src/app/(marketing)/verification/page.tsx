@@ -62,8 +62,8 @@ export default function VerificationPage() {
           <div>
             <h2 className="font-semibold">Entered Before Lock</h2>
             <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
-              Picks are timestamped and committed before the scheduled event
-              starts. A committed pick cannot be quietly rewritten afterward.
+              Picks are timestamped and can only be entered before the scheduled
+              event starts. Picks are not editable after they are made.
             </p>
           </div>
         </div>
@@ -82,13 +82,6 @@ export default function VerificationPage() {
           </div>
         </div>
       </section>
-
-      <p className="text-muted-foreground mt-8 max-w-3xl text-sm leading-relaxed">
-        A verified submission does not mean a pick won. Win, loss, push, and
-        pending are result states recorded separately from the verification
-        checks above. Historical carried records remain identified by their
-        original provenance.
-      </p>
     </div>
   );
 }

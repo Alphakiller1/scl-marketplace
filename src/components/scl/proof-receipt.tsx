@@ -63,6 +63,19 @@ export type ProofReceiptProps = {
   statusNote?: string | null;
 };
 
+const EVENT_DATE_FORMAT = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York",
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+
+function formatEventDate(eventStartsAt: Date | string | null): string | null {
+  if (!eventStartsAt) return null;
+  const date = new Date(eventStartsAt);
+  return Number.isNaN(date.getTime()) ? null : EVENT_DATE_FORMAT.format(date);
+}
+
 const STAMP_CLASS: Record<ReturnType<typeof proofStampTone>, string> = {
   pink: "border-pink text-pink",
   win: "border-[color:var(--scl-win)] text-[color:var(--scl-win-text)]",
@@ -154,6 +167,7 @@ export function ProofReceipt({
       : book?.trim()
         ? book.trim()
         : "Live Board";
+  const eventDate = formatEventDate(eventStartsAt);
 
   if (density === "text-only") {
     const text = proofReceiptTextSummary({
@@ -273,6 +287,11 @@ export function ProofReceipt({
           <div className="scl-data text-muted-foreground mt-1.5 text-[0.65rem] tracking-[0.06em] uppercase">
             {eventLine}
           </div>
+        ) : null}
+        {eventDate ? (
+          <p className="scl-data text-muted-foreground mt-1 text-[0.65rem] tracking-[0.06em] uppercase">
+            Event date · {eventDate}
+          </p>
         ) : null}
         {showSettlementLine ? (
           <p

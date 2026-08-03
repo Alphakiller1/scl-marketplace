@@ -4,6 +4,8 @@ import test from "node:test";
 import {
   computeCapperActivity,
   formatLastPickDate,
+  hasRecentPublicCapperActivity,
+  publicCapperActivityCutoff,
 } from "@/lib/capper-activity";
 
 test("computeCapperActivity buckets pick counts by window", () => {
@@ -33,4 +35,20 @@ test("formatLastPickDate is compact", () => {
   );
   assert.ok(label);
   assert.match(label!, /Jul/);
+});
+
+test("public capper activity expires after 30 days and resumes on a new position", () => {
+  const now = new Date("2026-07-14T16:00:00.000Z");
+  assert.equal(
+    publicCapperActivityCutoff(now).toISOString(),
+    "2026-06-14T16:00:00.000Z",
+  );
+  assert.equal(
+    hasRecentPublicCapperActivity([new Date("2026-06-14T16:00:00.000Z")], now),
+    true,
+  );
+  assert.equal(
+    hasRecentPublicCapperActivity([new Date("2026-06-14T15:59:59.999Z")], now),
+    false,
+  );
 });

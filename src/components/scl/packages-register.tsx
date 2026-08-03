@@ -223,7 +223,7 @@ export function PackagesRegister({
 }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"featured" | "name" | "units" | "roi">(
-    "featured",
+    "units",
   );
   const rows = useMemo(() => {
     const cappersById = new Map(cappers.map((capper) => [capper.id, capper]));
@@ -294,10 +294,10 @@ export function PackagesRegister({
               onChange={(event) => setSort(event.target.value as typeof sort)}
               className="border-input bg-background min-h-10 rounded-md border px-3 text-base sm:text-sm"
             >
-              <option value="featured">Featured order</option>
               <option value="units">Attributed units</option>
               <option value="roi">Attributed ROI</option>
               <option value="name">Capper name</option>
+              <option value="featured">Featured order</option>
             </select>
           </label>
         </div>

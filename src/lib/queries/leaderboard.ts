@@ -19,7 +19,10 @@ import { computeCapperStats, type StatsBaseline } from "@/lib/stats";
 import { computeVerifiedShare } from "@/lib/verification";
 import type { CapperSummary, FormResult } from "@/lib/mock";
 import { resolveStorefrontIdentity } from "@/lib/storefront";
-import { computeCapperActivity } from "@/lib/capper-activity";
+import {
+  computeCapperActivity,
+  publicCapperActivityCutoff,
+} from "@/lib/capper-activity";
 import { hasClvColumns } from "@/lib/results/schema-features";
 import { activePublicPackageWhere } from "@/lib/public-packages";
 
@@ -46,11 +49,20 @@ async function fetchRankableProfiles(
   capperIds?: string[],
 ) {
   const windowStart = leaderboardWindowStart(filters.window);
+  const activityCutoff = publicCapperActivityCutoff();
   const excludeTest = await prismaExcludeTestHandlesLive();
 
   return prisma.capperProfile.findMany({
     where: {
       ...(capperIds ? { id: { in: capperIds } } : undefined),
+      ...(capperIds
+        ? {}
+        : {
+            OR: [
+              { plays: { some: { createdAt: { gte: activityCutoff } } } },
+              { parlays: { some: { createdAt: { gte: activityCutoff } } } },
+            ],
+          }),
       user: {
         username: { not: null },
         accountStatus: "ACTIVE",

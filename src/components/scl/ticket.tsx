@@ -36,6 +36,7 @@ export type TicketProps = {
   closingOddsAmerican?: number | null;
   clvPts?: number | null;
   evidenceId?: string | null;
+  eventStartsAt?: Date | string | null;
 };
 
 function ticketStatusToProofState(status: TicketStatus): ProofReceiptState {
@@ -72,6 +73,7 @@ export function Ticket({
   closingOddsAmerican,
   clvPts,
   evidenceId,
+  eventStartsAt,
 }: TicketProps) {
   return (
     <ProofReceipt
@@ -90,6 +92,7 @@ export function Ticket({
       closingOddsAmerican={closingOddsAmerican}
       clvPts={clvPts}
       evidenceId={evidenceId}
+      eventStartsAt={eventStartsAt}
       settling={settling}
       className={className}
       footerAction={footerAction}
