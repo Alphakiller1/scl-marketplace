@@ -36,6 +36,22 @@ test("capper storefront setup tailors platform guidance to the selected option",
   );
 });
 
+test("Whop connection copy explains the capper experience", () => {
+  const source = fs.readFileSync(
+    path.join(process.cwd(), "src/components/scl/monetization-wizard.tsx"),
+    "utf8",
+  );
+  assert.match(
+    source,
+    /Connect your existing Whop storefront to SCL\. Once your affiliate connection is complete, SCL imports your packages and publishes them on your SCL profile\./,
+  );
+  assert.match(
+    source,
+    /checkout, subscriptions, and payments all remain on Whop\./,
+  );
+  assert.match(source, /Continue to Connect Whop/);
+});
+
 test("capper-facing storefront copy describes the manual SCL review workflow", () => {
   const page = fs.readFileSync(
     path.join(
