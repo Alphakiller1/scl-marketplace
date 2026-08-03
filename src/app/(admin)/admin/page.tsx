@@ -46,7 +46,7 @@ const ADMIN_TOOLS = [
   },
   {
     href: "/admin/store-setup",
-    title: "Storefront setup",
+    title: "Storefronts & packages",
     description:
       "Track Winible and Whop onboarding, review packages, manage links, and monitor clicks.",
     icon: Store,

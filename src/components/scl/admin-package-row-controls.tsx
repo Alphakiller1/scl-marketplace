@@ -40,7 +40,7 @@ export function AdminPackageRowControls({
   return (
     <span className="flex shrink-0 items-center gap-1">
       <Button
-        size="icon-sm"
+        size="icon"
         variant="outline"
         disabled={pending || isFirst}
         aria-label={`Move ${title} up`}
@@ -52,7 +52,7 @@ export function AdminPackageRowControls({
         <ArrowUp className="size-3.5" aria-hidden />
       </Button>
       <Button
-        size="icon-sm"
+        size="icon"
         variant="outline"
         disabled={pending || isLast}
         aria-label={`Move ${title} down`}
@@ -64,7 +64,7 @@ export function AdminPackageRowControls({
         <ArrowDown className="size-3.5" aria-hidden />
       </Button>
       <Button
-        size="icon-sm"
+        size="icon"
         variant="outline"
         disabled={pending}
         aria-label={

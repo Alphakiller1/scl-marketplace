@@ -11,7 +11,7 @@ const ADMIN_NAV = [
   { href: "/admin/plays", label: "Published Plays" },
   { href: "/admin/grading", label: "Grading" },
   { href: "/admin/cappers", label: "Cappers" },
-  { href: "/admin/store-setup", label: "Store Setup" },
+  { href: "/admin/store-setup", label: "Storefronts & Packages" },
   { href: "/admin/policies", label: "Policies" },
 ];
 

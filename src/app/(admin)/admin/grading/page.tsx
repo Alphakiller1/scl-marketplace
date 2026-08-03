@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import { GradingAuditList } from "@/components/scl/grading-audit-list";
+import { AutoGradeButton } from "@/components/scl/auto-grade-button";
 import { SportTag } from "@/components/scl/badges";
 import { SectionHeader } from "@/components/scl/section";
 import { getGradingHealthReport } from "@/lib/grading-health";
@@ -43,11 +44,14 @@ export default async function AdminGradingPage() {
   return (
     <div className="space-y-8">
       <section className="border-border bg-card space-y-3 rounded-xl border p-4">
-        <SectionHeader
-          icon={History}
-          title="Pipeline diagnostics"
-          subtitle="Cron health, lookback cliff, and schema patch status"
-        />
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <SectionHeader
+            icon={History}
+            title="Pipeline diagnostics"
+            subtitle="Cron health, lookback cliff, and schema patch status"
+          />
+          <AutoGradeButton />
+        </div>
         <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <dt className="text-muted-foreground text-xs tracking-wide uppercase">
