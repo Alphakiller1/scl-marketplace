@@ -128,6 +128,14 @@ launch schema is ready, then verifies the home, leaderboard, packages,
 verification, support, and login routes. A green deploy job therefore means the
 live alias changed successfully; it does not merely mean Vercel accepted a build.
 
+### Production owner promotion
+
+The manual **Provision existing production owner** workflow promotes a verified
+SCL account to `ADMIN`. Add `OWNER_DATABASE_URL` to GitHub's **Production**
+environment secrets before running it. It must be the same production SCL
+transaction-pooler URL used by the app (`?pgbouncer=true&schema=scl`), not an
+IPv6-only direct Supabase URL and not a connection string from another project.
+
 ### Fallback (CLI tokens)
 
 If you prefer not to use a hook, put all three under the same **Production** environment
