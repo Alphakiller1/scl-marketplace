@@ -482,7 +482,7 @@ function BookRail({
                 : undefined
             }
             className={cn(
-              "scl-data flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full border px-2.5 text-[10px] leading-none font-medium tracking-[0.08em] uppercase transition-colors",
+              "scl-data flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full border px-2.5 text-[10px] leading-none font-medium tracking-[0.08em] uppercase transition-colors",
               isActive
                 ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
                 : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",

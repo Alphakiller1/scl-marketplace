@@ -63,7 +63,7 @@ export function TopCappersLive({
                 key={chip.id}
                 href={chip.href}
                 className={cn(
-                  "scl-data inline-flex h-7 min-w-8 items-center justify-center rounded-[var(--scl-radius-chip)] px-2 text-[0.68rem] leading-none font-semibold tracking-[0.08em] uppercase transition-colors",
+                  "scl-data inline-flex min-h-10 min-w-10 items-center justify-center rounded-[var(--scl-radius-chip)] px-2 text-[0.68rem] leading-none font-semibold tracking-[0.08em] uppercase transition-colors",
                   active
                     ? "bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
                     : "border-border text-muted-foreground hover:text-foreground border bg-transparent",

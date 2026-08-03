@@ -77,7 +77,7 @@ export function WhatChangedToday({
               <li key={move.handle} className="shrink-0">
                 <Link
                   href={`/cappers/${move.handle}`}
-                  className="border-border focus-visible:ring-ring inline-flex h-8 items-center gap-2 rounded-[var(--scl-radius-chip)] border bg-[color:var(--scl-ink-800)] px-2 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] hover:bg-[color:var(--scl-ink-700)] focus-visible:ring-2 focus-visible:outline-none"
+                  className="border-border focus-visible:ring-ring inline-flex min-h-10 items-center gap-2 rounded-[var(--scl-radius-chip)] border bg-[color:var(--scl-ink-800)] px-2 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] hover:bg-[color:var(--scl-ink-700)] focus-visible:ring-2 focus-visible:outline-none"
                 >
                   <span className="scl-data text-muted-foreground text-[0.65rem] tracking-[0.06em] uppercase tabular-nums">
                     {status}
