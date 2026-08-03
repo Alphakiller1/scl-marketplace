@@ -39,7 +39,7 @@ test("ranked profiles use full record description without hype", () => {
   );
   assert.match(String(meta.title), /NFL Capper Record/);
   assert.match(String(meta.description), /public capper record/i);
-  assert.match(String(meta.description), /Sports Capper Leaderboard/);
+  assert.match(String(meta.description), /Sports Cappers Leaderboard/);
 });
 
 test("multi/unknown sport uses generic title template", () => {

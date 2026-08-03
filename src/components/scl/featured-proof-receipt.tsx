@@ -94,11 +94,13 @@ function FeaturedReceiptBody({ play }: { play: FeaturedGradedPlay }) {
       : computedResult != null
         ? formatUnits(computedResult)
         : "—";
-  const market = pickContextLabel({
-    sport: play.sport,
-    league: play.league,
-    market: play.market,
-  });
+  const eventContext =
+    play.eventLabel ??
+    pickContextLabel({
+      sport: play.sport,
+      league: play.league,
+      market: play.market,
+    });
   const boardVerified = isVerifiedTier(play.verificationTier);
 
   return (
@@ -110,9 +112,9 @@ function FeaturedReceiptBody({ play }: { play: FeaturedGradedPlay }) {
       eventLine={
         <span className="inline-flex flex-wrap items-center gap-1.5 tracking-normal normal-case">
           <LeagueRef sport={play.sport} />
-          {market ? (
+          {eventContext ? (
             <span className="scl-data tracking-[0.06em] uppercase">
-              {market}
+              {eventContext}
             </span>
           ) : null}
         </span>
@@ -130,6 +132,7 @@ function FeaturedReceiptBody({ play }: { play: FeaturedGradedPlay }) {
       closingOddsAmerican={play.closingOddsAmerican ?? null}
       clvPts={play.clvPts ?? null}
       evidenceId={play.id}
+      eventStartsAt={play.eventStartsAt}
       analysis={play.notesPublic === false ? null : play.notes}
       footerAction={
         <Link

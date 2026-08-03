@@ -158,6 +158,7 @@ export function PickCard({
       toWin={toWin}
       capturedAt={pick.postedAt.toISOString()}
       book={pick.book}
+      eventStartsAt={pick.eventStartsAt}
       gradingHealthy={gradingHealthy}
       status={ticketStatusFor(pick)}
       className={compact ? "rounded-[14px]" : undefined}

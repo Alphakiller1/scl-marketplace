@@ -10,6 +10,20 @@ export type CapperActivitySummary = {
 };
 
 const DAY_MS = 86_400_000;
+export const PUBLIC_CAPPER_INACTIVITY_DAYS = 30;
+
+/** A public capper returns to the leaderboard immediately after a new position. */
+export function publicCapperActivityCutoff(now: Date = new Date()): Date {
+  return new Date(now.getTime() - PUBLIC_CAPPER_INACTIVITY_DAYS * DAY_MS);
+}
+
+export function hasRecentPublicCapperActivity(
+  createdAts: readonly Date[],
+  now: Date = new Date(),
+): boolean {
+  const cutoff = publicCapperActivityCutoff(now).getTime();
+  return createdAts.some((createdAt) => createdAt.getTime() >= cutoff);
+}
 
 export function computeCapperActivity(
   createdAts: readonly Date[],
