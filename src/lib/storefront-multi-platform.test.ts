@@ -52,6 +52,29 @@ test("Whop connection copy explains the capper experience", () => {
   assert.match(source, /Continue to Connect Whop/);
 });
 
+test("Whop setup instructions focus on the capper workflow", () => {
+  const source = fs.readFileSync(
+    path.join(process.cwd(), "src/components/scl/monetization-wizard.tsx"),
+    "utf8",
+  );
+  const normalized = source.replace(/\s+/g, " ");
+
+  assert.match(
+    normalized,
+    /Add Sports Cappers Leaderboard as an affiliate in Whop\. Once your affiliate relationship is established, SCL will import your package links and publish them on your SCL profile\./,
+  );
+  assert.match(normalized, /2\. Use Package-Specific Affiliate Links/);
+  assert.match(
+    normalized,
+    /Use package-specific affiliate links whenever possible so SCL can correctly map each package to your storefront\./,
+  );
+  assert.match(normalized, /3\. Select Recurring Commissions/);
+  assert.match(
+    normalized,
+    /Set the commission type to Recurring \(not First Payment Only\) before submitting your affiliate request\./,
+  );
+});
+
 test("capper-facing storefront copy describes the manual SCL review workflow", () => {
   const page = fs.readFileSync(
     path.join(
