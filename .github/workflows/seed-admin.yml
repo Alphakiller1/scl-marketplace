@@ -33,47 +33,19 @@ jobs:
           echo "Confirmation did not match."
           exit 1
 
-      - name: Use IPv4-compatible Supabase pooler
+      - name: Confirm owner database connection
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OWNER_DATABASE_URL: ${{ secrets.OWNER_DATABASE_URL }}
         run: |
-          node <<'NODE'
-          const fs = require("node:fs");
-
-          const databaseUrl = process.env.DATABASE_URL;
-          if (!databaseUrl) {
-            throw new Error("DATABASE_URL is required.");
-          }
-
-          const url = new URL(databaseUrl);
-          if (url.hostname.endsWith(".pooler.supabase.com")) {
-            console.log("DATABASE_URL already uses the Supabase pooler.");
-            process.exit(0);
-          }
-
-          const match = url.hostname.match(/^db\.([a-z0-9]+)\.supabase\.co$/);
-          if (!match) {
-            throw new Error(
-              "DATABASE_URL must use a Supabase direct host or transaction pooler.",
-            );
-          }
-
-          const projectRef = match[1];
-          // The direct host is IPv6-only; GitHub-hosted runners require the
-          // project's IPv4-capable us-west-2 transaction pooler instead.
-          url.hostname = "aws-1-us-west-2.pooler.supabase.com";
-          url.port = "6543";
-          url.username = `postgres.${projectRef}`;
-          url.searchParams.set("pgbouncer", "true");
-          url.searchParams.set("schema", "scl");
-
-          fs.appendFileSync(process.env.GITHUB_ENV, `DATABASE_URL=${url}\n`);
-          console.log("Configured the production Supabase transaction pooler.");
-          NODE
+          if [ -z "$OWNER_DATABASE_URL" ]; then
+            echo "OWNER_DATABASE_URL must contain the production SCL transaction-pooler URL."
+            exit 1
+          fi
 
       - name: Promote existing owner account
         run: npx tsx scripts/ensure-owner-admin.ts
         env:
+          DATABASE_URL: ${{ secrets.OWNER_DATABASE_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
           VERCEL_ENV: production
           OWNER_ADMIN_EMAIL: ${{ inputs.owner_email }}
