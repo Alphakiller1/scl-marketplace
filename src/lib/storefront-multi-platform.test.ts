@@ -13,6 +13,29 @@ test("capper storefront setup exposes both supported platform connections", () =
   assert.match(source, /allConnections\.map/);
 });
 
+test("capper storefront setup tailors platform guidance to the selected option", () => {
+  const source = fs.readFileSync(
+    path.join(process.cwd(), "src/components/scl/monetization-wizard.tsx"),
+    "utf8",
+  );
+  assert.match(
+    source,
+    /Already sell picks on Whop\? Connect your Whop storefront to SCL\./,
+  );
+  assert.match(
+    source,
+    /You’ll complete the affiliate setup in Winible\. SCL imports your packages after approval\./,
+  );
+  assert.match(
+    source,
+    /SCL imports your packages directly from Whop once your affiliate connection is complete\./,
+  );
+  assert.match(
+    source,
+    /We’ll help you create a Winible storefront and connect it to SCL\./,
+  );
+});
+
 test("capper-facing storefront copy describes the manual SCL review workflow", () => {
   const page = fs.readFileSync(
     path.join(
