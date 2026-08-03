@@ -65,6 +65,23 @@ function platformSelectionGuidance(
   }
 }
 
+function storefrontConnectionBenefits(provider: StoreProvider): string[] {
+  if (provider === "WHOP") {
+    return [
+      "No monthly SCL platform fees.",
+      "Connect your existing Whop storefront to SCL. Once your affiliate connection is complete, SCL imports your packages and publishes them on your SCL profile.",
+      "You continue selling through your existing Whop storefront—checkout, subscriptions, and payments all remain on Whop.",
+    ];
+  }
+
+  return [
+    "No monthly SCL platform fees.",
+    `SCL reviews your approved ${providerLabel(provider)} affiliate relationship, then manually adds and publishes the package links supplied by the platform.`,
+    `You continue selling through your existing storefront—your checkout and subscriptions remain on ${providerLabel(provider)}.`,
+    "When SCL refers a new subscriber to your storefront, we earn an affiliate commission from the platform. That’s how SCL remains free for cappers.",
+  ];
+}
+
 type Conn = Pick<
   StoreConnection,
   "id" | "provider" | "status" | "packageImportStatus" | "submittedAt"
@@ -372,21 +389,9 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
             Why Connect Your Storefront?
           </h2>
           <ul className="border-brand/30 bg-brand/10 space-y-2.5 rounded-lg border p-4 text-sm leading-relaxed">
-            <li>No monthly SCL platform fees.</li>
-            <li>
-              SCL reviews your approved {providerLabel(provider)} affiliate
-              relationship, then manually adds and publishes the package links
-              supplied by the platform.
-            </li>
-            <li>
-              You continue selling through your existing storefront—your
-              checkout and subscriptions remain on {providerLabel(provider)}.
-            </li>
-            <li>
-              When SCL refers a new subscriber to your storefront, we earn an
-              affiliate commission from the platform. That’s how SCL remains
-              free for cappers.
-            </li>
+            {storefrontConnectionBenefits(provider).map((benefit) => (
+              <li key={benefit}>{benefit}</li>
+            ))}
           </ul>
           <p className="text-muted-foreground text-xs leading-relaxed">
             Affiliate attribution, cookies, and commission rules are governed by{" "}
@@ -397,7 +402,9 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
               Back
             </Button>
             <Button onClick={() => setStep(2)}>
-              Continue to Connect Your Storefront
+              {provider === "WHOP"
+                ? "Continue to Connect Whop"
+                : "Continue to Connect Your Storefront"}
             </Button>
           </div>
         </Card>
