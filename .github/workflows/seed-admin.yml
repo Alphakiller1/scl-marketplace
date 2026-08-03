@@ -61,7 +61,7 @@ jobs:
           const projectRef = match[1];
           // The direct host is IPv6-only; GitHub-hosted runners require the
           // project's IPv4-capable us-west-2 transaction pooler instead.
-          url.hostname = "aws-0-us-west-2.pooler.supabase.com";
+          url.hostname = "aws-1-us-west-2.pooler.supabase.com";
           url.port = "6543";
           url.username = `postgres.${projectRef}`;
           url.searchParams.set("pgbouncer", "true");
