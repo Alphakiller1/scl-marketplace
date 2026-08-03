@@ -74,7 +74,6 @@ jobs:
       - name: Promote existing owner account
         run: npx tsx scripts/ensure-owner-admin.ts
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
           VERCEL_ENV: production
           OWNER_ADMIN_EMAIL: ${{ inputs.owner_email }}
