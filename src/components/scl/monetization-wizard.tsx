@@ -32,6 +32,39 @@ const STEPS = [
 
 const SUPPORTED_PROVIDERS = ["WINIBLE", "WHOP"] as const;
 
+const PLATFORM_SELECTION_COPY = [
+  [
+    "WINIBLE",
+    "Winible",
+    "Invite SCL as an affiliate. SCL accepts the relationship, reviews the package details, and manually publishes approved links.",
+  ],
+  [
+    "WHOP",
+    "Whop",
+    "Already sell picks on Whop? Connect your Whop storefront to SCL. We’ll guide you through the affiliate setup, then import your packages automatically.",
+  ],
+  [
+    "NONE",
+    "None yet",
+    "Don’t have a platform yet? We’ll help you get set up with Winible.",
+  ],
+] as const;
+
+function platformSelectionGuidance(
+  provider: StoreProvider | "NONE" | null,
+): string | null {
+  switch (provider) {
+    case "WINIBLE":
+      return "You’ll complete the affiliate setup in Winible. SCL imports your packages after approval.";
+    case "WHOP":
+      return "SCL imports your packages directly from Whop once your affiliate connection is complete.";
+    case "NONE":
+      return "We’ll help you create a Winible storefront and connect it to SCL.";
+    default:
+      return null;
+  }
+}
+
 type Conn = Pick<
   StoreConnection,
   "id" | "provider" | "status" | "packageImportStatus" | "submittedAt"
@@ -234,25 +267,7 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
-            {(
-              [
-                [
-                  "WINIBLE",
-                  "Winible",
-                  "Invite SCL as an affiliate. SCL accepts the relationship, reviews the package details, and manually publishes approved links.",
-                ],
-                [
-                  "WHOP",
-                  "Whop",
-                  "Add SCL as an affiliate. Whop may email SCL; package links appear in our Whop dashboard either way.",
-                ],
-                [
-                  "NONE",
-                  "None yet",
-                  "Don’t have a platform yet? We’ll help you get set up with Winible.",
-                ],
-              ] as const
-            ).map(([id, title, body]) => {
+            {PLATFORM_SELECTION_COPY.map(([id, title, body]) => {
               const existing =
                 id !== "NONE"
                   ? allConnections.find((item) => item.provider === id)
@@ -339,7 +354,7 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
           ) : null}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-muted-foreground text-xs">
-              You will not paste affiliate links into SCL.
+              {platformSelectionGuidance(provider)}
             </p>
             <Button
               disabled={!provider || provider === "NONE" || pending}
