@@ -14,6 +14,8 @@ const MESSAGES: Record<string, string> = {
   "session-expired":
     "Whop connection session expired. Click Install SCL app on Whop to retry.",
   "state-mismatch": "Whop connection could not be verified. Please try again.",
+  "company-missing":
+    "Whop connected but no business was returned. Reinstall the SCL app or contact support.",
   "not-configured":
     "Whop app install is not configured yet. Complete the affiliate steps and submit — SCL will review manually.",
   "start-setup": "Review the Whop setup steps before installing the SCL app.",

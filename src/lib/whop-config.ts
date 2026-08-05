@@ -46,7 +46,12 @@ export type WhopIntegrationStatus = {
   webhook: boolean;
   affiliateUsername: boolean;
   accountApiKey: boolean;
+  storefrontSync: boolean;
 };
+
+export function whopStorefrontSyncConfigured(): boolean {
+  return whopOAuthConfigured() && Boolean(whopAffiliateUsername());
+}
 
 export function whopIntegrationStatus(): WhopIntegrationStatus {
   return {
@@ -54,5 +59,6 @@ export function whopIntegrationStatus(): WhopIntegrationStatus {
     webhook: whopWebhookConfigured(),
     affiliateUsername: Boolean(whopAffiliateUsername()),
     accountApiKey: Boolean(whopAccountApiKey()),
+    storefrontSync: whopStorefrontSyncConfigured(),
   };
 }

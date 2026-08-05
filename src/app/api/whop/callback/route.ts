@@ -7,6 +7,8 @@ import {
   exchangeWhopAuthorizationCode,
   type WhopPkceState,
 } from "@/lib/whop-oauth";
+import { listWhopCompanies } from "@/lib/whop-api";
+import { persistWhopOAuthCredentials } from "@/lib/whop-sync";
 import {
   whopAppApiKey,
   whopAppId,
@@ -81,8 +83,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(monetizationUrl({ whop: "not-configured" }));
   }
 
+  let tokens;
   try {
-    await exchangeWhopAuthorizationCode({
+    tokens = await exchangeWhopAuthorizationCode({
       code,
       clientId: appId,
       clientSecret: appSecret,
@@ -94,9 +97,30 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(monetizationUrl({ whop: "exchange-failed" }));
   }
 
+  let companies: Array<{ id: string; route: string }> = [];
+  try {
+    companies = await listWhopCompanies(tokens.access_token);
+  } catch (error) {
+    console.error("[whop/callback] company lookup failed:", error);
+    return NextResponse.redirect(monetizationUrl({ whop: "company-missing" }));
+  }
+
+  const persisted = await persistWhopOAuthCredentials({
+    storeConnectionId: pkce.connectionId,
+    accessToken: tokens.access_token,
+    refreshToken: tokens.refresh_token,
+    expiresIn: tokens.expires_in,
+    companies,
+  });
+  if (!persisted.ok) {
+    return NextResponse.redirect(
+      monetizationUrl({ whop: "company-missing", reason: persisted.error }),
+    );
+  }
+
   const connection = await prisma.storeConnection.findUnique({
     where: { id: pkce.connectionId },
-    select: { id: true, status: true, adminNotes: true },
+    select: { id: true, adminNotes: true },
   });
   if (!connection) {
     return NextResponse.redirect(
@@ -105,18 +129,14 @@ export async function GET(req: NextRequest) {
   }
 
   const stamp = new Date().toISOString();
-  const noteLine = `[${stamp}] Capper installed the SCL Whop app via OAuth.`;
+  const noteLine = `[${stamp}] Capper installed the SCL Whop app via OAuth (${companies[0]?.id ?? "unknown company"}).`;
   const adminNotes = connection.adminNotes
     ? `${connection.adminNotes}\n${noteLine}`
     : noteLine;
 
   await prisma.storeConnection.update({
     where: { id: connection.id },
-    data: {
-      adminNotes,
-      // Surface to admins even if the capper hasn't clicked submit yet.
-      requiresAttention: true,
-    },
+    data: { adminNotes },
   });
 
   return NextResponse.redirect(monetizationUrl({ whop: "connected" }));

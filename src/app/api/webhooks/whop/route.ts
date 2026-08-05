@@ -1,23 +1,79 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { prisma } from "@/lib/prisma";
 import { verifyWhopSignature } from "@/lib/whop-webhook";
 import { whopWebhookConfigured } from "@/lib/whop-config";
+import {
+  findWhopConnectionForCompany,
+  syncWhopStorefront,
+  whopWebhookCompanyId,
+  whopWebhookEventName,
+  type WhopWebhookEnvelope,
+} from "@/lib/whop-sync";
 
 export const runtime = "nodejs";
-// Signature verification needs the byte-exact body, so this must never be
-// statically evaluated or cached.
 export const dynamic = "force-dynamic";
+
+const PRODUCT_SYNC_EVENTS = new Set([
+  "product.created",
+  "product.updated",
+  "product.published",
+  "product.unpublished",
+]);
+
+async function resolveWebhookActorId(): Promise<string | null> {
+  const admin = await prisma.user.findFirst({
+    where: { role: "ADMIN", accountStatus: "ACTIVE" },
+    select: { id: true },
+    orderBy: { createdAt: "asc" },
+  });
+  return admin?.id ?? null;
+}
+
+async function maybeSyncWhopProducts(event: WhopWebhookEnvelope) {
+  const eventName = whopWebhookEventName(event);
+  if (!eventName || !PRODUCT_SYNC_EVENTS.has(eventName)) return;
+
+  const companyId = whopWebhookCompanyId(event);
+  if (!companyId) {
+    console.info(`[webhooks/whop] ${eventName} without company id — skip sync`);
+    return;
+  }
+
+  const connection = await findWhopConnectionForCompany(companyId);
+  if (!connection) {
+    console.info(
+      `[webhooks/whop] ${eventName} for ${companyId} — no linked StoreConnection`,
+    );
+    return;
+  }
+
+  const actorId = await resolveWebhookActorId();
+  if (!actorId) {
+    console.warn("[webhooks/whop] no admin actor for webhook sync");
+    return;
+  }
+
+  const result = await syncWhopStorefront({
+    storeConnectionId: connection.id,
+    actorId,
+  });
+  if (!result.ok) {
+    console.warn(
+      `[webhooks/whop] sync failed for ${companyId}: ${result.error}`,
+    );
+    return;
+  }
+  console.info(
+    `[webhooks/whop] synced ${companyId}: ${result.imported} imported, ${result.updated} updated`,
+  );
+}
 
 /**
  * Whop webhook receiver.
  *
- * Scope today: authenticate the delivery and acknowledge it. Turning events
- * into Package rows lands with the products sync, once the App API key exists —
- * until then there is nothing to sync against.
- *
- * Acknowledging early and processing later is the shape this wants anyway:
- * Whop retries on non-2xx, so slow work inside the handler causes duplicate
- * deliveries.
+ * Verifies signatures, acknowledges quickly, and triggers storefront sync for
+ * product lifecycle events when a capper has connected the SCL app.
  */
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
@@ -35,9 +91,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let event: { action?: string; data?: unknown } = {};
+  let event: WhopWebhookEnvelope = {};
   try {
-    event = JSON.parse(rawBody) as typeof event;
+    event = JSON.parse(rawBody) as WhopWebhookEnvelope;
   } catch {
     return NextResponse.json(
       { ok: false, error: "body is not valid JSON" },
@@ -45,13 +101,16 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  console.info(
-    `[webhooks/whop] verified event: ${event.action ?? "(no action)"}`,
-  );
+  const eventName = whopWebhookEventName(event);
+  console.info(`[webhooks/whop] verified event: ${eventName ?? "(no action)"}`);
 
-  // 200 so Whop marks the delivery successful and stops retrying. Event
-  // handling is deliberately not implemented yet.
-  return NextResponse.json({ ok: true, received: event.action ?? null });
+  try {
+    await maybeSyncWhopProducts(event);
+  } catch (error) {
+    console.error("[webhooks/whop] product sync handler failed:", error);
+  }
+
+  return NextResponse.json({ ok: true, received: eventName ?? null });
 }
 
 /**
@@ -65,5 +124,6 @@ export async function GET() {
     endpoint: "whop-webhook",
     status: configured ? "ready" : "awaiting WHOP_WEBHOOK_SECRET",
     webhookConfigured: configured,
+    productSyncEvents: [...PRODUCT_SYNC_EVENTS],
   });
 }
