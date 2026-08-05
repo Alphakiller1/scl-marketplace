@@ -27,7 +27,7 @@ export async function GET() {
       {
         ok: false,
         error:
-          "Whop app connection is not configured yet. Complete the affiliate steps and submit — SCL will review manually.",
+          "Whop app install is not configured on the server yet. Contact SCL support — WHOP_APP_API_KEY must be set in production.",
       },
       { status: 503 },
     );
