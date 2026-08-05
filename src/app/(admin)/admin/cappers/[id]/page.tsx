@@ -16,6 +16,7 @@ import {
 import { notFound } from "next/navigation";
 
 import { AccountClaimControl } from "@/components/scl/account-claim-control";
+import { AdminCapperOutreachPanel } from "@/components/scl/admin-capper-outreach-panel";
 import { AccountStatusControl } from "@/components/scl/account-status-control";
 import { AdminDeleteCapperControl } from "@/components/scl/admin-delete-capper-control";
 import { AccountStatusBadge } from "@/components/scl/account-trust";
@@ -132,6 +133,14 @@ export default async function AdminCapperDetailPage({
             </Button>
           </div>
         </div>
+
+        <AdminCapperOutreachPanel
+          userId={capper.id}
+          capperEmail={capper.email}
+          capperUsername={capper.username}
+          storeConnectionId={primaryConnection?.id}
+          provider={primaryConnection?.provider ?? null}
+        />
 
         <dl
           className={cn(

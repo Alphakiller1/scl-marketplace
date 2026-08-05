@@ -235,5 +235,7 @@ export function storefrontReviewActionLabel(
       return "Internal notes updated";
     case "PACKAGE_SYNC":
       return "Package readiness synchronized";
+    case "CAPPER_CONTACTED":
+      return "Capper contacted by email";
   }
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { History, Store } from "lucide-react";
 
+import { AdminCapperOutreachPanel } from "@/components/scl/admin-capper-outreach-panel";
 import { AdminCapperPackageInventory } from "@/components/scl/admin-capper-package-inventory";
 import { AdminPackageForm } from "@/components/scl/admin-package-form";
 import { AdminPackageRowControls } from "@/components/scl/admin-package-row-controls";
@@ -253,6 +254,13 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
                 </Link>
               ) : null}
             </div>
+            <AdminCapperOutreachPanel
+              userId={selected.capper.user.id}
+              capperEmail={selected.capper.user.email}
+              capperUsername={selected.capper.user.username}
+              storeConnectionId={selected.id}
+              provider={selected.provider}
+            />
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="scl-display text-base font-bold tracking-[0.05em] uppercase">
                 Request detail

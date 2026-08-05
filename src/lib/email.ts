@@ -287,6 +287,68 @@ export async function sendAffiliateSignupNotificationEmail(input: {
   }
 }
 
+/**
+ * Admin-initiated email to a capper (storefront / affiliate follow-up).
+ * Reply-to is the sending admin when available, otherwise support.
+ */
+export async function sendCapperOutreachEmail(input: {
+  to: string;
+  subject: string;
+  message: string;
+  replyTo?: string | null;
+  capperUsername?: string | null;
+}) {
+  const handle = input.capperUsername?.replace(/^@/, "") ?? null;
+  const handleLine = handle
+    ? `<p style="color:#666;font-size:14px">Account: <strong>@${escapeHtml(handle)}</strong></p>`
+    : "";
+  const replyTo =
+    input.replyTo?.trim() || process.env.SUPPORT_EMAIL_TO?.trim() || undefined;
+  const subject = input.subject.trim().startsWith("[SCL]")
+    ? input.subject.trim()
+    : `[SCL] ${input.subject.trim()}`;
+
+  if (!resend) {
+    console.info("[email:dev] capper outreach", {
+      to: input.to,
+      subject,
+      replyTo,
+      message: input.message,
+    });
+    return { delivered: false as const };
+  }
+
+  try {
+    const { error } = await resend.emails.send({
+      from,
+      to: input.to,
+      ...(replyTo ? { replyTo } : {}),
+      subject,
+      html: `
+        <div style="font-family:system-ui,sans-serif;max-width:640px;margin:auto">
+          <h2>Message from Sports Cappers Leaderboard</h2>
+          ${handleLine}
+          <p style="white-space:pre-wrap;line-height:1.5">${escapeHtml(input.message)}</p>
+          <hr style="border:none;border-top:1px solid #eee;margin:24px 0" />
+          <p style="color:#666;font-size:13px">
+            Reply to this email if you have questions. This message was sent by the SCL team regarding your storefront setup.
+          </p>
+        </div>
+      `,
+    });
+    if (error) {
+      console.error(
+        `[email] capper outreach failed for ${input.to}: ${error.message}`,
+      );
+      return { delivered: false as const };
+    }
+    return { delivered: true as const };
+  } catch (error) {
+    console.error(`[email] capper outreach threw for ${input.to}:`, error);
+    return { delivered: false as const };
+  }
+}
+
 export async function sendSupportEmail(input: {
   email: string;
   category: string;

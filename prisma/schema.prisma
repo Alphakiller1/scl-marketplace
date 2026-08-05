@@ -299,6 +299,7 @@ enum StorefrontReviewAction {
   RESTORED
   NOTES_UPDATED
   PACKAGE_SYNC
+  CAPPER_CONTACTED
 }
 
 model StoreConnection {
