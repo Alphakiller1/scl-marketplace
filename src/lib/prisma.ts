@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
 import { ensureAuthEmailSchema } from "@/lib/ensure-auth-email-schema";
+import { ensureStorefrontMessagesSchema } from "@/lib/ensure-storefront-messages-schema";
 import { ensureSupabaseDatabaseEnvAliases } from "@/lib/supabase-config";
 
 ensureSupabaseDatabaseEnvAliases();
@@ -53,3 +54,4 @@ globalForPrisma.prisma = prisma;
 
 // Runtime fallback when Production build-time migrate cannot reach the DB.
 void ensureAuthEmailSchema(prisma);
+void ensureStorefrontMessagesSchema(prisma);
