@@ -16,6 +16,9 @@
  * The alternative was silent, unreviewed schema drift in production.
  */
 import { spawnSync } from "node:child_process";
+import { writeFileSync, unlinkSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 
 const env = process.env.VERCEL_ENV;
 
@@ -65,6 +68,89 @@ function ensureDatabaseEnvForMigrate() {
   }
 }
 
+function runPrisma(args) {
+  return spawnSync("npx", ["prisma", ...args], {
+    encoding: "utf8",
+    shell: process.platform === "win32",
+    env: process.env,
+  });
+}
+
+/**
+ * Force-apply the auth email uniqueness change via raw SQL, then mark the
+ * Prisma migration applied. Survives failed prior deploys that left the
+ * migration in a bad `_prisma_migrations` state.
+ */
+function forceAuthEmailMigration() {
+  const AUTH_EMAIL_MIGRATION =
+    "20260805230000_allow_duplicate_email_per_username";
+  const sql = `
+ALTER TABLE scl."User" DROP CONSTRAINT IF EXISTS "User_email_key";
+DROP INDEX IF EXISTS scl."User_email_key";
+DROP INDEX IF EXISTS "User_email_key";
+CREATE UNIQUE INDEX IF NOT EXISTS "User_email_username_key"
+  ON scl."User"("email", "username");
+`;
+  const sqlPath = join(tmpdir(), `scl-${AUTH_EMAIL_MIGRATION}.sql`);
+  writeFileSync(sqlPath, sql, "utf8");
+  try {
+    const executed = runPrisma(["db", "execute", "--file", sqlPath]);
+    const out = `${executed.stdout ?? ""}${executed.stderr ?? ""}`;
+    if (executed.status !== 0) {
+      console.error(
+        `[migrate] raw SQL for ${AUTH_EMAIL_MIGRATION} failed:`,
+        out,
+      );
+      return false;
+    }
+    console.log(`[migrate] raw SQL for ${AUTH_EMAIL_MIGRATION} applied`);
+
+    const rolledBack = runPrisma([
+      "migrate",
+      "resolve",
+      "--rolled-back",
+      AUTH_EMAIL_MIGRATION,
+    ]);
+    const rbOut = `${rolledBack.stdout ?? ""}${rolledBack.stderr ?? ""}`;
+    if (
+      rolledBack.status !== 0 &&
+      !rbOut.includes("P3008") &&
+      !rbOut.includes("P3010") &&
+      !rbOut.includes("not found")
+    ) {
+      console.warn(
+        `[migrate] resolve --rolled-back returned ${rolledBack.status}; continuing`,
+      );
+    }
+
+    const applied = runPrisma([
+      "migrate",
+      "resolve",
+      "--applied",
+      AUTH_EMAIL_MIGRATION,
+    ]);
+    const apOut = `${applied.stdout ?? ""}${applied.stderr ?? ""}`;
+    if (
+      applied.status !== 0 &&
+      !apOut.includes("P3008") &&
+      !apOut.includes("already recorded")
+    ) {
+      console.warn(
+        `[migrate] resolve --applied returned ${applied.status}: ${apOut}`,
+      );
+    } else {
+      console.log(`[migrate] marked ${AUTH_EMAIL_MIGRATION} as applied`);
+    }
+    return true;
+  } finally {
+    try {
+      unlinkSync(sqlPath);
+    } catch {
+      // ignore cleanup errors
+    }
+  }
+}
+
 // Only a real production deploy migrates. CI builds have no database, so an
 // unset VERCEL_ENV must skip as well — otherwise `next build` in CI dies on
 // P1001 trying to reach localhost.
@@ -77,31 +163,19 @@ if (env !== "production") {
 
 ensureDatabaseEnvForMigrate();
 
-// A failed production build may leave this migration marked failed even when the
-// DDL never landed (or landed partially). Roll it back so deploy can retry cleanly.
-const AUTH_EMAIL_MIGRATION =
-  "20260805230000_allow_duplicate_email_per_username";
-const resolve = spawnSync(
-  "npx",
-  ["prisma", "migrate", "resolve", "--rolled-back", AUTH_EMAIL_MIGRATION],
-  { encoding: "utf8", shell: process.platform === "win32", env: process.env },
-);
-const resolveOut = `${resolve.stdout ?? ""}${resolve.stderr ?? ""}`;
-if (
-  resolve.status !== 0 &&
-  !resolveOut.includes("P3008") &&
-  !resolveOut.includes("P3010") &&
-  !resolveOut.includes("not found")
-) {
-  console.warn(
-    `[migrate] resolve --rolled-back ${AUTH_EMAIL_MIGRATION} returned ${resolve.status}; continuing deploy.`,
+if (!trimmed(process.env.DATABASE_URL) && !trimmed(process.env.DIRECT_URL)) {
+  console.error(
+    "[migrate] No DATABASE_URL / DIRECT_URL (or Supabase aliases) — cannot migrate.",
   );
+  process.exit(1);
 }
 
+forceAuthEmailMigration();
+
 console.log(`[migrate] VERCEL_ENV=${env ?? "(local)"} — applying migrations.`);
-const result = spawnSync("npx", ["prisma", "migrate", "deploy"], {
-  stdio: "inherit",
-  shell: process.platform === "win32",
-  env: process.env,
-});
+const result = runPrisma(["migrate", "deploy"]);
+if (result.status !== 0) {
+  console.error(result.stdout ?? "");
+  console.error(result.stderr ?? "");
+}
 process.exit(result.status ?? 1);
