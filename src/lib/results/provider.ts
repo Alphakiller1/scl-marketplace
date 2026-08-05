@@ -96,6 +96,7 @@ function mapOddsApiScores(events: OddsApiScore[]): SettledGame[] {
     .map((e) => {
       const home = e.scores!.find((s) => s.name === e.home_team);
       const away = e.scores!.find((s) => s.name === e.away_team);
+      const startsAt = e.commence_time ? new Date(e.commence_time) : undefined;
       return {
         sport: toSclSport(e.sport_key)!,
         home: e.home_team,
@@ -104,6 +105,8 @@ function mapOddsApiScores(events: OddsApiScore[]): SettledGame[] {
         awayScore: Number(away?.score ?? 0),
         completed: true,
         eventId: e.id,
+        startsAt:
+          startsAt && !Number.isNaN(startsAt.getTime()) ? startsAt : undefined,
       };
     });
 }
@@ -163,6 +166,8 @@ type OddsApiScore = {
   completed: boolean;
   home_team: string;
   away_team: string;
+  /** ISO kickoff/first-pitch. Date-scopes the name-matching fallback. */
+  commence_time?: string;
   scores?: { name: string; score: string }[];
 };
 

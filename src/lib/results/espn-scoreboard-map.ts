@@ -8,8 +8,11 @@ type EspnCompetitor = {
 
 type EspnEvent = {
   id?: string;
+  /** ISO scheduled start. Date-scopes the name-matching fallback. */
+  date?: string;
   competitions?: Array<{
     competitors?: EspnCompetitor[];
+    date?: string;
     status?: { type?: { completed?: boolean; name?: string } };
   }>;
   status?: { type?: { completed?: boolean; name?: string } };
@@ -61,6 +64,9 @@ export function mapEspnScoreboard(
     const awayScore = Number(away?.score);
     if (!Number.isFinite(homeScore) || !Number.isFinite(awayScore)) continue;
 
+    const rawDate = event.date ?? comp?.date;
+    const startsAt = rawDate ? new Date(rawDate) : undefined;
+
     out.push({
       sport: sclSport,
       home: canonicalizeEspnTeamName(homeName),
@@ -69,6 +75,8 @@ export function mapEspnScoreboard(
       awayScore,
       completed: true,
       eventId: event.id ? `espn:${event.id}` : undefined,
+      startsAt:
+        startsAt && !Number.isNaN(startsAt.getTime()) ? startsAt : undefined,
     });
   }
   return out;
