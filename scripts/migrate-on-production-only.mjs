@@ -19,6 +19,15 @@ import { spawnSync } from "node:child_process";
 
 const env = process.env.VERCEL_ENV;
 
+const AUTH_EMAIL_MIGRATION =
+  "20260805230000_allow_duplicate_email_per_username";
+
+const AUTH_EMAIL_DDL = `
+DROP INDEX IF EXISTS scl."User_email_key";
+CREATE UNIQUE INDEX IF NOT EXISTS "User_email_username_key"
+  ON scl."User"("email", "username");
+`.trim();
+
 function trimmed(value) {
   const next = value?.trim();
   return next ? next : null;
@@ -38,6 +47,55 @@ function withSclSchema(connectionUrl) {
   }
 }
 
+/** Derive a direct Postgres URL from a Supabase pooler URL when non-pooling is unset. */
+function deriveDirectFromPooled(pooledUrl) {
+  if (!pooledUrl) return null;
+  try {
+    const url = new URL(pooledUrl);
+    if (url.port === "6543") url.port = "5432";
+    if (url.hostname.includes(".pooler.")) {
+      url.hostname = url.hostname.replace(".pooler.", ".");
+    }
+    url.searchParams.delete("pgbouncer");
+    if (!url.searchParams.has("schema")) {
+      url.searchParams.set("schema", "scl");
+    }
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function prismaEnv() {
+  return { ...process.env };
+}
+
+function runPrisma(args, { input, inherit = false, databaseUrl } = {}) {
+  const env = prismaEnv();
+  if (databaseUrl) env.DATABASE_URL = databaseUrl;
+  return spawnSync("npx", ["prisma", ...args], {
+    input,
+    encoding: "utf8",
+    stdio: inherit ? "inherit" : "pipe",
+    shell: process.platform === "win32",
+    env,
+  });
+}
+
+function outputOf(result) {
+  return `${result.stdout ?? ""}${result.stderr ?? ""}`;
+}
+
+function isIgnorableResolveOutput(text) {
+  return (
+    text.includes("P3008") ||
+    text.includes("P3010") ||
+    text.includes("already been applied") ||
+    text.includes("already recorded as rolled back") ||
+    text.includes("not found")
+  );
+}
+
 /** Mirror runtime Supabase ↔ Vercel integration aliases before Prisma CLI runs. */
 function ensureDatabaseEnvForMigrate() {
   if (!trimmed(process.env.DATABASE_URL)) {
@@ -55,14 +113,54 @@ function ensureDatabaseEnvForMigrate() {
   }
 
   if (!trimmed(process.env.DIRECT_URL)) {
-    const direct = trimmed(process.env.POSTGRES_URL_NON_POOLING);
+    const direct =
+      trimmed(process.env.POSTGRES_URL_NON_POOLING) ??
+      trimmed(process.env.POSTGRES_URL_DIRECT) ??
+      deriveDirectFromPooled(trimmed(process.env.DATABASE_URL));
     if (direct) {
       process.env.DIRECT_URL = withSclSchema(direct);
-      console.log("[migrate] mapped DIRECT_URL from Supabase integration env");
+      console.log("[migrate] mapped DIRECT_URL for migration CLI");
     }
   } else if (!process.env.DIRECT_URL.includes("schema=")) {
     process.env.DIRECT_URL = withSclSchema(process.env.DIRECT_URL);
   }
+}
+
+function runResolve(flag, migration) {
+  const result = runPrisma(["migrate", "resolve", `--${flag}`, migration]);
+  const out = outputOf(result);
+  if (result.status !== 0 && !isIgnorableResolveOutput(out)) {
+    console.warn(
+      `[migrate] resolve --${flag} ${migration} returned ${result.status}: ${out.trim()}`,
+    );
+    return false;
+  }
+  return true;
+}
+
+function applyAuthEmailMigration() {
+  const direct = trimmed(process.env.DIRECT_URL);
+  if (!direct) {
+    console.error(
+      "[migrate] DIRECT_URL is required to apply auth email migration DDL",
+    );
+    return false;
+  }
+
+  const result = runPrisma(["db", "execute", "--stdin"], {
+    input: AUTH_EMAIL_DDL,
+    databaseUrl: direct,
+  });
+  const out = outputOf(result);
+  if (result.status !== 0) {
+    console.warn(
+      `[migrate] auth email DDL returned ${result.status}: ${out.trim().slice(0, 400)}`,
+    );
+    // IF NOT EXISTS / DROP IF EXISTS make re-runs safe; migrate deploy verifies history.
+  } else {
+    console.log("[migrate] auth email DDL applied");
+  }
+  return true;
 }
 
 // Only a real production deploy migrates. CI builds have no database, so an
@@ -77,31 +175,24 @@ if (env !== "production") {
 
 ensureDatabaseEnvForMigrate();
 
-// A failed production build may leave this migration marked failed even when the
-// DDL never landed (or landed partially). Roll it back so deploy can retry cleanly.
-const AUTH_EMAIL_MIGRATION =
-  "20260805230000_allow_duplicate_email_per_username";
-const resolve = spawnSync(
-  "npx",
-  ["prisma", "migrate", "resolve", "--rolled-back", AUTH_EMAIL_MIGRATION],
-  { encoding: "utf8", shell: process.platform === "win32", env: process.env },
-);
-const resolveOut = `${resolve.stdout ?? ""}${resolve.stderr ?? ""}`;
-if (
-  resolve.status !== 0 &&
-  !resolveOut.includes("P3008") &&
-  !resolveOut.includes("P3010") &&
-  !resolveOut.includes("not found")
-) {
-  console.warn(
-    `[migrate] resolve --rolled-back ${AUTH_EMAIL_MIGRATION} returned ${resolve.status}; continuing deploy.`,
+if (!trimmed(process.env.DATABASE_URL)) {
+  console.error(
+    "[migrate] DATABASE_URL is unset after Supabase alias mapping — cannot migrate",
   );
+  process.exit(1);
 }
 
+// Clear a previously failed attempt so deploy can retry cleanly.
+runResolve("rolled-back", AUTH_EMAIL_MIGRATION);
+
+// Apply the auth email index swap on a direct connection, then mark it applied
+// so `migrate deploy` does not re-run DDL through a pooler or a failed history row.
+if (!applyAuthEmailMigration()) {
+  console.error("[migrate] auth email migration pre-patch failed");
+  process.exit(1);
+}
+runResolve("applied", AUTH_EMAIL_MIGRATION);
+
 console.log(`[migrate] VERCEL_ENV=${env ?? "(local)"} — applying migrations.`);
-const result = spawnSync("npx", ["prisma", "migrate", "deploy"], {
-  stdio: "inherit",
-  shell: process.platform === "win32",
-  env: process.env,
-});
+const result = runPrisma(["migrate", "deploy"], { inherit: true });
 process.exit(result.status ?? 1);
