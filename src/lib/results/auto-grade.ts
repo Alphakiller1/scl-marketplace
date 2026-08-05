@@ -87,6 +87,9 @@ async function gradeStraightPlays(
         units: true,
         eventId: true,
         eventStartsAt: true,
+        // Date-scopes the name-matching fallback for plays with no eventId.
+        // Imported legacy plays carry the event time here.
+        createdAt: true,
         side: true,
         line: true,
         book: true,

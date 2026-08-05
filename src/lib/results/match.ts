@@ -18,6 +18,14 @@ export type GradablePlay = {
   line?: number | null;
   homeTeam?: string | null;
   awayTeam?: string | null;
+  /** Scheduled start, when the play was bound to a board event. */
+  eventStartsAt?: Date | null;
+  /**
+   * Fallback date for scoping the name-matching pool. Imported legacy plays
+   * carry the event time here (the extractor derives it from the legacy row's
+   * date + time), so it is a reliable stand-in for eventStartsAt.
+   */
+  createdAt?: Date | null;
 };
 
 /** Player props / partial-game markets defer until a dedicated stats provider exists. */
@@ -93,11 +101,40 @@ function teamsAreOpponents(a: string, b: string, game: SettledGame): boolean {
   return (aHome && bAway) || (aAway && bHome);
 }
 
+/**
+ * How far a settled game's start may sit from the play's own event time and
+ * still be considered the same fixture. Wide enough to absorb doubleheaders,
+ * rain delays, and imported timestamps that record only the scheduled hour;
+ * far tighter than the two-week settled pool.
+ */
+const SAME_FIXTURE_WINDOW_MS = 18 * 60 * 60 * 1000;
+
+/**
+ * Restrict candidates to games plausibly on the same date as the play.
+ *
+ * Only applies when both sides carry a timestamp. If either is unknown we
+ * cannot judge, so the full pool is returned and the caller behaves as before.
+ */
+function sameFixtureWindow(
+  play: GradablePlay,
+  games: SettledGame[],
+): SettledGame[] {
+  const when = play.eventStartsAt ?? play.createdAt;
+  if (!when) return games;
+  const anyDated = games.some((g) => g.startsAt);
+  if (!anyDated) return games;
+  return games.filter(
+    (g) =>
+      !g.startsAt ||
+      Math.abs(g.startsAt.getTime() - when.getTime()) <= SAME_FIXTURE_WINDOW_MS,
+  );
+}
+
 export function findGame(
   play: GradablePlay,
   games: SettledGame[],
 ): SettledGame | null {
-  const sportGames = games.filter((g) => g.sport === play.sport);
+  const bySport = games.filter((g) => g.sport === play.sport);
 
   // An event-bound play grades against that event or not at all.
   //
@@ -108,8 +145,17 @@ export function findGame(
   // graded a live pick with an old result: a bet settled WIN in the 3rd inning
   // at 0-0. Absent means not finished yet; the correct answer is to wait.
   if (play.eventId) {
-    return sportGames.find((g) => g.eventId === play.eventId) ?? null;
+    return bySport.find((g) => g.eventId === play.eventId) ?? null;
   }
+
+  // Plays with no eventId — every imported legacy pick — still reach the name
+  // matching below, where the same stale-pool hazard applies: a pick logged
+  // today matched the first same-team game in a fortnight of history and
+  // settled against a result from days earlier. Confirmed in production, where
+  // 28 picks graded within 1.5-2h of first pitch, i.e. mid-game. Scoping to the
+  // play's own date means an unfinished game simply finds no match and waits
+  // for the next cron run, which is the intended behaviour.
+  const sportGames = sameFixtureWindow(play, bySport);
 
   const matchup = parseMatchupSides(play.selection);
   if (matchup) {

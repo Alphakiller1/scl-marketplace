@@ -57,3 +57,5 @@ qa-screenshots*/
 tmp/
 
 __pycache__/
+.migrate-env.sh
+*.dump
