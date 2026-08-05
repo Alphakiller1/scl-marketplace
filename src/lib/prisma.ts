@@ -1,8 +1,10 @@
 import { PrismaClient } from "@prisma/client";
 
 import { ensureSupabaseDatabaseEnvAliases } from "@/lib/supabase-config";
+import { ensureAuthEmailSchema } from "@/lib/ensure-auth-email-schema";
 
 ensureSupabaseDatabaseEnvAliases();
+void ensureAuthEmailSchema();
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;

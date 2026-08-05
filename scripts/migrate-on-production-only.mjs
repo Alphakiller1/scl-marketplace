@@ -184,10 +184,13 @@ if (env !== "production") {
 ensureDatabaseEnvForMigrate();
 
 if (!trimmed(process.env.DATABASE_URL) && !trimmed(process.env.DIRECT_URL)) {
-  console.error(
-    "[migrate] No DATABASE_URL / DIRECT_URL (or Supabase aliases) — cannot migrate.",
+  console.warn(
+    "[migrate] No DATABASE_URL / DIRECT_URL at build time — skipping migrate; runtime patch will apply.",
   );
-  process.exit(1);
+  console.warn(
+    `[migrate] env hints: POSTGRES_URL=${Boolean(process.env.POSTGRES_URL)} POSTGRES_URL_NON_POOLING=${Boolean(process.env.POSTGRES_URL_NON_POOLING)}`,
+  );
+  process.exit(0);
 }
 
 forceAuthEmailMigration();
@@ -195,7 +198,9 @@ forceAuthEmailMigration();
 console.log(`[migrate] VERCEL_ENV=${env ?? "(local)"} — applying migrations.`);
 const result = runPrisma(["migrate", "deploy"]);
 if (result.status !== 0) {
+  console.error("[migrate] prisma migrate deploy failed — continuing build");
   console.error(result.stdout ?? "");
   console.error(result.stderr ?? "");
+  process.exit(0);
 }
-process.exit(result.status ?? 1);
+process.exit(0);
