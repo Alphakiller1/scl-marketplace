@@ -8,6 +8,7 @@ import {
   adminNotificationRecipients,
   sendStorefrontMessageNotificationEmail,
 } from "@/lib/email";
+import { awaitStorefrontMessagesSchema } from "@/lib/ensure-storefront-messages-schema";
 import { prisma } from "@/lib/prisma";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import {
@@ -113,6 +114,8 @@ export async function sendStorefrontMessageAction(input: {
   const senderRole = access.isAdmin ? ("ADMIN" as const) : ("CAPPER" as const);
   const now = new Date();
 
+  await awaitStorefrontMessagesSchema(prisma);
+
   const message = await prisma.storefrontMessage.create({
     data: {
       storeConnectionId: parsed.data.storeConnectionId,
@@ -202,6 +205,8 @@ export async function markStorefrontThreadReadAction(input: {
   );
   if (!access) return { ok: false, error: "Thread not found." };
 
+  await awaitStorefrontMessagesSchema(prisma);
+
   const now = new Date();
   if (access.isAdmin) {
     await prisma.storefrontMessage.updateMany({
@@ -238,6 +243,8 @@ export async function markAllCapperThreadsReadAction(input: {
     select: { id: true },
   });
   if (!profile) return { ok: false, error: "Capper not found." };
+
+  await awaitStorefrontMessagesSchema(prisma);
 
   await prisma.storefrontMessage.updateMany({
     where: {

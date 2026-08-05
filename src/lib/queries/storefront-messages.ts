@@ -3,6 +3,7 @@ import "server-only";
 import type { StorefrontMessageSender } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { awaitStorefrontMessagesSchema } from "@/lib/ensure-storefront-messages-schema";
 
 const GHOST_DOMAIN = "@ghost.scl.demo";
 
@@ -22,6 +23,7 @@ export async function getStorefrontMessages(
   storeConnectionId: string,
 ): Promise<StorefrontMessageRow[]> {
   try {
+    await awaitStorefrontMessagesSchema(prisma);
     return await prisma.storefrontMessage.findMany({
       where: { storeConnectionId },
       orderBy: { createdAt: "asc" },
@@ -47,6 +49,7 @@ export async function getStorefrontMessages(
 
 export async function countUnreadStorefrontMessagesForAdmin(): Promise<number> {
   try {
+    await awaitStorefrontMessagesSchema(prisma);
     return await prisma.storefrontMessage.count({
       where: {
         senderRole: "CAPPER",
@@ -71,6 +74,7 @@ export async function countUnreadStorefrontMessagesForCapper(
   userId: string,
 ): Promise<number> {
   try {
+    await awaitStorefrontMessagesSchema(prisma);
     return await prisma.storefrontMessage.count({
       where: {
         senderRole: "ADMIN",
@@ -95,6 +99,7 @@ export async function getStorefrontMessagesForCapper(
 ): Promise<Record<string, StorefrontMessageRow[]>> {
   if (!connectionIds.length) return {};
   try {
+    await awaitStorefrontMessagesSchema(prisma);
     const rows = await prisma.storefrontMessage.findMany({
       where: {
         storeConnectionId: { in: connectionIds },
