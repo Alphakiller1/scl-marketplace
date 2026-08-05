@@ -27,20 +27,31 @@ enum AccountStatus {
 }
 
 model User {
-  id            String        @id @default(cuid())
-  email         String        @unique
-  username      String?       @unique
-  passwordHash  String?
-  displayName   String?
-  role          Role          @default(CAPPER)
-  accountStatus AccountStatus @default(ACTIVE)
-  emailVerified DateTime?
-  image         String?
+  id                       String        @id @default(cuid())
+  email                    String        @unique
+  username                 String?       @unique
+  passwordHash             String?
+  /// Credential carried over from the previous platform, in whatever format that
+  /// stack wrote it (see `src/lib/legacy-password.ts`). Verified at login, then
+  /// re-hashed into `passwordHash` and cleared — so this empties out over time.
+  legacyPasswordHash       String?
+  /// Optional format hint for the above; detected from the hash shape when unset.
+  legacyPasswordFormat     String?
+  /// Set when a sign-in succeeded with a password that no longer meets the
+  /// current requirements. The account still works — this only drives the
+  /// update prompt and the one-time notice.
+  passwordUpdateRequiredAt DateTime?
+  passwordNoticeSentAt     DateTime?
+  displayName              String?
+  role                     Role          @default(CAPPER)
+  accountStatus            AccountStatus @default(ACTIVE)
+  emailVerified            DateTime?
+  image                    String?
   /// When true, excluded from public leaderboard / picks / discover / profile.
   /// Toggle in Supabase without a code change; handle guards remain as backup.
-  isTest        Boolean       @default(false)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  isTest                   Boolean       @default(false)
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
 
   accounts           Account[]
   sessions           Session[]

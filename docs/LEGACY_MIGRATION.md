@@ -11,10 +11,12 @@ No schema migration is required — it reuses the existing `User`,
 
 For each record the importer upserts:
 
-- a **`User`** (`role: CAPPER`, **no password** — unclaimed until the capper
-  claims it, see [Claiming an imported account](#claiming-an-imported-account);
-  `emailVerified` set only when `verified: true`). `username` becomes the public
-  `/cappers/[handle]` slug.
+- a **`User`** (`role: CAPPER`, **no SCL password**; `emailVerified` set only
+  when `verified: true`). `username` becomes the public `/cappers/[handle]` slug.
+  When the export carries a credential the capper signs in with their old
+  password — see [Signing in with the old password](#signing-in-with-the-old-password);
+  otherwise the record stays unclaimed until they set one
+  ([Claiming an imported account](#claiming-an-imported-account)).
 - a **`CapperProfile`** with `isLegacy: true` plus headline/bio/sports/socials.
 - the capper's **historical `Play` rows** (only if the profile has none yet).
 
@@ -34,6 +36,7 @@ for a complete example; the contract lives in
 | `displayName`                                           | ✅       | shown name                                       |
 | `email`                                                 | —        | defaults to `username@legacy.scl` (placeholder)  |
 | `verified`                                              | —        | `true` marks the imported record verified        |
+| `passwordHash`, `passwordFormat`                        | —        | the old platform's credential (see below)        |
 | `headline`, `bio`, `avatarUrl`                          | —        | profile copy                                     |
 | `sports`, `specialties`, `betTypes`                     | —        | arrays                                           |
 | `providerType`                                          | —        | `FREE` \| `PREMIUM` \| `HYBRID` (default `FREE`) |
@@ -178,12 +181,48 @@ back mangled (`ðŸ”¥` for 🔥). The extractor repairs this run by run — t
 descriptions mix corrupted spans with characters that were stored correctly
 (— • –), so re-encoding a whole string always fails on one of the good ones.
 
+## Signing in with the old password
+
+When the export carries each capper's stored credential, they sign in at
+`/login` with **the same email and password they already had** — nothing to
+claim, nothing to reset.
+
+| Field            | Notes                                                                                                    |
+| ---------------- | -------------------------------------------------------------------------------------------------------- |
+| `passwordHash`   | the credential exactly as the old platform stored it                                                     |
+| `passwordFormat` | `BCRYPT` \| `PHPASS` \| `MD5` \| `SHA1` \| `SHA256` \| `PLAINTEXT` — detected from the hash when omitted |
+
+The extractor picks the column up automatically (`pass`, `password`, `user_pass`
+and friends) and reports what it found; `--password-column` names an odd one,
+`--password-format` forces the format, `--no-passwords` skips credentials
+entirely. Hashes it can't classify are dropped rather than imported, because a
+credential login can't verify is one nobody can sign in with — those cappers
+fall back to claiming. `PLAINTEXT` is never auto-detected; declare it.
+
+What happens on that first sign-in (`src/auth.ts`):
+
+1. The submitted password is checked against the imported hash
+   (`src/lib/legacy-password.ts` — bcrypt including PHP's `$2y$`, phpass `$P$` /
+   `$H$`, and unsalted MD5/SHA-1/SHA-256).
+2. On a match it is **re-hashed with bcrypt** into `passwordHash` and the
+   imported hash is cleared, so each account passes through that path once.
+3. If the password doesn't meet the current requirements (12+ characters), the
+   account is flagged (`passwordUpdateRequiredAt`) and the capper gets a one-time
+   email. **This never blocks the sign-in** — their password keeps working until
+   they change it at `/dashboard/security`, prompted by a banner across the
+   capper workspace.
+4. Then the current policy gate applies, same as everyone: `/accept-terms`
+   before any workspace.
+
+Accounts imported without a credential — and any hash that couldn't be
+classified — use the claim routes below instead.
+
 ## Claiming an imported account
 
-An imported `User` has **no `passwordHash`**, which is exactly what "unclaimed"
-means: the record and public profile exist, but nobody has ever signed in to it.
-`emailVerified` says nothing about this — the importer copies the old platform's
-verified flag, so a capper can be both verified and unclaimed.
+An imported `User` with **no `passwordHash`** is unclaimed: the record and public
+profile exist, but nobody has ever signed in to it. `emailVerified` says nothing
+about this — the importer copies the old platform's verified flag, so a capper
+can be both verified and unclaimed.
 
 Three routes turn an unclaimed record into a working login. All of them preserve
 the profile, plays, and carried record — none creates a second account:

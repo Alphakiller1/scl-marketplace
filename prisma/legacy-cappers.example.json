@@ -3,6 +3,8 @@
     "username": "legacy_ace",
     "displayName": "Legacy Ace",
     "verified": true,
+    "passwordHash": "$P$B7pQm3zGkPYNhJMYGokznrdh9KXBD60",
+    "passwordFormat": "PHPASS",
     "providerType": "PREMIUM",
     "headline": "Imported from the original SCL leaderboard.",
     "bio": "Long-time SCL capper. Historical record imported from the previous platform; tracked live on SCL going forward.",

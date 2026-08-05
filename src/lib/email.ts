@@ -1,5 +1,7 @@
 import { Resend } from "resend";
 
+import { PASSWORD_POLICY_SUMMARY } from "@/lib/password-policy";
+
 const apiKey = process.env.RESEND_API_KEY;
 const from = process.env.EMAIL_FROM ?? "no-reply@scl.local";
 const resend = apiKey ? new Resend(apiKey) : null;
@@ -134,6 +136,47 @@ export async function sendAccountClaimEmail(email: string, token: string) {
     return { delivered: true as const, link };
   } catch (err) {
     console.error(`[email] claim send threw for ${email}:`, err);
+    return { delivered: false as const, link };
+  }
+}
+
+/**
+ * One-time notice that a password carried over from the previous platform no
+ * longer meets SCL's requirements. It is a prompt, not a lockout — the password
+ * keeps working until they change it, so the copy must not read as an outage.
+ */
+export async function sendPasswordUpdateRequiredEmail(email: string) {
+  const link = `${appUrl()}/dashboard/security`;
+
+  if (!resend) {
+    console.info(`[email:dev] password update notice for ${email}: ${link}`);
+    return { delivered: false as const, link };
+  }
+
+  try {
+    const { error } = await resend.emails.send({
+      from,
+      to: email,
+      subject: "Update your SCL password",
+      html: `
+      <div style="font-family:system-ui,sans-serif;max-width:480px;margin:auto">
+        <h2>Time to update your password</h2>
+        <p>You signed in with the password from your previous SCL account. It's shorter than our current requirement of <strong>${escapeHtml(PASSWORD_POLICY_SUMMARY)}</strong>, so please choose a new one.</p>
+        <p>You can keep signing in with your existing password in the meantime — nothing is locked.</p>
+        <p><a href="${link}" style="display:inline-block;background:#5b4bdb;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Update password</a></p>
+        <p style="color:#666;font-size:13px">If you didn't just sign in to SCL, change your password immediately.</p>
+      </div>
+    `,
+    });
+    if (error) {
+      console.error(
+        `[email] password notice failed for ${email}: ${error.message}`,
+      );
+      return { delivered: false as const, link };
+    }
+    return { delivered: true as const, link };
+  } catch (err) {
+    console.error(`[email] password notice threw for ${email}:`, err);
     return { delivered: false as const, link };
   }
 }

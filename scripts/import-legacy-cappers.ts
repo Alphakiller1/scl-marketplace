@@ -64,7 +64,10 @@ async function importCapper(c: LegacyCapperInput) {
   // belongs to a real, non-legacy user, skip rather than overwrite them.
   const collision = await prisma.user.findUnique({
     where: { email },
-    select: { capperProfile: { select: { isLegacy: true } } },
+    select: {
+      passwordHash: true,
+      capperProfile: { select: { isLegacy: true } },
+    },
   });
   if (collision && !collision.capperProfile?.isLegacy) {
     throw new Error(
@@ -72,12 +75,24 @@ async function importCapper(c: LegacyCapperInput) {
     );
   }
 
+  // Carry the previous platform's credential across so the capper signs in with
+  // the password they already have. Once they've set an SCL password (claimed
+  // the account or already migrated), a re-run must not resurrect the old one.
+  const legacyCredential =
+    c.passwordHash && !collision?.passwordHash
+      ? {
+          legacyPasswordHash: c.passwordHash,
+          legacyPasswordFormat: c.passwordFormat ?? null,
+        }
+      : {};
+
   const user = await prisma.user.upsert({
     where: { email },
     update: {
       username: c.username,
       displayName: c.displayName,
       emailVerified: c.verified ? new Date() : undefined,
+      ...legacyCredential,
       capperProfile: { upsert: { create: profileData, update: profileData } },
     },
     create: {
@@ -85,8 +100,11 @@ async function importCapper(c: LegacyCapperInput) {
       username: c.username,
       displayName: c.displayName,
       role: "CAPPER",
-      // No password — the profile stays unclaimed until the capper sets one
-      // (signup / reset link / admin-issued link). See docs/LEGACY_MIGRATION.md.
+      ...legacyCredential,
+      // No SCL password. With a legacy credential above, the capper signs in
+      // with their old one and it is upgraded on first use; without one, the
+      // profile stays unclaimed until they set a password (signup / reset link
+      // / admin-issued link). See docs/LEGACY_MIGRATION.md.
       emailVerified: c.verified ? new Date() : null,
       capperProfile: { create: profileData },
     },

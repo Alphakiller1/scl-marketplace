@@ -51,6 +51,27 @@ export type PasswordResetRequestInput = z.infer<
 export const verificationRequestSchema = passwordResetRequestSchema;
 export type VerificationRequestInput = PasswordResetRequestInput;
 
+/**
+ * In-app password change. `currentPassword` has no policy floor of its own — a
+ * capper who signed in with a password carried over from the previous platform
+ * is exactly who this form is for, and theirs predates the current rules.
+ */
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Enter your current password"),
+    password: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  })
+  .refine((data) => data.password !== data.currentPassword, {
+    message: "Choose a password you haven't used here before",
+    path: ["password"],
+  });
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
 export const resetPasswordSchema = z
   .object({
     token: z

@@ -38,6 +38,10 @@ export const getCurrentAccount = cache(async () => {
       role: true,
       accountStatus: true,
       emailVerified: true,
+      // Set when a sign-in succeeded with a password carried over from the
+      // previous platform that no longer meets the current requirements. It
+      // drives the update prompt only — it never gates access.
+      passwordUpdateRequiredAt: true,
       termsAcceptances: {
         where: { policyVersion: currentPolicyVersion },
         select: { acceptedAt: true, policyVersion: true },
@@ -56,6 +60,7 @@ export const getCurrentAccount = cache(async () => {
     role: account.role,
     accountStatus: account.accountStatus,
     emailVerified: account.emailVerified,
+    passwordUpdateRequiredAt: account.passwordUpdateRequiredAt,
     legalAcceptance: account.termsAcceptances[0] ?? null,
     currentPolicyVersion,
     currentPolicyBundle,
