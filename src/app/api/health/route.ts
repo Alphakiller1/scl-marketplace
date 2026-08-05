@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCoreSchemaHealth } from "@/lib/queries/release-readiness";
+import { supabaseIntegrationStatus } from "@/lib/supabase-config";
 import { whopIntegrationStatus } from "@/lib/whop-config";
 
 export const runtime = "nodejs";
@@ -25,6 +26,7 @@ export async function GET() {
         refundPolicy: health.refundPolicy,
       },
       deployment: { releaseIdentified },
+      supabase: supabaseIntegrationStatus(),
       whop: whopIntegrationStatus(),
       release,
       checkedAt: new Date().toISOString(),

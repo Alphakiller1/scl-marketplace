@@ -2,16 +2,21 @@ import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
 
+import {
+  supabaseProfileMediaBucket,
+  supabaseProjectUrl,
+  supabaseServiceRoleKey,
+} from "@/lib/supabase-config";
+
 type ProfileMediaStorage = {
   bucket: string;
   client: ReturnType<typeof createClient>;
 };
 
 export function getProfileMediaStorage(): ProfileMediaStorage | null {
-  const url = process.env.SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const bucket =
-    process.env.SUPABASE_PROFILE_MEDIA_BUCKET ?? "scl-profile-media";
+  const url = supabaseProjectUrl();
+  const serviceRoleKey = supabaseServiceRoleKey();
+  const bucket = supabaseProfileMediaBucket();
 
   if (!url || !serviceRoleKey) return null;
 

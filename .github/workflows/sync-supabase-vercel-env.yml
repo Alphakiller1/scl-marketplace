@@ -1,0 +1,107 @@
+name: Sync Supabase env to Vercel
+
+# Pushes Supabase credentials from GitHub's Production environment into the Vercel
+# project's Production env, then triggers a redeploy so profile media uploads work.
+#
+# One-time owner setup: docs/SUPABASE_VERCEL_ENV_SYNC.md
+# Secrets live under GitHub → Settings → Environments → Production.
+
+on:
+  workflow_dispatch:
+    inputs:
+      redeploy:
+        description: Trigger a production redeploy after syncing
+        type: boolean
+        default: true
+
+concurrency:
+  group: sync-supabase-vercel-env
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    environment: Production
+    steps:
+      - name: Validate Vercel CLI credentials
+        id: cfg
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          missing=()
+          [ -z "$VERCEL_TOKEN" ] && missing+=("VERCEL_TOKEN")
+          [ -z "$VERCEL_ORG_ID" ] && missing+=("VERCEL_ORG_ID")
+          [ -z "$VERCEL_PROJECT_ID" ] && missing+=("VERCEL_PROJECT_ID")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "Missing Production environment secrets: ${missing[*]}"
+            echo "See docs/SUPABASE_VERCEL_ENV_SYNC.md"
+            exit 1
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.cfg.outputs.ready == 'true'
+
+      - name: Upsert Supabase env vars on Vercel (Production)
+        if: steps.cfg.outputs.ready == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_PROFILE_MEDIA_BUCKET: ${{ secrets.SUPABASE_PROFILE_MEDIA_BUCKET }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: |
+          npm install -g vercel@latest
+          mkdir -p .vercel
+          printf '{"orgId":"%s","projectId":"%s"}' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
+
+          upsert_env() {
+            local key="$1"
+            local value="$2"
+            if [ -z "$value" ]; then
+              echo "Skip $key — not set in GitHub Production secrets"
+              return 0
+            fi
+            echo "Upserting $key → Vercel Production"
+            vercel env rm "$key" production --yes --token="$VERCEL_TOKEN" 2>/dev/null || true
+            printf '%s' "$value" | vercel env add "$key" production --token="$VERCEL_TOKEN"
+          }
+
+          upsert_env SUPABASE_URL "$SUPABASE_URL"
+          upsert_env SUPABASE_SERVICE_ROLE_KEY "$SUPABASE_SERVICE_ROLE_KEY"
+          upsert_env SUPABASE_PROFILE_MEDIA_BUCKET "$SUPABASE_PROFILE_MEDIA_BUCKET"
+          upsert_env DATABASE_URL "$DATABASE_URL"
+          upsert_env DIRECT_URL "$DIRECT_URL"
+
+          {
+            echo "### Supabase env synced to Vercel Production"
+            echo ""
+            echo "Upserted any Supabase secrets that exist under GitHub → Environments → **Production**."
+            echo "Redeploy is required before \`/api/health\` reports \`supabase.storage: true\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Trigger production redeploy
+        if: steps.cfg.outputs.ready == 'true' && inputs.redeploy
+        env:
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$VERCEL_DEPLOY_HOOK_URL" ]; then
+            echo "No VERCEL_DEPLOY_HOOK_URL — env vars are saved; redeploy from Vercel dashboard or push to main."
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "⚠️ No deploy hook configured. Redeploy manually so Production picks up new env vars." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          HTTP=$(curl -sS -o /tmp/hook-body.txt -w "%{http_code}" -X POST "$VERCEL_DEPLOY_HOOK_URL")
+          echo "Deploy hook HTTP $HTTP"
+          cat /tmp/hook-body.txt || true
+          if [ "$HTTP" -ge 200 ] && [ "$HTTP" -lt 300 ]; then
+            echo "### ✅ Production redeploy triggered" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### ❌ Deploy hook failed (HTTP $HTTP)" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
