@@ -41,7 +41,7 @@ const PLATFORM_SELECTION_COPY = [
   [
     "WHOP",
     "Whop",
-    "Already sell picks on Whop? Connect your Whop storefront to SCL. We’ll guide you through the affiliate setup, then import your packages automatically.",
+    "Already sell picks on Whop? Add SCL as an affiliate, install the SCL app when prompted, and submit — our team reviews and publishes your package links.",
   ],
   [
     "NONE",
@@ -57,7 +57,7 @@ function platformSelectionGuidance(
     case "WINIBLE":
       return "You’ll complete the affiliate setup in Winible. SCL imports your packages after approval.";
     case "WHOP":
-      return "SCL imports your packages directly from Whop once your affiliate connection is complete.";
+      return "Add SCL as a Whop affiliate, install the SCL app when available, then submit — SCL reviews and manually publishes your package links.";
     case "NONE":
       return "We’ll help you create a Winible storefront and connect it to SCL.";
     default:
@@ -69,7 +69,7 @@ function storefrontConnectionBenefits(provider: StoreProvider): string[] {
   if (provider === "WHOP") {
     return [
       "No monthly SCL platform fees.",
-      "Connect your existing Whop storefront to SCL. Once your affiliate connection is complete, SCL imports your packages and publishes them on your SCL profile.",
+      "Connect your existing Whop storefront to SCL. After you add SCL as an affiliate and our team verifies the connection, we manually publish your approved package links on your SCL profile.",
       "You continue selling through your existing Whop storefront—checkout, subscriptions, and payments all remain on Whop.",
     ];
   }
@@ -422,9 +422,9 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
           {provider === "WHOP" ? (
             <div className="space-y-3 text-sm">
               <p className="border-border bg-surface-2 rounded-lg border p-3 leading-relaxed">
-                Add Sports Cappers Leaderboard as an affiliate in Whop. Once
-                your affiliate relationship is established, SCL will import your
-                package links and publish them on your SCL profile.
+                Add Sports Cappers Leaderboard as an affiliate in Whop. After
+                you submit, SCL verifies the relationship and manually publishes
+                the approved package links on your profile.
               </p>
               <ol className="space-y-3">
                 <li className="border-border rounded-lg border p-3">
@@ -436,7 +436,26 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
                 </li>
                 <li className="border-border rounded-lg border p-3">
                   <p className="font-semibold">
-                    2. Use Package-Specific Affiliate Links
+                    2. Install the SCL app on Whop (optional but recommended)
+                  </p>
+                  <p className="text-muted-foreground mt-1">
+                    When available, install the &quot;Sports Cappers
+                    Leaderboard&quot; app on your Whop business so SCL can
+                    verify your storefront faster. It is read-only.
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="mt-2 min-h-10"
+                    render={<a href="/api/whop/connect" rel="noreferrer" />}
+                    nativeButton={false}
+                  >
+                    Install SCL app on Whop
+                    <ExternalLink className="size-4" />
+                  </Button>
+                </li>
+                <li className="border-border rounded-lg border p-3">
+                  <p className="font-semibold">
+                    3. Use package-specific affiliate links
                   </p>
                   <p className="text-muted-foreground mt-1">
                     Use package-specific affiliate links whenever possible so
@@ -445,7 +464,7 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
                 </li>
                 <li className="border-border rounded-lg border p-3">
                   <p className="font-semibold">
-                    3. Select Recurring Commissions
+                    4. Select recurring commissions
                   </p>
                   <p className="text-muted-foreground mt-1">
                     Set the commission type to Recurring (not First Payment

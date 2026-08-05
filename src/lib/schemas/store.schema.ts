@@ -1,7 +1,12 @@
 import { StoreConnectionStatus } from "@prisma/client";
 import { z } from "zod";
 
-import { isWinibleCreatorReferralUrl } from "@/lib/store-connection";
+import {
+  isWinibleCreatorReferralUrl,
+  isWhopCheckoutUrl,
+  whopAffiliateParamIssues,
+} from "@/lib/store-connection";
+import { whopAffiliateUsername } from "@/lib/whop-config";
 import {
   ADMIN_STOREFRONT_ACTIONS,
   storefrontActionRequiresReason,
@@ -85,6 +90,26 @@ export const adminPackageSchema = z
         message:
           "Use a Winible package or customer checkout link. The SCL creator-referral link belongs in capper onboarding.",
       });
+    }
+    if (input.affiliateProvider === "WHOP") {
+      if (!isWhopCheckoutUrl(input.checkoutUrl)) {
+        context.addIssue({
+          code: "custom",
+          path: ["checkoutUrl"],
+          message: "Use a Whop checkout URL (https://whop.com/…).",
+        });
+      }
+      const affiliateIssues = whopAffiliateParamIssues(
+        input.checkoutUrl,
+        whopAffiliateUsername(),
+      );
+      for (const message of affiliateIssues) {
+        context.addIssue({
+          code: "custom",
+          path: ["checkoutUrl"],
+          message,
+        });
+      }
     }
   });
 

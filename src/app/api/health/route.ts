@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCoreSchemaHealth } from "@/lib/queries/release-readiness";
+import { whopIntegrationStatus } from "@/lib/whop-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,6 +25,7 @@ export async function GET() {
         refundPolicy: health.refundPolicy,
       },
       deployment: { releaseIdentified },
+      whop: whopIntegrationStatus(),
       release,
       checkedAt: new Date().toISOString(),
     },

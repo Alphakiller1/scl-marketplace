@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { verifyWhopSignature } from "@/lib/whop-webhook";
+import { whopWebhookConfigured } from "@/lib/whop-config";
 
 export const runtime = "nodejs";
 // Signature verification needs the byte-exact body, so this must never be
@@ -58,9 +59,11 @@ export async function POST(req: NextRequest) {
  * validates, without implying a signed event was accepted.
  */
 export async function GET() {
+  const configured = whopWebhookConfigured();
   return NextResponse.json({
     ok: true,
     endpoint: "whop-webhook",
-    status: "awaiting WHOP_WEBHOOK_SECRET",
+    status: configured ? "ready" : "awaiting WHOP_WEBHOOK_SECRET",
+    webhookConfigured: configured,
   });
 }
