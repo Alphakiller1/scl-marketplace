@@ -2,13 +2,19 @@ import { prisma } from "@/lib/prisma";
 
 let ensurePromise: Promise<void> | null = null;
 
+function shouldApplyAtRuntime(): boolean {
+  // `next build` sets NODE_ENV=production — never run DDL during the build phase.
+  if (process.env.NEXT_PHASE === "phase-production-build") return false;
+  return process.env.VERCEL_ENV === "production";
+}
+
 /**
  * Idempotent production patch for #372 — allow multiple accounts per email.
  * Vercel builds sometimes lack database credentials during `prisma migrate
- * deploy`; apply the index swap at runtime on first connect instead.
+ * deploy`; apply the index swap at runtime on first auth request instead.
  */
 export function ensureAuthEmailSchema(): Promise<void> {
-  if (process.env.NODE_ENV !== "production") return Promise.resolve();
+  if (!shouldApplyAtRuntime()) return Promise.resolve();
   if (!ensurePromise) {
     ensurePromise = (async () => {
       try {
