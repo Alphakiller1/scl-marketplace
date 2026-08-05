@@ -1,6 +1,8 @@
 import { Resend } from "resend";
+import type { StoreProvider } from "@prisma/client";
 
 import { PASSWORD_POLICY_SUMMARY } from "@/lib/password-policy";
+import { providerLabel, SCL_AFFILIATE_EMAIL } from "@/lib/store-connection";
 
 const apiKey = process.env.RESEND_API_KEY;
 const from = process.env.EMAIL_FROM ?? "no-reply@scl.local";
@@ -198,6 +200,90 @@ export async function sendPasswordUpdateRequiredEmail(email: string) {
   } catch (err) {
     console.error(`[email] password notice threw for ${email}:`, err);
     return { delivered: false as const, link };
+  }
+}
+
+/** Comma-separated in ADMIN_NOTIFICATION_EMAIL_TO; falls back to SCL affiliate ops. */
+export function adminNotificationRecipients(): string[] {
+  const raw =
+    process.env.ADMIN_NOTIFICATION_EMAIL_TO?.trim() ||
+    process.env.SUPPORT_EMAIL_TO?.trim() ||
+    SCL_AFFILIATE_EMAIL;
+  return raw
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Alert SCL admins when a capper submits Whop or Winible affiliate setup.
+ * Best-effort — never throws; a delivery failure must not block storefront submit.
+ */
+export async function sendAffiliateSignupNotificationEmail(input: {
+  capperUsername: string;
+  capperEmail: string;
+  provider: StoreProvider;
+  connectionId: string;
+  submittedAt: Date;
+}) {
+  const recipients = adminNotificationRecipients();
+  const platform = providerLabel(input.provider);
+  const handle = input.capperUsername.replace(/^@/, "");
+  const reviewUrl = `${appUrl()}/admin/store-setup?id=${encodeURIComponent(input.connectionId)}&requiresAttention=true`;
+  const submittedAt = input.submittedAt.toISOString();
+
+  if (!resend) {
+    console.info("[email:dev] affiliate signup notification", {
+      to: recipients,
+      ...input,
+      reviewUrl,
+    });
+    return { delivered: false as const };
+  }
+
+  try {
+    const { error } = await resend.emails.send({
+      from,
+      to: recipients,
+      subject: `[SCL] ${platform} affiliate signup — @${handle}`,
+      html: `
+        <div style="font-family:system-ui,sans-serif;max-width:640px;margin:auto">
+          <h2>${escapeHtml(platform)} affiliate signup submitted</h2>
+          <p>A capper finished the ${escapeHtml(platform)} affiliate setup steps and submitted for SCL review.</p>
+          <table style="border-collapse:collapse;width:100%;margin:16px 0">
+            <tr><td style="padding:6px 12px 6px 0;color:#666">Capper</td><td><strong>@${escapeHtml(handle)}</strong></td></tr>
+            <tr><td style="padding:6px 12px 6px 0;color:#666">Email</td><td>${escapeHtml(input.capperEmail)}</td></tr>
+            <tr><td style="padding:6px 12px 6px 0;color:#666">Platform</td><td>${escapeHtml(platform)}</td></tr>
+            <tr><td style="padding:6px 12px 6px 0;color:#666">Submitted</td><td>${escapeHtml(submittedAt)}</td></tr>
+          </table>
+          <p>
+            <a href="${reviewUrl}" style="display:inline-block;background:#5b4bdb;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">
+              Review in admin
+            </a>
+          </p>
+          <p style="color:#666;font-size:13px">
+            ${
+              input.provider === "WINIBLE"
+                ? "Accept the affiliate invite in Winible, then confirm in SCL."
+                : "Verify the Whop affiliate relationship, sync or paste packages, then confirm in SCL."
+            }
+          </p>
+        </div>
+      `,
+    });
+    if (error) {
+      console.error(
+        `[email] affiliate signup notification failed for @${handle}: ${error.message}`,
+      );
+      return { delivered: false as const };
+    }
+    return { delivered: true as const };
+  } catch (error) {
+    console.error(
+      `[email] affiliate signup notification threw for @${handle}:`,
+      error,
+    );
+    return { delivered: false as const };
   }
 }
 
