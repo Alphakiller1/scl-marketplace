@@ -5,6 +5,7 @@ import { AppHeader } from "@/components/app-header";
 import { CapperRouteSkeleton } from "@/components/scl/capper-route-skeleton";
 import { NewPickFab } from "@/components/scl/new-pick-fab";
 import { PasswordUpdateNotice } from "@/components/scl/password-update-notice";
+import { countUnreadStorefrontMessagesForCapper } from "@/lib/queries/storefront-messages";
 
 const CAPPER_NAV = [
   { href: "/dashboard/picks/new", label: "New Pick" },
@@ -17,18 +18,35 @@ const CAPPER_NAV = [
   // prompt below, and the emailed notice.
 ];
 
+async function CapperChrome({ children }: { children: React.ReactNode }) {
+  const account = await requireCapperAccess();
+  const unreadMessages = await countUnreadStorefrontMessagesForCapper(
+    account.id,
+  );
+  const nav = CAPPER_NAV.map((item) =>
+    item.href === "/dashboard/monetization" && unreadMessages > 0
+      ? { ...item, label: `Storefront (${unreadMessages})` }
+      : item,
+  );
+
+  return (
+    <>
+      <AppHeader area="Capper" nav={nav} />
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-8">
+        {account.passwordUpdateRequiredAt ? <PasswordUpdateNotice /> : null}
+        {children}
+      </main>
+      <NewPickFab />
+    </>
+  );
+}
+
 /**
  * Auth gate as a Suspense child so chrome paints immediately on nav clicks.
  * Middleware still blocks anonymous access; this is defense-in-depth.
  */
 async function CapperGate({ children }: { children: React.ReactNode }) {
-  const account = await requireCapperAccess();
-  return (
-    <>
-      {account.passwordUpdateRequiredAt ? <PasswordUpdateNotice /> : null}
-      {children}
-    </>
-  );
+  return <CapperChrome>{children}</CapperChrome>;
 }
 
 export default function CapperLayout({
@@ -38,13 +56,9 @@ export default function CapperLayout({
 }) {
   return (
     <div className="flex min-h-screen flex-col">
-      <AppHeader area="Capper" nav={CAPPER_NAV} />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-24 sm:px-6 sm:py-8 sm:pb-8">
-        <Suspense fallback={<CapperRouteSkeleton />}>
-          <CapperGate>{children}</CapperGate>
-        </Suspense>
-      </main>
-      <NewPickFab />
+      <Suspense fallback={<CapperRouteSkeleton />}>
+        <CapperGate>{children}</CapperGate>
+      </Suspense>
     </div>
   );
 }

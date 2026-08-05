@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { sendAffiliateSignupNotificationEmail } from "@/lib/email";
 import { requireAdmin, requireCapperAccess } from "@/lib/session";
 import {
   adminPackageActiveSchema,
@@ -183,7 +184,10 @@ export async function submitStoreConnectionAction(
 
   const profile = await prisma.capperProfile.findUnique({
     where: { userId: user.id },
-    select: { id: true, user: { select: { username: true } } },
+    select: {
+      id: true,
+      user: { select: { username: true, email: true } },
+    },
   });
   if (!profile) return { ok: false, error: "Capper profile not found." };
 
@@ -240,6 +244,16 @@ export async function submitStoreConnectionAction(
       error: "The storefront changed while submitting. Refresh and try again.",
     };
   }
+
+  void sendAffiliateSignupNotificationEmail({
+    capperUsername: profile.user.username ?? profile.user.email,
+    capperEmail: profile.user.email,
+    provider: parsed.data.provider,
+    connectionId: connection.id,
+    submittedAt: now,
+  }).catch((error) => {
+    console.error("[store] affiliate signup notification failed:", error);
+  });
 
   await revalidateCommercePaths(profile.user.username, user.id);
   return { ok: true };
