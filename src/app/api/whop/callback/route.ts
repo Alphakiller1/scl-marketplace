@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
@@ -138,6 +139,9 @@ export async function GET(req: NextRequest) {
     where: { id: connection.id },
     data: { adminNotes },
   });
+
+  revalidatePath("/dashboard/monetization");
+  revalidatePath("/admin/store-setup");
 
   return NextResponse.redirect(monetizationUrl({ whop: "connected" }));
 }

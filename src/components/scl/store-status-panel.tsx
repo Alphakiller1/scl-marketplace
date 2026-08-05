@@ -13,14 +13,14 @@ function timeline(
     provider === "WHOP"
       ? [
           "Choose Whop and review the connection process",
-          "Add Sports Cappers Leaderboard as an affiliate on Whop",
-          "SCL verifies the connection and manually adds the approved package links",
+          "Add SCL as an affiliate on Whop (install the SCL app when available)",
+          "SCL verifies the connection and publishes approved package links",
           "Your packages go live on your SCL profile",
         ]
       : [
           "Choose Winible and review the connection process",
-          "Complete the Winible affiliate setup",
-          "SCL verifies the connection and manually adds the approved package links",
+          "Invite SCL as an affiliate on Winible and submit confirmation",
+          "SCL verifies the connection and publishes approved package links",
           "Your packages go live on your SCL profile",
         ];
 

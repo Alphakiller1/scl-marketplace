@@ -12,11 +12,11 @@ import { StoreStatusChip } from "@/components/scl/store-status-chip";
 import { EmptyState } from "@/components/scl/states";
 import { SectionHeader } from "@/components/scl/section";
 import { Button } from "@/components/ui/button";
+import { importStatusLabel, providerLabel } from "@/lib/store-connection";
 import {
-  adminChecklist,
-  importStatusLabel,
-  providerLabel,
-} from "@/lib/store-connection";
+  adminStorefrontReadiness,
+  packagePublicationLabel,
+} from "@/lib/storefront-ops";
 import {
   getCapperPackagesForReview,
   getStorefrontCoverage,
@@ -163,11 +163,11 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
                 (handle
                   ? `@${handle.replace(/^@/, "")}`
                   : row.capper.user.email);
-              const packageCountDisplay =
-                row.packageCount || row.capper._count?.packages || 0;
-              const affiliatePercentDisplay = row.affiliatePercent
-                ? Number(row.affiliatePercent).toFixed(0)
-                : "—";
+              const packageCountDisplay = row.packageCount;
+              const affiliatePercentDisplay =
+                row.affiliatePercent != null
+                  ? Number(row.affiliatePercent).toFixed(0)
+                  : "—";
               return (
                 <article
                   key={row.id}
@@ -262,45 +262,81 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed">
               {selected.provider === "WHOP"
-                ? "Whop may send an affiliate notification email in some cases. Once the relationship is live, use the Whop dashboard (affiliate %, product links, checkout links, storefront) — same package fields as Winible."
-                : "Wait for Winible email → accept affiliate → copy package links → save packages."}
+                ? "Confirm the Whop affiliate relationship, sync or paste packages with ?a= links, set prices, activate, then Mark live. Packages stay private until Mark live."
+                : "Accept the Winible affiliate invite off-platform, paste package checkout links (not the creator referral), activate, then Mark live. Packages stay private until Mark live."}
             </p>
             <ul className="space-y-2 text-sm">
-              {adminChecklist(selected.provider).map((item) => (
-                <li key={item} className="flex gap-2">
-                  <input type="checkbox" className="mt-1 size-4" readOnly />
-                  <span>{item}</span>
+              {adminStorefrontReadiness({
+                provider: selected.provider,
+                status: selected.status,
+                packageCount: selected.packageCount,
+                activePackageCount: selected.packages.filter(
+                  (pkg) => pkg.isActive && pkg.checkoutUrl,
+                ).length,
+                affiliatePercent:
+                  selected.affiliatePercent != null
+                    ? Number(selected.affiliatePercent)
+                    : null,
+                whopConnected: Boolean(
+                  selected.whopAccessToken && selected.whopCompanyId,
+                ),
+              }).map((item) => (
+                <li key={item.label} className="flex gap-2">
+                  <span
+                    className={cn(
+                      "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-bold",
+                      item.done
+                        ? "bg-pos/20 text-pos"
+                        : "bg-surface-3 text-muted-foreground",
+                    )}
+                    aria-hidden
+                  >
+                    {item.done ? "✓" : "·"}
+                  </span>
+                  <span
+                    className={
+                      item.done ? "text-foreground" : "text-muted-foreground"
+                    }
+                  >
+                    {item.label}
+                  </span>
                 </li>
               ))}
             </ul>
-            {selected.packageCount > 0 && (
-              <div className="bg-surface-2 space-y-1 rounded-lg p-3 text-sm">
-                <div className="flex justify-between">
-                  <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-                    Package count
-                  </p>
-                  <span>{selected.packageCount}</span>
-                </div>
-                {selected.affiliatePercent !== null && (
-                  <div className="flex justify-between">
-                    <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-                      Affiliate %
-                    </p>
-                    <span>{Number(selected.affiliatePercent).toFixed(0)}%</span>
-                  </div>
-                )}
-                {selected.affiliateAcceptedAt && (
-                  <p className="text-muted-foreground text-xs">
-                    Accepted: {selected.affiliateAcceptedAt.toLocaleString()}
-                  </p>
-                )}
-                {selected.lastImportedAt && (
-                  <p className="text-muted-foreground text-xs">
-                    Last imported: {selected.lastImportedAt.toLocaleString()}
-                  </p>
-                )}
+            <div className="bg-surface-2 space-y-1 rounded-lg p-3 text-sm">
+              <div className="flex justify-between">
+                <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                  Packages on connection
+                </p>
+                <span>{selected.packageCount}</span>
               </div>
-            )}
+              <div className="flex justify-between">
+                <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                  Affiliate %
+                </p>
+                <span>
+                  {selected.affiliatePercent != null
+                    ? `${Number(selected.affiliatePercent).toFixed(0)}%`
+                    : "—"}
+                </span>
+              </div>
+              {selected.affiliateAcceptedAt ? (
+                <p className="text-muted-foreground text-xs">
+                  Accepted: {selected.affiliateAcceptedAt.toLocaleString()}
+                </p>
+              ) : null}
+              {selected.lastImportedAt ? (
+                <p className="text-muted-foreground text-xs">
+                  Last imported: {selected.lastImportedAt.toLocaleString()}
+                </p>
+              ) : null}
+              {selected.whopConnectedAt ? (
+                <p className="text-muted-foreground text-xs">
+                  Whop app connected:{" "}
+                  {selected.whopConnectedAt.toLocaleString()}
+                </p>
+              ) : null}
+            </div>
             <div className="bg-surface-2 rounded-lg p-3 text-sm">
               <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
                 Last human review
@@ -314,9 +350,20 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
             <AdminStoreActions
               key={selected.id}
               connectionId={selected.id}
+              provider={selected.provider}
               currentStatus={selected.status}
               expectedUpdatedAt={selected.updatedAt.toISOString()}
               initialAdminNotes={selected.adminNotes}
+              initialAffiliatePercent={
+                selected.affiliatePercent != null
+                  ? Number(selected.affiliatePercent)
+                  : null
+              }
+              activePackageCount={
+                selected.packages.filter(
+                  (pkg) => pkg.isActive && pkg.checkoutUrl,
+                ).length
+              }
             />
             {selected.provider === "WHOP" ? (
               <AdminWhopSyncPanel
@@ -327,6 +374,8 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
                 syncConfigured={
                   whopOAuthConfigured() && Boolean(whopAffiliateUsername())
                 }
+                companyRoute={selected.whopCompanyRoute}
+                connectedAt={selected.whopConnectedAt}
               />
             ) : null}
             {selected.capper.user.username ? (
@@ -464,10 +513,30 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
                           </span>
                           <span className="text-muted-foreground flex shrink-0 items-center gap-2 text-xs tabular-nums">
                             <span>{clicks} clicks</span>
-                            <StoreStatusChip
-                              status={pkg.isActive ? "LIVE" : "NOT_STARTED"}
-                              label={pkg.isActive ? "Live" : "Draft"}
-                            />
+                            {(() => {
+                              const pub = packagePublicationLabel({
+                                isActive: pkg.isActive,
+                                hasCheckout: Boolean(pkg.checkoutUrl),
+                                connectionStatus: selected.status,
+                                unattached: false,
+                              });
+                              return (
+                                <span
+                                  className={cn(
+                                    "rounded-md px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-wide uppercase",
+                                    pub.tone === "live" && "bg-pos/15 text-pos",
+                                    pub.tone === "ready" &&
+                                      "bg-amber-400/15 text-amber-300",
+                                    pub.tone === "draft" &&
+                                      "bg-surface-3 text-muted-foreground",
+                                    pub.tone === "hidden" &&
+                                      "bg-neg/10 text-neg",
+                                  )}
+                                >
+                                  {pub.label}
+                                </span>
+                              );
+                            })()}
                           </span>
                         </Link>
                         <AdminPackageRowControls

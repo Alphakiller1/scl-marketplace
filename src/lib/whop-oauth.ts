@@ -99,3 +99,35 @@ export async function exchangeWhopAuthorizationCode(input: {
 
   return (await res.json()) as WhopTokenResponse;
 }
+
+/** Refresh an expired capper OAuth access token so storefront sync stays permanent. */
+export async function refreshWhopAccessToken(input: {
+  refreshToken: string;
+  clientId: string;
+  clientSecret: string;
+}): Promise<WhopTokenResponse> {
+  const res = await fetch(WHOP_TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      grant_type: "refresh_token",
+      refresh_token: input.refreshToken,
+      client_id: input.clientId,
+      client_secret: input.clientSecret,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      error_description?: string;
+    };
+    throw new Error(
+      err.error_description ||
+        err.error ||
+        `Whop token refresh failed (${res.status})`,
+    );
+  }
+
+  return (await res.json()) as WhopTokenResponse;
+}

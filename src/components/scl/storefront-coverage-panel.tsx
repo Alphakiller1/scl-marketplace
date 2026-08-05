@@ -31,7 +31,7 @@ const BUCKETS: Bucket[] = [
   {
     key: "pipeline",
     label: "Waiting on SCL",
-    hint: "Capper completed their affiliate steps — accept the invite and import package links.",
+    hint: "Capper finished affiliate setup — confirm on Winible/Whop, import packages, activate, then Mark live.",
     icon: Clock,
     tone: "text-amber-400",
   },
@@ -52,7 +52,7 @@ const BUCKETS: Bucket[] = [
   {
     key: "neverStarted",
     label: "No storefront yet",
-    hint: "No connection started — the Winible onboarding outreach list.",
+    hint: "No connection started — outreach for Winible or Whop storefront setup.",
     icon: UserPlus,
     tone: "text-[color:var(--scl-muted-data)]",
   },

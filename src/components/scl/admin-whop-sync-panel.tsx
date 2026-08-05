@@ -12,10 +12,14 @@ export function AdminWhopSyncPanel({
   connectionId,
   whopConnected,
   syncConfigured,
+  companyRoute,
+  connectedAt,
 }: {
   connectionId: string;
   whopConnected: boolean;
   syncConfigured: boolean;
+  companyRoute?: string | null;
+  connectedAt?: Date | string | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -28,11 +32,14 @@ export function AdminWhopSyncPanel({
         return;
       }
       toast.success(
-        `Whop sync complete — ${result.imported} imported, ${result.updated} updated${result.skipped ? `, ${result.skipped} skipped` : ""}.`,
+        `Whop sync complete — ${result.imported} imported, ${result.updated} updated${result.skipped ? `, ${result.skipped} skipped` : ""}. Set prices, activate packages, then Mark live.`,
       );
       router.refresh();
     });
   }
+
+  const connectedLabel =
+    connectedAt != null ? new Date(connectedAt).toLocaleString() : null;
 
   return (
     <div className="border-border bg-surface-2 space-y-2 rounded-xl border p-4">
@@ -40,10 +47,25 @@ export function AdminWhopSyncPanel({
       <p className="text-muted-foreground text-xs leading-relaxed">
         {syncConfigured
           ? whopConnected
-            ? "Pull visible products from the capper's Whop business and draft package rows with attributed checkout links."
+            ? "Pull visible products from the capper's Whop business into draft packages with attributed checkout links (?a=). Sync never publishes — activate + Mark live still required."
             : "Waiting on the capper to install the SCL app from Dashboard → Storefront."
-          : "Set WHOP_APP_ID, WHOP_APP_API_KEY, and WHOP_AFFILIATE_USERNAME in production before sync is available."}
+          : "Whop OAuth is not fully configured on the server yet."}
       </p>
+      {whopConnected ? (
+        <p className="text-muted-foreground text-xs">
+          {companyRoute ? (
+            <>
+              Connected business:{" "}
+              <span className="text-foreground font-medium">
+                whop.com/{companyRoute}
+              </span>
+            </>
+          ) : (
+            "Connected business route unavailable."
+          )}
+          {connectedLabel ? ` · ${connectedLabel}` : null}
+        </p>
+      ) : null}
       <Button
         type="button"
         size="sm"
