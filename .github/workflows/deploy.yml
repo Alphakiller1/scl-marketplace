@@ -13,7 +13,7 @@ on:
 
 concurrency:
   group: deploy-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -125,6 +125,20 @@ jobs:
           if [ "$ready" != "true" ]; then
             echo "Production health verification failed."
             cat /tmp/scl-health.json || true
+            live_release=$(node -e 'try{console.log(require("/tmp/scl-health.json").release||"unknown")}catch{console.log("unknown")}')
+            {
+              echo "### ❌ Production did not reach commit \`$EXPECTED_SHA\`"
+              echo ""
+              echo "Live release after 10 minutes: \`$live_release\`"
+              echo ""
+              echo "This usually means the **Vercel production build failed** (not just a slow deploy)."
+              echo "Check Vercel → Project → Deployments for the failed build log."
+              echo "Recent merges often fail when \`prisma migrate deploy\` aborts the build —"
+              echo "builds must never \`exit 1\` on migration issues; use runtime schema patches instead."
+              echo ""
+              echo "Recovery: fix the build, merge to \`main\`, or run this workflow manually"
+              echo "(workflow_dispatch) with \`VERCEL_DEPLOY_HOOK_URL\` set under Production secrets."
+            } >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
 
