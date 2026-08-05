@@ -19,25 +19,19 @@ import { sendPasswordUpdateRequiredEmail } from "@/lib/email";
 const DUMMY_PASSWORD_HASH =
   "$2b$12$U6O4lf.XpOqiREmsRAyVpuEfD2bwKOJz7YYiq8mxaUec1gUEF7h7y";
 
+type SignedInUser = {
+  id: string;
+  email: string;
+  passwordUpdateRequiredAt: Date | null;
+  passwordNoticeSentAt: Date | null;
+};
+
 /**
  * A password carried over from the previous platform just proved itself, so it
  * becomes this account's real credential: re-hashed with bcrypt, with the
- * imported hash dropped. The account keeps working either way — if the password
- * predates the current requirements it is flagged for an update and the capper
- * is told once by email, never blocked at the door.
+ * imported hash dropped.
  */
-async function adoptLegacyPassword(
-  user: {
-    id: string;
-    email: string;
-    passwordUpdateRequiredAt: Date | null;
-    passwordNoticeSentAt: Date | null;
-  },
-  password: string,
-) {
-  const now = new Date();
-  const compliant = meetsCurrentPasswordPolicy(password);
-
+async function adoptLegacyPassword(user: SignedInUser, password: string) {
   try {
     await prisma.user.update({
       where: { id: user.id },
@@ -45,27 +39,67 @@ async function adoptLegacyPassword(
         passwordHash: await bcrypt.hash(password, 12),
         legacyPasswordHash: null,
         legacyPasswordFormat: null,
-        passwordUpdateRequiredAt: compliant
-          ? null
-          : (user.passwordUpdateRequiredAt ?? now),
       },
     });
   } catch (error) {
     // The password was correct — a failed upgrade must not cost them the login.
     // The legacy hash stays put and the next sign-in retries the migration.
     console.error("[auth] legacy password upgrade failed:", error);
+  }
+}
+
+/**
+ * Measure the password that just worked against the current requirements.
+ *
+ * This runs on every successful sign-in, not only when a carried-over hash
+ * matched. Old passwords reach SCL by two routes — an imported legacy hash, or
+ * an operator backfill that bcrypt-hashed each capper's existing password — and
+ * the second route goes through the ordinary compare path. Checking only the
+ * legacy path would leave every backfilled capper with a short password
+ * unflagged and unnotified.
+ *
+ * Never blocks the sign-in: it sets the prompt, sends one notice, and clears
+ * itself once the password is compliant. No state change means no write, so a
+ * routine sign-in with a good password costs nothing extra.
+ */
+async function reviewPasswordStrength(user: SignedInUser, password: string) {
+  const compliant = meetsCurrentPasswordPolicy(password);
+  const flagged = user.passwordUpdateRequiredAt !== null;
+
+  if (compliant) {
+    if (!flagged) return;
+    // Self-healing: they changed to a compliant password elsewhere.
+    try {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordUpdateRequiredAt: null, passwordNoticeSentAt: null },
+      });
+    } catch (error) {
+      console.error("[auth] clearing password prompt failed:", error);
+    }
     return;
   }
 
-  if (compliant || user.passwordNoticeSentAt) return;
-  if (!hasDeliverableEmail(user.email)) return;
+  if (!flagged) {
+    try {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordUpdateRequiredAt: new Date() },
+      });
+    } catch (error) {
+      console.error("[auth] flagging weak password failed:", error);
+      return;
+    }
+  }
 
+  // Tell them once, and only if there is an inbox to tell.
+  if (user.passwordNoticeSentAt || !hasDeliverableEmail(user.email)) return;
   try {
     const delivery = await sendPasswordUpdateRequiredEmail(user.email);
     if (delivery.delivered) {
       await prisma.user.update({
         where: { id: user.id },
-        data: { passwordNoticeSentAt: now },
+        data: { passwordNoticeSentAt: new Date() },
       });
     }
   } catch (error) {
@@ -170,6 +204,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Migrate the imported credential only after the account clears the
         // status checks, so a suspended account is never quietly upgraded.
         if (legacyMatched) await adoptLegacyPassword(user, password);
+        // Then judge the password itself — however it got here.
+        await reviewPasswordStrength(user, password);
 
         await clearRateLimit("login-email", email);
 
