@@ -17,6 +17,7 @@ import { notFound } from "next/navigation";
 
 import { AccountClaimControl } from "@/components/scl/account-claim-control";
 import { AccountStatusControl } from "@/components/scl/account-status-control";
+import { AdminDeleteCapperControl } from "@/components/scl/admin-delete-capper-control";
 import { AccountStatusBadge } from "@/components/scl/account-trust";
 import { StatusBadge } from "@/components/scl/badges";
 import { AdminPackageForm } from "@/components/scl/admin-package-form";
@@ -197,6 +198,7 @@ export default async function AdminCapperDetailPage({
             userId={capper.id}
             unclaimed={capper.unclaimed}
           />
+          <AdminDeleteCapperControl userId={capper.id} capperLabel={name} />
           <div className="grid gap-2 text-sm sm:grid-cols-2">
             <TrustLine
               icon={KeyRound}
