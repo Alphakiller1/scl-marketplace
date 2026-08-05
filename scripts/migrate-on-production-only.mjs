@@ -224,8 +224,9 @@ if (!trimmed(process.env.DATABASE_URL) && !trimmed(process.env.DIRECT_URL)) {
 }
 
 if (!forceAuthEmailMigration()) {
-  console.error("[migrate] auth email pre-patch failed — aborting build");
-  process.exit(1);
+  console.warn(
+    "[migrate] auth email pre-patch failed — continuing build; runtime schema patch will retry",
+  );
 }
 
 console.log(`[migrate] VERCEL_ENV=${env ?? "(local)"} — applying migrations.`);
@@ -234,6 +235,5 @@ if (result.status !== 0) {
   console.error("[migrate] prisma migrate deploy failed — continuing build");
   console.error(result.stdout ?? "");
   console.error(result.stderr ?? "");
-  process.exit(0);
 }
 process.exit(0);
