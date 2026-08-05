@@ -1,17 +1,46 @@
 import "server-only";
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import {
   supabaseProfileMediaBucket,
   supabaseProjectUrl,
   supabaseServiceRoleKey,
+  usesSupabasePlatformSecretKey,
 } from "@/lib/supabase-config";
 
 type ProfileMediaStorage = {
   bucket: string;
-  client: ReturnType<typeof createClient>;
+  client: SupabaseClient;
 };
+
+function createProfileMediaClient(
+  url: string,
+  serviceRoleKey: string,
+): SupabaseClient {
+  const auth = {
+    autoRefreshToken: false,
+    persistSession: false,
+  } as const;
+
+  if (!usesSupabasePlatformSecretKey(serviceRoleKey)) {
+    return createClient(url, serviceRoleKey, { auth });
+  }
+
+  // Supabase rejects sb_secret_* keys when they also ride Authorization: Bearer.
+  return createClient(url, serviceRoleKey, {
+    auth,
+    global: {
+      headers: { apikey: serviceRoleKey },
+      fetch: (input, init) => {
+        const headers = new Headers(init?.headers ?? {});
+        headers.set("apikey", serviceRoleKey);
+        headers.delete("Authorization");
+        return fetch(input, { ...init, headers });
+      },
+    },
+  });
+}
 
 export function getProfileMediaStorage(): ProfileMediaStorage | null {
   const url = supabaseProjectUrl();
@@ -22,12 +51,7 @@ export function getProfileMediaStorage(): ProfileMediaStorage | null {
 
   return {
     bucket,
-    client: createClient(url, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }),
+    client: createProfileMediaClient(url, serviceRoleKey),
   };
 }
 

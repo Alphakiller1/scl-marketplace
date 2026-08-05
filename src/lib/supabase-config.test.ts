@@ -7,6 +7,7 @@ import {
   supabaseProjectUrl,
   supabaseServiceRoleKey,
   supabaseStorageConfigured,
+  usesSupabasePlatformSecretKey,
 } from "@/lib/supabase-config";
 
 const ORIGINAL = { ...process.env };
@@ -60,4 +61,14 @@ test("supabaseIntegrationStatus reports storage readiness", () => {
     serviceRole: true,
     bucket: "scl-profile-media",
   });
+});
+
+test("usesSupabasePlatformSecretKey detects new Supabase secret keys", () => {
+  assert.equal(usesSupabasePlatformSecretKey("sb_secret_b2B0s_example"), true);
+  assert.equal(
+    usesSupabasePlatformSecretKey(
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.legacy-service-role",
+    ),
+    false,
+  );
 });

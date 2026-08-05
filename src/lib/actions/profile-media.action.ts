@@ -87,6 +87,14 @@ export async function uploadProfileMediaAction(
 
   if (uploadError) {
     console.error("[profile-media] upload failed:", uploadError);
+    const message = uploadError.message.toLowerCase();
+    if (message.includes("invalid jwt") || message.includes("api key")) {
+      return {
+        ok: false,
+        error:
+          "Profile media credentials were rejected. Use the Supabase Secret key (sb_secret_…) or legacy service_role key in SUPABASE_SERVICE_ROLE_KEY.",
+      };
+    }
     return { ok: false, error: "We couldn't upload that image." };
   }
 
