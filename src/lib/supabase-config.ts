@@ -46,6 +46,11 @@ export function supabaseProfileMediaBucket(): string {
   );
 }
 
+/** New Supabase platform secret keys must not be sent as Bearer JWTs. */
+export function usesSupabasePlatformSecretKey(key: string): boolean {
+  return key.startsWith("sb_secret_");
+}
+
 export function supabaseStorageConfigured(): boolean {
   return Boolean(supabaseProjectUrl() && supabaseServiceRoleKey());
 }
