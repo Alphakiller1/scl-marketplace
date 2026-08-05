@@ -17,20 +17,21 @@ function redirectUri() {
   return `${siteUrl()}/api/whop/callback`;
 }
 
+function monetizationRedirect(code: string) {
+  return NextResponse.redirect(
+    new URL(`/dashboard/monetization?whop=${code}`, siteUrl()),
+  );
+}
+
 /**
  * Start the Whop app-install OAuth flow for the signed-in capper.
  * Requires an existing WHOP StoreConnection in INSTRUCTIONS_VIEWED or later.
+ * Always redirects back to monetization with a toastable `?whop=` code —
+ * never dumps raw JSON into the browser.
  */
 export async function GET() {
   if (!whopOAuthConfigured()) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error:
-          "Whop app install is not configured on the server yet. Contact SCL support — WHOP_APP_API_KEY must be set in production.",
-      },
-      { status: 503 },
-    );
+    return monetizationRedirect("not-configured");
   }
 
   const session = await auth();
@@ -45,9 +46,7 @@ export async function GET() {
     select: { id: true },
   });
   if (!profile) {
-    return NextResponse.redirect(
-      new URL("/dashboard/monetization?whop=profile-missing", siteUrl()),
-    );
+    return monetizationRedirect("profile-missing");
   }
 
   const connection = await prisma.storeConnection.findUnique({
@@ -57,22 +56,15 @@ export async function GET() {
     select: { id: true, status: true },
   });
   if (!connection || connection.status === "NOT_STARTED") {
-    return NextResponse.redirect(
-      new URL("/dashboard/monetization?whop=start-setup", siteUrl()),
-    );
+    return monetizationRedirect("start-setup");
   }
   if (connection.status === "DISABLED") {
-    return NextResponse.redirect(
-      new URL("/dashboard/monetization?whop=suspended", siteUrl()),
-    );
+    return monetizationRedirect("suspended");
   }
 
   const appId = whopAppId();
   if (!appId) {
-    return NextResponse.json(
-      { ok: false, error: "Whop app id missing." },
-      { status: 503 },
-    );
+    return monetizationRedirect("not-configured");
   }
 
   const pkce = generatePkceState(profile.id, connection.id);

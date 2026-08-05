@@ -346,6 +346,10 @@ export async function adminUpdateStoreConnectionAction(
     // that stays flagged is NEEDS_ACTION. The badge still counts pending-SCL
     // statuses separately (countStorefrontQueue), so nothing gets lost.
     const requiresAttention = transition.targetStatus === "NEEDS_ACTION";
+    const affiliatePercent =
+      parsed.data.affiliatePercent === undefined
+        ? undefined
+        : parsed.data.affiliatePercent;
 
     const updated = await tx.storeConnection.updateMany({
       where: {
@@ -361,6 +365,7 @@ export async function adminUpdateStoreConnectionAction(
         reviewedById: admin.id,
         ...(affiliateAcceptedAt && { affiliateAcceptedAt }),
         ...(lastImportedAt && { lastImportedAt }),
+        ...(affiliatePercent !== undefined && { affiliatePercent }),
         requiresAttention,
         ...(packageCount > 0 && { packageCount }),
       },

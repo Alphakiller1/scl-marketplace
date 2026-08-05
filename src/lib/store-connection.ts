@@ -141,26 +141,30 @@ export function isPendingStoreStatus(status: StoreConnectionStatus): boolean {
   );
 }
 
+/**
+ * Static reminder steps for admins. Prefer `adminStorefrontReadiness` for the
+ * live computed checklist on store-setup detail.
+ */
 export function adminChecklist(provider: StoreProvider): string[] {
   if (provider === "WHOP") {
     return [
-      "Capper confirmed SCL added as Whop affiliate",
-      "Whop notification email checked if received (not always sent)",
-      "Affiliate % + product/checkout links visible in Whop dashboard",
-      "Recurring commission confirmed when available",
-      "Package objects created (name, price, description, affiliate link, promo, order)",
-      "SCL tracking URLs generated",
-      "Packages marked Live on profile",
+      "Capper added SCL as Whop affiliate + submitted confirmation",
+      "Capper installed SCL app on Whop (enables Sync from Whop)",
+      "Record affiliate commission % on this request",
+      "Sync or paste packages with attributed ?a= checkout links",
+      "Set prices, activate packages, then Mark live",
     ];
   }
   return [
-    "Winible affiliate invite email received",
-    "Affiliate relationship accepted in Winible",
-    "Package-level affiliate links available",
-    "Package objects created (name, price, description, affiliate link, promo, order)",
-    "SCL tracking URLs generated",
-    "Packages marked Live on profile",
+    "Accept the Winible affiliate invite email (off-platform)",
+    "Record affiliate commission % on this request",
+    "Paste package-level Winible checkout links (not the creator referral)",
+    "Set prices, activate packages, then Mark live",
   ];
+}
+
+export function pendingStatusLabel(provider: StoreProvider): string {
+  return provider === "WHOP" ? "Pending SCL review" : "Awaiting SCL acceptance";
 }
 
 export function formatPriceCents(

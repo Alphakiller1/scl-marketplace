@@ -4,7 +4,12 @@ import {
   listWhopProducts,
   type WhopProductListItem,
 } from "@/lib/whop-api";
-import { whopAffiliateUsername } from "@/lib/whop-config";
+import {
+  whopAffiliateUsername,
+  whopAppApiKey,
+  whopAppId,
+} from "@/lib/whop-config";
+import { refreshWhopAccessToken } from "@/lib/whop-oauth";
 import { makeTrackingSlug } from "@/lib/store-connection";
 import { resolveStorefrontPackageReadiness } from "@/lib/storefront-review";
 
@@ -52,6 +57,8 @@ export async function syncWhopStorefront(input: {
       whopCompanyId: true,
       whopCompanyRoute: true,
       whopAccessToken: true,
+      whopRefreshToken: true,
+      whopTokenExpiresAt: true,
       capperId: true,
       capper: {
         select: { user: { select: { username: true } } },
@@ -78,10 +85,59 @@ export async function syncWhopStorefront(input: {
     };
   }
 
+  let accessToken = connection.whopAccessToken;
+  const tokenExpired =
+    connection.whopTokenExpiresAt != null &&
+    connection.whopTokenExpiresAt.getTime() <= Date.now() + 60_000;
+  if (tokenExpired) {
+    if (!connection.whopRefreshToken) {
+      return {
+        ok: false,
+        error:
+          "Whop access expired. Ask the capper to reinstall the SCL app from Dashboard → Storefront.",
+      };
+    }
+    const clientId = whopAppId();
+    const clientSecret = whopAppApiKey();
+    if (!clientId || !clientSecret) {
+      return {
+        ok: false,
+        error:
+          "Whop OAuth is not configured — cannot refresh the access token.",
+      };
+    }
+    try {
+      const refreshed = await refreshWhopAccessToken({
+        refreshToken: connection.whopRefreshToken,
+        clientId,
+        clientSecret,
+      });
+      accessToken = refreshed.access_token;
+      await prisma.storeConnection.update({
+        where: { id: connection.id },
+        data: {
+          whopAccessToken: refreshed.access_token,
+          whopRefreshToken:
+            refreshed.refresh_token ?? connection.whopRefreshToken,
+          whopTokenExpiresAt: new Date(
+            Date.now() + refreshed.expires_in * 1000,
+          ),
+        },
+      });
+    } catch (error) {
+      console.error("[whop-sync] token refresh failed:", error);
+      return {
+        ok: false,
+        error:
+          "Whop access expired and refresh failed. Ask the capper to reinstall the SCL app.",
+      };
+    }
+  }
+
   let products: WhopProductListItem[];
   try {
     products = await listWhopProducts({
-      accessToken: connection.whopAccessToken,
+      accessToken,
       companyId: connection.whopCompanyId,
     });
   } catch (error) {

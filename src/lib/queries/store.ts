@@ -550,8 +550,16 @@ export async function getCapperPackagesForReview(capperId: string) {
       clicks: pkg.trackingUrls.reduce((n, u) => n + u._count.clicks, 0),
       attributedPicks: pkg._count.playLinks + pkg._count.parlayLinks,
       updatedAt: pkg.updatedAt,
-      /** Publishable only with both a checkout URL and a tracking slug. */
-      publishable: Boolean(pkg.checkoutUrl) && pkg.trackingUrls.length > 0,
+      /**
+       * Truly public on the profile: active + checkout + tracking, and either
+       * unattached (legacy) or the storefront connection is LIVE.
+       */
+      publishable:
+        pkg.isActive &&
+        Boolean(pkg.checkoutUrl) &&
+        pkg.trackingUrls.length > 0 &&
+        (pkg.storeConnectionId === null ||
+          pkg.storeConnection?.status === "LIVE"),
     }));
   } catch (error) {
     console.error("[getCapperPackagesForReview] database unavailable:", error);

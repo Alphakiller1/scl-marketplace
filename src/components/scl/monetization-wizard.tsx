@@ -66,19 +66,12 @@ function platformSelectionGuidance(
 }
 
 function storefrontConnectionBenefits(provider: StoreProvider): string[] {
-  if (provider === "WHOP") {
-    return [
-      "No monthly SCL platform fees.",
-      "Connect your existing Whop storefront to SCL. After you add SCL as an affiliate and our team verifies the connection, we manually publish your approved package links on your SCL profile.",
-      "You continue selling through your existing Whop storefront—checkout, subscriptions, and payments all remain on Whop.",
-    ];
-  }
-
+  const label = providerLabel(provider);
   return [
     "No monthly SCL platform fees.",
-    `SCL reviews your approved ${providerLabel(provider)} affiliate relationship, then manually adds and publishes the package links supplied by the platform.`,
-    `You continue selling through your existing storefront—your checkout and subscriptions remain on ${providerLabel(provider)}.`,
-    "When SCL refers a new subscriber to your storefront, we earn an affiliate commission from the platform. That’s how SCL remains free for cappers.",
+    `Add SCL as an affiliate on ${label}. After you submit, our team verifies the relationship and manually publishes your approved package links on your SCL profile.`,
+    `You keep selling on ${label} — checkout, subscriptions, and payments stay on ${label}.`,
+    "When SCL refers a subscriber to your storefront, we earn an affiliate commission from the platform. That’s how SCL stays free for cappers.",
   ];
 }
 

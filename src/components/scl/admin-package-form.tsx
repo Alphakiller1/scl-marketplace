@@ -287,10 +287,10 @@ export function AdminPackageForm({
         ) : null}
       </div>
       <p className="text-muted-foreground text-xs leading-relaxed">
-        Activating a package makes it ready for publication. The storefront
-        remains hidden until an administrator records the separate “Mark live”
-        approval, but a manually entered Winible package can still be published
-        to the capper profile immediately.
+        Activate prepares this package for publication. Packages attached to a
+        storefront connection stay private until an admin clicks{" "}
+        <strong>Mark live</strong> on the request. Unattached legacy packages
+        (no connection) can appear on the profile when active.
       </p>
     </form>
   );

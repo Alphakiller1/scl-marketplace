@@ -40,14 +40,18 @@ test("Whop connection copy explains the capper experience", () => {
   );
   assert.match(
     source,
-    /After you add SCL as an affiliate and our team verifies the connection, we manually publish your approved package links/,
+    /Add SCL as an affiliate on \$\{label\}\. After you submit, our team verifies the relationship/,
   );
   assert.match(
     source,
-    /checkout, subscriptions, and payments all remain on Whop\./,
+    /checkout, subscriptions, and payments stay on \$\{label\}\./,
   );
   assert.match(source, /Continue to Connect Whop/);
   assert.match(source, /Install SCL app on Whop/);
+  assert.match(
+    source,
+    /When SCL refers a subscriber to your storefront, we earn an affiliate commission/,
+  );
 });
 
 test("Winible connection copy explains the capper experience", () => {

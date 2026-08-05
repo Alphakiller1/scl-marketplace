@@ -37,6 +37,8 @@ export const adminUpdateStoreConnectionSchema = z
     expectedUpdatedAt: z.string().datetime({ offset: true }),
     reason: z.string().trim().max(500).optional(),
     adminNotes: z.string().trim().max(2000).optional(),
+    /** Commission % agreed with the capper on Winible/Whop (0–100). */
+    affiliatePercent: z.number().min(0).max(100).optional().nullable(),
   })
   .superRefine((input, context) => {
     if (
@@ -49,11 +51,15 @@ export const adminUpdateStoreConnectionSchema = z
         message: "Add a reason of at least 5 characters",
       });
     }
-    if (input.action === "SAVE_NOTES" && input.adminNotes == null) {
+    if (
+      input.action === "SAVE_NOTES" &&
+      input.adminNotes == null &&
+      input.affiliatePercent === undefined
+    ) {
       context.addIssue({
         code: "custom",
         path: ["adminNotes"],
-        message: "Internal notes are required",
+        message: "Internal notes or affiliate % are required",
       });
     }
   });
