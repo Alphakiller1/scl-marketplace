@@ -55,7 +55,7 @@ function platformSelectionGuidance(
 ): string | null {
   switch (provider) {
     case "WINIBLE":
-      return "You’ll complete the affiliate setup in Winible. SCL imports your packages after approval.";
+      return "Complete the Winible affiliate invite, then submit — SCL accepts the relationship and manually publishes your package links.";
     case "WHOP":
       return "Add SCL as a Whop affiliate, install the SCL app when available, then submit — SCL reviews and manually publishes your package links.";
     case "NONE":
@@ -118,6 +118,7 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
   const [ack, setAck] = useState(false);
   const [connection, setConnection] = useState<Conn | null>(initialActive);
   const [copiedReferral, setCopiedReferral] = useState(false);
+  const [copiedAffiliateEmail, setCopiedAffiliateEmail] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const showStatus =
@@ -201,6 +202,13 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
     setCopiedReferral(true);
     window.setTimeout(() => setCopiedReferral(false), 2000);
     toast.success("Winible referral link copied");
+  }
+
+  function copyAffiliateEmail() {
+    void navigator.clipboard.writeText(SCL_AFFILIATE_EMAIL);
+    setCopiedAffiliateEmail(true);
+    window.setTimeout(() => setCopiedAffiliateEmail(false), 2000);
+    toast.success("SCL affiliate email copied");
   }
 
   return (
@@ -475,6 +483,12 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
             </div>
           ) : (
             <div className="space-y-3 text-sm">
+              <p className="border-border bg-surface-2 rounded-lg border p-3 leading-relaxed">
+                Invite Sports Cappers Leaderboard as an affiliate in Winible.
+                After you submit here, SCL accepts the relationship in Winible,
+                verifies your packages, and manually publishes the approved
+                links on your profile.
+              </p>
               <ol className="space-y-3">
                 <li className="border-border rounded-lg border p-3">
                   <p className="font-semibold">
@@ -490,7 +504,7 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
                   />
                 </li>
                 <li className="border-border rounded-lg border p-3">
-                  <p className="font-semibold">2. Invite Affiliate</p>
+                  <p className="font-semibold">2. Invite affiliate</p>
                   <p className="text-muted-foreground mt-1">
                     Under the Affiliate tab, click{" "}
                     <strong>Invite Affiliate</strong>.
@@ -524,10 +538,32 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
                       <dd>{WINIBLE_INVITE_VALUES.plans}</dd>
                     </div>
                   </dl>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-2 min-h-10"
+                    onClick={copyAffiliateEmail}
+                  >
+                    {copiedAffiliateEmail
+                      ? "Copied"
+                      : "Copy SCL affiliate email"}
+                  </Button>
                   <StepShot
                     src="/winible-steps/3-invite-form.png"
                     alt="Winible Invite Affiliate form filled with SCL's email, reward type, amount, and plans"
                   />
+                </li>
+                <li className="border-border rounded-lg border p-3">
+                  <p className="font-semibold">
+                    4. Wait for SCL to accept in Winible
+                  </p>
+                  <p className="text-muted-foreground mt-1">
+                    SCL receives the invite at{" "}
+                    <strong>{SCL_AFFILIATE_EMAIL}</strong>, accepts it in
+                    Winible, then manually adds your package links on SCL. You
+                    will see &quot;Awaiting SCL Acceptance&quot; after you
+                    submit below.
+                  </p>
                 </li>
               </ol>
               <div className="border-border bg-surface-2 rounded-lg border p-3">

@@ -21,7 +21,7 @@ test("capper storefront setup tailors platform guidance to the selected option",
   assert.match(source, /Already sell picks on Whop\? Add SCL as an affiliate/);
   assert.match(
     source,
-    /You’ll complete the affiliate setup in Winible\. SCL imports your packages after approval\./,
+    /Complete the Winible affiliate invite, then submit — SCL accepts the relationship and manually publishes your package links\./,
   );
   assert.match(
     source,
@@ -48,6 +48,55 @@ test("Whop connection copy explains the capper experience", () => {
   );
   assert.match(source, /Continue to Connect Whop/);
   assert.match(source, /Install SCL app on Whop/);
+});
+
+test("Winible connection copy explains the capper experience", () => {
+  const source = fs.readFileSync(
+    path.join(process.cwd(), "src/components/scl/monetization-wizard.tsx"),
+    "utf8",
+  );
+  assert.match(
+    source,
+    /Invite Sports Cappers Leaderboard as an affiliate in Winible/,
+  );
+  assert.match(source, /Copy SCL affiliate email/);
+  assert.match(source, /Wait for SCL to accept in Winible/);
+  assert.match(source, /Awaiting SCL Acceptance/);
+});
+
+test("Winible setup instructions focus on the capper workflow", () => {
+  const source = fs.readFileSync(
+    path.join(process.cwd(), "src/components/scl/monetization-wizard.tsx"),
+    "utf8",
+  );
+  const normalized = source.replace(/\s+/g, " ");
+
+  assert.match(
+    normalized,
+    /1\. Open the Affiliates tab in your Winible dashboard/,
+  );
+  assert.match(normalized, /2\. Invite affiliate/);
+  assert.match(normalized, /3\. Fill in the SCL affiliate information below/);
+  assert.match(normalized, /4\. Wait for SCL to accept in Winible/);
+  assert.match(normalized, /winible-steps\/1-affiliates-tab\.png/);
+});
+
+test("Winible step screenshots ship in public assets", () => {
+  assert.ok(
+    fs.existsSync(
+      path.join(process.cwd(), "public/winible-steps/1-affiliates-tab.png"),
+    ),
+  );
+  assert.ok(
+    fs.existsSync(
+      path.join(process.cwd(), "public/winible-steps/2-invite-affiliate.png"),
+    ),
+  );
+  assert.ok(
+    fs.existsSync(
+      path.join(process.cwd(), "public/winible-steps/3-invite-form.png"),
+    ),
+  );
 });
 
 test("Whop setup instructions focus on the capper workflow", () => {
