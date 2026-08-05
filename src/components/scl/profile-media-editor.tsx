@@ -35,20 +35,25 @@ export function ProfileMediaEditor({
     const formData = new FormData();
     formData.set("kind", kind);
     formData.set("file", file);
-    const result = await uploadProfileMediaAction(formData);
 
-    setUploading(null);
-    if (!result.ok) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await uploadProfileMediaAction(formData);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+
+      onChange(result.kind, result.url);
+      toast.success(
+        result.kind === "avatar"
+          ? "Profile image updated"
+          : "Cover image updated",
+      );
+    } catch {
+      toast.error("We couldn't upload that image. Try a smaller JPG or PNG.");
+    } finally {
+      setUploading(null);
     }
-
-    onChange(result.kind, result.url);
-    toast.success(
-      result.kind === "avatar"
-        ? "Profile image updated"
-        : "Cover image updated",
-    );
   }
 
   return (

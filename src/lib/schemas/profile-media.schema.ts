@@ -7,6 +7,28 @@ export const PROFILE_MEDIA_LIMITS = {
 
 const allowedImageTypes = ["image/jpeg", "image/png", "image/webp"] as const;
 
+type AllowedImageType = (typeof allowedImageTypes)[number];
+
+const extensionToMime: Record<string, AllowedImageType> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+};
+
+/** Some mobile browsers send an empty or generic MIME type for valid images. */
+export function resolveProfileMediaMimeType(
+  file: File,
+): AllowedImageType | null {
+  if (allowedImageTypes.includes(file.type as AllowedImageType)) {
+    return file.type as AllowedImageType;
+  }
+
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  if (!extension) return null;
+  return extensionToMime[extension] ?? null;
+}
+
 const uploadFileSchema = z.custom<File>(
   (value) => typeof File !== "undefined" && value instanceof File,
   "Choose an image to upload.",
@@ -18,11 +40,7 @@ export const profileMediaSchema = z
     file: uploadFileSchema,
   })
   .superRefine(({ kind, file }, ctx) => {
-    if (
-      !allowedImageTypes.includes(
-        file.type as (typeof allowedImageTypes)[number],
-      )
-    ) {
+    if (!resolveProfileMediaMimeType(file)) {
       ctx.addIssue({
         code: "custom",
         path: ["file"],

@@ -28,6 +28,13 @@ function supabaseImagePatterns(): NonNullable<
 }
 
 const nextConfig: NextConfig = {
+  // Profile media server actions accept up to 5 MB (cover) plus multipart
+  // overhead — the default 1 MB Server Action limit rejects most phone photos.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "6mb",
+    },
+  },
   images: {
     remotePatterns: [
       ...(supabaseImagePatterns() ?? []),
