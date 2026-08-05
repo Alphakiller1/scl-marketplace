@@ -8,14 +8,14 @@ const hashToken = (token: string) =>
   createHash("sha256").update(token).digest("hex");
 
 /**
- * Create a fresh email-verification token for an email, replacing any existing
+ * Create a fresh email-verification token for a user, replacing any existing
  * one. Returns the raw token to embed in the verification link.
  */
 export async function createVerificationToken(
-  email: string,
+  userId: string,
   options?: { force?: boolean },
 ): Promise<string | null> {
-  const identifier = email.toLowerCase();
+  const identifier = userId;
   // `force` bypasses the resend cooldown — used by signup itself, where the user always
   // needs a working token (the cooldown only guards the standalone "resend" button from abuse).
   if (!options?.force) {
@@ -67,8 +67,8 @@ export async function consumeVerificationToken(
     if (consumed.count !== 1) return null;
 
     const user = await transaction.user.findUnique({
-      where: { email: record.identifier },
-      select: { id: true, accountStatus: true },
+      where: { id: record.identifier },
+      select: { id: true, email: true, accountStatus: true },
     });
     if (!user) return null;
 
@@ -81,6 +81,6 @@ export async function consumeVerificationToken(
           : {}),
       },
     });
-    return record.identifier;
+    return user.email;
   });
 }

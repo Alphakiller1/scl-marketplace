@@ -41,7 +41,7 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
   const [emailAllowed, requestAllowed] = await Promise.all([
     consumeRateLimit({
       scope: "signup-email",
-      identity: lowerEmail,
+      identity: `${lowerEmail}:${username}`,
       limit: 5,
       windowMs: 60 * 60 * 1000,
     }),
@@ -72,43 +72,34 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
     consentTextVersion: CONSENT_TEXT_VERSION,
   };
 
-  // Look up any account already on this email or this handle (separately, so we know which
-  // one collided).
-  const [byEmail, byUsername] = await Promise.all([
-    prisma.user.findUnique({
-      where: { email: lowerEmail },
-      select: {
-        id: true,
-        passwordHash: true,
-        emailVerified: true,
-        accountStatus: true,
-      },
-    }),
-    prisma.user.findUnique({
-      where: { username },
-      select: { id: true, passwordHash: true },
-    }),
-  ]);
+  const byUsername = await prisma.user.findUnique({
+    where: { username },
+    select: {
+      id: true,
+      email: true,
+      passwordHash: true,
+      emailVerified: true,
+      accountStatus: true,
+    },
+  });
 
-  // The handle is taken by a *different* account. If that account was imported and never
-  // claimed, say how to claim it rather than dead-ending an existing capper on their own handle.
-  if (byUsername && byUsername.id !== byEmail?.id) {
-    return { ok: false, error: handleTakenMessage(byUsername) };
-  }
+  let userId: string;
 
   try {
-    if (byEmail) {
-      const claim = evaluateAccountClaim(byEmail);
-      if (!claim.claimable) return { ok: false, error: claim.error };
+    if (byUsername) {
+      const claim = evaluateAccountClaim(byUsername);
+      if (!claim.claimable) {
+        return { ok: false, error: handleTakenMessage(byUsername) };
+      }
 
       // Either an account carried over from the previous platform that nobody has ever signed
       // in to (no password), or an UNVERIFIED signup whose verification email never arrived.
       // Both are the same move: set credentials on the existing record — preserving the
       // capper profile, plays, and public history — instead of dead-ending on "already exists".
-      await prisma.user.update({
-        where: { id: byEmail.id },
+      const updated = await prisma.user.update({
+        where: { id: byUsername.id },
         data: {
-          username,
+          email: lowerEmail,
           passwordHash,
           // A signup claim never grants privilege: whoever completes this form gets a
           // capper account, even if the record they claimed was an admin. An admin who
@@ -127,8 +118,9 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
         },
         select: { id: true },
       });
+      userId = updated.id;
     } else {
-      await prisma.user.create({
+      const created = await prisma.user.create({
         data: {
           email: lowerEmail,
           username,
@@ -142,6 +134,7 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
         },
         select: { id: true },
       });
+      userId = created.id;
     }
   } catch (error) {
     if (
@@ -150,7 +143,7 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
     ) {
       return {
         ok: false,
-        error: "That email or handle is already taken.",
+        error: "That email and handle combination is already taken.",
       };
     }
     console.error("[signup] account creation failed:", error);
@@ -165,9 +158,9 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
   let emailDelivered = false;
   let verifyUrl: string | undefined;
   try {
-    const token = await createVerificationToken(lowerEmail, { force: true });
+    const token = await createVerificationToken(userId, { force: true });
     if (token) {
-      const delivery = await sendVerificationEmail(lowerEmail, token);
+      const delivery = await sendVerificationEmail(lowerEmail, token, username);
       emailDelivered = delivery.delivered;
       if (!delivery.delivered) verifyUrl = delivery.link;
     }

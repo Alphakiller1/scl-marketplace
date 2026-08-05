@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/auth.config";
 import { loginSchema } from "@/lib/schemas/auth.schema";
+import { findUserByEmailAndUsername } from "@/lib/user-credentials";
 import {
   clearRateLimit,
   consumeRateLimit,
@@ -113,6 +114,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Credentials({
       credentials: {
+        username: { label: "Username", type: "text" },
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
@@ -120,12 +122,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const parsed = loginSchema.safeParse(credentials);
         if (!parsed.success) return null;
 
-        const { email, password } = parsed.data;
+        const { email, username, password } = parsed.data;
+        const loginIdentity = `${email}:${username}`;
         const requestIdentity = await getRequestIdentity();
         const [emailAllowed, requestAllowed] = await Promise.all([
           isRateLimitAllowed({
             scope: "login-email",
-            identity: email,
+            identity: loginIdentity,
             limit: 10,
             windowMs: 15 * 60 * 1000,
           }),
@@ -138,23 +141,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         ]);
         if (!emailAllowed || !requestAllowed) return null;
 
-        const user = await prisma.user.findUnique({
-          where: { email: email.toLowerCase() },
-          select: {
-            id: true,
-            email: true,
-            username: true,
-            passwordHash: true,
-            legacyPasswordHash: true,
-            legacyPasswordFormat: true,
-            passwordUpdateRequiredAt: true,
-            passwordNoticeSentAt: true,
-            image: true,
-            role: true,
-            accountStatus: true,
-            emailVerified: true,
-          },
-        });
+        const user = await findUserByEmailAndUsername(email, username);
         // Always run one bcrypt compare, even with no account, so a missing
         // email can't be told apart from a wrong password by response time.
         const passwordMatches = await bcrypt.compare(
@@ -181,7 +168,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           await Promise.all([
             consumeRateLimit({
               scope: "login-email",
-              identity: email,
+              identity: loginIdentity,
               limit: 10,
               windowMs: 15 * 60 * 1000,
             }),
@@ -207,7 +194,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Then judge the password itself — however it got here.
         await reviewPasswordStrength(user, password);
 
-        await clearRateLimit("login-email", email);
+        await clearRateLimit("login-email", loginIdentity);
 
         return {
           id: user.id,

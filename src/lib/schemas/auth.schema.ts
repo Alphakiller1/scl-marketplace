@@ -22,6 +22,7 @@ export const sclUsernameSchema = z
   );
 
 export const loginSchema = z.object({
+  username: sclUsernameSchema,
   email: z.string().trim().toLowerCase().email("Enter a valid email"),
   password: z.string().min(1, "Password is required"),
 });
@@ -52,7 +53,8 @@ export const signupSchema = z
 export type SignupInput = z.infer<typeof signupSchema>;
 
 export const passwordResetRequestSchema = z.object({
-  email: z.string().trim().email("Enter a valid email"),
+  username: sclUsernameSchema,
+  email: z.string().trim().toLowerCase().email("Enter a valid email"),
 });
 export type PasswordResetRequestInput = z.infer<
   typeof passwordResetRequestSchema

@@ -1,6 +1,5 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
 import {
   passwordResetRequestSchema,
   resetPasswordSchema,
@@ -14,6 +13,7 @@ import {
 import { sendPasswordResetEmail } from "@/lib/email";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getRequestIdentity } from "@/lib/request-identity";
+import { findUserByEmailAndUsername } from "@/lib/user-credentials";
 
 type PasswordResetResult = { ok: true } | { ok: false; error: string };
 
@@ -22,15 +22,16 @@ export async function requestPasswordResetAction(
 ): Promise<PasswordResetResult> {
   const parsed = passwordResetRequestSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Enter a valid email address." };
+    return { ok: false, error: "Enter a valid email and username." };
   }
 
-  const email = parsed.data.email.toLowerCase();
+  const { email, username } = parsed.data;
   const requestIdentity = await getRequestIdentity();
+  const accountIdentity = `${email}:${username}`;
   const [emailAllowed, requestAllowed] = await Promise.all([
     consumeRateLimit({
       scope: "password-reset-email",
-      identity: email,
+      identity: accountIdentity,
       limit: 5,
       windowMs: 60 * 60 * 1000,
     }),
@@ -43,17 +44,16 @@ export async function requestPasswordResetAction(
   ]);
   if (!emailAllowed || !requestAllowed) return { ok: true };
 
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true, email: true, accountStatus: true },
-  });
+  const user = await findUserByEmailAndUsername(email, username);
 
   // Always return the same response so this form cannot enumerate accounts.
   if (!user || user.accountStatus === "DISABLED") return { ok: true };
 
   try {
     const token = await createPasswordResetToken(user.id);
-    if (token) await sendPasswordResetEmail(user.email, token);
+    if (token) {
+      await sendPasswordResetEmail(user.email, token, username);
+    }
   } catch (error) {
     // Keep the response indistinguishable from a missing account.
     console.error("[password-reset] request failed:", error);

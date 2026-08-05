@@ -28,7 +28,7 @@ enum AccountStatus {
 
 model User {
   id                       String        @id @default(cuid())
-  email                    String        @unique
+  email                    String
   username                 String?       @unique
   passwordHash             String?
   /// Credential carried over from the previous platform, in whatever format that
@@ -67,6 +67,8 @@ model User {
   policyUpdates      PolicyDocument[]         @relation("PolicyUpdatedBy")
   policyRevisions    PolicyDocumentRevision[] @relation("PolicyRevisionEditedBy")
   packageAudits      PackageAuditEvent[]      @relation("PackageAuditActor")
+
+  @@unique([email, username])
 }
 
 model Account {

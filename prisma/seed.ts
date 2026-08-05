@@ -239,7 +239,7 @@ async function seedPersona(passwordHash: string, p: Persona) {
   };
 
   const user = await prisma.user.upsert({
-    where: { email: p.email },
+    where: { username: p.username },
     update: {
       emailVerified: p.verified ? new Date() : null,
       capperProfile: {
@@ -283,7 +283,7 @@ async function main() {
 
   const adminPassword = await bcrypt.hash("admin1234", 12);
   await prisma.user.upsert({
-    where: { email: "admin@scl.local" },
+    where: { username: "admin" },
     update: { role: "ADMIN" },
     create: {
       email: "admin@scl.local",
@@ -297,7 +297,7 @@ async function main() {
 
   const capperPassword = await bcrypt.hash("capper1234", 12);
   const capper = await prisma.user.upsert({
-    where: { email: "capper@scl.local" },
+    where: { username: "demo_capper" },
     update: {
       capperProfile: {
         upsert: {

@@ -78,10 +78,25 @@ function LoginForm() {
         icon={LogIn}
         eyebrow="Account Access"
         title="Welcome back"
-        description="Sign in to open the workspace assigned to your account. Admin accounts go directly to the Admin Console."
+        description="Sign in with your username, email, and password. If you manage multiple SCL accounts on one inbox, use the username for the profile you want."
       />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        <div className="space-y-1.5">
+          <Label htmlFor="username">Username</Label>
+          <Input
+            id="username"
+            type="text"
+            autoComplete="username"
+            spellCheck={false}
+            className="min-h-10"
+            {...register("username")}
+          />
+          {errors.username ? (
+            <p className="text-neg text-xs">{errors.username.message}</p>
+          ) : null}
+        </div>
+
         <div className="space-y-1.5">
           <Label htmlFor="email">Email</Label>
           <Input
