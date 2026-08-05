@@ -3,6 +3,7 @@ import { BetType, DailyVolume, ProviderType } from "@prisma/client";
 
 import { SPORT_KEYS } from "@/lib/constants";
 import { BOOK_KEYS } from "@/lib/books";
+import { sclUsernameSchema } from "@/lib/schemas/auth.schema";
 import {
   STOREFRONT_DESCRIPTION_MAX_LENGTH,
   STOREFRONT_TITLE_MAX_LENGTH,
@@ -12,6 +13,7 @@ import {
 // Public identity is @username only. External social/website links are not
 // collected (existing DB values stay dormant — not cleared, not rendered).
 export const profileSchema = z.object({
+  username: sclUsernameSchema,
   headline: z.string().max(120, "Keep it under 120 characters").optional(),
   bio: z.string().max(600, "Keep it under 600 characters").optional(),
   providerType: z.nativeEnum(ProviderType),

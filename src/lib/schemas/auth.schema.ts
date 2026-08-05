@@ -5,6 +5,22 @@ export const passwordSchema = z
   .min(12, "Password must be at least 12 characters")
   .max(100, "Password must be under 100 characters");
 
+/**
+ * Public SCL @handle — shared by signup and profile username updates.
+ * Strips a leading `@`, lowercases, then enforces length + charset.
+ */
+export const sclUsernameSchema = z
+  .string()
+  .trim()
+  .transform((value) => value.replace(/^@+/, "").toLowerCase())
+  .pipe(
+    z
+      .string()
+      .min(3, "Username must be at least 3 characters")
+      .max(20, "Username must be under 20 characters")
+      .regex(/^[a-z0-9_]+$/, "Letters, numbers, and underscores only"),
+  );
+
 export const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email("Enter a valid email"),
   password: z.string().min(1, "Password is required"),
@@ -13,13 +29,7 @@ export type LoginInput = z.infer<typeof loginSchema>;
 
 export const signupSchema = z
   .object({
-    username: z
-      .string()
-      .trim()
-      .toLowerCase()
-      .min(3, "Username must be at least 3 characters")
-      .max(20)
-      .regex(/^[a-zA-Z0-9_]+$/, "Letters, numbers, and underscores only"),
+    username: sclUsernameSchema,
     email: z.string().trim().toLowerCase().email("Enter a valid email"),
     password: passwordSchema,
     confirmPassword: z.string(),
