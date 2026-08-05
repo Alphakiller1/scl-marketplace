@@ -6,6 +6,7 @@ import { ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 import { StoreStatusPanel } from "@/components/scl/store-status-panel";
+import { StorefrontConversationPanel } from "@/components/scl/storefront-conversation-panel";
 import { ProviderBadge } from "@/components/scl/provider-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -80,7 +81,29 @@ type Conn = Pick<
   "id" | "provider" | "status" | "packageImportStatus" | "submittedAt"
 >;
 
-export function MonetizationWizard({ connections }: { connections: Conn[] }) {
+type ThreadMessage = {
+  id: string;
+  body: string;
+  senderRole: "ADMIN" | "CAPPER";
+  createdAt: string;
+  sender: {
+    displayName: string | null;
+    username: string | null;
+    email: string;
+  };
+};
+
+export function MonetizationWizard({
+  connections,
+  messagesByConnection = {},
+  activeThreadId = null,
+  capperUsername = null,
+}: {
+  connections: Conn[];
+  messagesByConnection?: Record<string, ThreadMessage[]>;
+  activeThreadId?: string | null;
+  capperUsername?: string | null;
+}) {
   const initialActive =
     connections.find(
       (c) =>
@@ -264,6 +287,23 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
               />
             ))}
           </div>
+          {allConnections.some((item) => item.status !== "NOT_STARTED") ? (
+            <div className="space-y-4">
+              {allConnections
+                .filter((item) => item.status !== "NOT_STARTED")
+                .map((item) => (
+                  <StorefrontConversationPanel
+                    key={item.id}
+                    storeConnectionId={item.id}
+                    viewer="capper"
+                    messages={messagesByConnection[item.id] ?? []}
+                    provider={item.provider}
+                    capperUsername={capperUsername}
+                    highlighted={activeThreadId === item.id}
+                  />
+                ))}
+            </div>
+          ) : null}
           {showStatus && remainingProviders.length === 0 ? (
             <p className="text-muted-foreground text-xs">
               Winible and Whop are both connected. SCL reviews and publishes

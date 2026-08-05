@@ -230,6 +230,7 @@ export async function sendAffiliateSignupNotificationEmail(input: {
   const platform = providerLabel(input.provider);
   const handle = input.capperUsername.replace(/^@/, "");
   const reviewUrl = `${appUrl()}/admin/store-setup?id=${encodeURIComponent(input.connectionId)}&requiresAttention=true`;
+  const capperThreadUrl = `${appUrl()}/dashboard/monetization?thread=${encodeURIComponent(input.connectionId)}`;
   const submittedAt = input.submittedAt.toISOString();
 
   if (!resend) {
@@ -268,6 +269,9 @@ export async function sendAffiliateSignupNotificationEmail(input: {
                 : "Verify the Whop affiliate relationship, sync or paste packages, then confirm in SCL."
             }
           </p>
+          <p style="color:#666;font-size:13px">
+            The capper can reply on their Storefront page: <a href="${capperThreadUrl}">${capperThreadUrl}</a>
+          </p>
         </div>
       `,
     });
@@ -288,32 +292,34 @@ export async function sendAffiliateSignupNotificationEmail(input: {
 }
 
 /**
- * Admin-initiated email to a capper (storefront / affiliate follow-up).
- * Reply-to is the sending admin when available, otherwise support.
+ * Email backup when a new in-app storefront message is sent — links back to the
+ * thread so admin ↔ capper communication stays seamless in the product.
  */
-export async function sendCapperOutreachEmail(input: {
-  to: string;
-  subject: string;
-  message: string;
-  replyTo?: string | null;
-  capperUsername?: string | null;
+export async function sendStorefrontMessageNotificationEmail(input: {
+  to: string | string[];
+  recipientRole: "ADMIN" | "CAPPER";
+  platform: string;
+  capperUsername: string | null;
+  preview: string;
+  threadUrl: string;
+  senderLabel: string;
 }) {
-  const handle = input.capperUsername?.replace(/^@/, "") ?? null;
-  const handleLine = handle
-    ? `<p style="color:#666;font-size:14px">Account: <strong>@${escapeHtml(handle)}</strong></p>`
-    : "";
-  const replyTo =
-    input.replyTo?.trim() || process.env.SUPPORT_EMAIL_TO?.trim() || undefined;
-  const subject = input.subject.trim().startsWith("[SCL]")
-    ? input.subject.trim()
-    : `[SCL] ${input.subject.trim()}`;
+  const preview =
+    input.preview.length > 280
+      ? `${input.preview.slice(0, 277)}…`
+      : input.preview;
+  const handle = input.capperUsername?.replace(/^@/, "") ?? "capper";
+  const subject =
+    input.recipientRole === "ADMIN"
+      ? `[SCL] New storefront message from @${handle}`
+      : `[SCL] ${input.platform} storefront update from SCL`;
 
   if (!resend) {
-    console.info("[email:dev] capper outreach", {
+    console.info("[email:dev] storefront message notification", {
       to: input.to,
       subject,
-      replyTo,
-      message: input.message,
+      threadUrl: input.threadUrl,
+      preview,
     });
     return { delivered: false as const };
   }
@@ -322,29 +328,32 @@ export async function sendCapperOutreachEmail(input: {
     const { error } = await resend.emails.send({
       from,
       to: input.to,
-      ...(replyTo ? { replyTo } : {}),
       subject,
       html: `
         <div style="font-family:system-ui,sans-serif;max-width:640px;margin:auto">
-          <h2>Message from Sports Cappers Leaderboard</h2>
-          ${handleLine}
-          <p style="white-space:pre-wrap;line-height:1.5">${escapeHtml(input.message)}</p>
-          <hr style="border:none;border-top:1px solid #eee;margin:24px 0" />
+          <h2>New message on your ${escapeHtml(input.platform)} storefront</h2>
+          <p><strong>${escapeHtml(input.senderLabel)}</strong> wrote:</p>
+          <blockquote style="margin:16px 0;padding:12px 16px;border-left:3px solid #5b4bdb;background:#f6f5ff;white-space:pre-wrap">${escapeHtml(preview)}</blockquote>
+          <p>
+            <a href="${input.threadUrl}" style="display:inline-block;background:#5b4bdb;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">
+              Open conversation
+            </a>
+          </p>
           <p style="color:#666;font-size:13px">
-            Reply to this email if you have questions. This message was sent by the SCL team regarding your storefront setup.
+            Reply in SCL to keep the full thread in one place — you can also reply to this email when your mail client supports it.
           </p>
         </div>
       `,
     });
     if (error) {
       console.error(
-        `[email] capper outreach failed for ${input.to}: ${error.message}`,
+        `[email] storefront message notification failed: ${error.message}`,
       );
       return { delivered: false as const };
     }
     return { delivered: true as const };
   } catch (error) {
-    console.error(`[email] capper outreach threw for ${input.to}:`, error);
+    console.error("[email] storefront message notification threw:", error);
     return { delivered: false as const };
   }
 }

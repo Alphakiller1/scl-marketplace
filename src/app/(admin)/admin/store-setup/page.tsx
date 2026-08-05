@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { History, Store } from "lucide-react";
 
-import { AdminCapperOutreachPanel } from "@/components/scl/admin-capper-outreach-panel";
 import { AdminCapperPackageInventory } from "@/components/scl/admin-capper-package-inventory";
+import { StorefrontConversationPanel } from "@/components/scl/storefront-conversation-panel";
 import { AdminPackageForm } from "@/components/scl/admin-package-form";
 import { AdminPackageRowControls } from "@/components/scl/admin-package-row-controls";
 import { AdminStoreActions } from "@/components/scl/admin-store-actions";
@@ -24,6 +24,8 @@ import {
   getStorefrontReviewHistory,
   listStoreConnections,
 } from "@/lib/queries/store";
+import { getStorefrontMessages } from "@/lib/queries/storefront-messages";
+import { markStorefrontThreadReadAction } from "@/lib/actions/storefront-message.action";
 import { storefrontReviewActionLabel } from "@/lib/storefront-review";
 import { whopAffiliateUsername, whopOAuthConfigured } from "@/lib/whop-config";
 import { cn } from "@/lib/utils";
@@ -67,12 +69,19 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
   const creatingNew = Boolean(selected && sp.packageId === "new");
   // Everything this capper already sells, across every provider — including
   // offers with no store connection, which is all of the carried-over ones.
-  const [reviewHistory, capperPackages] = selected
+  const [reviewHistory, capperPackages, threadMessages] = selected
     ? await Promise.all([
         getStorefrontReviewHistory(selected.id),
         getCapperPackagesForReview(selected.capper.id),
+        getStorefrontMessages(selected.id),
       ])
-    : [[], []];
+    : [[], [], []];
+
+  if (selected) {
+    await markStorefrontThreadReadAction({
+      storeConnectionId: selected.id,
+    });
+  }
 
   function detailHref(opts: {
     connectionId: string;
@@ -254,12 +263,15 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
                 </Link>
               ) : null}
             </div>
-            <AdminCapperOutreachPanel
-              userId={selected.capper.user.id}
-              capperEmail={selected.capper.user.email}
-              capperUsername={selected.capper.user.username}
+            <StorefrontConversationPanel
               storeConnectionId={selected.id}
+              viewer="admin"
+              messages={threadMessages.map((message) => ({
+                ...message,
+                createdAt: message.createdAt.toISOString(),
+              }))}
               provider={selected.provider}
+              capperUsername={selected.capper.user.username}
             />
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="scl-display text-base font-bold tracking-[0.05em] uppercase">

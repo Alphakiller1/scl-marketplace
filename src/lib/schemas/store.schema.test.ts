@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  adminContactCapperSchema,
   adminPackageSchema,
   adminUpdateStoreConnectionSchema,
 } from "@/lib/schemas/store.schema";
@@ -68,26 +67,6 @@ test("storefront suspension requires a reason and stale-status guard", () => {
       expectedStatus: "LIVE",
       expectedUpdatedAt: "2026-07-26T12:00:00.000Z",
       reason: "Affiliate relationship ended",
-    }).success,
-    true,
-  );
-});
-
-test("admin capper outreach requires a substantive message", () => {
-  assert.equal(
-    adminContactCapperSchema.safeParse({
-      userId: "user_1",
-      subject: "Your Whop affiliate setup",
-      message: "short",
-    }).success,
-    false,
-  );
-  assert.equal(
-    adminContactCapperSchema.safeParse({
-      userId: "user_1",
-      storeConnectionId: "conn_1",
-      subject: "Your Whop affiliate setup",
-      message: "Please confirm SCL was added as an affiliate on Whop.",
     }).success,
     true,
   );

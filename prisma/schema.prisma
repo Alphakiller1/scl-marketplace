@@ -67,6 +67,7 @@ model User {
   policyUpdates      PolicyDocument[]         @relation("PolicyUpdatedBy")
   policyRevisions    PolicyDocumentRevision[] @relation("PolicyRevisionEditedBy")
   packageAudits      PackageAuditEvent[]      @relation("PackageAuditActor")
+  storefrontMessages StorefrontMessage[]      @relation("StorefrontMessageSender")
 
   @@unique([email, username])
 }
@@ -302,6 +303,11 @@ enum StorefrontReviewAction {
   CAPPER_CONTACTED
 }
 
+enum StorefrontMessageSender {
+  ADMIN
+  CAPPER
+}
+
 model StoreConnection {
   id                  String                @id @default(cuid())
   capperId            String
@@ -333,6 +339,7 @@ model StoreConnection {
   reviewedBy   User?                   @relation("StoreConnectionReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
   packages     Package[]
   reviewEvents StorefrontReviewEvent[]
+  messages     StorefrontMessage[]
 
   @@unique([capperId, provider])
   @@index([status])
@@ -357,6 +364,25 @@ model StorefrontReviewEvent {
 
   @@index([storeConnectionId, createdAt])
   @@index([reviewedById])
+}
+
+model StorefrontMessage {
+  id                String                  @id @default(cuid())
+  storeConnectionId String
+  senderId          String
+  senderRole        StorefrontMessageSender
+  body              String
+  readByAdminAt     DateTime?
+  readByCapperAt    DateTime?
+  emailNotifiedAt   DateTime?
+  createdAt         DateTime                @default(now())
+
+  storeConnection StoreConnection @relation(fields: [storeConnectionId], references: [id], onDelete: Cascade)
+  sender          User            @relation("StorefrontMessageSender", fields: [senderId], references: [id], onDelete: Restrict)
+
+  @@index([storeConnectionId, createdAt])
+  @@index([storeConnectionId, readByAdminAt])
+  @@index([storeConnectionId, readByCapperAt])
 }
 
 enum BillingPeriod {

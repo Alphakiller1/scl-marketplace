@@ -134,16 +134,3 @@ export const adminPackageReorderSchema = z.object({
 export type AdminPackageReorderInput = z.infer<
   typeof adminPackageReorderSchema
 >;
-
-export const adminContactCapperSchema = z.object({
-  userId: z.string().min(1),
-  storeConnectionId: z.string().min(1).optional(),
-  subject: z.string().trim().min(3).max(120),
-  message: z
-    .string()
-    .trim()
-    .min(10, "Include at least 10 characters so the capper knows what to do.")
-    .max(4000),
-});
-
-export type AdminContactCapperInput = z.infer<typeof adminContactCapperSchema>;

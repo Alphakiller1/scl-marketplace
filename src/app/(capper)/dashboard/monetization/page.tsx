@@ -5,21 +5,34 @@ import { MonetizationWizard } from "@/components/scl/monetization-wizard";
 import { WhopOAuthNotice } from "@/components/scl/whop-oauth-notice";
 import { SectionHeader } from "@/components/scl/section";
 import { PackageCard } from "@/components/scl/package-card";
+import { markStorefrontThreadReadAction } from "@/lib/actions/storefront-message.action";
+import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import {
   getCapperProfileIdForUser,
   getOwnerLivePackagesForCapper,
   listConnectionsForCapper,
 } from "@/lib/queries/store";
+import { getStorefrontMessagesForCapper } from "@/lib/queries/storefront-messages";
 
 export const metadata = { title: "Storefront" };
 
-export default async function MonetizationPage() {
-  // Layout already ran requireCapperAccess — reuse cached session user.
+type Search = {
+  searchParams: Promise<{ thread?: string }>;
+};
+
+export default async function MonetizationPage({ searchParams }: Search) {
+  const sp = await searchParams;
   const user = await getCurrentUser();
   if (!user) return null;
 
   const capperId = await getCapperProfileIdForUser(user.id);
+  const capperAccount = capperId
+    ? await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { username: true },
+      })
+    : null;
   const [connections, livePackages] = capperId
     ? await Promise.all([
         listConnectionsForCapper(capperId),
@@ -27,10 +40,29 @@ export default async function MonetizationPage() {
       ])
     : [[], []];
 
-  // Offers carried over from the previous platform are already public and
-  // taking money, but they have no connection behind them — so the setup copy
-  // told 56 cappers to "set up" a storefront that was live on their profile.
-  // With no connections at all, every live package is necessarily unattached.
+  const connectionIds = connections.map((connection) => connection.id);
+  const messagesByConnection = capperId
+    ? await getStorefrontMessagesForCapper(capperId, connectionIds)
+    : {};
+
+  for (const connection of connections) {
+    if (connection.status === "NOT_STARTED") continue;
+    if (sp.thread && sp.thread !== connection.id) continue;
+    await markStorefrontThreadReadAction({
+      storeConnectionId: connection.id,
+    });
+  }
+
+  const serializedMessages = Object.fromEntries(
+    Object.entries(messagesByConnection).map(([id, rows]) => [
+      id,
+      rows.map((row) => ({
+        ...row,
+        createdAt: row.createdAt.toISOString(),
+      })),
+    ]),
+  );
+
   const carriedOver = connections.length ? [] : livePackages;
   const hasCarriedStorefront = carriedOver.length > 0;
 
@@ -75,6 +107,9 @@ export default async function MonetizationPage() {
           packageImportStatus: c.packageImportStatus,
           submittedAt: c.submittedAt,
         }))}
+        messagesByConnection={serializedMessages}
+        activeThreadId={sp.thread ?? null}
+        capperUsername={capperAccount?.username ?? null}
       />
 
       {livePackages.length ? (
