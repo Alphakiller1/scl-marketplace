@@ -42,6 +42,7 @@ const STATEMENTS: string[] = [
   `DROP INDEX IF EXISTS scl."User_email_key"`,
   `DROP INDEX IF EXISTS "User_email_key"`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "User_email_username_key" ON scl."User"("email", "username")`,
+  `ALTER TYPE scl."StorefrontReviewAction" ADD VALUE IF NOT EXISTS 'CAPPER_CONTACTED'`,
 ];
 
 function authorize(req: NextRequest): boolean {
