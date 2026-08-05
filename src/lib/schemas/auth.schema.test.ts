@@ -5,6 +5,7 @@ import {
   passwordResetRequestSchema,
   passwordSchema,
   resetPasswordSchema,
+  sclUsernameSchema,
   signupSchema,
 } from "@/lib/schemas/auth.schema";
 
@@ -34,6 +35,12 @@ test("signup normalizes public handles and email addresses", () => {
 
   assert.equal(parsed.username, "chase_analytics");
   assert.equal(parsed.email, "cappper@example.com");
+});
+
+test("scl username schema strips a leading @ and lowercases", () => {
+  assert.equal(sclUsernameSchema.parse("@Chase_Analytics"), "chase_analytics");
+  assert.equal(sclUsernameSchema.safeParse("ab").success, false);
+  assert.equal(sclUsernameSchema.safeParse("bad-handle").success, false);
 });
 
 test("signup requires every legal and responsible-gaming acknowledgement", () => {

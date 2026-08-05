@@ -4,6 +4,7 @@ import test from "node:test";
 import { profileSchema } from "@/lib/schemas/profile.schema";
 
 const validProfile = {
+  username: "chase_analytics",
   providerType: "FREE" as const,
   sports: ["MLB"],
   specialties: ["Player props"],
@@ -14,6 +15,18 @@ const validProfile = {
 
 test("profile schema accepts a minimal valid profile", () => {
   assert.equal(profileSchema.safeParse(validProfile).success, true);
+});
+
+test("profile schema requires and normalizes username", () => {
+  assert.equal(
+    profileSchema.safeParse({ ...validProfile, username: undefined }).success,
+    false,
+  );
+  const parsed = profileSchema.parse({
+    ...validProfile,
+    username: "@New_Handle",
+  });
+  assert.equal(parsed.username, "new_handle");
 });
 
 test("profile schema accepts curated sportsbooks", () => {

@@ -56,6 +56,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
   } = useForm<ProfileFormInput, unknown, ProfileInput>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
+      username: (profile.user.username ?? "").replace(/^@+/, ""),
       headline: profile.headline ?? "",
       bio: profile.bio ?? "",
       providerType: profile.providerType,
@@ -73,7 +74,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
   });
 
   const values = useWatch({ control });
-  const username = profile.user.username ?? "";
+  const username = (values.username ?? "").replace(/^@+/, "").trim();
   const handleLabel = formatHandle(username) ?? "";
   const completion = calculateProfileCompletion({
     ...values,
@@ -144,16 +145,35 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
                 Public Identity
               </h2>
               <p className="text-muted-foreground text-sm">
-                Your @handle is your public name across SCL.
+                Your @handle is your public name across SCL. Changing it updates
+                your public profile URL.
               </p>
             </div>
 
-            <Field htmlFor="username" label="SCL Username">
-              <Input
-                id="username"
-                value={handleLabel || `@${username}`}
-                disabled
-              />
+            <Field
+              htmlFor="username"
+              label="SCL Username"
+              error={errors.username?.message}
+            >
+              <div className="relative">
+                <span
+                  aria-hidden
+                  className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm"
+                >
+                  @
+                </span>
+                <Input
+                  id="username"
+                  autoComplete="username"
+                  spellCheck={false}
+                  className="pl-7"
+                  placeholder="your_handle"
+                  {...register("username")}
+                />
+              </div>
+              <p className="text-muted-foreground text-xs">
+                3–20 characters. Letters, numbers, and underscores only.
+              </p>
             </Field>
 
             <Field
