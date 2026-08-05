@@ -1,21 +1,19 @@
-import type { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { shouldApplyRuntimeSchemaPatch } from "@/lib/runtime-schema-patch";
 
 let ensurePromise: Promise<void> | null = null;
 
 /**
  * Idempotent production patch for #372 — allow multiple accounts per email.
  * Vercel builds sometimes lack database credentials during `prisma migrate
- * deploy`; apply the index swap at runtime on first connect instead.
- *
- * Takes the Prisma client as an argument to avoid a circular import with
- * `src/lib/prisma.ts`.
+ * deploy`; apply the index swap at runtime on first auth request instead.
  */
-export function ensureAuthEmailSchema(client: PrismaClient): Promise<void> {
-  if (process.env.NODE_ENV !== "production") return Promise.resolve();
+export function ensureAuthEmailSchema(): Promise<void> {
+  if (!shouldApplyRuntimeSchemaPatch()) return Promise.resolve();
   if (!ensurePromise) {
     ensurePromise = (async () => {
       try {
-        await client.$executeRawUnsafe(`
+        await prisma.$executeRawUnsafe(`
           WITH ranked AS (
             SELECT
               id,

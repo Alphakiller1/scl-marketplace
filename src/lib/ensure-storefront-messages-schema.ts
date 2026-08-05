@@ -1,20 +1,19 @@
-import type { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { shouldApplyRuntimeSchemaPatch } from "@/lib/runtime-schema-patch";
 
 let ensurePromise: Promise<void> | null = null;
 
 /**
  * Idempotent runtime patch for storefront messaging (#376).
  * Production builds may skip `prisma migrate deploy` when DB creds are absent
- * at build time — create the thread table on first Prisma connect instead.
+ * at build time — create the thread table on first message action instead.
  */
-export function ensureStorefrontMessagesSchema(
-  client: PrismaClient,
-): Promise<void> {
-  if (process.env.NODE_ENV !== "production") return Promise.resolve();
+export function ensureStorefrontMessagesSchema(): Promise<void> {
+  if (!shouldApplyRuntimeSchemaPatch()) return Promise.resolve();
   if (!ensurePromise) {
     ensurePromise = (async () => {
       try {
-        await client.$executeRawUnsafe(`
+        await prisma.$executeRawUnsafe(`
           DO $$ BEGIN
             CREATE TYPE scl."StorefrontMessageSender" AS ENUM ('ADMIN', 'CAPPER');
           EXCEPTION

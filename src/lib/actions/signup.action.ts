@@ -12,6 +12,7 @@ import { getCurrentPolicyBundle } from "@/lib/queries/policies";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getRequestIdentity } from "@/lib/request-identity";
 import { evaluateAccountClaim, handleTakenMessage } from "@/lib/account-claim";
+import { ensureAuthEmailSchema } from "@/lib/ensure-auth-email-schema";
 
 type SignupResult =
   | { ok: true; emailDelivered: boolean; verifyUrl?: string }
@@ -34,6 +35,8 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
   const parsed = signupSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, error: "Please check the form and try again." };
+
+  await ensureAuthEmailSchema();
 
   const { email, username, password } = parsed.data;
   const lowerEmail = email.toLowerCase();

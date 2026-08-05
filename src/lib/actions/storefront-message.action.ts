@@ -15,6 +15,7 @@ import {
   sendStorefrontMessageSchema,
 } from "@/lib/schemas/storefront-message.schema";
 import { providerLabel } from "@/lib/store-connection";
+import { ensureStorefrontMessagesSchema } from "@/lib/ensure-storefront-messages-schema";
 import { getCurrentAccount, requireAdmin } from "@/lib/session";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -62,6 +63,8 @@ export async function sendStorefrontMessageAction(input: {
 }): Promise<ActionResult> {
   const account = await getCurrentAccount();
   if (!account) return { ok: false, error: "Sign in to send a message." };
+
+  await ensureStorefrontMessagesSchema();
 
   const parsed = sendStorefrontMessageSchema.safeParse(input);
   if (!parsed.success) {
@@ -193,6 +196,8 @@ export async function markStorefrontThreadReadAction(input: {
   const account = await getCurrentAccount();
   if (!account) return { ok: false, error: "Sign in required." };
 
+  await ensureStorefrontMessagesSchema();
+
   const parsed = markStorefrontThreadReadSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid thread." };
 
@@ -233,6 +238,8 @@ export async function markAllCapperThreadsReadAction(input: {
   userId: string;
 }): Promise<ActionResult> {
   await requireAdmin();
+  await ensureStorefrontMessagesSchema();
+
   const profile = await prisma.capperProfile.findUnique({
     where: { userId: input.userId },
     select: { id: true },
