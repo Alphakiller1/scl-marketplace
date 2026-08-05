@@ -1,10 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 
-import { ensureSupabaseDatabaseEnvAliases } from "@/lib/supabase-config";
 import { ensureAuthEmailSchema } from "@/lib/ensure-auth-email-schema";
+import { ensureSupabaseDatabaseEnvAliases } from "@/lib/supabase-config";
 
 ensureSupabaseDatabaseEnvAliases();
-void ensureAuthEmailSchema();
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -51,3 +50,6 @@ export const prisma =
 
 // Reuse across warm serverless isolates so we do not open a new pool per invoke.
 globalForPrisma.prisma = prisma;
+
+// Runtime fallback when Production build-time migrate cannot reach the DB.
+void ensureAuthEmailSchema(prisma);
