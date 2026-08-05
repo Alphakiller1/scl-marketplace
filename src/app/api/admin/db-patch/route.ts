@@ -38,7 +38,9 @@ const STATEMENTS: string[] = [
    )`,
   `CREATE INDEX IF NOT EXISTS "OddsUsageDaily_date_idx" ON scl."OddsUsageDaily"("date")`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "OddsUsageDaily_date_purpose_sport_key" ON scl."OddsUsageDaily"("date", "purpose", "sport")`,
+  `ALTER TABLE scl."User" DROP CONSTRAINT IF EXISTS "User_email_key"`,
   `DROP INDEX IF EXISTS scl."User_email_key"`,
+  `DROP INDEX IF EXISTS "User_email_key"`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "User_email_username_key" ON scl."User"("email", "username")`,
 ];
 
