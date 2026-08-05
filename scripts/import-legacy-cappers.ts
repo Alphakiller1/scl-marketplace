@@ -19,6 +19,17 @@ try {
 
 const prisma = new PrismaClient();
 
+/**
+ * Attach carried-over credentials even to accounts that already hold an SCL
+ * password. Needed when passwords were backfilled in bulk for cappers who never
+ * set one themselves — without it, every account looks "already claimed" and the
+ * import quietly attaches nothing. Never destructive: the existing password
+ * keeps working, the old one becomes a second accepted credential.
+ */
+const ATTACH_CREDENTIALS = process.argv.includes("--attach-credentials");
+
+const credentialStats = { attached: 0, skippedHasPassword: 0 };
+
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 /** American-odds profit for a winning unit stake. */
@@ -76,15 +87,28 @@ async function importCapper(c: LegacyCapperInput) {
   }
 
   // Carry the previous platform's credential across so the capper signs in with
-  // the password they already have. Once they've set an SCL password (claimed
-  // the account or already migrated), a re-run must not resurrect the old one.
-  const legacyCredential =
-    c.passwordHash && !collision?.passwordHash
-      ? {
-          legacyPasswordHash: c.passwordHash,
-          legacyPasswordFormat: c.passwordFormat ?? null,
-        }
-      : {};
+  // the password they already have.
+  //
+  // By default an account that already holds an SCL password is left alone — it
+  // claimed itself or already migrated, and a re-run must not resurrect the old
+  // credential. But a password can also have been set *for* a capper in bulk
+  // (an operator backfill), in which case every account has a passwordHash and
+  // this import would silently do nothing. --attach-credentials covers that:
+  // it adds the old credential alongside the existing password rather than
+  // replacing it, so both work and nobody is locked out. Login prefers the SCL
+  // password and only falls back to the legacy one.
+  const carryCredential =
+    Boolean(c.passwordHash) && (ATTACH_CREDENTIALS || !collision?.passwordHash);
+  const legacyCredential = carryCredential
+    ? {
+        legacyPasswordHash: c.passwordHash,
+        legacyPasswordFormat: c.passwordFormat ?? null,
+      }
+    : {};
+  if (c.passwordHash) {
+    if (carryCredential) credentialStats.attached++;
+    else credentialStats.skippedHasPassword++;
+  }
 
   const user = await prisma.user.upsert({
     where: { email },
@@ -144,7 +168,10 @@ async function importCapper(c: LegacyCapperInput) {
 }
 
 async function main() {
-  const fileArg = process.argv[2] ?? "prisma/legacy-cappers.json";
+  // Skip flags so `-- --attach-credentials path.json` works in either order.
+  const fileArg =
+    process.argv.slice(2).find((arg) => !arg.startsWith("--")) ??
+    "prisma/legacy-cappers.json";
   const filePath = path.resolve(process.cwd(), fileArg);
 
   let raw: string;
@@ -201,6 +228,17 @@ async function main() {
   console.log(
     `\nDone. ${ok} imported, ${plays} plays inserted, ${failures.length} failed.`,
   );
+  console.log(
+    `  credentials    : ${credentialStats.attached} attached` +
+      `${credentialStats.skippedHasPassword ? `, ${credentialStats.skippedHasPassword} skipped (account already has a password)` : ""}`,
+  );
+  if (credentialStats.skippedHasPassword && !ATTACH_CREDENTIALS) {
+    console.log(
+      "  Those cappers cannot sign in with their old password. If their current\n" +
+        "  password was set for them in bulk rather than chosen by them, re-run with\n" +
+        "  --attach-credentials to accept the old one as well (nothing is overwritten).",
+    );
+  }
   if (failures.length) process.exitCode = 1;
 }
 

@@ -217,6 +217,30 @@ What happens on that first sign-in (`src/auth.ts`):
 Accounts imported without a credential — and any hash that couldn't be
 classified — use the claim routes below instead.
 
+### When passwords were already backfilled in bulk
+
+An account that already holds an SCL password is left alone by default: it
+claimed itself or already migrated, and a re-run must not resurrect the old
+credential. That default is wrong in one specific case — when passwords were set
+**for** cappers in bulk (an operator backfill) rather than chosen by them. Every
+account then looks claimed, and the import attaches nothing while reporting
+success. The run says so explicitly:
+
+```
+  credentials    : 0 attached, 108 skipped (account already has a password)
+```
+
+```bash
+# Accept the old password *as well as* the one already on the account.
+npm run db:import-legacy -- --attach-credentials prisma/legacy-cappers.json
+```
+
+Nothing is overwritten. Both credentials work until the capper signs in with
+their own, at which point it becomes the account's real password (bcrypt), the
+imported hash is cleared, and the operator-set one stops working — verified
+end-to-end. Use this only when the current passwords were not chosen by the
+cappers themselves; otherwise the default is the safer behaviour.
+
 ## Claiming an imported account
 
 An imported `User` with **no `passwordHash`** is unclaimed: the record and public
