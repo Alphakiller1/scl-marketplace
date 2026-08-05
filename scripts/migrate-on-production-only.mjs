@@ -118,6 +118,21 @@ function forceAuthEmailMigration() {
   }
 
   const sql = `
+WITH ranked AS (
+  SELECT
+    id,
+    ROW_NUMBER() OVER (
+      PARTITION BY email, username
+      ORDER BY "createdAt" ASC, id ASC
+    ) AS rn
+  FROM scl."User"
+  WHERE username IS NOT NULL
+)
+UPDATE scl."User" u
+SET username = u.username || '_' || substr(u.id, 1, 6)
+FROM ranked r
+WHERE u.id = r.id AND r.rn > 1;
+
 ALTER TABLE scl."User" DROP CONSTRAINT IF EXISTS "User_email_key";
 DROP INDEX IF EXISTS scl."User_email_key";
 DROP INDEX IF EXISTS "User_email_key";
