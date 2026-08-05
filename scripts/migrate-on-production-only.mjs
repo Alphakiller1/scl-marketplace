@@ -62,6 +62,11 @@ function ensureDatabaseEnvForMigrate() {
     if (direct) {
       process.env.DIRECT_URL = withSclSchema(direct);
       console.log("[migrate] mapped DIRECT_URL from Supabase integration env");
+    } else if (trimmed(process.env.DATABASE_URL)) {
+      process.env.DIRECT_URL = process.env.DATABASE_URL;
+      console.warn(
+        "[migrate] DIRECT_URL unset — falling back to DATABASE_URL for migrate",
+      );
     }
   } else if (!process.env.DIRECT_URL.includes("schema=")) {
     process.env.DIRECT_URL = withSclSchema(process.env.DIRECT_URL);
@@ -85,6 +90,21 @@ function forceAuthEmailMigration() {
   const AUTH_EMAIL_MIGRATION =
     "20260805230000_allow_duplicate_email_per_username";
   const sql = `
+WITH ranked AS (
+  SELECT
+    id,
+    ROW_NUMBER() OVER (
+      PARTITION BY email, username
+      ORDER BY "createdAt" ASC, id ASC
+    ) AS rn
+  FROM scl."User"
+  WHERE username IS NOT NULL
+)
+UPDATE scl."User" u
+SET username = u.username || '_' || substr(u.id, 1, 6)
+FROM ranked r
+WHERE u.id = r.id AND r.rn > 1;
+
 ALTER TABLE scl."User" DROP CONSTRAINT IF EXISTS "User_email_key";
 DROP INDEX IF EXISTS scl."User_email_key";
 DROP INDEX IF EXISTS "User_email_key";
