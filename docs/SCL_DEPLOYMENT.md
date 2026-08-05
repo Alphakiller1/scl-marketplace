@@ -56,7 +56,15 @@ If Production is missing the Supabase vars, the UI returns
 **"Profile media uploads are not configured yet."** — that is a **config gap**, not a
 client bug.
 
-Set these on **Vercel → Project → Settings → Environment Variables** (Production + Preview):
+**Automatic sync (recommended):** connect the [Supabase Vercel integration](https://vercel.com/marketplace/supabase).
+It pushes `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `POSTGRES_*` vars; SCL accepts those
+names as aliases. See `docs/SUPABASE_VERCEL_ENV_SYNC.md`.
+
+**Manual / GitHub sync:** store secrets under GitHub → Environments → **Production**, then
+run **Actions → Sync Supabase env to Vercel**. Same doc covers one-time setup.
+
+Set these on **Vercel → Project → Settings → Environment Variables** (Production + Preview)
+if you are not using either sync path above:
 
 1. `SUPABASE_URL` — Project Settings → API → Project URL
 2. `SUPABASE_SERVICE_ROLE_KEY` — Project Settings → API → `service_role` (secret)

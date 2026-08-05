@@ -1,5 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 
+import { ensureSupabaseDatabaseEnvAliases } from "@/lib/supabase-config";
+
+ensureSupabaseDatabaseEnvAliases();
+
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
