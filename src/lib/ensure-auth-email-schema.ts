@@ -1,5 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 
+import { shouldApplyRuntimeSchemaPatch } from "@/lib/runtime-schema-patch";
+
 let ensurePromise: Promise<void> | null = null;
 
 /**
@@ -11,7 +13,7 @@ let ensurePromise: Promise<void> | null = null;
  * `src/lib/prisma.ts`.
  */
 export function ensureAuthEmailSchema(client: PrismaClient): Promise<void> {
-  if (process.env.NODE_ENV !== "production") return Promise.resolve();
+  if (!shouldApplyRuntimeSchemaPatch()) return Promise.resolve();
   if (!ensurePromise) {
     ensurePromise = (async () => {
       try {

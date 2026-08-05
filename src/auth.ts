@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/auth.config";
 import { loginSchema } from "@/lib/schemas/auth.schema";
 import { findUserByEmailAndUsername } from "@/lib/user-credentials";
+import { ensureAuthEmailSchema } from "@/lib/ensure-auth-email-schema";
 import {
   clearRateLimit,
   consumeRateLimit,
@@ -123,6 +124,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!parsed.success) return null;
 
         const { email, username, password } = parsed.data;
+        await ensureAuthEmailSchema(prisma);
         const loginIdentity = `${email}:${username}`;
         const requestIdentity = await getRequestIdentity();
         const [emailAllowed, requestAllowed] = await Promise.all([
