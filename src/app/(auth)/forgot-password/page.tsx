@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
           icon={MailCheck}
           eyebrow="Account Access"
           title="Check your email"
-          description="If an eligible SCL account matches that address, a secure link to set your password is on the way."
+          description="If an eligible SCL account matches that username and email, a secure link to set your password is on the way."
         />
         <AuthStatusNotice
           tone="info"
@@ -68,9 +68,23 @@ export default function ForgotPasswordPage() {
         icon={KeyRound}
         eyebrow="Account Access"
         title="Set or reset your password"
-        description="Request a single-use link. Use this to recover a password — or to set your first one if your profile was carried over from the previous platform."
+        description="Request a single-use link for a specific SCL account. Enter the username and email on that profile."
       />
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        <div className="space-y-1.5">
+          <Label htmlFor="username">Username</Label>
+          <Input
+            id="username"
+            type="text"
+            autoComplete="username"
+            spellCheck={false}
+            className="min-h-10"
+            {...register("username")}
+          />
+          {errors.username ? (
+            <p className="text-neg text-xs">{errors.username.message}</p>
+          ) : null}
+        </div>
         <div className="space-y-1.5">
           <Label htmlFor="email">Email</Label>
           <Input

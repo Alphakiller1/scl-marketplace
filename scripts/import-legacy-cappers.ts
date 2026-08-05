@@ -71,10 +71,10 @@ async function importCapper(c: LegacyCapperInput) {
     website: c.website,
   };
 
-  // The import only ever (re)writes legacy records. If the email already
+  // The import only ever (re)writes legacy records. If the handle already
   // belongs to a real, non-legacy user, skip rather than overwrite them.
   const collision = await prisma.user.findUnique({
-    where: { email },
+    where: { username: c.username },
     select: {
       passwordHash: true,
       capperProfile: { select: { isLegacy: true } },
@@ -82,7 +82,7 @@ async function importCapper(c: LegacyCapperInput) {
   });
   if (collision && !collision.capperProfile?.isLegacy) {
     throw new Error(
-      `${email} already belongs to a non-legacy user — skipping to avoid overwriting it`,
+      `@${c.username} already belongs to a non-legacy user — skipping to avoid overwriting it`,
     );
   }
 
@@ -111,7 +111,7 @@ async function importCapper(c: LegacyCapperInput) {
   }
 
   const user = await prisma.user.upsert({
-    where: { email },
+    where: { username: c.username },
     update: {
       username: c.username,
       displayName: c.displayName,

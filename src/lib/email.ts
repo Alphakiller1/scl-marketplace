@@ -30,11 +30,20 @@ function appUrl() {
  * Send a verification email. If RESEND_API_KEY isn't set (dev), log the link
  * instead of sending so the flow is testable without an email provider.
  */
-export async function sendVerificationEmail(email: string, token: string) {
+export async function sendVerificationEmail(
+  email: string,
+  token: string,
+  username?: string,
+) {
   const link = `${appUrl()}/verify?token=${token}`;
+  const handleLine = username
+    ? `<p style="color:#666;font-size:14px">Account: <strong>@${escapeHtml(username)}</strong></p>`
+    : "";
 
   if (!resend) {
-    console.info(`[email:dev] verification link for ${email}: ${link}`);
+    console.info(
+      `[email:dev] verification link for ${email}${username ? ` (@${username})` : ""}: ${link}`,
+    );
     return { delivered: false as const, link };
   }
 
@@ -48,6 +57,7 @@ export async function sendVerificationEmail(email: string, token: string) {
       html: `
       <div style="font-family:system-ui,sans-serif;max-width:480px;margin:auto">
         <h2>Verify your email</h2>
+        ${handleLine}
         <p>Confirm your email to start logging plays and building your record on SCL.</p>
         <p><a href="${link}" style="display:inline-block;background:#5b4bdb;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Verify email</a></p>
         <p style="color:#666;font-size:13px">This link expires in 24 hours. If you didn't sign up, ignore this email.</p>
@@ -67,11 +77,20 @@ export async function sendVerificationEmail(email: string, token: string) {
   }
 }
 
-export async function sendPasswordResetEmail(email: string, token: string) {
+export async function sendPasswordResetEmail(
+  email: string,
+  token: string,
+  username?: string,
+) {
   const link = `${appUrl()}/reset-password?token=${token}`;
+  const handleLine = username
+    ? `<p style="color:#666;font-size:14px">Account: <strong>@${escapeHtml(username)}</strong></p>`
+    : "";
 
   if (!resend) {
-    console.info(`[email:dev] password reset link for ${email}: ${link}`);
+    console.info(
+      `[email:dev] password reset link for ${email}${username ? ` (@${username})` : ""}: ${link}`,
+    );
     return { delivered: false as const, link };
   }
 
@@ -84,6 +103,7 @@ export async function sendPasswordResetEmail(email: string, token: string) {
       html: `
       <div style="font-family:system-ui,sans-serif;max-width:480px;margin:auto">
         <h2>Reset your password</h2>
+        ${handleLine}
         <p>Use the secure link below to choose a new password for your SCL account.</p>
         <p><a href="${link}" style="display:inline-block;background:#5b4bdb;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Reset password</a></p>
         <p style="color:#666;font-size:13px">This link expires in one hour and works once. If you didn't request it, ignore this email.</p>

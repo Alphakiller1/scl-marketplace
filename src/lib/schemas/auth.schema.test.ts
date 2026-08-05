@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  loginSchema,
   passwordResetRequestSchema,
   passwordSchema,
   resetPasswordSchema,
@@ -16,10 +17,23 @@ test("password contract requires at least 12 characters", () => {
 
 test("password reset request normalizes surrounding whitespace", () => {
   const parsed = passwordResetRequestSchema.parse({
+    username: " Chase_Analytics ",
     email: "  capper@example.com ",
   });
 
+  assert.equal(parsed.username, "chase_analytics");
   assert.equal(parsed.email, "capper@example.com");
+});
+
+test("login requires username, email, and password", () => {
+  const parsed = loginSchema.parse({
+    username: "@capper_one",
+    email: " CAPPPER@EXAMPLE.COM ",
+    password: "secret",
+  });
+
+  assert.equal(parsed.username, "capper_one");
+  assert.equal(parsed.email, "cappper@example.com");
 });
 
 test("signup normalizes public handles and email addresses", () => {
