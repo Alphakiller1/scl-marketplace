@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ExternalLink,
   History,
+  KeyRound,
   MailCheck,
   PackageOpen,
   Scale,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 import { notFound } from "next/navigation";
 
+import { AccountClaimControl } from "@/components/scl/account-claim-control";
 import { AccountStatusControl } from "@/components/scl/account-status-control";
 import { AccountStatusBadge } from "@/components/scl/account-trust";
 import { StatusBadge } from "@/components/scl/badges";
@@ -191,7 +193,20 @@ export default async function AdminCapperDetailPage({
             userId={capper.id}
             currentStatus={capper.accountStatus}
           />
+          <AccountClaimControl
+            userId={capper.id}
+            unclaimed={capper.unclaimed}
+          />
           <div className="grid gap-2 text-sm sm:grid-cols-2">
+            <TrustLine
+              icon={KeyRound}
+              label="Credentials"
+              value={
+                capper.unclaimed
+                  ? "No password set — account unclaimed"
+                  : "Password set"
+              }
+            />
             <TrustLine
               icon={MailCheck}
               label="Email"

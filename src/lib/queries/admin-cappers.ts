@@ -11,6 +11,7 @@ import {
   type AdminCapperFilters,
 } from "@/lib/admin-cappers";
 import { prisma } from "@/lib/prisma";
+import { isUnclaimedAccount } from "@/lib/account-claim";
 
 const PENDING_STOREFRONT_STATUSES: StoreConnectionStatus[] = [
   "PENDING_SCL_ACCEPTANCE",
@@ -158,6 +159,8 @@ export async function getAdminCapperDetail(userId: string) {
       username: true,
       email: true,
       emailVerified: true,
+      // Read to derive `unclaimed` below — the hash itself never leaves this module.
+      passwordHash: true,
       accountStatus: true,
       isTest: true,
       createdAt: true,
@@ -298,16 +301,23 @@ export async function getAdminCapperDetail(userId: string) {
     },
   });
 
-  if (!user?.capperProfile) return user ? { ...user, summary: null } : null;
+  if (!user) return null;
+
+  // Swap the hash for the one fact the console needs — whether anyone has ever
+  // set a password — so no credential material reaches a client component.
+  const { passwordHash, ...rest } = user;
+  const account = { ...rest, unclaimed: isUnclaimedAccount({ passwordHash }) };
+
+  if (!account.capperProfile) return { ...account, summary: null };
 
   const [straightSummary, parlaySummary, carried] = await Promise.all([
     prisma.play.aggregate({
-      where: { capperId: user.capperProfile.id, parlayId: null },
+      where: { capperId: account.capperProfile.id, parlayId: null },
       _count: { _all: true },
       _sum: { profitUnits: true },
     }),
     prisma.parlay.aggregate({
-      where: { capperId: user.capperProfile.id },
+      where: { capperId: account.capperProfile.id },
       _count: { _all: true },
       _sum: { profitUnits: true },
     }),
@@ -318,7 +328,7 @@ export async function getAdminCapperDetail(userId: string) {
     // counts above never double-counts the overlap.
     prisma.legacyRecord.findFirst({
       where: {
-        capperId: user.capperProfile.id,
+        capperId: account.capperProfile.id,
         scope: "PRE_IMPORT",
         sport: "ALL",
       },
@@ -331,7 +341,7 @@ export async function getAdminCapperDetail(userId: string) {
     : 0;
 
   return {
-    ...user,
+    ...account,
     summary: {
       straightCount: straightSummary._count._all,
       parlayCount: parlaySummary._count._all,
@@ -344,8 +354,8 @@ export async function getAdminCapperDetail(userId: string) {
         Number(straightSummary._sum.profitUnits ?? 0) +
         Number(parlaySummary._sum.profitUnits ?? 0) +
         (carried ? Number(carried.unitsNet) : 0),
-      packageCount: user.capperProfile.packages.length,
-      clickCount: user.capperProfile.packages.reduce(
+      packageCount: account.capperProfile.packages.length,
+      clickCount: account.capperProfile.packages.reduce(
         (total, pkg) =>
           total +
           pkg.trackingUrls.reduce(

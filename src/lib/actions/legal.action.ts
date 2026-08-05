@@ -50,5 +50,6 @@ export async function acceptCurrentTermsAction(input: {
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/profile");
+  revalidatePath("/admin");
   return { ok: true };
 }

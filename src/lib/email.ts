@@ -99,6 +99,45 @@ export async function sendPasswordResetEmail(email: string, token: string) {
   }
 }
 
+/**
+ * First-time credentials for an account carried over from the previous platform.
+ * Same single-use token as a password reset — the copy differs because the capper
+ * never had an SCL password to "reset", and "we couldn't find your account" is the
+ * exact confusion that keeps an imported capper locked out.
+ */
+export async function sendAccountClaimEmail(email: string, token: string) {
+  const link = `${appUrl()}/reset-password?token=${token}`;
+
+  if (!resend) {
+    console.info(`[email:dev] account claim link for ${email}: ${link}`);
+    return { delivered: false as const, link };
+  }
+
+  try {
+    const { error } = await resend.emails.send({
+      from,
+      to: email,
+      subject: "Set your SCL password",
+      html: `
+      <div style="font-family:system-ui,sans-serif;max-width:480px;margin:auto">
+        <h2>Claim your SCL account</h2>
+        <p>Your capper profile and record were carried over to SCL. Set a password with the secure link below to sign in, review the current policies, and keep posting.</p>
+        <p><a href="${link}" style="display:inline-block;background:#5b4bdb;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Set password</a></p>
+        <p style="color:#666;font-size:13px">This link expires in one hour and works once. If you didn't expect it, ignore this email.</p>
+      </div>
+    `,
+    });
+    if (error) {
+      console.error(`[email] claim send failed for ${email}: ${error.message}`);
+      return { delivered: false as const, link };
+    }
+    return { delivered: true as const, link };
+  } catch (err) {
+    console.error(`[email] claim send threw for ${email}:`, err);
+    return { delivered: false as const, link };
+  }
+}
+
 export async function sendSupportEmail(input: {
   email: string;
   category: string;

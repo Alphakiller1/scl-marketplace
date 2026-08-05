@@ -85,7 +85,8 @@ async function importCapper(c: LegacyCapperInput) {
       username: c.username,
       displayName: c.displayName,
       role: "CAPPER",
-      // No password — legacy profiles stay unclaimed until the Phase 2 claim flow.
+      // No password — the profile stays unclaimed until the capper sets one
+      // (signup / reset link / admin-issued link). See docs/LEGACY_MIGRATION.md.
       emailVerified: c.verified ? new Date() : null,
       capperProfile: { create: profileData },
     },

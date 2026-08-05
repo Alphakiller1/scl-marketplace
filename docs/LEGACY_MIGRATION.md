@@ -11,9 +11,10 @@ No schema migration is required — it reuses the existing `User`,
 
 For each record the importer upserts:
 
-- a **`User`** (`role: CAPPER`, **no password** — unclaimed until the Phase 2
-  claim flow; `emailVerified` set only when `verified: true`). `username`
-  becomes the public `/cappers/[handle]` slug.
+- a **`User`** (`role: CAPPER`, **no password** — unclaimed until the capper
+  claims it, see [Claiming an imported account](#claiming-an-imported-account);
+  `emailVerified` set only when `verified: true`). `username` becomes the public
+  `/cappers/[handle]` slug.
 - a **`CapperProfile`** with `isLegacy: true` plus headline/bio/sports/socials.
 - the capper's **historical `Play` rows** (only if the profile has none yet).
 
@@ -177,8 +178,35 @@ back mangled (`ðŸ”¥` for 🔥). The extractor repairs this run by run — t
 descriptions mix corrupted spans with characters that were stored correctly
 (— • –), so re-encoding a whole string always fails on one of the good ones.
 
-## Phase 2 follow-up
+## Claiming an imported account
 
-A **profile claim flow** (let a real capper take ownership of their imported
-handle, set a password, and continue posting) is deferred to Phase 2. See the
-Phase 2 parking lot.
+An imported `User` has **no `passwordHash`**, which is exactly what "unclaimed"
+means: the record and public profile exist, but nobody has ever signed in to it.
+`emailVerified` says nothing about this — the importer copies the old platform's
+verified flag, so a capper can be both verified and unclaimed.
+
+Three routes turn an unclaimed record into a working login. All of them preserve
+the profile, plays, and carried record — none creates a second account:
+
+1. **Forgot password** (`/forgot-password`, also linked from `/login` as "Claim
+   your account" and from the public profile). Emails a single-use link that
+   sets the first password, verifies the address, and activates the account.
+   Needs a real email on the record.
+2. **Signup with the imported email** (`/signup`). `signupAction` treats an
+   account with no password as claimable and writes the credentials onto the
+   existing record, together with a `TermsAcceptance` marked
+   `acceptanceSource: "CLAIM"`. A claim never grants privilege — the claimed
+   account is always left as `CAPPER`.
+3. **Admin-issued claim link** (`/admin/cappers/[id]` → Account Control →
+   _Issue claim link_). For the records imported with a placeholder
+   `username@legacy.scl` address, which no email can reach: the link is
+   generated, not sent, and shown once for an admin to hand over directly.
+
+A handle alone is never proof of ownership — handles are public on the
+leaderboard — so signing up with someone else's imported handle and a different
+email is refused, with a message pointing at the routes above.
+
+After signing in, a claimed account still has to accept the **current** policy
+bundle at `/accept-terms` before reaching any workspace; `requireCapperAccess` /
+`requireAdmin` gate on the live bundle version, so a policy revision re-gates
+everyone, imported or not.
