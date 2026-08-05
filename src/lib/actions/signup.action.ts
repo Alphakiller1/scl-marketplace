@@ -11,6 +11,7 @@ import { CONSENT_TEXT_VERSION } from "@/lib/legal";
 import { getCurrentPolicyBundle } from "@/lib/queries/policies";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getRequestIdentity } from "@/lib/request-identity";
+import { evaluateAccountClaim, handleTakenMessage } from "@/lib/account-claim";
 
 type SignupResult =
   | { ok: true; emailDelivered: boolean; verifyUrl?: string }
@@ -69,7 +70,6 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
     responsibleGamingVersion: policyBundle.responsibleGamingVersion,
     refundVersion: policyBundle.refundVersion,
     consentTextVersion: CONSENT_TEXT_VERSION,
-    acceptanceSource: "SIGNUP",
   };
 
   // Look up any account already on this email or this handle (separately, so we know which
@@ -77,41 +77,52 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
   const [byEmail, byUsername] = await Promise.all([
     prisma.user.findUnique({
       where: { email: lowerEmail },
-      select: { id: true, emailVerified: true },
+      select: {
+        id: true,
+        passwordHash: true,
+        emailVerified: true,
+        accountStatus: true,
+      },
     }),
     prisma.user.findUnique({
       where: { username },
-      select: { id: true },
+      select: { id: true, passwordHash: true },
     }),
   ]);
 
-  // The handle is taken by a *different* account.
+  // The handle is taken by a *different* account. If that account was imported and never
+  // claimed, say how to claim it rather than dead-ending an existing capper on their own handle.
   if (byUsername && byUsername.id !== byEmail?.id) {
-    return { ok: false, error: "That handle is already taken." };
+    return { ok: false, error: handleTakenMessage(byUsername) };
   }
 
   try {
     if (byEmail) {
-      if (byEmail.emailVerified) {
-        // A real, verified account owns this email — never overwrite it.
-        return {
-          ok: false,
-          error: "An account with that email already exists. Try logging in.",
-        };
-      }
-      // The email only has an UNVERIFIED account — e.g. a first signup whose verification
-      // email never arrived. Let the person re-claim it: refresh their details and re-send
-      // verification, instead of dead-ending on "already exists".
+      const claim = evaluateAccountClaim(byEmail);
+      if (!claim.claimable) return { ok: false, error: claim.error };
+
+      // Either an account carried over from the previous platform that nobody has ever signed
+      // in to (no password), or an UNVERIFIED signup whose verification email never arrived.
+      // Both are the same move: set credentials on the existing record — preserving the
+      // capper profile, plays, and public history — instead of dead-ending on "already exists".
       await prisma.user.update({
         where: { id: byEmail.id },
         data: {
           username,
           passwordHash,
+          // A signup claim never grants privilege: whoever completes this form gets a
+          // capper account, even if the record they claimed was an admin. An admin who
+          // needs their own account back uses the emailed claim/reset link, which proves
+          // control of the inbox and leaves the role untouched.
           role: "CAPPER",
           ...newAccountState,
           capperProfile: { upsert: { create: {}, update: {} } },
           termsAcceptances: {
-            create: acceptanceData,
+            create: {
+              ...acceptanceData,
+              acceptanceSource:
+                claim.reason === "UNCLAIMED" ? "CLAIM" : "SIGNUP",
+            },
           },
         },
         select: { id: true },
@@ -126,7 +137,7 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
           ...newAccountState,
           capperProfile: { create: {} },
           termsAcceptances: {
-            create: acceptanceData,
+            create: { ...acceptanceData, acceptanceSource: "SIGNUP" },
           },
         },
         select: { id: true },

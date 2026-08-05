@@ -8,6 +8,20 @@ import { BetType, DailyVolume, Outcome, ProviderType } from "@prisma/client";
  * script can load it directly under tsx. See docs/LEGACY_MIGRATION.md.
  */
 
+/**
+ * Mirror of `LEGACY_PASSWORD_FORMATS` in `src/lib/legacy-password.ts`, inlined
+ * because this file stays free of path-aliases (the import script loads it
+ * directly). `legacy-password.test.ts` asserts the two stay in step.
+ */
+export const LEGACY_PASSWORD_FORMATS = [
+  "BCRYPT",
+  "PHPASS",
+  "MD5",
+  "SHA1",
+  "SHA256",
+  "PLAINTEXT",
+] as const;
+
 export const legacyPlaySchema = z
   .object({
     sport: z.string().min(1),
@@ -59,6 +73,18 @@ export const legacyCapperSchema = z.object({
   biggestBetWon: z.string().max(120).optional(),
   /** Marks the imported record as verified (emailVerified) on the new platform. */
   verified: z.boolean().optional(),
+  /**
+   * The capper's credential exactly as the previous platform stored it, so they
+   * can sign in with the password they already had. Verified once at login, then
+   * re-hashed with bcrypt and discarded (`src/lib/legacy-password.ts`).
+   */
+  passwordHash: z.string().min(1).max(255).optional(),
+  /**
+   * Format hint for `passwordHash`; detected from the hash shape when omitted.
+   * `PLAINTEXT` is never detected, so an export carrying bare passwords must
+   * declare it.
+   */
+  passwordFormat: z.enum(LEGACY_PASSWORD_FORMATS).optional(),
   instagram: z.string().optional(),
   twitter: z.string().optional(),
   facebook: z.string().optional(),

@@ -38,6 +38,10 @@ export const getCurrentAccount = cache(async () => {
       role: true,
       accountStatus: true,
       emailVerified: true,
+      // Set when a sign-in succeeded with a password carried over from the
+      // previous platform that no longer meets the current requirements. It
+      // drives the update prompt only — it never gates access.
+      passwordUpdateRequiredAt: true,
       termsAcceptances: {
         where: { policyVersion: currentPolicyVersion },
         select: { acceptedAt: true, policyVersion: true },
@@ -56,6 +60,7 @@ export const getCurrentAccount = cache(async () => {
     role: account.role,
     accountStatus: account.accountStatus,
     emailVerified: account.emailVerified,
+    passwordUpdateRequiredAt: account.passwordUpdateRequiredAt,
     legalAcceptance: account.termsAcceptances[0] ?? null,
     currentPolicyVersion,
     currentPolicyBundle,
@@ -78,11 +83,21 @@ export async function requireActiveUser() {
   return account;
 }
 
-/** Require an active account with the current terms/privacy acceptance. */
-export async function requireCapperAccess() {
+/**
+ * Require an acceptance of the *current* policy bundle.
+ * `legalAcceptance` is filtered to the live bundle version, so publishing a new
+ * Terms/Privacy/Responsible Gaming/Refund revision re-gates everyone who signed
+ * the previous one — including accounts that predate the revision.
+ */
+export async function requireCurrentPolicyAcceptance() {
   const account = await requireActiveUser();
   if (!account.legalAcceptance) redirect("/accept-terms");
   return account;
+}
+
+/** Require an active account with the current terms/privacy acceptance. */
+export async function requireCapperAccess() {
+  return requireCurrentPolicyAcceptance();
 }
 
 /** Require a signed-in user with a verified email. */
@@ -92,9 +107,13 @@ export async function requireVerifiedUser() {
   return user;
 }
 
-/** Require an admin; bounce non-admins to their dashboard. */
+/**
+ * Require an admin; bounce non-admins to their dashboard.
+ * Admins accept the current policies too — a policy revision applies to every
+ * signed-in account, not only the ones that happen to use capper tools.
+ */
 export async function requireAdmin() {
-  const user = await requireActiveUser();
+  const user = await requireCurrentPolicyAcceptance();
   if (user.role !== "ADMIN") redirect("/dashboard");
   return user;
 }

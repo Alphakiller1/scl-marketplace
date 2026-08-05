@@ -499,6 +499,48 @@ def clean(v) -> str | None:
 
 
 # --------------------------------------------------------------------------
+# Legacy credentials
+# --------------------------------------------------------------------------
+
+# Column names PHP stacks of this era used for the stored credential. The dump
+# decides which one exists; --password-column overrides when it is named oddly.
+PASSWORD_COLUMNS = ("pass", "password", "passwd", "pwd", "pword",
+                    "user_pass", "userpass", "upass", "login_pass")
+
+# Mirrors detectLegacyPasswordFormat() in src/lib/legacy-password.ts. A hash we
+# cannot classify here is one login cannot verify either, so it is dropped (and
+# counted) rather than imported as a credential that can never work.
+_BCRYPT_RE = re.compile(r"^\$2[aby]?\$\d{2}\$.{53}$")
+_PHPASS_RE = re.compile(r"^\$[PH]\$.{31}$")
+_HEX_RE = re.compile(r"^[0-9a-fA-F]+$")
+_HEX_FORMATS = {32: "MD5", 40: "SHA1", 64: "SHA256"}
+
+
+def detect_password_format(value: str) -> str | None:
+    v = (value or "").strip()
+    if not v:
+        return None
+    if _BCRYPT_RE.match(v):
+        return "BCRYPT"
+    if _PHPASS_RE.match(v):
+        return "PHPASS"
+    if _HEX_RE.match(v):
+        return _HEX_FORMATS.get(len(v))
+    return None
+
+
+def resolve_password_column(dump: dict, override: str | None) -> str | None:
+    cols = dump.get("cappers", {}).get("cols", [])
+    if override:
+        return override if override in cols else None
+    lower = {c.lower(): c for c in cols}
+    for candidate in PASSWORD_COLUMNS:
+        if candidate in lower:
+            return lower[candidate]
+    return None
+
+
+# --------------------------------------------------------------------------
 # Extraction
 # --------------------------------------------------------------------------
 
@@ -568,6 +610,15 @@ def main() -> int:
                     help="when the legacy export was taken (stamped on records)")
     ap.add_argument("--include-pending", action="store_true",
                     help="also import active_plays as PENDING (default: skip)")
+    ap.add_argument("--password-column",
+                    help="column on `cappers` holding the stored password "
+                         f"(auto-detected from {', '.join(PASSWORD_COLUMNS)})")
+    ap.add_argument("--password-format",
+                    choices=["BCRYPT", "PHPASS", "MD5", "SHA1", "SHA256", "PLAINTEXT"],
+                    help="force the format of that column instead of detecting it. "
+                         "Required for PLAINTEXT, which is never auto-detected.")
+    ap.add_argument("--no-passwords", action="store_true",
+                    help="skip credentials entirely; cappers claim their account instead")
     args = ap.parse_args()
 
     site = parse_dump(args.site)
@@ -652,6 +703,13 @@ def main() -> int:
         shared.append(f"{e} -> {len(group)} accounts "
                       f"({', '.join(c['user'] for c in group)})")
 
+    password_column = (None if args.no_passwords
+                       else resolve_password_column(site, args.password_column))
+    if args.password_column and not password_column and not args.no_passwords:
+        print(f"!! no `{args.password_column}` column on `cappers` — "
+              "cappers will have to claim their accounts instead", file=sys.stderr)
+    pw_stats: Counter = Counter()
+
     out, skipped = [], []
     market_mix: Counter = Counter()
     for c in cappers:
@@ -670,6 +728,22 @@ def main() -> int:
         email = email_for.get(acct)
         if email:
             rec["email"] = email
+
+        # The capper's existing credential, so they sign in with the password
+        # they already have. SCL verifies it once, re-hashes it with bcrypt, and
+        # drops the imported value (src/lib/legacy-password.ts).
+        if password_column:
+            stored = (c.get(password_column) or "").strip()
+            if stored:
+                fmt = args.password_format or detect_password_format(stored)
+                if fmt:
+                    rec["passwordHash"] = stored
+                    rec["passwordFormat"] = fmt
+                    pw_stats[fmt] += 1
+                else:
+                    pw_stats["unrecognised"] += 1
+            else:
+                pw_stats["empty"] += 1
 
         sports = [key for col, key in SPORT_FLAGS.items()
                   if (c.get(col) or "").strip().upper() == "Y"]
@@ -877,6 +951,21 @@ def main() -> int:
         assert DST_WINDOW[0] <= min(dates) and max(dates) <= DST_WINDOW[1], \
             "dates fall outside US Eastern DST — the fixed -04:00 offset is no longer exact"
     print(f"  units (stake)  : from `urisk`; profit from `uret`")
+    if password_column:
+        carried = sum(n for k, n in pw_stats.items()
+                      if k not in ("unrecognised", "empty"))
+        print(f"  passwords      : {carried} carried from `{password_column}`")
+        for fmt, n in pw_stats.most_common():
+            label = {"unrecognised": "unrecognised format (dropped)",
+                     "empty": "no stored password"}.get(fmt, fmt)
+            print(f"    {n:>5}  {label}")
+        if pw_stats["unrecognised"]:
+            print("    (dropped hashes can't be verified at login; those cappers "
+                  "claim their account instead. Pass --password-format if you know it.)")
+    else:
+        print("  passwords      : none carried — cappers claim their accounts "
+              "(no password column found)" if not args.no_passwords else
+              "  passwords      : skipped (--no-passwords)")
     if args.packages_out:
         print(f"\nWrote {args.packages_out}")
         print(f"  packages       : {pkg_stats['rows']} across {pkg_stats['cappers']} cappers")

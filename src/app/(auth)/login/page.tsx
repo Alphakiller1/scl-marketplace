@@ -118,7 +118,24 @@ function LoginForm() {
         </Button>
       </form>
 
-      <p className="text-muted-foreground mt-6 text-center text-sm">
+      {/*
+        Profiles carried over from the previous platform were imported without a
+        password, so their first sign-in attempt can only fail. Nothing on this
+        screen would tell them why, and "Forgot Password" reads as wrong to
+        someone who never had one — so the claim route is named outright.
+      */}
+      <p className="border-border text-muted-foreground mt-6 border-t pt-5 text-center text-sm">
+        Brought your record over from the previous platform?{" "}
+        <Link
+          href="/forgot-password"
+          className="scl-link inline-flex min-h-10 items-center font-medium"
+        >
+          Claim your account
+        </Link>{" "}
+        to set a password.
+      </p>
+
+      <p className="text-muted-foreground mt-2 text-center text-sm">
         New to SCL?{" "}
         <Link
           href="/signup"

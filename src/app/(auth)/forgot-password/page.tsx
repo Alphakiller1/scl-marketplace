@@ -41,9 +41,9 @@ export default function ForgotPasswordPage() {
       <>
         <AuthHeader
           icon={MailCheck}
-          eyebrow="Password Recovery"
+          eyebrow="Account Access"
           title="Check your email"
-          description="If an eligible SCL account matches that address, a secure reset link is on the way."
+          description="If an eligible SCL account matches that address, a secure link to set your password is on the way."
         />
         <AuthStatusNotice
           tone="info"
@@ -66,9 +66,9 @@ export default function ForgotPasswordPage() {
     <>
       <AuthHeader
         icon={KeyRound}
-        eyebrow="Password Recovery"
-        title="Recover account access"
-        description="Request a single-use reset link for your SCL account."
+        eyebrow="Account Access"
+        title="Set or reset your password"
+        description="Request a single-use link. Use this to recover a password — or to set your first one if your profile was carried over from the previous platform."
       />
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <div className="space-y-1.5">
