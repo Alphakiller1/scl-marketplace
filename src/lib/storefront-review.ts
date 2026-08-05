@@ -76,12 +76,29 @@ export function furthestStorefrontStatus(
 /**
  * Bucket a capper by their furthest storefront connection. Total function —
  * every capper lands in exactly one bucket, including those with no connection.
+ *
+ * A storefront carried over from the previous platform has no connection at all
+ * — the offers record their provider on the package and were never taken through
+ * SCL's review flow. Judged on connections alone those cappers read as
+ * "neverStarted", which is the outreach list: it would have SCL chasing 56
+ * cappers whose storefronts are already public and taking money. Live carried
+ * packages are therefore live coverage, whatever the connections say.
  */
 export function storefrontCoverageBucket(
   statuses: StoreConnectionStatus[],
+  context: { carriedLivePackages?: number } = {},
 ): StorefrontCoverageBucket {
   const status = furthestStorefrontStatus(statuses);
-  if (!status) return "neverStarted";
+  const carried = (context.carriedLivePackages ?? 0) > 0;
+  if (!status) return carried ? "live" : "neverStarted";
+  // A connection that stalled or never started does not undo a storefront that
+  // is already earning; only a blocked/disabled connection outranks it.
+  if (
+    carried &&
+    (status === "NOT_STARTED" || status === "INSTRUCTIONS_VIEWED")
+  ) {
+    return "live";
+  }
   switch (status) {
     case "LIVE":
       return "live";
