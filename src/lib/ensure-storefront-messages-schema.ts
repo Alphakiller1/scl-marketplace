@@ -14,9 +14,23 @@ export function ensureStorefrontMessagesSchema(
 ): Promise<void> {
   if (!shouldApplyRuntimeSchemaPatch()) return Promise.resolve();
   if (!ensurePromise) {
-    ensurePromise = (async () => {
-      try {
-        await client.$executeRawUnsafe(`
+    ensurePromise = applyStorefrontMessagesSchema(client);
+  }
+  return ensurePromise;
+}
+
+/** Call before any StorefrontMessage read/write on cold production isolates. */
+export async function awaitStorefrontMessagesSchema(
+  client: PrismaClient,
+): Promise<void> {
+  await ensureStorefrontMessagesSchema(client);
+}
+
+async function applyStorefrontMessagesSchema(
+  client: PrismaClient,
+): Promise<void> {
+  try {
+    await client.$executeRawUnsafe(`
           DO $$ BEGIN
             CREATE TYPE scl."StorefrontMessageSender" AS ENUM ('ADMIN', 'CAPPER');
           EXCEPTION
@@ -67,10 +81,7 @@ export function ensureStorefrontMessagesSchema(
             WHEN duplicate_object THEN NULL;
           END $$;
         `);
-      } catch (error) {
-        console.error("[schema] storefront messages patch failed:", error);
-      }
-    })();
+  } catch (error) {
+    console.error("[schema] storefront messages patch failed:", error);
   }
-  return ensurePromise;
 }
