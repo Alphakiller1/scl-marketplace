@@ -142,6 +142,10 @@ for you.
 
 3. Tell us they're in, and we'll deploy against them. We never need to see the values.
 
+**Automated path (GitHub → Vercel):** store the same values as **Production environment
+secrets** in GitHub and run **Actions → Sync Whop env to Vercel**. Setup:
+`docs/WHOP_VERCEL_ENV_SYNC.md`.
+
 If you'd rather we set them up, use a **one-time secret link** (1password, Bitwarden Send, or
 `onetimesecret.com`) — not chat, not email. **If a key ever lands in a chat message, treat it
 as burned:** delete it in the Whop dashboard and create a new one. Deleting a key is instant
