@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const BASE_URL = "https://scl-marketplace.vercel.app";
+import { siteUrl } from "@/lib/site-url";
 
 /**
  * Static core surfaces only — capper profiles churn (and demo records will be
@@ -8,6 +8,7 @@ const BASE_URL = "https://scl-marketplace.vercel.app";
  * let crawlers discover profiles through the leaderboard/discover links.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
+  const BASE_URL = siteUrl();
   const now = new Date();
   const page = (
     path: string,

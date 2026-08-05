@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
 
-const BASE_URL = "https://scl-marketplace.vercel.app";
+import { siteUrl } from "@/lib/site-url";
 
 export default function robots(): MetadataRoute.Robots {
+  const BASE_URL = siteUrl();
   return {
     rules: [
       {
