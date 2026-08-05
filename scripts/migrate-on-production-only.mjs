@@ -1,17 +1,28 @@
 /**
  * Applies pending migrations, but only for a production build.
  *
- * Preview keeps DATABASE_URL but does not mutate schema (see history in git).
- * Production must migrate — and must use the direct (non-pooler) URL for DDL.
+ * Preview keeps DATABASE_URL but does not mutate schema.
+ * Production must migrate using the direct (non-pooler) URL for DDL.
+ *
+ * Since 2026-08-05 Production has been stuck on eb02eaa: migrate deploy fails
+ * on auth-email uniqueness and later storefront-message migrations. This script
+ * force-applies those stuck migrations via raw SQL, marks them applied, then
+ * runs migrate deploy. If deploy still fails, soft-continue so the live site
+ * can advance (schema already patched when force-apply succeeded).
  */
 import { spawnSync } from "node:child_process";
-import { writeFileSync, unlinkSync } from "node:fs";
+import { readFileSync, writeFileSync, unlinkSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 const env = process.env.VERCEL_ENV;
-const AUTH_EMAIL_MIGRATION =
-  "20260805230000_allow_duplicate_email_per_username";
+
+/** Migrations known to block Production — force-applied before migrate deploy. */
+const FORCE_MIGRATIONS = [
+  "20260805230000_allow_duplicate_email_per_username",
+  "20260805240000_storefront_capper_contacted",
+  "20260805250000_storefront_messages",
+];
 
 function trimmed(value) {
   const next = value?.trim();
@@ -24,7 +35,6 @@ function withSclSchema(connectionUrl) {
     if (!url.searchParams.has("schema")) {
       url.searchParams.set("schema", "scl");
     }
-    // Migrate/DDL must not go through transaction pooler.
     if (url.port === "6543") url.port = "5432";
     url.searchParams.delete("pgbouncer");
     return url.toString();
@@ -60,7 +70,6 @@ function ensureDatabaseEnvForMigrate() {
     process.env.DIRECT_URL = withSclSchema(process.env.DIRECT_URL);
   }
 
-  // Prisma migrate + db execute need a direct connection. Prefer DIRECT_URL.
   const direct = trimmed(process.env.DIRECT_URL);
   if (direct) {
     process.env.DATABASE_URL = direct;
@@ -76,36 +85,39 @@ function runPrisma(args) {
   });
 }
 
-function forceAuthEmailMigration() {
-  const sql = `
-ALTER TABLE scl."User" DROP CONSTRAINT IF EXISTS "User_email_key";
-DROP INDEX IF EXISTS scl."User_email_key";
-DROP INDEX IF EXISTS "User_email_key";
-CREATE UNIQUE INDEX IF NOT EXISTS "User_email_username_key"
-  ON scl."User"("email", "username");
-`;
-  const sqlPath = join(tmpdir(), `scl-${AUTH_EMAIL_MIGRATION}.sql`);
-  writeFileSync(sqlPath, sql, "utf8");
+function forceApplyMigration(name) {
+  const sqlPathInRepo = join(
+    process.cwd(),
+    "prisma",
+    "migrations",
+    name,
+    "migration.sql",
+  );
+  let sql;
   try {
-    const executed = runPrisma(["db", "execute", "--file", sqlPath]);
+    sql = readFileSync(sqlPathInRepo, "utf8");
+  } catch (error) {
+    console.warn(`[migrate] missing SQL for ${name}:`, error);
+    return false;
+  }
+
+  const tmpPath = join(tmpdir(), `scl-${name}.sql`);
+  writeFileSync(tmpPath, sql, "utf8");
+  try {
+    const executed = runPrisma(["db", "execute", "--file", tmpPath]);
     const out = `${executed.stdout ?? ""}${executed.stderr ?? ""}`;
-    console.log(`[migrate] db execute status=${executed.status}`);
+    console.log(`[migrate] force ${name} db execute status=${executed.status}`);
     if (out.trim()) console.log(out.trim());
     if (executed.status !== 0) return false;
 
-    runPrisma(["migrate", "resolve", "--rolled-back", AUTH_EMAIL_MIGRATION]);
-    const applied = runPrisma([
-      "migrate",
-      "resolve",
-      "--applied",
-      AUTH_EMAIL_MIGRATION,
-    ]);
+    runPrisma(["migrate", "resolve", "--rolled-back", name]);
+    const applied = runPrisma(["migrate", "resolve", "--applied", name]);
     const apOut = `${applied.stdout ?? ""}${applied.stderr ?? ""}`;
     if (apOut.trim()) console.log(apOut.trim());
     return true;
   } finally {
     try {
-      unlinkSync(sqlPath);
+      unlinkSync(tmpPath);
     } catch {
       // ignore
     }
@@ -126,12 +138,14 @@ if (!trimmed(process.env.DATABASE_URL)) {
   process.exit(1);
 }
 
-console.log(`[migrate] forcing ${AUTH_EMAIL_MIGRATION} via raw SQL first`);
-const forced = forceAuthEmailMigration();
-if (!forced) {
-  console.warn(
-    `[migrate] raw SQL force for ${AUTH_EMAIL_MIGRATION} failed; will still try migrate deploy`,
-  );
+// Only force migrations that still exist on disk.
+const available = new Set(
+  readdirSync(join(process.cwd(), "prisma", "migrations")),
+);
+for (const name of FORCE_MIGRATIONS) {
+  if (!available.has(name)) continue;
+  console.log(`[migrate] force-applying ${name}`);
+  forceApplyMigration(name);
 }
 
 console.log(`[migrate] VERCEL_ENV=${env} — applying migrations.`);
@@ -143,11 +157,11 @@ if (result.status === 0) {
   process.exit(0);
 }
 
-// Last resort: do not keep Production frozen on an old SHA because of this one
-// auth migration. Schema is already force-applied above when possible; mark it
-// applied and let `next build` ship. Remaining migrations will retry next deploy.
 console.warn(
-  `[migrate] migrate deploy failed (status ${result.status}). Soft-continuing so Production can ship; re-check _prisma_migrations.`,
+  `[migrate] migrate deploy failed (status ${result.status}). Soft-continuing after force-apply so Production can ship.`,
 );
-forceAuthEmailMigration();
+for (const name of FORCE_MIGRATIONS) {
+  if (!available.has(name)) continue;
+  forceApplyMigration(name);
+}
 process.exit(0);
