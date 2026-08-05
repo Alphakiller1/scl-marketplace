@@ -20,23 +20,46 @@ export type CoreSchemaHealth = CoreSchemaRow & {
   ready: boolean;
 };
 
+/**
+ * The schema these tables actually live in, read from the connection string.
+ *
+ * This probe must NOT rely on `current_schema()` or on unqualified name
+ * resolution. `DATABASE_URL` points at Supabase's pgbouncer transaction pooler,
+ * which multiplexes client sessions onto a shared set of backends — so the
+ * `search_path` carried by `?schema=scl` is not reliably applied to whichever
+ * backend serves a given query. Under concurrency that made `current_schema()`
+ * resolve elsewhere, every lookup below miss, and the endpoint report a 503 with
+ * all four checks false while the database was perfectly healthy. Resolving the
+ * schema here keeps the probe independent of connection state.
+ */
+function targetSchema(): string {
+  const raw = process.env.DATABASE_URL;
+  if (!raw) return "public";
+  try {
+    return new URL(raw).searchParams.get("schema") || "public";
+  } catch {
+    return "public";
+  }
+}
+
 export async function getCoreSchemaHealth(): Promise<CoreSchemaHealth> {
+  const schemaName = targetSchema();
   try {
     const [row] = await prisma.$queryRaw<CoreSchemaRow[]>`
       SELECT
-        to_regclass('"PlayPackage"') IS NOT NULL AS "playPackage",
-        to_regclass('"ParlayPackage"') IS NOT NULL AS "parlayPackage",
+        to_regclass(format('%I."PlayPackage"', ${schemaName}::text)) IS NOT NULL AS "playPackage",
+        to_regclass(format('%I."ParlayPackage"', ${schemaName}::text)) IS NOT NULL AS "parlayPackage",
         EXISTS (
           SELECT 1
           FROM information_schema.columns
-          WHERE table_schema = current_schema()
+          WHERE table_schema = ${schemaName}::text
             AND table_name = 'Play'
             AND column_name = 'eventLabel'
         ) AS "eventLabel",
         (
           SELECT count(*) = 6
           FROM information_schema.columns
-          WHERE table_schema = current_schema()
+          WHERE table_schema = ${schemaName}::text
             AND table_name = 'TermsAcceptance'
             AND column_name IN (
               'termsVersion',
@@ -52,7 +75,7 @@ export async function getCoreSchemaHealth(): Promise<CoreSchemaHealth> {
           FROM pg_enum enum_value
           JOIN pg_type enum_type ON enum_type.oid = enum_value.enumtypid
           JOIN pg_namespace enum_namespace ON enum_namespace.oid = enum_type.typnamespace
-          WHERE enum_namespace.nspname = current_schema()
+          WHERE enum_namespace.nspname = ${schemaName}::text
             AND enum_type.typname = 'PolicySlug'
             AND enum_value.enumlabel = 'REFUND'
         ) AS "refundPolicy"
