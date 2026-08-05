@@ -147,6 +147,17 @@ export function StorefrontCoveragePanel({
                               {status}
                             </span>
                           ) : null}
+                          {/*
+                            Live, but never through SCL's review — the offers
+                            came over from the previous platform. Saying so
+                            keeps "Live & earning" honest: an admin can tell a
+                            reviewed storefront from a carried one at a glance.
+                          */}
+                          {!entry.status && entry.carriedLivePackages > 0 ? (
+                            <span className="text-muted-foreground shrink-0 text-[0.65rem]">
+                              carried &middot; {entry.carriedLivePackages}
+                            </span>
+                          ) : null}
                         </Link>
                       </li>
                     );

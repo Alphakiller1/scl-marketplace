@@ -193,6 +193,52 @@ test("storefront coverage: every capper lands in exactly one bucket", () => {
   assert.equal(storefrontCoverageBucket(["NOT_STARTED"]), "stalled");
 });
 
+test("storefront coverage: a carried-over storefront counts as live coverage", () => {
+  // Offers carried over from the previous platform have no connection — they
+  // record their provider on the package. Judged on connections alone these
+  // cappers land on the outreach list while their storefront is public and
+  // taking money.
+  assert.equal(
+    storefrontCoverageBucket([], { carriedLivePackages: 3 }),
+    "live",
+  );
+  // Nothing carried over: still the outreach list.
+  assert.equal(
+    storefrontCoverageBucket([], { carriedLivePackages: 0 }),
+    "neverStarted",
+  );
+  assert.equal(storefrontCoverageBucket([]), "neverStarted");
+
+  // A connection they opened but never finished does not undo a live storefront.
+  assert.equal(
+    storefrontCoverageBucket(["NOT_STARTED"], { carriedLivePackages: 2 }),
+    "live",
+  );
+  assert.equal(
+    storefrontCoverageBucket(["INSTRUCTIONS_VIEWED"], {
+      carriedLivePackages: 2,
+    }),
+    "live",
+  );
+
+  // A connection SCL owes action on, or has blocked, still outranks it — those
+  // need the admin's attention regardless of carried revenue.
+  assert.equal(
+    storefrontCoverageBucket(["PENDING_SCL_ACCEPTANCE"], {
+      carriedLivePackages: 2,
+    }),
+    "pipeline",
+  );
+  assert.equal(
+    storefrontCoverageBucket(["NEEDS_ACTION"], { carriedLivePackages: 2 }),
+    "blocked",
+  );
+  assert.equal(
+    storefrontCoverageBucket(["DISABLED"], { carriedLivePackages: 2 }),
+    "blocked",
+  );
+});
+
 test("storefront coverage: a capper is judged by their furthest connection", () => {
   // Live on one provider beats an abandoned/suspended one — still earning.
   assert.equal(storefrontCoverageBucket(["DISABLED", "LIVE"]), "live");

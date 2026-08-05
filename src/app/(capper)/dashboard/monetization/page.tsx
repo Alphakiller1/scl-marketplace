@@ -25,13 +25,42 @@ export default async function MonetizationPage() {
       ])
     : [[], []];
 
+  // Offers carried over from the previous platform are already public and
+  // taking money, but they have no connection behind them — so the setup copy
+  // told 56 cappers to "set up" a storefront that was live on their profile.
+  // With no connections at all, every live package is necessarily unattached.
+  const carriedOver = connections.length ? [] : livePackages;
+  const hasCarriedStorefront = carriedOver.length > 0;
+
   return (
     <div className="space-y-6">
       <SectionHeader
         icon={Store}
-        title="Set Up Your SCL Storefront"
-        subtitle="Connect Winible, Whop, or both. You confirm each affiliate relationship; SCL then reviews and manually publishes the approved package links."
+        title={
+          hasCarriedStorefront
+            ? "Your SCL Storefront"
+            : "Set Up Your SCL Storefront"
+        }
+        subtitle={
+          hasCarriedStorefront
+            ? "Your packages came over from the previous platform and are live on your profile. Connect Winible or Whop below only when you want to add or change offers."
+            : "Connect Winible, Whop, or both. You confirm each affiliate relationship; SCL then reviews and manually publishes the approved package links."
+        }
       />
+
+      {hasCarriedStorefront ? (
+        <p className="border-border bg-surface-2 rounded-xl border p-4 text-sm leading-relaxed">
+          <span className="text-foreground font-semibold">
+            {carriedOver.length} package{carriedOver.length === 1 ? "" : "s"}{" "}
+            carried over and live.
+          </span>{" "}
+          <span className="text-muted-foreground">
+            They already appear on your public profile and your checkout links
+            work. Nothing here needs your attention unless you want to change
+            them.
+          </span>
+        </p>
+      ) : null}
 
       <MonetizationWizard
         connections={connections.map((c) => ({
