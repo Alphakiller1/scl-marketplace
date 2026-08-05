@@ -22,6 +22,9 @@ import { tmpdir } from "node:os";
 
 const env = process.env.VERCEL_ENV;
 
+const AUTH_EMAIL_MIGRATION =
+  "20260805230000_allow_duplicate_email_per_username";
+
 function trimmed(value) {
   const next = value?.trim();
   return next ? next : null;
@@ -38,6 +41,25 @@ function withSclSchema(connectionUrl) {
     return connectionUrl.includes("schema=")
       ? connectionUrl
       : `${connectionUrl}${connectionUrl.includes("?") ? "&" : "?"}schema=scl`;
+  }
+}
+
+/** Derive a direct Postgres URL from a Supabase pooler URL when non-pooling is unset. */
+function deriveDirectFromPooled(pooledUrl) {
+  if (!pooledUrl) return null;
+  try {
+    const url = new URL(pooledUrl);
+    if (url.port === "6543") url.port = "5432";
+    if (url.hostname.includes(".pooler.")) {
+      url.hostname = url.hostname.replace(".pooler.", ".");
+    }
+    url.searchParams.delete("pgbouncer");
+    if (!url.searchParams.has("schema")) {
+      url.searchParams.set("schema", "scl");
+    }
+    return url.toString();
+  } catch {
+    return null;
   }
 }
 
@@ -58,32 +80,43 @@ function ensureDatabaseEnvForMigrate() {
   }
 
   if (!trimmed(process.env.DIRECT_URL)) {
-    const direct = trimmed(process.env.POSTGRES_URL_NON_POOLING);
+    const direct =
+      trimmed(process.env.POSTGRES_URL_NON_POOLING) ??
+      trimmed(process.env.POSTGRES_URL_DIRECT) ??
+      deriveDirectFromPooled(trimmed(process.env.DATABASE_URL));
     if (direct) {
       process.env.DIRECT_URL = withSclSchema(direct);
-      console.log("[migrate] mapped DIRECT_URL from Supabase integration env");
+      console.log("[migrate] mapped DIRECT_URL for migration CLI");
     }
   } else if (!process.env.DIRECT_URL.includes("schema=")) {
     process.env.DIRECT_URL = withSclSchema(process.env.DIRECT_URL);
   }
 }
 
-function runPrisma(args) {
+function runPrisma(args, { databaseUrl } = {}) {
+  const migrateEnv = { ...process.env };
+  if (databaseUrl) migrateEnv.DATABASE_URL = databaseUrl;
   return spawnSync("npx", ["prisma", ...args], {
     encoding: "utf8",
     shell: process.platform === "win32",
-    env: process.env,
+    env: migrateEnv,
   });
 }
 
 /**
- * Force-apply the auth email uniqueness change via raw SQL, then mark the
- * Prisma migration applied. Survives failed prior deploys that left the
- * migration in a bad `_prisma_migrations` state.
+ * Force-apply the auth email uniqueness change via raw SQL on a direct
+ * connection, then mark the Prisma migration applied. Survives failed prior
+ * deploys that left the migration in a bad `_prisma_migrations` state.
  */
 function forceAuthEmailMigration() {
-  const AUTH_EMAIL_MIGRATION =
-    "20260805230000_allow_duplicate_email_per_username";
+  const direct = trimmed(process.env.DIRECT_URL);
+  if (!direct) {
+    console.error(
+      "[migrate] DIRECT_URL is required for auth email DDL but is unset",
+    );
+    return false;
+  }
+
   const sql = `
 ALTER TABLE scl."User" DROP CONSTRAINT IF EXISTS "User_email_key";
 DROP INDEX IF EXISTS scl."User_email_key";
@@ -94,7 +127,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS "User_email_username_key"
   const sqlPath = join(tmpdir(), `scl-${AUTH_EMAIL_MIGRATION}.sql`);
   writeFileSync(sqlPath, sql, "utf8");
   try {
-    const executed = runPrisma(["db", "execute", "--file", sqlPath]);
+    const executed = runPrisma(["db", "execute", "--file", sqlPath], {
+      databaseUrl: direct,
+    });
     const out = `${executed.stdout ?? ""}${executed.stderr ?? ""}`;
     if (executed.status !== 0) {
       console.error(
@@ -170,7 +205,10 @@ if (!trimmed(process.env.DATABASE_URL) && !trimmed(process.env.DIRECT_URL)) {
   process.exit(1);
 }
 
-forceAuthEmailMigration();
+if (!forceAuthEmailMigration()) {
+  console.error("[migrate] auth email pre-patch failed — aborting build");
+  process.exit(1);
+}
 
 console.log(`[migrate] VERCEL_ENV=${env ?? "(local)"} — applying migrations.`);
 const result = runPrisma(["migrate", "deploy"]);
