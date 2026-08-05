@@ -28,6 +28,8 @@ import {
   resolveStorefrontPackageReadiness,
   storefrontTransition,
 } from "@/lib/storefront-review";
+import { syncWhopStorefront } from "@/lib/whop-sync";
+import { whopAffiliateUsername, whopOAuthConfigured } from "@/lib/whop-config";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -623,4 +625,55 @@ export async function adminReorderPackageAction(
 
   await revalidateCommercePaths(pkg.capper.user.username, pkg.capper.user.id);
   return { ok: true };
+}
+
+export async function adminSyncWhopStorefrontAction(input: {
+  connectionId: string;
+}): Promise<
+  | { ok: true; imported: number; updated: number; skipped: number }
+  | { ok: false; error: string }
+> {
+  const admin = await requireAdmin();
+  if (!input.connectionId.trim()) {
+    return { ok: false, error: "Invalid store connection." };
+  }
+  if (!whopOAuthConfigured()) {
+    return {
+      ok: false,
+      error:
+        "Whop OAuth is not configured. Set WHOP_APP_ID and WHOP_APP_API_KEY in production.",
+    };
+  }
+  if (!whopAffiliateUsername()) {
+    return {
+      ok: false,
+      error:
+        "WHOP_AFFILIATE_USERNAME is not configured — sync cannot build attributed links.",
+    };
+  }
+
+  const connection = await prisma.storeConnection.findUnique({
+    where: { id: input.connectionId },
+    select: {
+      id: true,
+      provider: true,
+      capper: { select: { user: { select: { id: true, username: true } } } },
+    },
+  });
+  if (!connection) return { ok: false, error: "Store connection not found." };
+  if (connection.provider !== "WHOP") {
+    return { ok: false, error: "Only Whop storefronts can sync from Whop." };
+  }
+
+  const result = await syncWhopStorefront({
+    storeConnectionId: connection.id,
+    actorId: admin.id,
+  });
+  if (!result.ok) return result;
+
+  await revalidateCommercePaths(
+    connection.capper.user.username,
+    connection.capper.user.id,
+  );
+  return result;
 }

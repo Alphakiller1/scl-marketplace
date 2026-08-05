@@ -316,6 +316,13 @@ model StoreConnection {
   packageCount        Int                   @default(0)
   affiliatePercent    Float?
   requiresAttention   Boolean               @default(false)
+  // Whop OAuth + sync — server-only tokens; never expose to the client.
+  whopCompanyId       String?
+  whopCompanyRoute    String?
+  whopAccessToken     String?
+  whopRefreshToken    String?
+  whopTokenExpiresAt  DateTime?
+  whopConnectedAt     DateTime?
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
 
@@ -375,6 +382,8 @@ model Package {
   /// Lower numbers appear first on profile + marketplace.
   sortOrder         Int            @default(0)
   isActive          Boolean        @default(true)
+  /// Whop product id (prod_…) when imported via API sync.
+  externalProductId String?
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
@@ -389,6 +398,8 @@ model Package {
   @@index([storeConnectionId])
   @@index([isActive])
   @@index([sortOrder])
+  @@index([externalProductId])
+  @@unique([storeConnectionId, externalProductId])
 }
 
 model TrackingUrl {

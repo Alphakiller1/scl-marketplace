@@ -1,6 +1,8 @@
 import { Store } from "lucide-react";
+import { Suspense } from "react";
 
 import { MonetizationWizard } from "@/components/scl/monetization-wizard";
+import { WhopOAuthNotice } from "@/components/scl/whop-oauth-notice";
 import { SectionHeader } from "@/components/scl/section";
 import { PackageCard } from "@/components/scl/package-card";
 import { getCurrentUser } from "@/lib/session";
@@ -34,6 +36,9 @@ export default async function MonetizationPage() {
 
   return (
     <div className="space-y-6">
+      <Suspense fallback={null}>
+        <WhopOAuthNotice />
+      </Suspense>
       <SectionHeader
         icon={Store}
         title={

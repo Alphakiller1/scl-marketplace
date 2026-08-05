@@ -23,6 +23,15 @@ export function providerLabel(provider: StoreProvider): string {
   return provider === "WINIBLE" ? "Winible" : "Whop";
 }
 
+export {
+  isWhopCheckoutUrl,
+  whopAffiliateParamIssues,
+} from "@/lib/whop-affiliate";
+export {
+  isWinibleCheckoutUrl,
+  winibleCheckoutUrlIssues,
+} from "@/lib/winible-affiliate";
+
 export function isWinibleCreatorReferralUrl(value: string): boolean {
   try {
     const url = new URL(value);

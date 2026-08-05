@@ -5,6 +5,7 @@ import { AdminCapperPackageInventory } from "@/components/scl/admin-capper-packa
 import { AdminPackageForm } from "@/components/scl/admin-package-form";
 import { AdminPackageRowControls } from "@/components/scl/admin-package-row-controls";
 import { AdminStoreActions } from "@/components/scl/admin-store-actions";
+import { AdminWhopSyncPanel } from "@/components/scl/admin-whop-sync-panel";
 import { ProviderBadge } from "@/components/scl/provider-badge";
 import { StorefrontCoveragePanel } from "@/components/scl/storefront-coverage-panel";
 import { StoreStatusChip } from "@/components/scl/store-status-chip";
@@ -23,6 +24,7 @@ import {
   listStoreConnections,
 } from "@/lib/queries/store";
 import { storefrontReviewActionLabel } from "@/lib/storefront-review";
+import { whopAffiliateUsername, whopOAuthConfigured } from "@/lib/whop-config";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Store setup" };
@@ -316,6 +318,17 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
               expectedUpdatedAt={selected.updatedAt.toISOString()}
               initialAdminNotes={selected.adminNotes}
             />
+            {selected.provider === "WHOP" ? (
+              <AdminWhopSyncPanel
+                connectionId={selected.id}
+                whopConnected={Boolean(
+                  selected.whopAccessToken && selected.whopCompanyId,
+                )}
+                syncConfigured={
+                  whopOAuthConfigured() && Boolean(whopAffiliateUsername())
+                }
+              />
+            ) : null}
             {selected.capper.user.username ? (
               <Button
                 variant="ghost"
