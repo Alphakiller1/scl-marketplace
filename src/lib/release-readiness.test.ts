@@ -75,6 +75,62 @@ test("optional integrations are warnings instead of false launch claims", () => 
   assert.deepEqual(warnings, ["profile-media", "whop-webhook"]);
 });
 
+test("a sender on an unrelated domain warns once the site claims a domain", () => {
+  const checks = evaluateReleaseConfiguration({
+    ...READY_ENV,
+    NEXT_PUBLIC_SITE_URL: "https://sportscappersleaderboard.com",
+    EMAIL_FROM: "no-reply@chase-analytics.com",
+  });
+  const email = checks.find((check) => check.id === "transactional-email");
+  assert.equal(email?.status, "warning");
+  assert.match(email?.detail ?? "", /chase-analytics\.com/);
+});
+
+test("a sender on the site's own domain, or a subdomain, stays ready", () => {
+  for (const EMAIL_FROM of [
+    "no-reply@sportscappersleaderboard.com",
+    "no-reply@mail.sportscappersleaderboard.com",
+  ]) {
+    const checks = evaluateReleaseConfiguration({
+      ...READY_ENV,
+      NEXT_PUBLIC_SITE_URL: "https://www.sportscappersleaderboard.com",
+      EMAIL_FROM,
+    });
+    const email = checks.find((check) => check.id === "transactional-email");
+    assert.equal(email?.status, "ready", EMAIL_FROM);
+  }
+});
+
+// The recommended production value carries a display name; testing the raw
+// string against an address pattern reported it as unconfigured.
+test("a display-name sender is configured, and still measured by its domain", () => {
+  const ok = evaluateReleaseConfiguration({
+    ...READY_ENV,
+    NEXT_PUBLIC_SITE_URL: "https://sportscappersleaderboard.com",
+    EMAIL_FROM: "SCL <no-reply@sportscappersleaderboard.com>",
+  }).find((check) => check.id === "transactional-email");
+  assert.equal(ok?.status, "ready");
+
+  const foreign = evaluateReleaseConfiguration({
+    ...READY_ENV,
+    NEXT_PUBLIC_SITE_URL: "https://sportscappersleaderboard.com",
+    EMAIL_FROM: "SCL <no-reply@chase-analytics.com>",
+  }).find((check) => check.id === "transactional-email");
+  assert.equal(foreign?.status, "warning");
+});
+
+// Nothing can be verified on a *.vercel.app host, so the pre-cutover state must
+// not sit permanently yellow.
+test("a vercel.app deploy host is not treated as a domain claim", () => {
+  const checks = evaluateReleaseConfiguration({
+    ...READY_ENV,
+    NEXT_PUBLIC_SITE_URL: "https://scl-marketplace.vercel.app",
+    EMAIL_FROM: "no-reply@scl.example",
+  });
+  const email = checks.find((check) => check.id === "transactional-email");
+  assert.equal(email?.status, "ready");
+});
+
 test("profile media accepts Supabase Vercel integration key names", () => {
   const checks = evaluateReleaseConfiguration({
     ...READY_ENV,

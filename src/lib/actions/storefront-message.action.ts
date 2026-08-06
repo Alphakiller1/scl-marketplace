@@ -190,6 +190,20 @@ export async function sendStorefrontMessageAction(input: {
   return { ok: true };
 }
 
+/**
+ * Marks the thread read for whoever is looking at it.
+ *
+ * Must be invoked from the client once the thread is on screen — never awaited
+ * while a page renders. `revalidatePath` throws outright during render ("used
+ * revalidatePath during render which is unsupported"), and three server
+ * components used to call this at the top of their render, so /admin/store-setup,
+ * /admin/cappers/[id], and /dashboard/monetization all hard-failed their error
+ * boundary the moment a store connection existed to select.
+ *
+ * Revalidation is conditional on actually having marked something, so the common
+ * case — opening a thread with nothing new in it — costs one indexed UPDATE and
+ * no router refresh.
+ */
 export async function markStorefrontThreadReadAction(input: {
   storeConnectionId: string;
 }): Promise<ActionResult> {
@@ -209,7 +223,7 @@ export async function markStorefrontThreadReadAction(input: {
 
   const now = new Date();
   if (access.isAdmin) {
-    await prisma.storefrontMessage.updateMany({
+    const { count } = await prisma.storefrontMessage.updateMany({
       where: {
         storeConnectionId: parsed.data.storeConnectionId,
         senderRole: "CAPPER",
@@ -217,9 +231,9 @@ export async function markStorefrontThreadReadAction(input: {
       },
       data: { readByAdminAt: now },
     });
-    revalidatePath("/admin/store-setup");
+    if (count > 0) revalidatePath("/admin/store-setup");
   } else {
-    await prisma.storefrontMessage.updateMany({
+    const { count } = await prisma.storefrontMessage.updateMany({
       where: {
         storeConnectionId: parsed.data.storeConnectionId,
         senderRole: "ADMIN",
@@ -227,7 +241,7 @@ export async function markStorefrontThreadReadAction(input: {
       },
       data: { readByCapperAt: now },
     });
-    revalidatePath("/dashboard/monetization");
+    if (count > 0) revalidatePath("/dashboard/monetization");
   }
 
   return { ok: true };

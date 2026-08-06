@@ -41,6 +41,24 @@ test("admin published-play filters reject unsupported values", () => {
   );
 });
 
+test("the sport sentinel the filter form submits stays a sentinel", () => {
+  // The register's filter form is a native GET, so every press of "Apply
+  // filters" submits sport=all. Uppercasing that into a literal sport code
+  // filtered the register down to a sport nothing is logged under.
+  for (const value of ["all", "ALL", "All"]) {
+    assert.equal(
+      parseAdminPublishedPlayFilters({ sport: value }).sport,
+      "all",
+      `sport=${value} must not become a sport code`,
+    );
+  }
+});
+
+test("admin published-play filters keep real sport codes", () => {
+  assert.equal(parseAdminPublishedPlayFilters({ sport: "wnba" }).sport, "WNBA");
+  assert.equal(parseAdminPublishedPlayFilters({ sport: "XFL" }).sport, "all");
+});
+
 test("admin published-play pagination preserves active filters", () => {
   assert.equal(
     adminPublishedPlaysHref(

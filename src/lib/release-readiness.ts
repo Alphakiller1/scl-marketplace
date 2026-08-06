@@ -1,3 +1,9 @@
+import {
+  parseSenderAddress,
+  registrableHost,
+  senderDomain,
+  senderMatchesSite,
+} from "@/lib/email-sender";
 import { supabaseRefFromKey, supabaseRefFromUrl } from "@/lib/supabase-config";
 
 export type ReleaseCheckStatus = "ready" | "warning" | "blocked";
@@ -23,6 +29,23 @@ function usesSclSchema(value: string | undefined) {
   return Boolean(value && /[?&]schema=scl(?:&|$)/i.test(value));
 }
 
+/**
+ * The domain the site has claimed as its own, or null if it has not claimed one.
+ *
+ * Only an explicit `NEXT_PUBLIC_SITE_URL` counts. A `*.vercel.app` deploy host
+ * can never be verified with a mail provider, so measuring the sender against it
+ * would warn forever on a project that has not cut over to its domain yet — and a
+ * check that is permanently yellow is a check nobody reads.
+ */
+function canonicalSiteHost(env: ReleaseEnvironment): string | null {
+  const raw = env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (!raw) return null;
+  const host = registrableHost(
+    /^https?:\/\//i.test(raw) ? raw : `https://${raw}`,
+  );
+  return host && !host.endsWith(".vercel.app") ? host : null;
+}
+
 export function evaluateReleaseConfiguration(
   env: ReleaseEnvironment,
 ): ReleaseReadinessCheck[] {
@@ -34,10 +57,23 @@ export function evaluateReleaseConfiguration(
     (env.AUTH_SECRET?.trim().length ?? 0) >= 32 &&
     env.AUTH_TRUST_HOST?.trim().toLowerCase() === "true" &&
     /^https:\/\//i.test(env.AUTH_URL?.trim() ?? "");
+  // Parse before validating: `SCL <no-reply@example.com>` is a valid sender that
+  // fails a bare address test, so testing the raw value reported the recommended
+  // display-name form as unconfigured.
+  const senderAddress = parseSenderAddress(env.EMAIL_FROM?.trim() ?? "");
   const emailConfigured =
     isConfigured(env.RESEND_API_KEY) &&
-    isEmailAddress(env.EMAIL_FROM) &&
-    !/@scl\.local$/i.test(env.EMAIL_FROM?.trim() ?? "");
+    isEmailAddress(senderAddress ?? undefined) &&
+    !/@scl\.local$/i.test(senderAddress ?? "");
+  // A correct-looking address on somebody else's domain still delivers, so this
+  // is a warning, not a block — but a capper reading the from line is the person
+  // who otherwise finds it, and by then it reads as a phish.
+  const senderHost = senderDomain(env.EMAIL_FROM?.trim() ?? "");
+  const siteHost = canonicalSiteHost(env);
+  const senderIsForeign =
+    emailConfigured &&
+    Boolean(siteHost) &&
+    !senderMatchesSite(senderHost, siteHost);
   const supportConfigured = isEmailAddress(env.SUPPORT_EMAIL_TO);
   const mediaConfigured =
     (isConfigured(env.SUPABASE_URL) ||
@@ -83,10 +119,16 @@ export function evaluateReleaseConfiguration(
     {
       id: "transactional-email",
       label: "Transactional email",
-      status: emailConfigured ? "ready" : "blocked",
-      detail: emailConfigured
-        ? "Resend delivery uses an explicit, non-.local sender address."
-        : "RESEND_API_KEY and a verified, non-.local EMAIL_FROM are required for signup, password reset, and support delivery.",
+      status: !emailConfigured
+        ? "blocked"
+        : senderIsForeign
+          ? "warning"
+          : "ready",
+      detail: !emailConfigured
+        ? "RESEND_API_KEY and a verified, non-.local EMAIL_FROM are required for signup, password reset, and support delivery."
+        : senderIsForeign
+          ? `Mail is sent from ${senderHost}, not ${siteHost}. Verify ${siteHost} with the mail provider and move EMAIL_FROM onto it — cappers read the from line, and a link from an unrelated company reads as a phish.`
+          : "Resend delivery uses an explicit, non-.local sender address on the site's own domain.",
     },
     {
       id: "support-mailbox",
