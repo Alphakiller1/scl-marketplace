@@ -9,9 +9,13 @@ import {
 } from "@/lib/odds-api";
 import { espnHistoricalResultsProvider } from "@/lib/results/espn-scores";
 import { RESULTS_LOOKBACK_DAYS } from "@/lib/results/lookback";
-import type { SettledGame } from "@/lib/results/settled-game";
+import {
+  mergeSettledGames,
+  type SettledGame,
+} from "@/lib/results/settled-game";
 
 export type { SettledGame };
+export { mergeSettledGames };
 export { RESULTS_LOOKBACK_DAYS };
 
 /**
@@ -172,18 +176,6 @@ type OddsApiScore = {
 };
 
 /** Merge primary + secondary settled games; prefer primary eventId on collision. */
-export function mergeSettledGames(
-  primary: SettledGame[],
-  secondary: SettledGame[],
-): SettledGame[] {
-  const byKey = new Map<string, SettledGame>();
-  const keyOf = (g: SettledGame) =>
-    g.eventId ?? `${g.sport}|${g.home}|${g.away}|${g.homeScore}-${g.awayScore}`;
-  for (const g of secondary) byKey.set(keyOf(g), g);
-  for (const g of primary) byKey.set(keyOf(g), g);
-  return [...byKey.values()];
-}
-
 export function compositeResultsProvider(
   primary: ResultsProvider,
   secondary: ResultsProvider,
