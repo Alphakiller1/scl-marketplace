@@ -1,4 +1,4 @@
-import assert from "node:assert/strict";
+﻿import assert from "node:assert/strict";
 
 import { prisma } from "@/lib/prisma";
 import { GET as trackingRedirect } from "@/app/go/[slug]/route";
@@ -84,7 +84,7 @@ async function main() {
       affiliateProvider: "WHOP",
       title: SMOKE_TITLE,
       description: "Product-specific Whop affiliate package.",
-      checkoutUrl: "https://example.com/whop/m3-smoke",
+      checkoutUrl: "https://whop.com/scl-m3-smoke",
       priceCents: 7900,
       billingPeriod: "MONTH",
       providerType: "PREMIUM",
@@ -92,7 +92,7 @@ async function main() {
       trackingUrls: {
         create: {
           slug: SMOKE_SLUG,
-          targetUrl: "https://example.com/whop/m3-smoke",
+          targetUrl: "https://whop.com/scl-m3-smoke",
         },
       },
     },
@@ -141,7 +141,7 @@ async function main() {
   assert.equal(response.status, 302);
   assert.equal(
     response.headers.get("location"),
-    "https://example.com/whop/m3-smoke",
+    "https://whop.com/scl-m3-smoke",
   );
 
   const afterClicks = await prisma.clickEvent.count({
