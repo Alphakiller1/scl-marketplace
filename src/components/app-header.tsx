@@ -25,7 +25,7 @@ export function AppHeader({
             <span className="ring-border-strong flex size-8 items-center justify-center rounded-xl bg-[color:var(--scl-ink-800)] ring-1">
               <SclLogo className="size-5" />
             </span>
-            <span className="scl-display max-w-[8.75rem] text-[0.7rem] leading-tight font-bold tracking-[0.02em] sm:max-w-none sm:text-sm">
+            <span className="scl-display max-w-[8.75rem] text-xs leading-tight font-bold tracking-[0.02em] sm:max-w-none sm:text-sm">
               {SCL_BRAND_NAME}
             </span>
             <span className="bg-surface-3 text-muted-foreground hidden max-w-20 truncate rounded-md px-1.5 py-0.5 text-[0.7rem] font-semibold tracking-wide uppercase md:inline-flex">

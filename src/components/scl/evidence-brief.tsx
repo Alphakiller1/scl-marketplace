@@ -346,7 +346,7 @@ export function EvidenceBrief({
                 </label>
               ) : null}
               <div
-                className="border-border bg-surface-2 inline-flex h-8 items-center rounded-[var(--scl-radius-chip)] border p-0.5"
+                className="border-border bg-surface-2 inline-flex min-h-10 items-center rounded-[var(--scl-radius-chip)] border p-0.5"
                 role="group"
                 aria-label="Performance chart window"
               >
@@ -357,7 +357,7 @@ export function EvidenceBrief({
                       key={window.value}
                       type="button"
                       className={cn(
-                        "scl-data h-7 min-w-9 rounded-full px-2 text-[0.68rem] leading-none font-semibold tabular-nums",
+                        "scl-data min-h-10 min-w-10 rounded-full px-2 text-[0.68rem] leading-none font-semibold tabular-nums",
                         active
                           ? "bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
                           : "text-muted-foreground hover:text-foreground",
@@ -532,7 +532,7 @@ function ProofHistoryLedger({
                   <td className="py-1 pr-2 align-middle">
                     <button
                       type="button"
-                      className="border-border bg-surface-2 text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex h-7 items-center gap-1 rounded-full border px-2 text-[0.65rem] font-semibold hover:border-[color:var(--scl-blue)] focus-visible:ring-2 focus-visible:outline-none"
+                      className="border-border bg-surface-2 text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex min-h-10 items-center gap-1 rounded-full border px-2 text-[0.65rem] font-semibold hover:border-[color:var(--scl-blue)] focus-visible:ring-2 focus-visible:outline-none"
                       aria-expanded={expanded}
                       aria-controls={`proof-history-${play.id}`}
                       aria-label={`${expanded ? "Close" : "Open"} ticket for ${play.selection}`}

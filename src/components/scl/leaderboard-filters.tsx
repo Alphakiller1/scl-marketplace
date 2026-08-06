@@ -108,7 +108,7 @@ function ScopeForm({
           <label
             key={window.key}
             className={cn(
-              "inline-flex h-8 cursor-pointer items-center rounded-full border px-3 text-xs leading-none font-semibold tabular-nums transition-colors",
+              "inline-flex min-h-10 cursor-pointer items-center rounded-full border px-3 text-xs leading-none font-semibold tabular-nums transition-colors lg:h-8 lg:min-h-0",
               "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] hover:text-[color:var(--scl-text)]",
               "has-[:checked]:border-[color:var(--scl-blue)] has-[:checked]:bg-[color:var(--scl-blue)] has-[:checked]:text-[color:var(--scl-blue-ink)] has-[:checked]:shadow-[inset_0_1px_0_rgba(255,255,255,0.28)]",
             )}

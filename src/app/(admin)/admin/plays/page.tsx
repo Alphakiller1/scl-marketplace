@@ -30,6 +30,107 @@ const dateTime = new Intl.DateTimeFormat("en-US", {
   timeStyle: "short",
 });
 
+type PublishedPlay = Awaited<
+  ReturnType<typeof getAdminPublishedPlays>
+>["rows"][number];
+
+function PlaySelection({ play }: { play: PublishedPlay }) {
+  return (
+    <div className="flex min-w-0 items-start gap-2">
+      {play.sports.length === 1 ? (
+        <SportTag sport={play.sports[0]} markOnly />
+      ) : (
+        <span className="bg-surface-3 text-muted-foreground rounded-md px-2 py-1 text-[0.65rem] font-semibold uppercase">
+          {play.sports.join(" / ")}
+        </span>
+      )}
+      <div className="min-w-0">
+        <p className="font-medium break-words">{play.selection}</p>
+        <p className="text-muted-foreground text-xs">{play.market}</p>
+      </div>
+    </div>
+  );
+}
+
+function PlayReviewLink({ play }: { play: PublishedPlay }) {
+  return (
+    <Button
+      render={<Link href={`/admin/plays/${play.kind}/${play.id}`} />}
+      nativeButton={false}
+      variant="outline"
+      size="sm"
+    >
+      {play.outcome === "PENDING" ? "Review" : "Correct"}
+    </Button>
+  );
+}
+
+function MobilePublishedPlayCard({ play }: { play: PublishedPlay }) {
+  const lifecycle = deriveLifecycle({
+    outcome: play.outcome,
+    eventStartsAt: play.eventStartsAt,
+  });
+  const username = play.username;
+
+  return (
+    <article className="bg-card space-y-3 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <time
+          className="text-muted-foreground text-xs"
+          dateTime={play.createdAt.toISOString()}
+        >
+          {dateTime.format(play.createdAt)}
+        </time>
+        <StatusBadge status={lifecycle} />
+      </div>
+      <PlaySelection play={play} />
+      <div className="grid grid-cols-2 gap-3 border-y py-3 text-sm">
+        <div>
+          <p className="text-muted-foreground text-xs">Capper</p>
+          {username ? (
+            <Link
+              href={`/cappers/${username.replace(/^@/, "")}`}
+              className="scl-link mt-1 inline-flex min-h-10 items-center font-medium"
+            >
+              @{username.replace(/^@/, "")}
+            </Link>
+          ) : (
+            <p className="mt-1">Unavailable</p>
+          )}
+        </div>
+        <div>
+          <p className="text-muted-foreground text-xs">Line</p>
+          <p className="scl-data mt-1 min-h-10 content-center tabular-nums">
+            {play.oddsAmerican == null ? "—" : formatOdds(play.oddsAmerican)}
+            <span className="text-muted-foreground ml-2">
+              {formatUnits(play.units, true, false)}
+            </span>
+          </p>
+        </div>
+        <div>
+          <p className="text-muted-foreground text-xs">Proof</p>
+          <div className="mt-1 min-h-10 content-center">
+            <PickTierBadge tier={play.verificationTier} />
+          </div>
+        </div>
+        <div>
+          <p className="text-muted-foreground text-xs">Analysis</p>
+          <p className="text-muted-foreground mt-1 min-h-10 content-center text-xs">
+            {play.kind === "parlay"
+              ? "N/A"
+              : !play.notes
+                ? "None"
+                : play.notesPublic
+                  ? "Public"
+                  : "Hidden"}
+          </p>
+        </div>
+      </div>
+      <PlayReviewLink play={play} />
+    </article>
+  );
+}
+
 export default async function AdminPublishedPlaysPage({
   searchParams,
 }: {
@@ -97,102 +198,85 @@ export default async function AdminPublishedPlaysPage({
 
       {result.rows.length ? (
         <div className="border-border overflow-hidden rounded-xl border">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-surface-2">
-                <TableHead>Published</TableHead>
-                <TableHead>Capper</TableHead>
-                <TableHead>Play</TableHead>
-                <TableHead>Line</TableHead>
-                <TableHead>Proof</TableHead>
-                <TableHead>Settlement</TableHead>
-                <TableHead>Analysis</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {result.rows.map((play) => {
-                const username = play.username;
-                const lifecycle = deriveLifecycle({
-                  outcome: play.outcome,
-                  eventStartsAt: play.eventStartsAt,
-                });
-                return (
-                  <TableRow key={play.id}>
-                    <TableCell className="text-muted-foreground text-xs">
-                      <time dateTime={play.createdAt.toISOString()}>
-                        {dateTime.format(play.createdAt)}
-                      </time>
-                    </TableCell>
-                    <TableCell>
-                      {username ? (
-                        <Link
-                          href={`/cappers/${username.replace(/^@/, "")}`}
-                          className="scl-link font-medium"
-                        >
-                          @{username.replace(/^@/, "")}
-                        </Link>
-                      ) : (
-                        "Unavailable"
-                      )}
-                    </TableCell>
-                    <TableCell className="max-w-80 whitespace-normal">
-                      <div className="flex items-start gap-2">
-                        {play.sports.length === 1 ? (
-                          <SportTag sport={play.sports[0]} markOnly />
+          <div className="divide-border divide-y lg:hidden">
+            {result.rows.map((play) => (
+              <MobilePublishedPlayCard key={play.id} play={play} />
+            ))}
+          </div>
+          <div className="hidden lg:block">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-surface-2">
+                  <TableHead>Published</TableHead>
+                  <TableHead>Capper</TableHead>
+                  <TableHead>Play</TableHead>
+                  <TableHead>Line</TableHead>
+                  <TableHead>Proof</TableHead>
+                  <TableHead>Settlement</TableHead>
+                  <TableHead>Analysis</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {result.rows.map((play) => {
+                  const lifecycle = deriveLifecycle({
+                    outcome: play.outcome,
+                    eventStartsAt: play.eventStartsAt,
+                  });
+                  return (
+                    <TableRow key={play.id}>
+                      <TableCell className="text-muted-foreground text-xs">
+                        <time dateTime={play.createdAt.toISOString()}>
+                          {dateTime.format(play.createdAt)}
+                        </time>
+                      </TableCell>
+                      <TableCell>
+                        {play.username ? (
+                          <Link
+                            href={`/cappers/${play.username.replace(/^@/, "")}`}
+                            className="scl-link font-medium"
+                          >
+                            @{play.username.replace(/^@/, "")}
+                          </Link>
                         ) : (
-                          <span className="bg-surface-3 text-muted-foreground rounded-md px-2 py-1 text-[0.65rem] font-semibold uppercase">
-                            {play.sports.join(" / ")}
-                          </span>
+                          "Unavailable"
                         )}
-                        <div>
-                          <p className="font-medium">{play.selection}</p>
-                          <p className="text-muted-foreground text-xs">
-                            {play.market}
-                          </p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="scl-data tabular-nums">
-                      {play.oddsAmerican == null
-                        ? "—"
-                        : formatOdds(play.oddsAmerican)}
-                      <span className="text-muted-foreground ml-2">
-                        {formatUnits(play.units, true, false)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <PickTierBadge tier={play.verificationTier} />
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={lifecycle} />
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-xs">
-                      {play.kind === "parlay"
-                        ? "N/A"
-                        : !play.notes
-                          ? "None"
-                          : play.notesPublic
-                            ? "Public"
-                            : "Hidden"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        render={
-                          <Link href={`/admin/plays/${play.kind}/${play.id}`} />
-                        }
-                        nativeButton={false}
-                        variant="outline"
-                        size="sm"
-                      >
-                        {play.outcome === "PENDING" ? "Review" : "Correct"}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      </TableCell>
+                      <TableCell className="max-w-80 whitespace-normal">
+                        <PlaySelection play={play} />
+                      </TableCell>
+                      <TableCell className="scl-data tabular-nums">
+                        {play.oddsAmerican == null
+                          ? "—"
+                          : formatOdds(play.oddsAmerican)}
+                        <span className="text-muted-foreground ml-2">
+                          {formatUnits(play.units, true, false)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <PickTierBadge tier={play.verificationTier} />
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={lifecycle} />
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {play.kind === "parlay"
+                          ? "N/A"
+                          : !play.notes
+                            ? "None"
+                            : play.notesPublic
+                              ? "Public"
+                              : "Hidden"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <PlayReviewLink play={play} />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       ) : (
         <EmptyState

@@ -34,3 +34,20 @@ test("package row controls meet the minimum mobile tap-target size", () => {
   assert.doesNotMatch(source, /size="icon-sm"/);
   assert.equal((source.match(/size="icon"/g) ?? []).length, 3);
 });
+
+test("admin published plays use dedicated mobile cards instead of a compressed table", () => {
+  const source = readSource("src/app/(admin)/admin/plays/page.tsx");
+
+  assert.match(source, /function MobilePublishedPlayCard/);
+  assert.match(source, /divide-border divide-y lg:hidden/);
+  assert.match(source, /hidden lg:block/);
+});
+
+test("shared compact controls preserve 40px mobile tap targets", () => {
+  const buttonSource = readSource("src/components/ui/button.tsx");
+  const filterSource = readSource("src/components/scl/leaderboard-filters.tsx");
+
+  assert.match(buttonSource, /sm: "h-10[\s\S]*?lg:h-9/);
+  assert.match(buttonSource, /"icon-sm":[\s\S]*?size-10[\s\S]*?lg:size-9/);
+  assert.match(filterSource, /min-h-10[\s\S]*?lg:h-8/);
+});

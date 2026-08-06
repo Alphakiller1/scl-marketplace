@@ -92,7 +92,7 @@ export function SportPills({
             onClick={() => onChange(s.key)}
             aria-pressed={active}
             className={cn(
-              "scl-display flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs leading-none font-semibold tracking-[0.04em] transition-opacity",
+              "scl-display flex h-11 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs leading-none font-semibold tracking-[0.04em] transition-opacity",
               active
                 ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
                 : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",
