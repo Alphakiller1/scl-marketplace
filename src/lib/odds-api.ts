@@ -65,6 +65,30 @@ const SCL_TO_ODDS_API: Record<string, string> = {
   CFL: "americanfootball_cfl",
 };
 
+/**
+ * Extra Odds API keys that belong to the same SCL sport.
+ *
+ * The Odds API files preseason under its OWN sport key, so a board that asks
+ * only for `americanfootball_nfl` shows nothing all August — the games exist,
+ * they are simply filed elsewhere. These are fetched alongside the primary key
+ * and merged into one slate.
+ */
+const ODDS_API_EXTRA_SPORTS: Record<string, string[]> = {
+  NFL: ["americanfootball_nfl_preseason"],
+  NBA: ["basketball_nba_preseason"],
+};
+
+/** League tag carried on an event so verification can find its own sport key. */
+export function extraSportLeagueTag(oddsApiSport: string): string {
+  return oddsApiSport.toUpperCase();
+}
+
+const EXTRA_SPORT_BY_TAG: Record<string, string> = Object.fromEntries(
+  Object.values(ODDS_API_EXTRA_SPORTS)
+    .flat()
+    .map((key) => [extraSportLeagueTag(key), key]),
+);
+
 const ODDS_API_TO_SCL: Record<string, string> = Object.fromEntries(
   Object.entries(SCL_TO_ODDS_API).map(([scl, api]) => [api, scl]),
 );
@@ -82,6 +106,10 @@ export function resolveOddsApiSport(
     if (!league) return undefined;
     return soccerLeagueByKey(league)?.oddsApiKey;
   }
+  // A preseason pick must verify against the preseason key it came from, not
+  // the regular-season one, or its event is simply absent.
+  const extra = league ? EXTRA_SPORT_BY_TAG[league.toUpperCase()] : undefined;
+  if (extra) return extra;
   return toOddsApiSport(sclSport);
 }
 
@@ -328,6 +356,51 @@ export async function fetchSoccerBoard(
   }
 }
 
+/**
+ * Boards for a sport's extra Odds API keys — today, preseason.
+ *
+ * Each event is tagged with the key it came from so a pick logged against it
+ * verifies against that same key. Failures are swallowed per key: a missing
+ * preseason board must never empty the regular-season one.
+ */
+async function fetchExtraSportBoards(
+  sclSport: string,
+  preferred: readonly string[] | undefined,
+): Promise<OddsEvent[]> {
+  const apiKey = oddsApiKey();
+  const extras = ODDS_API_EXTRA_SPORTS[sclSport] ?? [];
+  if (!apiKey || extras.length === 0) return [];
+
+  const boards = await Promise.all(
+    extras.map(async (apiSport) => {
+      try {
+        const url =
+          `https://api.the-odds-api.com/v4/sports/${apiSport}/odds/` +
+          `?apiKey=${apiKey}&${oddsScopeQuery(preferred)}&markets=h2h,spreads,totals&oddsFormat=american`;
+        const res = await fetch(url, { next: { revalidate: BOARD_TTL } });
+        logOddsUsage(res, `upcoming ${apiSport}`, "board", sclSport);
+        if (!res.ok) return [] as OddsEvent[];
+        const events = (await res.json()) as Parameters<
+          typeof normalizeUpcomingEvent
+        >[1][];
+        return events
+          .map((e) =>
+            normalizeUpcomingEvent(
+              sclSport,
+              e,
+              preferred,
+              extraSportLeagueTag(apiSport),
+            ),
+          )
+          .filter((e) => e.selections.length > 0);
+      } catch {
+        return [] as OddsEvent[];
+      }
+    }),
+  );
+  return boards.flat();
+}
+
 /** Upcoming games with moneyline + totals for a SCL sport. [] when no key/unsupported. */
 export async function fetchUpcomingOdds(
   sclSport: string,
@@ -375,7 +448,13 @@ export async function fetchUpcomingOdds(
 
   try {
     const board = await attempt(preferred);
-    if (board.length > 0) return board;
+    // Preseason lives under its own sport key, so it is fetched alongside and
+    // merged rather than replacing anything: during the crossover weeks both
+    // slates are genuinely live.
+    const extras = await fetchExtraSportBoards(sclSport, preferred);
+    if (board.length > 0 || extras.length > 0) {
+      return dedupeOddsEvents([...board, ...extras]).slice(0, 60);
+    }
 
     // Never empty the board solely because of a bookmakers filter — fall back to regions=us.
     if (bookmakersQueryParam(preferred ?? [])) {
