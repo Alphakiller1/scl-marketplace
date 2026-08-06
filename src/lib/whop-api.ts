@@ -119,3 +119,60 @@ export function buildWhopProductCheckoutUrl(input: {
 export function isWhopApiConfigured(accessToken: string | null | undefined) {
   return Boolean(accessToken?.trim());
 }
+
+/**
+ * Fields SCL is willing to push back to Whop.
+ *
+ * Price is deliberately absent. On Whop a price lives on a Plan, not the
+ * Product, and writing one changes what real customers are charged. SCL owns
+ * how an offer is *presented*; Whop stays the source of truth for money.
+ */
+export type WhopProductUpdate = {
+  title?: string;
+  headline?: string | null;
+  visibility?: "visible" | "hidden";
+  /** Stamped so the inbound webhook can recognise SCL's own echo. */
+  metadata?: Record<string, string>;
+};
+
+/**
+ * PATCH /products/{id} — the write half of the two-way storefront sync.
+ *
+ * Needs `access_pass:update` and `access_pass:basic:read` on the app. Returns
+ * a typed failure rather than throwing: a storefront edit in SCL must still
+ * save even when Whop rejects the push.
+ */
+export async function updateWhopProduct(input: {
+  accessToken: string;
+  productId: string;
+  update: WhopProductUpdate;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isWhopApiConfigured(input.accessToken)) {
+    return { ok: false, error: "Whop is not connected for this capper." };
+  }
+  try {
+    const res = await fetch(
+      `${WHOP_API_BASE}/products/${encodeURIComponent(input.productId)}`,
+      {
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${input.accessToken}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(input.update),
+        cache: "no-store",
+      },
+    );
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      return {
+        ok: false,
+        error: `Whop rejected the update (HTTP ${res.status})${body ? `: ${body.slice(0, 180)}` : ""}`,
+      };
+    }
+    return { ok: true };
+  } catch (err) {
+    console.error("[whop-api] updateWhopProduct failed:", err);
+    return { ok: false, error: "Could not reach Whop." };
+  }
+}
