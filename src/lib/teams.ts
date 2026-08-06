@@ -111,6 +111,7 @@ const MLB_TEAMS: TeamRecord[] = [
   team("MLB", "CWS", "White Sox", "Chicago White Sox", "#27251f", [
     "White Sox",
     "Chi White Sox",
+    "CHW",
   ]),
   team("MLB", "CIN", "Reds", "Cincinnati Reds", "#c6011f", ["Cincinnati"]),
   team("MLB", "CLE", "Guardians", "Cleveland Guardians", "#00385d", [
@@ -122,6 +123,7 @@ const MLB_TEAMS: TeamRecord[] = [
   team("MLB", "KC", "Royals", "Kansas City Royals", "#004687", [
     "Kansas City",
     "KC Royals",
+    "KCR",
   ]),
   team("MLB", "LAA", "Angels", "Los Angeles Angels", "#ba0021", [
     "LA Angels",
@@ -150,9 +152,13 @@ const MLB_TEAMS: TeamRecord[] = [
   team("MLB", "PIT", "Pirates", "Pittsburgh Pirates", "#fdb827", [
     "Pittsburgh",
   ]),
-  team("MLB", "SD", "Padres", "San Diego Padres", "#2f241d", ["San Diego"]),
+  team("MLB", "SD", "Padres", "San Diego Padres", "#2f241d", [
+    "San Diego",
+    "SDP",
+  ]),
   team("MLB", "SF", "Giants", "San Francisco Giants", "#fd5a1e", [
     "San Francisco",
+    "SFG",
   ]),
   team("MLB", "SEA", "Mariners", "Seattle Mariners", "#0c2c56", ["Seattle"]),
   team("MLB", "STL", "Cardinals", "St. Louis Cardinals", "#c41e3a", [
@@ -160,11 +166,17 @@ const MLB_TEAMS: TeamRecord[] = [
     "St Louis Cardinals",
     "St. Louis",
   ]),
-  team("MLB", "TB", "Rays", "Tampa Bay Rays", "#092c5c", ["Tampa Bay"]),
+  team("MLB", "TB", "Rays", "Tampa Bay Rays", "#092c5c", [
+    "Tampa Bay",
+    "TBR",
+    "TBD",
+  ]),
   team("MLB", "TEX", "Rangers", "Texas Rangers", "#003278", ["Texas"]),
   team("MLB", "TOR", "Blue Jays", "Toronto Blue Jays", "#134a8e", ["Toronto"]),
   team("MLB", "WSH", "Nationals", "Washington Nationals", "#ab0003", [
     "Washington",
+    "WSN",
+    "WAS",
   ]),
 ];
 
