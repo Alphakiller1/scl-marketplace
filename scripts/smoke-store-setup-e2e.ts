@@ -10,7 +10,13 @@ const PASSWORD = process.env.SCL_SMOKE_PASSWORD;
 const BASE = process.env.SCL_SMOKE_BASE || "https://scl-marketplace.vercel.app";
 const SMOKE_TITLE = "SCL Smoke E2E Package";
 
-async function login(email: string, password: string) {
+/**
+ * `identifier` is a username *or* an email (#405). This posted a bare `email`
+ * field, which stopped resolving when #372 moved login to username + email and
+ * would silently fail here too — the smoke would report a login failure that
+ * looked like a broken environment rather than a stale script.
+ */
+async function login(identifier: string, password: string) {
   const jar = new Map<string, string>();
   const store = (res: Response) => {
     const raw =
@@ -38,7 +44,7 @@ async function login(email: string, password: string) {
     },
     body: new URLSearchParams({
       csrfToken: csrf,
-      email,
+      identifier,
       password,
       callbackUrl: `${BASE}/dashboard`,
       json: "true",
