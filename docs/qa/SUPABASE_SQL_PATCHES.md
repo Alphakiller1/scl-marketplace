@@ -410,3 +410,51 @@ FROM "User";
 have not done so yet — it should fall over time as they return.
 `unclaimed_no_credential` is who still has to claim (see
 [LEGACY_MIGRATION](../LEGACY_MIGRATION.md)).
+
+## User — normalize plus-addressed shared inboxes (#372 / legacy import)
+
+Legacy extraction plus-addressed shared inboxes (`user+handle@domain`) when
+`User.email` had to be globally unique. After #372, multiple accounts may share
+the bare inbox — login resolves the plus variant at runtime, but normalizing the
+stored email avoids confusion on password reset and admin views.
+
+**Inspect an inbox first** (example: five WGS accounts on one Gmail address):
+
+```sql
+SET search_path TO scl;
+
+SELECT
+  username,
+  email,
+  "passwordHash" IS NOT NULL AS has_scl_password,
+  "legacyPasswordHash" IS NOT NULL AS has_legacy_password,
+  "accountStatus",
+  "emailVerified" IS NOT NULL AS email_verified
+FROM "User"
+WHERE lower(email) = 'wisegentlemensports@gmail.com'
+   OR lower(email) LIKE 'wisegentlemensports+%@gmail.com'
+ORDER BY username;
+```
+
+**Normalize** plus-addressed rows to the bare inbox when `(email, username)` will
+stay unique (safe to re-run):
+
+```sql
+SET search_path TO scl;
+
+UPDATE "User" u
+SET email = regexp_replace(lower(u.email), '^([^+@]+)\+[^@]+(@.+)$', '\1\2')
+WHERE u.email ~ '\+'
+  AND u.username IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1
+    FROM "User" x
+    WHERE x.id <> u.id
+      AND lower(x.email) = regexp_replace(lower(u.email), '^([^+@]+)\+[^@]+(@.+)$', '\1\2')
+      AND lower(x.username) = lower(u.username)
+  );
+```
+
+After deploy of the login lookup fix, cappers on shared inboxes sign in with
+**username + bare email + password** — they do not need to type the plus-address
+variant.
