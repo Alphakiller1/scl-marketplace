@@ -680,6 +680,16 @@ enum LegacyRecordScope {
   CURRENT_YEAR
   YEAR_2025
   SEASON_2025
+  /// Mapped to the legacy `y2024` / `s2024` / `stats_post` tables, which are
+  /// EMPTY in every export to date: one scaffolding row per capper with the
+  /// name filled and every counter at zero, 0 settled results between them.
+  /// No row carries these scopes. They are declared because the values already
+  /// exist in the production enum and Postgres cannot drop one — so leaving
+  /// them out means permanent schema drift. Display-only if they ever populate:
+  /// PRE_IMPORT is the only scope standings fold in.
+  YEAR_2024
+  SEASON_2024
+  POSTSEASON
   LAST_7D
   LAST_30D
   LAST_60D
