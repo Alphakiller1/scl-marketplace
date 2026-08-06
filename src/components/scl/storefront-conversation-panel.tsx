@@ -7,7 +7,10 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { sendStorefrontMessageAction } from "@/lib/actions/storefront-message.action";
+import {
+  markStorefrontThreadReadAction,
+  sendStorefrontMessageAction,
+} from "@/lib/actions/storefront-message.action";
 import { providerLabel } from "@/lib/store-connection";
 import { cn } from "@/lib/utils";
 
@@ -78,6 +81,7 @@ export function StorefrontConversationPanel({
 }) {
   const router = useRouter();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const markedThreadRef = useRef<string | null>(null);
   const [body, setBody] = useState("");
   const [pending, startTransition] = useTransition();
   const quickReplies = useMemo(
@@ -88,6 +92,17 @@ export function StorefrontConversationPanel({
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages.length]);
+
+  // Seeing the thread is what marks it read, so the mark belongs here rather
+  // than in the pages that render it: the action revalidates, and revalidating
+  // during a server render throws hard enough to take the whole page down.
+  useEffect(() => {
+    if (markedThreadRef.current === storeConnectionId) return;
+    markedThreadRef.current = storeConnectionId;
+    void markStorefrontThreadReadAction({ storeConnectionId }).catch(() => {
+      // A missed read receipt is not worth interrupting the conversation over.
+    });
+  }, [storeConnectionId]);
 
   function send() {
     const trimmed = body.trim();

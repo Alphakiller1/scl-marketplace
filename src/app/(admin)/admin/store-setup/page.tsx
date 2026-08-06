@@ -25,7 +25,6 @@ import {
   listStoreConnections,
 } from "@/lib/queries/store";
 import { getStorefrontMessages } from "@/lib/queries/storefront-messages";
-import { markStorefrontThreadReadAction } from "@/lib/actions/storefront-message.action";
 import { storefrontReviewActionLabel } from "@/lib/storefront-review";
 import { whopAffiliateUsername, whopOAuthConfigured } from "@/lib/whop-config";
 import { cn } from "@/lib/utils";
@@ -76,12 +75,6 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
         getStorefrontMessages(selected.id),
       ])
     : [[], [], []];
-
-  if (selected) {
-    await markStorefrontThreadReadAction({
-      storeConnectionId: selected.id,
-    });
-  }
 
   function detailHref(opts: {
     connectionId: string;
