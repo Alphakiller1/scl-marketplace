@@ -154,6 +154,8 @@ async function gradeStraightPlays(
         units: true,
         eventId: true,
         eventStartsAt: true,
+        homeTeam: true,
+        awayTeam: true,
         // Date-scopes the name-matching fallback for plays with no eventId.
         // Imported legacy plays carry the event time here.
         createdAt: true,
@@ -296,6 +298,8 @@ async function gradeParlayLegs(
         units: true,
         eventId: true,
         eventStartsAt: true,
+        homeTeam: true,
+        awayTeam: true,
         side: true,
         line: true,
       },

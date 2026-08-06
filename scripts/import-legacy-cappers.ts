@@ -148,6 +148,8 @@ async function importCapper(c: LegacyCapperInput) {
           capperId: profileId,
           sport: p.sport,
           league: p.league ?? null,
+          homeTeam: p.homeTeam ?? null,
+          awayTeam: p.awayTeam ?? null,
           market: p.market,
           selection: p.selection,
           oddsAmerican: p.oddsAmerican,
