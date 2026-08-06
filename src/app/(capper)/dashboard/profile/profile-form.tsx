@@ -455,16 +455,22 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
 
         <aside className="space-y-4 lg:sticky lg:top-24">
           <ProfileCompletionPanel completion={completion} />
-          <ProfileIdentityPreview
-            profile={{
-              username,
-              headline: values.headline,
-              avatarUrl: media.avatarUrl,
-              bannerUrl: media.bannerUrl,
-              sports: values.sports ?? [],
-              verified: Boolean(profile.user.emailVerified),
-            }}
-          />
+          {/* Desktop only. The aside sits beside the editor on large screens, but
+              stacks directly beneath it on mobile — where this repeats the cover
+              and avatar the Profile Media step is already showing, a few hundred
+              pixels further up. */}
+          <div className="hidden lg:block">
+            <ProfileIdentityPreview
+              profile={{
+                username,
+                headline: values.headline,
+                avatarUrl: media.avatarUrl,
+                bannerUrl: media.bannerUrl,
+                sports: values.sports ?? [],
+                verified: Boolean(profile.user.emailVerified),
+              }}
+            />
+          </div>
           <StorefrontPreview storefront={storefront} />
         </aside>
       </div>
