@@ -41,6 +41,7 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
     chartSeries,
     chartSeriesBySport,
     historyNextCursor,
+    legacyBySport,
   } = data;
   const [packages, accolades] = await Promise.all([
     getLivePackagesForCapper(capper.id),
@@ -89,6 +90,7 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
           chartSeries={chartSeries}
           chartSeriesBySport={chartSeriesBySport}
           packageInsights={packageInsights}
+          legacyBySport={legacyBySport}
           historyNextCursor={historyNextCursor}
           emptyName={identity.primary}
         />
