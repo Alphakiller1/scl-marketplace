@@ -1,0 +1,201 @@
+{
+  "cappers": [
+    {
+      "handle": "bankofdennis",
+      "status": 200,
+      "profile": {
+        "roi": null,
+        "units": "0",
+        "record": "1-5",
+        "wins": "2",
+        "losses": null,
+        "hasStats": true,
+        "sampleText": "((a,b,c,d,e,f,g,h)=>{let i=document.documentElement,j=[\"light\",\"dark\"];function k(b){var c;(Array.isArray(a)?a:[a]).forEach(a=>{let c=\"class\"===a,d=c&&f?e.map(a=>f[a]||a):e;c?(i.classList.remove(...d),i.classList.add(f&&f[b]?f[b]:b)):i.setAttribute(a,b)}),c=b,h&&j.includes(c)&&(i.style.colorScheme=c)}if(d)k(d);else try{let a=localStorage.getItem(b)||c,d=g&&\"system\"===a?window.matchMedia(\"(prefers-color-scheme: dark)\").matches?\"dark\":\"light\":a;k(d)}catch(a){}})(\"class\",\"theme\",\"dark\",null,[\"light\",\"dark\"],null,true,true)Sports Cappers LeaderboardPicksLeaderboardDiscoverPackagesLog InJoin SCLB@bankofdennisVerifiedIncludes 1,001 Settled Results Carried Over From The Previous SCL Platform — Totals Only, No Per-Pick RecordLegacy Capper37 years of sports betting experience at your fingertipsMLBM"
+      },
+      "leaderboard": {
+        "rowText": "—B@bankofdennisBANK OF DENNIS VIP 365 DAYS Plan +2MLBMLBMUMMA / UFCNBANBA636-531-2454.5%+35.4%+1416.82U1191LLLLL",
+        "roi": "-2454.5",
+        "units": "+1416.82",
+        "record": "636-531-2454",
+        "cellCount": 11
+      },
+      "match": {
+        "roi": false,
+        "units": false,
+        "record": false
+      }
+    },
+    {
+      "handle": "mlbanalyticspro",
+      "status": 200,
+      "profile": {
+        "roi": null,
+        "units": "0",
+        "record": "78-4",
+        "wins": null,
+        "losses": null,
+        "hasStats": true,
+        "sampleText": "((a,b,c,d,e,f,g,h)=>{let i=document.documentElement,j=[\"light\",\"dark\"];function k(b){var c;(Array.isArray(a)?a:[a]).forEach(a=>{let c=\"class\"===a,d=c&&f?e.map(a=>f[a]||a):e;c?(i.classList.remove(...d),i.classList.add(f&&f[b]?f[b]:b)):i.setAttribute(a,b)}),c=b,h&&j.includes(c)&&(i.style.colorScheme=c)}if(d)k(d);else try{let a=localStorage.getItem(b)||c,d=g&&\"system\"===a?window.matchMedia(\"(prefers-color-scheme: dark)\").matches?\"dark\":\"light\":a;k(d)}catch(a){}})(\"class\",\"theme\",\"dark\",null,[\"light\",\"dark\"],null,true,true)Sports Cappers LeaderboardPicksLeaderboardDiscoverPackagesLog InJoin SCLM@mlbanalyticsproVerifiedIncludes 2,763 Settled Results Carried Over From The Previous SCL Platform — Totals Only, No Per-Pick RecordLegacy CapperMLBMLBNBANBANFLNFLNHLNHL—Building a recordLast pick Aug 5"
+      },
+      "leaderboard": {
+        "rowText": "—M@mlbanalyticspro3 Free Days of VIP Pro +1MLBMLBNBANBANFLNFL1749-1604-1252.2%+4.6%+869.72U3365LWWLW",
+        "roi": "-1252.2",
+        "units": "+869.72",
+        "record": "1749-1604-1252",
+        "cellCount": 11
+      },
+      "match": {
+        "roi": false,
+        "units": false,
+        "record": false
+      }
+    },
+    {
+      "handle": "clownsportspick",
+      "status": 200,
+      "profile": {
+        "roi": null,
+        "units": "0",
+        "record": "78-4",
+        "wins": null,
+        "losses": null,
+        "hasStats": true,
+        "sampleText": "((a,b,c,d,e,f,g,h)=>{let i=document.documentElement,j=[\"light\",\"dark\"];function k(b){var c;(Array.isArray(a)?a:[a]).forEach(a=>{let c=\"class\"===a,d=c&&f?e.map(a=>f[a]||a):e;c?(i.classList.remove(...d),i.classList.add(f&&f[b]?f[b]:b)):i.setAttribute(a,b)}),c=b,h&&j.includes(c)&&(i.style.colorScheme=c)}if(d)k(d);else try{let a=localStorage.getItem(b)||c,d=g&&\"system\"===a?window.matchMedia(\"(prefers-color-scheme: dark)\").matches?\"dark\":\"light\":a;k(d)}catch(a){}})(\"class\",\"theme\",\"dark\",null,[\"light\",\"dark\"],null,true,true)Sports Cappers LeaderboardPicksLeaderboardDiscoverPackagesLog InJoin SCLC@clownsportspickVerifiedIncludes 1,463 Settled Results Carried Over From The Previous SCL Platform — Totals Only, No Per-Pick RecordLegacy CapperMLBMLBNBANBANBNCAA BasketballNFNCAA FootballNFLNFLNHLNHLP"
+      },
+      "leaderboard": {
+        "rowText": "—C@clownsportspickDaily Play of the Day +1MLBMLBNBANBANBNCAA Basketball1187-903-2256.8%+5.6%+848.29U2112WWLWW",
+        "roi": "-2256.8",
+        "units": "+848.29",
+        "record": "1187-903-2256",
+        "cellCount": 11
+      },
+      "match": {
+        "roi": false,
+        "units": false,
+        "record": false
+      }
+    },
+    {
+      "handle": "Amanee330",
+      "status": 200,
+      "profile": {
+        "roi": null,
+        "units": "0",
+        "record": "78-4",
+        "wins": null,
+        "losses": null,
+        "hasStats": true,
+        "sampleText": "((a,b,c,d,e,f,g,h)=>{let i=document.documentElement,j=[\"light\",\"dark\"];function k(b){var c;(Array.isArray(a)?a:[a]).forEach(a=>{let c=\"class\"===a,d=c&&f?e.map(a=>f[a]||a):e;c?(i.classList.remove(...d),i.classList.add(f&&f[b]?f[b]:b)):i.setAttribute(a,b)}),c=b,h&&j.includes(c)&&(i.style.colorScheme=c)}if(d)k(d);else try{let a=localStorage.getItem(b)||c,d=g&&\"system\"===a?window.matchMedia(\"(prefers-color-scheme: dark)\").matches?\"dark\":\"light\":a;k(d)}catch(a){}})(\"class\",\"theme\",\"dark\",null,[\"light\",\"dark\"],null,true,true)Sports Cappers LeaderboardPicksLeaderboardDiscoverPackagesLog InJoin SCLA@Amanee330VerifiedIncludes 387 Settled Results Carried Over From The Previous SCL Platform — Totals Only, No Per-Pick RecordLegacy Capper🎯 Meet Your Favorite Capper 🎯BOXIBoxingCFLCFLMLBMLBMUMMA / UFCN"
+      },
+      "leaderboard": {
+        "rowText": "4—A@Amanee3303 Day VIP Trial +2BOXIBoxingCFLCFLMLBMLB288-159-1064.4%+10.1%+378.93U457PWWWL",
+        "roi": "-1064.4",
+        "units": "+378.93",
+        "record": "288-159-1064",
+        "cellCount": 11
+      },
+      "match": {
+        "roi": false,
+        "units": false,
+        "record": false
+      }
+    },
+    {
+      "handle": "wgsdfs",
+      "status": 200,
+      "profile": {
+        "roi": "+144.73",
+        "units": "228",
+        "record": "81-146-1",
+        "wins": null,
+        "losses": null,
+        "hasStats": true,
+        "sampleText": "((a,b,c,d,e,f,g,h)=>{let i=document.documentElement,j=[\"light\",\"dark\"];function k(b){var c;(Array.isArray(a)?a:[a]).forEach(a=>{let c=\"class\"===a,d=c&&f?e.map(a=>f[a]||a):e;c?(i.classList.remove(...d),i.classList.add(f&&f[b]?f[b]:b)):i.setAttribute(a,b)}),c=b,h&&j.includes(c)&&(i.style.colorScheme=c)}if(d)k(d);else try{let a=localStorage.getItem(b)||c,d=g&&\"system\"===a?window.matchMedia(\"(prefers-color-scheme: dark)\").matches?\"dark\":\"light\":a;k(d)}catch(a){}})(\"class\",\"theme\",\"dark\",null,[\"light\",\"dark\"],null,true,true)Sports Cappers LeaderboardPicksLeaderboardDiscoverPackagesLog InJoin SCLW@wgsdfsVerifiedIncludes 141 Settled Results Carried Over From The Previous SCL Platform — Totals Only, No Per-Pick RecordLegacy CapperMLBMLBNBANBANFLNFLPGAPGA—Building a recordLast pick Aug 4View offers"
+      },
+      "leaderboard": {
+        "rowText": "5—W@wgsdfs—MLBMLBNBANBANFLNFL81-146-135.7%+45.9%+144.73U228PWWLL—",
+        "roi": "-135.7",
+        "units": "+144.73",
+        "record": "81-146-135",
+        "cellCount": 11
+      },
+      "match": {
+        "roi": false,
+        "units": false,
+        "record": false
+      }
+    }
+  ],
+  "leaderboardStats": {
+    "bankofdennis": {
+      "rowText": "—B@bankofdennisBANK OF DENNIS VIP 365 DAYS Plan +2MLBMLBMUMMA / UFCNBANBA636-531-2454.5%+35.4%+1416.82U1191LLLLL",
+      "roi": "-2454.5",
+      "units": "+1416.82",
+      "record": "636-531-2454",
+      "cellCount": 11
+    },
+    "mlbanalyticspro": {
+      "rowText": "—M@mlbanalyticspro3 Free Days of VIP Pro +1MLBMLBNBANBANFLNFL1749-1604-1252.2%+4.6%+869.72U3365LWWLW",
+      "roi": "-1252.2",
+      "units": "+869.72",
+      "record": "1749-1604-1252",
+      "cellCount": 11
+    },
+    "clownsportspick": {
+      "rowText": "—C@clownsportspickDaily Play of the Day +1MLBMLBNBANBANBNCAA Basketball1187-903-2256.8%+5.6%+848.29U2112WWLWW",
+      "roi": "-2256.8",
+      "units": "+848.29",
+      "record": "1187-903-2256",
+      "cellCount": 11
+    },
+    "Amanee330": {
+      "rowText": "4—A@Amanee3303 Day VIP Trial +2BOXIBoxingCFLCFLMLBMLB288-159-1064.4%+10.1%+378.93U457PWWWL",
+      "roi": "-1064.4",
+      "units": "+378.93",
+      "record": "288-159-1064",
+      "cellCount": 11
+    },
+    "wgsdfs": {
+      "rowText": "5—W@wgsdfs—MLBMLBNBANBANFLNFL81-146-135.7%+45.9%+144.73U228PWWLL—",
+      "roi": "-135.7",
+      "units": "+144.73",
+      "record": "81-146-135",
+      "cellCount": 11
+    },
+    "Tailoredwinning": {
+      "rowText": "6—T@TailoredwinningVIP FREE 3 Day TrialBOXIBoxingMLBMLBMUMMA / UFC598-456-756.7%+4.3%+135.66U1061LLLLW",
+      "roi": "-756.7",
+      "units": "+135.66",
+      "record": "598-456-756",
+      "cellCount": 11
+    },
+    "A2ZPICKS": {
+      "rowText": "7—A@A2ZPICKS4 Days of FREE VIP +1CFLCFLMLBMLBMUMMA / UFC845-650-3656.5%+2.3%+115.48U1531WWLLW",
+      "roi": "-3656.5",
+      "units": "+115.48",
+      "record": "845-650-3656",
+      "cellCount": 11
+    },
+    "pbssports": {
+      "rowText": "8—P@pbssports—MLBMLBNFLNFL35-1570.0%+19.3%+65.79U50WWWWW—",
+      "roi": "-1570.0",
+      "units": "+65.79",
+      "record": "35-1570",
+      "cellCount": 11
+    },
+    "InevitablePicks": {
+      "rowText": "9—I@InevitablePicks—CFLCFLMLBMLBMUMMA / UFC24-8-175.0%+18.5%+61.77U33PWWWW—",
+      "roi": "-175.0",
+      "units": "+61.77",
+      "record": "24-8-175",
+      "cellCount": 11
+    },
+    "Drjsr": {
+      "rowText": "10—D@DrjsrWeekly Special +1BOXIBoxingMLBMLBMUMMA / UFC264-194-357.6%+2.2%+34.97U461WWLWL",
+      "roi": "-357.6",
+      "units": "+34.97",
+      "record": "264-194-357",
+      "cellCount": 11
+    }
+  }
+}

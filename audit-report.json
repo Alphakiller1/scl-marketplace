@@ -1,0 +1,1851 @@
+{
+  "timestamp": "2026-08-06T00:03:17.160Z",
+  "baseUrl": "https://sportscappersleaderboard.com",
+  "results": [
+    {
+      "route": "/",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "SCL — Sports Cappers Leaderboard · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/home-mobile.png",
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        }
+      ],
+      "networkErrors": [
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        },
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        }
+      ]
+    },
+    {
+      "route": "/",
+      "viewport": "tablet",
+      "status": 200,
+      "title": "SCL — Sports Cappers Leaderboard · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/home-tablet.png",
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        }
+      ],
+      "networkErrors": [
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        },
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        },
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        }
+      ]
+    },
+    {
+      "route": "/",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "SCL — Sports Cappers Leaderboard · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/home-desktop.png",
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        }
+      ],
+      "networkErrors": [
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        },
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        },
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        }
+      ]
+    },
+    {
+      "route": "/",
+      "viewport": "desktop-xl",
+      "status": 200,
+      "title": "SCL — Sports Cappers Leaderboard · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/home-desktop-xl.png",
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        }
+      ],
+      "networkErrors": [
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        },
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        },
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        },
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        }
+      ]
+    },
+    {
+      "route": "/leaderboard",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "Leaderboard · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/leaderboard-mobile.png",
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        }
+      ],
+      "networkErrors": [
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        },
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        }
+      ]
+    },
+    {
+      "route": "/leaderboard",
+      "viewport": "tablet",
+      "status": 200,
+      "title": "Leaderboard · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/leaderboard-tablet.png",
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcmsgnfykr0000l8043aezu6hj%2Favatar.webp%3Fv%3D1785971140286&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        }
+      ],
+      "networkErrors": [
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        },
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        },
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcmsgnfykr0000l8043aezu6hj%2Favatar.webp%3Fv%3D1785971140286&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        }
+      ]
+    },
+    {
+      "route": "/leaderboard",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "Leaderboard · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/leaderboard-desktop.png",
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcmsgnfykr0000l8043aezu6hj%2Favatar.webp%3Fv%3D1785971140286&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        }
+      ],
+      "networkErrors": [
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcmsgnfykr0000l8043aezu6hj%2Favatar.webp%3Fv%3D1785971140286&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        },
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        },
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        }
+      ]
+    },
+    {
+      "route": "/leaderboard",
+      "viewport": "desktop-xl",
+      "status": 200,
+      "title": "Leaderboard · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/leaderboard-desktop-xl.png",
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcmsgnfykr0000l8043aezu6hj%2Favatar.webp%3Fv%3D1785971140286&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        }
+      ],
+      "networkErrors": [
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        },
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcmsgnfykr0000l8043aezu6hj%2Favatar.webp%3Fv%3D1785971140286&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        },
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        }
+      ]
+    },
+    {
+      "route": "/discover",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "Discover · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/discover-mobile.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/discover",
+      "viewport": "tablet",
+      "status": 200,
+      "title": "Discover · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/discover-tablet.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/discover",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "Discover · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/discover-desktop.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/discover",
+      "viewport": "desktop-xl",
+      "status": 200,
+      "title": "Discover · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/discover-desktop-xl.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/picks",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "Latest picks · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/picks-mobile.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/picks",
+      "viewport": "tablet",
+      "status": 200,
+      "title": "Latest picks · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/picks-tablet.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/picks",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "Latest picks · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/picks-desktop.png",
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        }
+      ],
+      "networkErrors": [
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        }
+      ]
+    },
+    {
+      "route": "/picks",
+      "viewport": "desktop-xl",
+      "status": 200,
+      "title": "Latest picks · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/picks-desktop-xl.png",
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        }
+      ],
+      "networkErrors": [
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        }
+      ]
+    },
+    {
+      "route": "/packages",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "Packages · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/packages-mobile.png",
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        }
+      ],
+      "networkErrors": [
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        }
+      ]
+    },
+    {
+      "route": "/packages",
+      "viewport": "tablet",
+      "status": 200,
+      "title": "Packages · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/packages-tablet.png",
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        }
+      ],
+      "networkErrors": [
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        }
+      ]
+    },
+    {
+      "route": "/packages",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "Packages · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/packages-desktop.png",
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        }
+      ],
+      "networkErrors": [
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        }
+      ]
+    },
+    {
+      "route": "/packages",
+      "viewport": "desktop-xl",
+      "status": 200,
+      "title": "Packages · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/packages-desktop-xl.png",
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 400 ()",
+          "location": {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "line": 0,
+            "column": 0,
+            "lineNumber": 0,
+            "columnNumber": 0
+          }
+        }
+      ],
+      "networkErrors": [
+        {
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+          "status": 400,
+          "statusText": ""
+        }
+      ]
+    },
+    {
+      "route": "/cappers",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "Discover · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/cappers-mobile.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/cappers",
+      "viewport": "tablet",
+      "status": 200,
+      "title": "Discover · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/cappers-tablet.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/cappers",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "Discover · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/cappers-desktop.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/cappers",
+      "viewport": "desktop-xl",
+      "status": 200,
+      "title": "Discover · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/cappers-desktop-xl.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/verification",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "How Verification Works · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/verification-mobile.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/verification",
+      "viewport": "tablet",
+      "status": 200,
+      "title": "How Verification Works · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/verification-tablet.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/verification",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "How Verification Works · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/verification-desktop.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/verification",
+      "viewport": "desktop-xl",
+      "status": 200,
+      "title": "How Verification Works · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/verification-desktop-xl.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/support",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "Support · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/support-mobile.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/support",
+      "viewport": "tablet",
+      "status": 200,
+      "title": "Support · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/support-tablet.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/support",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "Support · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/support-desktop.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/support",
+      "viewport": "desktop-xl",
+      "status": 200,
+      "title": "Support · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/support-desktop-xl.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/terms",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "Terms of Service · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/terms-mobile.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/terms",
+      "viewport": "tablet",
+      "status": 200,
+      "title": "Terms of Service · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/terms-tablet.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/terms",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "Terms of Service · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/terms-desktop.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/terms",
+      "viewport": "desktop-xl",
+      "status": 200,
+      "title": "Terms of Service · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/terms-desktop-xl.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/privacy",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "Privacy Policy · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/privacy-mobile.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/privacy",
+      "viewport": "tablet",
+      "status": 200,
+      "title": "Privacy Policy · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/privacy-tablet.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/privacy",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "Privacy Policy · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/privacy-desktop.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/privacy",
+      "viewport": "desktop-xl",
+      "status": 200,
+      "title": "Privacy Policy · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/privacy-desktop-xl.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/disclaimer",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "Disclaimer · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/disclaimer-mobile.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/disclaimer",
+      "viewport": "tablet",
+      "status": 200,
+      "title": "Disclaimer · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/disclaimer-tablet.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/disclaimer",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "Disclaimer · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/disclaimer-desktop.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/disclaimer",
+      "viewport": "desktop-xl",
+      "status": 200,
+      "title": "Disclaimer · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/disclaimer-desktop-xl.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/responsible-gaming",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "Responsible Gaming · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/responsible-gaming-mobile.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/responsible-gaming",
+      "viewport": "tablet",
+      "status": 200,
+      "title": "Responsible Gaming · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/responsible-gaming-tablet.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/responsible-gaming",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "Responsible Gaming · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/responsible-gaming-desktop.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/responsible-gaming",
+      "viewport": "desktop-xl",
+      "status": 200,
+      "title": "Responsible Gaming · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/responsible-gaming-desktop-xl.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/refund-policy",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "Refund Policy · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/refund-policy-mobile.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/refund-policy",
+      "viewport": "tablet",
+      "status": 200,
+      "title": "Refund Policy · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/refund-policy-tablet.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/refund-policy",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "Refund Policy · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/refund-policy-desktop.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/refund-policy",
+      "viewport": "desktop-xl",
+      "status": 200,
+      "title": "Refund Policy · SCL",
+      "screenshot": "/opt/cursor/artifacts/screenshots/refund-policy-desktop-xl.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/robots.txt",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "",
+      "screenshot": "/opt/cursor/artifacts/screenshots/robots-txt-mobile.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/robots.txt",
+      "viewport": "tablet",
+      "status": 200,
+      "title": "",
+      "screenshot": "/opt/cursor/artifacts/screenshots/robots-txt-tablet.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/robots.txt",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "",
+      "screenshot": "/opt/cursor/artifacts/screenshots/robots-txt-desktop.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/robots.txt",
+      "viewport": "desktop-xl",
+      "status": 200,
+      "title": "",
+      "screenshot": "/opt/cursor/artifacts/screenshots/robots-txt-desktop-xl.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/sitemap.xml",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "",
+      "screenshot": "/opt/cursor/artifacts/screenshots/sitemap-xml-mobile.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/sitemap.xml",
+      "viewport": "tablet",
+      "status": 200,
+      "title": "",
+      "screenshot": "/opt/cursor/artifacts/screenshots/sitemap-xml-tablet.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/sitemap.xml",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "",
+      "screenshot": "/opt/cursor/artifacts/screenshots/sitemap-xml-desktop.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/sitemap.xml",
+      "viewport": "desktop-xl",
+      "status": 200,
+      "title": "",
+      "screenshot": "/opt/cursor/artifacts/screenshots/sitemap-xml-desktop-xl.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/api/health",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "",
+      "screenshot": "/opt/cursor/artifacts/screenshots/api-health-mobile.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/api/health",
+      "viewport": "tablet",
+      "status": 200,
+      "title": "",
+      "screenshot": "/opt/cursor/artifacts/screenshots/api-health-tablet.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/api/health",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "",
+      "screenshot": "/opt/cursor/artifacts/screenshots/api-health-desktop.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/api/health",
+      "viewport": "desktop-xl",
+      "status": 200,
+      "title": "",
+      "screenshot": "/opt/cursor/artifacts/screenshots/api-health-desktop-xl.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/qa/board-odds-hygiene",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "SCL — Sports Cappers Leaderboard",
+      "screenshot": "/opt/cursor/artifacts/screenshots/qa-board-odds-hygiene-mobile.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/qa/board-odds-hygiene",
+      "viewport": "tablet",
+      "status": 200,
+      "title": "SCL — Sports Cappers Leaderboard",
+      "screenshot": "/opt/cursor/artifacts/screenshots/qa-board-odds-hygiene-tablet.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/qa/board-odds-hygiene",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "SCL — Sports Cappers Leaderboard",
+      "screenshot": "/opt/cursor/artifacts/screenshots/qa-board-odds-hygiene-desktop.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/qa/board-odds-hygiene",
+      "viewport": "desktop-xl",
+      "status": 200,
+      "title": "SCL — Sports Cappers Leaderboard",
+      "screenshot": "/opt/cursor/artifacts/screenshots/qa-board-odds-hygiene-desktop-xl.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/qa/desktop-profile-composition",
+      "viewport": "mobile",
+      "status": 200,
+      "title": "SCL — Sports Cappers Leaderboard",
+      "screenshot": "/opt/cursor/artifacts/screenshots/qa-desktop-profile-composition-mobile.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/qa/desktop-profile-composition",
+      "viewport": "tablet",
+      "status": 200,
+      "title": "SCL — Sports Cappers Leaderboard",
+      "screenshot": "/opt/cursor/artifacts/screenshots/qa-desktop-profile-composition-tablet.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/qa/desktop-profile-composition",
+      "viewport": "desktop",
+      "status": 200,
+      "title": "SCL — Sports Cappers Leaderboard",
+      "screenshot": "/opt/cursor/artifacts/screenshots/qa-desktop-profile-composition-desktop.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    },
+    {
+      "route": "/qa/desktop-profile-composition",
+      "viewport": "desktop-xl",
+      "status": 200,
+      "title": "SCL — Sports Cappers Leaderboard",
+      "screenshot": "/opt/cursor/artifacts/screenshots/qa-desktop-profile-composition-desktop-xl.png",
+      "consoleMessages": [],
+      "networkErrors": []
+    }
+  ],
+  "findings": {
+    "routes": [
+      {
+        "route": "/qa/board-odds-hygiene",
+        "issue": "Expected 404 but got 200",
+        "viewport": "mobile"
+      },
+      {
+        "route": "/qa/board-odds-hygiene",
+        "issue": "Expected 404 but got 200",
+        "viewport": "tablet"
+      },
+      {
+        "route": "/qa/board-odds-hygiene",
+        "issue": "Expected 404 but got 200",
+        "viewport": "desktop"
+      },
+      {
+        "route": "/qa/board-odds-hygiene",
+        "issue": "Expected 404 but got 200",
+        "viewport": "desktop-xl"
+      },
+      {
+        "route": "/qa/desktop-profile-composition",
+        "issue": "Expected 404 but got 200",
+        "viewport": "mobile"
+      },
+      {
+        "route": "/qa/desktop-profile-composition",
+        "issue": "Expected 404 but got 200",
+        "viewport": "tablet"
+      },
+      {
+        "route": "/qa/desktop-profile-composition",
+        "issue": "Expected 404 but got 200",
+        "viewport": "desktop"
+      },
+      {
+        "route": "/qa/desktop-profile-composition",
+        "issue": "Expected 404 but got 200",
+        "viewport": "desktop-xl"
+      }
+    ],
+    "designViolations": [
+      {
+        "route": "/packages",
+        "violation": "Dollar signs detected (should use units)",
+        "examples": [
+          "BTTS 💎 Premium Plays : $6.99/month The North American Market Authority | Focus: Expected Value (+EV), Market Inefficiencies, & Mainstream US Leagues (NFL, CollegeFB, NBA, MLB, NHL, Tennis and Golf). Built for the disciplined bettor, BTTSPlays strips away the emotion of major US sports. By rigorously tracking line movements and identifying mathematically advantageous +EV spots, this brand focuses on long-term sustainability and beating the closing line.",
+          "$6.99 / month",
+          "3 Free Days of VIP: $0 Enjoy 3 free days of all VIP plays. Your subscription automatically renews at the standard monthly VIP rate unless canceled before your trial ends.",
+          "BANK OF DENNIS VIP 365 DAYS Plan : $100 THIS IS A SPECIAL ONE TIME 365 DAY PLAN FOR JUST $100.00. There are limited slots for this plan!",
+          "FREE Three Day VIP Trial: $0 3 Free Days of early access to all of my plays each day. You will be able to lock in the value before the lines shift. Unit sizes to help you manage your bankroll and profit long-term. Books with the best prices for each play. Exclusive parlays and lottos. The ability to tail ALL of my plays and grow your bankroll with the Perfect Props community. Renews at monthly rate"
+        ]
+      },
+      {
+        "route": "/terms",
+        "violation": "Dollar signs detected (should use units)",
+        "examples": ["(a) ONE HUNDRED U.S. DOLLARS (US $100); OR"]
+      }
+    ],
+    "layoutIssues": [
+      {
+        "route": "/sitemap.xml",
+        "viewport": "mobile",
+        "issue": "Horizontal overflow detected"
+      }
+    ],
+    "consoleErrors": [
+      {
+        "route": "/",
+        "viewport": "mobile",
+        "messages": [
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          },
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          }
+        ]
+      },
+      {
+        "route": "/",
+        "viewport": "tablet",
+        "messages": [
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          },
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          },
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          }
+        ]
+      },
+      {
+        "route": "/",
+        "viewport": "desktop",
+        "messages": [
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          },
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          },
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          }
+        ]
+      },
+      {
+        "route": "/",
+        "viewport": "desktop-xl",
+        "messages": [
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          },
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          },
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          },
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          }
+        ]
+      },
+      {
+        "route": "/leaderboard",
+        "viewport": "mobile",
+        "messages": [
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          },
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          }
+        ]
+      },
+      {
+        "route": "/leaderboard",
+        "viewport": "tablet",
+        "messages": [
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          },
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          },
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcmsgnfykr0000l8043aezu6hj%2Favatar.webp%3Fv%3D1785971140286&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          }
+        ]
+      },
+      {
+        "route": "/leaderboard",
+        "viewport": "desktop",
+        "messages": [
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcmsgnfykr0000l8043aezu6hj%2Favatar.webp%3Fv%3D1785971140286&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          },
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          },
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          }
+        ]
+      },
+      {
+        "route": "/leaderboard",
+        "viewport": "desktop-xl",
+        "messages": [
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          },
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcmsgnfykr0000l8043aezu6hj%2Favatar.webp%3Fv%3D1785971140286&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          },
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          }
+        ]
+      },
+      {
+        "route": "/picks",
+        "viewport": "desktop",
+        "messages": [
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          }
+        ]
+      },
+      {
+        "route": "/picks",
+        "viewport": "desktop-xl",
+        "messages": [
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          }
+        ]
+      },
+      {
+        "route": "/packages",
+        "viewport": "mobile",
+        "messages": [
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          }
+        ]
+      },
+      {
+        "route": "/packages",
+        "viewport": "tablet",
+        "messages": [
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          }
+        ]
+      },
+      {
+        "route": "/packages",
+        "viewport": "desktop",
+        "messages": [
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          }
+        ]
+      },
+      {
+        "route": "/packages",
+        "viewport": "desktop-xl",
+        "messages": [
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 ()",
+            "location": {
+              "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+              "line": 0,
+              "column": 0,
+              "lineNumber": 0,
+              "columnNumber": 0
+            }
+          }
+        ]
+      }
+    ],
+    "networkErrors": [
+      {
+        "route": "/",
+        "viewport": "mobile",
+        "errors": [
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          },
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          }
+        ]
+      },
+      {
+        "route": "/",
+        "viewport": "tablet",
+        "errors": [
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          },
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          },
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          }
+        ]
+      },
+      {
+        "route": "/",
+        "viewport": "desktop",
+        "errors": [
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          },
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          },
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          }
+        ]
+      },
+      {
+        "route": "/",
+        "viewport": "desktop-xl",
+        "errors": [
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          },
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          },
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          },
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          }
+        ]
+      },
+      {
+        "route": "/leaderboard",
+        "viewport": "mobile",
+        "errors": [
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          },
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          }
+        ]
+      },
+      {
+        "route": "/leaderboard",
+        "viewport": "tablet",
+        "errors": [
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          },
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          },
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcmsgnfykr0000l8043aezu6hj%2Favatar.webp%3Fv%3D1785971140286&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          }
+        ]
+      },
+      {
+        "route": "/leaderboard",
+        "viewport": "desktop",
+        "errors": [
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcmsgnfykr0000l8043aezu6hj%2Favatar.webp%3Fv%3D1785971140286&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          },
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          },
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          }
+        ]
+      },
+      {
+        "route": "/leaderboard",
+        "viewport": "desktop-xl",
+        "errors": [
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          },
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcmsgnfykr0000l8043aezu6hj%2Favatar.webp%3Fv%3D1785971140286&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          },
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          }
+        ]
+      },
+      {
+        "route": "/picks",
+        "viewport": "desktop",
+        "errors": [
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          }
+        ]
+      },
+      {
+        "route": "/picks",
+        "viewport": "desktop-xl",
+        "errors": [
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          }
+        ]
+      },
+      {
+        "route": "/packages",
+        "viewport": "mobile",
+        "errors": [
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          }
+        ]
+      },
+      {
+        "route": "/packages",
+        "viewport": "tablet",
+        "errors": [
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          }
+        ]
+      },
+      {
+        "route": "/packages",
+        "viewport": "desktop",
+        "errors": [
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          }
+        ]
+      },
+      {
+        "route": "/packages",
+        "viewport": "desktop-xl",
+        "errors": [
+          {
+            "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lu1p701vnel302q7osq4g%2Favatar.webp%3Fv%3D1785964085998&w=32&q=75",
+            "status": 400,
+            "statusText": ""
+          }
+        ]
+      }
+    ]
+  }
+}
