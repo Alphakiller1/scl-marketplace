@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
@@ -29,7 +30,7 @@ import {
   resolveStorefrontPackageReadiness,
   storefrontTransition,
 } from "@/lib/storefront-review";
-import { syncWhopStorefront } from "@/lib/whop-sync";
+import { pushPackageToWhop, syncWhopStorefront } from "@/lib/whop-sync";
 import { whopAffiliateUsername, whopOAuthConfigured } from "@/lib/whop-config";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -416,6 +417,29 @@ export async function adminUpdateStoreConnectionAction(
   return { ok: true };
 }
 
+/**
+ * Mirror an SCL storefront edit up to Whop, after the response.
+ *
+ * Called only from explicit SCL edits — never from `syncWhopStorefront`. That
+ * asymmetry is the loop guard: an oscillation needs a sync-triggers-push edge,
+ * and there isn't one. A no-op for Winible and unattached packages.
+ *
+ * Deliberately fire-and-forget: the edit is already committed, so a Whop
+ * outage must not fail the save or make an admin wait on a third party.
+ */
+function mirrorPackageToWhop(packageId: string): void {
+  after(async () => {
+    try {
+      const result = await pushPackageToWhop(packageId);
+      if (!result.ok) {
+        console.warn(`[whop-push] ${packageId}: ${result.error}`);
+      }
+    } catch (err) {
+      console.error("[whop-push] unexpected failure:", err);
+    }
+  });
+}
+
 export async function adminSavePackageAction(
   input: AdminPackageInput,
 ): Promise<ActionResult & { packageId?: string }> {
@@ -530,6 +554,7 @@ export async function adminSavePackageAction(
     return pkg.id;
   });
 
+  mirrorPackageToWhop(packageId);
   await revalidateCommercePaths(capper.user.username, capper.user.id);
   return { ok: true, packageId };
 }
@@ -576,6 +601,9 @@ export async function adminSetPackageActiveAction(
     }
   });
 
+  // Publishing or hiding an offer is exactly the change a capper expects to see
+  // reflected on their Whop storefront.
+  mirrorPackageToWhop(pkg.id);
   await revalidateCommercePaths(pkg.capper.user.username, pkg.capper.user.id);
   return { ok: true };
 }

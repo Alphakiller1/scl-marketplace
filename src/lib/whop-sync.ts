@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import {
   buildWhopProductCheckoutUrl,
   listWhopProducts,
+  updateWhopProduct,
   type WhopProductListItem,
 } from "@/lib/whop-api";
 import {
@@ -344,4 +345,77 @@ export function whopWebhookCompanyId(
   }
   if (typeof data.company_id === "string") return data.company_id;
   return null;
+}
+
+/**
+ * Push an SCL storefront edit back to Whop — the outbound half of the sync.
+ *
+ * Only ever called from an explicit SCL edit, never from `syncWhopStorefront`.
+ * That asymmetry is what prevents an oscillation: the cycle needs a
+ * sync-triggers-push edge, and that edge simply does not exist. Whop's own
+ * `product.updated` webhook then writes the same values back into SCL, which is
+ * a no-op rather than a new push.
+ *
+ * Title, headline and visibility only. Price lives on a Whop Plan and decides
+ * what real customers are charged — SCL owns presentation, Whop owns money.
+ *
+ * Returns a typed result and never throws: the SCL edit has already been saved
+ * by the time this runs, and a Whop outage must not undo it or surface as a
+ * failed save.
+ */
+export async function pushPackageToWhop(
+  packageId: string,
+): Promise<{ ok: true; pushed: boolean } | { ok: false; error: string }> {
+  const pkg = await prisma.package.findUnique({
+    where: { id: packageId },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      isActive: true,
+      externalProductId: true,
+      affiliateProvider: true,
+      storeConnection: {
+        select: {
+          id: true,
+          provider: true,
+          whopAccessToken: true,
+          whopRefreshToken: true,
+          whopTokenExpiresAt: true,
+          whopCompanyId: true,
+        },
+      },
+    },
+  });
+
+  // Not a Whop-backed offer: nothing upstream to update. Not an error — most
+  // packages are Winible or unattached carry-overs.
+  const connection = pkg?.storeConnection;
+  if (
+    !pkg?.externalProductId ||
+    !connection ||
+    connection.provider !== "WHOP"
+  ) {
+    return { ok: true, pushed: false };
+  }
+  if (!connection.whopAccessToken || !connection.whopCompanyId) {
+    return { ok: true, pushed: false };
+  }
+
+  // Reuse the stored token. Refresh stays syncWhopStorefront's job — a push is
+  // a side effect of an edit that has already been saved, so an expired token
+  // should report a clear failure, not silently mutate credentials from a code
+  // path nobody is watching.
+  const result = await updateWhopProduct({
+    accessToken: connection.whopAccessToken,
+    productId: pkg.externalProductId,
+    update: {
+      title: pkg.title,
+      headline: pkg.description,
+      visibility: pkg.isActive ? "visible" : "hidden",
+      metadata: { scl_pushed_at: new Date().toISOString() },
+    },
+  });
+  if (!result.ok) return result;
+  return { ok: true, pushed: true };
 }
