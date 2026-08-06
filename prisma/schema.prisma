@@ -532,6 +532,11 @@ model Play {
   // and existing reads are unaffected. Populated by createPlay on the event-bound path.
   eventId          String? // official schedule/odds event id (C2 event binding)
   eventLabel       String? // human-readable matchup captured with the board event
+  // The fixture this play belongs to, when no eventId binds it. Legacy imports
+  // carry Home/Away in the source rows; without them a bare "Over 7 total" can
+  // never be matched to a game and stays PENDING forever.
+  homeTeam         String?
+  awayTeam         String?
   eventStartsAt    DateTime? // scheduled first pitch/tip; drives the C1 pre-game lock
   loggedPreGame    Boolean          @default(false) // createdAt < eventStartsAt (C1)
   line             Decimal?         @db.Decimal(10, 2) // structured point/total (C2)

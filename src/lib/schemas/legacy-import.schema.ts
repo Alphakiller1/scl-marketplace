@@ -26,6 +26,10 @@ export const legacyPlaySchema = z
   .object({
     sport: z.string().min(1),
     league: z.string().optional(),
+    // The fixture a bare pick belongs to. Without these an imported
+    // "Over 7 total" names no game and can never be graded.
+    homeTeam: z.string().max(60).optional(),
+    awayTeam: z.string().max(60).optional(),
     market: z.string().min(1),
     selection: z.string().min(1),
     oddsAmerican: z.number().int(),

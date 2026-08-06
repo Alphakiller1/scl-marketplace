@@ -584,6 +584,12 @@ def build_play(r: dict, acct_key: str, warn: Counter) -> dict | None:
         warn["unparseable date"] += 1
         return None
 
+    # Home/Away are the ONLY thing that can bind a bare pick like "Over 7 total"
+    # to a game — nothing in that selection names one. Dropping these columns is
+    # why such plays stayed PENDING forever.
+    home = clean(r.get("Home"))
+    away = clean(r.get("Away"))
+
     play = {
         "sport": sport,
         "market": market_for(ptype, r.get("Pick"), sport),
@@ -599,6 +605,10 @@ def build_play(r: dict, acct_key: str, warn: Counter) -> dict | None:
     }
     if profit is not None:
         play["profitUnits"] = round(profit, 2)
+    if home:
+        play["homeTeam"] = home[:60]
+    if away:
+        play["awayTeam"] = away[:60]
     league = clean(r.get("Leag"))
     if league:
         play["league"] = league[:40]

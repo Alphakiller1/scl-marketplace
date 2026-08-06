@@ -91,6 +91,10 @@ const WEAK_NICKNAMES = new Set([
   "united",
   "city",
   "stars",
+  // Two MLB clubs end in "Sox", so the last-token fallback matched BOTH sides of
+  // a White Sox @ Red Sox game and the matcher correctly refused to pick one.
+  // Dropping it promotes the distinguishing word — "red" vs "white".
+  "sox",
 ]);
 
 /**
@@ -243,6 +247,16 @@ export function findGame(
   // play's own date means an unfinished game simply finds no match and waits
   // for the next cron run, which is the intended behaviour.
   const sportGames = sameFixtureWindow(play, bySport);
+
+  // A play that records its own fixture needs no name guessing. Imported legacy
+  // rows carry Home/Away from the source platform, which is the only thing that
+  // can bind a bare "Over 7 total" — nothing in that selection names a game.
+  if (play.homeTeam && play.awayTeam) {
+    const bound = sportGames.filter((g) =>
+      teamsAreOpponents(play.homeTeam!, play.awayTeam!, g),
+    );
+    if (bound.length) return sole(bound);
+  }
 
   const matchup = parseMatchupSides(play.selection);
   if (matchup) {
