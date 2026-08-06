@@ -1,3 +1,4 @@
+import { PROP_MARKET_LABEL } from "@/lib/odds-verify";
 import type { SettledGame } from "@/lib/results/settled-game";
 
 /**
@@ -28,14 +29,36 @@ export type GradablePlay = {
   createdAt?: Date | null;
 };
 
+/**
+ * Every market label the board stores for a player prop, normalized.
+ *
+ * The board writes the DISPLAY label ("Points"), not the Odds API key
+ * ("player_points"), so the `market.includes("player")` test below never fired
+ * for a board-entered prop. The stat-word test on the selection didn't catch
+ * them either, because the board's prop selection text is `player side line`
+ * ("Sabrina Ionescu Under 19.5") and names no stat.
+ *
+ * A prop that reaches `resolveOutcome` is graded as a GAME TOTAL: it sees
+ * "under 19.5", adds the two final scores, and settles a 19.5-point player line
+ * against a 178-point game. Both board props on record lost that way while
+ * winning in reality.
+ */
+const PROP_MARKET_LABELS = new Set(
+  Object.values(PROP_MARKET_LABEL).map((label) => norm(label)),
+);
+
 /** Player props / partial-game markets defer until a dedicated stats provider exists. */
 export function isDeferredProp(play: GradablePlay): boolean {
   const market = norm(play.market);
   const selection = norm(play.selection);
+  if (PROP_MARKET_LABELS.has(market)) return true;
   if (market.includes("prop") || market.includes("player")) return true;
   if (market.includes("inning") || selection.includes("first five"))
     return true;
   if (/\bf5\b/.test(selection) || selection.includes("innings")) return true;
+  // A team total is not a game total. "Nationals TT O4.5" compared against both
+  // teams' combined runs is a near-guaranteed spurious WIN.
+  if (/\btt\b/.test(selection) || selection.includes("team total")) return true;
   if (
     /\b(points|rebounds|assists|yards|touchdowns|strikeouts|hits)\b/.test(
       selection,

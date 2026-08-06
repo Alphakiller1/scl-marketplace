@@ -1,3 +1,4 @@
+import { SPORT_KEYS } from "@/lib/constants";
 import type { TodayPick } from "@/lib/mock";
 import type { ProofReceiptState } from "@/lib/proof-receipt";
 import { isVerifiedTier } from "@/lib/verification";
@@ -39,7 +40,7 @@ export function parsePublicPicksLedgerFilters(
       status === "pending" || status === "live" || status === "graded"
         ? status
         : "all",
-    sport: sport && /^[A-Z0-9-]{2,12}$/.test(sport) ? sport : "all",
+    sport: sport && SPORT_KEYS.includes(sport as never) ? sport : "all",
   };
 }
 

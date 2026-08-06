@@ -5,7 +5,6 @@ import { MonetizationWizard } from "@/components/scl/monetization-wizard";
 import { WhopOAuthNotice } from "@/components/scl/whop-oauth-notice";
 import { SectionHeader } from "@/components/scl/section";
 import { PackageCard } from "@/components/scl/package-card";
-import { markStorefrontThreadReadAction } from "@/lib/actions/storefront-message.action";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import {
@@ -44,14 +43,6 @@ export default async function MonetizationPage({ searchParams }: Search) {
   const messagesByConnection = capperId
     ? await getStorefrontMessagesForCapper(capperId, connectionIds)
     : {};
-
-  for (const connection of connections) {
-    if (connection.status === "NOT_STARTED") continue;
-    if (sp.thread && sp.thread !== connection.id) continue;
-    await markStorefrontThreadReadAction({
-      storeConnectionId: connection.id,
-    });
-  }
 
   const serializedMessages = Object.fromEntries(
     Object.entries(messagesByConnection).map(([id, rows]) => [

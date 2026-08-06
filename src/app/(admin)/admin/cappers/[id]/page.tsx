@@ -34,7 +34,6 @@ import {
 } from "@/lib/store-connection";
 import { getAdminCapperDetail } from "@/lib/queries/admin-cappers";
 import { getStorefrontMessages } from "@/lib/queries/storefront-messages";
-import { markStorefrontThreadReadAction } from "@/lib/actions/storefront-message.action";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Capper review" };
@@ -81,11 +80,6 @@ export default async function AdminCapperDetailPage({
   const threadMessages = primaryConnection
     ? await getStorefrontMessages(primaryConnection.id)
     : [];
-  if (primaryConnection) {
-    await markStorefrontThreadReadAction({
-      storeConnectionId: primaryConnection.id,
-    });
-  }
 
   return (
     <div className="space-y-6">
