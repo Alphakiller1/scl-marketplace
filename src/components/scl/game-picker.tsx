@@ -11,11 +11,13 @@ import { LeagueMark } from "@/components/scl/league-mark";
 import { SkeletonCard } from "@/components/scl/states";
 import { TeamMark } from "@/components/scl/team-mark";
 import { BookMark } from "@/components/scl/book-mark";
-import { bookShort, isBookKey } from "@/lib/books";
+import { bookShort } from "@/lib/books";
 import {
+  activeRailBook,
   categoryCounts,
   filterGamePickerEvents,
   preGameEvents,
+  railBooks,
   ODDS_BOARD_SPORTS,
 } from "@/lib/game-picker";
 import { dedupeOddsEvents } from "@/lib/odds-board";
@@ -131,21 +133,12 @@ export function GamePicker({
     };
   }, []);
 
-  const profileBooks = useMemo(() => {
-    const raw = booksProp ?? slate?.books ?? [];
-    return raw.filter(isBookKey);
-  }, [booksProp, slate?.books]);
+  const profileBooks = useMemo(
+    () => railBooks(booksProp ?? slate?.books),
+    [booksProp, slate?.books],
+  );
 
-  // Prefer the capper's explicit rail choice; otherwise first profile book (or none).
-  const activeBook =
-    lockedBook && isBookKey(lockedBook) && profileBooks.includes(lockedBook)
-      ? lockedBook
-      : profileBooks.length === 0
-        ? null
-        : bookChoice &&
-            profileBooks.includes(bookChoice as (typeof profileBooks)[number])
-          ? bookChoice
-          : profileBooks[0]!;
+  const activeBook = activeRailBook({ chosen: bookChoice, lockedBook });
 
   // Pre-game only, everywhere. Day defaults, counts, cards, and the focused
   // matchup all read from this list so a started game is never selectable.
@@ -265,19 +258,17 @@ export function GamePicker({
         </span>
       </div>
 
-      {profileBooks.length > 0 ? (
-        <div className="space-y-1.5">
-          <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
-            Source Book
-          </p>
-          <BookRail
-            books={profileBooks}
-            active={activeBook}
-            locked={lockedBook ?? null}
-            onChange={setBookChoice}
-          />
-        </div>
-      ) : null}
+      <div className="space-y-1.5">
+        <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
+          Source Book
+        </p>
+        <BookRail
+          books={profileBooks}
+          active={activeBook}
+          locked={lockedBook ?? null}
+          onChange={setBookChoice}
+        />
+      </div>
 
       {openEvent ? (
         <div className="border-y border-[color:var(--scl-line)] py-2">
@@ -457,7 +448,7 @@ function BookRail({
   books: readonly string[];
   active: string | null;
   locked: string | null;
-  onChange: (book: string) => void;
+  onChange: (book: string | null) => void;
 }) {
   return (
     <div
@@ -465,6 +456,29 @@ function BookRail({
       role="group"
       aria-label="Active sportsbook"
     >
+      {/* Best available across every book — the default, and the only option
+          guaranteed to price every market on the board. */}
+      <button
+        type="button"
+        onClick={() => onChange(null)}
+        disabled={Boolean(locked)}
+        aria-pressed={active === null}
+        aria-label="Best available price across all sportsbooks"
+        title={
+          locked
+            ? `This parlay is locked to ${bookShort(locked)}. Remove all legs to change sportsbooks.`
+            : undefined
+        }
+        className={cn(
+          "scl-data flex h-8 shrink-0 items-center justify-center rounded-full border px-2.5 text-[10px] leading-none font-medium tracking-[0.08em] uppercase transition-colors",
+          active === null
+            ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
+            : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",
+          locked && "cursor-not-allowed opacity-40",
+        )}
+      >
+        Best
+      </button>
       {books.map((key) => {
         const isActive = active === key;
         const disabled = Boolean(locked && key !== locked);

@@ -3,6 +3,7 @@
  * No React / network — unit-testable.
  */
 
+import { BOOK_KEYS, isBookKey } from "@/lib/books";
 import { getOddsForBook, type OddsSelection } from "@/lib/odds-board";
 import { filterBySlateDay, nearTermEvents, type SlateDay } from "@/lib/slate";
 
@@ -146,4 +147,36 @@ export function selectionForActiveBook(
     book: activeBook,
     ...(oddsCapturedAt ? { oddsCapturedAt } : {}),
   };
+}
+
+/**
+ * Sportsbooks to offer in the pick-entry rail.
+ *
+ * `CapperProfile.books` is a preference, never a permission: it narrows the
+ * rail for a capper who has told us where they bet, and is empty for everyone
+ * who hasn't — 115 of 134 cappers at the time of writing. Gating the rail on it
+ * therefore hid the sportsbook switcher from almost every capper, so an empty
+ * (or entirely unrecognised) list falls back to the full supported set.
+ */
+export function railBooks(profileBooks?: readonly string[] | null): string[] {
+  const known = (profileBooks ?? []).filter(isBookKey);
+  return known.length ? known : [...BOOK_KEYS];
+}
+
+/**
+ * The book whose price the board shows, or null for best-available.
+ *
+ * Null is the default on purpose. Pinning the capper's first book means every
+ * market that book doesn't price renders as an unpriced, unclickable chip — the
+ * line reads as missing when it is merely absent at one shop. A parlay's locked
+ * book still wins, because all legs must come from one book.
+ */
+export function activeRailBook(opts: {
+  chosen?: string | null;
+  lockedBook?: string | null;
+}): string | null {
+  const locked = opts.lockedBook;
+  if (locked && isBookKey(locked)) return locked;
+  const chosen = opts.chosen;
+  return chosen && isBookKey(chosen) ? chosen : null;
 }
