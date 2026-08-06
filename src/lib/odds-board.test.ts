@@ -261,3 +261,63 @@ test("normalizeEventBoard attaches bookmaker last_update as oddsCapturedAt", () 
   assert.equal(spread?.oddsCapturedAt, "2026-07-18T18:00:00Z");
   assert.equal(spread?.bookCapturedAt?.fanduel, "2026-07-18T18:00:00Z");
 });
+
+test("alternate prop markets reach the board instead of being dropped", () => {
+  // The milestone ladder lives ONLY under the _alternate key. It was requested
+  // and billed, then discarded because the label lookup held featured keys only.
+  const event = {
+    id: "e1",
+    sport_key: "baseball_mlb",
+    commence_time: "2026-08-06T23:10:00Z",
+    home_team: "Cincinnati Reds",
+    away_team: "Athletics",
+    bookmakers: [
+      {
+        key: "draftkings",
+        last_update: "2026-08-06T21:00:00Z",
+        markets: [
+          {
+            key: "pitcher_strikeouts",
+            outcomes: [
+              {
+                name: "Over",
+                description: "Hunter Greene",
+                point: 5.5,
+                price: -110,
+              },
+            ],
+          },
+          {
+            key: "pitcher_strikeouts_alternate",
+            outcomes: [
+              {
+                name: "Over",
+                description: "Hunter Greene",
+                point: 6.5,
+                price: 145,
+              },
+              {
+                name: "Over",
+                description: "Hunter Greene",
+                point: 7.5,
+                price: 240,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  const board = normalizeEventBoard(
+    event as Parameters<typeof normalizeEventBoard>[0],
+  );
+  const strikeouts = board.filter((s) => s.market === "Strikeouts");
+  const lines = strikeouts
+    .map((s) => s.line)
+    .sort((a, b) => (a ?? 0) - (b ?? 0));
+
+  // Featured line plus both milestone rungs, all under one label.
+  assert.deepEqual(lines, [5.5, 6.5, 7.5]);
+  assert.ok(strikeouts.every((s) => s.player === "Hunter Greene"));
+});
