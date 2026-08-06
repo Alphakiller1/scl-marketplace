@@ -5,6 +5,12 @@
 
 import { isBookKey } from "@/lib/books";
 import {
+  PERIOD_MARKET_LABEL,
+  parsePeriodMarket,
+  periodMarketShortLabel,
+  type PeriodInnings,
+} from "@/lib/period-markets";
+import {
   PROP_MARKET_LABEL,
   impliedProbFromAmerican,
   type RawEventOdds,
@@ -194,6 +200,8 @@ const BOARD_MARKETS: Record<string, "Moneyline" | "Spread" | "Total"> = {
 };
 
 const MARKET_SORT = { Moneyline: 0, Spread: 1, Total: 2 } as const;
+/** Period lines sit between the full-game block and props. */
+const PERIOD_RANK = 5;
 const PROP_RANK = 10;
 const FEATURED_KEYS = new Set(["h2h", "spreads", "totals"]);
 
@@ -208,7 +216,14 @@ type BoardGroup = {
 };
 
 function marketRank(market: string): number {
-  return MARKET_SORT[market as keyof typeof MARKET_SORT] ?? PROP_RANK;
+  const full = MARKET_SORT[market as keyof typeof MARKET_SORT];
+  if (full !== undefined) return full;
+  const period = parsePeriodMarket(market);
+  if (!period) return PROP_RANK;
+  // F3 before F5 before F7, moneyline/spread/total within each.
+  const kindRank =
+    period.kind === "moneyline" ? 0 : period.kind === "spread" ? 1 : 2;
+  return PERIOD_RANK + period.innings / 10 + kindRank / 100;
 }
 
 /**
@@ -258,14 +273,34 @@ export function normalizeEventBoard(
       typeof bm.last_update === "string" ? bm.last_update : undefined;
     for (const m of bm.markets ?? []) {
       const gameMarket = BOARD_MARKETS[m.key];
+      const periodLabel = PERIOD_MARKET_LABEL[m.key];
       const propLabel = PROP_MARKET_LABEL[m.key];
-      if (!gameMarket && !propLabel) continue;
+      if (!gameMarket && !periodLabel && !propLabel) continue;
       const isFeatured = FEATURED_KEYS.has(m.key);
       for (const o of m.outcomes ?? []) {
         if (typeof o.price !== "number") continue;
         const price = Math.round(o.price);
         const line = typeof o.point === "number" ? o.point : undefined;
-        if (gameMarket) {
+        if (periodLabel) {
+          // Spread/total segments need a line; the moneyline segment has none.
+          // A 3-way book prices "Draw" here too — kept, since a tie is a real
+          // first-N-innings result and grading settles it explicitly.
+          const kind = parsePeriodMarket(periodLabel)?.kind;
+          if (kind !== "moneyline" && line === undefined) continue;
+          add(
+            `q|${periodLabel}|${o.name.toLowerCase()}|${line ?? ""}`,
+            () => ({
+              market: periodLabel,
+              side: o.name,
+              line,
+              featured: false,
+            }),
+            bookKey,
+            price,
+            false,
+            lastUpdate,
+          );
+        } else if (gameMarket) {
           if (gameMarket !== "Moneyline" && line === undefined) continue;
           add(
             `g|${gameMarket}|${o.name.toLowerCase()}|${line ?? ""}`,
@@ -308,7 +343,35 @@ export function normalizeEventBoard(
     if (!best) continue;
     const book = best.book || undefined;
     const oddsCapturedAt = best.capturedAt;
-    if (g.player) {
+    const period = g.player ? null : parsePeriodMarket(g.market);
+    if (period) {
+      // Selection text carries the segment as well as the market label, so the
+      // record still reads as a period pick anywhere only the selection shows.
+      const short = periodMarketShortLabel(
+        period.innings as PeriodInnings,
+        period.kind ?? "moneyline",
+      );
+      const signed =
+        g.line == null
+          ? ""
+          : period.kind === "spread"
+            ? ` ${g.line > 0 ? "+" : ""}${g.line}`
+            : ` ${g.line}`;
+      const text = `${g.side}${signed} (${short})`;
+      selections.push({
+        label: text,
+        market: g.market,
+        selection: text,
+        side: g.side,
+        line: g.line,
+        featured: false,
+        oddsAmerican: best.price,
+        book,
+        bookPrices: best.bookPrices,
+        ...(best.bookCapturedAt ? { bookCapturedAt: best.bookCapturedAt } : {}),
+        ...(oddsCapturedAt ? { oddsCapturedAt } : {}),
+      });
+    } else if (g.player) {
       const text = `${g.player} ${g.side} ${g.line}`;
       selections.push({
         label: text,

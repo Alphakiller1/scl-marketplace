@@ -4,6 +4,9 @@ import { test } from "node:test";
 import {
   parsePeriodTotal,
   overUnderOutcome,
+  periodScores,
+  resolvePeriodMoneyline,
+  resolvePeriodSpread,
   resolvePeriodTotal,
   type BoxScore,
 } from "@/lib/results/prop-resolve";
@@ -70,4 +73,58 @@ test("resolvePeriodTotal returns null for non-period markets (defers)", () => {
   };
   assert.equal(resolvePeriodTotal("Dodgers ML", box), null);
   assert.equal(resolvePeriodTotal("Jokic Over 27.5 Pts", box), null);
+});
+
+test("resolvePeriodMoneyline settles from the segment, not the final score", () => {
+  // Reds 2, Athletics 1 through five (final 3-2) — the real game that exposed
+  // the gap: the segment and the final agree here.
+  const real: BoxScore = {
+    homePeriods: [0, 1, 0, 0, 1, 1, 0, 0, 0],
+    awayPeriods: [1, 0, 0, 0, 0, 1, 0, 0, 0],
+  };
+  assert.equal(resolvePeriodMoneyline(real, 5, true), "WIN"); // home led 2-1
+  assert.equal(resolvePeriodMoneyline(real, 5, false), "LOSS");
+
+  // The case that matters: away wins the segment 2-0 but loses the game 2-5.
+  // Reading the final score would flip both sides' results.
+  const diverges: BoxScore = {
+    homePeriods: [0, 0, 0, 0, 0, 5, 0, 0, 0],
+    awayPeriods: [1, 1, 0, 0, 0, 0, 0, 0, 0],
+  };
+  assert.equal(resolvePeriodMoneyline(diverges, 5, false), "WIN");
+  assert.equal(resolvePeriodMoneyline(diverges, 5, true), "LOSS");
+  assert.equal(resolvePeriodMoneyline(diverges, 9, true), "WIN");
+});
+
+test("resolvePeriodMoneyline settles an explicit Draw selection", () => {
+  const tied: BoxScore = {
+    homePeriods: [1, 0, 0, 0, 0],
+    awayPeriods: [0, 0, 1, 0, 0],
+  };
+  assert.equal(resolvePeriodMoneyline(tied, 5, null), "WIN");
+  assert.equal(resolvePeriodMoneyline(tied, 5, true), null); // 2-way vs 3-way unknown
+  const decided: BoxScore = {
+    homePeriods: [1, 1, 0, 0, 0],
+    awayPeriods: [0, 0, 1, 0, 0],
+  };
+  assert.equal(resolvePeriodMoneyline(decided, 5, null), "LOSS");
+});
+
+test("resolvePeriodSpread pushes on the exact number", () => {
+  const box: BoxScore = {
+    homePeriods: [0, 1, 0, 0, 1],
+    awayPeriods: [1, 0, 0, 0, 0],
+  };
+  // home 2, away 1 after five
+  assert.equal(resolvePeriodSpread(box, 5, true, -1), "PUSH");
+  assert.equal(resolvePeriodSpread(box, 5, true, -0.5), "WIN");
+  assert.equal(resolvePeriodSpread(box, 5, true, -1.5), "LOSS");
+  assert.equal(resolvePeriodSpread(box, 5, false, 1.5), "WIN");
+});
+
+test("period resolvers defer when line-scores don't reach the segment", () => {
+  const partial: BoxScore = { homePeriods: [0, 1, 0], awayPeriods: [1, 0, 0] };
+  assert.equal(resolvePeriodMoneyline(partial, 5, true), null);
+  assert.equal(resolvePeriodSpread(partial, 5, true, -1.5), null);
+  assert.equal(periodScores(partial, 3)?.home, 1);
 });

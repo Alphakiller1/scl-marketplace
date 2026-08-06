@@ -16,6 +16,11 @@
  * never a rejection — the caller marks it SELF-REPORTED.
  */
 
+import {
+  periodMarketKeysForLabel,
+  periodMarketKeysForSport,
+} from "@/lib/period-markets";
+
 /** Verification region — US cappers bet US books; keeps per-event cost at 1× regions. */
 export const VERIFY_REGIONS = "us";
 /** Fetch-cache TTL (seconds). A fresh-ish snapshot near submission is enough for a bound. */
@@ -72,10 +77,21 @@ export function propMarketKeysWithAlternates(propKey: string): string[] {
   return [propKey, `${propKey}_alternate`];
 }
 
-/** All markets requested in the single bundled per-event call for a sport. */
+/**
+ * All markets requested in the single bundled per-event call for a sport.
+ *
+ * Period (first-N-innings) markets ride along here rather than on the bulk board
+ * call: the Odds API serves non-featured markets only from the per-event
+ * endpoint, which is also where per-book attribution comes from — so asking here
+ * is what gives every capper F3/F5/F7 prices broken out by book.
+ */
 export function verificationMarkets(sclSport: string): string[] {
   const props = PROP_MARKETS_BY_SPORT[sclSport] ?? [];
-  return [...CORE_MARKETS, ...props.flatMap(propMarketKeysWithAlternates)];
+  return [
+    ...CORE_MARKETS,
+    ...periodMarketKeysForSport(sclSport),
+    ...props.flatMap(propMarketKeysWithAlternates),
+  ];
 }
 
 /**
@@ -119,6 +135,10 @@ export const GAME_MARKET_KEYS: Record<string, string[]> = {
 export function marketKeysForMarket(market: string): string[] {
   const m = market.trim();
   if (GAME_MARKET_KEYS[m]) return GAME_MARKET_KEYS[m];
+  // Checked before the prop table: a period label is a game line, not a prop,
+  // and it has no `_alternate` variant to bundle.
+  const periodKeys = periodMarketKeysForLabel(m);
+  if (periodKeys) return periodKeys;
   // A pick logged at a milestone line (6+ strikeouts) lives in the alternate
   // market, so verification has to look in both or it would fail to price it.
   const propKey = PROP_LABEL_TO_KEY[m];
