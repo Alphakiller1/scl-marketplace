@@ -11,7 +11,6 @@ import { LiveBoardShell } from "@/components/scl/live-board-shell";
 import { HomeVerificationRail } from "@/components/scl/home-verification-rail";
 import { PlatformClvSummary } from "@/components/scl/platform-clv-summary";
 import { SectionHeader } from "@/components/scl/section";
-import { BoardWindowRotator } from "@/components/scl/board-window-rotator";
 import { TopCappersLive } from "@/components/scl/top-cappers-live";
 import {
   TrackRecordCta,
@@ -121,21 +120,12 @@ async function HomeLiveStrip() {
   return <LiveActivityTicker items={liveTicker.items} />;
 }
 
-/** Windows the home snapshot rotates through, in order. */
-const BOARD_WINDOWS = [
-  { id: "90d", label: "90D", title: "last 90 days" },
-  { id: "30d", label: "30D", title: "last 30 days" },
-  { id: "7d", label: "7D", title: "last 7 days" },
-] as const;
-
 async function HomeTopBoard() {
-  // Both windows are fetched here, not on rotation: getLeaderboardResult is
-  // React-cached and the rotator only toggles which server-rendered table is
-  // visible, so cycling costs no further queries.
-  const [ninety, thirty, seven, featured] = await Promise.all([
+  // ONE window, not three. Rotating 90d/30d/7d meant three full leaderboard
+  // scans per render of the home page, which is what made this section slow to
+  // load — the snapshot is a 90-day view, so it costs a 90-day query.
+  const [leaderboard, featured] = await Promise.all([
     getLeaderboardResult({ verifiedOnly: false, window: "90d" }),
-    getLeaderboardResult({ verifiedOnly: false, window: "30d" }),
-    getLeaderboardResult({ verifiedOnly: false, window: "7d" }),
     getFeaturedGradedPlay(),
   ]);
 
@@ -143,52 +133,20 @@ async function HomeTopBoard() {
   // exists for picks SCL captured pre-game against a live market, which a
   // record imported from another platform can never have — sorting by it put
   // every carried-over capper at zero and emptied the list.
-  const boards = [ninety, thirty, seven].map((result) => ({
-    failed: result.failed,
-    cappers: sortLeaderboard(result.cappers, "units")
-      .slice(0, 10)
-      .map(slimBoardCapper),
-  }));
-
-  // A window with nobody in it is dropped rather than rotated into: an empty
-  // table cycling past is worse than simply not offering that window yet, and
-  // 7d can legitimately be thin on a quiet week.
-  const views = BOARD_WINDOWS.map((w, i) => ({
-    ...w,
-    board: boards[i]!,
-  })).filter((v) => v.board.cappers.length > 0);
-  const leaderboard = views[0]?.board ?? boards[0]!;
+  const topCappers = sortLeaderboard(leaderboard.cappers, "units")
+    .slice(0, 10)
+    .map(slimBoardCapper);
 
   return (
     <div className="scl-board min-w-0">
       <div className="relative grid min-w-0 gap-0 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,0.85fr)] lg:items-start">
         <div className="scl-board-rule relative min-w-0 border-b px-3 py-4 sm:px-5 sm:py-6 lg:border-r lg:border-b-0 lg:px-5 lg:pr-6 lg:pl-5">
           <div className="scl-live-rail hidden lg:block" aria-hidden />
-          {views.length > 1 ? (
-            <BoardWindowRotator
-              views={views.map(({ id, label, title }) => ({
-                id,
-                label,
-                title,
-              }))}
-              label="Top cappers by window"
-            >
-              {views.map((view) => (
-                <TopCappersLive
-                  key={view.id}
-                  cappers={view.board.cappers}
-                  failed={view.board.failed}
-                  activeWindow={view.id}
-                />
-              ))}
-            </BoardWindowRotator>
-          ) : (
-            <TopCappersLive
-              cappers={leaderboard.cappers}
-              failed={leaderboard.failed}
-              activeWindow={views[0]?.id ?? "90d"}
-            />
-          )}
+          <TopCappersLive
+            cappers={topCappers}
+            failed={leaderboard.failed}
+            activeWindow="90d"
+          />
         </div>
         <div className="min-w-0 space-y-5 px-3 py-4 sm:space-y-7 sm:px-5 sm:py-6 lg:pl-6">
           <FeaturedProofReceipt play={featured.play} failed={featured.failed} />

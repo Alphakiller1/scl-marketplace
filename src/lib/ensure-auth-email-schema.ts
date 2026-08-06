@@ -17,6 +17,25 @@ export function ensureAuthEmailSchema(client: PrismaClient): Promise<void> {
   if (!ensurePromise) {
     ensurePromise = (async () => {
       try {
+        // Cheap catalog check before the expensive part.
+        //
+        // The body below rewrites duplicate usernames with a window function
+        // over the whole User table and then builds a unique index — and it ran
+        // on EVERY cold serverless instance, awaited from `authorize()`, i.e.
+        // directly on the login critical path. Each deploy spawns fresh
+        // instances, so every deploy made the next sign-in pay a table scan and
+        // an index build, which is what produced "Sign-in is taking too long".
+        //
+        // The patch has long since applied, so the honest cost is one index
+        // lookup. Skipping when the index exists keeps the safety net for a
+        // fresh database while taking it off the hot path everywhere else.
+        const [{ present } = { present: false }] = await client.$queryRawUnsafe<
+          { present: boolean }[]
+        >(
+          `SELECT to_regclass('scl."User_email_username_key"') IS NOT NULL AS present`,
+        );
+        if (present) return;
+
         await client.$executeRawUnsafe(`
           WITH ranked AS (
             SELECT
