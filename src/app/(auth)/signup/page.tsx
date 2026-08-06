@@ -88,14 +88,17 @@ export default function SignupPage() {
         </div>
       );
     }
-    // Email couldn't be delivered: keep signup seamless with a one-tap verify instead of
-    // stranding the user waiting on an email that won't arrive.
+    // Email couldn't be delivered. With the verify gate off the server hands back a one-tap
+    // link so signup stays seamless; with it on there is no bypass, so say plainly that the
+    // email failed rather than sending them to watch an inbox nothing arrived in.
     return (
       <div className="space-y-5">
         <AuthHeader
           icon={MailCheck}
           eyebrow="Account Created"
-          title="One tap to finish"
+          title={
+            done.verifyUrl ? "One tap to finish" : "We couldn't send that email"
+          }
           description="Your SCL identity is reserved. Confirm your email to activate capper access."
         />
         {done.verifyUrl ? (
@@ -108,9 +111,9 @@ export default function SignupPage() {
           </Button>
         ) : (
           <AuthStatusNotice
-            tone="info"
-            title="Almost there"
-            description="Use the resend option from the log-in page to get your verification link."
+            tone="error"
+            title="Verification email failed to send"
+            description="Your account is created. Request a new link from the log-in page, and contact SCL support if it still doesn't arrive."
           />
         )}
         <Button

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { emailVerificationEnforced } from "@/lib/email-verification-policy";
 import { getCurrentPolicyBundle } from "@/lib/queries/policies";
 
 /**
@@ -67,11 +68,19 @@ export const getCurrentAccount = cache(async () => {
   };
 });
 
-/** Require a verified, active account. */
+/**
+ * Require an active account — and a verified email when the gate is on.
+ *
+ * The unverified check is conditional because `emailVerified` is now only ever
+ * written by a real verification click. Signup no longer pre-stamps it to keep
+ * people out of `/verify`, so gating unconditionally here would strand every
+ * account created while the gate is off.
+ */
 export async function requireActiveUser() {
   const account = await getCurrentAccount();
   if (!account) redirect("/login");
-  if (account.accountStatus === "PENDING" || !account.emailVerified) {
+  if (account.accountStatus === "PENDING") redirect("/verify");
+  if (emailVerificationEnforced() && !account.emailVerified) {
     redirect("/verify");
   }
   if (
@@ -100,10 +109,10 @@ export async function requireCapperAccess() {
   return requireCurrentPolicyAcceptance();
 }
 
-/** Require a signed-in user with a verified email. */
+/** Require a signed-in user with a verified email (when the gate is on). */
 export async function requireVerifiedUser() {
   const user = await requireActiveUser();
-  if (!user.emailVerified) redirect("/verify");
+  if (emailVerificationEnforced() && !user.emailVerified) redirect("/verify");
   return user;
 }
 

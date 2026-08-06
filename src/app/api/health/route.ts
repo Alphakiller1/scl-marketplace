@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { probeMailer } from "@/lib/email-deliverability";
 import { emailSenderStatus } from "@/lib/email-sender";
+import { emailVerificationEnforced } from "@/lib/email-verification-policy";
 import { getCoreSchemaHealth } from "@/lib/queries/release-readiness";
 import {
   supabaseIntegrationStatus,
@@ -18,6 +20,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const health = await getCoreSchemaHealth();
   const storageProbe = await probeProfileMediaStorage();
+  const mailer = await probeMailer();
   const release = process.env.VERCEL_GIT_COMMIT_SHA ?? "local";
   const releaseIdentified =
     process.env.VERCEL_ENV !== "production" || release !== "local";
@@ -55,7 +58,17 @@ export async function GET() {
       },
       deployment: { releaseIdentified },
       supabase,
-      email: emailSenderStatus(),
+      email: {
+        ...emailSenderStatus(),
+        // Asked of the provider, not of the environment. `configured` only ever
+        // meant "EMAIL_FROM is set", which stayed true through a total outage.
+        deliverable: mailer.deliverable,
+        domainStatus: mailer.domainStatus,
+        blockedBy: mailer.reason,
+        // Whether an unverified email actually keeps anyone out. Signup never
+        // writes `emailVerified`, so this is the only thing that gates access.
+        verificationEnforced: emailVerificationEnforced(),
+      },
       whop: whopIntegrationStatus(),
       release,
       checkedAt: new Date().toISOString(),
