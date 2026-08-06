@@ -12,6 +12,8 @@ import {
 import {
   ensureProfileMediaBucket,
   getProfileMediaStorage,
+  profileMediaPublicUrl,
+  uploadProfileMediaObject,
 } from "@/lib/supabase-storage";
 
 type ProfileMediaResult =
@@ -77,31 +79,15 @@ export async function uploadProfileMediaAction(
   }
 
   const path = `${account.id}/${kind}.webp`;
-  const { error: uploadError } = await storage.client.storage
-    .from(storage.bucket)
-    .upload(path, optimizedImage, {
-      cacheControl: "3600",
-      contentType: "image/webp",
-      upsert: true,
-    });
+  const uploadResult = await uploadProfileMediaObject(
+    storage,
+    path,
+    optimizedImage,
+    "image/webp",
+  );
+  if (!uploadResult.ok) return uploadResult;
 
-  if (uploadError) {
-    console.error("[profile-media] upload failed:", uploadError);
-    const message = uploadError.message.toLowerCase();
-    if (message.includes("invalid jwt") || message.includes("api key")) {
-      return {
-        ok: false,
-        error:
-          "Profile media credentials were rejected. Use the Supabase Secret key (sb_secret_…) or legacy service_role key in SUPABASE_SERVICE_ROLE_KEY.",
-      };
-    }
-    return { ok: false, error: "We couldn't upload that image." };
-  }
-
-  const {
-    data: { publicUrl },
-  } = storage.client.storage.from(storage.bucket).getPublicUrl(path);
-  const versionedPublicUrl = `${publicUrl}?v=${Date.now()}`;
+  const versionedPublicUrl = `${profileMediaPublicUrl(storage, path)}?v=${Date.now()}`;
 
   const profile = await prisma.capperProfile.update({
     where: { userId: account.id },
