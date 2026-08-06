@@ -29,8 +29,18 @@ test("MLB requests F3/F5/F7 across all three kinds; other sports request none", 
   }
   // Full-game markets are still there — period markets are additive.
   assert.ok(mlb.includes("h2h") && mlb.includes("alternate_totals"));
-  assert.deepEqual(periodMarketKeysForSport("NBA"), []);
+  // Clock sports get halves instead of innings, never both.
   assert.ok(!verificationMarkets("NBA").some((m) => m.includes("_innings")));
+  assert.deepEqual(periodMarketKeysForSport("NBA"), [
+    "h2h_h1",
+    "spreads_h1",
+    "totals_h1",
+    "h2h_h2",
+    "spreads_h2",
+    "totals_h2",
+  ]);
+  // Hockey has periods, not halves — it gets neither.
+  assert.deepEqual(periodMarketKeysForSport("NHL"), []);
 });
 
 test("stored labels round-trip back to their market key", () => {
@@ -71,4 +81,20 @@ test("parsePeriodMarket also recognizes the shapes legacy imports produced", () 
     kind: "spread",
   });
   assert.equal(isPeriodMarket("First Five Innings"), true);
+});
+
+test("CFL and the other clock sports offer half lines", () => {
+  const cfl = periodMarketKeysForSport("CFL");
+  assert.ok(cfl.includes("h2h_h1") && cfl.includes("totals_h2"));
+  assert.ok(verificationMarkets("CFL").includes("spreads_h1"));
+
+  // Halves are recognised as partial-game markets, so they can never be
+  // settled on a full-game score — but they carry no innings count.
+  assert.deepEqual(parsePeriodMarket("1st Half Moneyline"), {
+    innings: 0,
+    kind: "moneyline",
+  });
+  assert.equal(isPeriodMarket("2nd Half Total"), true);
+  // Full-game markets stay untouched.
+  assert.equal(parsePeriodMarket("Moneyline"), null);
 });

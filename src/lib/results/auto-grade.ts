@@ -94,7 +94,10 @@ async function resolvePeriodPlay(
   games: SettledGame[],
 ): Promise<Outcome | null> {
   const period = parsePeriodMarket(play.market);
-  if (!period || !play.eventId) return null;
+  // innings <= 0 is a half: recognised as a partial-game market (so it is never
+  // graded on the full-game score) but not yet settleable, because the box-score
+  // provider only maps baseball line-scores.
+  if (!period || period.innings <= 0 || !play.eventId) return null;
 
   const box = await fetchPeriodBoxScore(play.sport, play.eventId);
   if (!box) return null;
