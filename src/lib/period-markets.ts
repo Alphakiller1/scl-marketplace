@@ -20,6 +20,18 @@ export type PeriodMarketKind = "moneyline" | "spread" | "total";
 /** Sports with first-N-innings markets on the Odds API. */
 const PERIOD_SPORTS = new Set(["MLB"]);
 
+/** Halves SCL offers. */
+export const PERIOD_HALVES = [1, 2] as const;
+export type PeriodHalf = (typeof PERIOD_HALVES)[number];
+
+/**
+ * Sports with half markets on the Odds API.
+ *
+ * Requested for CFL first, but the market keys are identical across the clock
+ * sports, so withholding them from the rest would be an arbitrary gap.
+ */
+const HALF_SPORTS = new Set(["CFL", "NFL", "NCAAF", "NBA", "NCAAB", "WNBA"]);
+
 const KIND_LABEL: Record<PeriodMarketKind, string> = {
   moneyline: "Moneyline",
   spread: "Spread",
@@ -60,20 +72,59 @@ export function periodMarketShortLabel(
   return `F${innings} ${k}`;
 }
 
+/** Odds API market key for a half, e.g. (1, "total") → totals_h1. */
+export function halfMarketKey(
+  half: PeriodHalf,
+  kind: PeriodMarketKind,
+): string {
+  const prefix =
+    kind === "moneyline" ? "h2h" : kind === "spread" ? "spreads" : "totals";
+  return `${prefix}_h${half}`;
+}
+
+/** Stored `market` label for a half, e.g. "1st Half Moneyline". */
+export function halfMarketLabel(
+  half: PeriodHalf,
+  kind: PeriodMarketKind,
+): string {
+  return `${half === 1 ? "1st" : "2nd"} Half ${KIND_LABEL[kind]}`;
+}
+
 /** Odds API key → stored label, for every segment/kind combination. */
-export const PERIOD_MARKET_LABEL: Record<string, string> = Object.fromEntries(
-  PERIOD_INNINGS.flatMap((innings) =>
+export const PERIOD_MARKET_LABEL: Record<string, string> = Object.fromEntries([
+  ...PERIOD_INNINGS.flatMap((innings) =>
     (Object.keys(KIND_LABEL) as PeriodMarketKind[]).map((kind) => [
       periodMarketKey(innings, kind),
       periodMarketLabel(innings, kind),
     ]),
   ),
-);
+  ...PERIOD_HALVES.flatMap((half) =>
+    (Object.keys(KIND_LABEL) as PeriodMarketKind[]).map((kind) => [
+      halfMarketKey(half, kind),
+      halfMarketLabel(half, kind),
+    ]),
+  ),
+]);
 
 /** Every period market key requested for a sport ([] when it has none). */
 export function periodMarketKeysForSport(sclSport: string): string[] {
-  if (!PERIOD_SPORTS.has(sclSport.trim().toUpperCase())) return [];
-  return Object.keys(PERIOD_MARKET_LABEL);
+  const sport = sclSport.trim().toUpperCase();
+  const keys: string[] = [];
+  if (PERIOD_SPORTS.has(sport)) {
+    for (const innings of PERIOD_INNINGS) {
+      for (const kind of Object.keys(KIND_LABEL) as PeriodMarketKind[]) {
+        keys.push(periodMarketKey(innings, kind));
+      }
+    }
+  }
+  if (HALF_SPORTS.has(sport)) {
+    for (const half of PERIOD_HALVES) {
+      for (const kind of Object.keys(KIND_LABEL) as PeriodMarketKind[]) {
+        keys.push(halfMarketKey(half, kind));
+      }
+    }
+  }
+  return keys;
 }
 
 /**
@@ -90,6 +141,12 @@ export function parsePeriodMarket(
   const m = (market ?? "").toLowerCase();
   if (!m) return null;
 
+  const half = /\b(1st|first)\s*half\b|\bh1\b/.test(m)
+    ? 1
+    : /\b(2nd|second)\s*half\b|\bh2\b/.test(m)
+      ? 2
+      : null;
+
   const innings = /first[\s-]?five|\bf5\b/.test(m)
     ? 5
     : /first[\s-]?three|\bf3\b/.test(m)
@@ -97,7 +154,12 @@ export function parsePeriodMarket(
       : /first[\s-]?seven|\bf7\b/.test(m)
         ? 7
         : Number(m.match(/(?:1st|first)[\s-]?(\d+)\s*innings?/)?.[1] ?? NaN);
-  if (!Number.isFinite(innings) || innings < 1 || innings > 9) return null;
+  if (
+    half == null &&
+    (!Number.isFinite(innings) || innings < 1 || innings > 9)
+  ) {
+    return null;
+  }
 
   const kind: PeriodMarketKind | null = /\bmoneyline\b|\bml\b/.test(m)
     ? "moneyline"
@@ -107,7 +169,11 @@ export function parsePeriodMarket(
         ? "total"
         : null;
 
-  return { innings, kind };
+  // `innings: 0` marks a segment that is NOT an innings count. Grading keys off
+  // a positive value, so halves are recognised as partial-game markets — and so
+  // never settled on a full-game score — while still deferring until football
+  // and basketball line-scores are wired up.
+  return { innings: half == null ? innings : 0, kind };
 }
 
 /** True when this market must NOT be settled from a full-game final score. */
@@ -119,6 +185,15 @@ export function isPeriodMarket(market: string | null | undefined): boolean {
 export function periodMarketKeysForLabel(label: string): string[] | null {
   const parsed = parsePeriodMarket(label);
   if (!parsed?.kind) return null;
+
+  // A half carries no innings count, so it is priced against its own key —
+  // without this it fell through to the raw label, which prices nothing and
+  // silently downgraded every half pick to SELF_REPORTED.
+  if (parsed.innings === 0) {
+    const half = /(2nd|second)\s*half|h2/i.test(label) ? 2 : 1;
+    return [halfMarketKey(half as PeriodHalf, parsed.kind)];
+  }
+
   const innings = parsed.innings as PeriodInnings;
   if (!PERIOD_INNINGS.includes(innings)) return null;
   return [periodMarketKey(innings, parsed.kind)];
