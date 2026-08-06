@@ -66,7 +66,7 @@ export default async function AdminCappersPage({
             <Input
               name="q"
               defaultValue={filters.search}
-              placeholder="Name, handle, or email"
+              placeholder="Name, username, or email"
               className="pl-9"
             />
           </span>

@@ -279,6 +279,7 @@ async function loadDiscoverLanes(): Promise<{
         legacyCarriedResults: legacyBaseline
           ? legacyBaseline.wins + legacyBaseline.losses + legacyBaseline.pushes
           : undefined,
+        legacyBaselineUnits: legacyBaseline ? legacyBaseline.units : undefined,
         activity: computeCapperActivity(positions.map((x) => x.createdAt)),
       };
 

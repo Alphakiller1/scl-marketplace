@@ -200,23 +200,44 @@ export const getPublicCapperByHandle = cache(
 
     const [historyResult, chartResult, clvResult] = await Promise.allSettled([
       getPublicProfileHistoryPage(capper.handle),
-      prisma.play.findMany({
-        where: {
-          capperId: capper.id,
-          units: { gte: UNIT_MIN },
-          parlayId: null,
-          outcome: { not: "PENDING" },
-        },
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-        take: PROFILE_CHART_QUERY_LIMIT,
-        select: {
-          createdAt: true,
-          outcome: true,
-          profitUnits: true,
-          sport: true,
-          notes: true,
-        },
-      }),
+      // Straight picks + whole parlays — same positions of record the
+      // Evidence Brief / leaderboard units aggregate uses.
+      Promise.all([
+        prisma.play.findMany({
+          where: {
+            capperId: capper.id,
+            units: { gte: UNIT_MIN },
+            parlayId: null,
+            outcome: { not: "PENDING" },
+          },
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          take: PROFILE_CHART_QUERY_LIMIT,
+          select: {
+            createdAt: true,
+            outcome: true,
+            profitUnits: true,
+            sport: true,
+            notes: true,
+          },
+        }),
+        prisma.parlay.findMany({
+          where: {
+            capperId: capper.id,
+            units: { gte: UNIT_MIN },
+            outcome: { not: "PENDING" },
+          },
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          take: PROFILE_CHART_QUERY_LIMIT,
+          select: {
+            createdAt: true,
+            outcome: true,
+            profitUnits: true,
+            // Parlay has no sport column — attribute to the first leg for
+            // sport-filtered charts; All-window ignores sport.
+            legs: { select: { sport: true }, take: 1, orderBy: { id: "asc" } },
+          },
+        }),
+      ]),
       (async () => {
         const clvReady = await hasClvColumns();
         if (!clvReady) return null;
@@ -246,17 +267,34 @@ export const getPublicCapperByHandle = cache(
     }
 
     if (chartResult.status === "fulfilled") {
-      const chartRows = chartResult.value
+      const [straightRows, parlayRows] = chartResult.value;
+      const straightChart = straightRows
         .filter((row) => !hasQaNoteMarker(row.notes))
         .map((row) => ({
           createdAt: row.createdAt,
           outcome: row.outcome,
           profitUnits: row.profitUnits == null ? null : Number(row.profitUnits),
           sport: row.sport,
-        }))
-        .reverse();
+        }));
+      const parlayChart = parlayRows.map((row) => ({
+        createdAt: row.createdAt,
+        outcome: row.outcome,
+        profitUnits: row.profitUnits == null ? null : Number(row.profitUnits),
+        sport: row.legs[0]?.sport ?? "MULTI",
+      }));
+      const chartRows = [...straightChart, ...parlayChart].sort(
+        (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+      );
       const chartNow = new Date();
-      chartSeries = buildProfileChartSeries(chartRows, chartNow);
+      // All-window chart End must match Evidence Brief units (legacy + SCL).
+      // Sport-filtered series stay receipt-only — legacy baseline is all-sports.
+      const legacyBaseline = capper.legacyBaselineUnits ?? 0;
+      chartSeries = buildProfileChartSeries(
+        chartRows,
+        chartNow,
+        120,
+        legacyBaseline,
+      );
       const sports = [...new Set(chartRows.map((row) => row.sport))];
       chartSeriesBySport = Object.fromEntries(
         sports.map((sport) => [

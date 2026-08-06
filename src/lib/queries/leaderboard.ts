@@ -350,6 +350,7 @@ function summarize(
     legacyCarriedResults: legacyBaseline
       ? legacyBaseline.wins + legacyBaseline.losses + legacyBaseline.pushes
       : undefined,
+    legacyBaselineUnits: legacyBaseline ? legacyBaseline.units : undefined,
     activity,
   };
 }
