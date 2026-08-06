@@ -166,6 +166,25 @@ function eventBoardFreshness(event: OddsEvent): number {
  * Collapse duplicate feed rows for the same matchup into one event.
  * Prefers the most-complete row, then the freshest row, then the later feed row.
  */
+/**
+ * Kickoff order, soonest first.
+ *
+ * The board is capped at 60 events, so ordering decides what a capper can
+ * actually bet. Sorting must happen before that cap: a merged slate appends
+ * preseason after a regular season that already fills all 60 slots, and slicing
+ * an unsorted list drops the games starting tonight in favour of games weeks
+ * out. Unparseable times sort last rather than scrambling the slate.
+ */
+export function sortByKickoff(events: readonly OddsEvent[]): OddsEvent[] {
+  return [...events].sort((a, b) => {
+    const at = Date.parse(a.commenceTime);
+    const bt = Date.parse(b.commenceTime);
+    if (Number.isNaN(at)) return Number.isNaN(bt) ? 0 : 1;
+    if (Number.isNaN(bt)) return -1;
+    return at - bt;
+  });
+}
+
 export function dedupeOddsEvents(events: readonly OddsEvent[]): OddsEvent[] {
   const bestByKey = new Map<string, OddsEvent>();
   const order: string[] = [];

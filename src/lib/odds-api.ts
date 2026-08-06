@@ -15,6 +15,7 @@ import {
   dedupeOddsEvents,
   normalizeEventBoard,
   normalizeUpcomingEvent,
+  sortByKickoff,
   type OddsBoardOpts,
   type OddsEvent,
   type OddsSelection,
@@ -453,7 +454,17 @@ export async function fetchUpcomingOdds(
     // slates are genuinely live.
     const extras = await fetchExtraSportBoards(sclSport, preferred);
     if (board.length > 0 || extras.length > 0) {
-      return dedupeOddsEvents([...board, ...extras]).slice(0, 60);
+      // Sort before the cap, or the cap silently decides the slate.
+      // `attempt` already returned 60 regular-season events — books post the
+      // whole season in August — so appending preseason and slicing to 60 threw
+      // every preseason game away after paying to fetch it. Ordering by kickoff
+      // means the soonest games win the 60 slots, which is what the board is
+      // for: in August that is preseason, in September the regular season
+      // reclaims them on its own.
+      return sortByKickoff(dedupeOddsEvents([...board, ...extras])).slice(
+        0,
+        60,
+      );
     }
 
     // Never empty the board solely because of a bookmakers filter — fall back to regions=us.
