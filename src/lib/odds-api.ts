@@ -213,8 +213,8 @@ export function buildOddsBoardMeta(
 }
 
 const SOCCER_FETCH_PARALLEL = 3;
-/** Soccer board cache window (seconds) — see the note at the fetch site. */
-const SOCCER_BOARD_TTL = 600;
+/** Board cache window (seconds) — see the note at the fetch site. */
+const BOARD_TTL = 600;
 
 /**
  * Which soccer competitions are in season right now, from the Odds API catalog.
@@ -277,7 +277,7 @@ export async function fetchSoccerBoard(
       // window widens to keep the monthly burn flat. Browsing tolerates a
       // slightly older price: the number that actually goes on the record is
       // re-fetched per event at submit time.
-      const res = await fetch(url, { next: { revalidate: SOCCER_BOARD_TTL } });
+      const res = await fetch(url, { next: { revalidate: BOARD_TTL } });
       logOddsUsage(res, `soccer ${leagueKey}`, "board", "SOCCER");
       if (!res.ok) {
         console.warn(`[odds] soccer ${leagueKey}: HTTP ${res.status}`);
@@ -351,7 +351,13 @@ export async function fetchUpcomingOdds(
     const url =
       `https://api.the-odds-api.com/v4/sports/${apiSport}/odds/` +
       `?apiKey=${apiKey}&${oddsScopeQuery(books)}&markets=h2h,spreads,totals&oddsFormat=american`;
-    const res = await fetch(url, { next: { revalidate: 120 } });
+    // The pick entry page fans out across every board sport on mount, so this
+    // window sets how often a browsing session bills the Odds API. At 120s a
+    // handful of cappers browsing could re-bill every sport thirty times an
+    // hour. Browsing tolerates a slightly older price: the number that actually
+    // goes on the record is re-fetched per event at submit time and bounded
+    // against the live market there.
+    const res = await fetch(url, { next: { revalidate: BOARD_TTL } });
     logOddsUsage(res, `upcoming ${sclSport}`, "board", sclSport);
     if (!res.ok) {
       console.warn(`[odds] upcoming ${sclSport}: HTTP ${res.status}`);
@@ -395,12 +401,29 @@ export async function fetchUpcomingOdds(
 export async function fetchEventOddsForVerification(
   sclSport: string,
   eventId: string,
-  opts?: OddsBoardOpts & { purpose?: OddsUsagePurpose; league?: string | null },
+  opts?: OddsBoardOpts & {
+    purpose?: OddsUsagePurpose;
+    league?: string | null;
+    /**
+     * Request only these market keys instead of the full bundle.
+     *
+     * The Odds API bills per market per region, so the bundle that makes
+     * browsing cheap (one cached call serving the board AND the submit-time
+     * check) is pure waste for a caller that reads a single market. Closing-odds
+     * snapshots run on cron against events nobody is browsing and use exactly
+     * one market, so they were paying ~20x their cost to fill a cache entry
+     * nothing else would read.
+     */
+    markets?: readonly string[];
+  },
 ): Promise<RawEventOdds | null> {
   const apiKey = oddsApiKey();
   const apiSport = resolveOddsApiSport(sclSport, opts?.league);
   if (!apiKey || !apiSport) return null;
-  const markets = verificationMarkets(sclSport).join(",");
+  const requested = opts?.markets?.length
+    ? [...new Set(opts.markets)]
+    : verificationMarkets(sclSport);
+  const markets = requested.join(",");
   const purpose = opts?.purpose ?? "verify";
 
   const attempt = async (books: readonly string[] | undefined) => {
