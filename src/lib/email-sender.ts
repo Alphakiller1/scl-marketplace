@@ -19,6 +19,27 @@ export function parseSenderAddress(value: string): string | null {
   return address.includes("@") ? address.toLowerCase() : null;
 }
 
+/**
+ * The half of the sender an inbox actually renders.
+ *
+ * `Chase Analytics <no-reply@sportscappersleaderboard.com>` is a correct address
+ * wearing somebody else's name, and a domain check calls it clean — so checking
+ * the domain alone is exactly how a foreign sender survives review. Returns null
+ * for a bare address, which is not a fault: no name means the inbox falls back to
+ * the address, and the address is already checked.
+ */
+export function parseSenderName(value: string): string | null {
+  const angled = /^\s*(.*?)\s*<[^>]+>\s*$/.exec(value);
+  if (!angled) return null;
+  // A display name containing a comma or colon has to be quoted per RFC 5322;
+  // the quotes are transport syntax, not part of the name.
+  const name = angled[1]
+    .trim()
+    .replace(/^"(.*)"$/, "$1")
+    .trim();
+  return name || null;
+}
+
 export function senderDomain(value: string): string | null {
   const address = parseSenderAddress(value);
   if (!address) return null;
@@ -49,6 +70,7 @@ export function senderMatchesSite(
 
 export type EmailSenderStatus = {
   configured: boolean;
+  displayName: string | null;
   domain: string | null;
   siteDomain: string | null;
   matchesSite: boolean;
@@ -60,6 +82,11 @@ export function emailSenderStatus(): EmailSenderStatus {
   const siteDomain = registrableHost(siteUrl());
   return {
     configured: Boolean(raw) && raw !== DEFAULT_EMAIL_FROM,
+    // Reported, not judged. Which names are legitimately SCL's is a branding
+    // question with no answer in code, and a check that guessed would either
+    // block a rename or wave through the next wrong one. A human reading
+    // /api/health can tell in a second; the point is to put it in front of them.
+    displayName: raw ? parseSenderName(raw) : null,
     domain,
     siteDomain,
     matchesSite: senderMatchesSite(domain, siteDomain),

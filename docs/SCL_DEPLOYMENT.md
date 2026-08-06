@@ -38,9 +38,10 @@ manually “promoting” deployments.
 | `AUTH_SECRET`                   | a strong secret (`npx auth secret`)                                                     | required (all environments)                  |
 | `AUTH_URL`                      | the deployed origin, e.g. `https://scl-marketplace.vercel.app`                          | **Production only** — leave unset on Preview |
 | `AUTH_TRUST_HOST`               | `true`                                                                                  | required for Auth.js on Vercel               |
-| `EMAIL_FROM`                    | a verified sender, e.g. `no-reply@yourdomain`                                           | optional until email is live                 |
-| `RESEND_API_KEY`                | your Resend API key                                                                     | optional; dev logs the link if unset         |
-| `SUPPORT_EMAIL_TO`              | monitored support inbox                                                                 | required for launch support delivery         |
+| `EMAIL_FROM`                    | `SCL <no-reply@sportscappersleaderboard.com>`                                           | must be on SCL's **own** verified domain     |
+| `RESEND_API_KEY`                | Resend key from the **SCL-owned** account                                               | dev logs the link instead if unset           |
+| `SUPPORT_EMAIL_TO`              | monitored support inbox                                                                 | also the `Reply-To` on capper-facing mail    |
+| `ADMIN_NOTIFICATION_EMAIL_TO`   | comma-separated owner mailbox(es)                                                       | signup / affiliate / storefront alerts       |
 | `SUPABASE_URL`                  | Supabase project API URL                                                                | **required for avatar/cover uploads**        |
 | `SUPABASE_SERVICE_ROLE_KEY`     | Supabase service-role key                                                               | server only; never expose to the browser     |
 | `SUPABASE_PROFILE_MEDIA_BUCKET` | `scl-profile-media`                                                                     | optional bucket-name override                |
@@ -48,6 +49,35 @@ manually “promoting” deployments.
 | `CRON_SECRET`                   | strong shared secret                                                                    | required by automatic grading                |
 | `SCL_ALLOW_GHOST_PUBLICATION`   | unset or `0`                                                                            | never set to `1` for launch                  |
 | `WHOP_WEBHOOK_SECRET`           | Whop signing secret                                                                     | optional while using the manual workflow     |
+
+#### Transactional email ownership
+
+Two independent things decide what a capper sees in their inbox, and only one of them
+is visible from the code:
+
+1. **`EMAIL_FROM`** — the from line. `Name <address>` is supported; the name is what an
+   inbox renders, so a correct address carrying the wrong company name still reads as a
+   phish. `/api/health` reports `email.displayName` alongside `email.domain` for exactly
+   this reason — a domain check alone cannot see it.
+2. **`RESEND_API_KEY`** — _whose_ Resend account signs, bills, and retains the mail. The
+   sending domain must be verified in that account, so the key and the from-domain are
+   not independent choices.
+
+**The account must belong to SCL, not to an individual.** Production email that depends
+on a personal account can stop without warning — closed account, hit rate limit,
+suspended key — and nobody on the SCL side would have visibility or a way in. To move
+sending between Resend accounts, use Resend's **Domain Claim** (Domains → Add Domain →
+Start claim): it proves ownership with a DNS TXT record and releases the domain from the
+old team. A domain with recent sending activity may need Resend support to release it, so
+do not schedule this an hour before launch.
+
+After swapping either value, **redeploy** — both are read at module scope in
+`src/lib/email.ts`, so an env edit alone does not reach the running deployment.
+
+Every send in `src/lib/email.ts` is deliberately best-effort: it logs and returns
+`delivered: false` rather than throwing, so signup never breaks on a mail outage. The
+cost is that **a wrong key fails silently**. Verify with a real signup and read the
+message headers (`DKIM-Signature: d=` should be SCL's domain), not with a green deploy.
 
 #### Profile media uploads (avatar / cover)
 
