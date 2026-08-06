@@ -14,6 +14,7 @@ import { BookMark } from "@/components/scl/book-mark";
 import { bookShort } from "@/lib/books";
 import {
   activeRailBook,
+  booksOnBoard,
   categoryCounts,
   filterGamePickerEvents,
   preGameEvents,
@@ -134,8 +135,9 @@ export function GamePicker({
   }, []);
 
   const profileBooks = useMemo(
-    () => railBooks(booksProp ?? slate?.books),
-    [booksProp, slate?.books],
+    () =>
+      railBooks(booksProp ?? slate?.books, booksOnBoard(slate?.events ?? [])),
+    [booksProp, slate?.books, slate?.events],
   );
 
   const activeBook = activeRailBook({ chosen: bookChoice, lockedBook });

@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { formatCaptureClock, formatOdds } from "@/lib/format";
 import { bookShort } from "@/lib/books";
 import { selectionForActiveBook } from "@/lib/game-picker";
+import { isPeriodMarket } from "@/lib/period-markets";
 import { pickKey } from "@/lib/slip";
 import { toHeadshotLeague } from "@/lib/player-headshots";
 import {
@@ -76,8 +77,20 @@ function marketOrder(market: string): number {
   return i === -1 ? MARKET_ORDER.length : i;
 }
 
+/**
+ * Game lines, including the first-N-innings segments.
+ *
+ * Period markets ("1st 5 Innings Moneyline") are game lines, but they are not in
+ * MARKET_ORDER, so everything that was not Moneyline/Spread/Total fell into the
+ * PLAYER PROP bucket. That bucket then groups by `s.player` and drops anything
+ * without one — and a period line has no player — so F3/F5/F7 appeared under
+ * player props and rendered no lines at all. Both symptoms, one cause.
+ */
 function isGameMarket(market: string): boolean {
-  return (MARKET_ORDER as readonly string[]).includes(market);
+  return (
+    (MARKET_ORDER as readonly string[]).includes(market) ||
+    isPeriodMarket(market)
+  );
 }
 
 /**
