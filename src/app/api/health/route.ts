@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { maybeSweepGrading } from "@/lib/results/auto-grade-sweep";
+
 import { probeMailer } from "@/lib/email-deliverability";
 import { emailSenderStatus } from "@/lib/email-sender";
 import { emailVerificationEnforced } from "@/lib/email-verification-policy";
@@ -17,7 +19,13 @@ import { whopIntegrationStatus } from "@/lib/whop-config";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/**
+ * Health is polled far more reliably than either scheduler fires, so it doubles
+ * as the grading heartbeat. Throttled globally and run via `after()`, so the
+ * probe's own response is never delayed.
+ */
 export async function GET() {
+  void maybeSweepGrading();
   const health = await getCoreSchemaHealth();
   const storageProbe = await probeProfileMediaStorage();
   const mailer = await probeMailer();
