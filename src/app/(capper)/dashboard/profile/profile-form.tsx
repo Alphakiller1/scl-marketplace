@@ -167,7 +167,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
                   autoComplete="username"
                   spellCheck={false}
                   className="pl-7"
-                  placeholder="your_handle"
+                  placeholder="your_username"
                   {...register("username")}
                 />
               </div>

@@ -3,28 +3,32 @@ import type { NextConfig } from "next";
 function supabaseImagePatterns(): NonNullable<
   NextConfig["images"]
 >["remotePatterns"] {
+  // Always allow every Supabase project's public storage bucket. Production
+  // avatars may live on a different project host than SUPABASE_URL (e.g. media
+  // project vs database project). Narrowing to one hostname caused
+  // INVALID_IMAGE_OPTIMIZE_REQUEST 400s for live profile photos.
+  const patterns: NonNullable<NextConfig["images"]>["remotePatterns"] = [
+    {
+      protocol: "https",
+      hostname: "*.supabase.co",
+      pathname: "/storage/v1/object/public/**",
+    },
+  ];
   const url = process.env.SUPABASE_URL?.trim();
-  if (!url) {
-    return [
-      {
-        protocol: "https",
-        hostname: "*.supabase.co",
-        pathname: "/storage/v1/object/public/**",
-      },
-    ];
-  }
+  if (!url) return patterns;
   try {
     const { hostname } = new URL(url);
-    return [
-      {
+    if (hostname && hostname !== "*.supabase.co") {
+      patterns.push({
         protocol: "https",
         hostname,
         pathname: "/storage/v1/object/public/**",
-      },
-    ];
+      });
+    }
   } catch {
-    return [];
+    // Keep the wildcard fallback above.
   }
+  return patterns;
 }
 
 const nextConfig: NextConfig = {

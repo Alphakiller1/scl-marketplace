@@ -50,16 +50,29 @@ export function profileProfitUnitsForWindow(
     .map((play) => play.profitUnits as number);
 }
 
-/** Build bounded client payloads while retaining truthful counts and endpoints. */
+/**
+ * Build bounded client payloads while retaining truthful counts and endpoints.
+ *
+ * `baselineUnits` is the all-time PRE_IMPORT legacy net — applied only to the
+ * All window so chart End matches Evidence Brief / leaderboard totals. Trailing
+ * windows (3m/6m/12m) stay SCL-receipt-only; folding a frozen export into a
+ * rolling window would invent form the source never had.
+ */
 export function buildProfileChartSeries(
   plays: DatedProfit[],
   asOf: Date,
   maxPoints = 120,
+  baselineUnits = 0,
 ): ProfileChartSeries {
+  const baseline =
+    Number.isFinite(baselineUnits) && baselineUnits !== 0
+      ? Math.round((baselineUnits + Number.EPSILON) * 100) / 100
+      : 0;
   return Object.fromEntries(
     PROFILE_CHART_WINDOWS.map(({ value }) => {
       const profits = profileProfitUnitsForWindow(plays, value, asOf);
-      let running = 0;
+      // Legacy totals are an all-time carried-over snapshot — only fold into All.
+      let running = value === "all" ? baseline : 0;
       const points = profits.map((profit, index) => {
         running += profit;
         return {
@@ -71,7 +84,8 @@ export function buildProfileChartSeries(
         value,
         {
           points: downsampleCumulative(points, maxPoints),
-          gradedCount: points.length,
+          // gradedCount stays receipt-derived — baseline results have no picks.
+          gradedCount: profits.length,
         },
       ];
     }),

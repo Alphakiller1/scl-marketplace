@@ -198,15 +198,29 @@ export function EvidenceBrief({
     gradedCount: clvTracker.snapshotCount,
   });
 
-  const [selectedPackageId, setSelectedPackageId] = useState(
-    packageInsights[0]?.id ?? "all",
-  );
+  // Default to the full capper record so Evidence Brief matches leaderboard
+  // totals (including legacy-carried). Package views are opt-in — starting on
+  // the first offer with no attributed picks made profiles look empty.
+  const [selectedPackageId, setSelectedPackageId] = useState("all");
   const [chartSport, setChartSport] = useState("ALL");
   const [chartWindow, setChartWindow] = useState<ProfileChartWindow>("all");
 
   const chartSeries = useMemo(
-    () => chartSeriesProp ?? buildProfileChartSeries(eligiblePlays, new Date()),
-    [chartSeriesProp, eligiblePlays],
+    () =>
+      chartSeriesProp ??
+      buildProfileChartSeries(
+        eligiblePlays,
+        new Date(),
+        120,
+        // All-window only; sport filters stay receipt-only (see builder).
+        selectedPackageId === "all" ? (capper.legacyBaselineUnits ?? 0) : 0,
+      ),
+    [
+      chartSeriesProp,
+      eligiblePlays,
+      selectedPackageId,
+      capper.legacyBaselineUnits,
+    ],
   );
   const activePackage = packageInsights.find(
     (pkg) => pkg.id === selectedPackageId,
@@ -254,12 +268,12 @@ export function EvidenceBrief({
                 onChange={(event) => setSelectedPackageId(event.target.value)}
                 className="border-input bg-background min-h-10 max-w-64 rounded-md border px-3 text-sm"
               >
+                <option value="all">Full capper record</option>
                 {packageInsights.map((pkg) => (
                   <option key={pkg.id} value={pkg.id}>
                     {pkg.title}
                   </option>
                 ))}
-                <option value="all">Full capper record</option>
               </select>
             </label>
           ) : null}
@@ -299,7 +313,10 @@ export function EvidenceBrief({
               <p className="text-muted-foreground mt-0.5 text-xs leading-snug">
                 {activePackage
                   ? `Cumulative units from receipts assigned to ${activePackage.title}.`
-                  : "Cumulative units from all public single-pick receipts."}
+                  : chartWindow === "all" &&
+                      (capper.legacyBaselineUnits ?? 0) !== 0
+                    ? "Cumulative units from public graded positions (singles and parlays), starting from the carried-over legacy balance so End matches the Evidence Brief total."
+                    : "Cumulative units from public graded positions (singles and parlays)."}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
