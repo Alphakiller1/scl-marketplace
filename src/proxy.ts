@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 
 import { authConfig } from "@/auth.config";
+import { emailVerificationEnforced } from "@/lib/email-verification-policy";
 
 const { auth } = NextAuth(authConfig);
 
@@ -48,9 +49,13 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/account-restricted", nextUrl));
   }
 
+  // Unverified only blocks when the gate is on: `emailVerified` is written by a real
+  // verification click and nothing else, so with the gate off every account legitimately
+  // carries a null here. `session.ts` applies the same rule server-side.
   if (
     (isCapperArea || isAdminArea) &&
-    (accountStatus === "PENDING" || !session?.user?.emailVerified)
+    (accountStatus === "PENDING" ||
+      (emailVerificationEnforced() && !session?.user?.emailVerified))
   ) {
     return NextResponse.redirect(new URL("/verify", nextUrl));
   }
