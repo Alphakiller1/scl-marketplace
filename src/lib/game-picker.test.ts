@@ -1,12 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { BOOK_KEYS } from "@/lib/books";
 import {
+  activeRailBook,
   categoryCounts,
   eventMatchesSearch,
   filterGamePickerEvents,
   isPreGame,
   preGameEvents,
+  railBooks,
   selectionForActiveBook,
 } from "@/lib/game-picker";
 import type { OddsSelection } from "@/lib/odds-board";
@@ -182,4 +185,58 @@ test("started games are never selectable on the board", () => {
 
   // Counts must not advertise started games as pre-game.
   assert.equal(categoryCounts([started], now).all, 0);
+});
+
+test("every capper gets the full book rail, configured or not", () => {
+  // 115 of 134 cappers have never set books; gating the rail on the profile
+  // hid the sportsbook switcher from almost all of them.
+  assert.deepEqual(railBooks([]), [...BOOK_KEYS]);
+  assert.deepEqual(railBooks(undefined), [...BOOK_KEYS]);
+  assert.deepEqual(railBooks(null), [...BOOK_KEYS]);
+  // An all-garbage list is the same as none, not an empty rail.
+  assert.deepEqual(railBooks(["not-a-book", "nope"]), [...BOOK_KEYS]);
+});
+
+test("a configured book list narrows the rail to it", () => {
+  assert.deepEqual(railBooks(["fanduel", "betmgm"]), ["fanduel", "betmgm"]);
+  // Unknown keys are dropped, known ones kept.
+  assert.deepEqual(railBooks(["fanduel", "not-a-book"]), ["fanduel"]);
+});
+
+test("the board defaults to best-available price, not a pinned book", () => {
+  // Pinning one book renders every market it doesn't price as an unpriced,
+  // unclickable chip — the line reads as missing when it is merely absent
+  // at one shop.
+  assert.equal(activeRailBook({}), null);
+  assert.equal(activeRailBook({ chosen: null }), null);
+  assert.equal(activeRailBook({ chosen: "not-a-book" }), null);
+  assert.equal(activeRailBook({ chosen: "fanduel" }), "fanduel");
+});
+
+test("a parlay's locked book overrides the rail choice", () => {
+  assert.equal(
+    activeRailBook({ chosen: "fanduel", lockedBook: "draftkings" }),
+    "draftkings",
+  );
+  // Best-available cannot escape the lock either — all legs share one book.
+  assert.equal(
+    activeRailBook({ chosen: null, lockedBook: "draftkings" }),
+    "draftkings",
+  );
+});
+
+test("best-available shows a price where a single book has none", () => {
+  const selection: OddsSelection = {
+    label: "Reds ML",
+    market: "Moneyline",
+    selection: "Reds",
+    side: "Reds",
+    oddsAmerican: -120,
+    book: "fanduel",
+    bookPrices: { fanduel: -120 },
+  };
+  // Pinned to a book with no line: honest null (chip renders "—").
+  assert.equal(selectionForActiveBook(selection, "betmgm").oddsAmerican, null);
+  // Best-available: a real number, which is why it is the default.
+  assert.equal(selectionForActiveBook(selection, null).oddsAmerican, -120);
 });
