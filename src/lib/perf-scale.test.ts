@@ -12,17 +12,22 @@ describe("perfScale ROI boundaries", () => {
     assert.equal(perfScale("roi", -8, { gradedCount: 20 }).band, "weak");
   });
 
-  it("early sample never red", () => {
+  it("early sample caps at amber — never red or green", () => {
     const soft = perfScale("roi", -5, { gradedCount: 3 });
     assert.equal(soft.band, "soft");
     assert.equal(soft.tone, "amber");
     const weak = perfScale("roi", -20, { gradedCount: 5 });
     assert.equal(weak.tone, "amber");
     assert.notEqual(weak.tone, "neg");
+    const strong = perfScale("roi", 40, { gradedCount: 2 });
+    assert.equal(strong.band, "strong");
+    assert.equal(strong.tone, "amber");
+    assert.notEqual(strong.tone, "pos");
   });
 
-  it("mature sample may be red", () => {
+  it("mature sample may be red or green", () => {
     assert.equal(perfScale("roi", -10, { gradedCount: 25 }).tone, "neg");
+    assert.equal(perfScale("roi", 12, { gradedCount: 25 }).tone, "pos");
   });
 });
 

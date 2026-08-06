@@ -5,7 +5,7 @@
  * Settlement Win/Loss/Push colors stay SEPARATE (pills, unit deltas, W/L dots) —
  * do not route those through this module.
  *
- * Early / provisional samples cap at amber — never red.
+ * Early / provisional samples cap at amber — never red and never green.
  */
 
 import { isProvisional } from "@/lib/sample";
@@ -85,9 +85,10 @@ export function perfScale(
   const band = bandFor(metric, value);
   let tone = toneForBand(band);
 
-  if (isProvisional(opts?.gradedCount) && tone === "neg") {
+  // Early samples cap at amber — never red (failure) and never green (elite).
+  // Band identity stays honest for aria; only the color is softened.
+  if (isProvisional(opts?.gradedCount) && (tone === "neg" || tone === "pos")) {
     tone = "amber";
-    // Keep soft/weak band identity for honesty; only soften color.
   }
 
   return {

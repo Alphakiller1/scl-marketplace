@@ -1,14 +1,53 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import { History } from "lucide-react";
 
 import { SportTag } from "@/components/scl/badges";
 import { formatPct, formatRecord, formatRoi, formatUnits } from "@/lib/format";
 import type { LegacySportRecordView } from "@/lib/legacy-sport-records";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
+import { isProvisional, maturityLabel } from "@/lib/sample";
 import { cn } from "@/lib/utils";
+
+type SortKey = "units" | "roi" | "winPct" | "settled";
+
+const SORT_OPTIONS: ReadonlyArray<{ value: SortKey; label: string }> = [
+  { value: "units", label: "Units" },
+  { value: "roi", label: "ROI" },
+  { value: "winPct", label: "Win%" },
+  { value: "settled", label: "Sample" },
+];
+
+function compareLegacyRows(
+  a: LegacySportRecordView,
+  b: LegacySportRecordView,
+  sort: SortKey,
+): number {
+  const aMetric =
+    sort === "units"
+      ? a.units
+      : sort === "roi"
+        ? (a.roi ?? Number.NEGATIVE_INFINITY)
+        : sort === "winPct"
+          ? (a.winPct ?? Number.NEGATIVE_INFINITY)
+          : a.settled;
+  const bMetric =
+    sort === "units"
+      ? b.units
+      : sort === "roi"
+        ? (b.roi ?? Number.NEGATIVE_INFINITY)
+        : sort === "winPct"
+          ? (b.winPct ?? Number.NEGATIVE_INFINITY)
+          : b.settled;
+  if (bMetric !== aMetric) return bMetric - aMetric;
+  if (b.units !== a.units) return b.units - a.units;
+  return a.label.localeCompare(b.label);
+}
 
 /**
  * Per-sport carried-over totals from the previous SCL platform.
- * Sorted by units (then ROI). Totals only — no per-pick evidence.
+ * Client-sortable. Totals only — no per-pick evidence.
  */
 export function LegacySportBreakdown({
   records,
@@ -17,9 +56,18 @@ export function LegacySportBreakdown({
   records: LegacySportRecordView[];
   className?: string;
 }) {
+  const [sort, setSort] = useState<SortKey>("units");
+
+  const sorted = useMemo(
+    () => [...records].sort((a, b) => compareLegacyRows(a, b, sort)),
+    [records, sort],
+  );
+
   if (records.length === 0) return null;
 
   const totalSettled = records.reduce((sum, row) => sum + row.settled, 0);
+  const sortLabel =
+    SORT_OPTIONS.find((option) => option.value === sort)?.label ?? "Units";
 
   return (
     <section
@@ -27,7 +75,7 @@ export function LegacySportBreakdown({
       aria-label="Legacy record by sport"
       className={cn("border-border min-w-0 border-b pb-5", className)}
     >
-      <div className="flex flex-wrap items-start justify-between gap-2">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="inline-flex size-5 items-center justify-center rounded-full bg-[color:var(--scl-blue)]/20 text-[color:var(--scl-blue)] ring-1 ring-[color:var(--scl-blue)]/35">
@@ -39,23 +87,60 @@ export function LegacySportBreakdown({
           </div>
           <p className="text-muted-foreground mt-1 max-w-2xl text-xs leading-relaxed">
             Settled results carried over from the previous SCL platform — totals
-            only, no per-pick record. Sorted by units. These figures are already
-            folded into the Evidence Brief above.
+            only, no per-pick record. Sorted by {sortLabel.toLowerCase()}. These
+            figures are already folded into the Evidence Brief above. Early
+            samples (under 10) stay amber — small books are not elite signals.
           </p>
         </div>
-        <p className="scl-data text-muted-foreground text-xs tabular-nums">
-          {records.length} sport{records.length === 1 ? "" : "s"} ·{" "}
-          {totalSettled.toLocaleString()} settled
-        </p>
+        <div className="flex flex-col items-stretch gap-2 sm:items-end">
+          <p className="scl-data text-muted-foreground text-xs tabular-nums">
+            {records.length} sport{records.length === 1 ? "" : "s"} ·{" "}
+            {totalSettled.toLocaleString()} settled
+          </p>
+          <div
+            className="border-border bg-surface-2 inline-flex min-h-10 items-center rounded-[var(--scl-radius-chip)] border p-0.5"
+            role="group"
+            aria-label="Sort legacy sports"
+          >
+            {SORT_OPTIONS.map((option) => {
+              const active = sort === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={cn(
+                    "scl-data min-h-9 min-w-11 rounded-full px-2.5 text-[0.68rem] leading-none font-semibold",
+                    active
+                      ? "bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                  aria-pressed={active}
+                  onClick={() => setSort(option.value)}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
-      <div className="mt-4 hidden md:block">
-        <table className="w-full table-fixed border-collapse">
+      <div className="border-border mt-4 hidden min-w-0 overflow-x-auto rounded-xl border md:block">
+        <table className="w-full min-w-[36rem] table-fixed border-collapse">
           <caption className="sr-only">
-            Legacy carried-over record broken down by sport, sorted by units
+            Legacy carried-over record broken down by sport, sorted by{" "}
+            {sortLabel.toLowerCase()}
           </caption>
+          <colgroup>
+            <col className="w-[22%]" />
+            <col className="w-[16%]" />
+            <col className="w-[14%]" />
+            <col className="w-[14%]" />
+            <col className="w-[18%]" />
+            <col className="w-[16%]" />
+          </colgroup>
           <thead>
-            <tr className="border-border border-y">
+            <tr className="border-border bg-surface-2 border-b">
               {(
                 ["Sport", "Record", "Win%", "ROI", "Units", "Sample"] as const
               ).map((label) => (
@@ -63,7 +148,7 @@ export function LegacySportBreakdown({
                   key={label}
                   scope="col"
                   className={cn(
-                    "scl-eyebrow px-2 py-2.5 text-[color:var(--scl-muted-data)] first:pl-0 last:pr-0",
+                    "scl-eyebrow px-3 py-2.5 text-[color:var(--scl-muted-data)]",
                     label === "Sport" ? "text-left" : "text-right",
                   )}
                 >
@@ -73,7 +158,7 @@ export function LegacySportBreakdown({
             </tr>
           </thead>
           <tbody>
-            {records.map((row) => (
+            {sorted.map((row) => (
               <LegacySportDesktopRow key={row.sport} row={row} />
             ))}
           </tbody>
@@ -81,7 +166,7 @@ export function LegacySportBreakdown({
       </div>
 
       <ul className="divide-border mt-3 divide-y md:hidden">
-        {records.map((row) => (
+        {sorted.map((row) => (
           <li key={row.sport} className="py-3">
             <LegacySportMobileCard row={row} />
           </li>
@@ -99,18 +184,26 @@ function LegacySportDesktopRow({ row }: { row: LegacySportRecordView }) {
   const winScale = perfScale("winPct", row.winPct, {
     gradedCount: row.settled,
   });
+  const early = isProvisional(row.settled);
 
   return (
     <tr className="border-border border-b last:border-b-0">
-      <td className="py-3 pr-2 pl-0 align-middle">
-        <SportTag sport={row.sport} forceLabel />
+      <td className="min-w-0 px-3 py-3 align-middle">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <SportTag sport={row.sport} />
+          {early ? (
+            <span className="scl-eyebrow text-[color:var(--scl-perf-mid-text)]">
+              {maturityLabel(row.settled)}
+            </span>
+          ) : null}
+        </div>
       </td>
-      <td className="scl-data px-2 py-3 text-right text-sm font-semibold tabular-nums">
+      <td className="scl-data px-3 py-3 text-right text-sm font-semibold tabular-nums">
         {formatRecord(row.wins, row.losses, row.pushes)}
       </td>
       <td
         className={cn(
-          "scl-data px-2 py-3 text-right text-sm font-semibold tabular-nums",
+          "scl-data px-3 py-3 text-right text-sm font-semibold tabular-nums",
           row.winPct != null
             ? perfToneClass(winScale.tone)
             : "text-muted-foreground",
@@ -121,7 +214,7 @@ function LegacySportDesktopRow({ row }: { row: LegacySportRecordView }) {
       </td>
       <td
         className={cn(
-          "scl-data px-2 py-3 text-right text-sm font-semibold tabular-nums",
+          "scl-data px-3 py-3 text-right text-sm font-semibold tabular-nums",
           row.roi != null
             ? perfToneClass(roiScale.tone)
             : "text-muted-foreground",
@@ -132,15 +225,18 @@ function LegacySportDesktopRow({ row }: { row: LegacySportRecordView }) {
       </td>
       <td
         className={cn(
-          "scl-data px-2 py-3 text-right text-sm font-semibold tabular-nums",
+          "scl-data px-3 py-3 text-right text-sm font-semibold tabular-nums",
           perfToneClass(unitsScale.tone),
         )}
         aria-label={unitsScale.ariaLabel}
       >
         {formatUnits(row.units)}
       </td>
-      <td className="scl-data text-muted-foreground py-3 pr-0 pl-2 text-right text-sm tabular-nums">
-        {row.settled.toLocaleString()}
+      <td className="scl-data text-muted-foreground px-3 py-3 text-right text-sm tabular-nums">
+        <span className="block">{row.settled.toLocaleString()}</span>
+        <span className="mt-0.5 block text-[0.65rem]">
+          {formatUnits(row.unitsRisked, true, false)} risked
+        </span>
       </td>
     </tr>
   );
@@ -154,14 +250,22 @@ function LegacySportMobileCard({ row }: { row: LegacySportRecordView }) {
   const winScale = perfScale("winPct", row.winPct, {
     gradedCount: row.settled,
   });
+  const early = isProvisional(row.settled);
 
   return (
     <article className="min-w-0">
       <div className="flex items-center justify-between gap-3">
-        <SportTag sport={row.sport} forceLabel />
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <SportTag sport={row.sport} />
+          {early ? (
+            <span className="scl-eyebrow text-[color:var(--scl-perf-mid-text)]">
+              {maturityLabel(row.settled)}
+            </span>
+          ) : null}
+        </div>
         <p
           className={cn(
-            "scl-data text-sm font-semibold tabular-nums",
+            "scl-data shrink-0 text-sm font-semibold tabular-nums",
             perfToneClass(unitsScale.tone),
           )}
           aria-label={unitsScale.ariaLabel}
@@ -190,7 +294,7 @@ function LegacySportMobileCard({ row }: { row: LegacySportRecordView }) {
         />
         <MobileStat
           label="Sample"
-          value={row.settled.toLocaleString()}
+          value={`${row.settled.toLocaleString()} · ${formatUnits(row.unitsRisked, true, false)} risked`}
           className="text-muted-foreground"
         />
       </dl>
