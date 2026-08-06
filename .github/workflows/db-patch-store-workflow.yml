@@ -1,9 +1,14 @@
-name: DB patch — StoreConnection workflow columns
+name: DB patch — prod schema drift
 
-# One-shot, manually dispatched patch that applies the missing StoreConnection
-# workflow columns + OddsUsageDaily to prod (migration 20260728033616 drift).
-# Idempotent — safe to re-run. Fixes the ghost seed ("column packageCount does
-# not exist") and the Winible store-connection review workflow.
+# Manually dispatched, idempotent patch that brings production's schema back in
+# line with prisma/migrations. Safe to re-run.
+#
+# Covers: StoreConnection workflow columns + OddsUsageDaily (20260728033616),
+# the email/username uniqueness swap (20260805230000), CAPPER_CONTACTED
+# (20260805240000), StorefrontMessage (20260805250000), and the 2024 legacy
+# scopes (20260806000000) — then clears the failed `_prisma_migrations` row
+# that was making `prisma migrate deploy` refuse every later migration (P3009)
+# while deploys still reported success.
 #
 # The Supabase DB's direct host is IPv6-only and unreachable from IPv4-only
 # GitHub runners, so we don't connect to Postgres here — we POST a CRON_SECRET
@@ -15,7 +20,7 @@ on:
       base_url:
         description: "Prod base URL"
         required: false
-        default: "https://scl-marketplace.vercel.app"
+        default: "https://sportscappersleaderboard.com"
 
 concurrency:
   group: db-patch-store-workflow
@@ -25,7 +30,7 @@ jobs:
   patch:
     runs-on: ubuntu-latest
     steps:
-      - name: Apply StoreConnection workflow columns via Vercel
+      - name: Apply prod schema patch via Vercel
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           BASE_URL: ${{ github.event.inputs.base_url }}
@@ -35,7 +40,7 @@ jobs:
             echo "::error::CRON_SECRET secret is not configured." >&2
             exit 1
           fi
-          BASE="${BASE_URL:-https://scl-marketplace.vercel.app}"
+          BASE="${BASE_URL:-https://sportscappersleaderboard.com}"
           echo "POST ${BASE}/api/admin/db-patch"
           HTTP=$(curl -sS -o /tmp/patch.json -w "%{http_code}" \
             -X POST "${BASE}/api/admin/db-patch" \
@@ -48,5 +53,5 @@ jobs:
             echo "::error::db-patch endpoint returned HTTP ${HTTP}" >&2
             exit 1
           fi
-          echo "### ✅ StoreConnection workflow columns applied" >> "$GITHUB_STEP_SUMMARY"
+          echo "### ✅ Prod schema patch applied" >> "$GITHUB_STEP_SUMMARY"
           cat /tmp/patch.json >> "$GITHUB_STEP_SUMMARY"

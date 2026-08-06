@@ -371,8 +371,12 @@ export function BetSlip({
             Package attribution
           </legend>
           <p className="text-muted-foreground mb-2 text-xs leading-relaxed">
-            Select every package that receives this pick. Leave blank for a
-            public-record-only pick.
+            Select the packages this pick belongs to. Leave every box unchecked
+            and it goes to all{" "}
+            {packageOptions.length === 1
+              ? "of your packages"
+              : `${packageOptions.length} of your packages`}
+            .
           </p>
           <div className="space-y-1">
             {packageOptions.map((option) => {

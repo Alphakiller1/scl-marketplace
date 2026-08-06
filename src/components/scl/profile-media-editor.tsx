@@ -16,6 +16,8 @@ type ProfileMediaEditorProps = {
   avatarUrl?: string | null;
   bannerUrl?: string | null;
   onChange: (kind: ProfileMediaKind, url: string) => void;
+  /** Position in the profile form's step sequence, e.g. "Step 1 of 4". */
+  eyebrow?: string;
 };
 
 export function ProfileMediaEditor({
@@ -23,6 +25,7 @@ export function ProfileMediaEditor({
   avatarUrl,
   bannerUrl,
   onChange,
+  eyebrow,
 }: ProfileMediaEditorProps) {
   const avatarInput = useRef<HTMLInputElement>(null);
   const bannerInput = useRef<HTMLInputElement>(null);
@@ -62,6 +65,11 @@ export function ProfileMediaEditor({
       className="border-border bg-card overflow-hidden rounded-xl border"
     >
       <div className="border-border border-b px-4 py-4 sm:px-5">
+        {eyebrow ? (
+          <p className="text-muted-foreground mb-1 text-[11px] font-semibold tracking-[0.08em] uppercase">
+            {eyebrow}
+          </p>
+        ) : null}
         <h2 id="profile-media-title" className="font-semibold">
           Profile Media
         </h2>

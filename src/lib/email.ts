@@ -203,6 +203,69 @@ export async function sendPasswordUpdateRequiredEmail(email: string) {
   }
 }
 
+/**
+ * Alert SCL owners that somebody signed up.
+ *
+ * Signup previously mailed only the new capper, so the roster grew with nobody
+ * on the SCL side told. Best-effort — never throws, and never blocks the
+ * account from being created.
+ */
+export async function sendNewSignupNotificationEmail(input: {
+  username: string;
+  email: string;
+  signedUpAt: Date;
+}) {
+  const recipients = adminNotificationRecipients();
+  const handle = input.username.replace(/^@/, "");
+  const adminUrl = `${appUrl()}/admin/cappers`;
+  const profileUrl = `${appUrl()}/cappers/${encodeURIComponent(handle)}`;
+
+  if (!resend) {
+    console.info("[email:dev] new signup notification", {
+      to: recipients,
+      ...input,
+    });
+    return { delivered: false as const };
+  }
+
+  try {
+    const { error } = await resend.emails.send({
+      from,
+      to: recipients,
+      subject: `[SCL] New capper signup — @${handle}`,
+      html: `
+        <div style="font-family:system-ui,sans-serif;max-width:640px;margin:auto">
+          <h2>New capper signed up</h2>
+          <table style="border-collapse:collapse;width:100%;margin:16px 0">
+            <tr><td style="padding:6px 12px 6px 0;color:#666">Handle</td><td><strong>@${escapeHtml(handle)}</strong></td></tr>
+            <tr><td style="padding:6px 12px 6px 0;color:#666">Email</td><td>${escapeHtml(input.email)}</td></tr>
+            <tr><td style="padding:6px 12px 6px 0;color:#666">Signed up</td><td>${escapeHtml(input.signedUpAt.toISOString())}</td></tr>
+          </table>
+          <p>
+            <a href="${adminUrl}" style="display:inline-block;background:#5b4bdb;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">
+              Open admin roster
+            </a>
+          </p>
+          <p style="color:#666;font-size:13px">
+            Their public profile goes live once they verify their email and post:
+            <a href="${profileUrl}">${profileUrl}</a>
+          </p>
+        </div>
+      `,
+    });
+    if (error) {
+      console.error(
+        `[email] signup notification failed for @${handle}: ${error.message}`,
+      );
+      return { delivered: false as const };
+    }
+    return { delivered: true as const };
+  } catch (error) {
+    console.error(`[email] signup notification threw for @${handle}:`, error);
+    return { delivered: false as const };
+  }
+}
+
 /** Comma-separated in ADMIN_NOTIFICATION_EMAIL_TO; falls back to SCL affiliate ops. */
 export function adminNotificationRecipients(): string[] {
   const raw =

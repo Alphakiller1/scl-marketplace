@@ -13,7 +13,8 @@ import {
 import { sendPasswordResetEmail } from "@/lib/email";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getRequestIdentity } from "@/lib/request-identity";
-import { findUserByEmailAndUsername } from "@/lib/user-credentials";
+import { classifyLoginIdentifier } from "@/lib/schemas/auth.schema";
+import { findLoginCandidates } from "@/lib/user-credentials";
 
 type PasswordResetResult = { ok: true } | { ok: false; error: string };
 
@@ -22,12 +23,13 @@ export async function requestPasswordResetAction(
 ): Promise<PasswordResetResult> {
   const parsed = passwordResetRequestSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Enter a valid email and username." };
+    return { ok: false, error: "Enter your username or email." };
   }
 
-  const { email, username } = parsed.data;
+  const { identifier } = parsed.data;
+  const kind = classifyLoginIdentifier(identifier);
   const requestIdentity = await getRequestIdentity();
-  const accountIdentity = `${email}:${username}`;
+  const accountIdentity = `${kind}:${identifier}`;
   const [emailAllowed, requestAllowed] = await Promise.all([
     consumeRateLimit({
       scope: "password-reset-email",
@@ -44,15 +46,22 @@ export async function requestPasswordResetAction(
   ]);
   if (!emailAllowed || !requestAllowed) return { ok: true };
 
-  const user = await findUserByEmailAndUsername(email, username);
+  const candidates = await findLoginCandidates(identifier, kind);
 
   // Always return the same response so this form cannot enumerate accounts.
-  if (!user || user.accountStatus === "DISABLED") return { ok: true };
-
   try {
-    const token = await createPasswordResetToken(user.id);
-    if (token) {
-      await sendPasswordResetEmail(user.email, token, username);
+    // An inbox can carry more than one account; each gets its own link, named
+    // by handle in the mail, so the reader can tell which is which.
+    for (const user of candidates) {
+      if (user.accountStatus === "DISABLED") continue;
+      const token = await createPasswordResetToken(user.id);
+      if (token) {
+        await sendPasswordResetEmail(
+          user.email,
+          token,
+          user.username ?? undefined,
+        );
+      }
     }
   } catch (error) {
     // Keep the response indistinguishable from a missing account.

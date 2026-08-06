@@ -68,34 +68,21 @@ export default function ResendVerificationPage() {
         icon={Send}
         eyebrow="Email Verification"
         title="Send a new verification link"
-        description="Request a fresh single-use link for a pending SCL account. Enter the username and email you signed up with."
+        description="Request a fresh single-use link for a pending SCL account. Use your username or the email you signed up with."
       />
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <div className="space-y-1.5">
-          <Label htmlFor="username">Username</Label>
+          <Label htmlFor="identifier">Username or email</Label>
           <Input
-            id="username"
+            id="identifier"
             type="text"
             autoComplete="username"
             spellCheck={false}
             className="min-h-10"
-            {...register("username")}
+            {...register("identifier")}
           />
-          {errors.username ? (
-            <p className="text-neg text-xs">{errors.username.message}</p>
-          ) : null}
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            autoComplete="email"
-            className="min-h-10"
-            {...register("email")}
-          />
-          {errors.email ? (
-            <p className="text-neg text-xs">{errors.email.message}</p>
+          {errors.identifier ? (
+            <p className="text-neg text-xs">{errors.identifier.message}</p>
           ) : null}
         </div>
         <Button

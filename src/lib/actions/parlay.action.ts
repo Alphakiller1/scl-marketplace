@@ -14,7 +14,7 @@ import {
 } from "@/lib/odds";
 import { moveKey, resolveCaptureOdds } from "@/lib/odds-movement";
 import type { AcceptedMove, MovedLinePayload } from "@/lib/odds-movement";
-import { validatePackageAttribution } from "@/lib/package-attribution";
+import { resolvePackageAttribution } from "@/lib/package-attribution";
 import { prisma } from "@/lib/prisma";
 import {
   createParlaySchema,
@@ -69,7 +69,7 @@ export async function createParlay(
   if (!profile) return { ok: false, error: "No capper profile found." };
 
   const d = parsed.data;
-  const packageIds = await validatePackageAttribution(profile.id, d.packageIds);
+  const packageIds = await resolvePackageAttribution(profile.id, d.packageIds);
   if (!packageIds) {
     return {
       ok: false,

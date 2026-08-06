@@ -40,8 +40,7 @@ test("an imported handle longer than the signup cap can still sign in and recove
 
   assert.equal(
     passwordResetRequestSchema.safeParse({
-      username: IMPORTED_LONG_HANDLE,
-      email: "capper@example.com",
+      identifier: IMPORTED_LONG_HANDLE,
     }).success,
     true,
   );
@@ -67,14 +66,23 @@ test("password contract requires at least 12 characters", () => {
   assert.equal(passwordSchema.safeParse("long-passphrase").success, true);
 });
 
-test("password reset request normalizes surrounding whitespace", () => {
-  const parsed = passwordResetRequestSchema.parse({
-    username: " Chase_Analytics ",
-    email: "  capper@example.com ",
-  });
-
-  assert.equal(parsed.username, "chase_analytics");
-  assert.equal(parsed.email, "capper@example.com");
+test("password reset takes the same single identifier as sign-in", () => {
+  // Whichever half of the old email+username pair they remember now works on
+  // its own — demanding both is what made reset mail silently never send.
+  assert.equal(
+    passwordResetRequestSchema.parse({ identifier: " @Chase_Analytics " })
+      .identifier,
+    "chase_analytics",
+  );
+  assert.equal(
+    passwordResetRequestSchema.parse({ identifier: "  Capper@Example.com " })
+      .identifier,
+    "capper@example.com",
+  );
+  assert.equal(
+    passwordResetRequestSchema.safeParse({ identifier: "" }).success,
+    false,
+  );
 });
 
 test("login takes one identifier — a username or an email — plus a password", () => {

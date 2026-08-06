@@ -42,6 +42,62 @@ const STATEMENTS: string[] = [
   `DROP INDEX IF EXISTS scl."User_email_key"`,
   `DROP INDEX IF EXISTS "User_email_key"`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "User_email_username_key" ON scl."User"("email", "username")`,
+
+  // --- 20260805240000_storefront_capper_contacted ---------------------------
+  // Schema-qualified: the migration file names the type bare, which only
+  // resolves while search_path happens to include `scl`.
+  `ALTER TYPE scl."StorefrontReviewAction" ADD VALUE IF NOT EXISTS 'CAPPER_CONTACTED'`,
+
+  // --- 20260805250000_storefront_messages -----------------------------------
+  `DO $$ BEGIN
+     CREATE TYPE scl."StorefrontMessageSender" AS ENUM ('ADMIN', 'CAPPER');
+   EXCEPTION WHEN duplicate_object THEN NULL;
+   END $$`,
+  `CREATE TABLE IF NOT EXISTS scl."StorefrontMessage" (
+     "id" TEXT NOT NULL,
+     "storeConnectionId" TEXT NOT NULL,
+     "senderId" TEXT NOT NULL,
+     "senderRole" scl."StorefrontMessageSender" NOT NULL,
+     "body" TEXT NOT NULL,
+     "readByAdminAt" TIMESTAMP(3),
+     "readByCapperAt" TIMESTAMP(3),
+     "emailNotifiedAt" TIMESTAMP(3),
+     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     CONSTRAINT "StorefrontMessage_pkey" PRIMARY KEY ("id")
+   )`,
+  `CREATE INDEX IF NOT EXISTS "StorefrontMessage_storeConnectionId_createdAt_idx" ON scl."StorefrontMessage"("storeConnectionId", "createdAt")`,
+  `CREATE INDEX IF NOT EXISTS "StorefrontMessage_storeConnectionId_readByAdminAt_idx" ON scl."StorefrontMessage"("storeConnectionId", "readByAdminAt")`,
+  `CREATE INDEX IF NOT EXISTS "StorefrontMessage_storeConnectionId_readByCapperAt_idx" ON scl."StorefrontMessage"("storeConnectionId", "readByCapperAt")`,
+  `DO $$ BEGIN
+     ALTER TABLE scl."StorefrontMessage"
+       ADD CONSTRAINT "StorefrontMessage_storeConnectionId_fkey"
+       FOREIGN KEY ("storeConnectionId") REFERENCES scl."StoreConnection"("id")
+       ON DELETE CASCADE ON UPDATE CASCADE;
+   EXCEPTION WHEN duplicate_object THEN NULL;
+   END $$`,
+  `DO $$ BEGIN
+     ALTER TABLE scl."StorefrontMessage"
+       ADD CONSTRAINT "StorefrontMessage_senderId_fkey"
+       FOREIGN KEY ("senderId") REFERENCES scl."User"("id")
+       ON DELETE RESTRICT ON UPDATE CASCADE;
+   EXCEPTION WHEN duplicate_object THEN NULL;
+   END $$`,
+
+  // --- 20260806000000_legacy_scope_2024_postseason ---------------------------
+  `ALTER TYPE scl."LegacyRecordScope" ADD VALUE IF NOT EXISTS 'YEAR_2024'`,
+  `ALTER TYPE scl."LegacyRecordScope" ADD VALUE IF NOT EXISTS 'SEASON_2024'`,
+  `ALTER TYPE scl."LegacyRecordScope" ADD VALUE IF NOT EXISTS 'POSTSEASON'`,
+
+  // --- unblock the migration chain ------------------------------------------
+  // A migration row with no `finished_at` and no `rolled_back_at` is Prisma's
+  // "failed" state: `migrate deploy` refuses to apply ANY later migration while
+  // one exists (P3009). That is why the three migrations above never landed
+  // even though deploys kept reporting success. Deleting the row — rather than
+  // inserting a completed one — lets Prisma re-run the migration and record its
+  // own checksum; every statement in those files is IF EXISTS / IF NOT EXISTS,
+  // so re-running is a no-op against the DDL this endpoint just applied.
+  `DELETE FROM scl._prisma_migrations
+     WHERE finished_at IS NULL AND rolled_back_at IS NULL`,
 ];
 
 function authorize(req: NextRequest): boolean {
@@ -89,13 +145,37 @@ export async function POST(req: NextRequest) {
      ORDER BY indexname`,
   );
   const userEmailIndexes = emailIndex.map((row) => row.indexname);
+
+  // Prove the chain is actually unblocked, not just that the DDL ran.
+  const blocked = await prisma.$queryRawUnsafe<{ migration_name: string }[]>(
+    `SELECT migration_name FROM scl._prisma_migrations
+     WHERE finished_at IS NULL AND rolled_back_at IS NULL
+     ORDER BY started_at`,
+  );
+  const blockedMigrations = blocked.map((row) => row.migration_name);
+
+  const tables = await prisma.$queryRawUnsafe<{ present: boolean }[]>(
+    `SELECT to_regclass('scl."StorefrontMessage"') IS NOT NULL AS present`,
+  );
+  const storefrontMessagesTable = tables[0]?.present === true;
+
   const ok =
     failed.length === 0 &&
     storeConnectionColumns.length === 5 &&
     userEmailIndexes.includes("User_email_username_key") &&
-    !userEmailIndexes.includes("User_email_key");
+    !userEmailIndexes.includes("User_email_key") &&
+    blockedMigrations.length === 0 &&
+    storefrontMessagesTable;
   return NextResponse.json(
-    { ok, applied, failed, storeConnectionColumns, userEmailIndexes },
+    {
+      ok,
+      applied,
+      failed,
+      storeConnectionColumns,
+      userEmailIndexes,
+      blockedMigrations,
+      storefrontMessagesTable,
+    },
     { status: ok ? 200 : 500 },
   );
 }
