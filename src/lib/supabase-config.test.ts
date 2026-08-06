@@ -3,12 +3,26 @@ import test from "node:test";
 
 import {
   ensureSupabaseDatabaseEnvAliases,
+  supabaseCredentialMismatch,
   supabaseIntegrationStatus,
   supabaseProjectUrl,
+  supabaseRefFromKey,
+  supabaseRefFromUrl,
   supabaseServiceRoleKey,
   supabaseStorageConfigured,
   usesSupabasePlatformSecretKey,
 } from "@/lib/supabase-config";
+
+/** A legacy service_role key is a JWT naming the project it belongs to. */
+function serviceRoleKeyFor(ref: string): string {
+  const part = (o: unknown) =>
+    Buffer.from(JSON.stringify(o)).toString("base64url");
+  return `${part({ alg: "HS256", typ: "JWT" })}.${part({
+    iss: "supabase",
+    ref,
+    role: "service_role",
+  })}.signature`;
+}
 
 const ORIGINAL = { ...process.env };
 
@@ -71,4 +85,55 @@ test("usesSupabasePlatformSecretKey detects new Supabase secret keys", () => {
     ),
     false,
   );
+});
+
+/**
+ * A URL from one project paired with a key from another fails as `Invalid JWT`
+ * or `Bucket not found` — indistinguishable from a genuinely missing bucket.
+ * One such mismatch was chased as a storage problem while both projects had
+ * the bucket the whole time.
+ */
+
+test("supabaseRefFromUrl reads the project ref out of the URL", () => {
+  assert.equal(supabaseRefFromUrl("https://abcdef.supabase.co"), "abcdef");
+  assert.equal(supabaseRefFromUrl("https://abcdef.supabase.co/"), "abcdef");
+  assert.equal(supabaseRefFromUrl("not-a-url"), null);
+});
+
+test("supabaseRefFromKey reads the ref out of a legacy service_role JWT", () => {
+  assert.equal(supabaseRefFromKey(serviceRoleKeyFor("abcdef")), "abcdef");
+});
+
+test("an opaque sb_secret_ key reports no ref rather than a wrong one", () => {
+  // Cannot be decoded, so it must read as "unknown", never as "mismatched".
+  assert.equal(supabaseRefFromKey("sb_secret_whatever"), null);
+  assert.equal(supabaseRefFromKey("garbage"), null);
+});
+
+test("a cross-project URL/key pair is reported as a mismatch", () => {
+  restoreEnv();
+  process.env.SUPABASE_URL = "https://ljndtpzuslxgpnlxfhbz.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = serviceRoleKeyFor(
+    "mvxjcfriirguhjujurhf",
+  );
+  assert.deepEqual(supabaseCredentialMismatch(), {
+    urlRef: "ljndtpzuslxgpnlxfhbz",
+    keyRef: "mvxjcfriirguhjujurhf",
+  });
+});
+
+test("a matching pair is not a mismatch", () => {
+  restoreEnv();
+  process.env.SUPABASE_URL = "https://ljndtpzuslxgpnlxfhbz.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = serviceRoleKeyFor(
+    "ljndtpzuslxgpnlxfhbz",
+  );
+  assert.equal(supabaseCredentialMismatch(), null);
+});
+
+test("an undecodable key is never reported as a mismatch", () => {
+  restoreEnv();
+  process.env.SUPABASE_URL = "https://ljndtpzuslxgpnlxfhbz.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "sb_secret_opaque";
+  assert.equal(supabaseCredentialMismatch(), null);
 });

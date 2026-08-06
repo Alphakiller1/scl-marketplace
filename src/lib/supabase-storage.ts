@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  supabaseCredentialMismatch,
   supabaseProfileMediaBucket,
   supabaseProjectUrl,
   supabaseServiceRoleKey,
@@ -154,6 +155,16 @@ export async function uploadProfileMediaObject(
 
   const message = await response.text();
   console.error("[profile-media] upload failed:", response.status, message);
+
+  // Say so before blaming the key or the bucket: a cross-project pair fails as
+  // either one, and both misreadings send you looking in the wrong project.
+  const mismatch = supabaseCredentialMismatch();
+  if (mismatch) {
+    return {
+      ok: false,
+      error: `Supabase credentials point at two different projects - SUPABASE_URL is ${mismatch.urlRef} but the service-role key belongs to ${mismatch.keyRef}. Set both from the same project.`,
+    };
+  }
 
   const normalized = message.toLowerCase();
   if (normalized.includes("invalid jwt") || normalized.includes("api key")) {
