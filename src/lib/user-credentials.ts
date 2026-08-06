@@ -59,3 +59,55 @@ export async function findUserByEmailAndUsername(
 
   return queryUserByEmailAndUsername(legacyPlus, username);
 }
+
+export type LoginCandidate = Awaited<
+  ReturnType<typeof findUserByEmailAndUsername>
+>;
+
+/**
+ * Accounts a sign-in identifier could refer to.
+ *
+ * A username is unique, so it names exactly one account. An email is not:
+ * `@@unique([email, username])` means one inbox can carry several accounts —
+ * the shared brand inboxes carried over from the previous platform do exactly
+ * that. So this returns a list, and the caller decides using the password.
+ *
+ * Capped, because each candidate costs a bcrypt comparison and this endpoint is
+ * public. The cap is far above any real inbox (the largest carried over is five).
+ */
+export const MAX_LOGIN_CANDIDATES = 10;
+
+export async function findLoginCandidates(
+  identifier: string,
+  kind: "email" | "username",
+): Promise<NonNullable<LoginCandidate>[]> {
+  if (kind === "username") {
+    const byUsername = await prisma.user.findFirst({
+      where: { username: { equals: identifier, mode: "insensitive" } },
+      select: userSelect,
+    });
+    return byUsername ? [byUsername] : [];
+  }
+
+  const email = identifier.toLowerCase();
+  const at = email.indexOf("@");
+  const local = at > 0 ? email.slice(0, at) : null;
+  const domain = at > 0 ? email.slice(at + 1) : null;
+
+  return prisma.user.findMany({
+    where: {
+      OR: [
+        { email },
+        // Older imports plus-addressed shared inboxes; the capper still types
+        // the bare address, so those accounts have to be reachable by it.
+        ...(local && domain && !local.includes("+")
+          ? [{ email: { startsWith: `${local}+`, endsWith: `@${domain}` } }]
+          : []),
+      ],
+    },
+    select: userSelect,
+    // Stable order so a repeated sign-in resolves the same way.
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    take: MAX_LOGIN_CANDIDATES,
+  });
+}

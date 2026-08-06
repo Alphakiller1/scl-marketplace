@@ -1,11 +1,17 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/auth.config";
-import { loginSchema } from "@/lib/schemas/auth.schema";
-import { findUserByEmailAndUsername } from "@/lib/user-credentials";
+import {
+  classifyLoginIdentifier,
+  loginSchema,
+} from "@/lib/schemas/auth.schema";
+import {
+  findLoginCandidates,
+  type LoginCandidate,
+} from "@/lib/user-credentials";
 import { ensureAuthEmailSchema } from "@/lib/ensure-auth-email-schema";
 import {
   clearRateLimit,
@@ -17,6 +23,14 @@ import { verifyLegacyPassword } from "@/lib/legacy-password";
 import { meetsCurrentPasswordPolicy } from "@/lib/password-policy";
 import { hasDeliverableEmail } from "@/lib/account-claim";
 import { sendPasswordUpdateRequiredEmail } from "@/lib/email";
+import { AMBIGUOUS_LOGIN_CODE } from "@/lib/auth-errors";
+
+type LoginUser = NonNullable<LoginCandidate>;
+
+/** Surfaced with a code so the form can say "use your username" (see auth-errors). */
+class AmbiguousLoginError extends CredentialsSignin {
+  code = AMBIGUOUS_LOGIN_CODE;
+}
 
 const DUMMY_PASSWORD_HASH =
   "$2b$12$U6O4lf.XpOqiREmsRAyVpuEfD2bwKOJz7YYiq8mxaUec1gUEF7h7y";
@@ -115,17 +129,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Credentials({
       credentials: {
-        username: { label: "Username", type: "text" },
-        email: { label: "Email", type: "email" },
+        identifier: { label: "Username or email", type: "text" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         const parsed = loginSchema.safeParse(credentials);
         if (!parsed.success) return null;
 
-        const { email, username, password } = parsed.data;
+        const { identifier, password } = parsed.data;
         await ensureAuthEmailSchema(prisma);
-        const loginIdentity = `${email}:${username}`;
+        const kind = classifyLoginIdentifier(identifier);
+        const loginIdentity = `${kind}:${identifier}`;
         const requestIdentity = await getRequestIdentity();
         const [emailAllowed, requestAllowed] = await Promise.all([
           isRateLimitAllowed({
@@ -143,31 +157,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         ]);
         if (!emailAllowed || !requestAllowed) return null;
 
-        const user = await findUserByEmailAndUsername(email, username);
-        // Always run one bcrypt compare, even with no account, so a missing
-        // email can't be told apart from a wrong password by response time.
-        const passwordMatches = await bcrypt.compare(
-          password,
-          user?.passwordHash ?? DUMMY_PASSWORD_HASH,
-        );
+        const candidates = await findLoginCandidates(identifier, kind);
 
-        // No SCL password matched — fall back to the credential this account
-        // brought over from the previous platform, so cappers sign in with the
-        // email and password they already had.
-        let legacyMatched = false;
-        if (user && !(user.passwordHash && passwordMatches)) {
-          legacyMatched = await verifyLegacyPassword(
+        // A username names one account; an email can name several, because one
+        // inbox may carry several accounts. Test the password against each and
+        // let it pick — that is what makes a single identifier field workable.
+        const matches: { user: LoginUser; legacy: boolean }[] = [];
+        for (const candidate of candidates) {
+          const sclMatch = candidate.passwordHash
+            ? await bcrypt.compare(password, candidate.passwordHash)
+            : false;
+          if (sclMatch) {
+            matches.push({ user: candidate, legacy: false });
+            continue;
+          }
+          // No SCL password matched — fall back to the credential this account
+          // brought over from the previous platform, so cappers sign in with
+          // the password they already had.
+          const legacyMatch = await verifyLegacyPassword(
             password,
-            user.legacyPasswordHash,
-            user.legacyPasswordFormat,
+            candidate.legacyPasswordHash,
+            candidate.legacyPasswordFormat,
           );
+          if (legacyMatch) matches.push({ user: candidate, legacy: true });
         }
 
-        if (
-          !user ||
-          !(legacyMatched || (user.passwordHash && passwordMatches))
-        ) {
-          await Promise.all([
+        if (!candidates.length) {
+          // Always spend one comparison, so an identifier with no account can't
+          // be told from a wrong password by response time.
+          await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
+        }
+
+        const spendAttempt = () =>
+          Promise.all([
             consumeRateLimit({
               scope: "login-email",
               identity: loginIdentity,
@@ -181,8 +203,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               windowMs: 15 * 60 * 1000,
             }),
           ]);
+
+        if (!matches.length) {
+          await spendAttempt();
           return null;
         }
+
+        // Several accounts on this inbox share this password, so the identifier
+        // genuinely does not say which one they mean. They already proved they
+        // hold the credential, so naming the ambiguity leaks nothing — and it is
+        // the only way they can act on it.
+        if (matches.length > 1) {
+          await spendAttempt();
+          throw new AmbiguousLoginError();
+        }
+
+        const { user, legacy: legacyMatched } = matches[0];
         if (
           user.accountStatus === "SUSPENDED" ||
           user.accountStatus === "DISABLED"
