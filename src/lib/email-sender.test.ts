@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   parseSenderAddress,
+  parseSenderName,
   registrableHost,
   senderDomain,
   senderMatchesSite,
@@ -25,6 +26,40 @@ describe("parseSenderAddress", () => {
 
   it("rejects a value that is not an address", () => {
     assert.equal(parseSenderAddress("SCL"), null);
+  });
+});
+
+describe("parseSenderName", () => {
+  it("reads the display name", () => {
+    assert.equal(
+      parseSenderName("SCL <no-reply@sportscappersleaderboard.com>"),
+      "SCL",
+    );
+  });
+
+  it("strips the quotes RFC 5322 requires around a punctuated name", () => {
+    assert.equal(
+      parseSenderName('"Sports Cappers Leaderboard, Inc." <no-reply@scl.test>'),
+      "Sports Cappers Leaderboard, Inc.",
+    );
+  });
+
+  it("returns null for a bare address, which carries no name", () => {
+    assert.equal(
+      parseSenderName("no-reply@sportscappersleaderboard.com"),
+      null,
+    );
+  });
+
+  it("returns null when the angle form carries an empty name", () => {
+    assert.equal(parseSenderName("  <no-reply@scl.test>"), null);
+  });
+
+  // The case a domain check cannot see: right address, wrong company.
+  it("surfaces a foreign brand on an otherwise correct address", () => {
+    const from = "Chase Analytics <no-reply@sportscappersleaderboard.com>";
+    assert.equal(parseSenderName(from), "Chase Analytics");
+    assert.equal(senderDomain(from), "sportscappersleaderboard.com");
   });
 });
 

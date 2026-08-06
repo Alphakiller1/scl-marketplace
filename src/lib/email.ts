@@ -8,6 +8,19 @@ const apiKey = process.env.RESEND_API_KEY;
 const from = process.env.EMAIL_FROM ?? "no-reply@scl.local";
 const resend = apiKey ? new Resend(apiKey) : null;
 
+/**
+ * Where a reply lands.
+ *
+ * Every capper-facing message below is sent from an unmonitored `no-reply@`, so
+ * without this the natural response to "I never got my link" — hitting reply —
+ * goes nowhere and looks to the capper like SCL ignored them. Undefined when no
+ * support mailbox is set, which leaves the header off rather than pointing it at
+ * a placeholder.
+ */
+function supportReplyTo(): string | undefined {
+  return process.env.SUPPORT_EMAIL_TO?.trim() || undefined;
+}
+
 function escapeHtml(value: string) {
   return value
     .replaceAll("&", "&amp;")
@@ -55,6 +68,7 @@ export async function sendVerificationEmail(
     const { error } = await resend.emails.send({
       from,
       to: email,
+      replyTo: supportReplyTo(),
       subject: "Verify your SCL account",
       html: `
       <div style="font-family:system-ui,sans-serif;max-width:480px;margin:auto">
@@ -101,6 +115,7 @@ export async function sendPasswordResetEmail(
     const { error } = await resend.emails.send({
       from,
       to: email,
+      replyTo: supportReplyTo(),
       subject: "Reset your SCL password",
       html: `
       <div style="font-family:system-ui,sans-serif;max-width:480px;margin:auto">
@@ -141,6 +156,7 @@ export async function sendAccountClaimEmail(email: string, token: string) {
     const { error } = await resend.emails.send({
       from,
       to: email,
+      replyTo: supportReplyTo(),
       subject: "Set your SCL password",
       html: `
       <div style="font-family:system-ui,sans-serif;max-width:480px;margin:auto">
@@ -179,6 +195,7 @@ export async function sendPasswordUpdateRequiredEmail(email: string) {
     const { error } = await resend.emails.send({
       from,
       to: email,
+      replyTo: supportReplyTo(),
       subject: "Update your SCL password",
       html: `
       <div style="font-family:system-ui,sans-serif;max-width:480px;margin:auto">
