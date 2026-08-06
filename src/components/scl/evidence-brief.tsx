@@ -19,6 +19,7 @@ import {
 import { CumulativeUnitsChart } from "@/components/scl/cumulative-units-chart";
 import { ClvTrackerPanel } from "@/components/scl/clv-tracker-panel";
 import { LeagueRef, TeamRef } from "@/components/scl/entity-marks";
+import { LegacySportBreakdown } from "@/components/scl/legacy-sport-breakdown";
 import { PlayerHeadshot } from "@/components/scl/player-headshot";
 import { ProofReceipt } from "@/components/scl/proof-receipt";
 import { ProvisionalRecordHelp } from "@/components/scl/provisional-record-help";
@@ -34,6 +35,7 @@ import { EmptyState } from "@/components/scl/states";
 import { loadPublicProfileHistory } from "@/app/actions/public-profile-history";
 import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
 import { formatOdds, formatUnits } from "@/lib/format";
+import type { LegacySportRecordView } from "@/lib/legacy-sport-records";
 import type { CapperSummary } from "@/lib/mock";
 import type {
   PackageEvidence,
@@ -162,6 +164,7 @@ export function EvidenceBrief({
   chartSeries: chartSeriesProp,
   chartSeriesBySport = {},
   packageInsights = [],
+  legacyBySport = [],
   historyNextCursor,
   emptyName,
   className,
@@ -174,6 +177,8 @@ export function EvidenceBrief({
   chartSeries?: ProfileChartSeries;
   chartSeriesBySport?: Record<string, ProfileChartSeries>;
   packageInsights?: ProfilePackageInsight[];
+  /** Per-sport PRE_IMPORT legacy totals (full-record view only). */
+  legacyBySport?: LegacySportRecordView[];
   historyNextCursor?: string | null;
   emptyName: string;
   className?: string;
@@ -300,6 +305,9 @@ export function EvidenceBrief({
     <div className={cn("space-y-5 sm:space-y-6", className)}>
       <div data-profile-evidence-grid className="space-y-5 sm:space-y-6">
         {evidenceRecord}
+        {!activePackage && legacyBySport.length > 0 ? (
+          <LegacySportBreakdown records={legacyBySport} />
+        ) : null}
         <section
           data-profile-performance-trend
           aria-label="Performance trend"
