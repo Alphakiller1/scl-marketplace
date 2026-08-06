@@ -1,0 +1,2036 @@
+{
+  "startedAt": "2026-08-06T01:26:35.237Z",
+  "origin": "https://sportscappersleaderboard.com",
+  "release": "5fa4d5812e698aebe13a1b0fa673bdfe9902cb92",
+  "health": {
+    "status": "ok",
+    "database": "reachable",
+    "schema": {
+      "packageAttribution": true,
+      "eventLabels": true,
+      "policyAcceptance": true,
+      "refundPolicy": true
+    },
+    "deployment": {
+      "releaseIdentified": true
+    },
+    "supabase": {
+      "storage": false,
+      "url": true,
+      "serviceRole": true,
+      "bucket": "scl-profile-media",
+      "configured": true,
+      "bucketReady": false
+    },
+    "whop": {
+      "oauth": true,
+      "webhook": true,
+      "affiliateUsername": true,
+      "accountApiKey": true,
+      "storefrontSync": true
+    },
+    "release": "5fa4d5812e698aebe13a1b0fa673bdfe9902cb92",
+    "checkedAt": "2026-08-06T01:26:37.144Z"
+  },
+  "findings": [
+    {
+      "id": "AUDIT-001",
+      "severity": "P0",
+      "category": "correctness",
+      "route": "/dashboard/profile + /api/health",
+      "viewport": "n/a",
+      "what": "Profile media uploads are broken in production: /api/health reports bucketReady=false / storage=false while credentials are configured.",
+      "evidence": "Live /api/health {\"storage\":false,\"url\":true,\"serviceRole\":true,\"bucket\":\"scl-profile-media\",\"configured\":true,\"bucketReady\":false}; public Storage probe on mvxjcfriirguhjujurhf.supabase.co returns Bucket not found for scl-profile-media. Prior shallow audits trusted env-only health flags.",
+      "repro": [
+        "1. curl -s https://sportscappersleaderboard.com/api/health | jq .supabase",
+        "2. Observe configured:true, bucketReady:false, storage:false",
+        "3. Sign in as any capper \u2192 /dashboard/profile \u2192 upload avatar \u2192 toast: Profile media storage is unavailable."
+      ],
+      "why": "Core onboarding identity path is dead on launch day; /api/health previously lied with storage:true when only env vars existed.",
+      "fix": "Create public bucket scl-profile-media in the production Supabase project (or fix Storage API access). Keep live probe in /api/health. Do not treat env presence as readiness.",
+      "status": "OPEN \u2014 another session owns the fix; confirmed still broken on release 5fa4d5812e698aebe13a1b0fa673bdfe9902cb92"
+    },
+    {
+      "id": "AUDIT-002",
+      "severity": "P2",
+      "category": "a11y",
+      "route": "/",
+      "viewport": "375",
+      "what": "32 interactive controls shorter than 36px",
+      "evidence": "[{\"text\":\"@petespicks\",\"href\":\"/cappers/petespicks\",\"w\":89,\"h\":19,\"disabled\":false},{\"text\":\"@petespicks\",\"href\":\"/cappers/petespicks\",\"w\":89,\"h\":19,\"disabled\":false},{\"text\":\"@petespicks\",\"href\":\"/cappers/petespicks\",\"w\":89,\"h\":19,\"disabled\":false},{\"text\":\"@petespicks\",\"href\":\"/cappers/petespicks\",\"w\":89,\"h\":19,\"disabled\":false},{\"text\":\"@petespicks\",\"href\":\"/cappers/petespicks\",\"w\":89,\"h\":19,\"disabled\":false},{\"text\":\"@cltbestbets\",\"href\":\"/cappers/cltbestbets\",\"w\":90,\"h\":19,\"disabled\":false},{\"text\":\"@mg123\",\"href\":\"/cappers/mg123\",\"w\":55,\"h\":19,\"disabled\":false},{\"text\":\"@BTTSPlays\",\"href\":\"/cappers/BTTSPlays\",\"w\":86,\"h\":19,\"disabled\":false}]",
+      "repro": ["Inspect button heights on / mobile"],
+      "why": "Tap targets should be \u226540px (gate \u226536 observed)",
+      "fix": "Increase min-h on controls"
+    },
+    {
+      "id": "AUDIT-003",
+      "severity": "P0",
+      "category": "data-integrity",
+      "route": "/cappers/bankofdennis",
+      "what": "Evidence Brief units (+280.95U) \u2260 chart End (+1416.82U)",
+      "evidence": "integrity_profile_bankofdennis.png; DOM extract",
+      "repro": [
+        "Open /cappers/bankofdennis",
+        "Compare Evidence Brief UNITS to chart End/Ending balance"
+      ],
+      "why": "Product promise is reconcilable verified performance",
+      "fix": "Align chart baseline with legacy-inclusive aggregates"
+    },
+    {
+      "id": "AUDIT-004",
+      "severity": "P0",
+      "category": "data-integrity",
+      "route": "/cappers/wgsdfs",
+      "what": "Evidence Brief units (+123.62U) \u2260 chart End (+144.73U)",
+      "evidence": "integrity_profile_wgsdfs.png; DOM extract",
+      "repro": [
+        "Open /cappers/wgsdfs",
+        "Compare Evidence Brief UNITS to chart End/Ending balance"
+      ],
+      "why": "Product promise is reconcilable verified performance",
+      "fix": "Align chart baseline with legacy-inclusive aggregates"
+    },
+    {
+      "id": "AUDIT-005",
+      "severity": "P0",
+      "category": "data-integrity",
+      "route": "/cappers/mlbanalyticspro",
+      "what": "Evidence Brief units (+236.03U) \u2260 chart End (+869.72U)",
+      "evidence": "integrity_profile_mlbanalyticspro.png; DOM extract",
+      "repro": [
+        "Open /cappers/mlbanalyticspro",
+        "Compare Evidence Brief UNITS to chart End/Ending balance"
+      ],
+      "why": "Product promise is reconcilable verified performance",
+      "fix": "Align chart baseline with legacy-inclusive aggregates"
+    },
+    {
+      "id": "AUDIT-006",
+      "severity": "P0",
+      "category": "data-integrity",
+      "route": "/cappers/clownsportspick",
+      "what": "Evidence Brief units (+204.20U) \u2260 chart End (+848.29U)",
+      "evidence": "integrity_profile_clownsportspick.png; DOM extract",
+      "repro": [
+        "Open /cappers/clownsportspick",
+        "Compare Evidence Brief UNITS to chart End/Ending balance"
+      ],
+      "why": "Product promise is reconcilable verified performance",
+      "fix": "Align chart baseline with legacy-inclusive aggregates"
+    },
+    {
+      "id": "AUDIT-007",
+      "severity": "P0",
+      "category": "data-integrity",
+      "route": "/cappers/amanee330",
+      "what": "Evidence Brief units (+140.18U) \u2260 chart End (+378.93U)",
+      "evidence": "integrity_profile_amanee330.png; DOM extract",
+      "repro": [
+        "Open /cappers/amanee330",
+        "Compare Evidence Brief UNITS to chart End/Ending balance"
+      ],
+      "why": "Product promise is reconcilable verified performance",
+      "fix": "Align chart baseline with legacy-inclusive aggregates"
+    },
+    {
+      "id": "AUDIT-008",
+      "severity": "P0",
+      "category": "data-integrity",
+      "route": "/cappers/tailoredwinning",
+      "what": "Evidence Brief units (+152.80U) \u2260 chart End (+135.66U)",
+      "evidence": "integrity_profile_tailoredwinning.png; DOM extract",
+      "repro": [
+        "Open /cappers/tailoredwinning",
+        "Compare Evidence Brief UNITS to chart End/Ending balance"
+      ],
+      "why": "Product promise is reconcilable verified performance",
+      "fix": "Align chart baseline with legacy-inclusive aggregates"
+    },
+    {
+      "id": "AUDIT-009",
+      "severity": "P0",
+      "category": "data-integrity",
+      "route": "/cappers/a2zpicks",
+      "what": "Evidence Brief units (+120.38U) \u2260 chart End (+115.48U)",
+      "evidence": "integrity_profile_a2zpicks.png; DOM extract",
+      "repro": [
+        "Open /cappers/a2zpicks",
+        "Compare Evidence Brief UNITS to chart End/Ending balance"
+      ],
+      "why": "Product promise is reconcilable verified performance",
+      "fix": "Align chart baseline with legacy-inclusive aggregates"
+    },
+    {
+      "id": "AUDIT-010",
+      "severity": "P0",
+      "category": "correctness",
+      "route": "/dashboard/profile",
+      "viewport": "1440",
+      "what": "Authenticated avatar upload fails on a disposable test account (storage unavailable / no success toast).",
+      "evidence": "capper_profile_after_upload.png; toasts=[\"Profile media storage is unavailable. In Supabase \u2192 Storage, create a public bucket named scl-profile-media.\",\"Profile media storage is unavailable. In Supabase \u2192 Storage, create a public bucket named scl-profile-media.\"]; health.supabase={\"storage\":false,\"url\":true,\"serviceRole\":true,\"bucket\":\"scl-profile-media\",\"configured\":true,\"bucketReady\":false}",
+      "repro": [
+        "1. Sign up disposable ACTIVE capper",
+        "2. Open /dashboard/profile",
+        "3. Upload a 1\u00d71 PNG as profile image",
+        "4. Observe failure toast / no Profile image updated"
+      ],
+      "why": "This is the defect the prior audit missed by never exercising the authenticated upload path.",
+      "fix": "Owned by parallel session \u2014 create scl-profile-media bucket / finish Storage fix. Audit must keep live upload exercise."
+    }
+  ],
+  "routes": [
+    {
+      "route": "/dashboard",
+      "auth": "logged-out",
+      "status": 200,
+      "finalUrl": "https://sportscappersleaderboard.com/login?callbackUrl=%2Fdashboard",
+      "redirectOk": true
+    },
+    {
+      "route": "/admin",
+      "auth": "logged-out",
+      "status": 200,
+      "finalUrl": "https://sportscappersleaderboard.com/login?callbackUrl=%2Fadmin",
+      "redirectOk": true
+    },
+    {
+      "route": "/",
+      "viewport": "1440",
+      "status": 200,
+      "ttiMs": 3887,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 3,
+      "consoleErrors": 1,
+      "networkFails": 8,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/home_1440.png",
+      "title": "SCL \u2014 Sports Cappers Leaderboard \u00b7 SCL",
+      "h1": "Apply As A Founding Capper"
+    },
+    {
+      "route": "/",
+      "viewport": "375",
+      "status": 200,
+      "ttiMs": 3352,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 3,
+      "consoleErrors": 1,
+      "networkFails": 4,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/home_375.png",
+      "title": "SCL \u2014 Sports Cappers Leaderboard \u00b7 SCL",
+      "h1": "Apply As A Founding Capper"
+    },
+    {
+      "route": "/leaderboard",
+      "viewport": "1440",
+      "status": 200,
+      "ttiMs": 3708,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 2,
+      "consoleErrors": 1,
+      "networkFails": 15,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/leaderboard_1440.png",
+      "title": "Leaderboard \u00b7 SCL",
+      "h1": "Leaderboard"
+    },
+    {
+      "route": "/leaderboard",
+      "viewport": "375",
+      "status": 200,
+      "ttiMs": 3402,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 2,
+      "consoleErrors": 1,
+      "networkFails": 2,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/leaderboard_375.png",
+      "title": "Leaderboard \u00b7 SCL",
+      "h1": "Leaderboard"
+    },
+    {
+      "route": "/discover",
+      "viewport": "1440",
+      "status": 200,
+      "ttiMs": 3675,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 2,
+      "networkFails": 12,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/discover_1440.png",
+      "title": "Discover \u00b7 SCL",
+      "h1": "Discover"
+    },
+    {
+      "route": "/discover",
+      "viewport": "375",
+      "status": 200,
+      "ttiMs": 3638,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 2,
+      "networkFails": 5,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/discover_375.png",
+      "title": "Discover \u00b7 SCL",
+      "h1": "Discover"
+    },
+    {
+      "route": "/picks",
+      "viewport": "1440",
+      "status": 200,
+      "ttiMs": 3818,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 8,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/picks_1440.png",
+      "title": "Latest picks \u00b7 SCL",
+      "h1": "Latest picks"
+    },
+    {
+      "route": "/picks",
+      "viewport": "375",
+      "status": 200,
+      "ttiMs": 1716,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 3,
+      "consoleErrors": 0,
+      "networkFails": 2,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/picks_375.png",
+      "title": "Latest picks \u00b7 SCL",
+      "h1": "Latest picks"
+    },
+    {
+      "route": "/packages",
+      "viewport": "1440",
+      "status": 200,
+      "ttiMs": 5524,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 32,
+      "brokenImages": 1,
+      "consoleErrors": 0,
+      "networkFails": 10,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/packages_1440.png",
+      "title": "Packages \u00b7 SCL",
+      "h1": "Packages"
+    },
+    {
+      "route": "/packages",
+      "viewport": "375",
+      "status": 200,
+      "ttiMs": 5391,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 32,
+      "brokenImages": 1,
+      "consoleErrors": 0,
+      "networkFails": 2,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/packages_375.png",
+      "title": "Packages \u00b7 SCL",
+      "h1": "Packages"
+    },
+    {
+      "route": "/cappers",
+      "viewport": "1440",
+      "status": 200,
+      "ttiMs": 3783,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 2,
+      "networkFails": 8,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/cappers_1440.png",
+      "title": "Discover \u00b7 SCL",
+      "h1": "Discover"
+    },
+    {
+      "route": "/cappers",
+      "viewport": "375",
+      "status": 200,
+      "ttiMs": 3262,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 2,
+      "networkFails": 3,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/cappers_375.png",
+      "title": "Discover \u00b7 SCL",
+      "h1": "Discover"
+    },
+    {
+      "route": "/verification",
+      "viewport": "1440",
+      "status": 200,
+      "ttiMs": 3568,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 6,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/verification_1440.png",
+      "title": "How Verification Works \u00b7 SCL",
+      "h1": "How Verification Works"
+    },
+    {
+      "route": "/verification",
+      "viewport": "375",
+      "status": 200,
+      "ttiMs": 1127,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 0,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/verification_375.png",
+      "title": "How Verification Works \u00b7 SCL",
+      "h1": "How Verification Works"
+    },
+    {
+      "route": "/support",
+      "viewport": "1440",
+      "status": 200,
+      "ttiMs": 3566,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 9,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/support_1440.png",
+      "title": "Support \u00b7 SCL",
+      "h1": "How can we help?"
+    },
+    {
+      "route": "/support",
+      "viewport": "375",
+      "status": 200,
+      "ttiMs": 1163,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 1,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/support_375.png",
+      "title": "Support \u00b7 SCL",
+      "h1": "How can we help?"
+    },
+    {
+      "route": "/terms",
+      "viewport": "1440",
+      "status": 200,
+      "ttiMs": 3369,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 1,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 7,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/terms_1440.png",
+      "title": "Terms of Service \u00b7 SCL",
+      "h1": "Terms of Service"
+    },
+    {
+      "route": "/terms",
+      "viewport": "375",
+      "status": 200,
+      "ttiMs": 1274,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 1,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 3,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/terms_375.png",
+      "title": "Terms of Service \u00b7 SCL",
+      "h1": "Terms of Service"
+    },
+    {
+      "route": "/privacy",
+      "viewport": "1440",
+      "status": 200,
+      "ttiMs": 4101,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 6,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/privacy_1440.png",
+      "title": "Privacy Policy \u00b7 SCL",
+      "h1": "Privacy Policy"
+    },
+    {
+      "route": "/privacy",
+      "viewport": "375",
+      "status": 200,
+      "ttiMs": 1308,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 5,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/privacy_375.png",
+      "title": "Privacy Policy \u00b7 SCL",
+      "h1": "Privacy Policy"
+    },
+    {
+      "route": "/disclaimer",
+      "viewport": "1440",
+      "status": 200,
+      "ttiMs": 3324,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 10,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/disclaimer_1440.png",
+      "title": "Disclaimer \u00b7 SCL",
+      "h1": "Disclaimer"
+    },
+    {
+      "route": "/disclaimer",
+      "viewport": "375",
+      "status": 200,
+      "ttiMs": 1238,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 2,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/disclaimer_375.png",
+      "title": "Disclaimer \u00b7 SCL",
+      "h1": "Disclaimer"
+    },
+    {
+      "route": "/responsible-gaming",
+      "viewport": "1440",
+      "status": 200,
+      "ttiMs": 3655,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 6,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/responsible-gaming_1440.png",
+      "title": "Responsible Gaming \u00b7 SCL",
+      "h1": "Responsible Gaming"
+    },
+    {
+      "route": "/responsible-gaming",
+      "viewport": "375",
+      "status": 200,
+      "ttiMs": 1271,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 3,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/responsible-gaming_375.png",
+      "title": "Responsible Gaming \u00b7 SCL",
+      "h1": "Responsible Gaming"
+    },
+    {
+      "route": "/refund-policy",
+      "viewport": "1440",
+      "status": 200,
+      "ttiMs": 3663,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 8,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/refund-policy_1440.png",
+      "title": "Refund Policy \u00b7 SCL",
+      "h1": "Refund Policy"
+    },
+    {
+      "route": "/refund-policy",
+      "viewport": "375",
+      "status": 200,
+      "ttiMs": 1363,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 6,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/refund-policy_375.png",
+      "title": "Refund Policy \u00b7 SCL",
+      "h1": "Refund Policy"
+    },
+    {
+      "route": "/login",
+      "viewport": "1440",
+      "status": 200,
+      "ttiMs": 1088,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 1,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/login_1440.png",
+      "title": "SCL \u2014 Sports Cappers Leaderboard",
+      "h1": "Welcome back"
+    },
+    {
+      "route": "/login",
+      "viewport": "375",
+      "status": 200,
+      "ttiMs": 1050,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 1,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/login_375.png",
+      "title": "SCL \u2014 Sports Cappers Leaderboard",
+      "h1": "Welcome back"
+    },
+    {
+      "route": "/signup",
+      "viewport": "1440",
+      "status": 200,
+      "ttiMs": 1086,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 1,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/signup_1440.png",
+      "title": "SCL \u2014 Sports Cappers Leaderboard",
+      "h1": "Create your SCL Profile"
+    },
+    {
+      "route": "/signup",
+      "viewport": "375",
+      "status": 200,
+      "ttiMs": 1079,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 0,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/signup_375.png",
+      "title": "SCL \u2014 Sports Cappers Leaderboard",
+      "h1": "Create your SCL Profile"
+    },
+    {
+      "route": "/verify",
+      "viewport": "1440",
+      "status": 200,
+      "ttiMs": 1098,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 1,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/verify_1440.png",
+      "title": "Verify email \u00b7 SCL",
+      "h1": "Check your inbox"
+    },
+    {
+      "route": "/verify",
+      "viewport": "375",
+      "status": 200,
+      "ttiMs": 1085,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 1,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/verify_375.png",
+      "title": "Verify email \u00b7 SCL",
+      "h1": "Check your inbox"
+    },
+    {
+      "route": "/resend-verification",
+      "viewport": "1440",
+      "status": 200,
+      "ttiMs": 1042,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 1,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resend-verification_1440.png",
+      "title": "SCL \u2014 Sports Cappers Leaderboard",
+      "h1": "Send a new verification link"
+    },
+    {
+      "route": "/resend-verification",
+      "viewport": "375",
+      "status": 200,
+      "ttiMs": 1062,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 1,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resend-verification_375.png",
+      "title": "SCL \u2014 Sports Cappers Leaderboard",
+      "h1": "Send a new verification link"
+    },
+    {
+      "route": "/forgot-password",
+      "viewport": "1440",
+      "status": 200,
+      "ttiMs": 1049,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 1,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/forgot-password_1440.png",
+      "title": "SCL \u2014 Sports Cappers Leaderboard",
+      "h1": "Set or reset your password"
+    },
+    {
+      "route": "/forgot-password",
+      "viewport": "375",
+      "status": 200,
+      "ttiMs": 1061,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 1,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/forgot-password_375.png",
+      "title": "SCL \u2014 Sports Cappers Leaderboard",
+      "h1": "Set or reset your password"
+    },
+    {
+      "route": "/reset-password",
+      "viewport": "1440",
+      "status": 200,
+      "ttiMs": 1291,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 1,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/reset-password_1440.png",
+      "title": "Reset password \u00b7 SCL",
+      "h1": "Reset link required"
+    },
+    {
+      "route": "/reset-password",
+      "viewport": "375",
+      "status": 200,
+      "ttiMs": 1062,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 1,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/reset-password_375.png",
+      "title": "Reset password \u00b7 SCL",
+      "h1": "Reset link required"
+    },
+    {
+      "route": "/accept-terms",
+      "viewport": "1440",
+      "status": 200,
+      "ttiMs": 1126,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 1,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/accept-terms_1440.png",
+      "title": "SCL \u2014 Sports Cappers Leaderboard",
+      "h1": "Welcome back"
+    },
+    {
+      "route": "/accept-terms",
+      "viewport": "375",
+      "status": 200,
+      "ttiMs": 1108,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 1,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/accept-terms_375.png",
+      "title": "SCL \u2014 Sports Cappers Leaderboard",
+      "h1": "Welcome back"
+    },
+    {
+      "route": "/account-restricted",
+      "viewport": "1440",
+      "status": 200,
+      "ttiMs": 1080,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 1,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/account-restricted_1440.png",
+      "title": "Account restricted \u00b7 SCL",
+      "h1": "Account Access Restricted"
+    },
+    {
+      "route": "/account-restricted",
+      "viewport": "375",
+      "status": 200,
+      "ttiMs": 1185,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 0,
+      "networkFails": 0,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/account-restricted_375.png",
+      "title": "Account restricted \u00b7 SCL",
+      "h1": "Account Access Restricted"
+    },
+    {
+      "route": "/qa/board-odds-hygiene",
+      "viewport": "1440",
+      "status": 404,
+      "ttiMs": 968,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 1,
+      "networkFails": 1,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/qa__board-odds-hygiene_1440.png",
+      "title": "",
+      "h1": null
+    },
+    {
+      "route": "/qa/board-odds-hygiene",
+      "viewport": "375",
+      "status": 404,
+      "ttiMs": 952,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 1,
+      "networkFails": 1,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/qa__board-odds-hygiene_375.png",
+      "title": "",
+      "h1": null
+    },
+    {
+      "route": "/qa/desktop-profile-composition",
+      "viewport": "1440",
+      "status": 404,
+      "ttiMs": 959,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 1,
+      "networkFails": 1,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/qa__desktop-profile-composition_1440.png",
+      "title": "",
+      "h1": null
+    },
+    {
+      "route": "/qa/desktop-profile-composition",
+      "viewport": "375",
+      "status": 404,
+      "ttiMs": 950,
+      "overflow": false,
+      "handleHits": 0,
+      "dollarHits": 0,
+      "brokenImages": 0,
+      "consoleErrors": 1,
+      "networkFails": 1,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/qa__desktop-profile-composition_375.png",
+      "title": "",
+      "h1": null
+    },
+    {
+      "route": "/dashboard",
+      "auth": "test-capper",
+      "status": 200,
+      "ttiMs": 2697,
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/capper_dashboard_1440.png",
+      "title": "Dashboard \u00b7 SCL"
+    },
+    {
+      "route": "/dashboard/picks",
+      "auth": "test-capper",
+      "status": 200,
+      "ttiMs": 2381,
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/capper_dashboard__picks_1440.png",
+      "title": "My Picks \u00b7 SCL"
+    },
+    {
+      "route": "/dashboard/picks/new",
+      "auth": "test-capper",
+      "status": 200,
+      "ttiMs": 5747,
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/capper_dashboard__picks__new_1440.png",
+      "title": "SCL \u2014 Sports Cappers Leaderboard"
+    },
+    {
+      "route": "/dashboard/picks/new/parlay",
+      "auth": "test-capper",
+      "status": 200,
+      "ttiMs": 7048,
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/capper_dashboard__picks__new__parlay_1440.png",
+      "title": "SCL \u2014 Sports Cappers Leaderboard"
+    },
+    {
+      "route": "/dashboard/profile",
+      "auth": "test-capper",
+      "status": 200,
+      "ttiMs": 31013,
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/capper_dashboard__profile_1440.png",
+      "title": ""
+    },
+    {
+      "route": "/dashboard/monetization",
+      "auth": "test-capper",
+      "status": 200,
+      "ttiMs": 29345,
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/capper_dashboard__monetization_1440.png",
+      "title": ""
+    },
+    {
+      "route": "/dashboard/security",
+      "auth": "test-capper",
+      "status": 200,
+      "ttiMs": 2446,
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/capper_dashboard__security_1440.png",
+      "title": "Security \u00b7 SCL"
+    }
+  ],
+  "responsive": [
+    {
+      "route": "/",
+      "viewport": "375",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_home_375.png"
+    },
+    {
+      "route": "/",
+      "viewport": "390",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_home_390.png"
+    },
+    {
+      "route": "/",
+      "viewport": "768",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_home_768.png"
+    },
+    {
+      "route": "/",
+      "viewport": "1024",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_home_1024.png"
+    },
+    {
+      "route": "/",
+      "viewport": "1440",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_home_1440.png"
+    },
+    {
+      "route": "/",
+      "viewport": "1536",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_home_1536.png"
+    },
+    {
+      "route": "/",
+      "viewport": "1920",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_home_1920.png"
+    },
+    {
+      "route": "/",
+      "viewport": "zoom-150",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/zoom_home_150.png",
+      "note": "width-emulated zoom"
+    },
+    {
+      "route": "/",
+      "viewport": "zoom-200",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/zoom_home_200.png",
+      "note": "width-emulated zoom"
+    },
+    {
+      "route": "/leaderboard",
+      "viewport": "375",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_leaderboard_375.png"
+    },
+    {
+      "route": "/leaderboard",
+      "viewport": "390",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_leaderboard_390.png"
+    },
+    {
+      "route": "/leaderboard",
+      "viewport": "768",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_leaderboard_768.png"
+    },
+    {
+      "route": "/leaderboard",
+      "viewport": "1024",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_leaderboard_1024.png"
+    },
+    {
+      "route": "/leaderboard",
+      "viewport": "1440",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_leaderboard_1440.png"
+    },
+    {
+      "route": "/leaderboard",
+      "viewport": "1536",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_leaderboard_1536.png"
+    },
+    {
+      "route": "/leaderboard",
+      "viewport": "1920",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_leaderboard_1920.png"
+    },
+    {
+      "route": "/leaderboard",
+      "viewport": "zoom-150",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/zoom_leaderboard_150.png",
+      "note": "width-emulated zoom"
+    },
+    {
+      "route": "/leaderboard",
+      "viewport": "zoom-200",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/zoom_leaderboard_200.png",
+      "note": "width-emulated zoom"
+    },
+    {
+      "route": "/packages",
+      "viewport": "375",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_packages_375.png"
+    },
+    {
+      "route": "/packages",
+      "viewport": "390",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_packages_390.png"
+    },
+    {
+      "route": "/packages",
+      "viewport": "768",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_packages_768.png"
+    },
+    {
+      "route": "/packages",
+      "viewport": "1024",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_packages_1024.png"
+    },
+    {
+      "route": "/packages",
+      "viewport": "1440",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_packages_1440.png"
+    },
+    {
+      "route": "/packages",
+      "viewport": "1536",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_packages_1536.png"
+    },
+    {
+      "route": "/packages",
+      "viewport": "1920",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_packages_1920.png"
+    },
+    {
+      "route": "/packages",
+      "viewport": "zoom-150",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/zoom_packages_150.png",
+      "note": "width-emulated zoom"
+    },
+    {
+      "route": "/packages",
+      "viewport": "zoom-200",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/zoom_packages_200.png",
+      "note": "width-emulated zoom"
+    },
+    {
+      "route": "/picks",
+      "viewport": "375",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_picks_375.png"
+    },
+    {
+      "route": "/picks",
+      "viewport": "390",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_picks_390.png"
+    },
+    {
+      "route": "/picks",
+      "viewport": "768",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_picks_768.png"
+    },
+    {
+      "route": "/picks",
+      "viewport": "1024",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_picks_1024.png"
+    },
+    {
+      "route": "/picks",
+      "viewport": "1440",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_picks_1440.png"
+    },
+    {
+      "route": "/picks",
+      "viewport": "1536",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_picks_1536.png"
+    },
+    {
+      "route": "/picks",
+      "viewport": "1920",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_picks_1920.png"
+    },
+    {
+      "route": "/picks",
+      "viewport": "zoom-150",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/zoom_picks_150.png",
+      "note": "width-emulated zoom"
+    },
+    {
+      "route": "/picks",
+      "viewport": "zoom-200",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/zoom_picks_200.png",
+      "note": "width-emulated zoom"
+    },
+    {
+      "route": "/discover",
+      "viewport": "375",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_discover_375.png"
+    },
+    {
+      "route": "/discover",
+      "viewport": "390",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_discover_390.png"
+    },
+    {
+      "route": "/discover",
+      "viewport": "768",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_discover_768.png"
+    },
+    {
+      "route": "/discover",
+      "viewport": "1024",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_discover_1024.png"
+    },
+    {
+      "route": "/discover",
+      "viewport": "1440",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_discover_1440.png"
+    },
+    {
+      "route": "/discover",
+      "viewport": "1536",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_discover_1536.png"
+    },
+    {
+      "route": "/discover",
+      "viewport": "1920",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/resp_discover_1920.png"
+    },
+    {
+      "route": "/discover",
+      "viewport": "zoom-150",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/zoom_discover_150.png",
+      "note": "width-emulated zoom"
+    },
+    {
+      "route": "/discover",
+      "viewport": "zoom-200",
+      "overflow": false,
+      "shot": "/opt/cursor/artifacts/audit-deep/screenshots/zoom_discover_200.png",
+      "note": "width-emulated zoom"
+    }
+  ],
+  "dataIntegrity": [
+    {
+      "handle": "bankofdennis",
+      "boardWindow": "\tWIN%\tROI\tUNITS\n\tSAMPLE\tFORM\tBUY\n\n\u2014\n\t\nB\n@bankofdennis\n\t\nBANK OF DENNIS VIP 365 DAYS Plan +2\n\t\nMLB\nMLB\nMU\nMMA / UFC\nNBA\nNBA\n\t636-531-24\t54.5%\t+35.4%\t+1416.82U\t\n\n1191\n\n\t\nL\nL\nL\nL\nL\n\t\n\n\n\u2014\n\t\nM\n@mlbanalyticspro\n\t\n3 Free Days of VIP Pro +1\n\t\nMLB\nMLB\nNBA\nNBA\nNFL\nNFL\n\t1749-1604-12\t52.2%\t+4.6%\t+869.72U\t\n\n3365\n\n\t\nL\nW\nW\nL\nW\n\t\n\n\n\u2014\n",
+      "profile": {
+        "record": "\u2014",
+        "units": "+280.95U",
+        "roi": "\u2014",
+        "chartEnd": "+1416.82U",
+        "legacy": true,
+        "fullRecord": true,
+        "verifiedClaims": 4,
+        "clv": "\u2014",
+        "status": "ok",
+        "sample": "Sports Cappers Leaderboard\nPicks\nLeaderboard\nDiscover\nPackages\nLog In\nJOIN SCL\nB\n@bankofdennis\nVerified\nIncludes 1,001 Settled Results Carried Over From The Previous SCL Platform \u2014 Totals Only, No Per-Pick Record\nLegacy Capper\n\n37 years of sports betting experience at your fingertips\n\nMLB\nMLB\nMU\nMMA / UFC\nNBA\nNBA\nNB\nNCAA BASKETBALL\nNF\nNCAA FOOTBALL\nNFL\nNFL\nNHL\nNHL\nPGA\nPGA\nSOCC\nSOCCER\nTENN\nTENNIS\nWNBA\nWNBA\nPARLAYS\nSGP'S\n\u2014\nBuilding a record\nLast pick Aug 5\nView offers\n\nAVAILABLE NOW\n\nTop Purchase Packages\n\nRanked by attributed units. Package results only include picks assigned to that offer.\n\nView package details\n\nRECORD\n\n\u2014\n\nUNITS\n\n\u2014\n\nROI\n\n\u2014\n\nWINIBLE\n3 Days Free VIP BANKERS\n\n3 Days Free VIP BANKERS: $0 This plan rolls into a 14-day VIP package at the standard rate for those looking for a half a month plan covering all sports with my best daily picks not given out to the public for less than $1.50 a day!!!\n\nPRICE AND DURATION\n\nSee provider for current price\n\nSubscribe on Winible\n\nYou are leaving SCL for a third-party storefront. SCL does not process payments or manage subscriptions.\n\nRECORD\n\n\u2014\n\nUNITS\n\n\u2014\n\nROI\n\n\u2014\n\nWINIBLE\nBANK OF DENNIS VIP 365 DAYS Plan\n\nBANK OF DENNIS VIP 365 DAYS Plan : $100 THIS IS A SPECIAL ONE TIME 365 DAY PLAN FOR JUST $100.00. There are limited slots for this plan!\n\nPRICE AND DURATION\n\nSee provider for current price\n\nSubscribe on Winible\n\nYou are leaving SCL for a third-party storefront. SCL does not process payments or manage subscriptions.\n\nRECORD\n\n\u2014\n\nUNITS\n\n\u2014\n\nROI\n\n\u2014\n\nWINIBLE\nBANK OF DENNIS VIP BANKERS\n\nBANK OF DENNIS VIP BANKERS: $2.99 / DAY All of my Daily best bets across all sports daily. Will be posting here only my best plays each day to help build our bankrolls. We have up and down days and weeks but we stay disciplined and use our unit man"
+      },
+      "onPicks": true
+    },
+    {
+      "handle": "wgsdfs",
+      "boardWindow": "+378.93U\t\n\n457\n\n\t\nP\nW\nW\nW\nL\n\t\n\n\n5\n\u2014\n\t\nW\n@wgsdfs\n\t\n\u2014\n\t\nMLB\nMLB\nNBA\nNBA\nNFL\nNFL\n\t81-146-1\t35.7%\t+45.9%\t+144.73U\t\n\n228\n\n\t\nP\nW\nW\nL\nL\n\t\u2014\n\n6\n\u2014\n\t\nT\n@Tailoredwinning\n\t\nVIP FREE 3 Day Trial\n\t\nBOXI\nBoxing\nMLB\nMLB\nMU\nMMA / UFC\n\t598-456-7\t56.7%\t+4.3%\t+135.66U\t\n\n1061\n\n\t\nL\nL\nL\nL\nW\n\t\n\n\n7\n\u2014\n\t\nA\n@A2ZPICKS\n\t\n4 Days of FREE VIP +1\n\t\nCFL\n",
+      "profile": {
+        "record": null,
+        "units": "+123.62U",
+        "roi": null,
+        "chartEnd": "+144.73U",
+        "legacy": true,
+        "fullRecord": false,
+        "verifiedClaims": 4,
+        "clv": "\u2014",
+        "status": "ok",
+        "sample": "Sports Cappers Leaderboard\nPicks\nLeaderboard\nDiscover\nPackages\nLog In\nJOIN SCL\nW\n@wgsdfs\nVerified\nIncludes 141 Settled Results Carried Over From The Previous SCL Platform \u2014 Totals Only, No Per-Pick Record\nLegacy Capper\nMLB\nMLB\nNBA\nNBA\nNFL\nNFL\nPGA\nPGA\n\u2014\nBuilding a record\nLast pick Aug 4\nView offers\nEVIDENCE BRIEF\n81-146-1\nRECORD\n35.7%\nWIN %\n+45.9%\nROI\n+144.73U\nUNITS\n228\nSAMPLE\n\u2014\nCLV\n\nSAMPLE MATURITY\n\nEstablished 50+ \u00b7 228 graded\n\nEstablished 50+ \u00b7 Developing 10\u201349 \u00b7 Early 0\u20139\n\nReceipt IDs uniquely identify each timestamped submission. CLV appears only when SCL captures a verified market close; unavailable values remain em dashes rather than estimates.\n\nLegacy by sport\n\nSettled results carried over from the previous SCL platform \u2014 totals only, no per-pick record. Sorted by units. These figures are already folded into the Evidence Brief above. Early samples (under 10) stay amber \u2014 small books are not elite signals.\n\n4 sports \u00b7 141 settled\n\nUnits\nROI\nWin%\nSample\nLegacy carried-over record broken down by sport, sorted by units\nSPORT\tRECORD\tWIN%\tROI\tUNITS\tSAMPLE\n\nNBA\nNBA\n\t26-48\t35.1%\t+74.0%\t+123.62U\t\n74\n166.95U risked\n\n\nNFL\nNFL\n\t5-9\t35.7%\t+63.4%\t+5.71U\t\n14\n9U risked\n\n\nPGA\nPGA\n\t5-9\t35.7%\t-28.6%\t-4U\t\n14\n14U risked\n\n\nMLB\nMLB\n\t13-26\t33.3%\t-18.8%\t-7.35U\t\n39\n39U risked\nPerformance trend\n\nCumulative units from public graded positions (singles and parlays), starting from the carried-over legacy balance so End matches the Evidence Brief total.\n\nChart sport\nAll sports\nMLB\nPGA\n3M\n6M\n12M\nAll\n\nCUMULATIVE UNITS\n\nEnd +144.73U\n\nCumulative units across 87 graded plays. Ending balance +144.73 units.\n\nCLV TRACKER\n\nPricing metric \u2014 submitted price vs the same book's close.\n\n0 snapshots\n\n\u2014\nAVG CLV\n\u2014\n% BEAT CLOSE\n\nCLV DISTRIBUTION\n\nCLV Not Available Yet\n\nNo closing snapshots are available for this"
+      },
+      "onPicks": false
+    },
+    {
+      "handle": "mlbanalyticspro",
+      "boardWindow": "+1416.82U\t\n\n1191\n\n\t\nL\nL\nL\nL\nL\n\t\n\n\n\u2014\n\t\nM\n@mlbanalyticspro\n\t\n3 Free Days of VIP Pro +1\n\t\nMLB\nMLB\nNBA\nNBA\nNFL\nNFL\n\t1749-1604-12\t52.2%\t+4.6%\t+869.72U\t\n\n3365\n\n\t\nL\nW\nW\nL\nW\n\t\n\n\n\u2014\n\t\nC\n@clownsportspick\n\t\nDaily Play of the Day +1\n\t\nMLB\nMLB\nNBA\nNBA\nNB\nNCAA Basketball\n\t1187-903-22\t56.8%\t+5.6%\t+848.29U\t\n\n2112\n\n\t\nW\nW\nL\nW\nW\n\t\n\n\n4\n\u2014\n\t",
+      "profile": {
+        "record": "\u2014",
+        "units": "+236.03U",
+        "roi": "\u2014",
+        "chartEnd": "+869.72U",
+        "legacy": true,
+        "fullRecord": true,
+        "verifiedClaims": 4,
+        "clv": "\u2014",
+        "status": "ok",
+        "sample": "Sports Cappers Leaderboard\nPicks\nLeaderboard\nDiscover\nPackages\nLog In\nJOIN SCL\nM\n@mlbanalyticspro\nVerified\nIncludes 2,763 Settled Results Carried Over From The Previous SCL Platform \u2014 Totals Only, No Per-Pick Record\nLegacy Capper\nMLB\nMLB\nNBA\nNBA\nNFL\nNFL\nNHL\nNHL\n\u2014\nBuilding a record\nLast pick Aug 5\nView offers\n\nAVAILABLE NOW\n\nTop Purchase Packages\n\nRanked by attributed units. Package results only include picks assigned to that offer.\n\nView package details\n\nRECORD\n\n\u2014\n\nUNITS\n\n\u2014\n\nROI\n\n\u2014\n\nWINIBLE\n3 Free Days of VIP Pro\n\n3 Free Days of VIP Pro: $0 \ud83c\udfc6 Daily moneyline picks from 25 machine learning models. This renews at standard monthly rate.\n\nPRICE AND DURATION\n\nSee provider for current price\n\nSubscribe on Winible\n\nYou are leaving SCL for a third-party storefront. SCL does not process payments or manage subscriptions.\n\nRECORD\n\n\u2014\n\nUNITS\n\n\u2014\n\nROI\n\n\u2014\n\nWINIBLE\nMLB Pro 50% Off\n\nMLB Pro 50% Off: $50 $25/ Month \ud83c\udfc6 Daily moneyline picks from 25 machine learning models.\n\nPRICE AND DURATION\n\nSee provider for current price\n\nSubscribe on Winible\n\nYou are leaving SCL for a third-party storefront. SCL does not process payments or manage subscriptions.\n\nCheckout and subscription terms are handled by the listed third-party provider. Past performance does not guarantee future results.\n\nEVIDENCE BRIEF\nPACKAGE VIEW\nFull capper record\n3 Free Days of VIP Pro\nMLB Pro 50% Off\n1749-1604-12\nRECORD\n52.2%\nWIN %\n+4.6%\nROI\n+869.72U\nUNITS\n3,365\nSAMPLE\n\u2014\nCLV\n\nSAMPLE MATURITY\n\nEstablished 50+ \u00b7 3365 graded\n\nEstablished 50+ \u00b7 Developing 10\u201349 \u00b7 Early 0\u20139\n\nReceipt IDs uniquely identify each timestamped submission. CLV appears only when SCL captures a verified market close; unavailable values remain em dashes rather than estimates.\n\nLegacy by sport\n\nSettled results carried over from the previous SCL platform \u2014 t"
+      },
+      "onPicks": true
+    },
+    {
+      "handle": "clownsportspick",
+      "boardWindow": "\t+869.72U\t\n\n3365\n\n\t\nL\nW\nW\nL\nW\n\t\n\n\n\u2014\n\t\nC\n@clownsportspick\n\t\nDaily Play of the Day +1\n\t\nMLB\nMLB\nNBA\nNBA\nNB\nNCAA Basketball\n\t1187-903-22\t56.8%\t+5.6%\t+848.29U\t\n\n2112\n\n\t\nW\nW\nL\nW\nW\n\t\n\n\n4\n\u2014\n\t\nA\n@Amanee330\n\t\n3 Day VIP Trial +2\n\t\nBOXI\nBoxing\nCFL\nCFL\nMLB\nMLB\n\t288-159-10\t64.4%\t+10.1%\t+378.93U\t\n\n457\n\n\t\nP\nW\nW\nW\nL\n\t\n\n\n5\n\u2014\n\t\nW\n@wgsdf",
+      "profile": {
+        "record": "\u2014",
+        "units": "+204.20U",
+        "roi": "\u2014",
+        "chartEnd": "+848.29U",
+        "legacy": true,
+        "fullRecord": true,
+        "verifiedClaims": 4,
+        "clv": "\u2014",
+        "status": "ok",
+        "sample": "Sports Cappers Leaderboard\nPicks\nLeaderboard\nDiscover\nPackages\nLog In\nJOIN SCL\nC\n@clownsportspick\nVerified\nIncludes 1,463 Settled Results Carried Over From The Previous SCL Platform \u2014 Totals Only, No Per-Pick Record\nLegacy Capper\nMLB\nMLB\nNBA\nNBA\nNB\nNCAA BASKETBALL\nNF\nNCAA FOOTBALL\nNFL\nNFL\nNHL\nNHL\nPGA\nPGA\nWNBA\nWNBA\n\u2014\nBuilding a record\nLast pick Aug 5\nView offers\n\nAVAILABLE NOW\n\nTop Purchase Packages\n\nRanked by attributed units. Package results only include picks assigned to that offer.\n\nView package details\n\nRECORD\n\n\u2014\n\nUNITS\n\n\u2014\n\nROI\n\n\u2014\n\nWINIBLE\nDaily Play of the Day\n\nDaily Play of the Day: $40 \ud83d\udea8\ud83d\udea8Receive all plays in all sports for 1\ufe0f\u20e3 Day!\n\nPRICE AND DURATION\n\n$40 / day\n\nSubscribe on Winible\n\nYou are leaving SCL for a third-party storefront. SCL does not process payments or manage subscriptions.\n\nRECORD\n\n\u2014\n\nUNITS\n\n\u2014\n\nROI\n\n\u2014\n\nWINIBLE\nWeekly All Sports Pass\n\nWeekly All Sports Pass: $150 \ud83d\udea8\ud83d\udca3Receive All plays in all sports for 7 days!\n\nPRICE AND DURATION\n\n$150 / week\n\nSubscribe on Winible\n\nYou are leaving SCL for a third-party storefront. SCL does not process payments or manage subscriptions.\n\nCheckout and subscription terms are handled by the listed third-party provider. Past performance does not guarantee future results.\n\nEVIDENCE BRIEF\nPACKAGE VIEW\nFull capper record\nDaily Play of the Day\nWeekly All Sports Pass\n1187-903-22\nRECORD\n56.8%\nWIN %\n+5.6%\nROI\n+848.29U\nUNITS\n2,112\nSAMPLE\n\u2014\nCLV\n\nSAMPLE MATURITY\n\nEstablished 50+ \u00b7 2112 graded\n\nEstablished 50+ \u00b7 Developing 10\u201349 \u00b7 Early 0\u20139\n\nReceipt IDs uniquely identify each timestamped submission. CLV appears only when SCL captures a verified market close; unavailable values remain em dashes rather than estimates.\n\nLegacy by sport\n\nSettled results carried over from the previous SCL platform \u2014 totals only, no per-pick record. Sor"
+      },
+      "onPicks": true
+    },
+    {
+      "handle": "amanee330",
+      "boardWindow": "848.29U\t\n\n2112\n\n\t\nW\nW\nL\nW\nW\n\t\n\n\n4\n\u2014\n\t\nA\n@Amanee330\n\t\n3 Day VIP Trial +2\n\t\nBOXI\nBoxing\nCFL\nCFL\nMLB\nMLB\n\t288-159-10\t64.4%\t+10.1%\t+378.93U\t\n\n457\n\n\t\nP\nW\nW\nW\nL\n\t\n\n\n5\n\u2014\n\t\nW\n@wgsdfs\n\t\n\u2014\n\t\nMLB\nMLB\nNBA\nNBA\nNFL\nNFL\n\t81-146-1\t35.7%\t+45.9%\t+144.73U\t\n\n228\n\n\t\nP\nW\nW\nL\nL\n\t\u2014\n\n6\n\u2014\n\t\nT\n@Tailoredwinning\n\t\nVIP FREE 3 Day Trial\n\t\nBOXI\nBoxin",
+      "profile": {
+        "record": "\u2014",
+        "units": "+140.18U",
+        "roi": "\u2014",
+        "chartEnd": "+378.93U",
+        "legacy": true,
+        "fullRecord": true,
+        "verifiedClaims": 4,
+        "clv": "\u2014",
+        "status": "ok",
+        "sample": "Sports Cappers Leaderboard\nPicks\nLeaderboard\nDiscover\nPackages\nLog In\nJOIN SCL\nA\n@Amanee330\nVerified\nIncludes 387 Settled Results Carried Over From The Previous SCL Platform \u2014 Totals Only, No Per-Pick Record\nLegacy Capper\n\n\ud83c\udfaf Meet Your Favorite Capper \ud83c\udfaf\n\nBOXI\nBOXING\nCFL\nCFL\nMLB\nMLB\nMU\nMMA / UFC\nNBA\nNBA\nNB\nNCAA BASKETBALL\nNF\nNCAA FOOTBALL\nNFL\nNFL\nNHL\nNHL\nSOCC\nSOCCER\nWNBA\nWNBA\n\u2014\nBuilding a record\nLast pick Aug 5\nView offers\n\nAVAILABLE NOW\n\nTop Purchase Packages\n\nRanked by attributed units. Package results only include picks assigned to that offer.\n\nView package details\n\nRECORD\n\n\u2014\n\nUNITS\n\n\u2014\n\nROI\n\n\u2014\n\nWINIBLE\n3 Day VIP Trial\n\n3 Day VIP Trial: $0 This is a 3-day free trial of the \u201c The 7-Piece Combo \u201c which then rolls into a full week of flavor at the standard rate. Get 7 days of back-to-back heat with my daily picks delivered straight to you. Every play comes with full notes, confidence levels, and guidance on how to bet it smart. You\u2019re not gambling \u2014 you\u2019re building a streak. Let\u2019s eat all week.\n\nPRICE AND DURATION\n\nSee provider for current price\n\nSubscribe on Winible\n\nYou are leaving SCL for a third-party storefront. SCL does not process payments or manage subscriptions.\n\nRECORD\n\n\u2014\n\nUNITS\n\n\u2014\n\nROI\n\n\u2014\n\nWINIBLE\nMonthly Pass\n\nMonthly Pass: $100 \u201cThe Full Platter\u201d It\u2019s feast season. You\u2019re all in \u2014 and I\u2019ve got you covered. This 30-day pass gives you every single pick I drop, plus bonus parlays, leans, and early releases. It\u2019s for bettors who want the whole meal, not just the side dish. Full access. Full confidence. Full plates.\n\nPRICE AND DURATION\n\n$100 / month\n\nSubscribe on Winible\n\nYou are leaving SCL for a third-party storefront. SCL does not process payments or manage subscriptions.\n\nRECORD\n\n\u2014\n\nUNITS\n\n\u2014\n\nROI\n\n\u2014\n\nWINIBLE\nVIP Package\n\nVIP Package: $200 / Month The Golden B"
+      },
+      "onPicks": false
+    },
+    {
+      "handle": "tailoredwinning",
+      "boardWindow": "+144.73U\t\n\n228\n\n\t\nP\nW\nW\nL\nL\n\t\u2014\n\n6\n\u2014\n\t\nT\n@Tailoredwinning\n\t\nVIP FREE 3 Day Trial\n\t\nBOXI\nBoxing\nMLB\nMLB\nMU\nMMA / UFC\n\t598-456-7\t56.7%\t+4.3%\t+135.66U\t\n\n1061\n\n\t\nL\nL\nL\nL\nW\n\t\n\n\n7\n\u2014\n\t\nA\n@A2ZPICKS\n\t\n4 Days of FREE VIP +1\n\t\nCFL\nCFL\nMLB\nMLB\nMU\nMMA / UFC\n\t845-650-36\t56.5%\t+2.3%\t+115.48U\t\n\n1531\n\n\t\nW\nW\nL\nL\nW\n\t\n\n\n8\n\u2014\n\t\nP\n@pbssports\n",
+      "profile": {
+        "record": "\u2014",
+        "units": "+152.80U",
+        "roi": "\u2014",
+        "chartEnd": "+135.66U",
+        "legacy": true,
+        "fullRecord": true,
+        "verifiedClaims": 4,
+        "clv": "\u2014",
+        "status": "ok",
+        "sample": "Sports Cappers Leaderboard\nPicks\nLeaderboard\nDiscover\nPackages\nLog In\nJOIN SCL\nT\n@Tailoredwinning\nVerified\nIncludes 886 Settled Results Carried Over From The Previous SCL Platform \u2014 Totals Only, No Per-Pick Record\nLegacy Capper\nBOXI\nBOXING\nMLB\nMLB\nMU\nMMA / UFC\nNBA\nNBA\nNB\nNCAA BASKETBALL\nNF\nNCAA FOOTBALL\nNFL\nNFL\nNHL\nNHL\nPGA\nPGA\nSOCC\nSOCCER\nWNBA\nWNBA\n\u2014\nBuilding a record\nLast pick Aug 3\nView offers\n\nAVAILABLE NOW\n\nTop Purchase Packages\n\nRanked by attributed units. Package results only include picks assigned to that offer.\n\nView package details\n\nRECORD\n\n\u2014\n\nUNITS\n\n\u2014\n\nROI\n\n\u2014\n\nWINIBLE\nVIP FREE 3 Day Trial\n\nVIP FREE 3 Day Trial - $0 Access to everything I post daily and/or 6 days a week, with full access for to the VIP listings which are the Picks that I live off of, the 99% locks that have kept my rent paid. NBA picks while the finals are still in play, MLB all throughout the summer, Soccer, Golf, UFC and more, here and there! Package renews at regular weekly rate of only $11.99!\n\nPRICE AND DURATION\n\nSee provider for current price\n\nSubscribe on Winible\n\nYou are leaving SCL for a third-party storefront. SCL does not process payments or manage subscriptions.\n\nCheckout and subscription terms are handled by the listed third-party provider. Past performance does not guarantee future results.\n\nEVIDENCE BRIEF\nPACKAGE VIEW\nFull capper record\nVIP FREE 3 Day Trial\n598-456-7\nRECORD\n56.7%\nWIN %\n+4.3%\nROI\n+135.66U\nUNITS\n1,061\nSAMPLE\n\u2014\nCLV\n\nSAMPLE MATURITY\n\nEstablished 50+ \u00b7 1061 graded\n\nEstablished 50+ \u00b7 Developing 10\u201349 \u00b7 Early 0\u20139\n\nReceipt IDs uniquely identify each timestamped submission. CLV appears only when SCL captures a verified market close; unavailable values remain em dashes rather than estimates.\n\nLegacy by sport\n\nSettled results carried over from the previous SCL platform \u2014 to"
+      },
+      "onPicks": false
+    },
+    {
+      "handle": "a2zpicks",
+      "boardWindow": "135.66U\t\n\n1061\n\n\t\nL\nL\nL\nL\nW\n\t\n\n\n7\n\u2014\n\t\nA\n@A2ZPICKS\n\t\n4 Days of FREE VIP +1\n\t\nCFL\nCFL\nMLB\nMLB\nMU\nMMA / UFC\n\t845-650-36\t56.5%\t+2.3%\t+115.48U\t\n\n1531\n\n\t\nW\nW\nL\nL\nW\n\t\n\n\n8\n\u2014\n\t\nP\n@pbssports\n\t\n\u2014\n\t\nMLB\nMLB\nNFL\nNFL\n\t35-15\t70.0%\t+19.3%\t+65.79U\t\n\n50\n\n\t\nW\nW\nW\nW\nW\n\t\u2014\n\n9\n\u2014\n\t\nI\n@InevitablePicks\n\t\n\u2014\n\t\nCFL\nCFL\nMLB\nMLB\nMU\nMMA / UFC\n\t24-8-1",
+      "profile": {
+        "record": "\u2014",
+        "units": "+120.38U",
+        "roi": "\u2014",
+        "chartEnd": "+115.48U",
+        "legacy": true,
+        "fullRecord": true,
+        "verifiedClaims": 4,
+        "clv": "\u2014",
+        "status": "ok",
+        "sample": "Sports Cappers Leaderboard\nPicks\nLeaderboard\nDiscover\nPackages\nLog In\nJOIN SCL\nA\n@A2ZPICKS\nVerified\nIncludes 1,392 Settled Results Carried Over From The Previous SCL Platform \u2014 Totals Only, No Per-Pick Record\nLegacy Capper\nCFL\nCFL\nMLB\nMLB\nMU\nMMA / UFC\nNBA\nNBA\nNB\nNCAA BASKETBALL\nNF\nNCAA FOOTBALL\nNFL\nNFL\nNHL\nNHL\nSOCC\nSOCCER\nTENN\nTENNIS\nUFL\nUFL\nWNBA\nWNBA\n\u2014\nBuilding a record\nLast pick Aug 4\nView offers\n\nAVAILABLE NOW\n\nTop Purchase Packages\n\nRanked by attributed units. Package results only include picks assigned to that offer.\n\nView package details\n\nRECORD\n\n\u2014\n\nUNITS\n\n\u2014\n\nROI\n\n\u2014\n\nWINIBLE\n4 Days of FREE VIP\n\n4 Days of FREE VIP: $0 Includes all of our bets daily and rolls into the weekly price of $10/week. Straight bets, Parlays, Lotto's, Props Etc.. NBA, NHL, MLB, NCAA, NFL,TENNIS & MORE.\n\nPRICE AND DURATION\n\nSee provider for current price\n\nSubscribe on Winible\n\nYou are leaving SCL for a third-party storefront. SCL does not process payments or manage subscriptions.\n\nRECORD\n\n\u2014\n\nUNITS\n\n\u2014\n\nROI\n\n\u2014\n\nWINIBLE\nVIP MONTHLY\n\nVIP MONTHLY: $29.99 / MONTH Includes all of our bets daily. Straight bets, Parlays, Lotto's, Props Etc.. NBA, NHL, MLB, NCAA, NFL,TENNIS & MORE.\n\nPRICE AND DURATION\n\n$29.99 / day\n\nSubscribe on Winible\n\nYou are leaving SCL for a third-party storefront. SCL does not process payments or manage subscriptions.\n\nCheckout and subscription terms are handled by the listed third-party provider. Past performance does not guarantee future results.\n\nEVIDENCE BRIEF\nPACKAGE VIEW\nFull capper record\n4 Days of FREE VIP\nVIP MONTHLY\n845-650-36\nRECORD\n56.5%\nWIN %\n+2.3%\nROI\n+115.48U\nUNITS\n1,531\nSAMPLE\n\u2014\nCLV\n\nSAMPLE MATURITY\n\nEstablished 50+ \u00b7 1531 graded\n\nEstablished 50+ \u00b7 Developing 10\u201349 \u00b7 Early 0\u20139\n\nReceipt IDs uniquely identify each timestamped submission. CLV appears only when SCL ca"
+      },
+      "onPicks": false
+    },
+    {
+      "handle": "pbssports",
+      "boardWindow": "115.48U\t\n\n1531\n\n\t\nW\nW\nL\nL\nW\n\t\n\n\n8\n\u2014\n\t\nP\n@pbssports\n\t\n\u2014\n\t\nMLB\nMLB\nNFL\nNFL\n\t35-15\t70.0%\t+19.3%\t+65.79U\t\n\n50\n\n\t\nW\nW\nW\nW\nW\n\t\u2014\n\n9\n\u2014\n\t\nI\n@InevitablePicks\n\t\n\u2014\n\t\nCFL\nCFL\nMLB\nMLB\nMU\nMMA / UFC\n\t24-8-1\t75.0%\t+18.5%\t+61.77U\t\n\n33\n\n\t\nP\nW\nW\nW\nW\n\t\u2014\n\n10\n\u2014\n\t\nD\n@Drjsr\n\t\nWeekly Special +1\n\t\nBOXI\nBoxing\nMLB\nMLB\nMU\nMMA / UFC\n\t264-194-3\t57.6",
+      "profile": {
+        "record": null,
+        "units": "+65.79U",
+        "roi": null,
+        "chartEnd": "+65.79U",
+        "legacy": true,
+        "fullRecord": false,
+        "verifiedClaims": 4,
+        "clv": "\u2014",
+        "status": "ok",
+        "sample": "Sports Cappers Leaderboard\nPicks\nLeaderboard\nDiscover\nPackages\nLog In\nJOIN SCL\nP\n@pbssports\nVerified\nRecord Imported From The Previous SCL Platform\nLegacy Capper\n\nAI sports data analysis\n\nMLB\nMLB\nNFL\nNFL\n\u2014\nBuilding a record\nLast pick Aug 5\nView offers\nEVIDENCE BRIEF\n35-15\nRECORD\n70.0%\nWIN %\n+19.3%\nROI\n+65.79U\nUNITS\n50\nSAMPLE\n\u2014\nCLV\n\nSAMPLE MATURITY\n\nEstablished 50+ \u00b7 50 graded\n\nEstablished 50+ \u00b7 Developing 10\u201349 \u00b7 Early 0\u20139\n\nReceipt IDs uniquely identify each timestamped submission. CLV appears only when SCL captures a verified market close; unavailable values remain em dashes rather than estimates.\n\nPerformance trend\n\nCumulative units from public graded positions (singles and parlays).\n\nChart sport\nAll sports\nMLB\n3M\n6M\n12M\nAll\n\nCUMULATIVE UNITS\n\nEnd +65.79U\n\nCumulative units across 50 graded plays. Ending balance +65.79 units.\n\nCLV TRACKER\n\nPricing metric \u2014 submitted price vs the same book's close.\n\n0 snapshots\n\n\u2014\nAVG CLV\n\u2014\n% BEAT CLOSE\n\nCLV DISTRIBUTION\n\nCLV Not Available Yet\n\nNo closing snapshots are available for this record. CLV appears after SCL captures a closing line for an Odds-Verified pick. Historical picks without a close remain em dashes.\n\nCLOSING LINE \u2014 Closing Line Value (CLV) measures whether the odds on your pick were better or worse than the same book's price at event start. A positive CLV means you captured a better number than the close; a negative CLV means the close was better. CLV is a pricing metric used by serious handicappers to evaluate process \u2014 it is not a prediction of future wins, and it does not guarantee profit. SCL only shows CLV on Odds-Verified picks with a recorded closing price. If a close is unavailable, we show an em dash rather than an estimate.\n\nPick History\n\nSelect View to open the associated ticket in place.\n\nFull proof history"
+      },
+      "onPicks": false
+    }
+  ],
+  "a11y": [
+    {
+      "route": "/login",
+      "validationErrors": [
+        "Username must be at least 3 characters",
+        "Enter a valid email",
+        "Password is required",
+        ""
+      ]
+    },
+    {
+      "route": "/leaderboard",
+      "focusAfterTabs": {
+        "tag": "A",
+        "text": "Leaderboard",
+        "outline": "auto",
+        "outlineWidth": "1px"
+      }
+    }
+  ],
+  "performance": [
+    {
+      "route": "/",
+      "viewport": "1440",
+      "ttiMs": 3887
+    },
+    {
+      "route": "/",
+      "viewport": "375",
+      "ttiMs": 3352
+    },
+    {
+      "route": "/leaderboard",
+      "viewport": "1440",
+      "ttiMs": 3708
+    },
+    {
+      "route": "/leaderboard",
+      "viewport": "375",
+      "ttiMs": 3402
+    },
+    {
+      "route": "/discover",
+      "viewport": "1440",
+      "ttiMs": 3675
+    },
+    {
+      "route": "/discover",
+      "viewport": "375",
+      "ttiMs": 3638
+    },
+    {
+      "route": "/picks",
+      "viewport": "1440",
+      "ttiMs": 3818
+    },
+    {
+      "route": "/picks",
+      "viewport": "375",
+      "ttiMs": 1716
+    },
+    {
+      "route": "/packages",
+      "viewport": "1440",
+      "ttiMs": 5524
+    },
+    {
+      "route": "/packages",
+      "viewport": "375",
+      "ttiMs": 5391
+    },
+    {
+      "route": "/cappers",
+      "viewport": "1440",
+      "ttiMs": 3783
+    },
+    {
+      "route": "/cappers",
+      "viewport": "375",
+      "ttiMs": 3262
+    },
+    {
+      "route": "/verification",
+      "viewport": "1440",
+      "ttiMs": 3568
+    },
+    {
+      "route": "/verification",
+      "viewport": "375",
+      "ttiMs": 1127
+    },
+    {
+      "route": "/support",
+      "viewport": "1440",
+      "ttiMs": 3566
+    },
+    {
+      "route": "/support",
+      "viewport": "375",
+      "ttiMs": 1163
+    },
+    {
+      "route": "/terms",
+      "viewport": "1440",
+      "ttiMs": 3369
+    },
+    {
+      "route": "/terms",
+      "viewport": "375",
+      "ttiMs": 1274
+    },
+    {
+      "route": "/privacy",
+      "viewport": "1440",
+      "ttiMs": 4101
+    },
+    {
+      "route": "/privacy",
+      "viewport": "375",
+      "ttiMs": 1308
+    },
+    {
+      "route": "/disclaimer",
+      "viewport": "1440",
+      "ttiMs": 3324
+    },
+    {
+      "route": "/disclaimer",
+      "viewport": "375",
+      "ttiMs": 1238
+    },
+    {
+      "route": "/responsible-gaming",
+      "viewport": "1440",
+      "ttiMs": 3655
+    },
+    {
+      "route": "/responsible-gaming",
+      "viewport": "375",
+      "ttiMs": 1271
+    },
+    {
+      "route": "/refund-policy",
+      "viewport": "1440",
+      "ttiMs": 3663
+    },
+    {
+      "route": "/refund-policy",
+      "viewport": "375",
+      "ttiMs": 1363
+    },
+    {
+      "route": "/login",
+      "viewport": "1440",
+      "ttiMs": 1088
+    },
+    {
+      "route": "/login",
+      "viewport": "375",
+      "ttiMs": 1050
+    },
+    {
+      "route": "/signup",
+      "viewport": "1440",
+      "ttiMs": 1086
+    },
+    {
+      "route": "/signup",
+      "viewport": "375",
+      "ttiMs": 1079
+    },
+    {
+      "route": "/verify",
+      "viewport": "1440",
+      "ttiMs": 1098
+    },
+    {
+      "route": "/verify",
+      "viewport": "375",
+      "ttiMs": 1085
+    },
+    {
+      "route": "/resend-verification",
+      "viewport": "1440",
+      "ttiMs": 1042
+    },
+    {
+      "route": "/resend-verification",
+      "viewport": "375",
+      "ttiMs": 1062
+    },
+    {
+      "route": "/forgot-password",
+      "viewport": "1440",
+      "ttiMs": 1049
+    },
+    {
+      "route": "/forgot-password",
+      "viewport": "375",
+      "ttiMs": 1061
+    },
+    {
+      "route": "/reset-password",
+      "viewport": "1440",
+      "ttiMs": 1291
+    },
+    {
+      "route": "/reset-password",
+      "viewport": "375",
+      "ttiMs": 1062
+    },
+    {
+      "route": "/accept-terms",
+      "viewport": "1440",
+      "ttiMs": 1126
+    },
+    {
+      "route": "/accept-terms",
+      "viewport": "375",
+      "ttiMs": 1108
+    },
+    {
+      "route": "/account-restricted",
+      "viewport": "1440",
+      "ttiMs": 1080
+    },
+    {
+      "route": "/account-restricted",
+      "viewport": "375",
+      "ttiMs": 1185
+    },
+    {
+      "route": "/qa/board-odds-hygiene",
+      "viewport": "1440",
+      "ttiMs": 968
+    },
+    {
+      "route": "/qa/board-odds-hygiene",
+      "viewport": "375",
+      "ttiMs": 952
+    },
+    {
+      "route": "/qa/desktop-profile-composition",
+      "viewport": "1440",
+      "ttiMs": 959
+    },
+    {
+      "route": "/qa/desktop-profile-composition",
+      "viewport": "375",
+      "ttiMs": 950
+    }
+  ],
+  "controlsNotExercised": [
+    {
+      "control": "createPlay / submit pick",
+      "route": "/dashboard/picks/new",
+      "observed": "Opened new pick form; did not submit",
+      "why": "Rail 8 \u2014 do not submit real picks; test account also should not pollute public board without flag"
+    },
+    {
+      "control": "deleteOwnAccountAction",
+      "route": "/dashboard/security",
+      "observed": "Opened/inspected delete control; cancelled without confirming",
+      "why": "Destructive \u2014 rail / safety"
+    },
+    {
+      "control": "runAutoGradeAction / gradePlayAction",
+      "route": "/admin/grading",
+      "observed": "NOT OPENED \u2014 admin credentials not available in this cloud environment; DB also unreachable (IPv6 ENETUNREACH)",
+      "why": "Rail 4 + missing admin session"
+    },
+    {
+      "control": "adminUpdateStoreConnectionAction approve/reject",
+      "route": "/admin/store-setup",
+      "observed": "NOT OPENED \u2014 no admin session",
+      "why": "Rail 3"
+    },
+    {
+      "control": "savePolicyDocumentAction",
+      "route": "/admin/policies",
+      "observed": "NOT OPENED \u2014 no admin session",
+      "why": "Rail 7"
+    },
+    {
+      "control": "updateAccountStatusAction / adminDeleteCapperAction",
+      "route": "/admin/cappers/[id]",
+      "observed": "NOT OPENED \u2014 no admin session",
+      "why": "Rail 1"
+    }
+  ],
+  "testArtifacts": [
+    {
+      "type": "signup_attempt",
+      "username": "qaauditmsgub1mz",
+      "email": "qa-audit-msgub1mz@sportscappersleaderboard.com",
+      "password": "[REDACTED]",
+      "finalUrl": "https://sportscappersleaderboard.com/signup",
+      "bodySnippet": "Sports Cappers Leaderboard\n\nACCOUNT CREATED\n\nVerify your email\n\nYour SCL identity is reserved. Confirm your email to activate capper access.\n\nVerification sent\n\nCheck your inbox \u2014 the secure link expires in 24 hours.\n\nBack to log in"
+    },
+    {
+      "type": "login_result",
+      "url": "https://sportscappersleaderboard.com/dashboard",
+      "loggedIn": true
+    },
+    {
+      "type": "upload_attempt",
+      "toastText": [
+        "Profile media storage is unavailable. In Supabase \u2192 Storage, create a public bucket named scl-profile-media.",
+        "Profile media storage is unavailable. In Supabase \u2192 Storage, create a public bucket named scl-profile-media."
+      ],
+      "bodyHasUnavailable": true,
+      "bodyHasSuccess": false
+    }
+  ],
+  "skipped": [
+    "Direct Postgres reconciliation: host resolves IPv6-only; connect ENETUNREACH from cloud agent. UI cross-checks used instead.",
+    "Admin console deep audit: legacy credentials.json not mounted; no ADMIN password in env.",
+    "Password reset / resend verification against real accounts: blocked by email rail."
+  ],
+  "positives": [
+    "robots.txt references sportscappersleaderboard.com",
+    "sitemap.xml uses production host",
+    "/dashboard redirects to login when logged out",
+    "/admin redirects to login when logged out",
+    "@pbssports Evidence Brief units match chart end (+65.79U)",
+    "/packages shows 32 $-price tokens (commerce pricing \u2014 review vs units-only betting law)",
+    "Disposable test account can authenticate (https://sportscappersleaderboard.com/dashboard)",
+    "Non-admin /admin ended at https://sportscappersleaderboard.com/dashboard",
+    "Legacy honesty @bankofdennis: {\"hasLegacyBadge\":true,\"impliesBoardVerifiedLegacy\":false,\"totalsOnly\":true}"
+  ],
+  "consoleByRoute": {
+    "/": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 400 ()"
+      }
+    ],
+    "/leaderboard": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 400 ()"
+      }
+    ],
+    "/discover": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 400 ()"
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 400 ()"
+      }
+    ],
+    "/picks": [],
+    "/packages": [],
+    "/cappers": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 400 ()"
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 400 ()"
+      }
+    ],
+    "/verification": [],
+    "/support": [],
+    "/terms": [],
+    "/privacy": [],
+    "/disclaimer": [],
+    "/responsible-gaming": [],
+    "/refund-policy": [],
+    "/login": [],
+    "/signup": [],
+    "/verify": [],
+    "/resend-verification": [],
+    "/forgot-password": [],
+    "/reset-password": [],
+    "/accept-terms": [],
+    "/account-restricted": [],
+    "/qa/board-odds-hygiene": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 ()"
+      }
+    ],
+    "/qa/desktop-profile-composition": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 ()"
+      }
+    ],
+    "/dashboard": [],
+    "/dashboard/picks": [],
+    "/dashboard/picks/new": [],
+    "/dashboard/picks/new/parlay": [],
+    "/dashboard/profile": [],
+    "/dashboard/monetization": [],
+    "/dashboard/security": []
+  },
+  "networkFailuresByRoute": {
+    "/": [
+      {
+        "url": "https://sportscappersleaderboard.com/cappers/Amanee330?_rsc=_Zpqv3xLLusZewZy",
+        "method": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/cappers/mlbanalyticspro?_rsc=9uLtvpEcAq2u3SFw",
+        "method": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+        "status": 400
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/cappers/clownsportspick?_rsc=DaVfMvpZPNDB3eW8",
+        "method": "net::ERR_ABORTED"
+      }
+    ],
+    "/leaderboard": [
+      {
+        "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+        "status": 400
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/cappers/Tailoredwinning?_rsc=bhe6j9e3cAmhJK0_",
+        "method": "net::ERR_ABORTED"
+      }
+    ],
+    "/discover": [
+      {
+        "url": "https://sportscappersleaderboard.com/?_rsc=6UjlU0gA68F_vU0N",
+        "method": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcmr0vrsuo0000la04o5grdcbh%2Favatar.webp%3Fv%3D1785714589281&w=32&q=75",
+        "status": 400
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/cappers/Mrpicks?_rsc=LVIjXWi-i8ZJxUGS",
+        "method": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+        "status": 400
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/cappers/bankofdennis?_rsc=BTruIq0ncqa607tk",
+        "method": "net::ERR_ABORTED"
+      }
+    ],
+    "/picks": [
+      {
+        "url": "https://sportscappersleaderboard.com/?_rsc=Ojza6h4H9uIGEmt-",
+        "method": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/refund-policy?_rsc=XuqiQvaGofNjsOZ9",
+        "method": "net::ERR_ABORTED"
+      }
+    ],
+    "/packages": [
+      {
+        "url": "https://sportscappersleaderboard.com/?_rsc=VWrhfj98PBxPgvEf",
+        "method": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/cappers/BTTSPlays?_rsc=fYiw_VEAhWjkDtkL",
+        "method": "net::ERR_ABORTED"
+      }
+    ],
+    "/cappers": [
+      {
+        "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75",
+        "status": 400
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcmr0vrsuo0000la04o5grdcbh%2Favatar.webp%3Fv%3D1785714589281&w=32&q=75",
+        "status": 400
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/cappers/Mrpicks?_rsc=T1aFccDzdokOVR1q",
+        "method": "net::ERR_ABORTED"
+      }
+    ],
+    "/verification": [],
+    "/support": [
+      {
+        "url": "https://sportscappersleaderboard.com/support?_rsc=usHs3m2emxFOP86L",
+        "method": "net::ERR_ABORTED"
+      }
+    ],
+    "/terms": [
+      {
+        "url": "https://sportscappersleaderboard.com/responsible-gaming?_rsc=pfWg1qw4uMxqj7N2",
+        "method": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/responsible-gaming?_rsc=Jm_KudBfn_F9em99",
+        "method": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/terms?_rsc=Jm_KudBfn_F9em99",
+        "method": "net::ERR_ABORTED"
+      }
+    ],
+    "/privacy": [
+      {
+        "url": "https://sportscappersleaderboard.com/disclaimer?_rsc=UnGutxUMZihRxjHi",
+        "method": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/verification?_rsc=WzUDN3am5ctH078F",
+        "method": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/responsible-gaming?_rsc=UnGutxUMZihRxjHi",
+        "method": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/terms?_rsc=UnGutxUMZihRxjHi",
+        "method": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/support?_rsc=UnGutxUMZihRxjHi",
+        "method": "net::ERR_ABORTED"
+      }
+    ],
+    "/disclaimer": [
+      {
+        "url": "https://sportscappersleaderboard.com/support?_rsc=HEflQmOatUEN4Zlk",
+        "method": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/terms?_rsc=HEflQmOatUEN4Zlk",
+        "method": "net::ERR_ABORTED"
+      }
+    ],
+    "/responsible-gaming": [
+      {
+        "url": "https://sportscappersleaderboard.com/privacy?_rsc=UmHIkY9VUhrXYL45",
+        "method": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/refund-policy?_rsc=55CEkepjitxkxAcz",
+        "method": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/disclaimer?_rsc=55CEkepjitxkxAcz",
+        "method": "net::ERR_ABORTED"
+      }
+    ],
+    "/refund-policy": [
+      {
+        "url": "https://sportscappersleaderboard.com/?_rsc=uTM-W7gMdKU9zZu-",
+        "method": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/refund-policy?_rsc=GaE_J9Bd5WWY5ZJt",
+        "method": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/responsible-gaming?_rsc=GaE_J9Bd5WWY5ZJt",
+        "method": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/privacy?_rsc=GaE_J9Bd5WWY5ZJt",
+        "method": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/?_rsc=GaE_J9Bd5WWY5ZJt",
+        "method": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/verification?_rsc=GaE_J9Bd5WWY5ZJt",
+        "method": "net::ERR_ABORTED"
+      }
+    ],
+    "/login": [
+      {
+        "url": "https://sportscappersleaderboard.com/?_rsc=NbxbwXp5D4VPXEV7",
+        "method": "net::ERR_ABORTED"
+      }
+    ],
+    "/signup": [],
+    "/verify": [
+      {
+        "url": "https://sportscappersleaderboard.com/?_rsc=t9NzXZGTGT4DNBCP",
+        "method": "net::ERR_ABORTED"
+      }
+    ],
+    "/resend-verification": [
+      {
+        "url": "https://sportscappersleaderboard.com/?_rsc=g2YCwvfnzOCYl2Dm",
+        "method": "net::ERR_ABORTED"
+      }
+    ],
+    "/forgot-password": [
+      {
+        "url": "https://sportscappersleaderboard.com/?_rsc=hhU5ofAteNE95GQ-",
+        "method": "net::ERR_ABORTED"
+      }
+    ],
+    "/reset-password": [
+      {
+        "url": "https://sportscappersleaderboard.com/?_rsc=B1eYb4isH_6NBJZx",
+        "method": "net::ERR_ABORTED"
+      }
+    ],
+    "/accept-terms": [
+      {
+        "url": "https://sportscappersleaderboard.com/?_rsc=NbxbwXp5D4VPXEV7",
+        "method": "net::ERR_ABORTED"
+      }
+    ],
+    "/account-restricted": [],
+    "/qa/board-odds-hygiene": [
+      {
+        "url": "https://sportscappersleaderboard.com/qa/board-odds-hygiene",
+        "status": 404
+      }
+    ],
+    "/qa/desktop-profile-composition": [
+      {
+        "url": "https://sportscappersleaderboard.com/qa/desktop-profile-composition",
+        "status": 404
+      }
+    ],
+    "/dashboard": [
+      {
+        "url": "https://sportscappersleaderboard.com/?_rsc=WVFnqJhjkRiMLtQy",
+        "method": "net::ERR_ABORTED"
+      }
+    ],
+    "/dashboard/picks": [
+      {
+        "url": "https://sportscappersleaderboard.com/?_rsc=WLSEmY-Ms0zqEr4-",
+        "method": "net::ERR_ABORTED"
+      }
+    ],
+    "/dashboard/picks/new": [
+      {
+        "url": "https://sportscappersleaderboard.com/?_rsc=o192uwotlzx2WNwn",
+        "method": "net::ERR_ABORTED"
+      }
+    ],
+    "/dashboard/picks/new/parlay": [
+      {
+        "url": "https://sportscappersleaderboard.com/?_rsc=a1NjmbEg6QX5fnxr",
+        "method": "net::ERR_ABORTED"
+      }
+    ],
+    "/dashboard/profile": [],
+    "/dashboard/monetization": [],
+    "/dashboard/security": [
+      {
+        "url": "https://sportscappersleaderboard.com/?_rsc=wBm922-OnY_9hl4u",
+        "method": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://sportscappersleaderboard.com/dashboard/picks/new?_rsc=Ptwsn6bCZLwb6aNX",
+        "method": "net::ERR_ABORTED"
+      }
+    ]
+  },
+  "finishedAt": "2026-08-06T01:33:42.372Z"
+}

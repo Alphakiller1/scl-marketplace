@@ -1,0 +1,220 @@
+{
+  "findings": [
+    {
+      "severity": "P1",
+      "category": "correctness",
+      "route": "/api/health",
+      "what": "/api/health returns HTTP 200 status:ok while supabase.storage/bucketReady is false — hides a broken core flow behind a green health check",
+      "evidence": {
+        "storage": false,
+        "url": true,
+        "serviceRole": true,
+        "bucket": "scl-profile-media",
+        "configured": true,
+        "bucketReady": false
+      }
+    }
+  ],
+  "image400": [
+    {
+      "route": "/",
+      "bad": [
+        {
+          "status": 400,
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75"
+        }
+      ]
+    },
+    {
+      "route": "/leaderboard",
+      "bad": [
+        {
+          "status": 400,
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75"
+        }
+      ]
+    },
+    {
+      "route": "/discover",
+      "bad": [
+        {
+          "status": 400,
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcms8lwygs03k3el301rag6huu%2Favatar.webp%3Fv%3D1785970044629&w=32&q=75"
+        },
+        {
+          "status": 400,
+          "url": "https://sportscappersleaderboard.com/_next/image?url=https%3A%2F%2Fmvxjcfriirguhjujurhf.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fscl-profile-media%2Fcmr0vrsuo0000la04o5grdcbh%2Favatar.webp%3Fv%3D1785714589281&w=32&q=75"
+        }
+      ]
+    },
+    {
+      "route": "/picks",
+      "bad": []
+    },
+    {
+      "route": "/packages",
+      "bad": []
+    }
+  ],
+  "goLinks": [
+    {
+      "g": "/go/bttsplays-affi6594g54",
+      "url": "https://www.winible.com/checkout/1598753854722167473?pid=1600307658324202334&a=F7E019",
+      "status": 200,
+      "title": "Winible: The Premier Destination for Buying and Selling Picks"
+    },
+    {
+      "g": "/go/superpicks1-affx6977t100",
+      "url": "https://whop.com/checkout/plan_WDBMS1kVzsn54/?a=scleaderboard",
+      "status": 200,
+      "title": "SuperPick$"
+    },
+    {
+      "g": "/go/bankofdennis-affo9334s72",
+      "url": "https://www.winible.com/checkout/1555313353881047797?pid=1555313353897825014&a=D24700",
+      "status": 200,
+      "title": "Winible: The Premier Destination for Buying and Selling Picks"
+    },
+    {
+      "g": "/go/cadenwymer-afft4720q91",
+      "url": "https://www.winible.com/checkout/1435601502004596817?pid=1435601502017179730&a=DCF8E4&c=3freescl",
+      "status": 200,
+      "title": "Winible: The Premier Destination for Buying and Selling Picks"
+    },
+    {
+      "g": "/go/blackrocksports-affi3356v50",
+      "url": "https://www.winible.com/checkout/1544393976704946712?pid=1544393976717529625&a=16F7CE&c=3freescl",
+      "status": 200,
+      "title": "Winible: The Premier Destination for Buying and Selling Picks"
+    }
+  ],
+  "og": [
+    {
+      "h": "bankofdennis",
+      "status": 200,
+      "type": "image/png",
+      "len": 37413
+    },
+    {
+      "h": "wgsdfs",
+      "status": 200,
+      "type": "image/png",
+      "len": 34112
+    },
+    {
+      "h": "no-such-capper-xyz",
+      "status": 200,
+      "type": "image/png",
+      "len": 9053
+    }
+  ],
+  "contrast": [],
+  "caseHandles": [
+    {
+      "href": "/cappers/Amanee330",
+      "status": 200,
+      "missing": false,
+      "title": "@Amanee330 SOCCER Capper Record & Pick History · SCL",
+      "lower": "/cappers/amanee330",
+      "lowerStatus": 200,
+      "lowerMissing": false,
+      "lowerTitle": "@Amanee330 SOCCER Capper Record & Pick History · SCL"
+    },
+    {
+      "href": "/cappers/BTTSPlays",
+      "status": 200,
+      "missing": false,
+      "title": "@BTTSPlays MLB Capper Record & Pick History · SCL",
+      "lower": "/cappers/bttsplays",
+      "lowerStatus": 200,
+      "lowerMissing": false,
+      "lowerTitle": "@BTTSPlays MLB Capper Record & Pick History · SCL"
+    }
+  ],
+  "healthHttp": {
+    "status": 200,
+    "body": {
+      "status": "ok",
+      "database": "reachable",
+      "schema": {
+        "packageAttribution": true,
+        "eventLabels": true,
+        "policyAcceptance": true,
+        "refundPolicy": true
+      },
+      "deployment": {
+        "releaseIdentified": true
+      },
+      "supabase": {
+        "storage": false,
+        "url": true,
+        "serviceRole": true,
+        "bucket": "scl-profile-media",
+        "configured": true,
+        "bucketReady": false
+      },
+      "whop": {
+        "oauth": true,
+        "webhook": true,
+        "affiliateUsername": true,
+        "accountApiKey": true,
+        "storefrontSync": true
+      },
+      "release": "5fa4d5812e698aebe13a1b0fa673bdfe9902cb92",
+      "checkedAt": "2026-08-06T01:38:31.602Z"
+    }
+  },
+  "sitemapMobile": {
+    "overflow": true,
+    "sw": 516,
+    "cw": 375
+  },
+  "footerYear": {
+    "m": "2026",
+    "now": 2026
+  },
+  "pickForm": {
+    "title": "SCL — Sports Cappers Leaderboard",
+    "h1": "Log A Pick",
+    "buttons": [
+      "Log out",
+      "TODAY\nThu, Aug 6 · 14",
+      "TOMORROW\nFri, Aug 7 · 2",
+      "All\n16",
+      "MLB\nMLB\n13",
+      "WNBA\nWNBA\n2",
+      "CFL\nCFL\n1",
+      "Padres @ D-backs\n1:41 AM ET\nMLB",
+      "Tigers @ Mariners\n1:41 AM ET\nMLB",
+      "Angels @ Orioles\n4:36 PM ET\nMLB",
+      "Athletics @ Reds\n4:40 PM ET\nMLB",
+      "Mets @ Guardians\n5:11 PM ET\nMLB",
+      "Pirates @ Brewers\n6:11 PM ET\nMLB",
+      "Blue Jays @ Cubs\n6:21 PM ET\nMLB",
+      "Tigers @ Mariners\n8:11 PM ET\nMLB",
+      "Nationals @ Phillies\n10:06 PM ET\nMLB",
+      "White Sox @ Red Sox\n11:11 PM ET\nMLB",
+      "Marlins @ Braves\n11:16 PM ET\nMLB",
+      "Twins @ Royals\n11:41 PM ET\nMLB",
+      "Aces @ Fever\n11:00 PM ET\nWNBA",
+      "CS\nTA\nStampeders @ Argonauts\n11:30 PM ET\nCFL",
+      "Request coverage — tell us what's missing",
+      "SINGLES",
+      "PARLAY"
+    ]
+  },
+  "deleteControl": {
+    "present": true,
+    "disabled": true,
+    "label": "Delete my account"
+  },
+  "controlsNotExercised": {
+    "control": "deleteOwnAccountAction",
+    "observed": "Delete button present but disabled until confirmation — inspected without firing"
+  },
+  "avatarDirect": {
+    "src": "https://mvxjcfriirguhjujurhf.supabase.co/storage/v1/object/public/scl-profile-media/cms8lwygs03k3el301rag6huu/avatar.webp?v=1785970044629",
+    "status": 200,
+    "type": "image/webp"
+  }
+}
