@@ -18,7 +18,10 @@ import {
   getRecentGradingAudits,
 } from "@/lib/queries/grading";
 import { getSchemaStatusReport } from "@/lib/results/schema-status";
-import { listAgedOutPendingPlays } from "@/lib/results/stuck-plays";
+import {
+  countPendingPlays,
+  listAgedOutPendingPlays,
+} from "@/lib/results/stuck-plays";
 
 export const metadata = { title: "Grading" };
 
@@ -33,13 +36,15 @@ function durationSecs(start: Date | null, end: Date | null): string {
 }
 
 export default async function AdminGradingPage() {
-  const [audits, health, schema, stuck, cronRuns] = await Promise.all([
-    getRecentGradingAudits(),
-    getGradingHealthReport(),
-    getSchemaStatusReport(),
-    listAgedOutPendingPlays(),
-    getRecentCronRuns(),
-  ]);
+  const [audits, health, schema, stuck, cronRuns, pendingTotal] =
+    await Promise.all([
+      getRecentGradingAudits(),
+      getGradingHealthReport(),
+      getSchemaStatusReport(),
+      listAgedOutPendingPlays(),
+      getRecentCronRuns(),
+      countPendingPlays(),
+    ]);
 
   return (
     <div className="space-y-8">
@@ -91,10 +96,10 @@ export default async function AdminGradingPage() {
           </div>
           <div>
             <dt className="text-muted-foreground text-xs tracking-wide uppercase">
-              Aged-out stuck
+              Ungraded / aged-out
             </dt>
             <dd className="scl-data mt-1 text-sm font-semibold tabular-nums">
-              {stuck.length}
+              {pendingTotal} / {stuck.length}
             </dd>
           </div>
         </dl>
