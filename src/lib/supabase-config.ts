@@ -51,6 +51,61 @@ export function usesSupabasePlatformSecretKey(key: string): boolean {
   return key.startsWith("sb_secret_");
 }
 
+/** `https://abcd.supabase.co` -> `abcd`. */
+export function supabaseRefFromUrl(url: string): string | null {
+  return /^https?:\/\/([a-z0-9]+)\.supabase\./i.exec(url.trim())?.[1] ?? null;
+}
+
+/**
+ * Project ref carried inside a legacy `service_role` key.
+ *
+ * Those keys are JWTs whose payload names the project they belong to, so a key
+ * pasted from the wrong project can be caught before it is ever sent. The newer
+ * `sb_secret_...` keys are opaque and carry no ref - null means "can't tell",
+ * never "mismatched".
+ */
+export function supabaseRefFromKey(key: string): string | null {
+  if (usesSupabasePlatformSecretKey(key)) return null;
+  const payload = key.split(".")[1];
+  if (!payload) return null;
+  try {
+    const claims: unknown = JSON.parse(
+      Buffer.from(payload, "base64url").toString("utf8"),
+    );
+    const ref =
+      typeof claims === "object" && claims !== null
+        ? (claims as { ref?: unknown }).ref
+        : null;
+    return typeof ref === "string" && ref ? ref : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The URL and the key must name the same project.
+ *
+ * Pointing SUPABASE_URL at one project and the service-role key at another
+ * fails as `Invalid JWT` / `Bucket not found` - indistinguishable from a
+ * genuinely missing bucket, which is how one such mismatch was chased as a
+ * storage problem while both projects had the bucket all along. Returns the two
+ * refs only when both are known and they disagree.
+ */
+export function supabaseCredentialMismatch(): {
+  urlRef: string;
+  keyRef: string;
+} | null {
+  const url = supabaseProjectUrl();
+  const key = supabaseServiceRoleKey();
+  if (!url || !key) return null;
+
+  const urlRef = supabaseRefFromUrl(url);
+  const keyRef = supabaseRefFromKey(key);
+  if (!urlRef || !keyRef || urlRef === keyRef) return null;
+
+  return { urlRef, keyRef };
+}
+
 export function supabaseStorageConfigured(): boolean {
   return Boolean(supabaseProjectUrl() && supabaseServiceRoleKey());
 }

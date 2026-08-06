@@ -1,3 +1,5 @@
+import { supabaseRefFromKey, supabaseRefFromUrl } from "@/lib/supabase-config";
+
 export type ReleaseCheckStatus = "ready" | "warning" | "blocked";
 
 export type ReleaseReadinessCheck = {
@@ -42,6 +44,19 @@ export function evaluateReleaseConfiguration(
       isConfigured(env.NEXT_PUBLIC_SUPABASE_URL)) &&
     (isConfigured(env.SUPABASE_SERVICE_ROLE_KEY) ||
       isConfigured(env.SUPABASE_SECRET_KEY));
+  // A URL from one project and a key from another read as "rejected key" or
+  // "missing bucket" at the call site, so name the real fault here.
+  const mediaUrlRef = supabaseRefFromUrl(
+    env.SUPABASE_URL?.trim() || env.NEXT_PUBLIC_SUPABASE_URL?.trim() || "",
+  );
+  const mediaKeyRef = supabaseRefFromKey(
+    env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
+      env.SUPABASE_SECRET_KEY?.trim() ||
+      "",
+  );
+  const mediaMismatch = Boolean(
+    mediaUrlRef && mediaKeyRef && mediaUrlRef !== mediaKeyRef,
+  );
   const releaseIdentityConfigured =
     env.VERCEL_ENV?.trim() !== "production" ||
     isConfigured(env.VERCEL_GIT_COMMIT_SHA);
@@ -84,10 +99,12 @@ export function evaluateReleaseConfiguration(
     {
       id: "profile-media",
       label: "Profile media uploads",
-      status: mediaConfigured ? "ready" : "warning",
-      detail: mediaConfigured
-        ? "Supabase Storage is configured for avatar and cover uploads."
-        : "SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SECRET_KEY) are missing; profile media uploads will be unavailable.",
+      status: mediaMismatch ? "blocked" : mediaConfigured ? "ready" : "warning",
+      detail: mediaMismatch
+        ? `Supabase URL and service-role key name different projects (${mediaUrlRef} vs ${mediaKeyRef}); uploads fail until both come from the same project.`
+        : mediaConfigured
+          ? "Supabase Storage is configured for avatar and cover uploads."
+          : "SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SECRET_KEY) are missing; profile media uploads will be unavailable.",
     },
     {
       id: "odds-provider",
