@@ -13,7 +13,22 @@ on:
 
 concurrency:
   group: deploy-${{ github.ref }}
-  cancel-in-progress: true
+  # Never cancel a run in progress. This workflow does not perform the
+  # deployment — Vercel's Git integration does that on push, independently of
+  # GitHub Actions — it verifies that the commit just merged is the one
+  # production actually ends up serving. Cancelling therefore does not stop a
+  # deploy; it only throws away the check that would notice a deploy going
+  # wrong.
+  #
+  # With `true`, a run of merges cancels its own predecessors: on 2026-08-06,
+  # thirteen PRs merged in quick succession and twelve verification runs were
+  # cancelled, leaving only the last. Production was in fact serving every one
+  # of those commits, but from the Actions tab it read as "every deploy today
+  # was cancelled" — the wall of red was mistaken for an outage and sent a
+  # session hunting a deployment failure that had never happened.
+  #
+  # Queued runs are cheap; a silent gap in release verification is not.
+  cancel-in-progress: false
 
 jobs:
   deploy:
