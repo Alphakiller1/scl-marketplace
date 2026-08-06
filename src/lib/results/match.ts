@@ -1,4 +1,5 @@
 import { PROP_MARKET_LABEL } from "@/lib/odds-verify";
+import { isPeriodMarket } from "@/lib/period-markets";
 import { resolveKnownTeam } from "@/lib/teams";
 import type { SettledGame } from "@/lib/results/settled-game";
 
@@ -53,6 +54,10 @@ export function isDeferredProp(play: GradablePlay): boolean {
   const market = norm(play.market);
   const selection = norm(play.selection);
   if (PROP_MARKET_LABELS.has(market)) return true;
+  // A first-N-innings market must never fall through to the full-game
+  // resolver — settling an F5 pick on the 9-inning final writes a result the
+  // capper never bet. Explicit rather than relying on the substring rules below.
+  if (isPeriodMarket(play.market)) return true;
   if (market.includes("prop") || market.includes("player")) return true;
   if (market.includes("inning") || selection.includes("first five"))
     return true;
@@ -279,7 +284,27 @@ export function findGame(
  */
 const MAX_PLAUSIBLE_HANDICAP = 60;
 
-function parseSpreadFromSelection(
+/**
+ * Which club a play backs, as home/away against a settled game.
+ * `null` = an explicit Draw selection; `undefined` = can't tell (→ defer).
+ */
+export function pickedSideForGame(
+  play: Pick<GradablePlay, "selection" | "side">,
+  game: SettledGame,
+): boolean | null | undefined {
+  const text = `${play.selection} ${play.side ?? ""}`;
+  if (/(draw|tie)/i.test(text)) return null;
+  const home =
+    mentions(play.selection, game.home, game.sport) ||
+    mentions(play.side ?? "", game.home, game.sport);
+  const away =
+    mentions(play.selection, game.away, game.sport) ||
+    mentions(play.side ?? "", game.away, game.sport);
+  if (home === away) return undefined;
+  return home;
+}
+
+export function parseSpreadFromSelection(
   selection: string,
 ): { team: string; line: number } | null {
   const match = selection.match(/^(.+?)\s*([+-]\d+(?:\.\d+)?)\s*$/);

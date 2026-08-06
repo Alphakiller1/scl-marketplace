@@ -6,9 +6,21 @@ import { settleParlay } from "@/lib/grading";
 import { profitUnitsForOutcome } from "@/lib/odds";
 import { prisma } from "@/lib/prisma";
 import { ensureClosingAndClv } from "@/lib/results/closing-snapshot";
-import { isDeferredProp, resolveOutcome } from "@/lib/results/match";
+import { parsePeriodMarket } from "@/lib/period-markets";
 import {
+  isDeferredProp,
+  parseSpreadFromSelection,
+  pickedSideForGame,
+  resolveOutcome,
+  type GradablePlay,
+} from "@/lib/results/match";
+import type { SettledGame } from "@/lib/results/settled-game";
+import {
+  overUnderOutcome,
   parsePeriodTotal,
+  periodScores,
+  resolvePeriodMoneyline,
+  resolvePeriodSpread,
   resolvePeriodTotal,
 } from "@/lib/results/prop-resolve";
 import { fetchPeriodBoxScore } from "@/lib/results/stats-provider";
@@ -69,6 +81,58 @@ async function resolveDeferredPeriodTotal(play: {
   return resolvePeriodTotal(play.selection, box);
 }
 
+/**
+ * Settle a first-N-innings play (F3/F5/F7) from box-score line-scores.
+ *
+ * The settled game is used ONLY to work out which club the capper backed — the
+ * result comes entirely from the line-scores, never the final score. Returns
+ * null (→ defer) whenever the segment can't be settled with confidence: no
+ * event, no line-scores yet, an unreadable side, or a tied moneyline segment.
+ */
+async function resolvePeriodPlay(
+  play: GradablePlay,
+  games: SettledGame[],
+): Promise<Outcome | null> {
+  const period = parsePeriodMarket(play.market);
+  if (!period || !play.eventId) return null;
+
+  const box = await fetchPeriodBoxScore(play.sport, play.eventId);
+  if (!box) return null;
+
+  if (period.kind === "total") {
+    // The segment is already known from the market, so the line/side only has
+    // to be read off the selection ("Over 4.5").
+    const parsed = parsePeriodTotal(
+      `first ${period.innings} innings ${play.selection}`,
+    );
+    if (!parsed) return null;
+    const scores = periodScores(box, period.innings);
+    if (!scores) return null;
+    return overUnderOutcome(
+      scores.home + scores.away,
+      parsed.line,
+      parsed.side,
+    );
+  }
+
+  const game = findSettledGame(play, games);
+  if (!game) return null;
+  const side = pickedSideForGame(play, game);
+  if (side === undefined) return null;
+
+  if (period.kind === "spread") {
+    const line = play.line ?? parseSpreadFromSelection(play.selection)?.line;
+    if (line == null || Number.isNaN(line) || side === null) return null;
+    return resolvePeriodSpread(box, period.innings, side, line);
+  }
+  if (period.kind === "moneyline") {
+    return resolvePeriodMoneyline(box, period.innings, side);
+  }
+  // Segment known but not the market kind (carried-over "First Five Innings"
+  // rows) — only the total form is safe to infer, from the selection text.
+  return resolvePeriodTotal(play.selection, box);
+}
+
 async function gradeStraightPlays(
   provider: ResultsProvider,
   now: Date,
@@ -124,7 +188,15 @@ async function gradeStraightPlays(
 
   for (const play of pending) {
     let outcome: Outcome | null;
-    if (isDeferredProp(play)) {
+    if (parsePeriodMarket(play.market)) {
+      // F3/F5/F7 settle from line-scores only — never from the final score.
+      outcome = await resolvePeriodPlay(play, games);
+      if (!outcome) {
+        skippedByReason.props_deferred++;
+        logSkip("play", play, "props_deferred");
+        continue;
+      }
+    } else if (isDeferredProp(play)) {
       // Period totals (First-Five / innings) settle from box-score line-scores;
       // everything else (player props) still defers to the manual backup.
       outcome = await resolveDeferredPeriodTotal(play);
@@ -246,13 +318,21 @@ async function gradeParlayLegs(
   let graded = 0;
 
   for (const play of pending) {
-    if (isDeferredProp(play)) {
+    let periodOutcome: Outcome | null = null;
+    if (parsePeriodMarket(play.market)) {
+      periodOutcome = await resolvePeriodPlay(play, games);
+      if (!periodOutcome) {
+        skippedByReason.props_deferred++;
+        logSkip("parlay leg", play, "props_deferred");
+        continue;
+      }
+    } else if (isDeferredProp(play)) {
       skippedByReason.props_deferred++;
       logSkip("parlay leg", play, "props_deferred");
       continue;
     }
     const game = findSettledGame(play, games);
-    const outcome = resolveOutcome(play, games);
+    const outcome = periodOutcome ?? resolveOutcome(play, games);
     if (!outcome) {
       const reason = classifySkipReason({
         play,

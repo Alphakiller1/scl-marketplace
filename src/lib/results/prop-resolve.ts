@@ -48,6 +48,66 @@ export function parsePeriodTotal(
   return { periods, side, line };
 }
 
+/** Runs each side scored across the first `periods` periods, or null if not covered yet. */
+export function periodScores(
+  box: BoxScore,
+  periods: number,
+): { home: number; away: number } | null {
+  if (box.homePeriods.length < periods || box.awayPeriods.length < periods) {
+    return null;
+  }
+  const sumFirst = (arr: number[]) => {
+    let total = 0;
+    for (let i = 0; i < periods; i++) {
+      const v = arr[i];
+      if (!Number.isFinite(v)) return null;
+      total += v;
+    }
+    return total;
+  };
+  const home = sumFirst(box.homePeriods);
+  const away = sumFirst(box.awayPeriods);
+  if (home == null || away == null) return null;
+  return { home, away };
+}
+
+/**
+ * First-N-innings moneyline.
+ *
+ * `pickedHome` is null when the capper took the Draw (books price F5 three-way).
+ * A tie with a TEAM selected is deliberately NOT settled: two-way books push it
+ * and three-way books lose it, and nothing in the stored pick says which was
+ * taken — so it defers to a human rather than guessing at someone's record.
+ */
+export function resolvePeriodMoneyline(
+  box: BoxScore,
+  periods: number,
+  pickedHome: boolean | null,
+): Outcome | null {
+  const scores = periodScores(box, periods);
+  if (!scores) return null;
+  const tied = scores.home === scores.away;
+  if (pickedHome === null) return tied ? "WIN" : "LOSS";
+  if (tied) return null;
+  return pickedHome === scores.home > scores.away ? "WIN" : "LOSS";
+}
+
+/** First-N-innings spread/run line. `line` is the handicap on the picked side. */
+export function resolvePeriodSpread(
+  box: BoxScore,
+  periods: number,
+  pickedHome: boolean,
+  line: number,
+): Outcome | null {
+  const scores = periodScores(box, periods);
+  if (!scores) return null;
+  const picked = pickedHome ? scores.home : scores.away;
+  const other = pickedHome ? scores.away : scores.home;
+  const margin = picked + line - other;
+  if (margin === 0) return "PUSH";
+  return margin > 0 ? "WIN" : "LOSS";
+}
+
 /** Over/Under settlement: exact line → PUSH. */
 export function overUnderOutcome(
   actual: number,
@@ -72,23 +132,8 @@ export function resolvePeriodTotal(
   if (!parsed) return null;
 
   const { periods, side, line } = parsed;
-  if (box.homePeriods.length < periods || box.awayPeriods.length < periods) {
-    return null;
-  }
+  const scores = periodScores(box, periods);
+  if (!scores) return null;
 
-  const sumFirst = (arr: number[]) => {
-    let total = 0;
-    for (let i = 0; i < periods; i++) {
-      const v = arr[i];
-      if (!Number.isFinite(v)) return null;
-      total += v;
-    }
-    return total;
-  };
-
-  const home = sumFirst(box.homePeriods);
-  const away = sumFirst(box.awayPeriods);
-  if (home == null || away == null) return null;
-
-  return overUnderOutcome(home + away, line, side);
+  return overUnderOutcome(scores.home + scores.away, line, side);
 }
