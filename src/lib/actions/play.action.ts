@@ -12,7 +12,11 @@ import { isBookKey } from "@/lib/books";
 import { fetchLiveLine, verifyPick } from "@/lib/odds-api";
 import { moveKey, resolveCaptureOdds } from "@/lib/odds-movement";
 import type { AcceptedMove, MovedLinePayload } from "@/lib/odds-movement";
-import { validatePackageAttribution } from "@/lib/package-attribution";
+import {
+  capperDefaultPackageIds,
+  resolvePackageAttribution,
+  validatePackageAttribution,
+} from "@/lib/package-attribution";
 import {
   decidePickIntegrity,
   marketKeysForMarket,
@@ -355,7 +359,7 @@ export async function createPlay(
     return { ok: false, error: prep.error };
   }
 
-  const packageIds = await validatePackageAttribution(
+  const packageIds = await resolvePackageAttribution(
     profile.id,
     prep.ready.packageIds,
   );
@@ -482,6 +486,15 @@ export async function createPlays(
     };
   }
 
+  // Resolved per line, not from the union: a line that named no package fans out
+  // to the whole storefront, and one that named packages keeps exactly those.
+  const needsDefault = readyWrites.some(
+    (ready) => ready.packageIds.length === 0,
+  );
+  const defaultPackageIds = needsDefault
+    ? await capperDefaultPackageIds(profile.id)
+    : [];
+
   // Write every ready line independently (only shaped.ready — never stale/needsConfirm).
   const readyByKey = new Map(readyWrites.map((r) => [r.moveKey, r]));
   const writtenReceipts: StraightReceipt[] = [];
@@ -495,7 +508,10 @@ export async function createPlays(
         ...(await playCreateData(ready.data)),
         source: "MANUAL",
         packageLinks: {
-          create: ready.packageIds.map((packageId) => ({ packageId })),
+          create: (ready.packageIds.length > 0
+            ? ready.packageIds
+            : defaultPackageIds
+          ).map((packageId) => ({ packageId })),
         },
       },
       select: { createdAt: true },

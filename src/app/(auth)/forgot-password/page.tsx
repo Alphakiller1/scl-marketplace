@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
           icon={MailCheck}
           eyebrow="Account Access"
           title="Check your email"
-          description="If an eligible SCL account matches that username and email, a secure link to set your password is on the way."
+          description="If an eligible SCL account matches that username or email, a secure link to set your password is on the way."
         />
         <AuthStatusNotice
           tone="info"
@@ -68,34 +68,21 @@ export default function ForgotPasswordPage() {
         icon={KeyRound}
         eyebrow="Account Access"
         title="Set or reset your password"
-        description="Request a single-use link for a specific SCL account. Enter the username and email on that profile."
+        description="Request a single-use link. Use whichever you sign in with — your username or your email."
       />
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <div className="space-y-1.5">
-          <Label htmlFor="username">Username</Label>
+          <Label htmlFor="identifier">Username or email</Label>
           <Input
-            id="username"
+            id="identifier"
             type="text"
             autoComplete="username"
             spellCheck={false}
             className="min-h-10"
-            {...register("username")}
+            {...register("identifier")}
           />
-          {errors.username ? (
-            <p className="text-neg text-xs">{errors.username.message}</p>
-          ) : null}
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            autoComplete="email"
-            className="min-h-10"
-            {...register("email")}
-          />
-          {errors.email ? (
-            <p className="text-neg text-xs">{errors.email.message}</p>
+          {errors.identifier ? (
+            <p className="text-neg text-xs">{errors.identifier.message}</p>
           ) : null}
         </div>
         <Button

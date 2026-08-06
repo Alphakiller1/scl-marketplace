@@ -41,6 +41,37 @@ import type { CapperProfileView } from "@/lib/queries/profile";
 const inputClass =
   "border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 min-h-10 w-full rounded-lg border bg-transparent px-3 text-base shadow-xs focus-visible:ring-[3px] focus-visible:outline-none md:text-sm";
 
+/**
+ * Media → identity → coverage → storefront. The page carried four unnumbered
+ * cards in a different order, which read as an arbitrary pile; numbering them
+ * makes the sequence legible and keeps the commerce step at the end.
+ */
+const TOTAL_STEPS = 4;
+
+function StepHeading({
+  id,
+  step,
+  title,
+  subtitle,
+}: {
+  id: string;
+  step: number;
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <div>
+      <p className="text-muted-foreground mb-1 text-[11px] font-semibold tracking-[0.08em] uppercase">
+        Step {step} of {TOTAL_STEPS}
+      </p>
+      <h2 id={id} className="font-semibold">
+        {title}
+      </h2>
+      <p className="text-muted-foreground text-sm">{subtitle}</p>
+    </div>
+  );
+}
+
 export function ProfileForm({ profile }: { profile: CapperProfileView }) {
   const router = useRouter();
   const [media, setMedia] = useState({
@@ -104,18 +135,24 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
 
   return (
     <div className="space-y-6">
-      <AccountTrustSummary
-        status={profile.user.accountStatus}
-        emailVerified={Boolean(profile.user.emailVerified)}
-        acceptedAt={profile.user.termsAcceptances[0]?.acceptedAt}
-        policyVersion={profile.user.termsAcceptances[0]?.policyVersion}
-      />
-
-      <div className="border-border bg-card rounded-xl border px-4 py-4 sm:px-5">
-        <OnboardingProgress
-          emailVerified={Boolean(profile.user.emailVerified)}
-          profileComplete={completion.isComplete}
-        />
+      {/* Account standing and setup progress are both "where you stand" — one
+          band, so the page opens with status and then moves into editing
+          rather than alternating between the two. */}
+      <div className="border-border bg-card divide-border divide-y rounded-xl border">
+        <div className="p-4 sm:p-5">
+          <AccountTrustSummary
+            status={profile.user.accountStatus}
+            emailVerified={Boolean(profile.user.emailVerified)}
+            acceptedAt={profile.user.termsAcceptances[0]?.acceptedAt}
+            policyVersion={profile.user.termsAcceptances[0]?.policyVersion}
+          />
+        </div>
+        <div className="px-4 py-4 sm:px-5">
+          <OnboardingProgress
+            emailVerified={Boolean(profile.user.emailVerified)}
+            profileComplete={completion.isComplete}
+          />
+        </div>
       </div>
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -125,6 +162,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
           noValidate
         >
           <ProfileMediaEditor
+            eyebrow={`Step 1 of ${TOTAL_STEPS}`}
             name={username || "scl"}
             avatarUrl={media.avatarUrl}
             bannerUrl={media.bannerUrl}
@@ -140,15 +178,12 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
             aria-labelledby="identity-title"
             className="border-border bg-card space-y-4 rounded-xl border p-4 sm:p-5"
           >
-            <div>
-              <h2 id="identity-title" className="font-semibold">
-                Public Identity
-              </h2>
-              <p className="text-muted-foreground text-sm">
-                Your @handle is your public name across SCL. Changing it updates
-                your public profile URL.
-              </p>
-            </div>
+            <StepHeading
+              id="identity-title"
+              step={2}
+              title="Public Identity"
+              subtitle="Your @handle is your public name across SCL. Changing it updates your public profile URL."
+            />
 
             <Field
               htmlFor="username"
@@ -200,80 +235,15 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
           </section>
 
           <section
-            aria-labelledby="storefront-title"
-            className="border-border bg-card space-y-4 rounded-xl border p-4 sm:p-5"
-          >
-            <div className="flex items-start gap-3">
-              <span className="bg-surface-2 flex size-9 shrink-0 items-center justify-center rounded-lg text-[color:var(--scl-blue)]">
-                <Store className="size-4" aria-hidden />
-              </span>
-              <div>
-                <h2 id="storefront-title" className="font-semibold">
-                  Default Storefront
-                </h2>
-                <p className="text-muted-foreground text-sm">
-                  The storefront identity shown before packages are connected.
-                </p>
-              </div>
-            </div>
-
-            <label className="border-border bg-surface-2 flex min-h-12 items-center gap-3 rounded-lg border px-3 py-2 text-sm">
-              <input
-                type="checkbox"
-                className="accent-brand size-4"
-                {...register("storefrontEnabled")}
-              />
-              <span>
-                <span className="block font-medium">
-                  Show storefront on my public profile
-                </span>
-                <span className="text-muted-foreground block text-xs">
-                  You can hide it until you are ready to market packages.
-                </span>
-              </span>
-            </label>
-
-            <Field
-              htmlFor="storefrontTitle"
-              label="Storefront Title"
-              error={errors.storefrontTitle?.message}
-            >
-              <Input
-                id="storefrontTitle"
-                maxLength={STOREFRONT_TITLE_MAX_LENGTH}
-                placeholder={storefront.title}
-                {...register("storefrontTitle")}
-              />
-            </Field>
-
-            <Field
-              htmlFor="storefrontDescription"
-              label="Storefront Description"
-              error={errors.storefrontDescription?.message}
-            >
-              <textarea
-                id="storefrontDescription"
-                rows={3}
-                maxLength={STOREFRONT_DESCRIPTION_MAX_LENGTH}
-                className={`${inputClass} py-2`}
-                placeholder={storefront.description}
-                {...register("storefrontDescription")}
-              />
-            </Field>
-          </section>
-
-          <section
             aria-labelledby="coverage-title"
             className="border-border bg-card space-y-5 rounded-xl border p-4 sm:p-5"
           >
-            <div>
-              <h2 id="coverage-title" className="font-semibold">
-                Coverage And Approach
-              </h2>
-              <p className="text-muted-foreground text-sm">
-                Define the markets behind your public record.
-              </p>
-            </div>
+            <StepHeading
+              id="coverage-title"
+              step={3}
+              title="Coverage And Approach"
+              subtitle="Define the markets behind your public record."
+            />
 
             <fieldset className="space-y-3">
               <legend className="text-sm font-medium">Sports</legend>
@@ -402,6 +372,70 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
               />
               Written analysis accompanies my plays
             </label>
+          </section>
+
+          {/* Commerce last: identity and coverage describe the capper, the
+              storefront sells them. It used to sit between the two, splitting
+              the profile in half. */}
+          <section
+            aria-labelledby="storefront-title"
+            className="border-border bg-card space-y-4 rounded-xl border p-4 sm:p-5"
+          >
+            <div className="flex items-start gap-3">
+              <span className="bg-surface-2 flex size-9 shrink-0 items-center justify-center rounded-lg text-[color:var(--scl-blue)]">
+                <Store className="size-4" aria-hidden />
+              </span>
+              <StepHeading
+                id="storefront-title"
+                step={4}
+                title="Default Storefront"
+                subtitle="The storefront identity shown before packages are connected."
+              />
+            </div>
+
+            <label className="border-border bg-surface-2 flex min-h-12 items-center gap-3 rounded-lg border px-3 py-2 text-sm">
+              <input
+                type="checkbox"
+                className="accent-brand size-4"
+                {...register("storefrontEnabled")}
+              />
+              <span>
+                <span className="block font-medium">
+                  Show storefront on my public profile
+                </span>
+                <span className="text-muted-foreground block text-xs">
+                  You can hide it until you are ready to market packages.
+                </span>
+              </span>
+            </label>
+
+            <Field
+              htmlFor="storefrontTitle"
+              label="Storefront Title"
+              error={errors.storefrontTitle?.message}
+            >
+              <Input
+                id="storefrontTitle"
+                maxLength={STOREFRONT_TITLE_MAX_LENGTH}
+                placeholder={storefront.title}
+                {...register("storefrontTitle")}
+              />
+            </Field>
+
+            <Field
+              htmlFor="storefrontDescription"
+              label="Storefront Description"
+              error={errors.storefrontDescription?.message}
+            >
+              <textarea
+                id="storefrontDescription"
+                rows={3}
+                maxLength={STOREFRONT_DESCRIPTION_MAX_LENGTH}
+                className={`${inputClass} py-2`}
+                placeholder={storefront.description}
+                {...register("storefrontDescription")}
+              />
+            </Field>
           </section>
 
           <div className="border-border bg-card sticky bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-10 flex items-center justify-between gap-3 rounded-xl border p-3 shadow-lg">

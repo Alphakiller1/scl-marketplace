@@ -3,6 +3,7 @@
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 
+import { awaitStorefrontMessagesSchema } from "@/lib/ensure-storefront-messages-schema";
 import { prisma } from "@/lib/prisma";
 import { verifyLegacyPassword } from "@/lib/legacy-password";
 import { consumeRateLimit } from "@/lib/rate-limit";
@@ -46,7 +47,30 @@ async function verifyUserPassword(
  * rows are cleared first. Grading and policy audit trails that only null the
  * actor are left intact.
  */
+/**
+ * Whether storefront messaging has actually landed on this database.
+ *
+ * The table arrived by migration and production's migration chain has run
+ * behind before. A `deleteMany` against a missing table aborts the whole
+ * transaction at the Postgres level — it cannot be caught from inside — so the
+ * check happens first and the statement is skipped rather than attempted.
+ */
+async function storefrontMessagesTableExists(): Promise<boolean> {
+  try {
+    const rows = await prisma.$queryRawUnsafe<{ present: boolean }[]>(
+      `SELECT to_regclass('scl."StorefrontMessage"') IS NOT NULL AS present`,
+    );
+    return rows[0]?.present === true;
+  } catch (error) {
+    console.error("[account-delete] storefront message probe failed:", error);
+    return false;
+  }
+}
+
 async function deleteCapperUser(userId: string): Promise<AccountDeleteResult> {
+  await awaitStorefrontMessagesSchema(prisma);
+  const hasStorefrontMessages = await storefrontMessagesTableExists();
+
   try {
     await prisma.$transaction(async (tx) => {
       const statusActorCount = await tx.accountStatusAudit.count({
@@ -60,6 +84,13 @@ async function deleteCapperUser(userId: string): Promise<AccountDeleteResult> {
       await tx.storefrontReviewEvent.deleteMany({
         where: { reviewedById: userId },
       });
+      // `StorefrontMessage.senderId` is Restrict too, so a capper who ever
+      // replied on their storefront thread could not be deleted at all — the
+      // FK aborted the transaction and surfaced as a generic failure. Their
+      // own thread cascades with the connection regardless.
+      if (hasStorefrontMessages) {
+        await tx.storefrontMessage.deleteMany({ where: { senderId: userId } });
+      }
 
       const deleted = await tx.user.deleteMany({
         where: { id: userId, role: "CAPPER" },

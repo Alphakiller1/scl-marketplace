@@ -113,10 +113,18 @@ export const signupSchema = z
   });
 export type SignupInput = z.infer<typeof signupSchema>;
 
+/**
+ * Recovery takes the same single identifier as sign-in.
+ *
+ * It used to demand email *and* username together. Someone who signs in with
+ * just their handle does not necessarily know which address the account carries
+ * — imported accounts sit on shared brand inboxes and plus-addressed variants —
+ * and because this endpoint must not enumerate accounts, a mismatched pair
+ * returns success and sends nothing. The reset mail that "never arrives" was
+ * usually this: a wrong guess at the other half of the pair.
+ */
 export const passwordResetRequestSchema = z.object({
-  // Recovering an existing account, so the imported-handle rules apply.
-  username: sclExistingUsernameSchema,
-  email: z.string().trim().toLowerCase().email("Enter a valid email"),
+  identifier: loginIdentifierSchema,
 });
 export type PasswordResetRequestInput = z.infer<
   typeof passwordResetRequestSchema

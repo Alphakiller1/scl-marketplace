@@ -101,10 +101,35 @@ async function createProfileMediaBucket(
   if (/already exists/i.test(body)) return { ok: true };
 
   console.error("[profile-media] bucket create failed:", response.status, body);
+
+  // "Create the bucket" is the wrong instruction when the bucket exists and the
+  // credentials simply name two different projects — that advice sent one
+  // investigation into creating a second, unused bucket in the wrong project.
+  const mismatch = supabaseCredentialMismatch();
+  if (mismatch) {
+    return {
+      ok: false,
+      error: `Supabase credentials point at two different projects - SUPABASE_URL is ${mismatch.urlRef} but the service-role key belongs to ${mismatch.keyRef}. Set both from the same project.`,
+    };
+  }
+
+  const normalized = body.toLowerCase();
+  if (
+    response.status === 401 ||
+    response.status === 403 ||
+    normalized.includes("invalid jwt") ||
+    normalized.includes("api key")
+  ) {
+    return {
+      ok: false,
+      error:
+        "Profile media credentials were rejected. Check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY belong to the same Supabase project.",
+    };
+  }
+
   return {
     ok: false,
-    error:
-      "Profile media storage is unavailable. In Supabase → Storage, create a public bucket named scl-profile-media.",
+    error: `Profile media storage is unavailable (${response.status}). In Supabase → Storage, create a public bucket named ${storage.bucket}.`,
   };
 }
 

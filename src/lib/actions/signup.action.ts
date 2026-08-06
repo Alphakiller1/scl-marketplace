@@ -6,7 +6,10 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { signupSchema, type SignupInput } from "@/lib/schemas/auth.schema";
 import { createVerificationToken } from "@/lib/tokens";
-import { sendVerificationEmail } from "@/lib/email";
+import {
+  sendNewSignupNotificationEmail,
+  sendVerificationEmail,
+} from "@/lib/email";
 import { CONSENT_TEXT_VERSION } from "@/lib/legal";
 import { getCurrentPolicyBundle } from "@/lib/queries/policies";
 import { consumeRateLimit } from "@/lib/rate-limit";
@@ -170,6 +173,14 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
   } catch (error) {
     console.error("[signup] verification delivery failed:", error);
   }
+
+  // Owners hear about every new capper. Deliberately not awaited: it is an
+  // internal notice, and signup must not wait on it or fail with it.
+  void sendNewSignupNotificationEmail({
+    username,
+    email: lowerEmail,
+    signedUpAt: new Date(),
+  });
 
   return { ok: true, emailDelivered, verifyUrl };
 }

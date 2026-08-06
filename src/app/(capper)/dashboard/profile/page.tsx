@@ -23,11 +23,22 @@ export default async function ProfileSettingsPage() {
         subtitle="Shape how your record appears across SCL"
       />
 
+      {profile ? (
+        <ProfileForm profile={profile} />
+      ) : (
+        <div className="border-border bg-card text-muted-foreground rounded-xl border p-6 text-sm">
+          No capper profile found for this account.
+        </div>
+      )}
+
+      {/* Security is a different job from shaping a public profile. It sat
+          above the form, between the page title and the account standing,
+          which is what made this page feel unordered. */}
       <div className="border-border bg-card flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="text-sm font-semibold">Password</p>
+          <p className="text-sm font-semibold">Account &amp; security</p>
           <p className="text-muted-foreground mt-0.5 text-sm">
-            Change the password you use to sign in.
+            Change your password or delete your account.
           </p>
         </div>
         <Button
@@ -38,17 +49,9 @@ export default async function ProfileSettingsPage() {
           nativeButton={false}
         >
           <KeyRound className="size-4" aria-hidden />
-          Manage password
+          Manage account
         </Button>
       </div>
-
-      {profile ? (
-        <ProfileForm profile={profile} />
-      ) : (
-        <div className="border-border bg-card text-muted-foreground rounded-xl border p-6 text-sm">
-          No capper profile found for this account.
-        </div>
-      )}
     </div>
   );
 }
