@@ -69,3 +69,61 @@ test("genuinely different fixtures are kept apart", () => {
   });
   assert.equal(mergeSettledGames([monday, tuesday, other], []).length, 3);
 });
+
+test("consecutive games of a series are not collapsed by the UTC date", () => {
+  // An 8:05pm ET first pitch is 00:05Z the NEXT day, so keying on the calendar
+  // date put Monday's late game and Tuesday's afternoon game in the same
+  // bucket. One survived, the other vanished, and every play on the missing
+  // fixture went unmatched.
+  const monday = game({
+    eventId: "mon",
+    home: "Chicago Cubs",
+    away: "Los Angeles Dodgers",
+    startsAt: new Date("2026-08-05T00:05:00Z"),
+  });
+  const tuesday = game({
+    eventId: "tue",
+    home: "Chicago Cubs",
+    away: "Los Angeles Dodgers",
+    startsAt: new Date("2026-08-05T18:20:00Z"),
+  });
+
+  const merged = mergeSettledGames([monday, tuesday], []);
+  assert.equal(merged.length, 2);
+
+  // A play on the late game must find the late game, not the next day's.
+  const play: GradablePlay = {
+    id: "p",
+    sport: "MLB",
+    market: "Moneyline",
+    selection: "Los Angeles Dodgers",
+    oddsAmerican: -164,
+    units: 8.2,
+    createdAt: new Date("2026-08-05T00:05:00Z"),
+  };
+  assert.equal(findGame(play, merged)?.eventId, "mon");
+});
+
+test("providers disagreeing by minutes still dedupe", () => {
+  const a = game({
+    eventId: "odds",
+    startsAt: new Date("2026-08-05T22:59:00Z"),
+  });
+  const b = game({
+    eventId: "espn",
+    startsAt: new Date("2026-08-05T23:01:00Z"),
+  });
+  assert.equal(mergeSettledGames([a], [b]).length, 1);
+});
+
+test("a doubleheader stays two fixtures", () => {
+  const g1 = game({
+    eventId: "g1",
+    startsAt: new Date("2026-08-05T17:00:00Z"),
+  });
+  const g2 = game({
+    eventId: "g2",
+    startsAt: new Date("2026-08-05T20:00:00Z"),
+  });
+  assert.equal(mergeSettledGames([g1, g2], []).length, 2);
+});

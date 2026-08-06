@@ -90,6 +90,27 @@ export function halfMarketLabel(
   return `${half === 1 ? "1st" : "2nd"} Half ${KIND_LABEL[kind]}`;
 }
 
+/**
+ * Compact segment label for chips and slip rows: "F5 ML", "H1 Spread".
+ *
+ * Derived from the stored market rather than a segment number, because a half
+ * has no innings count — passing its 0 through the innings formatter rendered
+ * "F0 ML" on every CFL half line.
+ */
+export function segmentShortLabel(market: string): string {
+  const parsed = parsePeriodMarket(market);
+  if (!parsed) return market;
+  const kind =
+    parsed.kind === "moneyline"
+      ? "ML"
+      : parsed.kind === "spread"
+        ? "Spread"
+        : "Total";
+  if (parsed.innings > 0) return `F${parsed.innings} ${kind}`;
+  const half = /\b(2nd|second)\s*half\b|\bh2\b/i.test(market) ? 2 : 1;
+  return `H${half} ${kind}`;
+}
+
 /** Odds API key → stored label, for every segment/kind combination. */
 export const PERIOD_MARKET_LABEL: Record<string, string> = Object.fromEntries([
   ...PERIOD_INNINGS.flatMap((innings) =>
@@ -190,7 +211,7 @@ export function periodMarketKeysForLabel(label: string): string[] | null {
   // without this it fell through to the raw label, which prices nothing and
   // silently downgraded every half pick to SELF_REPORTED.
   if (parsed.innings === 0) {
-    const half = /(2nd|second)\s*half|h2/i.test(label) ? 2 : 1;
+    const half = /\b(2nd|second)\s*half\b|\bh2\b/i.test(label) ? 2 : 1;
     return [halfMarketKey(half as PeriodHalf, parsed.kind)];
   }
 

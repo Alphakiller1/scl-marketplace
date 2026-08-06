@@ -32,8 +32,14 @@ export type SettledGame = {
  */
 function fixtureKey(g: SettledGame): string {
   const team = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, "");
+  // Hour bucket, NOT the calendar date. A late Eastern game rolls into the next
+  // UTC day — an 8:05pm ET first pitch is 00:05Z tomorrow — so keying on the date
+  // collapsed consecutive games of a series between the same clubs into one, and
+  // the wrong one survived. Rounding absorbs small disagreements between
+  // providers (22:59 vs 23:01) while staying finer than the fixture window, so a
+  // doubleheader's two games remain distinct.
   const when = g.startsAt
-    ? g.startsAt.toISOString().slice(0, 10)
+    ? String(Math.round(g.startsAt.getTime() / 3_600_000))
     : `${g.homeScore}-${g.awayScore}`;
   return [g.sport.toLowerCase(), team(g.home), team(g.away), when].join("|");
 }
