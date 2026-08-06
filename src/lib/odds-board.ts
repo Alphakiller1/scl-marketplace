@@ -7,8 +7,7 @@ import { isBookKey } from "@/lib/books";
 import {
   PERIOD_MARKET_LABEL,
   parsePeriodMarket,
-  periodMarketShortLabel,
-  type PeriodInnings,
+  segmentShortLabel,
 } from "@/lib/period-markets";
 import {
   impliedProbFromAmerican,
@@ -348,10 +347,7 @@ export function normalizeEventBoard(
     if (period) {
       // Selection text carries the segment as well as the market label, so the
       // record still reads as a period pick anywhere only the selection shows.
-      const short = periodMarketShortLabel(
-        period.innings as PeriodInnings,
-        period.kind ?? "moneyline",
-      );
+      const short = segmentShortLabel(g.market);
       const signed =
         g.line == null
           ? ""

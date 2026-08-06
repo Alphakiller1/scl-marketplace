@@ -8,6 +8,7 @@ import {
   periodMarketKeysForLabel,
   periodMarketKeysForSport,
   periodMarketLabel,
+  segmentShortLabel,
 } from "@/lib/period-markets";
 import { marketKeysForMarket, verificationMarkets } from "@/lib/odds-verify";
 
@@ -97,4 +98,24 @@ test("CFL and the other clock sports offer half lines", () => {
   assert.equal(isPeriodMarket("2nd Half Total"), true);
   // Full-game markets stay untouched.
   assert.equal(parsePeriodMarket("Moneyline"), null);
+});
+
+test("half lines get a half label, not F0", () => {
+  // periodMarketShortLabel takes an innings count, and a half has none — so
+  // passing its 0 through rendered every CFL half chip as "F0 ML".
+  assert.equal(segmentShortLabel("1st Half Moneyline"), "H1 ML");
+  assert.equal(segmentShortLabel("2nd Half Total"), "H2 Total");
+  assert.equal(segmentShortLabel("1st Half Spread"), "H1 Spread");
+  // Innings segments keep their existing form.
+  assert.equal(segmentShortLabel("1st 5 Innings Moneyline"), "F5 ML");
+  assert.equal(segmentShortLabel("1st 3 Innings Total"), "F3 Total");
+  // Full-game markets pass through untouched.
+  assert.equal(segmentShortLabel("Moneyline"), "Moneyline");
+});
+
+test("CFL first-half keys round-trip to a priceable market key", () => {
+  assert.deepEqual(periodMarketKeysForLabel("1st Half Moneyline"), ["h2h_h1"]);
+  assert.deepEqual(periodMarketKeysForLabel("1st Half Spread"), ["spreads_h1"]);
+  assert.deepEqual(periodMarketKeysForLabel("2nd Half Total"), ["totals_h2"]);
+  assert.deepEqual(marketKeysForMarket("1st Half Moneyline"), ["h2h_h1"]);
 });
