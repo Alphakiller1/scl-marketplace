@@ -115,6 +115,27 @@ export const PROP_MARKET_LABEL: Record<string, string> = {
   player_shots_on_goal: "Shots On Goal",
 };
 
+/**
+ * Display label for a prop market key, alternate variants included.
+ *
+ * The `_alternate` markets carry the milestone ladder ("6+ strikeouts", "2+
+ * hits") that the featured key does not — which is exactly why
+ * `propMarketKeysWithAlternates` requests both. But normalization looked the
+ * raw key up in PROP_MARKET_LABEL, which holds featured keys only, so every
+ * alternate market was fetched, BILLED, and then silently dropped: cappers saw
+ * only the single main line and the ladder never reached the board.
+ *
+ * Game lines never had this problem because BOARD_MARKETS lists
+ * `alternate_spreads` / `alternate_totals` explicitly. Props now fold the same
+ * way, by suffix rather than by restating all thirteen labels.
+ */
+export function propMarketLabel(marketKey: string): string | undefined {
+  const key = marketKey.trim();
+  return (
+    PROP_MARKET_LABEL[key] ?? PROP_MARKET_LABEL[key.replace(/_alternate$/, "")]
+  );
+}
+
 /** Reverse of PROP_MARKET_LABEL (display label → Odds API key). Labels are unique. */
 const PROP_LABEL_TO_KEY: Record<string, string> = Object.fromEntries(
   Object.entries(PROP_MARKET_LABEL).map(([key, label]) => [label, key]),

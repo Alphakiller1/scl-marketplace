@@ -11,8 +11,8 @@ import {
   type PeriodInnings,
 } from "@/lib/period-markets";
 import {
-  PROP_MARKET_LABEL,
   impliedProbFromAmerican,
+  propMarketLabel,
   type RawEventOdds,
 } from "@/lib/odds-verify";
 
@@ -274,7 +274,7 @@ export function normalizeEventBoard(
     for (const m of bm.markets ?? []) {
       const gameMarket = BOARD_MARKETS[m.key];
       const periodLabel = PERIOD_MARKET_LABEL[m.key];
-      const propLabel = PROP_MARKET_LABEL[m.key];
+      const propLabel = propMarketLabel(m.key);
       if (!gameMarket && !periodLabel && !propLabel) continue;
       const isFeatured = FEATURED_KEYS.has(m.key);
       for (const o of m.outcomes ?? []) {
@@ -316,6 +316,7 @@ export function normalizeEventBoard(
             lastUpdate,
           );
         } else {
+          if (!propLabel) continue;
           const player = (o.description ?? "").trim();
           if (!player || line === undefined) continue;
           add(
