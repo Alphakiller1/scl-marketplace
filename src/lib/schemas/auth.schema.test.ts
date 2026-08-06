@@ -6,9 +6,61 @@ import {
   passwordResetRequestSchema,
   passwordSchema,
   resetPasswordSchema,
+  sclExistingUsernameSchema,
   sclUsernameSchema,
   signupSchema,
 } from "@/lib/schemas/auth.schema";
+
+/*
+ * The legacy importer accepts handles up to 30 characters; new signups are
+ * capped at 20. Sign-in and recovery identify accounts that already exist, so
+ * they have to accept the longer imported handles — otherwise an imported capper
+ * is rejected at the form, before any lookup, and told their credentials are
+ * wrong.
+ */
+const IMPORTED_LONG_HANDLE = "a".repeat(24);
+
+test("an imported handle longer than the signup cap can still sign in and recover", () => {
+  assert.equal(
+    sclUsernameSchema.safeParse(IMPORTED_LONG_HANDLE).success,
+    false,
+  );
+  assert.equal(
+    sclExistingUsernameSchema.safeParse(IMPORTED_LONG_HANDLE).success,
+    true,
+  );
+
+  const login = loginSchema.safeParse({
+    username: `@${IMPORTED_LONG_HANDLE.toUpperCase()}`,
+    email: "capper@example.com",
+    password: "oldpass1",
+  });
+  assert.equal(login.success, true);
+  assert.equal(login.data?.username, IMPORTED_LONG_HANDLE);
+
+  assert.equal(
+    passwordResetRequestSchema.safeParse({
+      username: IMPORTED_LONG_HANDLE,
+      email: "capper@example.com",
+    }).success,
+    true,
+  );
+});
+
+test("the longer allowance still enforces the floor, charset, and its own ceiling", () => {
+  assert.equal(sclExistingUsernameSchema.safeParse("ab").success, false);
+  assert.equal(
+    sclExistingUsernameSchema.safeParse("bad-handle").success,
+    false,
+  );
+  assert.equal(
+    sclExistingUsernameSchema.safeParse("a".repeat(31)).success,
+    false,
+  );
+  // Creating a new handle is unchanged — still capped at 20.
+  assert.equal(sclUsernameSchema.safeParse("a".repeat(20)).success, true);
+  assert.equal(sclUsernameSchema.safeParse("a".repeat(21)).success, false);
+});
 
 test("password contract requires at least 12 characters", () => {
   assert.equal(passwordSchema.safeParse("short-pass").success, false);
