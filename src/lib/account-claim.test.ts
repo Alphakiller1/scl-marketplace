@@ -26,15 +26,32 @@ test("an imported account with no password is unclaimed even when verified", () 
   );
 });
 
-test("an unverified signup can still be re-claimed", () => {
+// Regression: signup used to stamp `emailVerified` on every new row, which kept
+// this branch near-unreachable. With the stamp gone, "unverified" describes every
+// account that has not yet clicked its link — including established cappers — and
+// letting the signup form claim those was an account takeover by handle.
+test("an unverified account with a password is NOT claimable", () => {
   assert.deepEqual(
     evaluateAccountClaim({
       passwordHash: "hash",
       emailVerified: null,
       accountStatus: "PENDING",
     }),
-    { claimable: true, reason: "UNVERIFIED" },
+    { claimable: false, error: ACCOUNT_TAKEN_MESSAGE },
   );
+});
+
+test("an unclaimed account is claimable whether or not it is verified", () => {
+  for (const emailVerified of [null, VERIFIED]) {
+    assert.deepEqual(
+      evaluateAccountClaim({
+        passwordHash: null,
+        emailVerified,
+        accountStatus: "ACTIVE",
+      }),
+      { claimable: true, reason: "UNCLAIMED" },
+    );
+  }
 });
 
 test("a real verified account is never claimable", () => {

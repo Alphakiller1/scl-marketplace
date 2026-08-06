@@ -30,7 +30,7 @@ export type ClaimableAccountState = {
 };
 
 export type AccountClaim =
-  | { claimable: true; reason: "UNCLAIMED" | "UNVERIFIED" }
+  | { claimable: true; reason: "UNCLAIMED" }
   | { claimable: false; error: string };
 
 /** No password has ever been set on this account, so nobody can be signed in to it. */
@@ -49,9 +49,22 @@ export function hasDeliverableEmail(email: string): boolean {
 }
 
 /**
- * Whether a signup on an existing email may take over that account, and why.
- * A real, credentialed account is never claimable — only imported records that
- * were never claimed, and unverified signups whose verification email never landed.
+ * Whether a signup on an existing handle may take over that account.
+ *
+ * One rule: an account that has a password is never claimable. A signup form
+ * must not be able to overwrite somebody's credential, because the password on
+ * an account is the one they last set — carried over from the previous platform
+ * at import, or chosen since — and nothing but that account proving itself may
+ * replace it.
+ *
+ * Being unverified is NOT an exception, though it used to be. That carve-out was
+ * written to rescue a signup whose verification email never landed, and it was
+ * near-unreachable while signup stamped `emailVerified` on every new row. Once
+ * that stamp was removed (accounts now stay unverified until someone actually
+ * clicks the link) the carve-out meant any account that had not yet verified —
+ * including established cappers with plays and history — could be taken over by
+ * anyone who submitted the signup form with their handle. The rescue path is
+ * `/resend-verification`, which needs no password and cannot change one.
  */
 export function evaluateAccountClaim(
   account: ClaimableAccountState,
@@ -62,13 +75,10 @@ export function evaluateAccountClaim(
   ) {
     return { claimable: false, error: ACCOUNT_RESTRICTED_MESSAGE };
   }
-  if (isUnclaimedAccount(account)) {
-    return { claimable: true, reason: "UNCLAIMED" };
+  if (!isUnclaimedAccount(account)) {
+    return { claimable: false, error: ACCOUNT_TAKEN_MESSAGE };
   }
-  if (!account.emailVerified) {
-    return { claimable: true, reason: "UNVERIFIED" };
-  }
-  return { claimable: false, error: ACCOUNT_TAKEN_MESSAGE };
+  return { claimable: true, reason: "UNCLAIMED" };
 }
 
 /**

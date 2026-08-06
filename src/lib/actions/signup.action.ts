@@ -117,6 +117,13 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
         data: {
           email: lowerEmail,
           passwordHash,
+          // The password just set is now the only one that works. A claimed record may
+          // still carry the hash imported from the previous platform, and sign-in falls
+          // back to it whenever the SCL password does not match — so leaving it in place
+          // would keep the old credential live alongside the new one. Every other place
+          // that writes a password clears these two columns; this one has to as well.
+          legacyPasswordHash: null,
+          legacyPasswordFormat: null,
           // A signup claim never grants privilege: whoever completes this form gets a
           // capper account, even if the record they claimed was an admin. An admin who
           // needs their own account back uses the emailed claim/reset link, which proves
@@ -127,8 +134,9 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
           termsAcceptances: {
             create: {
               ...acceptanceData,
-              acceptanceSource:
-                claim.reason === "UNCLAIMED" ? "CLAIM" : "SIGNUP",
+              // Only unclaimed records reach this branch now, so the acceptance is
+              // always a claim of an existing profile rather than a fresh signup.
+              acceptanceSource: "CLAIM",
             },
           },
         },
