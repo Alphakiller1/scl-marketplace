@@ -16,6 +16,10 @@ import { AuthFormSkeleton, AuthHeader } from "@/components/scl/auth-header";
 import { PasswordField } from "@/components/scl/password-field";
 import { getDefaultWorkspace, getSafeCallbackPath } from "@/lib/auth-routing";
 import { loginSchema, type LoginInput } from "@/lib/schemas/auth.schema";
+import {
+  AMBIGUOUS_LOGIN_CODE,
+  AMBIGUOUS_LOGIN_MESSAGE,
+} from "@/lib/auth-errors";
 
 export default function LoginPage() {
   return (
@@ -54,7 +58,14 @@ function LoginForm() {
         return;
       }
       if (result.error) {
-        toast.error("Unable to sign in with those credentials");
+        // The password was right, but it fits more than one account on this
+        // inbox — telling them "wrong credentials" would send them to reset a
+        // password that works.
+        toast.error(
+          result.code === AMBIGUOUS_LOGIN_CODE
+            ? AMBIGUOUS_LOGIN_MESSAGE
+            : "Unable to sign in with those credentials",
+        );
         return;
       }
 
@@ -78,36 +89,23 @@ function LoginForm() {
         icon={LogIn}
         eyebrow="Account Access"
         title="Welcome back"
-        description="Sign in with your username, email, and password. If you manage multiple SCL accounts on one inbox, use the username for the profile you want."
+        description="Sign in with your username or email, and your password."
       />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <div className="space-y-1.5">
-          <Label htmlFor="username">Username</Label>
+          <Label htmlFor="identifier">Username or email</Label>
           <Input
-            id="username"
+            id="identifier"
             type="text"
             autoComplete="username"
             spellCheck={false}
+            autoCapitalize="none"
             className="min-h-10"
-            {...register("username")}
+            {...register("identifier")}
           />
-          {errors.username ? (
-            <p className="text-neg text-xs">{errors.username.message}</p>
-          ) : null}
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            autoComplete="email"
-            className="min-h-10"
-            {...register("email")}
-          />
-          {errors.email ? (
-            <p className="text-neg text-xs">{errors.email.message}</p>
+          {errors.identifier ? (
+            <p className="text-neg text-xs">{errors.identifier.message}</p>
           ) : null}
         </div>
 

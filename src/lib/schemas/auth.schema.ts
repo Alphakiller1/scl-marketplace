@@ -46,9 +46,45 @@ export const sclExistingUsernameSchema = normalizedHandle.pipe(
     .regex(/^[a-z0-9_]+$/, "Letters, numbers, and underscores only"),
 );
 
+/**
+ * What someone types to identify themselves at sign-in: a username or an email.
+ *
+ * An `@` decides which — but only when it isn't the leading `@` of a handle, so
+ * `@capper` is a username and `capper@example.com` is an email. Both are trimmed
+ * and lowercased, matching how each is stored and matched.
+ */
+export type LoginIdentifierKind = "email" | "username";
+
+export function classifyLoginIdentifier(value: string): LoginIdentifierKind {
+  return value.trim().replace(/^@+/, "").includes("@") ? "email" : "username";
+}
+
+export const loginIdentifierSchema = z
+  .string()
+  .trim()
+  .min(1, "Enter your username or email")
+  .superRefine((value, context) => {
+    const schema =
+      classifyLoginIdentifier(value) === "email"
+        ? z.string().trim().email("Enter a valid username or email")
+        : sclExistingUsernameSchema;
+    const result = schema.safeParse(value);
+    if (!result.success) {
+      context.addIssue({
+        code: "custom",
+        message:
+          result.error.issues[0]?.message ?? "Enter a valid username or email",
+      });
+    }
+  })
+  .transform((value) =>
+    classifyLoginIdentifier(value) === "email"
+      ? value.trim().toLowerCase()
+      : sclExistingUsernameSchema.parse(value),
+  );
+
 export const loginSchema = z.object({
-  username: sclExistingUsernameSchema,
-  email: z.string().trim().toLowerCase().email("Enter a valid email"),
+  identifier: loginIdentifierSchema,
   password: z.string().min(1, "Password is required"),
 });
 export type LoginInput = z.infer<typeof loginSchema>;

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  classifyLoginIdentifier,
   loginSchema,
   passwordResetRequestSchema,
   passwordSchema,
@@ -31,12 +32,11 @@ test("an imported handle longer than the signup cap can still sign in and recove
   );
 
   const login = loginSchema.safeParse({
-    username: `@${IMPORTED_LONG_HANDLE.toUpperCase()}`,
-    email: "capper@example.com",
+    identifier: `@${IMPORTED_LONG_HANDLE.toUpperCase()}`,
     password: "oldpass1",
   });
   assert.equal(login.success, true);
-  assert.equal(login.data?.username, IMPORTED_LONG_HANDLE);
+  assert.equal(login.data?.identifier, IMPORTED_LONG_HANDLE);
 
   assert.equal(
     passwordResetRequestSchema.safeParse({
@@ -77,15 +77,42 @@ test("password reset request normalizes surrounding whitespace", () => {
   assert.equal(parsed.email, "capper@example.com");
 });
 
-test("login requires username, email, and password", () => {
-  const parsed = loginSchema.parse({
-    username: "@capper_one",
-    email: " CAPPPER@EXAMPLE.COM ",
-    password: "secret",
-  });
+test("login takes one identifier — a username or an email — plus a password", () => {
+  // A handle, with or without the leading @, normalized the way it is stored.
+  assert.equal(
+    loginSchema.parse({ identifier: "@Capper_One", password: "secret" })
+      .identifier,
+    "capper_one",
+  );
+  // An email, trimmed and lowercased.
+  assert.equal(
+    loginSchema.parse({
+      identifier: " CAPPPER@EXAMPLE.COM ",
+      password: "secret",
+    }).identifier,
+    "cappper@example.com",
+  );
 
-  assert.equal(parsed.username, "capper_one");
-  assert.equal(parsed.email, "cappper@example.com");
+  // The `@` that decides which is the one *inside* the address, not a leading
+  // handle prefix.
+  assert.equal(classifyLoginIdentifier("@capper_one"), "username");
+  assert.equal(classifyLoginIdentifier("capper_one"), "username");
+  assert.equal(classifyLoginIdentifier("capper@example.com"), "email");
+  assert.equal(classifyLoginIdentifier("@capper@example.com"), "email");
+});
+
+test("login rejects an identifier that is neither a valid handle nor an email", () => {
+  for (const identifier of ["", "  ", "ab", "bad-handle", "not@an@@email"]) {
+    assert.equal(
+      loginSchema.safeParse({ identifier, password: "secret" }).success,
+      false,
+      `expected ${JSON.stringify(identifier)} to be rejected`,
+    );
+  }
+  assert.equal(
+    loginSchema.safeParse({ identifier: "capper_one", password: "" }).success,
+    false,
+  );
 });
 
 test("signup normalizes public handles and email addresses", () => {
