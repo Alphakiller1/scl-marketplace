@@ -86,7 +86,7 @@ async function main() {
       capper.email ?? `${capper.username}@legacy.scl`
     ).toLowerCase();
     const user = await prisma.user.findFirst({
-      where: { email },
+      where: { username: capper.username },
       include: { capperProfile: { select: { id: true } } },
     });
 

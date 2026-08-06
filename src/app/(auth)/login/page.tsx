@@ -78,10 +78,25 @@ function LoginForm() {
         icon={LogIn}
         eyebrow="Account Access"
         title="Welcome back"
-        description="Sign in to open the workspace assigned to your account. Admin accounts go directly to the Admin Console."
+        description="Sign in with your username, email, and password. If you manage multiple SCL accounts on one inbox, use the username for the profile you want."
       />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        <div className="space-y-1.5">
+          <Label htmlFor="username">Username</Label>
+          <Input
+            id="username"
+            type="text"
+            autoComplete="username"
+            spellCheck={false}
+            className="min-h-10"
+            {...register("username")}
+          />
+          {errors.username ? (
+            <p className="text-neg text-xs">{errors.username.message}</p>
+          ) : null}
+        </div>
+
         <div className="space-y-1.5">
           <Label htmlFor="email">Email</Label>
           <Input
@@ -118,7 +133,24 @@ function LoginForm() {
         </Button>
       </form>
 
-      <p className="text-muted-foreground mt-6 text-center text-sm">
+      {/*
+        Profiles carried over from the previous platform were imported without a
+        password, so their first sign-in attempt can only fail. Nothing on this
+        screen would tell them why, and "Forgot Password" reads as wrong to
+        someone who never had one — so the claim route is named outright.
+      */}
+      <p className="border-border text-muted-foreground mt-6 border-t pt-5 text-center text-sm">
+        Brought your record over from the previous platform?{" "}
+        <Link
+          href="/forgot-password"
+          className="scl-link inline-flex min-h-10 items-center font-medium"
+        >
+          Claim your account
+        </Link>{" "}
+        to set a password.
+      </p>
+
+      <p className="text-muted-foreground mt-2 text-center text-sm">
         New to SCL?{" "}
         <Link
           href="/signup"

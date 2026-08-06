@@ -4,6 +4,10 @@ import { cache } from "react";
 
 import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
 import { UNIT_MIN } from "@/lib/constants";
+import {
+  sortLegacySportRecords,
+  type LegacySportRecordView,
+} from "@/lib/legacy-sport-records";
 import type { CapperSummary } from "@/lib/mock";
 import {
   buildProfileChartSeries,
@@ -29,6 +33,8 @@ export type PublicCapper = {
   chartSeries?: ProfileChartSeries;
   chartSeriesBySport: Record<string, ProfileChartSeries>;
   historyNextCursor: string | null;
+  /** Per-sport PRE_IMPORT legacy totals, sorted for profile display. */
+  legacyBySport: LegacySportRecordView[];
 };
 
 export type PublicProfileHistoryPage = {
@@ -197,42 +203,81 @@ export const getPublicCapperByHandle = cache(
     let chartSeries: ProfileChartSeries | undefined;
     let chartSeriesBySport: Record<string, ProfileChartSeries> = {};
     let historyNextCursor: string | null = null;
+    let legacyBySport: LegacySportRecordView[] = [];
 
-    const [historyResult, chartResult, clvResult] = await Promise.allSettled([
-      getPublicProfileHistoryPage(capper.handle),
-      prisma.play.findMany({
-        where: {
-          capperId: capper.id,
-          units: { gte: UNIT_MIN },
-          parlayId: null,
-          outcome: { not: "PENDING" },
-        },
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-        take: PROFILE_CHART_QUERY_LIMIT,
-        select: {
-          createdAt: true,
-          outcome: true,
-          profitUnits: true,
-          sport: true,
-          notes: true,
-        },
-      }),
-      (async () => {
-        const clvReady = await hasClvColumns();
-        if (!clvReady) return null;
-        return prisma.play.findMany({
-          where: {
-            capperId: capper.id,
-            clvPts: { not: null },
-            verificationTier: { in: ["VERIFIED", "AUTO_VERIFIED"] },
-            outcome: { not: "PENDING" },
-            parlayId: null,
-            units: { gte: UNIT_MIN },
+    const [historyResult, chartResult, clvResult, legacyResult] =
+      await Promise.allSettled([
+        getPublicProfileHistoryPage(capper.handle),
+        // Straight picks + whole parlays — same positions of record the
+        // Evidence Brief / leaderboard units aggregate uses.
+        Promise.all([
+          prisma.play.findMany({
+            where: {
+              capperId: capper.id,
+              units: { gte: UNIT_MIN },
+              parlayId: null,
+              outcome: { not: "PENDING" },
+            },
+            orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+            take: PROFILE_CHART_QUERY_LIMIT,
+            select: {
+              createdAt: true,
+              outcome: true,
+              profitUnits: true,
+              sport: true,
+              notes: true,
+            },
+          }),
+          prisma.parlay.findMany({
+            where: {
+              capperId: capper.id,
+              units: { gte: UNIT_MIN },
+              outcome: { not: "PENDING" },
+            },
+            orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+            take: PROFILE_CHART_QUERY_LIMIT,
+            select: {
+              createdAt: true,
+              outcome: true,
+              profitUnits: true,
+              // Parlay has no sport column — attribute to the first leg for
+              // sport-filtered charts; All-window ignores sport.
+              legs: {
+                select: { sport: true },
+                take: 1,
+                orderBy: { id: "asc" },
+              },
+            },
+          }),
+        ]),
+        (async () => {
+          const clvReady = await hasClvColumns();
+          if (!clvReady) return null;
+          return prisma.play.findMany({
+            where: {
+              capperId: capper.id,
+              clvPts: { not: null },
+              verificationTier: { in: ["VERIFIED", "AUTO_VERIFIED"] },
+              outcome: { not: "PENDING" },
+              parlayId: null,
+              units: { gte: UNIT_MIN },
+            },
+            select: { clvPts: true, notes: true },
+          });
+        })(),
+        // Per-sport PRE_IMPORT residuals (ALL excluded in sort helper).
+        prisma.legacyRecord.findMany({
+          where: { capperId: capper.id, scope: "PRE_IMPORT" },
+          select: {
+            sport: true,
+            wins: true,
+            losses: true,
+            pushes: true,
+            unitsRisked: true,
+            unitsNet: true,
           },
-          select: { clvPts: true, notes: true },
-        });
-      })(),
-    ]);
+        }),
+      ]);
 
     if (historyResult.status === "fulfilled") {
       plays = historyResult.value.plays;
@@ -246,17 +291,34 @@ export const getPublicCapperByHandle = cache(
     }
 
     if (chartResult.status === "fulfilled") {
-      const chartRows = chartResult.value
+      const [straightRows, parlayRows] = chartResult.value;
+      const straightChart = straightRows
         .filter((row) => !hasQaNoteMarker(row.notes))
         .map((row) => ({
           createdAt: row.createdAt,
           outcome: row.outcome,
           profitUnits: row.profitUnits == null ? null : Number(row.profitUnits),
           sport: row.sport,
-        }))
-        .reverse();
+        }));
+      const parlayChart = parlayRows.map((row) => ({
+        createdAt: row.createdAt,
+        outcome: row.outcome,
+        profitUnits: row.profitUnits == null ? null : Number(row.profitUnits),
+        sport: row.legs[0]?.sport ?? "MULTI",
+      }));
+      const chartRows = [...straightChart, ...parlayChart].sort(
+        (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+      );
       const chartNow = new Date();
-      chartSeries = buildProfileChartSeries(chartRows, chartNow);
+      // All-window chart End must match Evidence Brief units (legacy + SCL).
+      // Sport-filtered series stay receipt-only — legacy baseline is all-sports.
+      const legacyBaseline = capper.legacyBaselineUnits ?? 0;
+      chartSeries = buildProfileChartSeries(
+        chartRows,
+        chartNow,
+        120,
+        legacyBaseline,
+      );
       const sports = [...new Set(chartRows.map((row) => row.sport))];
       chartSeriesBySport = Object.fromEntries(
         sports.map((sport) => [
@@ -290,6 +352,24 @@ export const getPublicCapperByHandle = cache(
       );
     }
 
+    if (legacyResult.status === "fulfilled") {
+      legacyBySport = sortLegacySportRecords(
+        legacyResult.value.map((row) => ({
+          sport: row.sport,
+          wins: row.wins,
+          losses: row.losses,
+          pushes: row.pushes,
+          unitsRisked: Number(row.unitsRisked),
+          unitsNet: Number(row.unitsNet),
+        })),
+      );
+    } else {
+      console.error(
+        "[getPublicCapperByHandle] legacy sport records unavailable:",
+        legacyResult.reason,
+      );
+    }
+
     return {
       capper,
       plays,
@@ -299,6 +379,7 @@ export const getPublicCapperByHandle = cache(
       chartSeries,
       chartSeriesBySport,
       historyNextCursor,
+      legacyBySport,
     };
   },
 );

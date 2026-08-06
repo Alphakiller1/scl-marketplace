@@ -43,7 +43,7 @@ export default function ResendVerificationPage() {
           icon={MailCheck}
           eyebrow="Email Verification"
           title="Check your inbox"
-          description="If an eligible pending account matches that address, a new link is on the way."
+          description="If an eligible pending account matches that username and email, a new link is on the way."
         />
         <AuthStatusNotice
           tone="info"
@@ -68,9 +68,23 @@ export default function ResendVerificationPage() {
         icon={Send}
         eyebrow="Email Verification"
         title="Send a new verification link"
-        description="Request a fresh single-use link for a pending SCL account."
+        description="Request a fresh single-use link for a pending SCL account. Enter the username and email you signed up with."
       />
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        <div className="space-y-1.5">
+          <Label htmlFor="username">Username</Label>
+          <Input
+            id="username"
+            type="text"
+            autoComplete="username"
+            spellCheck={false}
+            className="min-h-10"
+            {...register("username")}
+          />
+          {errors.username ? (
+            <p className="text-neg text-xs">{errors.username.message}</p>
+          ) : null}
+        </div>
         <div className="space-y-1.5">
           <Label htmlFor="email">Email</Label>
           <Input

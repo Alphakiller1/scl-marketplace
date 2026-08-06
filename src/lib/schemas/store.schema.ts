@@ -1,7 +1,12 @@
 import { StoreConnectionStatus } from "@prisma/client";
 import { z } from "zod";
 
-import { isWinibleCreatorReferralUrl } from "@/lib/store-connection";
+import {
+  isWhopCheckoutUrl,
+  whopAffiliateParamIssues,
+  winibleCheckoutUrlIssues,
+} from "@/lib/store-connection";
+import { whopAffiliateUsername } from "@/lib/whop-config";
 import {
   ADMIN_STOREFRONT_ACTIONS,
   storefrontActionRequiresReason,
@@ -32,6 +37,8 @@ export const adminUpdateStoreConnectionSchema = z
     expectedUpdatedAt: z.string().datetime({ offset: true }),
     reason: z.string().trim().max(500).optional(),
     adminNotes: z.string().trim().max(2000).optional(),
+    /** Commission % agreed with the capper on Winible/Whop (0–100). */
+    affiliatePercent: z.number().min(0).max(100).optional().nullable(),
   })
   .superRefine((input, context) => {
     if (
@@ -44,11 +51,15 @@ export const adminUpdateStoreConnectionSchema = z
         message: "Add a reason of at least 5 characters",
       });
     }
-    if (input.action === "SAVE_NOTES" && input.adminNotes == null) {
+    if (
+      input.action === "SAVE_NOTES" &&
+      input.adminNotes == null &&
+      input.affiliatePercent === undefined
+    ) {
       context.addIssue({
         code: "custom",
         path: ["adminNotes"],
-        message: "Internal notes are required",
+        message: "Internal notes or affiliate % are required",
       });
     }
   });
@@ -75,16 +86,34 @@ export const adminPackageSchema = z
     isActive: z.boolean().default(false),
   })
   .superRefine((input, context) => {
-    if (
-      input.affiliateProvider === "WINIBLE" &&
-      isWinibleCreatorReferralUrl(input.checkoutUrl)
-    ) {
-      context.addIssue({
-        code: "custom",
-        path: ["checkoutUrl"],
-        message:
-          "Use a Winible package or customer checkout link. The SCL creator-referral link belongs in capper onboarding.",
-      });
+    if (input.affiliateProvider === "WINIBLE") {
+      for (const message of winibleCheckoutUrlIssues(input.checkoutUrl)) {
+        context.addIssue({
+          code: "custom",
+          path: ["checkoutUrl"],
+          message,
+        });
+      }
+    }
+    if (input.affiliateProvider === "WHOP") {
+      if (!isWhopCheckoutUrl(input.checkoutUrl)) {
+        context.addIssue({
+          code: "custom",
+          path: ["checkoutUrl"],
+          message: "Use a Whop checkout URL (https://whop.com/…).",
+        });
+      }
+      const affiliateIssues = whopAffiliateParamIssues(
+        input.checkoutUrl,
+        whopAffiliateUsername(),
+      );
+      for (const message of affiliateIssues) {
+        context.addIssue({
+          code: "custom",
+          path: ["checkoutUrl"],
+          message,
+        });
+      }
     }
   });
 

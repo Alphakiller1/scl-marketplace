@@ -38,6 +38,10 @@ const STATEMENTS: string[] = [
    )`,
   `CREATE INDEX IF NOT EXISTS "OddsUsageDaily_date_idx" ON scl."OddsUsageDaily"("date")`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "OddsUsageDaily_date_purpose_sport_key" ON scl."OddsUsageDaily"("date", "purpose", "sport")`,
+  `ALTER TABLE scl."User" DROP CONSTRAINT IF EXISTS "User_email_key"`,
+  `DROP INDEX IF EXISTS scl."User_email_key"`,
+  `DROP INDEX IF EXISTS "User_email_key"`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "User_email_username_key" ON scl."User"("email", "username")`,
 ];
 
 function authorize(req: NextRequest): boolean {
@@ -78,9 +82,20 @@ export async function POST(req: NextRequest) {
   );
 
   const storeConnectionColumns = cols.map((c) => c.column_name);
-  const ok = failed.length === 0 && storeConnectionColumns.length === 5;
+  const emailIndex = await prisma.$queryRawUnsafe<{ indexname: string }[]>(
+    `SELECT indexname FROM pg_indexes
+     WHERE schemaname = 'scl' AND tablename = 'User'
+       AND indexname IN ('User_email_key', 'User_email_username_key')
+     ORDER BY indexname`,
+  );
+  const userEmailIndexes = emailIndex.map((row) => row.indexname);
+  const ok =
+    failed.length === 0 &&
+    storeConnectionColumns.length === 5 &&
+    userEmailIndexes.includes("User_email_username_key") &&
+    !userEmailIndexes.includes("User_email_key");
   return NextResponse.json(
-    { ok, applied, failed, storeConnectionColumns },
+    { ok, applied, failed, storeConnectionColumns, userEmailIndexes },
     { status: ok ? 200 : 500 },
   );
 }

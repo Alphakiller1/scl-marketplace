@@ -80,3 +80,18 @@ test("profile chart series bounds payload while retaining the true count and end
   assert.equal(series.points.length, 12);
   assert.equal(series.points.at(-1)?.units, 200);
 });
+
+test("All-window chart folds legacy baseline so End matches Evidence Brief", () => {
+  const series = buildProfileChartSeries(plays, asOf, 120, 100).all;
+  assert.equal(series.gradedCount, 3);
+  assert.equal(series.points.at(0)?.units, 101.2);
+  assert.equal(series.points.at(-1)?.units, 101.11);
+});
+
+test("trailing windows never fold the all-time legacy baseline", () => {
+  const series = buildProfileChartSeries(plays, asOf, 120, 100)["3m"];
+  assert.deepEqual(
+    series.points.map((p) => p.units),
+    [0.91],
+  );
+});

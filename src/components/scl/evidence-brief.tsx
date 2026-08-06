@@ -19,6 +19,7 @@ import {
 import { CumulativeUnitsChart } from "@/components/scl/cumulative-units-chart";
 import { ClvTrackerPanel } from "@/components/scl/clv-tracker-panel";
 import { LeagueRef, TeamRef } from "@/components/scl/entity-marks";
+import { LegacySportBreakdown } from "@/components/scl/legacy-sport-breakdown";
 import { PlayerHeadshot } from "@/components/scl/player-headshot";
 import { ProofReceipt } from "@/components/scl/proof-receipt";
 import { ProvisionalRecordHelp } from "@/components/scl/provisional-record-help";
@@ -34,6 +35,7 @@ import { EmptyState } from "@/components/scl/states";
 import { loadPublicProfileHistory } from "@/app/actions/public-profile-history";
 import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
 import { formatOdds, formatUnits } from "@/lib/format";
+import type { LegacySportRecordView } from "@/lib/legacy-sport-records";
 import type { CapperSummary } from "@/lib/mock";
 import type {
   PackageEvidence,
@@ -162,6 +164,7 @@ export function EvidenceBrief({
   chartSeries: chartSeriesProp,
   chartSeriesBySport = {},
   packageInsights = [],
+  legacyBySport = [],
   historyNextCursor,
   emptyName,
   className,
@@ -174,6 +177,8 @@ export function EvidenceBrief({
   chartSeries?: ProfileChartSeries;
   chartSeriesBySport?: Record<string, ProfileChartSeries>;
   packageInsights?: ProfilePackageInsight[];
+  /** Per-sport PRE_IMPORT legacy totals (full-record view only). */
+  legacyBySport?: LegacySportRecordView[];
   historyNextCursor?: string | null;
   emptyName: string;
   className?: string;
@@ -198,15 +203,29 @@ export function EvidenceBrief({
     gradedCount: clvTracker.snapshotCount,
   });
 
-  const [selectedPackageId, setSelectedPackageId] = useState(
-    packageInsights[0]?.id ?? "all",
-  );
+  // Default to the full capper record so Evidence Brief matches leaderboard
+  // totals (including legacy-carried). Package views are opt-in — starting on
+  // the first offer with no attributed picks made profiles look empty.
+  const [selectedPackageId, setSelectedPackageId] = useState("all");
   const [chartSport, setChartSport] = useState("ALL");
   const [chartWindow, setChartWindow] = useState<ProfileChartWindow>("all");
 
   const chartSeries = useMemo(
-    () => chartSeriesProp ?? buildProfileChartSeries(eligiblePlays, new Date()),
-    [chartSeriesProp, eligiblePlays],
+    () =>
+      chartSeriesProp ??
+      buildProfileChartSeries(
+        eligiblePlays,
+        new Date(),
+        120,
+        // All-window only; sport filters stay receipt-only (see builder).
+        selectedPackageId === "all" ? (capper.legacyBaselineUnits ?? 0) : 0,
+      ),
+    [
+      chartSeriesProp,
+      eligiblePlays,
+      selectedPackageId,
+      capper.legacyBaselineUnits,
+    ],
   );
   const activePackage = packageInsights.find(
     (pkg) => pkg.id === selectedPackageId,
@@ -254,12 +273,12 @@ export function EvidenceBrief({
                 onChange={(event) => setSelectedPackageId(event.target.value)}
                 className="border-input bg-background min-h-10 max-w-64 rounded-md border px-3 text-sm"
               >
+                <option value="all">Full capper record</option>
                 {packageInsights.map((pkg) => (
                   <option key={pkg.id} value={pkg.id}>
                     {pkg.title}
                   </option>
                 ))}
-                <option value="all">Full capper record</option>
               </select>
             </label>
           ) : null}
@@ -286,6 +305,9 @@ export function EvidenceBrief({
     <div className={cn("space-y-5 sm:space-y-6", className)}>
       <div data-profile-evidence-grid className="space-y-5 sm:space-y-6">
         {evidenceRecord}
+        {!activePackage && legacyBySport.length > 0 ? (
+          <LegacySportBreakdown records={legacyBySport} />
+        ) : null}
         <section
           data-profile-performance-trend
           aria-label="Performance trend"
@@ -299,7 +321,10 @@ export function EvidenceBrief({
               <p className="text-muted-foreground mt-0.5 text-xs leading-snug">
                 {activePackage
                   ? `Cumulative units from receipts assigned to ${activePackage.title}.`
-                  : "Cumulative units from all public single-pick receipts."}
+                  : chartWindow === "all" &&
+                      (capper.legacyBaselineUnits ?? 0) !== 0
+                    ? "Cumulative units from public graded positions (singles and parlays), starting from the carried-over legacy balance so End matches the Evidence Brief total."
+                    : "Cumulative units from public graded positions (singles and parlays)."}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">

@@ -19,8 +19,10 @@ type PolicyBundle = {
 
 export function AcceptTermsForm({
   policyBundle,
+  destination,
 }: {
   policyBundle: PolicyBundle;
+  destination: string;
 }) {
   const router = useRouter();
   const [confirmEligibility, setConfirmEligibility] = useState(false);
@@ -46,7 +48,7 @@ export function AcceptTermsForm({
         }
 
         toast.success("Policies accepted");
-        router.push("/dashboard");
+        router.push(destination);
         router.refresh();
       } catch {
         toast.error("We couldn't save your policy acceptance. Try again.");
@@ -65,8 +67,9 @@ export function AcceptTermsForm({
         </p>
         <h1 className="mt-1 text-2xl font-bold">Review Account Policies</h1>
         <p className="text-muted-foreground mt-2 text-sm">
-          Review each linked document. Current policy acceptance is required
-          before accessing capper tools.
+          These policies have been updated. Review each linked document —
+          acceptance of the current versions is required before continuing to
+          your workspace.
         </p>
       </div>
 

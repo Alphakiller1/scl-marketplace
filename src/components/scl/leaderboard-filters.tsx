@@ -196,7 +196,7 @@ function ScopeForm({
               type="search"
               name="q"
               defaultValue={filters.search}
-              placeholder="Handle"
+              placeholder="Search cappers"
               className="h-full min-w-0 flex-1 bg-transparent text-base outline-none lg:text-sm"
             />
           </span>

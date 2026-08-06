@@ -13,14 +13,14 @@ function timeline(
     provider === "WHOP"
       ? [
           "Choose Whop and review the connection process",
-          "Add Sports Cappers Leaderboard as an affiliate on Whop",
-          "SCL verifies the connection and manually adds the approved package links",
+          "Add SCL as an affiliate on Whop (install the SCL app when available)",
+          "SCL verifies the connection and publishes approved package links",
           "Your packages go live on your SCL profile",
         ]
       : [
           "Choose Winible and review the connection process",
-          "Complete the Winible affiliate setup",
-          "SCL verifies the connection and manually adds the approved package links",
+          "Invite SCL as an affiliate on Winible and submit confirmation",
+          "SCL verifies the connection and publishes approved package links",
           "Your packages go live on your SCL profile",
         ];
 
@@ -51,19 +51,19 @@ function messageFor(
   if (status === "PENDING_SCL_ACCEPTANCE") {
     return {
       title: "Affiliate request submitted",
-      body: "Thanks for submitting your Winible affiliate request. Our team will verify the relationship, review the package details available in Winible, manually add the approved links to SCL, and contact you if anything else is needed.",
+      body: "Thanks for submitting your Winible affiliate request. Our team will verify the relationship, review the package details available in Winible, manually add the approved links to SCL, and message you here if anything else is needed.",
     };
   }
   if (status === "PENDING_SCL_LINK_IMPORT") {
     return {
       title: "Pending SCL review",
-      body: "Thanks — you’ve added SCL as an affiliate on Whop. SCL will verify the relationship, review the package details available in Whop, and manually publish the approved links on your profile. No further action is required unless we contact you.",
+      body: "Thanks — you’ve added SCL as an affiliate on Whop. SCL will verify the relationship, review the package details available in Whop, and manually publish the approved links on your profile. Reply in Messages below if SCL asks for anything.",
     };
   }
   if (status === "NEEDS_ACTION") {
     return {
       title: "Storefront needs attention",
-      body: "There’s an issue with this store connection. SCL will contact you with next steps.",
+      body: "There’s an issue with this store connection. Check Messages below — SCL will outline next steps there.",
     };
   }
   if (status === "DISABLED") {

@@ -3,17 +3,15 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 /**
  * Whop webhook signature verification.
  *
- * Whop signs each delivery with the app's webhook signing secret and sends the
- * signature and timestamp as headers. We recompute the HMAC over
- * `<timestamp>.<raw body>` and compare in constant time.
+ * Whop v1 follows the Standard Webhooks spec:
+ * - Headers: webhook-id, webhook-timestamp, webhook-signature (v1,<base64>)
+ * - Signed content: `{webhook-id}.{webhook-timestamp}.{rawBody}`
+ * - HMAC-SHA256 key: UTF-8 bytes of the ws_… signing secret
  *
- * The raw body matters: re-serialising the parsed JSON changes key order and
- * whitespace, which changes the digest. Callers must pass `await req.text()`.
+ * Older deliveries may still use x-whop-signature / x-whop-timestamp with a
+ * `{timestamp}.{body}` hex digest — we accept both shapes.
  *
- * Deliberately a pure function with no `server-only` guard and no ambient env
- * read: the caller supplies the secret. That keeps this unit-testable, which
- * matters more here than elsewhere — an untested signature check that silently
- * accepts everything is indistinguishable from a working one.
+ * Callers must pass `await req.text()` — re-serialising JSON breaks verification.
  */
 
 /** Deliveries older than this are rejected, so a captured request can't be replayed. */
@@ -31,11 +29,24 @@ function headerValue(headers: Headers, ...names: string[]): string | null {
   return null;
 }
 
+function withinSkew(timestamp: string, now: Date): boolean {
+  const sent = Number(timestamp);
+  if (!Number.isFinite(sent)) return false;
+  const sentMs = sent > 1e12 ? sent : sent * 1000;
+  return Math.abs(now.getTime() - sentMs) <= MAX_SKEW_SECONDS * 1000;
+}
+
+function safeEqualString(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length === 0 || bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
+}
+
 /**
- * Signature headers carry either a bare hex digest or a comma-separated
- * `v1=<hex>` list. Return every candidate digest so either shape verifies.
+ * Legacy Whop header shape — hex digest over `{timestamp}.{body}`.
  */
-function parseSignatures(raw: string): string[] {
+function parseHexSignatures(raw: string): string[] {
   return raw
     .split(",")
     .map((part) => part.trim())
@@ -48,26 +59,16 @@ function parseSignatures(raw: string): string[] {
 function safeEqualHex(a: string, b: string): boolean {
   const bufA = Buffer.from(a, "hex");
   const bufB = Buffer.from(b, "hex");
-  // timingSafeEqual throws on length mismatch, which would itself leak a bit.
   if (bufA.length === 0 || bufA.length !== bufB.length) return false;
   return timingSafeEqual(bufA, bufB);
 }
 
-export function verifyWhopSignature(
+function verifyLegacyWhopSignature(
   rawBody: string,
   headers: Headers,
-  secret: string | undefined,
-  now: Date = new Date(),
+  secret: string,
+  now: Date,
 ): WhopVerifyResult {
-  if (!secret?.trim()) {
-    // Fail closed. An unset secret must never mean "accept everything".
-    return {
-      ok: false,
-      reason: "WHOP_WEBHOOK_SECRET is not configured",
-      status: 503,
-    };
-  }
-
   const signatureHeader = headerValue(
     headers,
     "x-whop-signature",
@@ -81,15 +82,7 @@ export function verifyWhopSignature(
   if (!timestamp) {
     return { ok: false, reason: "missing timestamp header", status: 401 };
   }
-
-  const sent = Number(timestamp);
-  if (!Number.isFinite(sent)) {
-    return { ok: false, reason: "malformed timestamp", status: 401 };
-  }
-  // Accept seconds or milliseconds — providers differ, and guessing wrong would
-  // reject every delivery.
-  const sentMs = sent > 1e12 ? sent : sent * 1000;
-  if (Math.abs(now.getTime() - sentMs) > MAX_SKEW_SECONDS * 1000) {
+  if (!withinSkew(timestamp, now)) {
     return {
       ok: false,
       reason: "timestamp outside accepted window",
@@ -97,12 +90,11 @@ export function verifyWhopSignature(
     };
   }
 
-  const expected = createHmac("sha256", secret.trim())
+  const expected = createHmac("sha256", secret)
     .update(`${timestamp}.${rawBody}`)
     .digest("hex");
 
-  const candidates = parseSignatures(signatureHeader);
-  const matched = candidates.some((candidate) =>
+  const matched = parseHexSignatures(signatureHeader).some((candidate) =>
     safeEqualHex(expected, candidate),
   );
   if (!matched) {
@@ -110,4 +102,74 @@ export function verifyWhopSignature(
   }
 
   return { ok: true };
+}
+
+/**
+ * Standard Webhooks v1 — what Whop dashboard v1 deliveries use.
+ */
+function verifyStandardWebhookSignature(
+  rawBody: string,
+  headers: Headers,
+  secret: string,
+  now: Date,
+): WhopVerifyResult {
+  const msgId = headerValue(headers, "webhook-id");
+  const timestamp = headerValue(headers, "webhook-timestamp");
+  const signatureHeader = headerValue(headers, "webhook-signature");
+
+  if (!msgId || !timestamp || !signatureHeader) {
+    return {
+      ok: false,
+      reason: "missing standard webhook headers",
+      status: 401,
+    };
+  }
+  if (!withinSkew(timestamp, now)) {
+    return {
+      ok: false,
+      reason: "timestamp outside accepted window",
+      status: 401,
+    };
+  }
+
+  const signedContent = `${msgId}.${timestamp}.${rawBody}`;
+  const expected = createHmac("sha256", secret)
+    .update(signedContent, "utf8")
+    .digest("base64");
+  const expectedToken = `v1,${expected}`;
+
+  const matched = signatureHeader
+    .split(/\s+/)
+    .filter(Boolean)
+    .some((candidate) => safeEqualString(candidate, expectedToken));
+
+  if (!matched) {
+    return { ok: false, reason: "signature mismatch", status: 401 };
+  }
+
+  return { ok: true };
+}
+
+export function verifyWhopSignature(
+  rawBody: string,
+  headers: Headers,
+  secret: string | undefined,
+  now: Date = new Date(),
+): WhopVerifyResult {
+  if (!secret?.trim()) {
+    return {
+      ok: false,
+      reason: "WHOP_WEBHOOK_SECRET is not configured",
+      status: 503,
+    };
+  }
+
+  const trimmed = secret.trim();
+
+  // Prefer Standard Webhooks when those headers are present (Whop v1 default).
+  if (headerValue(headers, "webhook-signature")) {
+    return verifyStandardWebhookSignature(rawBody, headers, trimmed, now);
+  }
+
+  return verifyLegacyWhopSignature(rawBody, headers, trimmed, now);
 }

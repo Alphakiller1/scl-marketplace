@@ -6,6 +6,7 @@ import { ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 import { StoreStatusPanel } from "@/components/scl/store-status-panel";
+import { StorefrontConversationPanel } from "@/components/scl/storefront-conversation-panel";
 import { ProviderBadge } from "@/components/scl/provider-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -41,7 +42,7 @@ const PLATFORM_SELECTION_COPY = [
   [
     "WHOP",
     "Whop",
-    "Already sell picks on Whop? Connect your Whop storefront to SCL. We’ll guide you through the affiliate setup, then import your packages automatically.",
+    "Already sell picks on Whop? Add SCL as an affiliate, install the SCL app when prompted, and submit — our team reviews and publishes your package links.",
   ],
   [
     "NONE",
@@ -55,9 +56,9 @@ function platformSelectionGuidance(
 ): string | null {
   switch (provider) {
     case "WINIBLE":
-      return "You’ll complete the affiliate setup in Winible. SCL imports your packages after approval.";
+      return "Complete the Winible affiliate invite, then submit — SCL accepts the relationship and manually publishes your package links.";
     case "WHOP":
-      return "SCL imports your packages directly from Whop once your affiliate connection is complete.";
+      return "Add SCL as a Whop affiliate, install the SCL app when available, then submit — SCL reviews and manually publishes your package links.";
     case "NONE":
       return "We’ll help you create a Winible storefront and connect it to SCL.";
     default:
@@ -66,19 +67,12 @@ function platformSelectionGuidance(
 }
 
 function storefrontConnectionBenefits(provider: StoreProvider): string[] {
-  if (provider === "WHOP") {
-    return [
-      "No monthly SCL platform fees.",
-      "Connect your existing Whop storefront to SCL. Once your affiliate connection is complete, SCL imports your packages and publishes them on your SCL profile.",
-      "You continue selling through your existing Whop storefront—checkout, subscriptions, and payments all remain on Whop.",
-    ];
-  }
-
+  const label = providerLabel(provider);
   return [
     "No monthly SCL platform fees.",
-    `SCL reviews your approved ${providerLabel(provider)} affiliate relationship, then manually adds and publishes the package links supplied by the platform.`,
-    `You continue selling through your existing storefront—your checkout and subscriptions remain on ${providerLabel(provider)}.`,
-    "When SCL refers a new subscriber to your storefront, we earn an affiliate commission from the platform. That’s how SCL remains free for cappers.",
+    `Add SCL as an affiliate on ${label}. After you submit, our team verifies the relationship and manually publishes your approved package links on your SCL profile.`,
+    `You keep selling on ${label} — checkout, subscriptions, and payments stay on ${label}.`,
+    "When SCL refers a subscriber to your storefront, we earn an affiliate commission from the platform. That’s how SCL stays free for cappers.",
   ];
 }
 
@@ -87,7 +81,29 @@ type Conn = Pick<
   "id" | "provider" | "status" | "packageImportStatus" | "submittedAt"
 >;
 
-export function MonetizationWizard({ connections }: { connections: Conn[] }) {
+type ThreadMessage = {
+  id: string;
+  body: string;
+  senderRole: "ADMIN" | "CAPPER";
+  createdAt: string;
+  sender: {
+    displayName: string | null;
+    username: string | null;
+    email: string;
+  };
+};
+
+export function MonetizationWizard({
+  connections,
+  messagesByConnection = {},
+  activeThreadId = null,
+  capperUsername = null,
+}: {
+  connections: Conn[];
+  messagesByConnection?: Record<string, ThreadMessage[]>;
+  activeThreadId?: string | null;
+  capperUsername?: string | null;
+}) {
   const initialActive =
     connections.find(
       (c) =>
@@ -118,6 +134,7 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
   const [ack, setAck] = useState(false);
   const [connection, setConnection] = useState<Conn | null>(initialActive);
   const [copiedReferral, setCopiedReferral] = useState(false);
+  const [copiedAffiliateEmail, setCopiedAffiliateEmail] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const showStatus =
@@ -203,6 +220,13 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
     toast.success("Winible referral link copied");
   }
 
+  function copyAffiliateEmail() {
+    void navigator.clipboard.writeText(SCL_AFFILIATE_EMAIL);
+    setCopiedAffiliateEmail(true);
+    window.setTimeout(() => setCopiedAffiliateEmail(false), 2000);
+    toast.success("SCL affiliate email copied");
+  }
+
   return (
     <div className="space-y-5">
       <nav
@@ -263,6 +287,23 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
               />
             ))}
           </div>
+          {allConnections.some((item) => item.status !== "NOT_STARTED") ? (
+            <div className="space-y-4">
+              {allConnections
+                .filter((item) => item.status !== "NOT_STARTED")
+                .map((item) => (
+                  <StorefrontConversationPanel
+                    key={item.id}
+                    storeConnectionId={item.id}
+                    viewer="capper"
+                    messages={messagesByConnection[item.id] ?? []}
+                    provider={item.provider}
+                    capperUsername={capperUsername}
+                    highlighted={activeThreadId === item.id}
+                  />
+                ))}
+            </div>
+          ) : null}
           {showStatus && remainingProviders.length === 0 ? (
             <p className="text-muted-foreground text-xs">
               Winible and Whop are both connected. SCL reviews and publishes
@@ -422,9 +463,9 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
           {provider === "WHOP" ? (
             <div className="space-y-3 text-sm">
               <p className="border-border bg-surface-2 rounded-lg border p-3 leading-relaxed">
-                Add Sports Cappers Leaderboard as an affiliate in Whop. Once
-                your affiliate relationship is established, SCL will import your
-                package links and publish them on your SCL profile.
+                Add Sports Cappers Leaderboard as an affiliate in Whop. After
+                you submit, SCL verifies the relationship and manually publishes
+                the approved package links on your profile.
               </p>
               <ol className="space-y-3">
                 <li className="border-border rounded-lg border p-3">
@@ -436,7 +477,26 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
                 </li>
                 <li className="border-border rounded-lg border p-3">
                   <p className="font-semibold">
-                    2. Use Package-Specific Affiliate Links
+                    2. Install the SCL app on Whop (optional but recommended)
+                  </p>
+                  <p className="text-muted-foreground mt-1">
+                    When available, install the &quot;Sports Cappers
+                    Leaderboard&quot; app on your Whop business so SCL can
+                    verify your storefront faster. It is read-only.
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="mt-2 min-h-10"
+                    render={<a href="/api/whop/connect" rel="noreferrer" />}
+                    nativeButton={false}
+                  >
+                    Install SCL app on Whop
+                    <ExternalLink className="size-4" />
+                  </Button>
+                </li>
+                <li className="border-border rounded-lg border p-3">
+                  <p className="font-semibold">
+                    3. Use package-specific affiliate links
                   </p>
                   <p className="text-muted-foreground mt-1">
                     Use package-specific affiliate links whenever possible so
@@ -445,7 +505,7 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
                 </li>
                 <li className="border-border rounded-lg border p-3">
                   <p className="font-semibold">
-                    3. Select Recurring Commissions
+                    4. Select recurring commissions
                   </p>
                   <p className="text-muted-foreground mt-1">
                     Set the commission type to Recurring (not First Payment
@@ -456,6 +516,12 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
             </div>
           ) : (
             <div className="space-y-3 text-sm">
+              <p className="border-border bg-surface-2 rounded-lg border p-3 leading-relaxed">
+                Invite Sports Cappers Leaderboard as an affiliate in Winible.
+                After you submit here, SCL accepts the relationship in Winible,
+                verifies your packages, and manually publishes the approved
+                links on your profile.
+              </p>
               <ol className="space-y-3">
                 <li className="border-border rounded-lg border p-3">
                   <p className="font-semibold">
@@ -471,7 +537,7 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
                   />
                 </li>
                 <li className="border-border rounded-lg border p-3">
-                  <p className="font-semibold">2. Invite Affiliate</p>
+                  <p className="font-semibold">2. Invite affiliate</p>
                   <p className="text-muted-foreground mt-1">
                     Under the Affiliate tab, click{" "}
                     <strong>Invite Affiliate</strong>.
@@ -505,10 +571,32 @@ export function MonetizationWizard({ connections }: { connections: Conn[] }) {
                       <dd>{WINIBLE_INVITE_VALUES.plans}</dd>
                     </div>
                   </dl>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-2 min-h-10"
+                    onClick={copyAffiliateEmail}
+                  >
+                    {copiedAffiliateEmail
+                      ? "Copied"
+                      : "Copy SCL affiliate email"}
+                  </Button>
                   <StepShot
                     src="/winible-steps/3-invite-form.png"
                     alt="Winible Invite Affiliate form filled with SCL's email, reward type, amount, and plans"
                   />
+                </li>
+                <li className="border-border rounded-lg border p-3">
+                  <p className="font-semibold">
+                    4. Wait for SCL to accept in Winible
+                  </p>
+                  <p className="text-muted-foreground mt-1">
+                    SCL receives the invite at{" "}
+                    <strong>{SCL_AFFILIATE_EMAIL}</strong>, accepts it in
+                    Winible, then manually adds your package links on SCL. You
+                    will see &quot;Awaiting SCL Acceptance&quot; after you
+                    submit below.
+                  </p>
                 </li>
               </ol>
               <div className="border-border bg-surface-2 rounded-lg border p-3">

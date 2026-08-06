@@ -367,3 +367,46 @@ EXCEPTION WHEN duplicate_object THEN NULL;
 END
 $$;
 ```
+
+## User — carried-over credentials + password-update prompt
+
+Backs sign-in with the password a capper already had on the previous platform
+(`src/lib/legacy-password.ts`), plus the flags behind the "update your password"
+prompt. Additive and nullable; the matching migration is
+`20260805120000_legacy_password_carryover`, which is written with the same
+`IF NOT EXISTS` guards, so applying this patch first does **not** break the next
+production deploy.
+
+```sql
+SET search_path TO scl;
+
+ALTER TABLE "User"
+  -- The credential exactly as the old platform stored it. Verified once at
+  -- login, re-hashed with bcrypt into "passwordHash", then cleared.
+  ADD COLUMN IF NOT EXISTS "legacyPasswordHash" TEXT,
+  -- BCRYPT | PHPASS | MD5 | SHA1 | SHA256 | PLAINTEXT — detected from the hash
+  -- shape when NULL.
+  ADD COLUMN IF NOT EXISTS "legacyPasswordFormat" TEXT,
+  -- Set when a sign-in succeeded with a password that misses the current
+  -- requirements. Prompt only — it never blocks access.
+  ADD COLUMN IF NOT EXISTS "passwordUpdateRequiredAt" TIMESTAMP(3),
+  ADD COLUMN IF NOT EXISTS "passwordNoticeSentAt" TIMESTAMP(3);
+```
+
+Check what landed, and how many carried-over credentials are still unused:
+
+```sql
+SET search_path TO scl;
+
+SELECT count(*) FILTER (WHERE "legacyPasswordHash" IS NOT NULL) AS carried_credentials,
+       count(*) FILTER (WHERE "passwordHash" IS NOT NULL)       AS has_scl_password,
+       count(*) FILTER (WHERE "passwordHash" IS NULL
+                          AND "legacyPasswordHash" IS NULL)     AS unclaimed_no_credential,
+       count(*) FILTER (WHERE "passwordUpdateRequiredAt" IS NOT NULL) AS awaiting_password_update
+FROM "User";
+```
+
+`carried_credentials` counts cappers who can sign in with their old password and
+have not done so yet — it should fall over time as they return.
+`unclaimed_no_credential` is who still has to claim (see
+[LEGACY_MIGRATION](../LEGACY_MIGRATION.md)).

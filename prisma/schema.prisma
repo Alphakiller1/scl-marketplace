@@ -27,20 +27,31 @@ enum AccountStatus {
 }
 
 model User {
-  id            String        @id @default(cuid())
-  email         String        @unique
-  username      String?       @unique
-  passwordHash  String?
-  displayName   String?
-  role          Role          @default(CAPPER)
-  accountStatus AccountStatus @default(ACTIVE)
-  emailVerified DateTime?
-  image         String?
+  id                       String        @id @default(cuid())
+  email                    String
+  username                 String?       @unique
+  passwordHash             String?
+  /// Credential carried over from the previous platform, in whatever format that
+  /// stack wrote it (see `src/lib/legacy-password.ts`). Verified at login, then
+  /// re-hashed into `passwordHash` and cleared — so this empties out over time.
+  legacyPasswordHash       String?
+  /// Optional format hint for the above; detected from the hash shape when unset.
+  legacyPasswordFormat     String?
+  /// Set when a sign-in succeeded with a password that no longer meets the
+  /// current requirements. The account still works — this only drives the
+  /// update prompt and the one-time notice.
+  passwordUpdateRequiredAt DateTime?
+  passwordNoticeSentAt     DateTime?
+  displayName              String?
+  role                     Role          @default(CAPPER)
+  accountStatus            AccountStatus @default(ACTIVE)
+  emailVerified            DateTime?
+  image                    String?
   /// When true, excluded from public leaderboard / picks / discover / profile.
   /// Toggle in Supabase without a code change; handle guards remain as backup.
-  isTest        Boolean       @default(false)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  isTest                   Boolean       @default(false)
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
 
   accounts           Account[]
   sessions           Session[]
@@ -56,6 +67,9 @@ model User {
   policyUpdates      PolicyDocument[]         @relation("PolicyUpdatedBy")
   policyRevisions    PolicyDocumentRevision[] @relation("PolicyRevisionEditedBy")
   packageAudits      PackageAuditEvent[]      @relation("PackageAuditActor")
+  storefrontMessages StorefrontMessage[]      @relation("StorefrontMessageSender")
+
+  @@unique([email, username])
 }
 
 model Account {
@@ -286,6 +300,12 @@ enum StorefrontReviewAction {
   RESTORED
   NOTES_UPDATED
   PACKAGE_SYNC
+  CAPPER_CONTACTED
+}
+
+enum StorefrontMessageSender {
+  ADMIN
+  CAPPER
 }
 
 model StoreConnection {
@@ -305,6 +325,13 @@ model StoreConnection {
   packageCount        Int                   @default(0)
   affiliatePercent    Float?
   requiresAttention   Boolean               @default(false)
+  // Whop OAuth + sync — server-only tokens; never expose to the client.
+  whopCompanyId       String?
+  whopCompanyRoute    String?
+  whopAccessToken     String?
+  whopRefreshToken    String?
+  whopTokenExpiresAt  DateTime?
+  whopConnectedAt     DateTime?
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
 
@@ -312,6 +339,7 @@ model StoreConnection {
   reviewedBy   User?                   @relation("StoreConnectionReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
   packages     Package[]
   reviewEvents StorefrontReviewEvent[]
+  messages     StorefrontMessage[]
 
   @@unique([capperId, provider])
   @@index([status])
@@ -336,6 +364,25 @@ model StorefrontReviewEvent {
 
   @@index([storeConnectionId, createdAt])
   @@index([reviewedById])
+}
+
+model StorefrontMessage {
+  id                String                  @id @default(cuid())
+  storeConnectionId String
+  senderId          String
+  senderRole        StorefrontMessageSender
+  body              String
+  readByAdminAt     DateTime?
+  readByCapperAt    DateTime?
+  emailNotifiedAt   DateTime?
+  createdAt         DateTime                @default(now())
+
+  storeConnection StoreConnection @relation(fields: [storeConnectionId], references: [id], onDelete: Cascade)
+  sender          User            @relation("StorefrontMessageSender", fields: [senderId], references: [id], onDelete: Restrict)
+
+  @@index([storeConnectionId, createdAt])
+  @@index([storeConnectionId, readByAdminAt])
+  @@index([storeConnectionId, readByCapperAt])
 }
 
 enum BillingPeriod {
@@ -364,6 +411,8 @@ model Package {
   /// Lower numbers appear first on profile + marketplace.
   sortOrder         Int            @default(0)
   isActive          Boolean        @default(true)
+  /// Whop product id (prod_…) when imported via API sync.
+  externalProductId String?
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
@@ -378,6 +427,8 @@ model Package {
   @@index([storeConnectionId])
   @@index([isActive])
   @@index([sortOrder])
+  @@index([externalProductId])
+  @@unique([storeConnectionId, externalProductId])
 }
 
 model TrackingUrl {
@@ -629,6 +680,15 @@ enum LegacyRecordScope {
   CURRENT_YEAR
   YEAR_2025
   SEASON_2025
+  /// Mapped to the legacy `y2024` / `s2024` / `stats_post` tables, which are
+  /// EMPTY in every export to date — one scaffolding row per capper, zero
+  /// settled results. No row has ever carried these scopes. They exist because
+  /// Postgres cannot drop an enum value once added; the extractor mapping is
+  /// wired up so the data flows if the source ever starts recording it.
+  /// Display-only regardless: PRE_IMPORT is the only scope standings fold in.
+  YEAR_2024
+  SEASON_2024
+  POSTSEASON
   LAST_7D
   LAST_30D
   LAST_60D

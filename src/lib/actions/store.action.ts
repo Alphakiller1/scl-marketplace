@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { sendAffiliateSignupNotificationEmail } from "@/lib/email";
 import { requireAdmin, requireCapperAccess } from "@/lib/session";
 import {
   adminPackageActiveSchema,
@@ -28,6 +29,8 @@ import {
   resolveStorefrontPackageReadiness,
   storefrontTransition,
 } from "@/lib/storefront-review";
+import { syncWhopStorefront } from "@/lib/whop-sync";
+import { whopAffiliateUsername, whopOAuthConfigured } from "@/lib/whop-config";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -181,7 +184,10 @@ export async function submitStoreConnectionAction(
 
   const profile = await prisma.capperProfile.findUnique({
     where: { userId: user.id },
-    select: { id: true, user: { select: { username: true } } },
+    select: {
+      id: true,
+      user: { select: { username: true, email: true } },
+    },
   });
   if (!profile) return { ok: false, error: "Capper profile not found." };
 
@@ -238,6 +244,16 @@ export async function submitStoreConnectionAction(
       error: "The storefront changed while submitting. Refresh and try again.",
     };
   }
+
+  void sendAffiliateSignupNotificationEmail({
+    capperUsername: profile.user.username ?? profile.user.email,
+    capperEmail: profile.user.email,
+    provider: parsed.data.provider,
+    connectionId: connection.id,
+    submittedAt: now,
+  }).catch((error) => {
+    console.error("[store] affiliate signup notification failed:", error);
+  });
 
   await revalidateCommercePaths(profile.user.username, user.id);
   return { ok: true };
@@ -344,6 +360,10 @@ export async function adminUpdateStoreConnectionAction(
     // that stays flagged is NEEDS_ACTION. The badge still counts pending-SCL
     // statuses separately (countStorefrontQueue), so nothing gets lost.
     const requiresAttention = transition.targetStatus === "NEEDS_ACTION";
+    const affiliatePercent =
+      parsed.data.affiliatePercent === undefined
+        ? undefined
+        : parsed.data.affiliatePercent;
 
     const updated = await tx.storeConnection.updateMany({
       where: {
@@ -359,6 +379,7 @@ export async function adminUpdateStoreConnectionAction(
         reviewedById: admin.id,
         ...(affiliateAcceptedAt && { affiliateAcceptedAt }),
         ...(lastImportedAt && { lastImportedAt }),
+        ...(affiliatePercent !== undefined && { affiliatePercent }),
         requiresAttention,
         ...(packageCount > 0 && { packageCount }),
       },
@@ -623,4 +644,55 @@ export async function adminReorderPackageAction(
 
   await revalidateCommercePaths(pkg.capper.user.username, pkg.capper.user.id);
   return { ok: true };
+}
+
+export async function adminSyncWhopStorefrontAction(input: {
+  connectionId: string;
+}): Promise<
+  | { ok: true; imported: number; updated: number; skipped: number }
+  | { ok: false; error: string }
+> {
+  const admin = await requireAdmin();
+  if (!input.connectionId.trim()) {
+    return { ok: false, error: "Invalid store connection." };
+  }
+  if (!whopOAuthConfigured()) {
+    return {
+      ok: false,
+      error:
+        "Whop OAuth is not configured. Set WHOP_APP_ID and WHOP_APP_API_KEY in production.",
+    };
+  }
+  if (!whopAffiliateUsername()) {
+    return {
+      ok: false,
+      error:
+        "WHOP_AFFILIATE_USERNAME is not configured — sync cannot build attributed links.",
+    };
+  }
+
+  const connection = await prisma.storeConnection.findUnique({
+    where: { id: input.connectionId },
+    select: {
+      id: true,
+      provider: true,
+      capper: { select: { user: { select: { id: true, username: true } } } },
+    },
+  });
+  if (!connection) return { ok: false, error: "Store connection not found." };
+  if (connection.provider !== "WHOP") {
+    return { ok: false, error: "Only Whop storefronts can sync from Whop." };
+  }
+
+  const result = await syncWhopStorefront({
+    storeConnectionId: connection.id,
+    actorId: admin.id,
+  });
+  if (!result.ok) return result;
+
+  await revalidateCommercePaths(
+    connection.capper.user.username,
+    connection.capper.user.id,
+  );
+  return result;
 }

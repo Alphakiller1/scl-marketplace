@@ -38,8 +38,10 @@ export function evaluateReleaseConfiguration(
     !/@scl\.local$/i.test(env.EMAIL_FROM?.trim() ?? "");
   const supportConfigured = isEmailAddress(env.SUPPORT_EMAIL_TO);
   const mediaConfigured =
-    isConfigured(env.SUPABASE_URL) &&
-    isConfigured(env.SUPABASE_SERVICE_ROLE_KEY);
+    (isConfigured(env.SUPABASE_URL) ||
+      isConfigured(env.NEXT_PUBLIC_SUPABASE_URL)) &&
+    (isConfigured(env.SUPABASE_SERVICE_ROLE_KEY) ||
+      isConfigured(env.SUPABASE_SECRET_KEY));
   const releaseIdentityConfigured =
     env.VERCEL_ENV?.trim() !== "production" ||
     isConfigured(env.VERCEL_GIT_COMMIT_SHA);
@@ -85,7 +87,7 @@ export function evaluateReleaseConfiguration(
       status: mediaConfigured ? "ready" : "warning",
       detail: mediaConfigured
         ? "Supabase Storage is configured for avatar and cover uploads."
-        : "SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is missing; profile media uploads will be unavailable.",
+        : "SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SECRET_KEY) are missing; profile media uploads will be unavailable.",
     },
     {
       id: "odds-provider",

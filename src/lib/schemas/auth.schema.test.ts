@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  loginSchema,
   passwordResetRequestSchema,
   passwordSchema,
   resetPasswordSchema,
+  sclUsernameSchema,
   signupSchema,
 } from "@/lib/schemas/auth.schema";
 
@@ -15,10 +17,23 @@ test("password contract requires at least 12 characters", () => {
 
 test("password reset request normalizes surrounding whitespace", () => {
   const parsed = passwordResetRequestSchema.parse({
+    username: " Chase_Analytics ",
     email: "  capper@example.com ",
   });
 
+  assert.equal(parsed.username, "chase_analytics");
   assert.equal(parsed.email, "capper@example.com");
+});
+
+test("login requires username, email, and password", () => {
+  const parsed = loginSchema.parse({
+    username: "@capper_one",
+    email: " CAPPPER@EXAMPLE.COM ",
+    password: "secret",
+  });
+
+  assert.equal(parsed.username, "capper_one");
+  assert.equal(parsed.email, "cappper@example.com");
 });
 
 test("signup normalizes public handles and email addresses", () => {
@@ -34,6 +49,12 @@ test("signup normalizes public handles and email addresses", () => {
 
   assert.equal(parsed.username, "chase_analytics");
   assert.equal(parsed.email, "cappper@example.com");
+});
+
+test("scl username schema strips a leading @ and lowercases", () => {
+  assert.equal(sclUsernameSchema.parse("@Chase_Analytics"), "chase_analytics");
+  assert.equal(sclUsernameSchema.safeParse("ab").success, false);
+  assert.equal(sclUsernameSchema.safeParse("bad-handle").success, false);
 });
 
 test("signup requires every legal and responsible-gaming acknowledgement", () => {

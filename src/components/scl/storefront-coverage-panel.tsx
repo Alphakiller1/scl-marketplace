@@ -31,7 +31,7 @@ const BUCKETS: Bucket[] = [
   {
     key: "pipeline",
     label: "Waiting on SCL",
-    hint: "Capper completed their affiliate steps — accept the invite and import package links.",
+    hint: "Capper finished affiliate setup — confirm on Winible/Whop, import packages, activate, then Mark live.",
     icon: Clock,
     tone: "text-amber-400",
   },
@@ -52,7 +52,7 @@ const BUCKETS: Bucket[] = [
   {
     key: "neverStarted",
     label: "No storefront yet",
-    hint: "No connection started — the Winible onboarding outreach list.",
+    hint: "No connection started — outreach for Winible or Whop storefront setup.",
     icon: UserPlus,
     tone: "text-[color:var(--scl-muted-data)]",
   },
@@ -145,6 +145,17 @@ export function StorefrontCoveragePanel({
                           {status ? (
                             <span className="text-muted-foreground shrink-0 text-[0.65rem]">
                               {status}
+                            </span>
+                          ) : null}
+                          {/*
+                            Live, but never through SCL's review — the offers
+                            came over from the previous platform. Saying so
+                            keeps "Live & earning" honest: an admin can tell a
+                            reviewed storefront from a carried one at a glance.
+                          */}
+                          {!entry.status && entry.carriedLivePackages > 0 ? (
+                            <span className="text-muted-foreground shrink-0 text-[0.65rem]">
+                              carried &middot; {entry.carriedLivePackages}
                             </span>
                           ) : null}
                         </Link>

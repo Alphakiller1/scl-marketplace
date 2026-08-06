@@ -84,7 +84,7 @@ async function main() {
     for (const needle of [
       "New package",
       "Package name",
-      "Affiliate purchase link",
+      "storefront/package link",
       "Tracked clicks",
       "Display order",
     ]) {

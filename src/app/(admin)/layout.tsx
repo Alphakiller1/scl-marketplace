@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/session";
 import { AppHeader } from "@/components/app-header";
 import { AdminRouteSkeleton } from "@/components/scl/admin-route-skeleton";
 import { countStorefrontQueue } from "@/lib/queries/store";
+import { countUnreadStorefrontMessagesForAdmin } from "@/lib/queries/storefront-messages";
 
 const ADMIN_NAV = [
   { href: "/admin", label: "Overview" },
@@ -30,10 +31,14 @@ export default async function AdminLayout({
 
   // Storefront submissions awaiting SCL — surfaced in the nav so a capper who
   // completed their affiliate steps is impossible to miss. Soft-fails to 0.
-  const storeQueue = await countStorefrontQueue();
+  const [storeQueue, unreadMessages] = await Promise.all([
+    countStorefrontQueue(),
+    countUnreadStorefrontMessagesForAdmin(),
+  ]);
+  const storeAttention = storeQueue + unreadMessages;
   const nav = ADMIN_NAV.map((item) =>
-    item.href === "/admin/store-setup" && storeQueue > 0
-      ? { ...item, label: `Store Setup (${storeQueue})` }
+    item.href === "/admin/store-setup" && storeAttention > 0
+      ? { ...item, label: `Store Setup (${storeAttention})` }
       : item,
   );
 

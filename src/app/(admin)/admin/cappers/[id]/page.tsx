@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ExternalLink,
   History,
+  KeyRound,
   MailCheck,
   PackageOpen,
   Scale,
@@ -14,7 +15,10 @@ import {
 } from "lucide-react";
 import { notFound } from "next/navigation";
 
+import { AccountClaimControl } from "@/components/scl/account-claim-control";
+import { StorefrontConversationPanel } from "@/components/scl/storefront-conversation-panel";
 import { AccountStatusControl } from "@/components/scl/account-status-control";
+import { AdminDeleteCapperControl } from "@/components/scl/admin-delete-capper-control";
 import { AccountStatusBadge } from "@/components/scl/account-trust";
 import { StatusBadge } from "@/components/scl/badges";
 import { AdminPackageForm } from "@/components/scl/admin-package-form";
@@ -29,6 +33,8 @@ import {
   providerLabel,
 } from "@/lib/store-connection";
 import { getAdminCapperDetail } from "@/lib/queries/admin-cappers";
+import { getStorefrontMessages } from "@/lib/queries/storefront-messages";
+import { markStorefrontThreadReadAction } from "@/lib/actions/storefront-message.action";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Capper review" };
@@ -72,6 +78,14 @@ export default async function AdminCapperDetailPage({
     profile?.storeConnections[0] ??
     null;
   const quickPackageProvider = primaryConnection?.provider ?? "WINIBLE";
+  const threadMessages = primaryConnection
+    ? await getStorefrontMessages(primaryConnection.id)
+    : [];
+  if (primaryConnection) {
+    await markStorefrontThreadReadAction({
+      storeConnectionId: primaryConnection.id,
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -129,6 +143,19 @@ export default async function AdminCapperDetailPage({
             </Button>
           </div>
         </div>
+
+        {primaryConnection ? (
+          <StorefrontConversationPanel
+            storeConnectionId={primaryConnection.id}
+            viewer="admin"
+            messages={threadMessages.map((message) => ({
+              ...message,
+              createdAt: message.createdAt.toISOString(),
+            }))}
+            provider={primaryConnection.provider}
+            capperUsername={capper.username}
+          />
+        ) : null}
 
         <dl
           className={cn(
@@ -191,7 +218,21 @@ export default async function AdminCapperDetailPage({
             userId={capper.id}
             currentStatus={capper.accountStatus}
           />
+          <AccountClaimControl
+            userId={capper.id}
+            unclaimed={capper.unclaimed}
+          />
+          <AdminDeleteCapperControl userId={capper.id} capperLabel={name} />
           <div className="grid gap-2 text-sm sm:grid-cols-2">
+            <TrustLine
+              icon={KeyRound}
+              label="Credentials"
+              value={
+                capper.unclaimed
+                  ? "No password set — account unclaimed"
+                  : "Password set"
+              }
+            />
             <TrustLine
               icon={MailCheck}
               label="Email"

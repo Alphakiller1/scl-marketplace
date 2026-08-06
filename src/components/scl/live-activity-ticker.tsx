@@ -191,8 +191,14 @@ export function LiveActivityTicker({ items }: { items: LiveTickerItem[] }) {
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,color-mix(in_srgb,var(--scl-blue)_55%,transparent)_20%,color-mix(in_srgb,var(--scl-pink)_40%,transparent)_80%,transparent)]"
       />
-      <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3.5 sm:gap-4 sm:px-6">
-        <div className="flex shrink-0 items-center gap-2 border-r border-[color:var(--scl-line)] pr-3 sm:pr-4">
+      {/*
+        At 375px the label alone is nearly the full row. Kept inline it left the
+        marquee a sliver of width, so the chips were clipped off the right edge —
+        the ticker read as broken. Stack on mobile: label on its own line, track
+        at full width; the inline divider layout returns from `sm:` up.
+      */}
+      <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:gap-4 sm:px-6 sm:py-3.5">
+        <div className="flex shrink-0 items-center gap-2 sm:border-r sm:border-[color:var(--scl-line)] sm:pr-4">
           <span className="relative flex size-2 shrink-0">
             <span className="absolute inline-flex size-full animate-ping rounded-full bg-[color:var(--scl-blue)] opacity-40 motion-reduce:hidden" />
             <span className="relative inline-flex size-2 rounded-full bg-[color:var(--scl-blue)]" />
@@ -208,7 +214,7 @@ export function LiveActivityTicker({ items }: { items: LiveTickerItem[] }) {
 
         <div
           className={cn(
-            "group/ticker relative min-w-0 flex-1 overflow-hidden",
+            "group/ticker relative w-full min-w-0 overflow-hidden sm:w-auto sm:flex-1",
             "motion-reduce:hidden",
             "[mask-image:linear-gradient(to_right,transparent,black_1.25rem,black_calc(100%-1.25rem),transparent)]",
           )}
@@ -241,7 +247,7 @@ export function LiveActivityTicker({ items }: { items: LiveTickerItem[] }) {
           </ul>
         </div>
 
-        <ul className="hidden min-w-0 flex-1 flex-wrap items-center gap-2 motion-reduce:flex">
+        <ul className="hidden w-full min-w-0 flex-wrap items-center gap-2 motion-reduce:flex sm:w-auto sm:flex-1">
           {items.slice(0, 8).map((item) => (
             <li key={`static-${item.id}`}>
               <TickerChip item={item} interactive />

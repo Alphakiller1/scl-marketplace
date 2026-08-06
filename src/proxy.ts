@@ -11,6 +11,26 @@ export default auth((req) => {
   const role = session?.user?.role;
   const accountStatus = session?.user?.accountStatus;
 
+  // Production hard-block for /qa/* fixtures. Page-level notFound() can stream
+  // a 404 body with HTTP 200 under App Router; respond with a real 404 status
+  // so monitors never treat QA fixtures as live. Opt-in via ALLOW_QA_SHOTS=1.
+  if (nextUrl.pathname.startsWith("/qa")) {
+    const allowQa =
+      process.env.ALLOW_QA_SHOTS === "1" ||
+      process.env.NODE_ENV !== "production";
+    if (!allowQa) {
+      return new NextResponse("Not Found", {
+        status: 404,
+        headers: {
+          "content-type": "text/plain; charset=utf-8",
+          "x-robots-tag": "noindex",
+          "cache-control": "private, no-store",
+        },
+      });
+    }
+    return NextResponse.next();
+  }
+
   const isCapperArea = nextUrl.pathname.startsWith("/dashboard");
   const isAdminArea = nextUrl.pathname.startsWith("/admin");
 
@@ -44,5 +64,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/admin/:path*"],
+  matcher: ["/dashboard/:path*", "/admin/:path*", "/qa/:path*"],
 };

@@ -8,7 +8,7 @@ const SMOKE_TITLE = "M3 Smoke Package";
 
 async function main() {
   const user = await prisma.user.upsert({
-    where: { email: "m3-smoke@scl.local" },
+    where: { username: "m3-smoke" },
     update: {
       username: "m3-smoke",
       displayName: "M3 Smoke Capper",

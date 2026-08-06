@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
@@ -28,12 +29,21 @@ export function AdminPackageRowControls({
   isFirst: boolean;
   isLast: boolean;
 }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  function run(work: () => Promise<{ ok: boolean; error?: string }>) {
+  function run(
+    work: () => Promise<{ ok: boolean; error?: string }>,
+    success: string,
+  ) {
     startTransition(async () => {
       const res = await work();
-      if (!res.ok) toast.error(res.error || "Something went wrong.");
+      if (!res.ok) {
+        toast.error(res.error || "Something went wrong.");
+        return;
+      }
+      toast.success(success);
+      router.refresh();
     });
   }
 
@@ -46,7 +56,10 @@ export function AdminPackageRowControls({
         aria-label={`Move ${title} up`}
         title="Move up"
         onClick={() =>
-          run(() => adminReorderPackageAction({ packageId, direction: "UP" }))
+          run(
+            () => adminReorderPackageAction({ packageId, direction: "UP" }),
+            "Package moved up",
+          )
         }
       >
         <ArrowUp className="size-3.5" aria-hidden />
@@ -58,7 +71,10 @@ export function AdminPackageRowControls({
         aria-label={`Move ${title} down`}
         title="Move down"
         onClick={() =>
-          run(() => adminReorderPackageAction({ packageId, direction: "DOWN" }))
+          run(
+            () => adminReorderPackageAction({ packageId, direction: "DOWN" }),
+            "Package moved down",
+          )
         }
       >
         <ArrowDown className="size-3.5" aria-hidden />
@@ -70,10 +86,18 @@ export function AdminPackageRowControls({
         aria-label={
           isActive ? `Hide ${title} from profile` : `Show ${title} on profile`
         }
-        title={isActive ? "Hide from profile" : "Show on profile"}
+        title={
+          isActive
+            ? "Deactivate (still needs Mark live to be public)"
+            : "Activate (still needs Mark live to be public)"
+        }
         onClick={() =>
-          run(() =>
-            adminSetPackageActiveAction({ packageId, isActive: !isActive }),
+          run(
+            () =>
+              adminSetPackageActiveAction({ packageId, isActive: !isActive }),
+            isActive
+              ? "Package deactivated"
+              : "Package activated — Mark live when ready to publish",
           )
         }
       >

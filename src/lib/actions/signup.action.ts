@@ -11,6 +11,8 @@ import { CONSENT_TEXT_VERSION } from "@/lib/legal";
 import { getCurrentPolicyBundle } from "@/lib/queries/policies";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getRequestIdentity } from "@/lib/request-identity";
+import { evaluateAccountClaim, handleTakenMessage } from "@/lib/account-claim";
+import { ensureAuthEmailSchema } from "@/lib/ensure-auth-email-schema";
 
 type SignupResult =
   | { ok: true; emailDelivered: boolean; verifyUrl?: string }
@@ -34,13 +36,15 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
   if (!parsed.success)
     return { ok: false, error: "Please check the form and try again." };
 
+  await ensureAuthEmailSchema(prisma);
+
   const { email, username, password } = parsed.data;
   const lowerEmail = email.toLowerCase();
   const requestIdentity = await getRequestIdentity();
   const [emailAllowed, requestAllowed] = await Promise.all([
     consumeRateLimit({
       scope: "signup-email",
-      identity: lowerEmail,
+      identity: `${lowerEmail}:${username}`,
       limit: 5,
       windowMs: 60 * 60 * 1000,
     }),
@@ -69,55 +73,57 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
     responsibleGamingVersion: policyBundle.responsibleGamingVersion,
     refundVersion: policyBundle.refundVersion,
     consentTextVersion: CONSENT_TEXT_VERSION,
-    acceptanceSource: "SIGNUP",
   };
 
-  // Look up any account already on this email or this handle (separately, so we know which
-  // one collided).
-  const [byEmail, byUsername] = await Promise.all([
-    prisma.user.findUnique({
-      where: { email: lowerEmail },
-      select: { id: true, emailVerified: true },
-    }),
-    prisma.user.findUnique({
-      where: { username },
-      select: { id: true },
-    }),
-  ]);
+  const byUsername = await prisma.user.findUnique({
+    where: { username },
+    select: {
+      id: true,
+      email: true,
+      passwordHash: true,
+      emailVerified: true,
+      accountStatus: true,
+    },
+  });
 
-  // The handle is taken by a *different* account.
-  if (byUsername && byUsername.id !== byEmail?.id) {
-    return { ok: false, error: "That handle is already taken." };
-  }
+  let userId: string;
 
   try {
-    if (byEmail) {
-      if (byEmail.emailVerified) {
-        // A real, verified account owns this email — never overwrite it.
-        return {
-          ok: false,
-          error: "An account with that email already exists. Try logging in.",
-        };
+    if (byUsername) {
+      const claim = evaluateAccountClaim(byUsername);
+      if (!claim.claimable) {
+        return { ok: false, error: handleTakenMessage(byUsername) };
       }
-      // The email only has an UNVERIFIED account — e.g. a first signup whose verification
-      // email never arrived. Let the person re-claim it: refresh their details and re-send
-      // verification, instead of dead-ending on "already exists".
-      await prisma.user.update({
-        where: { id: byEmail.id },
+
+      // Either an account carried over from the previous platform that nobody has ever signed
+      // in to (no password), or an UNVERIFIED signup whose verification email never arrived.
+      // Both are the same move: set credentials on the existing record — preserving the
+      // capper profile, plays, and public history — instead of dead-ending on "already exists".
+      const updated = await prisma.user.update({
+        where: { id: byUsername.id },
         data: {
-          username,
+          email: lowerEmail,
           passwordHash,
+          // A signup claim never grants privilege: whoever completes this form gets a
+          // capper account, even if the record they claimed was an admin. An admin who
+          // needs their own account back uses the emailed claim/reset link, which proves
+          // control of the inbox and leaves the role untouched.
           role: "CAPPER",
           ...newAccountState,
           capperProfile: { upsert: { create: {}, update: {} } },
           termsAcceptances: {
-            create: acceptanceData,
+            create: {
+              ...acceptanceData,
+              acceptanceSource:
+                claim.reason === "UNCLAIMED" ? "CLAIM" : "SIGNUP",
+            },
           },
         },
         select: { id: true },
       });
+      userId = updated.id;
     } else {
-      await prisma.user.create({
+      const created = await prisma.user.create({
         data: {
           email: lowerEmail,
           username,
@@ -126,11 +132,12 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
           ...newAccountState,
           capperProfile: { create: {} },
           termsAcceptances: {
-            create: acceptanceData,
+            create: { ...acceptanceData, acceptanceSource: "SIGNUP" },
           },
         },
         select: { id: true },
       });
+      userId = created.id;
     }
   } catch (error) {
     if (
@@ -139,7 +146,7 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
     ) {
       return {
         ok: false,
-        error: "That email or handle is already taken.",
+        error: "That email and handle combination is already taken.",
       };
     }
     console.error("[signup] account creation failed:", error);
@@ -154,9 +161,9 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
   let emailDelivered = false;
   let verifyUrl: string | undefined;
   try {
-    const token = await createVerificationToken(lowerEmail, { force: true });
+    const token = await createVerificationToken(userId, { force: true });
     if (token) {
-      const delivery = await sendVerificationEmail(lowerEmail, token);
+      const delivery = await sendVerificationEmail(lowerEmail, token, username);
       emailDelivered = delivery.delivered;
       if (!delivery.delivered) verifyUrl = delivery.link;
     }

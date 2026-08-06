@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ArrowUpRight, Search, ShieldCheck } from "lucide-react";
 
+const PACKAGES_PAGE_SIZE = 20;
+
 import { CapperAvatar } from "@/components/scl/capper-avatar";
 import { ProviderBadge } from "@/components/scl/provider-badge";
 import { SampleMaturityMeter } from "@/components/scl/sample-maturity-meter";
@@ -225,6 +227,7 @@ export function PackagesRegister({
   const [sort, setSort] = useState<"featured" | "name" | "units" | "roi">(
     "units",
   );
+  const [visibleCount, setVisibleCount] = useState(PACKAGES_PAGE_SIZE);
   const rows = useMemo(() => {
     const cappersById = new Map(cappers.map((capper) => [capper.id, capper]));
     const normalized = query.trim().toLowerCase().replace(/^@/, "");
@@ -259,6 +262,11 @@ export function PackagesRegister({
     return next;
   }, [cappers, packageEvidence, packages, query, sort]);
 
+  // Reset the page window when filters change so search/sort never hide hits
+  // behind a prior "Show more" ceiling.
+  const visibleRows = rows.slice(0, visibleCount);
+  const hasMore = visibleCount < rows.length;
+
   return (
     <section className="border-border mt-6 border-y" aria-label="Public offers">
       <div className="bg-surface-2 border-border flex flex-col gap-3 border-b px-3 py-3 sm:px-4 lg:flex-row lg:items-end lg:justify-between">
@@ -269,6 +277,12 @@ export function PackagesRegister({
           />
           <p className="text-sm font-semibold">
             {rows.length} public offer{rows.length === 1 ? "" : "s"}
+            {hasMore ? (
+              <span className="text-muted-foreground font-normal">
+                {" "}
+                · showing {visibleRows.length}
+              </span>
+            ) : null}
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
@@ -281,7 +295,10 @@ export function PackagesRegister({
               <input
                 type="search"
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setVisibleCount(PACKAGES_PAGE_SIZE);
+                }}
                 placeholder="Search cappers"
                 className="min-w-0 bg-transparent text-base outline-none sm:w-48 sm:text-sm"
               />
@@ -291,7 +308,10 @@ export function PackagesRegister({
             <span className="scl-eyebrow mb-1 block">Sort</span>
             <select
               value={sort}
-              onChange={(event) => setSort(event.target.value as typeof sort)}
+              onChange={(event) => {
+                setSort(event.target.value as typeof sort);
+                setVisibleCount(PACKAGES_PAGE_SIZE);
+              }}
               className="border-input bg-background min-h-10 rounded-md border px-3 text-base sm:text-sm"
             >
               <option value="units">Attributed units</option>
@@ -340,7 +360,7 @@ export function PackagesRegister({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
+                {visibleRows.map((row) => (
                   <tr
                     key={row.pkg.id}
                     className="border-border border-b last:border-b-0"
@@ -367,7 +387,7 @@ export function PackagesRegister({
           </div>
 
           <div className="divide-border divide-y lg:hidden">
-            {rows.map((row) => (
+            {visibleRows.map((row) => (
               <article key={row.pkg.id} className="px-3 py-5 sm:px-4">
                 <CapperCell row={row} />
                 <div className="border-border mt-4 border-y py-4">
@@ -385,6 +405,21 @@ export function PackagesRegister({
               </article>
             ))}
           </div>
+
+          {hasMore ? (
+            <div className="border-border flex justify-center border-t px-4 py-5">
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-10"
+                onClick={() =>
+                  setVisibleCount((count) => count + PACKAGES_PAGE_SIZE)
+                }
+              >
+                Show more offers
+              </Button>
+            </div>
+          ) : null}
         </>
       )}
     </section>

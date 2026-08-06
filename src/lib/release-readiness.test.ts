@@ -74,3 +74,15 @@ test("optional integrations are warnings instead of false launch claims", () => 
     .map((check) => check.id);
   assert.deepEqual(warnings, ["profile-media", "whop-webhook"]);
 });
+
+test("profile media accepts Supabase Vercel integration key names", () => {
+  const checks = evaluateReleaseConfiguration({
+    ...READY_ENV,
+    SUPABASE_URL: undefined,
+    SUPABASE_SERVICE_ROLE_KEY: undefined,
+    NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+    SUPABASE_SECRET_KEY: "secret-from-vercel",
+  });
+  const profileMedia = checks.find((check) => check.id === "profile-media");
+  assert.equal(profileMedia?.status, "ready");
+});

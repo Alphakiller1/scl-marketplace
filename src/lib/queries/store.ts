@@ -382,6 +382,12 @@ export type StorefrontCoverageEntry = {
   provider: StoreProvider | null;
   status: string | null;
   submittedAt: Date | null;
+  /**
+   * Live offers carried over from the previous platform, which have no
+   * connection behind them. Non-zero means the storefront is already public and
+   * earning even when `status` is null.
+   */
+  carriedLivePackages: number;
 };
 
 export type StorefrontCoverage = {
@@ -433,6 +439,11 @@ export async function getStorefrontCoverage(): Promise<StorefrontCoverage> {
             submittedAt: true,
           },
         },
+        // Carried-over offers: live to the public, but attached to no connection.
+        packages: {
+          where: { ...activePublicPackageWhere, storeConnectionId: null },
+          select: { id: true, affiliateProvider: true },
+        },
       },
       orderBy: { createdAt: "asc" },
     });
@@ -452,6 +463,7 @@ export async function getStorefrontCoverage(): Promise<StorefrontCoverage> {
       );
       const best =
         capper.storeConnections.find((c) => c.status === furthest) ?? null;
+      const carriedLivePackages = capper.packages.length;
       const entry: StorefrontCoverageEntry = {
         capperId: capper.id,
         userId: capper.user.id,
@@ -459,12 +471,17 @@ export async function getStorefrontCoverage(): Promise<StorefrontCoverage> {
         handle: capper.user.username,
         displayName: capper.user.displayName,
         email: capper.user.email,
-        provider: best?.provider ?? null,
+        // Fall back to the provider recorded on the carried offers, so a
+        // transferred storefront still reports who it is hosted with.
+        provider:
+          best?.provider ?? capper.packages[0]?.affiliateProvider ?? null,
         status: best?.status ?? null,
         submittedAt: best?.submittedAt ?? null,
+        carriedLivePackages,
       };
       const bucket = storefrontCoverageBucket(
         capper.storeConnections.map((c) => c.status),
+        { carriedLivePackages },
       );
       coverage[bucket].push(entry);
     }
@@ -533,8 +550,16 @@ export async function getCapperPackagesForReview(capperId: string) {
       clicks: pkg.trackingUrls.reduce((n, u) => n + u._count.clicks, 0),
       attributedPicks: pkg._count.playLinks + pkg._count.parlayLinks,
       updatedAt: pkg.updatedAt,
-      /** Publishable only with both a checkout URL and a tracking slug. */
-      publishable: Boolean(pkg.checkoutUrl) && pkg.trackingUrls.length > 0,
+      /**
+       * Truly public on the profile: active + checkout + tracking, and either
+       * unattached (legacy) or the storefront connection is LIVE.
+       */
+      publishable:
+        pkg.isActive &&
+        Boolean(pkg.checkoutUrl) &&
+        pkg.trackingUrls.length > 0 &&
+        (pkg.storeConnectionId === null ||
+          pkg.storeConnection?.status === "LIVE"),
     }));
   } catch (error) {
     console.error("[getCapperPackagesForReview] database unavailable:", error);

@@ -93,3 +93,31 @@ test("accepts millisecond timestamps as well as seconds", () => {
   });
   assert.equal(verifyWhopSignature(BODY, h, SECRET).ok, true);
 });
+
+test("accepts Standard Webhooks v1 deliveries (Whop API v1 default)", () => {
+  const msgId = "msg_test_123";
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const signedContent = `${msgId}.${timestamp}.${BODY}`;
+  const digest = createHmac("sha256", SECRET)
+    .update(signedContent, "utf8")
+    .digest("base64");
+  const h = new Headers({
+    "webhook-id": msgId,
+    "webhook-timestamp": timestamp,
+    "webhook-signature": `v1,${digest}`,
+  });
+  assert.equal(verifyWhopSignature(BODY, h, SECRET).ok, true);
+});
+
+test("rejects Standard Webhooks deliveries with a bad signature", () => {
+  const msgId = "msg_test_123";
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const h = new Headers({
+    "webhook-id": msgId,
+    "webhook-timestamp": timestamp,
+    "webhook-signature": "v1,invalidsignature=",
+  });
+  const res = verifyWhopSignature(BODY, h, SECRET);
+  assert.equal(res.ok, false);
+  if (!res.ok) assert.equal(res.status, 401);
+});

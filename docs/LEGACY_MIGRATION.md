@@ -11,9 +11,12 @@ No schema migration is required — it reuses the existing `User`,
 
 For each record the importer upserts:
 
-- a **`User`** (`role: CAPPER`, **no password** — unclaimed until the Phase 2
-  claim flow; `emailVerified` set only when `verified: true`). `username`
-  becomes the public `/cappers/[handle]` slug.
+- a **`User`** (`role: CAPPER`, **no SCL password**; `emailVerified` set only
+  when `verified: true`). `username` becomes the public `/cappers/[handle]` slug.
+  When the export carries a credential the capper signs in with their old
+  password — see [Signing in with the old password](#signing-in-with-the-old-password);
+  otherwise the record stays unclaimed until they set one
+  ([Claiming an imported account](#claiming-an-imported-account)).
 - a **`CapperProfile`** with `isLegacy: true` plus headline/bio/sports/socials.
 - the capper's **historical `Play` rows** (only if the profile has none yet).
 
@@ -33,6 +36,7 @@ for a complete example; the contract lives in
 | `displayName`                                           | ✅       | shown name                                       |
 | `email`                                                 | —        | defaults to `username@legacy.scl` (placeholder)  |
 | `verified`                                              | —        | `true` marks the imported record verified        |
+| `passwordHash`, `passwordFormat`                        | —        | the old platform's credential (see below)        |
 | `headline`, `bio`, `avatarUrl`                          | —        | profile copy                                     |
 | `sports`, `specialties`, `betTypes`                     | —        | arrays                                           |
 | `providerType`                                          | —        | `FREE` \| `PREMIUM` \| `HYBRID` (default `FREE`) |
@@ -177,8 +181,95 @@ back mangled (`ðŸ”¥` for 🔥). The extractor repairs this run by run — t
 descriptions mix corrupted spans with characters that were stored correctly
 (— • –), so re-encoding a whole string always fails on one of the good ones.
 
-## Phase 2 follow-up
+## Signing in with the old password
 
-A **profile claim flow** (let a real capper take ownership of their imported
-handle, set a password, and continue posting) is deferred to Phase 2. See the
-Phase 2 parking lot.
+When the export carries each capper's stored credential, they sign in at
+`/login` with **the same email and password they already had** — nothing to
+claim, nothing to reset.
+
+| Field            | Notes                                                                                                    |
+| ---------------- | -------------------------------------------------------------------------------------------------------- |
+| `passwordHash`   | the credential exactly as the old platform stored it                                                     |
+| `passwordFormat` | `BCRYPT` \| `PHPASS` \| `MD5` \| `SHA1` \| `SHA256` \| `PLAINTEXT` — detected from the hash when omitted |
+
+The extractor picks the column up automatically (`pass`, `password`, `user_pass`
+and friends) and reports what it found; `--password-column` names an odd one,
+`--password-format` forces the format, `--no-passwords` skips credentials
+entirely. Hashes it can't classify are dropped rather than imported, because a
+credential login can't verify is one nobody can sign in with — those cappers
+fall back to claiming. `PLAINTEXT` is never auto-detected; declare it.
+
+What happens on that first sign-in (`src/auth.ts`):
+
+1. The submitted password is checked against the imported hash
+   (`src/lib/legacy-password.ts` — bcrypt including PHP's `$2y$`, phpass `$P$` /
+   `$H$`, and unsalted MD5/SHA-1/SHA-256).
+2. On a match it is **re-hashed with bcrypt** into `passwordHash` and the
+   imported hash is cleared, so each account passes through that path once.
+3. If the password doesn't meet the current requirements (12+ characters), the
+   account is flagged (`passwordUpdateRequiredAt`) and the capper gets a one-time
+   email. **This never blocks the sign-in** — their password keeps working until
+   they change it at `/dashboard/security`, prompted by a banner across the
+   capper workspace.
+4. Then the current policy gate applies, same as everyone: `/accept-terms`
+   before any workspace.
+
+Accounts imported without a credential — and any hash that couldn't be
+classified — use the claim routes below instead.
+
+### When passwords were already backfilled in bulk
+
+An account that already holds an SCL password is left alone by default: it
+claimed itself or already migrated, and a re-run must not resurrect the old
+credential. That default is wrong in one specific case — when passwords were set
+**for** cappers in bulk (an operator backfill) rather than chosen by them. Every
+account then looks claimed, and the import attaches nothing while reporting
+success. The run says so explicitly:
+
+```
+  credentials    : 0 attached, 108 skipped (account already has a password)
+```
+
+```bash
+# Accept the old password *as well as* the one already on the account.
+npm run db:import-legacy -- --attach-credentials prisma/legacy-cappers.json
+```
+
+Nothing is overwritten. Both credentials work until the capper signs in with
+their own, at which point it becomes the account's real password (bcrypt), the
+imported hash is cleared, and the operator-set one stops working — verified
+end-to-end. Use this only when the current passwords were not chosen by the
+cappers themselves; otherwise the default is the safer behaviour.
+
+## Claiming an imported account
+
+An imported `User` with **no `passwordHash`** is unclaimed: the record and public
+profile exist, but nobody has ever signed in to it. `emailVerified` says nothing
+about this — the importer copies the old platform's verified flag, so a capper
+can be both verified and unclaimed.
+
+Three routes turn an unclaimed record into a working login. All of them preserve
+the profile, plays, and carried record — none creates a second account:
+
+1. **Forgot password** (`/forgot-password`, also linked from `/login` as "Claim
+   your account" and from the public profile). Emails a single-use link that
+   sets the first password, verifies the address, and activates the account.
+   Needs a real email on the record.
+2. **Signup with the imported email** (`/signup`). `signupAction` treats an
+   account with no password as claimable and writes the credentials onto the
+   existing record, together with a `TermsAcceptance` marked
+   `acceptanceSource: "CLAIM"`. A claim never grants privilege — the claimed
+   account is always left as `CAPPER`.
+3. **Admin-issued claim link** (`/admin/cappers/[id]` → Account Control →
+   _Issue claim link_). For the records imported with a placeholder
+   `username@legacy.scl` address, which no email can reach: the link is
+   generated, not sent, and shown once for an admin to hand over directly.
+
+A handle alone is never proof of ownership — handles are public on the
+leaderboard — so signing up with someone else's imported handle and a different
+email is refused, with a message pointing at the routes above.
+
+After signing in, a claimed account still has to accept the **current** policy
+bundle at `/accept-terms` before reaching any workspace; `requireCapperAccess` /
+`requireAdmin` gate on the live bundle version, so a policy revision re-gates
+everyone, imported or not.

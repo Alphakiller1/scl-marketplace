@@ -79,6 +79,11 @@ export type CapperSummary = {
    * every result here is SCL-verified.
    */
   legacyCarriedResults?: number;
+  /**
+   * Net units carried over from the previous platform (all-time baseline).
+   * Used to offset the All-window cumulative chart so End matches Evidence Brief.
+   */
+  legacyBaselineUnits?: number;
   /** Pick counts in recent windows (straight + parlay positions). */
   activity?: {
     last3Days: number;
