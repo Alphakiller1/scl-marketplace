@@ -95,8 +95,11 @@ async function HomeHero() {
   // carried over from the previous platform are unclaimed by design (no
   // password until they claim the handle), so gating on account verification
   // hid the entire imported roster and left the hero board empty.
+  // Last 90 days, matching the Top Cappers snapshot below. An all-time hero
+  // board next to a 90-day one told two different stories about who is hot.
   const { cappers, failed } = await getLeaderboardResult({
     verifiedOnly: false,
+    window: "90d",
   });
   const snapshot = sortLeaderboard(cappers, "units")
     .slice(0, 5)
