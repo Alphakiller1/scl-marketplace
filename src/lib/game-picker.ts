@@ -158,9 +158,38 @@ export function selectionForActiveBook(
  * therefore hid the sportsbook switcher from almost every capper, so an empty
  * (or entirely unrecognised) list falls back to the full supported set.
  */
-export function railBooks(profileBooks?: readonly string[] | null): string[] {
+export function railBooks(
+  profileBooks?: readonly string[] | null,
+  /** Books that actually carry a price somewhere on the loaded board. */
+  availableBooks?: readonly string[] | null,
+): string[] {
+  const available = new Set((availableBooks ?? []).filter(isBookKey));
   const known = (profileBooks ?? []).filter(isBookKey);
-  return known.length ? known : [...BOOK_KEYS];
+  // A capper's stated books still only appear when the board can price them —
+  // offering a book with no line on this slate makes every chip read "—" and go
+  // dead, which is indistinguishable from the button not working.
+  const preferred = available.size
+    ? known.filter((b) => available.has(b))
+    : known;
+  if (preferred.length) return preferred;
+  if (available.size) return BOOK_KEYS.filter((b) => available.has(b));
+  return [...BOOK_KEYS];
+}
+
+/** Every supported book with at least one price across the loaded slate. */
+export function booksOnBoard(
+  events: readonly { selections: readonly OddsSelection[] }[],
+): string[] {
+  const seen = new Set<string>();
+  for (const event of events) {
+    for (const selection of event.selections) {
+      for (const key of Object.keys(selection.bookPrices ?? {})) {
+        if (isBookKey(key)) seen.add(key);
+      }
+      if (selection.book && isBookKey(selection.book)) seen.add(selection.book);
+    }
+  }
+  return BOOK_KEYS.filter((b) => seen.has(b));
 }
 
 /**

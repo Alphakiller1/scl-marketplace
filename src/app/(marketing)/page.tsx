@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
-import { Activity, ArrowRight, ShieldCheck } from "lucide-react";
+import { Activity, ShieldCheck } from "lucide-react";
 import dynamic from "next/dynamic";
 
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { CompetitionHero } from "@/components/scl/competition-hero";
@@ -15,16 +13,16 @@ import { PlatformClvSummary } from "@/components/scl/platform-clv-summary";
 import { SectionHeader } from "@/components/scl/section";
 import { BoardWindowRotator } from "@/components/scl/board-window-rotator";
 import { TopCappersLive } from "@/components/scl/top-cappers-live";
+import {
+  TrackRecordCta,
+  TrackRecordCtaFallback,
+} from "@/components/scl/track-record-cta";
 import { LiveActivityTicker } from "@/components/scl/live-activity-ticker";
 
 import { appUrl } from "@/lib/app-url";
 import { SCL_BRAND_NAME, SCL_TITLE } from "@/lib/brand";
 import { slimBoardCapper } from "@/lib/board-capper";
-import {
-  BOTTOM_BAND_BODY,
-  BOTTOM_BAND_HEADLINE,
-  TRACK_YOUR_RECORD_CTA,
-} from "@/lib/cold-start-copy";
+import { BOTTOM_BAND_BODY, BOTTOM_BAND_HEADLINE } from "@/lib/cold-start-copy";
 import { sortLeaderboard } from "@/lib/leaderboard";
 import { platformReportSubtitle } from "@/lib/league-action";
 import { getFeaturedGradedPlay } from "@/lib/queries/home-live";
@@ -125,6 +123,7 @@ async function HomeLiveStrip() {
 
 /** Windows the home snapshot rotates through, in order. */
 const BOARD_WINDOWS = [
+  { id: "90d", label: "90D", title: "last 90 days" },
   { id: "30d", label: "30D", title: "last 30 days" },
   { id: "7d", label: "7D", title: "last 7 days" },
 ] as const;
@@ -133,7 +132,8 @@ async function HomeTopBoard() {
   // Both windows are fetched here, not on rotation: getLeaderboardResult is
   // React-cached and the rotator only toggles which server-rendered table is
   // visible, so cycling costs no further queries.
-  const [thirty, seven, featured] = await Promise.all([
+  const [ninety, thirty, seven, featured] = await Promise.all([
+    getLeaderboardResult({ verifiedOnly: false, window: "90d" }),
     getLeaderboardResult({ verifiedOnly: false, window: "30d" }),
     getLeaderboardResult({ verifiedOnly: false, window: "7d" }),
     getFeaturedGradedPlay(),
@@ -143,7 +143,7 @@ async function HomeTopBoard() {
   // exists for picks SCL captured pre-game against a live market, which a
   // record imported from another platform can never have — sorting by it put
   // every carried-over capper at zero and emptied the list.
-  const boards = [thirty, seven].map((result) => ({
+  const boards = [ninety, thirty, seven].map((result) => ({
     failed: result.failed,
     cappers: sortLeaderboard(result.cappers, "units")
       .slice(0, 10)
@@ -186,7 +186,7 @@ async function HomeTopBoard() {
             <TopCappersLive
               cappers={leaderboard.cappers}
               failed={leaderboard.failed}
-              activeWindow={views[0]?.id ?? "30d"}
+              activeWindow={views[0]?.id ?? "90d"}
             />
           )}
         </div>
@@ -281,16 +281,9 @@ export default function Home() {
                 {BOTTOM_BAND_BODY}
               </p>
             </div>
-            <Button
-              render={<Link href="/signup" />}
-              nativeButton={false}
-              variant="brand"
-              size="lg"
-              className="min-h-10 w-full shrink-0 gap-2 sm:w-auto"
-            >
-              {TRACK_YOUR_RECORD_CTA}{" "}
-              <ArrowRight className="size-4" aria-hidden />
-            </Button>
+            <Suspense fallback={<TrackRecordCtaFallback />}>
+              <TrackRecordCta />
+            </Suspense>
           </section>
         </div>
       </div>
