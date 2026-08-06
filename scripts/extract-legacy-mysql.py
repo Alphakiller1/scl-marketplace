@@ -688,10 +688,11 @@ def main() -> int:
         lst.sort(key=lambda p: p["createdAt"])
 
     # ---- cappers -------------------------------------------------------
-    # User.email is unique in the new schema, but several legacy brands run
-    # multiple capper accounts off one address. Keep the bare address on the
-    # account with the most history and plus-address the rest, so a claim email
-    # still lands in the same real inbox instead of being lost to a placeholder.
+    # Several legacy brands run multiple capper accounts off one inbox. SCL now
+    # allows duplicate emails when usernames differ (#372), so every account
+    # keeps the bare address the capper actually uses. Login resolves accounts
+    # by email + username; older imports that plus-addressed shared inboxes are
+    # still matched at login time (see buildLegacyPlusAddressEmail).
     by_email: dict[str, list[dict]] = defaultdict(list)
     for c in cappers:
         e = (clean(c.get("email")) or "").lower()
@@ -700,16 +701,11 @@ def main() -> int:
     email_for: dict[str, str] = {}
     shared: list[str] = []
     for e, group in by_email.items():
-        if len(group) == 1:
-            email_for[group[0]["account_number"]] = e
-            continue
-        group = sorted(group, key=lambda c: -len(plays_by_acct.get(str(c["account_number"]), [])))
-        local, _, domain = e.partition("@")
-        for i, c in enumerate(group):
-            user = (clean(c.get("user")) or c["account_number"]).lower()
-            email_for[c["account_number"]] = e if i == 0 else f"{local}+{user}@{domain}"
-        shared.append(f"{e} -> {len(group)} accounts "
-                      f"({', '.join(c['user'] for c in group)})")
+        for c in group:
+            email_for[c["account_number"]] = e
+        if len(group) > 1:
+            shared.append(f"{e} -> {len(group)} accounts "
+                          f"({', '.join(c['user'] for c in group)})")
 
     password_column = (None if args.no_passwords
                        else resolve_password_column(site, args.password_column))
@@ -990,7 +986,7 @@ def main() -> int:
     for m, n in market_mix.most_common():
         print(f"    {n:>6}  {m}")
     if shared:
-        print("\n  shared emails (plus-addressed to keep them unique):")
+        print("\n  shared emails (multiple accounts on one inbox):")
         for s in shared:
             print(f"    {s}")
     if skipped:

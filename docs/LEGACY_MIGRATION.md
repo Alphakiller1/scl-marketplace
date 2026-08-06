@@ -184,8 +184,9 @@ descriptions mix corrupted spans with characters that were stored correctly
 ## Signing in with the old password
 
 When the export carries each capper's stored credential, they sign in at
-`/login` with **the same email and password they already had** — nothing to
-claim, nothing to reset.
+`/login` with **their username, the same email, and the password they already
+had** — nothing to claim, nothing to reset. When several accounts share one
+inbox, the username picks which profile to open.
 
 | Field            | Notes                                                                                                    |
 | ---------------- | -------------------------------------------------------------------------------------------------------- |
