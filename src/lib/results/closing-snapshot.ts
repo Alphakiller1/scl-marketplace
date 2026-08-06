@@ -45,6 +45,8 @@ export async function resolveClosingAmerican(
     books: play.book ? [play.book] : undefined,
     purpose: "clv",
     league: play.league,
+    // Only the market this play sits in — see the `markets` note on the fetch.
+    markets: marketKeys,
   });
   if (!event) return null;
 
