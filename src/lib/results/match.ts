@@ -1,4 +1,5 @@
 import { PROP_MARKET_LABEL } from "@/lib/odds-verify";
+import { resolveKnownTeam } from "@/lib/teams";
 import type { SettledGame } from "@/lib/results/settled-game";
 
 /**
@@ -87,7 +88,19 @@ const WEAK_NICKNAMES = new Set([
   "stars",
 ]);
 
-function mentions(text: string, team: string): boolean {
+/**
+ * Does a play's text name this club, including by abbreviation?
+ *
+ * The name-shape rules below never matched an abbreviation: "TBR -147" shares no
+ * substring with "Tampa Bay Rays" and its nickname "rays" appears nowhere in it.
+ * The legacy platform writes abbreviations for some cappers, so those picks found
+ * no game at all and sat PENDING indefinitely rather than failing loudly.
+ *
+ * Abbreviations resolve through the shared team registry — a strict, exact
+ * lookup over each club's canonical abbr and aliases — so a short token only
+ * matches when it is genuinely that club's code, never by coincidence.
+ */
+function mentions(text: string, team: string, sport?: string): boolean {
   const t = norm(text);
   const tn = norm(team);
   if (!t || !tn) return false;
@@ -96,7 +109,30 @@ function mentions(text: string, team: string): boolean {
     .split(" ")
     .filter((p) => p.length > 2 && !WEAK_NICKNAMES.has(p));
   const nickname = parts.at(-1);
-  return !!nickname && t.includes(nickname);
+  if (nickname && t.includes(nickname)) return true;
+
+  const target = sport ? resolveKnownTeam(team, sport) : null;
+  if (!target) return false;
+  return t
+    .split(" ")
+    .some(
+      (token) =>
+        token.length >= 2 &&
+        resolveKnownTeam(token, sport!)?.key === target.key,
+    );
+}
+
+/**
+ * A signed handicap left in the selection that nothing has consumed.
+ *
+ * "HOU -1 (-124)" is a run line, but its trailing price stops the spread parser
+ * anchoring on the number, so it used to reach the moneyline branch and settle
+ * as if the handicap were not there — a different bet, and a different result
+ * whenever the game lands on exactly that margin. Prices are excluded: three or
+ * more digits is American odds, not a handicap.
+ */
+function hasUnreadHandicap(selection: string): boolean {
+  return /(?:^|\s)[+-]\d{1,2}(?:\.\d)?(?=\s|$|\))/.test(selection.trim());
 }
 
 /** Parse "Brewers vs Reds" / "PHI / PIT" style matchup prefixes. */
@@ -117,10 +153,10 @@ function parseMatchupSides(text: string): { a: string; b: string } | null {
 }
 
 function teamsAreOpponents(a: string, b: string, game: SettledGame): boolean {
-  const aHome = mentions(a, game.home);
-  const aAway = mentions(a, game.away);
-  const bHome = mentions(b, game.home);
-  const bAway = mentions(b, game.away);
+  const aHome = mentions(a, game.home, game.sport);
+  const aAway = mentions(a, game.away, game.sport);
+  const bHome = mentions(b, game.home, game.sport);
+  const bAway = mentions(b, game.away, game.sport);
   return (aHome && bAway) || (aAway && bHome);
 }
 
@@ -213,20 +249,35 @@ export function findGame(
 
   const bySelection = sportGames.filter((g) => {
     const pickedHome =
-      mentions(play.selection, g.home) || mentions(play.side ?? "", g.home);
+      mentions(play.selection, g.home, g.sport) ||
+      mentions(play.side ?? "", g.home, g.sport);
     const pickedAway =
-      mentions(play.selection, g.away) || mentions(play.side ?? "", g.away);
+      mentions(play.selection, g.away, g.sport) ||
+      mentions(play.side ?? "", g.away, g.sport);
     return pickedHome !== pickedAway;
   });
   if (bySelection.length) return sole(bySelection);
 
   const byMarket = sportGames.filter(
-    (g) => mentions(play.market, g.home) || mentions(play.market, g.away),
+    (g) =>
+      mentions(play.market, g.home, g.sport) ||
+      mentions(play.market, g.away, g.sport),
   );
   if (byMarket.length) return sole(byMarket);
 
   return null;
 }
+
+/**
+ * Largest plausible handicap, used to tell a line from a price.
+ *
+ * The legacy platform writes moneylines as "TBR -147" — team plus American
+ * price — which is the same shape as team-plus-handicap. Read naively, that
+ * pick graded as a SPREAD of -147: a margin no baseball game reaches, so every
+ * such play settled LOSS regardless of who won. No handicap in the sports SCL
+ * carries approaches this, while any three-digit American price exceeds it.
+ */
+const MAX_PLAUSIBLE_HANDICAP = 60;
 
 function parseSpreadFromSelection(
   selection: string,
@@ -236,6 +287,7 @@ function parseSpreadFromSelection(
   const team = match[1]!.trim();
   const line = Number(match[2]);
   if (!team || Number.isNaN(line)) return null;
+  if (Math.abs(line) > MAX_PLAUSIBLE_HANDICAP) return null;
   return { team, line };
 }
 
@@ -244,8 +296,8 @@ function gradeSpread(
   pickedTeam: string,
   line: number,
 ): "WIN" | "LOSS" | "PUSH" | null {
-  const pickedHome = mentions(pickedTeam, game.home);
-  const pickedAway = mentions(pickedTeam, game.away);
+  const pickedHome = mentions(pickedTeam, game.home, game.sport);
+  const pickedAway = mentions(pickedTeam, game.away, game.sport);
   if (pickedHome === pickedAway) return null;
 
   const teamMargin = pickedHome
@@ -304,10 +356,19 @@ export function resolveOutcome(
   }
 
   // ---- moneyline (a team wins) ----
+  //
+  // Only when nothing in the selection says otherwise. A handicap the parser
+  // above could not read — "HOU -1 (-124)", where the trailing price stops it
+  // anchoring on the number — is a run line, and settling it as a moneyline
+  // silently grades a bet the capper did not make. Defer instead.
+  if (hasUnreadHandicap(play.selection)) return null;
+
   const pickedHome =
-    mentions(play.selection, game.home) || mentions(play.side ?? "", game.home);
+    mentions(play.selection, game.home, game.sport) ||
+    mentions(play.side ?? "", game.home, game.sport);
   const pickedAway =
-    mentions(play.selection, game.away) || mentions(play.side ?? "", game.away);
+    mentions(play.selection, game.away, game.sport) ||
+    mentions(play.side ?? "", game.away, game.sport);
   if (pickedHome === pickedAway) return null;
   if (game.homeScore === game.awayScore) return "PUSH";
   const homeWon = game.homeScore > game.awayScore;
