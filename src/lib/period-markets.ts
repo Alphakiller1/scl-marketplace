@@ -185,6 +185,15 @@ export function isPeriodMarket(market: string | null | undefined): boolean {
 export function periodMarketKeysForLabel(label: string): string[] | null {
   const parsed = parsePeriodMarket(label);
   if (!parsed?.kind) return null;
+
+  // A half carries no innings count, so it is priced against its own key —
+  // without this it fell through to the raw label, which prices nothing and
+  // silently downgraded every half pick to SELF_REPORTED.
+  if (parsed.innings === 0) {
+    const half = /(2nd|second)\s*half|h2/i.test(label) ? 2 : 1;
+    return [halfMarketKey(half as PeriodHalf, parsed.kind)];
+  }
+
   const innings = parsed.innings as PeriodInnings;
   if (!PERIOD_INNINGS.includes(innings)) return null;
   return [periodMarketKey(innings, parsed.kind)];
