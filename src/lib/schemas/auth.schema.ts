@@ -5,24 +5,49 @@ export const passwordSchema = z
   .min(12, "Password must be at least 12 characters")
   .max(100, "Password must be under 100 characters");
 
-/**
- * Public SCL @handle — shared by signup and profile username updates.
- * Strips a leading `@`, lowercases, then enforces length + charset.
- */
-export const sclUsernameSchema = z
+/** Shared normalization: drop a leading `@`, trim, lowercase. */
+const normalizedHandle = z
   .string()
   .trim()
-  .transform((value) => value.replace(/^@+/, "").toLowerCase())
-  .pipe(
-    z
-      .string()
-      .min(3, "Username must be at least 3 characters")
-      .max(20, "Username must be under 20 characters")
-      .regex(/^[a-z0-9_]+$/, "Letters, numbers, and underscores only"),
-  );
+  .transform((value) => value.replace(/^@+/, "").toLowerCase());
+
+/**
+ * Public SCL @handle — for *creating* or *changing* a handle (signup, profile).
+ * Strips a leading `@`, lowercases, then enforces length + charset.
+ */
+export const sclUsernameSchema = normalizedHandle.pipe(
+  z
+    .string()
+    .min(3, "Username must be at least 3 characters")
+    .max(20, "Username must be under 20 characters")
+    .regex(/^[a-z0-9_]+$/, "Letters, numbers, and underscores only"),
+);
+
+/**
+ * The same handle when someone is *identifying an account they already have* —
+ * signing in, resetting a password, re-requesting verification.
+ *
+ * Deliberately more permissive on length: the legacy importer and extractor
+ * accept handles up to 30 characters (`legacy-import.schema.ts`,
+ * `extract-legacy-mysql.py`), so imported cappers exist whose handle is longer
+ * than today's 20-character ceiling for new signups. Judging an existing handle
+ * by the rules for a new one rejected them at the form, before any lookup ran —
+ * they could never sign in, whatever password they typed, and the error blamed
+ * their credentials.
+ *
+ * Charset and the 3-character floor still apply, so this is not a way to smuggle
+ * junk into a lookup.
+ */
+export const sclExistingUsernameSchema = normalizedHandle.pipe(
+  z
+    .string()
+    .min(3, "Username must be at least 3 characters")
+    .max(30, "Username must be under 30 characters")
+    .regex(/^[a-z0-9_]+$/, "Letters, numbers, and underscores only"),
+);
 
 export const loginSchema = z.object({
-  username: sclUsernameSchema,
+  username: sclExistingUsernameSchema,
   email: z.string().trim().toLowerCase().email("Enter a valid email"),
   password: z.string().min(1, "Password is required"),
 });
@@ -53,7 +78,8 @@ export const signupSchema = z
 export type SignupInput = z.infer<typeof signupSchema>;
 
 export const passwordResetRequestSchema = z.object({
-  username: sclUsernameSchema,
+  // Recovering an existing account, so the imported-handle rules apply.
+  username: sclExistingUsernameSchema,
   email: z.string().trim().toLowerCase().email("Enter a valid email"),
 });
 export type PasswordResetRequestInput = z.infer<
