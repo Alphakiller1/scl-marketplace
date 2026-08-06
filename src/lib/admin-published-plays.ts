@@ -1,3 +1,5 @@
+import { SPORT_KEYS } from "@/lib/constants";
+
 export const ADMIN_PLAYS_PAGE_SIZE = 50;
 
 export type AdminPublishedPlayStatus = "all" | "pending" | "graded";
@@ -26,7 +28,11 @@ export function parseAdminPublishedPlayFilters(
 
   return {
     search,
-    sport: /^[A-Z0-9-]{2,12}$/.test(sport) ? sport : "all",
+    // Allowlist against the real sport keys, never a shape test: the filter
+    // form always submits the "all" sentinel, and uppercasing it produced a
+    // code that passed a shape test and then matched no play at all — every
+    // "Apply filters" press returned an empty register.
+    sport: SPORT_KEYS.includes(sport as never) ? sport : "all",
     status: status === "pending" || status === "graded" ? status : "all",
     recordType: recordType === "parlay" ? "parlay" : "straight",
     page: Number.isSafeInteger(page) && page > 0 ? Math.min(page, 10_000) : 1,

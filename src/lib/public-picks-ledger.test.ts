@@ -44,6 +44,13 @@ test("parsePublicPicksLedgerFilters rejects unsupported query values", () => {
   );
 });
 
+test("parsePublicPicksLedgerFilters keeps the sport sentinel a sentinel", () => {
+  // A hand-typed ?sport=all must stay "show everything" rather than becoming
+  // a literal sport code that matches nothing.
+  assert.equal(parsePublicPicksLedgerFilters({ sport: "all" }).sport, "all");
+  assert.equal(parsePublicPicksLedgerFilters({ sport: "mlb" }).sport, "MLB");
+});
+
 test("filterPublicPicks combines bounded time, sport, and graded status", () => {
   const rows = [
     pick({ id: "recent-win", status: "win" }),
