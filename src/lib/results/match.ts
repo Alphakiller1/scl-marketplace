@@ -103,11 +103,21 @@ function teamsAreOpponents(a: string, b: string, game: SettledGame): boolean {
 
 /**
  * How far a settled game's start may sit from the play's own event time and
- * still be considered the same fixture. Wide enough to absorb doubleheaders,
- * rain delays, and imported timestamps that record only the scheduled hour;
- * far tighter than the two-week settled pool.
+ * still be considered the same fixture.
+ *
+ * This was 18h, which is almost exactly the gap between an afternoon game and
+ * the previous evening's: a 14:10 ET play sits 18h from the 20:10 ET game the
+ * night before, which is long final and sitting in the settled pool. Five
+ * picks graded 2.2-2.8h after first pitch that way — mid-game, against the
+ * wrong fixture — after the earlier scoping fix shipped.
+ *
+ * 4h still spans a doubleheader nightcap and imported timestamps that record
+ * only the scheduled hour, while keeping the pool inside one fixture slot. A
+ * genuinely postponed game now finds no match and waits for a later cron run,
+ * which is the safe direction: PENDING is recoverable, a wrong public result
+ * is not.
  */
-const SAME_FIXTURE_WINDOW_MS = 18 * 60 * 60 * 1000;
+const SAME_FIXTURE_WINDOW_MS = 4 * 60 * 60 * 1000;
 
 /**
  * Restrict candidates to games plausibly on the same date as the play.
@@ -128,6 +138,19 @@ function sameFixtureWindow(
       !g.startsAt ||
       Math.abs(g.startsAt.getTime() - when.getTime()) <= SAME_FIXTURE_WINDOW_MS,
   );
+}
+
+/**
+ * One candidate, or none.
+ *
+ * Each name-matching tier used to take the first hit, so when two games in the
+ * window both fit — a doubleheader, or two clubs sharing a nickname token —
+ * the result was decided by the order the provider happened to return. A
+ * coin-flip is not a track record: an ambiguous play stays PENDING for manual
+ * review instead of publishing a guess.
+ */
+function sole(matches: SettledGame[]): SettledGame | null {
+  return matches.length === 1 ? matches[0]! : null;
 }
 
 export function findGame(
@@ -159,25 +182,25 @@ export function findGame(
 
   const matchup = parseMatchupSides(play.selection);
   if (matchup) {
-    const both = sportGames.find((g) =>
+    const both = sportGames.filter((g) =>
       teamsAreOpponents(matchup.a, matchup.b, g),
     );
-    if (both) return both;
+    if (both.length) return sole(both);
   }
 
-  for (const g of sportGames) {
+  const bySelection = sportGames.filter((g) => {
     const pickedHome =
       mentions(play.selection, g.home) || mentions(play.side ?? "", g.home);
     const pickedAway =
       mentions(play.selection, g.away) || mentions(play.side ?? "", g.away);
-    if (pickedHome !== pickedAway) return g;
-  }
+    return pickedHome !== pickedAway;
+  });
+  if (bySelection.length) return sole(bySelection);
 
-  for (const g of sportGames) {
-    if (mentions(play.market, g.home) || mentions(play.market, g.away)) {
-      return g;
-    }
-  }
+  const byMarket = sportGames.filter(
+    (g) => mentions(play.market, g.home) || mentions(play.market, g.away),
+  );
+  if (byMarket.length) return sole(byMarket);
 
   return null;
 }
