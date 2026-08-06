@@ -151,6 +151,14 @@ SCOPE_TABLES = {
     "stats1": "CURRENT_YEAR",
     "y2025": "YEAR_2025",
     "s2025": "SEASON_2025",
+    # Mapped but EMPTY in every export to date: y2024 (120 rows), s2024 (111)
+    # and stats_post (111) each carry one scaffolding row per capper with the
+    # name filled and every counter at zero -- 0 settled results between them.
+    # stat_cell returns None for an all-zero row, so these emit nothing today.
+    # Wired up so the data flows if the source ever starts recording it.
+    "y2024": "YEAR_2024",
+    "s2024": "SEASON_2024",
+    "stats_post": "POSTSEASON",
     "stats90": "LAST_90D",
     "stats60": "LAST_60D",
     "stats30": "LAST_30D",
