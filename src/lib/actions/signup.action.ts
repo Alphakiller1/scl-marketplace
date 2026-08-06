@@ -2,6 +2,7 @@
 
 import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
+import { after } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { signupSchema, type SignupInput } from "@/lib/schemas/auth.schema";
@@ -16,23 +17,32 @@ import { consumeRateLimit } from "@/lib/rate-limit";
 import { getRequestIdentity } from "@/lib/request-identity";
 import { evaluateAccountClaim, handleTakenMessage } from "@/lib/account-claim";
 import { ensureAuthEmailSchema } from "@/lib/ensure-auth-email-schema";
+import { emailVerificationEnforced } from "@/lib/email-verification-policy";
 
 type SignupResult =
   | { ok: true; emailDelivered: boolean; verifyUrl?: string }
   | { ok: false; error: string };
 
-// Email delivery requires a verified Resend sender domain. Until that's configured, gating
-// access on a verification email that can't be delivered locks everyone out, so new accounts
-// are activated immediately. Set REQUIRE_EMAIL_VERIFICATION=true once a real sender domain is
-// live to restore the verify-before-access gate.
-const REQUIRE_EMAIL_VERIFICATION =
-  process.env.REQUIRE_EMAIL_VERIFICATION === "true";
-
-// Account state for a fresh/re-claimed signup: pending until verified when verification is
-// required, otherwise immediately active (and marked verified) so the account is usable now.
-const newAccountState = REQUIRE_EMAIL_VERIFICATION
-  ? { accountStatus: "PENDING" as const }
-  : { accountStatus: "ACTIVE" as const, emailVerified: new Date() };
+/**
+ * Account state for a fresh or re-claimed signup.
+ *
+ * `emailVerified` is deliberately absent. Signup has no evidence that anyone read the inbox
+ * it was handed, so it records none: the column is written by `consumeVerificationToken` and
+ * nothing else. It used to be stamped here whenever the verify gate was off, which meant a
+ * capper who never received a link still showed "Verified" to admins — and
+ * `resendVerificationAction` skips verified accounts, so the one recovery path was closed to
+ * precisely the people who needed it. Access when mail is undeliverable is
+ * `emailVerificationEnforced()`'s job; it is not this row's job to lie about it.
+ *
+ * Computed per call — as a module constant its `new Date()` froze at the first import, so
+ * every account created on a warm serverless instance shared one timestamp, several seconds
+ * *before* the row it belonged to.
+ */
+function newAccountState() {
+  return emailVerificationEnforced()
+    ? { accountStatus: "PENDING" as const }
+    : { accountStatus: "ACTIVE" as const };
+}
 
 export async function signupAction(input: SignupInput): Promise<SignupResult> {
   const parsed = signupSchema.safeParse(input);
@@ -112,7 +122,7 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
           // needs their own account back uses the emailed claim/reset link, which proves
           // control of the inbox and leaves the role untouched.
           role: "CAPPER",
-          ...newAccountState,
+          ...newAccountState(),
           capperProfile: { upsert: { create: {}, update: {} } },
           termsAcceptances: {
             create: {
@@ -132,7 +142,7 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
           username,
           passwordHash,
           role: "CAPPER",
-          ...newAccountState,
+          ...newAccountState(),
           capperProfile: { create: {} },
           termsAcceptances: {
             create: { ...acceptanceData, acceptanceSource: "SIGNUP" },
@@ -156,11 +166,13 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
     return { ok: false, error: "We couldn't create that account." };
   }
 
-  // The account is valid even if email delivery fails. Track whether the verification email
-  // actually sent; when it didn't (e.g. sender domain not yet verified), hand back the verify
-  // link so the UI can let the user finish in one tap instead of waiting for an email that
-  // never arrives. This fallback self-heals: once a verified sender is configured, emails
-  // deliver and `verifyUrl` is no longer returned.
+  // The account is valid even if email delivery fails.
+  //
+  // When the mailer isn't configured at all, hand the verify link back so the UI can finish
+  // in one tap rather than pointing at an inbox nothing was sent to. That link is a bypass —
+  // it proves possession of the browser, not the inbox — so it is offered ONLY while the gate
+  // is off and verification therefore buys no access. With the gate on, a failed send is
+  // reported honestly and recovered through resend, never routed around.
   let emailDelivered = false;
   let verifyUrl: string | undefined;
   try {
@@ -168,18 +180,25 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
     if (token) {
       const delivery = await sendVerificationEmail(lowerEmail, token, username);
       emailDelivered = delivery.delivered;
-      if (!delivery.delivered) verifyUrl = delivery.link;
+      if (!delivery.delivered && !emailVerificationEnforced()) {
+        verifyUrl = delivery.link;
+      }
     }
   } catch (error) {
     console.error("[signup] verification delivery failed:", error);
   }
 
-  // Owners hear about every new capper. Deliberately not awaited: it is an
-  // internal notice, and signup must not wait on it or fail with it.
-  void sendNewSignupNotificationEmail({
-    username,
-    email: lowerEmail,
-    signedUpAt: new Date(),
+  // Owners hear about every new capper. Handed to `after()` so signup doesn't wait on an
+  // internal notice — but it still runs to completion. A bare `void` left the request's last
+  // promise unowned, and a serverless instance is frozen the moment its response is returned,
+  // so the send was routinely killed mid-flight: owners got nothing, and no error was raised
+  // anywhere because the call never got far enough to fail.
+  after(async () => {
+    await sendNewSignupNotificationEmail({
+      username,
+      email: lowerEmail,
+      signedUpAt: new Date(),
+    });
   });
 
   return { ok: true, emailDelivered, verifyUrl };
