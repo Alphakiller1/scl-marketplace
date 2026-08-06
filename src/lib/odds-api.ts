@@ -2,7 +2,14 @@ import "server-only";
 
 import { bookmakersQueryParam, isBookKey } from "@/lib/books";
 import { shouldCircuitBreak } from "@/lib/odds-budget";
-import { SOCCER_LEAGUES, soccerLeagueByKey } from "@/lib/soccer-leagues";
+import {
+  SOCCER_LEAGUES,
+  SOCCER_LEAGUE_LIMIT,
+  selectSoccerLeagues,
+  soccerLeagueByKey,
+  type OddsApiSportRow,
+  type SoccerLeague,
+} from "@/lib/soccer-leagues";
 import { prisma } from "@/lib/prisma";
 import {
   dedupeOddsEvents,
@@ -206,6 +213,42 @@ export function buildOddsBoardMeta(
 }
 
 const SOCCER_FETCH_PARALLEL = 3;
+/** Soccer board cache window (seconds) — see the note at the fetch site. */
+const SOCCER_BOARD_TTL = 600;
+
+/**
+ * Which soccer competitions are in season right now, from the Odds API catalog.
+ *
+ * `/v4/sports` costs ZERO credits and returns only in-season competitions, so
+ * this is a free correction to a list that would otherwise be wrong for months
+ * of every year. Cached for an hour — seasons don't turn over faster than that.
+ * Returns null on any failure so the caller falls back to the static registry
+ * rather than emptying the board.
+ */
+export async function fetchInSeasonSoccerLeagues(): Promise<
+  SoccerLeague[] | null
+> {
+  const apiKey = oddsApiKey();
+  if (!apiKey) return null;
+  try {
+    const res = await fetch(
+      `https://api.the-odds-api.com/v4/sports/?apiKey=${apiKey}`,
+      { next: { revalidate: 3600, tags: ["odds-sports-catalog"] } },
+    );
+    // Deliberately not logged as usage: the catalog endpoint is not billed.
+    if (!res.ok) {
+      console.warn(`[odds] sports catalog: HTTP ${res.status}`);
+      return null;
+    }
+    const rows = (await res.json()) as OddsApiSportRow[];
+    if (!Array.isArray(rows)) return null;
+    const leagues = selectSoccerLeagues(rows);
+    return leagues.length ? leagues : null;
+  } catch (err) {
+    console.warn("[odds] sports catalog fetch failed", err);
+    return null;
+  }
+}
 
 /** Soccer board — fans out across SOCCER_LEAGUES with capped parallelism. */
 export async function fetchSoccerBoard(
@@ -227,7 +270,14 @@ export async function fetchSoccerBoard(
       const url =
         `https://api.the-odds-api.com/v4/sports/${oddsApiKey}/odds/` +
         `?apiKey=${apiKey}&${oddsScopeQuery(books)}&markets=h2h,spreads,totals&oddsFormat=american`;
-      const res = await fetch(url, { next: { revalidate: 120 } });
+      // Soccer is the one sport that fans out over many competitions, so its
+      // board is by far the most expensive to refresh. Selecting only in-season
+      // competitions means every one of these calls now returns fixtures and is
+      // therefore billed, where most used to be free no-ops — so the refresh
+      // window widens to keep the monthly burn flat. Browsing tolerates a
+      // slightly older price: the number that actually goes on the record is
+      // re-fetched per event at submit time.
+      const res = await fetch(url, { next: { revalidate: SOCCER_BOARD_TTL } });
       logOddsUsage(res, `soccer ${leagueKey}`, "board", "SOCCER");
       if (!res.ok) {
         console.warn(`[odds] soccer ${leagueKey}: HTTP ${res.status}`);
@@ -249,14 +299,27 @@ export async function fetchSoccerBoard(
     return board;
   };
 
+  // Ask the catalog what is actually in season before spending credits. Falling
+  // back to the full registry keeps the old behaviour when the catalog is
+  // unreachable — degraded, never empty by construction.
+  const leagues =
+    (await fetchInSeasonSoccerLeagues()) ??
+    SOCCER_LEAGUES.slice(0, SOCCER_LEAGUE_LIMIT);
+
   const all: OddsEvent[] = [];
   try {
-    for (let i = 0; i < SOCCER_LEAGUES.length; i += SOCCER_FETCH_PARALLEL) {
-      const batch = SOCCER_LEAGUES.slice(i, i + SOCCER_FETCH_PARALLEL);
+    for (let i = 0; i < leagues.length; i += SOCCER_FETCH_PARALLEL) {
+      const batch = leagues.slice(i, i + SOCCER_FETCH_PARALLEL);
       const chunk = await Promise.all(
         batch.map((l) => fetchLeague(l.oddsApiKey, l.key)),
       );
       all.push(...chunk.flat());
+    }
+    if (all.length === 0) {
+      console.info(
+        `[odds] soccer: 0 events across ${leagues.length} in-season competitions` +
+          ` (${leagues.map((l) => l.key).join(", ")})`,
+      );
     }
     return dedupeOddsEvents(all).slice(0, 80);
   } catch (err) {
