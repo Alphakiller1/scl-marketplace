@@ -1,9 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { TRACK_YOUR_RECORD_CTA } from "@/lib/cold-start-copy";
-import { getCurrentUser } from "@/lib/session";
+import { useSessionUser } from "@/lib/use-session-user";
 
 const BUTTON_CLASS = "min-h-10 w-full shrink-0 gap-2 sm:w-auto";
 
@@ -32,11 +34,15 @@ export function TrackRecordCtaFallback() {
  * was sent to create an account they already have. The destination now follows
  * the session: a capper goes where the record is actually kept.
  *
- * Its own island so the marketing page is not forced dynamic just to read auth —
- * the same reason the header resolves its session separately.
+ * The session is read in the browser, not during the server render. This was
+ * previously an async server component reading `getCurrentUser()`, on the
+ * assumption that a Suspense island kept the page static. It does not — without
+ * Partial Prerendering one dynamic API opts the whole route into dynamic
+ * rendering, so this single call was making the home page re-render and
+ * re-query the database on every request.
  */
-export async function TrackRecordCta() {
-  const user = await getCurrentUser();
+export function TrackRecordCta() {
+  const user = useSessionUser();
   if (!user) return <TrackRecordCtaFallback />;
 
   return (
