@@ -487,19 +487,23 @@ export async function adminSavePackageAction(
     return { ok: false, error: "Package belongs to a different capper." };
   }
 
-  const inferred = d.storeConnectionId
-    ? null
-    : ((
-        await prisma.storeConnection.findUnique({
-          where: {
-            capperId_provider: {
-              capperId: d.capperId,
-              provider: d.affiliateProvider,
+  // Only a create consults the capper's connections — an edit keeps the home it
+  // already has — so skip the lookup rather than spend a pooled query on a
+  // result that would be discarded.
+  const inferred =
+    d.storeConnectionId || d.id
+      ? null
+      : ((
+          await prisma.storeConnection.findUnique({
+            where: {
+              capperId_provider: {
+                capperId: d.capperId,
+                provider: d.affiliateProvider,
+              },
             },
-          },
-          select: { id: true },
-        })
-      )?.id ?? null);
+            select: { id: true },
+          })
+        )?.id ?? null);
   const storeConnectionId = resolvePackageStoreConnectionId({
     explicit: d.storeConnectionId || null,
     existing: current?.storeConnectionId ?? null,
