@@ -50,6 +50,10 @@ model User {
   /// When true, excluded from public leaderboard / picks / discover / profile.
   /// Toggle in Supabase without a code change; handle guards remain as backup.
   isTest                   Boolean       @default(false)
+  /// Set from the unsubscribe link. Suppresses roster-wide broadcasts only —
+  /// verification, password resets and direct admin messages are operational
+  /// and always send.
+  marketingOptOut          Boolean       @default(false)
   createdAt                DateTime      @default(now())
   updatedAt                DateTime      @updatedAt
 
@@ -57,17 +61,19 @@ model User {
   sessions           Session[]
   capperProfile      CapperProfile?
   termsAcceptances   TermsAcceptance[]
-  gradingActions     GradingAudit[]           @relation("GradedBy")
-  parlayGradeActions ParlayGradingAudit[]     @relation("ParlayGradedBy")
+  gradingActions     GradingAudit[]            @relation("GradedBy")
+  parlayGradeActions ParlayGradingAudit[]      @relation("ParlayGradedBy")
   passwordResetToken PasswordResetToken?
-  statusChanges      AccountStatusAudit[]     @relation("AccountStatusSubject")
-  statusActions      AccountStatusAudit[]     @relation("AccountStatusActor")
-  storefrontReviews  StorefrontReviewEvent[]  @relation("StorefrontReviewActor")
-  storefrontReviewed StoreConnection[]        @relation("StoreConnectionReviewedBy")
-  policyUpdates      PolicyDocument[]         @relation("PolicyUpdatedBy")
-  policyRevisions    PolicyDocumentRevision[] @relation("PolicyRevisionEditedBy")
-  packageAudits      PackageAuditEvent[]      @relation("PackageAuditActor")
-  storefrontMessages StorefrontMessage[]      @relation("StorefrontMessageSender")
+  statusChanges      AccountStatusAudit[]      @relation("AccountStatusSubject")
+  statusActions      AccountStatusAudit[]      @relation("AccountStatusActor")
+  storefrontReviews  StorefrontReviewEvent[]   @relation("StorefrontReviewActor")
+  storefrontReviewed StoreConnection[]         @relation("StoreConnectionReviewedBy")
+  policyUpdates      PolicyDocument[]          @relation("PolicyUpdatedBy")
+  policyRevisions    PolicyDocumentRevision[]  @relation("PolicyRevisionEditedBy")
+  packageAudits      PackageAuditEvent[]       @relation("PackageAuditActor")
+  storefrontMessages StorefrontMessage[]       @relation("StorefrontMessageSender")
+  broadcastsSent     AdminBroadcast[]          @relation("AdminBroadcastSender")
+  broadcastsReceived AdminBroadcastRecipient[] @relation("AdminBroadcastRecipientUser")
 
   @@unique([email, username])
 }
@@ -423,12 +429,12 @@ model Package {
   playLinks          PlayPackage[]
   parlayLinks        ParlayPackage[]
 
+  @@unique([storeConnectionId, externalProductId])
   @@index([capperId])
   @@index([storeConnectionId])
   @@index([isActive])
   @@index([sortOrder])
   @@index([externalProductId])
-  @@unique([storeConnectionId, externalProductId])
 }
 
 model TrackingUrl {
@@ -766,4 +772,46 @@ model PackageAuditEvent {
   @@index([capperId, createdAt])
   @@index([packageId])
   @@index([actorId])
+}
+
+enum BroadcastAudience {
+  ALL_CAPPERS
+  VERIFIED_CAPPERS
+  SINGLE_CAPPER
+}
+
+/// One admin send: the roster, a filtered slice of it, or a single capper.
+/// Kept as a record because "did we tell them?" is a question that gets asked
+/// after the fact, and a mail provider's dashboard is not part of the product.
+model AdminBroadcast {
+  id             String                    @id @default(cuid())
+  subject        String
+  body           String
+  audience       BroadcastAudience
+  sentById       String
+  sentBy         User                      @relation("AdminBroadcastSender", fields: [sentById], references: [id], onDelete: Cascade)
+  recipientCount Int                       @default(0)
+  deliveredCount Int                       @default(0)
+  failedCount    Int                       @default(0)
+  createdAt      DateTime                  @default(now())
+  completedAt    DateTime?
+  recipients     AdminBroadcastRecipient[]
+
+  @@index([createdAt])
+}
+
+/// Per-recipient outcome, so "did this capper get it?" is answerable.
+model AdminBroadcastRecipient {
+  id          String         @id @default(cuid())
+  broadcastId String
+  broadcast   AdminBroadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?          @relation("AdminBroadcastRecipientUser", fields: [userId], references: [id], onDelete: SetNull)
+  address     String
+  delivered   Boolean        @default(false)
+  error       String?
+  createdAt   DateTime       @default(now())
+
+  @@index([broadcastId])
+  @@index([userId])
 }
