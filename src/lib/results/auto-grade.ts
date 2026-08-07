@@ -23,7 +23,11 @@ import {
   resolvePeriodSpread,
   resolvePeriodTotal,
 } from "@/lib/results/prop-resolve";
-import { fetchPeriodBoxScore } from "@/lib/results/stats-provider";
+import {
+  fetchPeriodBoxScore,
+  fetchPlayerBoxScore,
+} from "@/lib/results/stats-provider";
+import { resolvePlayerProp } from "@/lib/results/player-props";
 import type { ResultsProvider } from "@/lib/results/provider";
 import { hasClvColumns } from "@/lib/results/schema-features";
 import {
@@ -70,15 +74,59 @@ function logSkip(
  * line-scores. Returns null (→ still defer) for everything else — player props,
  * missing eventId, or incomplete line-scores — so this never settles on a guess.
  */
-async function resolveDeferredPeriodTotal(play: {
-  sport: string;
-  selection: string;
-  eventId?: string | null;
-}): Promise<Outcome | null> {
-  if (!play.eventId || !parsePeriodTotal(play.selection)) return null;
-  const box = await fetchPeriodBoxScore(play.sport, play.eventId);
+async function resolveDeferredPeriodTotal(
+  play: GradablePlay,
+  games: SettledGame[],
+): Promise<Outcome | null> {
+  if (!parsePeriodTotal(play.selection)) return null;
+  const espnId = espnEventIdFor(play, games);
+  if (!espnId) return null;
+  const box = await fetchPeriodBoxScore(play.sport, espnId);
   if (!box) return null;
   return resolvePeriodTotal(play.selection, box);
+}
+
+/**
+ * ESPN's numeric event id for a play, read off the settled game it matches.
+ *
+ * `Play.eventId` is an **Odds API hash** — in production every bound play
+ * carries a 32-char hex id and not one carries an ESPN id. Passing that to
+ * ESPN's summary endpoint 404s, which is why box-score grading had never
+ * settled a single play. The ESPN provider already stamps `espn:<id>` onto the
+ * games it returns, so the matched game carries the id we actually need.
+ */
+function espnEventIdFor(
+  play: GradablePlay,
+  games: SettledGame[],
+): string | null {
+  const id = findSettledGame(play, games)?.eventId;
+  return id?.startsWith("espn:") ? id.slice("espn:".length) : null;
+}
+
+/**
+ * Settle a player prop from the box score, or defer.
+ *
+ * This is the class of play that used to route straight to the manual queue:
+ * every prop stayed PENDING until someone graded it by hand, so the backlog
+ * rebuilt itself every single day.
+ */
+async function resolvePlayerPropPlay(
+  play: GradablePlay,
+  games: SettledGame[],
+): Promise<Outcome | null> {
+  const espnId = espnEventIdFor(play, games);
+  if (!espnId) return null;
+  const box = await fetchPlayerBoxScore(play.sport, espnId);
+  if (!box) return null;
+  return resolvePlayerProp(
+    {
+      market: play.market,
+      selection: play.selection,
+      side: play.side,
+      line: play.line ?? null,
+    },
+    box,
+  );
 }
 
 /**
@@ -97,9 +145,11 @@ async function resolvePeriodPlay(
   // innings <= 0 is a half: recognised as a partial-game market (so it is never
   // graded on the full-game score) but not yet settleable, because the box-score
   // provider only maps baseball line-scores.
-  if (!period || period.innings <= 0 || !play.eventId) return null;
+  if (!period || period.innings <= 0) return null;
 
-  const box = await fetchPeriodBoxScore(play.sport, play.eventId);
+  const espnId = espnEventIdFor(play, games);
+  if (!espnId) return null;
+  const box = await fetchPeriodBoxScore(play.sport, espnId);
   if (!box) return null;
 
   if (period.kind === "total") {
@@ -202,9 +252,11 @@ async function gradeStraightPlays(
         continue;
       }
     } else if (isDeferredProp(play)) {
-      // Period totals (First-Five / innings) settle from box-score line-scores;
-      // everything else (player props) still defers to the manual backup.
-      outcome = await resolveDeferredPeriodTotal(play);
+      // Period totals settle from line-scores; player props from the per-athlete
+      // box score. Only a play neither resolver can settle still defers.
+      outcome =
+        (await resolveDeferredPeriodTotal(play, games)) ??
+        (await resolvePlayerPropPlay(play, games));
       if (!outcome) {
         skippedByReason.props_deferred++;
         logSkip("play", play, "props_deferred");
