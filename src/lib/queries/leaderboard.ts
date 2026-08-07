@@ -4,6 +4,7 @@ import { unstable_cache } from "next/cache";
 import { cache } from "react";
 import type { Outcome } from "@prisma/client";
 
+import { reviveCachedDates } from "@/lib/cache-dates";
 import { prisma } from "@/lib/prisma";
 import {
   buildPerformanceTrend,
@@ -460,5 +461,7 @@ export const getLeaderboardResult = cache(async function getLeaderboardResult(
     search: filters.search,
     limit: filters.limit,
   });
-  return getCachedLeaderboardResult(cacheKey);
+  // `lastPlayAt` / `joinedAt` reach the cards as Dates — rebuild them after the
+  // cache's JSON round trip.
+  return reviveCachedDates(await getCachedLeaderboardResult(cacheKey));
 });

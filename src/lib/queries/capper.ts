@@ -3,6 +3,7 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
 
+import { reviveCachedDates } from "@/lib/cache-dates";
 import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
 import { UNIT_MIN } from "@/lib/constants";
 import {
@@ -408,6 +409,8 @@ export const getPublicCapperByHandle = cache(
   ): Promise<PublicCapper | null> {
     const normalized = handle.replace(/^@+/, "").trim().toLowerCase();
     if (!normalized) return null;
-    return getCachedPublicCapperByHandle(normalized);
+    // `capper.joinedAt` / `capper.lastPlayAt` and every `plays[].createdAt` are
+    // Dates the profile formats directly — rebuild them after the JSON round trip.
+    return reviveCachedDates(await getCachedPublicCapperByHandle(normalized));
   },
 );
