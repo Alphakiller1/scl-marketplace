@@ -158,13 +158,25 @@ test("verificationMarkets bundles core + curated sport props", () => {
   assert.ok(mlb.includes("h2h"));
   assert.ok(mlb.includes("alternate_totals"));
   assert.ok(mlb.includes("pitcher_strikeouts"));
-  // unknown sport → core markets only
+  // unknown sport → core markets only. Team totals are core, not per-sport:
+  // any sport whose book prices them should surface them.
   assert.deepEqual(verificationMarkets("PGA"), [
     "h2h",
     "spreads",
     "totals",
     "alternate_spreads",
     "alternate_totals",
+    "team_totals",
+    "alternate_team_totals",
+  ]);
+});
+
+test("marketKeysForMarket bundles both team-total keys", () => {
+  // A pick taken off the alternate ladder is priced only in the alternate key,
+  // so verifying against the featured key alone could not find its line.
+  assert.deepEqual(marketKeysForMarket("Team Total"), [
+    "team_totals",
+    "alternate_team_totals",
   ]);
 });
 

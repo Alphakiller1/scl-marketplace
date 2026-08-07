@@ -14,6 +14,12 @@ import {
   propMarketLabel,
   type RawEventOdds,
 } from "@/lib/odds-verify";
+import {
+  isTeamTotalMarket,
+  TEAM_TOTAL_LABEL,
+  TEAM_TOTAL_MARKET_KEYS,
+  teamTotalSelectionText,
+} from "@/lib/team-total-markets";
 
 /** American ≥ this (longshot) or ≤ {@link EXTREME_AMERICAN_FAVORITE} → operator-review flag. */
 export const EXTREME_AMERICAN_LONGSHOT = 900;
@@ -217,7 +223,11 @@ const BOARD_MARKETS: Record<string, "Moneyline" | "Spread" | "Total"> = {
   alternate_totals: "Total",
 };
 
+const TEAM_TOTAL_KEY_SET = new Set<string>(TEAM_TOTAL_MARKET_KEYS);
+
 const MARKET_SORT = { Moneyline: 0, Spread: 1, Total: 2 } as const;
+/** A team total is a game line — it belongs with them, ahead of period lines. */
+const TEAM_TOTAL_RANK = 3;
 /** Period lines sit between the full-game block and props. */
 const PERIOD_RANK = 5;
 const PROP_RANK = 10;
@@ -228,6 +238,14 @@ type BoardGroup = {
   side: string;
   line?: number;
   player?: string;
+  /**
+   * Which club a team total prices. Separate from `player` on purpose: `player`
+   * is what routes a selection into the player-prop bucket (grouped by name,
+   * headshot, "no player → discard"), and a team total is a game line. Reusing
+   * it would file team totals under player props — the same misfiling that hid
+   * F3/F5/F7 entirely.
+   */
+  team?: string;
   featured: boolean;
   byBook: Map<string, number>;
   lastUpdateByBook: Map<string, string>;
@@ -236,6 +254,9 @@ type BoardGroup = {
 function marketRank(market: string): number {
   const full = MARKET_SORT[market as keyof typeof MARKET_SORT];
   if (full !== undefined) return full;
+  // Before the period check, and before the prop fallthrough: a team total is a
+  // game line, and landing in PROP_RANK would sort it among player props.
+  if (isTeamTotalMarket(market)) return TEAM_TOTAL_RANK;
   const period = parsePeriodMarket(market);
   if (!period) return PROP_RANK;
   // F3 before F5 before F7, moneyline/spread/total within each.
@@ -292,8 +313,12 @@ export function normalizeEventBoard(
     for (const m of bm.markets ?? []) {
       const gameMarket = BOARD_MARKETS[m.key];
       const periodLabel = PERIOD_MARKET_LABEL[m.key];
-      const propLabel = propMarketLabel(m.key);
-      if (!gameMarket && !periodLabel && !propLabel) continue;
+      const isTeamTotal = TEAM_TOTAL_KEY_SET.has(m.key);
+      // Only consulted when nothing above claimed the key. Team totals carry a
+      // `description` exactly like a player prop does, so without this check
+      // first they would look like props whose "player" is a club.
+      const propLabel = isTeamTotal ? undefined : propMarketLabel(m.key);
+      if (!gameMarket && !periodLabel && !isTeamTotal && !propLabel) continue;
       const isFeatured = FEATURED_KEYS.has(m.key);
       for (const o of m.outcomes ?? []) {
         if (typeof o.price !== "number") continue;
@@ -333,6 +358,26 @@ export function normalizeEventBoard(
             isFeatured,
             lastUpdate,
           );
+        } else if (isTeamTotal) {
+          // `description` names the club; without it the row is "Over 4.5" with
+          // no side attached, which is ambiguous between the two teams and
+          // worse than showing nothing.
+          const team = (o.description ?? "").trim();
+          if (!team || line === undefined) continue;
+          add(
+            `tt|${team.toLowerCase()}|${o.name.toLowerCase()}|${line}`,
+            () => ({
+              market: TEAM_TOTAL_LABEL,
+              side: o.name,
+              line,
+              team,
+              featured: false,
+            }),
+            bookKey,
+            price,
+            false,
+            lastUpdate,
+          );
         } else {
           if (!propLabel) continue;
           const player = (o.description ?? "").trim();
@@ -362,6 +407,23 @@ export function normalizeEventBoard(
     if (!best) continue;
     const book = best.book || undefined;
     const oddsCapturedAt = best.capturedAt;
+    if (g.team && g.line != null) {
+      const text = teamTotalSelectionText(g.team, g.side, g.line);
+      selections.push({
+        label: text,
+        market: g.market,
+        selection: text,
+        side: g.side,
+        line: g.line,
+        featured: false,
+        oddsAmerican: best.price,
+        book,
+        bookPrices: best.bookPrices,
+        ...(best.bookCapturedAt ? { bookCapturedAt: best.bookCapturedAt } : {}),
+        ...(oddsCapturedAt ? { oddsCapturedAt } : {}),
+      });
+      continue;
+    }
     const period = g.player ? null : parsePeriodMarket(g.market);
     if (period) {
       // Selection text carries the segment as well as the market label, so the
@@ -470,7 +532,13 @@ type RawUpcoming = {
     last_update?: string;
     markets?: {
       key: string;
-      outcomes: { name: string; price: number; point?: number }[];
+      outcomes: {
+        name: string;
+        price: number;
+        point?: number;
+        /** Club for a team total; player for a prop. */
+        description?: string;
+      }[];
     }[];
   }[];
 };

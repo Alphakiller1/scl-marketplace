@@ -160,3 +160,95 @@ test("Red Sox and White Sox are told apart", () => {
     "LOSS",
   );
 });
+
+// ── team totals ──────────────────────────────────────────────────────────────
+//
+// A team total prices ONE club's runs. The game-total resolver keys off
+// `market.includes("total")`, and "Team Total" contains it — so the danger is
+// not that these fail to grade, it is that they grade against the combined
+// score and win almost every time.
+
+const TT_GAME: SettledGame = {
+  sport: "MLB",
+  home: "Washington Nationals",
+  away: "Atlanta Braves",
+  homeScore: 3,
+  awayScore: 2,
+  completed: true,
+  eventId: "tt-evt",
+};
+
+function teamTotal(selection: string): GradablePlay {
+  return {
+    id: "tt",
+    sport: "MLB",
+    market: "Team Total",
+    selection,
+    oddsAmerican: -110,
+    units: 1,
+    eventId: "tt-evt",
+  };
+}
+
+test("a team total settles against that club's own score, not the game's", () => {
+  // Nationals scored 3. Combined is 5 — the number that would make this a WIN
+  // if it ever reached the game-total branch.
+  assert.equal(
+    resolveOutcome(teamTotal("Washington Nationals Over 4.5"), [TT_GAME]),
+    "LOSS",
+  );
+  assert.equal(
+    resolveOutcome(teamTotal("Washington Nationals Under 4.5"), [TT_GAME]),
+    "WIN",
+  );
+});
+
+test("a team total reads the away club independently", () => {
+  // Braves scored 2.
+  assert.equal(
+    resolveOutcome(teamTotal("Atlanta Braves Over 1.5"), [TT_GAME]),
+    "WIN",
+  );
+  assert.equal(
+    resolveOutcome(teamTotal("Atlanta Braves Over 2.5"), [TT_GAME]),
+    "LOSS",
+  );
+});
+
+test("a team total on the exact number pushes", () => {
+  assert.equal(
+    resolveOutcome(teamTotal("Washington Nationals Over 3"), [TT_GAME]),
+    "PUSH",
+  );
+});
+
+test("canonical team totals grade; free-text ones still defer", () => {
+  assert.equal(
+    isDeferredProp(teamTotal("Washington Nationals Over 4.5")),
+    false,
+  );
+  // Cannot be resolved to a club without guessing — stays PENDING.
+  assert.equal(isDeferredProp(teamTotal("Nats TT O4.5")), true);
+  assert.equal(resolveOutcome(teamTotal("Nats TT O4.5"), [TT_GAME]), null);
+});
+
+test("a team total naming neither club refuses to grade", () => {
+  assert.equal(
+    resolveOutcome(teamTotal("Chicago Cubs Over 4.5"), [TT_GAME]),
+    null,
+  );
+});
+
+test("the game total is unaffected by team-total handling", () => {
+  const gameTotal: GradablePlay = {
+    id: "gt",
+    sport: "MLB",
+    market: "Total",
+    selection: "Over 4.5",
+    oddsAmerican: -110,
+    units: 1,
+    eventId: "tt-evt",
+  };
+  // 3 + 2 = 5 combined.
+  assert.equal(resolveOutcome(gameTotal, [TT_GAME]), "WIN");
+});

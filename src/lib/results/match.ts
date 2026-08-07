@@ -1,6 +1,10 @@
 import { PROP_MARKET_LABEL } from "@/lib/odds-verify";
 import { isPeriodMarket } from "@/lib/period-markets";
 import { resolveKnownTeam } from "@/lib/teams";
+import {
+  isTeamTotalMarket,
+  parseTeamTotalSelection,
+} from "@/lib/team-total-markets";
 import type { SettledGame } from "@/lib/results/settled-game";
 
 /**
@@ -64,6 +68,14 @@ export function isDeferredProp(play: GradablePlay): boolean {
   if (/\bf5\b/.test(selection) || selection.includes("innings")) return true;
   // A team total is not a game total. "Nationals TT O4.5" compared against both
   // teams' combined runs is a near-guaranteed spurious WIN.
+  //
+  // A board-written team total now settles properly against the named club's own
+  // score, so it is NOT deferred — but only in the canonical form the board
+  // writes. Free text that merely looks like one still is: resolving "TT" to a
+  // club by guesswork is how the spurious win gets written anyway.
+  if (isTeamTotalMarket(play.market)) {
+    return parseTeamTotalSelection(play.selection) === null;
+  }
   if (/\btt\b/.test(selection) || selection.includes("team total")) return true;
   if (
     /\b(points|rebounds|assists|yards|touchdowns|strikeouts|hits)\b/.test(
@@ -357,6 +369,28 @@ export function resolveOutcome(
   const selection = norm(play.selection);
   const game = findGame(play, games);
   if (!game) return null;
+
+  // ---- team totals (one club's runs) ----
+  //
+  // MUST precede the game-total branch below, which triggers on
+  // `market.includes("total")` — and "Team Total" contains "total". Reaching it
+  // would settle "Nationals Over 4.5" against BOTH clubs' runs: a 3-2 game is 5
+  // combined, a WIN on a bet the capper never made. Resolving here, against the
+  // named club's own score, is the whole point of the market being separate.
+  if (isTeamTotalMarket(play.market)) {
+    const parsed = parseTeamTotalSelection(play.selection);
+    // Only the canonical board-written form resolves. A free-text legacy pick
+    // ("Nats TT O4.5") returns null and stays PENDING rather than being graded
+    // on a guess about which club it names.
+    if (!parsed) return null;
+    const pickedHome = mentions(parsed.team, game.home, game.sport);
+    const pickedAway = mentions(parsed.team, game.away, game.sport);
+    if (pickedHome === pickedAway) return null;
+    const teamScore = pickedHome ? game.homeScore : game.awayScore;
+    if (teamScore === parsed.line) return "PUSH";
+    const wentOver = teamScore > parsed.line;
+    return (parsed.side === "Over") === wentOver ? "WIN" : "LOSS";
+  }
 
   // ---- totals (over/under a number) ----
   const totalMatch = play.selection

@@ -20,6 +20,10 @@ import {
   periodMarketKeysForLabel,
   periodMarketKeysForSport,
 } from "@/lib/period-markets";
+import {
+  isTeamTotalMarket,
+  TEAM_TOTAL_MARKET_KEYS,
+} from "@/lib/team-total-markets";
 
 /** Verification region — US cappers bet US books; keeps per-event cost at 1× regions. */
 export const VERIFY_REGIONS = "us";
@@ -35,6 +39,11 @@ export const CORE_MARKETS = [
   "totals",
   "alternate_spreads",
   "alternate_totals",
+  // Team totals price one club's runs, not the game's, and cappers post them
+  // routinely. Both keys, for the same reason spreads and totals take both: the
+  // featured key carries the main line per club and the alternate carries the
+  // ladder around it.
+  ...TEAM_TOTAL_MARKET_KEYS,
 ] as const;
 
 /**
@@ -160,6 +169,10 @@ export function marketKeysForMarket(market: string): string[] {
   // and it has no `_alternate` variant to bundle.
   const periodKeys = periodMarketKeysForLabel(m);
   if (periodKeys) return periodKeys;
+  // Also a game line, not a prop. A pick taken off the alternate ladder has to
+  // be priced against both keys or verification cannot find the line it was
+  // logged at.
+  if (isTeamTotalMarket(m)) return [...TEAM_TOTAL_MARKET_KEYS];
   // A pick logged at a milestone line (6+ strikeouts) lives in the alternate
   // market, so verification has to look in both or it would fail to price it.
   const propKey = PROP_LABEL_TO_KEY[m];
