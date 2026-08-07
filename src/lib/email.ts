@@ -478,3 +478,98 @@ export async function sendSupportEmail(input: {
     return { delivered: false as const };
   }
 }
+
+/**
+ * Send one admin broadcast batch.
+ *
+ * Uses Resend's batch endpoint, which takes up to 100 messages and sends each
+ * as its OWN email. That is the point: a roster mail must never put the customer
+ * list in a shared To or CC, and a hand-rolled loop is one keystroke away from
+ * doing exactly that. Every entry here carries a single `to`.
+ *
+ * Returns per-address outcomes rather than throwing, so a partial failure is
+ * recorded against the right capper instead of losing the whole send.
+ */
+export async function sendBroadcastBatch(
+  messages: readonly {
+    to: string;
+    subject: string;
+    html: string;
+  }[],
+): Promise<{ address: string; delivered: boolean; error?: string }[]> {
+  if (messages.length === 0) return [];
+
+  if (!resend) {
+    console.info(`[email:dev] broadcast batch of ${messages.length}`, {
+      to: messages.map((m) => m.to),
+      subject: messages[0]?.subject,
+    });
+    return messages.map((m) => ({
+      address: m.to,
+      delivered: false,
+      error: "mailer not configured",
+    }));
+  }
+
+  try {
+    const { error } = await resend.batch.send(
+      messages.map((m) => ({
+        from,
+        to: [m.to],
+        subject: m.subject,
+        html: m.html,
+        // Broadcasts come from an unmonitored no-reply@; a reply about one
+        // should reach a human rather than disappear.
+        replyTo: process.env.SUPPORT_EMAIL_TO?.trim() || undefined,
+      })),
+    );
+    if (error) {
+      console.error(`[email] broadcast batch failed: ${error.message}`);
+      return messages.map((m) => ({
+        address: m.to,
+        delivered: false,
+        error: error.message,
+      }));
+    }
+    return messages.map((m) => ({ address: m.to, delivered: true }));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "send threw";
+    console.error("[email] broadcast batch threw:", err);
+    return messages.map((m) => ({
+      address: m.to,
+      delivered: false,
+      error: message,
+    }));
+  }
+}
+
+/** Body + optional unsubscribe footer, as HTML. Plain text in, escaped out. */
+export function renderBroadcastHtml(input: {
+  body: string;
+  unsubscribeUrl?: string;
+}): string {
+  const paragraphs = input.body
+    .split(/\n{2,}/)
+    .map((block) => escapeHtml(block.trim()).replace(/\n/g, "<br />"))
+    .filter(Boolean)
+    .map((block) => `<p style="line-height:1.6">${block}</p>`)
+    .join("");
+
+  // Only roster mail carries this. A direct admin-to-capper message is
+  // operational, and offering to unsubscribe from it would be misleading.
+  const footer = input.unsubscribeUrl
+    ? `<hr style="border:none;border-top:1px solid #eee;margin:24px 0" />
+       <p style="color:#666;font-size:12px">
+         You are receiving this because you have an SCL capper account.
+         <a href="${input.unsubscribeUrl}">Unsubscribe from announcements</a> —
+         account and security emails will still reach you.
+       </p>`
+    : "";
+
+  return `
+    <div style="font-family:system-ui,sans-serif;max-width:560px;margin:auto">
+      ${paragraphs}
+      ${footer}
+    </div>
+  `;
+}
