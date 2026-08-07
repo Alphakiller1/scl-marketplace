@@ -15,6 +15,7 @@ import { formatCaptureClock, formatOdds } from "@/lib/format";
 import { bookShort } from "@/lib/books";
 import { selectionForActiveBook } from "@/lib/game-picker";
 import { isPeriodMarket } from "@/lib/period-markets";
+import { isTeamTotalMarket } from "@/lib/team-total-markets";
 import { pickKey } from "@/lib/slip";
 import { toHeadshotLeague } from "@/lib/player-headshots";
 import {
@@ -89,7 +90,11 @@ function marketOrder(market: string): number {
 function isGameMarket(market: string): boolean {
   return (
     (MARKET_ORDER as readonly string[]).includes(market) ||
-    isPeriodMarket(market)
+    isPeriodMarket(market) ||
+    // Same trap as the period markets: a team total carries a club in the same
+    // field a prop carries a player, so without this it lands in the prop
+    // bucket, gets grouped by `s.player`, finds none, and is dropped.
+    isTeamTotalMarket(market)
   );
 }
 
