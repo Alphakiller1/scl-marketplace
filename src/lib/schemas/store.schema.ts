@@ -126,6 +126,20 @@ export const adminPackageActiveSchema = z.object({
 
 export type AdminPackageActiveInput = z.infer<typeof adminPackageActiveSchema>;
 
+/**
+ * Deleting a package cascades to its tracking URLs (and their click history)
+ * and to the play/parlay attribution rows. `confirmDestructive` is the admin
+ * saying they know that: the action refuses without it whenever a package has
+ * history worth keeping, so "tidy up a duplicate" can never quietly erase a
+ * capper's package results. Hiding remains the non-destructive option.
+ */
+export const adminPackageDeleteSchema = z.object({
+  packageId: z.string().min(1),
+  confirmDestructive: z.boolean().optional(),
+});
+
+export type AdminPackageDeleteInput = z.infer<typeof adminPackageDeleteSchema>;
+
 export const adminPackageReorderSchema = z.object({
   packageId: z.string().min(1),
   direction: z.enum(["UP", "DOWN"]),

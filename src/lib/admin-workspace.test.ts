@@ -31,8 +31,11 @@ test("package row controls meet the minimum mobile tap-target size", () => {
     "src/components/scl/admin-package-row-controls.tsx",
   );
 
+  // Every control in the row is the 40px `icon` size — never the compact
+  // `icon-sm`. The count tracks the row's controls (up, down, show/hide,
+  // delete); bump it when a control is added, don't relax the size rule.
   assert.doesNotMatch(source, /size="icon-sm"/);
-  assert.equal((source.match(/size="icon"/g) ?? []).length, 3);
+  assert.equal((source.match(/size="icon"/g) ?? []).length, 4);
 });
 
 test("admin published plays use dedicated mobile cards instead of a compressed table", () => {

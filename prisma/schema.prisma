@@ -743,6 +743,7 @@ enum PackageAuditAction {
   ACTIVATED
   DEACTIVATED
   REORDERED
+  DELETED
 }
 
 model PackageAuditEvent {
