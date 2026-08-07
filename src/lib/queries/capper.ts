@@ -1,5 +1,6 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { cache } from "react";
 
 import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
@@ -167,219 +168,246 @@ export async function getPublicProfileHistoryPage(
 }
 
 /** Public profile data with bounded receipt hydration and server-built chart series. */
+const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
+  handle: string,
+): Promise<PublicCapper | null> {
+  const normalizedHandle = handle.replace(/^@+/, "").trim().toLowerCase();
+  if (!normalizedHandle) return null;
+
+  // Targeted lookup — never scan the full leaderboard for one profile.
+  const excludeTest = await prismaExcludeTestHandlesLive();
+  const profile = await prisma.capperProfile.findFirst({
+    where: {
+      user: {
+        username: { equals: normalizedHandle, mode: "insensitive" },
+        accountStatus: "ACTIVE",
+        ...excludeTest,
+      },
+    },
+    select: { id: true, user: { select: { username: true } } },
+  });
+  if (!profile?.user.username) return null;
+
+  const { cappers, failed: evidenceFailed } =
+    await getPublicCapperEvidenceByIds([profile.id]);
+  const capper = cappers[0];
+  if (!capper) {
+    if (evidenceFailed) return null;
+    return null;
+  }
+
+  let plays: PlayView[] = [];
+  let playsError = false;
+  let avgClv: number | null = null;
+  let clvTracker = summarizeClvTracker([]);
+  let chartSeries: ProfileChartSeries | undefined;
+  let chartSeriesBySport: Record<string, ProfileChartSeries> = {};
+  let historyNextCursor: string | null = null;
+  let legacyBySport: LegacySportRecordView[] = [];
+
+  const [historyResult, chartResult, clvResult, legacyResult] =
+    await Promise.allSettled([
+      getPublicProfileHistoryPage(capper.handle),
+      // Straight picks + whole parlays — same positions of record the
+      // Evidence Brief / leaderboard units aggregate uses.
+      Promise.all([
+        prisma.play.findMany({
+          where: {
+            capperId: capper.id,
+            units: { gte: UNIT_MIN },
+            parlayId: null,
+            outcome: { not: "PENDING" },
+          },
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          take: PROFILE_CHART_QUERY_LIMIT,
+          select: {
+            createdAt: true,
+            outcome: true,
+            profitUnits: true,
+            sport: true,
+            notes: true,
+          },
+        }),
+        prisma.parlay.findMany({
+          where: {
+            capperId: capper.id,
+            units: { gte: UNIT_MIN },
+            outcome: { not: "PENDING" },
+          },
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          take: PROFILE_CHART_QUERY_LIMIT,
+          select: {
+            createdAt: true,
+            outcome: true,
+            profitUnits: true,
+            // Parlay has no sport column — attribute to the first leg for
+            // sport-filtered charts; All-window ignores sport.
+            legs: {
+              select: { sport: true },
+              take: 1,
+              orderBy: { id: "asc" },
+            },
+          },
+        }),
+      ]),
+      (async () => {
+        const clvReady = await hasClvColumns();
+        if (!clvReady) return null;
+        return prisma.play.findMany({
+          where: {
+            capperId: capper.id,
+            clvPts: { not: null },
+            verificationTier: { in: ["VERIFIED", "AUTO_VERIFIED"] },
+            outcome: { not: "PENDING" },
+            parlayId: null,
+            units: { gte: UNIT_MIN },
+          },
+          select: { clvPts: true, notes: true },
+        });
+      })(),
+      // Per-sport PRE_IMPORT residuals (ALL excluded in sort helper).
+      prisma.legacyRecord.findMany({
+        where: { capperId: capper.id, scope: "PRE_IMPORT" },
+        select: {
+          sport: true,
+          wins: true,
+          losses: true,
+          pushes: true,
+          unitsRisked: true,
+          unitsNet: true,
+        },
+      }),
+    ]);
+
+  if (historyResult.status === "fulfilled") {
+    plays = historyResult.value.plays;
+    historyNextCursor = historyResult.value.nextCursor;
+  } else {
+    console.error(
+      "[getPublicCapperByHandle] history unavailable:",
+      historyResult.reason,
+    );
+    playsError = true;
+  }
+
+  if (chartResult.status === "fulfilled") {
+    const [straightRows, parlayRows] = chartResult.value;
+    const straightChart = straightRows
+      .filter((row) => !hasQaNoteMarker(row.notes))
+      .map((row) => ({
+        createdAt: row.createdAt,
+        outcome: row.outcome,
+        profitUnits: row.profitUnits == null ? null : Number(row.profitUnits),
+        sport: row.sport,
+      }));
+    const parlayChart = parlayRows.map((row) => ({
+      createdAt: row.createdAt,
+      outcome: row.outcome,
+      profitUnits: row.profitUnits == null ? null : Number(row.profitUnits),
+      sport: row.legs[0]?.sport ?? "MULTI",
+    }));
+    const chartRows = [...straightChart, ...parlayChart].sort(
+      (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+    );
+    const chartNow = new Date();
+    // All-window chart End must match Evidence Brief units (legacy + SCL).
+    // Sport-filtered series stay receipt-only — legacy baseline is all-sports.
+    const legacyBaseline = capper.legacyBaselineUnits ?? 0;
+    chartSeries = buildProfileChartSeries(
+      chartRows,
+      chartNow,
+      120,
+      legacyBaseline,
+    );
+    const sports = [...new Set(chartRows.map((row) => row.sport))];
+    chartSeriesBySport = Object.fromEntries(
+      sports.map((sport) => [
+        sport,
+        buildProfileChartSeries(
+          chartRows.filter((row) => row.sport === sport),
+          chartNow,
+        ),
+      ]),
+    );
+  } else {
+    console.error(
+      "[getPublicCapperByHandle] chart unavailable:",
+      chartResult.reason,
+    );
+  }
+
+  if (clvResult.status === "fulfilled" && clvResult.value) {
+    const points = clvResult.value
+      .filter((row) => !hasQaNoteMarker(row.notes))
+      .map((row) => (row.clvPts == null ? null : Number(row.clvPts)))
+      .filter(
+        (value): value is number => value != null && Number.isFinite(value),
+      );
+    clvTracker = summarizeClvTracker(points);
+    avgClv = clvTracker.avgClv;
+  } else if (clvResult.status === "rejected") {
+    console.error(
+      "[getPublicCapperByHandle] CLV unavailable:",
+      clvResult.reason,
+    );
+  }
+
+  if (legacyResult.status === "fulfilled") {
+    legacyBySport = sortLegacySportRecords(
+      legacyResult.value.map((row) => ({
+        sport: row.sport,
+        wins: row.wins,
+        losses: row.losses,
+        pushes: row.pushes,
+        unitsRisked: Number(row.unitsRisked),
+        unitsNet: Number(row.unitsNet),
+      })),
+    );
+  } else {
+    console.error(
+      "[getPublicCapperByHandle] legacy sport records unavailable:",
+      legacyResult.reason,
+    );
+  }
+
+  return {
+    capper,
+    plays,
+    playsError,
+    avgClv,
+    clvTracker,
+    chartSeries,
+    chartSeriesBySport,
+    historyNextCursor,
+    legacyBySport,
+  };
+});
+
+/**
+ * Cross-request cache for the public profile.
+ *
+ * React `cache()` above only dedupes within a single render, so every visitor
+ * to a capper's profile paid the full fan-out again — six awaits against a
+ * five-connection pool, which is why profiles were the slowest public page on a
+ * cold isolate. Every other public surface (leaderboard, discover, league
+ * action) already caches for 60s; profiles were simply missed.
+ *
+ * Tagged `leaderboard` so the same revalidation that publishes a new grade also
+ * refreshes the profile that shows it — a graded pick must not sit behind a
+ * stale profile for a minute.
+ */
+const getCachedPublicCapperByHandle = unstable_cache(
+  async (handle: string) => loadPublicCapperByHandle(handle),
+  ["public-capper-by-handle"],
+  { revalidate: 60, tags: ["leaderboard"] },
+);
+
 export const getPublicCapperByHandle = cache(
   async function getPublicCapperByHandle(
     handle: string,
   ): Promise<PublicCapper | null> {
-    const normalizedHandle = handle.replace(/^@+/, "").trim().toLowerCase();
-    if (!normalizedHandle) return null;
-
-    // Targeted lookup — never scan the full leaderboard for one profile.
-    const excludeTest = await prismaExcludeTestHandlesLive();
-    const profile = await prisma.capperProfile.findFirst({
-      where: {
-        user: {
-          username: { equals: normalizedHandle, mode: "insensitive" },
-          accountStatus: "ACTIVE",
-          ...excludeTest,
-        },
-      },
-      select: { id: true, user: { select: { username: true } } },
-    });
-    if (!profile?.user.username) return null;
-
-    const { cappers, failed: evidenceFailed } =
-      await getPublicCapperEvidenceByIds([profile.id]);
-    const capper = cappers[0];
-    if (!capper) {
-      if (evidenceFailed) return null;
-      return null;
-    }
-
-    let plays: PlayView[] = [];
-    let playsError = false;
-    let avgClv: number | null = null;
-    let clvTracker = summarizeClvTracker([]);
-    let chartSeries: ProfileChartSeries | undefined;
-    let chartSeriesBySport: Record<string, ProfileChartSeries> = {};
-    let historyNextCursor: string | null = null;
-    let legacyBySport: LegacySportRecordView[] = [];
-
-    const [historyResult, chartResult, clvResult, legacyResult] =
-      await Promise.allSettled([
-        getPublicProfileHistoryPage(capper.handle),
-        // Straight picks + whole parlays — same positions of record the
-        // Evidence Brief / leaderboard units aggregate uses.
-        Promise.all([
-          prisma.play.findMany({
-            where: {
-              capperId: capper.id,
-              units: { gte: UNIT_MIN },
-              parlayId: null,
-              outcome: { not: "PENDING" },
-            },
-            orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-            take: PROFILE_CHART_QUERY_LIMIT,
-            select: {
-              createdAt: true,
-              outcome: true,
-              profitUnits: true,
-              sport: true,
-              notes: true,
-            },
-          }),
-          prisma.parlay.findMany({
-            where: {
-              capperId: capper.id,
-              units: { gte: UNIT_MIN },
-              outcome: { not: "PENDING" },
-            },
-            orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-            take: PROFILE_CHART_QUERY_LIMIT,
-            select: {
-              createdAt: true,
-              outcome: true,
-              profitUnits: true,
-              // Parlay has no sport column — attribute to the first leg for
-              // sport-filtered charts; All-window ignores sport.
-              legs: {
-                select: { sport: true },
-                take: 1,
-                orderBy: { id: "asc" },
-              },
-            },
-          }),
-        ]),
-        (async () => {
-          const clvReady = await hasClvColumns();
-          if (!clvReady) return null;
-          return prisma.play.findMany({
-            where: {
-              capperId: capper.id,
-              clvPts: { not: null },
-              verificationTier: { in: ["VERIFIED", "AUTO_VERIFIED"] },
-              outcome: { not: "PENDING" },
-              parlayId: null,
-              units: { gte: UNIT_MIN },
-            },
-            select: { clvPts: true, notes: true },
-          });
-        })(),
-        // Per-sport PRE_IMPORT residuals (ALL excluded in sort helper).
-        prisma.legacyRecord.findMany({
-          where: { capperId: capper.id, scope: "PRE_IMPORT" },
-          select: {
-            sport: true,
-            wins: true,
-            losses: true,
-            pushes: true,
-            unitsRisked: true,
-            unitsNet: true,
-          },
-        }),
-      ]);
-
-    if (historyResult.status === "fulfilled") {
-      plays = historyResult.value.plays;
-      historyNextCursor = historyResult.value.nextCursor;
-    } else {
-      console.error(
-        "[getPublicCapperByHandle] history unavailable:",
-        historyResult.reason,
-      );
-      playsError = true;
-    }
-
-    if (chartResult.status === "fulfilled") {
-      const [straightRows, parlayRows] = chartResult.value;
-      const straightChart = straightRows
-        .filter((row) => !hasQaNoteMarker(row.notes))
-        .map((row) => ({
-          createdAt: row.createdAt,
-          outcome: row.outcome,
-          profitUnits: row.profitUnits == null ? null : Number(row.profitUnits),
-          sport: row.sport,
-        }));
-      const parlayChart = parlayRows.map((row) => ({
-        createdAt: row.createdAt,
-        outcome: row.outcome,
-        profitUnits: row.profitUnits == null ? null : Number(row.profitUnits),
-        sport: row.legs[0]?.sport ?? "MULTI",
-      }));
-      const chartRows = [...straightChart, ...parlayChart].sort(
-        (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
-      );
-      const chartNow = new Date();
-      // All-window chart End must match Evidence Brief units (legacy + SCL).
-      // Sport-filtered series stay receipt-only — legacy baseline is all-sports.
-      const legacyBaseline = capper.legacyBaselineUnits ?? 0;
-      chartSeries = buildProfileChartSeries(
-        chartRows,
-        chartNow,
-        120,
-        legacyBaseline,
-      );
-      const sports = [...new Set(chartRows.map((row) => row.sport))];
-      chartSeriesBySport = Object.fromEntries(
-        sports.map((sport) => [
-          sport,
-          buildProfileChartSeries(
-            chartRows.filter((row) => row.sport === sport),
-            chartNow,
-          ),
-        ]),
-      );
-    } else {
-      console.error(
-        "[getPublicCapperByHandle] chart unavailable:",
-        chartResult.reason,
-      );
-    }
-
-    if (clvResult.status === "fulfilled" && clvResult.value) {
-      const points = clvResult.value
-        .filter((row) => !hasQaNoteMarker(row.notes))
-        .map((row) => (row.clvPts == null ? null : Number(row.clvPts)))
-        .filter(
-          (value): value is number => value != null && Number.isFinite(value),
-        );
-      clvTracker = summarizeClvTracker(points);
-      avgClv = clvTracker.avgClv;
-    } else if (clvResult.status === "rejected") {
-      console.error(
-        "[getPublicCapperByHandle] CLV unavailable:",
-        clvResult.reason,
-      );
-    }
-
-    if (legacyResult.status === "fulfilled") {
-      legacyBySport = sortLegacySportRecords(
-        legacyResult.value.map((row) => ({
-          sport: row.sport,
-          wins: row.wins,
-          losses: row.losses,
-          pushes: row.pushes,
-          unitsRisked: Number(row.unitsRisked),
-          unitsNet: Number(row.unitsNet),
-        })),
-      );
-    } else {
-      console.error(
-        "[getPublicCapperByHandle] legacy sport records unavailable:",
-        legacyResult.reason,
-      );
-    }
-
-    return {
-      capper,
-      plays,
-      playsError,
-      avgClv,
-      clvTracker,
-      chartSeries,
-      chartSeriesBySport,
-      historyNextCursor,
-      legacyBySport,
-    };
+    const normalized = handle.replace(/^@+/, "").trim().toLowerCase();
+    if (!normalized) return null;
+    return getCachedPublicCapperByHandle(normalized);
   },
 );
