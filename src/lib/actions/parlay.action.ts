@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { settleParlay } from "@/lib/grading";
 import { profitUnitsEqual } from "@/lib/grading-correction";
+import { outcomeDescriptionFor } from "@/lib/team-total-markets";
 import { isBookKey } from "@/lib/books";
 import { fetchLiveLine, verifyPick } from "@/lib/odds-api";
 import { decidePickIntegrity, marketKeysForMarket } from "@/lib/odds-verify";
@@ -126,7 +127,9 @@ export async function createParlay(
       marketKeys,
       side: l.side,
       line: l.line,
-      player: l.player,
+      // See play.action.ts: a team total must name its club or the lookup
+      // re-prices it against the opponent's line of the same number.
+      player: outcomeDescriptionFor(l),
       book: captureBook,
       books: profile.books,
     });

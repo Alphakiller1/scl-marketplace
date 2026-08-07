@@ -8,6 +8,7 @@ import {
   shapeBulkSinglesOutcome,
   type BulkLinePrep,
 } from "@/lib/bulk-plays";
+import { outcomeDescriptionFor } from "@/lib/team-total-markets";
 import { isBookKey } from "@/lib/books";
 import { fetchLiveLine, verifyPick } from "@/lib/odds-api";
 import { moveKey, resolveCaptureOdds } from "@/lib/odds-movement";
@@ -217,7 +218,10 @@ async function preparePlayLine(
     marketKeys,
     side: d.side,
     line: d.line,
-    player: d.player,
+    // The provider's `description`: the player for a prop, the CLUB for a team
+    // total. Without it a team total matches whichever side's Over/Under of the
+    // same number comes first, which re-prices the pick against the opponent.
+    player: outcomeDescriptionFor(d),
     book: captureBook,
     books: opts.books,
   });
