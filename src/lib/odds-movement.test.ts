@@ -9,6 +9,7 @@ import {
 import * as OddsMovement from "@/lib/odds-movement";
 import {
   classifyOddsMove,
+  IMPLAUSIBLE_MOVE_PROB,
   moveKey,
   resolveCaptureOdds,
 } from "@/lib/odds-movement";
@@ -325,4 +326,59 @@ test("AcceptedMove is type-only — no runtime export (picks/new smoke)", () => 
     acceptedOddsAmerican: -105,
   };
   assert.equal(sample.acceptedOddsAmerican, -105);
+});
+
+// ── implausible moves must be confirmed, in either direction ─────────────────
+//
+// Reported by a capper: a Team Total tapped at -650 was recorded at -154. The
+// live price was better for the bettor, so it classified `favorable` and
+// auto-accepted — silently replacing what he selected and turning the parlay
+// into +174 when the price he chose would have made it about -109. He read it
+// as inflated value, correctly.
+
+test("an implausibly large FAVORABLE move must be confirmed, not auto-accepted", () => {
+  const move = classifyOddsMove({
+    selectedAmerican: -650,
+    liveAmerican: -154,
+  });
+  assert.equal(move.class, "changed");
+  assert.equal(move.updatedOddsAmerican, -154);
+  assert.ok((move.deltaImplied ?? 0) > IMPLAUSIBLE_MOVE_PROB);
+});
+
+test("an implausibly large ADVERSE move is still confirmed", () => {
+  const move = classifyOddsMove({ selectedAmerican: -154, liveAmerican: -650 });
+  assert.equal(move.class, "changed");
+});
+
+test("ordinary favorable movement still auto-accepts", () => {
+  // -120 -> -110 is a real improvement and must not start prompting people.
+  const move = classifyOddsMove({ selectedAmerican: -120, liveAmerican: -110 });
+  assert.equal(move.class, "favorable");
+});
+
+test("a big but plausible favorable move still auto-accepts", () => {
+  // +100 (50.0%) -> +130 (43.5%): 6.5 points, real and welcome.
+  const move = classifyOddsMove({ selectedAmerican: 100, liveAmerican: 130 });
+  assert.equal(move.class, "favorable");
+});
+
+test("the implausible bound sits well above ordinary tolerance", () => {
+  assert.ok(IMPLAUSIBLE_MOVE_PROB > 0.02);
+});
+
+test("an implausible favorable move needs explicit confirmation before it writes", () => {
+  const resolution = resolveCaptureOdds({
+    selectedAmerican: -650,
+    liveAmerican: -154,
+    moveKey: "evt|Team Total||over|2.5",
+    eventId: "evt",
+    eventLabel: "Red Sox @ Yankees",
+    market: "Team Total",
+    selection: "Boston Red Sox Over 2.5",
+    side: "Over",
+    line: 2.5,
+    verifiedAt: new Date("2026-08-07T21:41:38Z"),
+  });
+  assert.equal(resolution.status, "needs_confirm");
 });
