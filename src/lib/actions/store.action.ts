@@ -28,6 +28,7 @@ import {
   makeTrackingSlug,
   pendingStatusForProvider,
 } from "@/lib/store-connection";
+import { resolvePackageStoreConnectionId } from "@/lib/storefront-ops";
 import {
   canCapperOpenStorefrontSetup,
   canCapperSubmitStorefront,
@@ -473,19 +474,38 @@ export async function adminSavePackageAction(
   });
   if (!capper) return { ok: false, error: "Capper not found." };
 
-  let storeConnectionId = d.storeConnectionId || null;
-  if (!storeConnectionId) {
-    const conn = await prisma.storeConnection.findUnique({
-      where: {
-        capperId_provider: {
-          capperId: d.capperId,
-          provider: d.affiliateProvider,
-        },
-      },
-      select: { id: true },
-    });
-    storeConnectionId = conn?.id ?? null;
+  const current = d.id
+    ? await prisma.package.findUnique({
+        where: { id: d.id },
+        select: { id: true, capperId: true, storeConnectionId: true },
+      })
+    : null;
+  if (d.id && !current) return { ok: false, error: "Package not found." };
+  // The audit event is written against `d.capperId`; if that disagreed with the
+  // package's real owner the trail would credit the change to the wrong capper.
+  if (current && current.capperId !== d.capperId) {
+    return { ok: false, error: "Package belongs to a different capper." };
   }
+
+  const inferred = d.storeConnectionId
+    ? null
+    : ((
+        await prisma.storeConnection.findUnique({
+          where: {
+            capperId_provider: {
+              capperId: d.capperId,
+              provider: d.affiliateProvider,
+            },
+          },
+          select: { id: true },
+        })
+      )?.id ?? null);
+  const storeConnectionId = resolvePackageStoreConnectionId({
+    explicit: d.storeConnectionId || null,
+    existing: current?.storeConnectionId ?? null,
+    inferred,
+    isEdit: Boolean(d.id),
+  });
 
   const packageId = await prisma.$transaction(async (tx) => {
     const pkg = d.id

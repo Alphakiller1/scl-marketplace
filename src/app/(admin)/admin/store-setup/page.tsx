@@ -558,6 +558,7 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
                           isActive={pkg.isActive}
                           isFirst={index === 0}
                           isLast={index === selected.packages.length - 1}
+                          needsConnectionGoLive={selected.status !== "LIVE"}
                         />
                       </div>
                     );

@@ -8,6 +8,8 @@ import {
   KeyRound,
   MailCheck,
   PackageOpen,
+  Pencil,
+  Plus,
   Scale,
   ShieldCheck,
   Store,
@@ -22,6 +24,7 @@ import { AdminDeleteCapperControl } from "@/components/scl/admin-delete-capper-c
 import { AccountStatusBadge } from "@/components/scl/account-trust";
 import { StatusBadge } from "@/components/scl/badges";
 import { AdminPackageForm } from "@/components/scl/admin-package-form";
+import { AdminPackageRowControls } from "@/components/scl/admin-package-row-controls";
 import { ProviderBadge } from "@/components/scl/provider-badge";
 import { SectionHeader } from "@/components/scl/section";
 import { StoreStatusChip } from "@/components/scl/store-status-chip";
@@ -53,10 +56,13 @@ const OUTCOME_TO_STATUS = {
 
 export default async function AdminCapperDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ packageId?: string }>;
 }) {
   const { id } = await params;
+  const { packageId } = await searchParams;
   const capper = await getAdminCapperDetail(id);
   if (!capper) notFound();
 
@@ -77,6 +83,20 @@ export default async function AdminCapperDetailPage({
     profile?.storeConnections[0] ??
     null;
   const quickPackageProvider = primaryConnection?.provider ?? "WINIBLE";
+  /**
+   * The offer open for edit, if any. This page is the only admin surface that
+   * lists *every* package a capper has: the editor on /admin/store-setup is
+   * scoped to one storefront connection, and packages carried over from the
+   * previous platform have no connection at all, so they were readable there
+   * and editable nowhere. An admin correcting a price or a billing cadence
+   * should not have to go through the database.
+   */
+  const editingPackage =
+    profile?.packages.find((pkg) => pkg.id === packageId) ?? null;
+  const editorHref = (target: string | null) =>
+    target
+      ? `/admin/cappers/${capper.id}?packageId=${target}#package-editor`
+      : `/admin/cappers/${capper.id}#package-editor`;
   const threadMessages = primaryConnection
     ? await getStorefrontMessages(primaryConnection.id)
     : [];
@@ -421,15 +441,19 @@ export default async function AdminCapperDetailPage({
         {profile?.packages.length ? (
           <div className="border-border overflow-hidden rounded-xl border">
             <div className="divide-border divide-y">
-              {profile.packages.map((pkg) => {
+              {profile.packages.map((pkg, index) => {
                 const clicks = pkg.trackingUrls.reduce(
                   (total, url) => total + url._count.clicks,
                   0,
                 );
+                const editing = editingPackage?.id === pkg.id;
                 return (
                   <article
                     key={pkg.id}
-                    className="bg-card grid gap-3 p-4 md:grid-cols-[minmax(0,1fr)_8rem_7rem_6rem] md:items-center"
+                    className={cn(
+                      "grid gap-3 p-4 md:grid-cols-[minmax(0,1fr)_8rem_7rem_6rem_auto] md:items-center",
+                      editing ? "bg-brand/5" : "bg-card",
+                    )}
                   >
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -463,6 +487,29 @@ export default async function AdminCapperDetailPage({
                         clicks
                       </span>
                     </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant={editing ? "secondary" : "outline"}
+                        className="min-h-10"
+                        render={<Link href={editorHref(pkg.id)} />}
+                        nativeButton={false}
+                      >
+                        <Pencil className="size-4" aria-hidden />
+                        {editing ? "Editing" : "Edit"}
+                      </Button>
+                      <AdminPackageRowControls
+                        packageId={pkg.id}
+                        title={pkg.title}
+                        isActive={pkg.isActive}
+                        isFirst={index === 0}
+                        isLast={index === profile.packages.length - 1}
+                        needsConnectionGoLive={Boolean(
+                          pkg.storeConnectionId &&
+                          pkg.storeConnection?.status !== "LIVE",
+                        )}
+                      />
+                    </div>
                   </article>
                 );
               })}
@@ -516,16 +563,64 @@ export default async function AdminCapperDetailPage({
       </section>
 
       {profile ? (
-        <section className="border-border bg-card space-y-4 rounded-xl border p-4 sm:p-5">
+        <section
+          id="package-editor"
+          className="border-border bg-card scroll-mt-6 space-y-4 rounded-xl border p-4 sm:p-5"
+        >
           <SectionHeader
             icon={PackageOpen}
-            title={`Quick ${providerLabel(quickPackageProvider)} package`}
-            subtitle={`Fast manual fallback when ${providerLabel(quickPackageProvider)} sync is unavailable — paste the link, price, promo, and description, then publish it to the capper profile.`}
+            title={
+              editingPackage
+                ? `Edit package · ${editingPackage.title}`
+                : `Quick ${providerLabel(quickPackageProvider)} package`
+            }
+            subtitle={
+              editingPackage
+                ? "Price, billing cadence, copy, and checkout link for this offer. Every save is recorded under Recent package changes."
+                : `Fast manual fallback when ${providerLabel(quickPackageProvider)} sync is unavailable — paste the link, price, promo, and description, then publish it to the capper profile.`
+            }
           />
+          {editingPackage ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="min-h-10"
+              render={<Link href={editorHref(null)} />}
+              nativeButton={false}
+            >
+              <Plus className="size-4" aria-hidden />
+              New package instead
+            </Button>
+          ) : null}
           <AdminPackageForm
+            // Remount on switch so the fields reload from the chosen offer
+            // rather than keeping the previous one's state.
+            key={editingPackage?.id ?? "new"}
             capperId={profile.id}
-            storeConnectionId={primaryConnection?.id ?? null}
-            provider={quickPackageProvider}
+            storeConnectionId={
+              editingPackage
+                ? editingPackage.storeConnectionId
+                : (primaryConnection?.id ?? null)
+            }
+            provider={editingPackage?.affiliateProvider ?? quickPackageProvider}
+            initial={
+              editingPackage
+                ? {
+                    id: editingPackage.id,
+                    title: editingPackage.title,
+                    description: editingPackage.description,
+                    promoOffer: editingPackage.promoOffer,
+                    checkoutUrl: editingPackage.checkoutUrl || "",
+                    priceCents: editingPackage.priceCents,
+                    billingPeriod: editingPackage.billingPeriod,
+                    sortOrder: editingPackage.sortOrder,
+                    isActive: editingPackage.isActive,
+                    trackingSlug: editingPackage.trackingUrls[0]?.slug ?? null,
+                    clickCount:
+                      editingPackage.trackingUrls[0]?._count?.clicks ?? 0,
+                  }
+                : null
+            }
           />
         </section>
       ) : null}

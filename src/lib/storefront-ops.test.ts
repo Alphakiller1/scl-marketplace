@@ -6,6 +6,7 @@ import {
   adminApproveLabel,
   adminStorefrontReadiness,
   packagePublicationLabel,
+  resolvePackageStoreConnectionId,
   storefrontGoLiveGate,
 } from "@/lib/storefront-ops";
 
@@ -94,5 +95,58 @@ describe("storefront ops helpers", () => {
 
   it("returns clear success copy for Mark live", () => {
     assert.match(adminActionSuccessMessage("MARK_LIVE", "WINIBLE"), /live/i);
+  });
+
+  describe("package store-connection resolution", () => {
+    it("keeps an unattached offer unattached when it is edited", () => {
+      // The regression this exists for: a legacy offer is public *because* it
+      // has no connection. Inferring the capper's pending connection on save
+      // would take it off the marketplace as a side effect of fixing a price.
+      assert.equal(
+        resolvePackageStoreConnectionId({
+          explicit: null,
+          existing: null,
+          inferred: "conn_pending",
+          isEdit: true,
+        }),
+        null,
+      );
+    });
+
+    it("keeps an attached offer on its own connection", () => {
+      assert.equal(
+        resolvePackageStoreConnectionId({
+          explicit: null,
+          existing: "conn_a",
+          inferred: "conn_b",
+          isEdit: true,
+        }),
+        "conn_a",
+      );
+    });
+
+    it("still infers a connection when creating", () => {
+      assert.equal(
+        resolvePackageStoreConnectionId({
+          explicit: null,
+          existing: null,
+          inferred: "conn_pending",
+          isEdit: false,
+        }),
+        "conn_pending",
+      );
+    });
+
+    it("lets a connection-scoped surface win", () => {
+      assert.equal(
+        resolvePackageStoreConnectionId({
+          explicit: "conn_scoped",
+          existing: null,
+          inferred: "conn_other",
+          isEdit: true,
+        }),
+        "conn_scoped",
+      );
+    });
   });
 });

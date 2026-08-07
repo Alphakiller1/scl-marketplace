@@ -232,19 +232,30 @@ export async function getAdminCapperDetail(userId: string) {
           storefrontEnabled: true,
           updatedAt: true,
           packages: {
+            // Everything the admin package editor needs to open any offer for
+            // edit from this page — not just report on it. Legacy offers carry
+            // no store connection, so the connection-scoped editor on
+            // /admin/store-setup can never reach them.
             select: {
               id: true,
               title: true,
+              description: true,
+              promoOffer: true,
+              checkoutUrl: true,
               priceCents: true,
               billingPeriod: true,
               isActive: true,
               sortOrder: true,
               affiliateProvider: true,
+              storeConnectionId: true,
+              storeConnection: { select: { status: true } },
               updatedAt: true,
               trackingUrls: {
                 select: {
+                  slug: true,
                   _count: { select: { clicks: true } },
                 },
+                orderBy: { createdAt: "asc" },
               },
             },
             orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],

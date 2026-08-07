@@ -31,12 +31,21 @@ export function AdminPackageRowControls({
   isActive,
   isFirst,
   isLast,
+  needsConnectionGoLive,
 }: {
   packageId: string;
   title: string;
   isActive: boolean;
   isFirst: boolean;
   isLast: boolean;
+  /**
+   * Whether activating is enough to publish. An offer attached to a storefront
+   * that is not yet LIVE still waits on "Mark live"; an unattached offer — every
+   * carried-over legacy package — goes public the moment it is activated. Saying
+   * the wrong one leaves an admin waiting for a step that does not exist, or
+   * publishing when they thought they were staging.
+   */
+  needsConnectionGoLive: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -125,9 +134,13 @@ export function AdminPackageRowControls({
           isActive ? `Hide ${title} from profile` : `Show ${title} on profile`
         }
         title={
-          isActive
-            ? "Deactivate (still needs Mark live to be public)"
-            : "Activate (still needs Mark live to be public)"
+          needsConnectionGoLive
+            ? isActive
+              ? "Deactivate (still needs Mark live to be public)"
+              : "Activate (still needs Mark live to be public)"
+            : isActive
+              ? "Hide from the public profile"
+              : "Show on the public profile"
         }
         onClick={() =>
           run(
@@ -135,7 +148,9 @@ export function AdminPackageRowControls({
               adminSetPackageActiveAction({ packageId, isActive: !isActive }),
             isActive
               ? "Package deactivated"
-              : "Package activated — Mark live when ready to publish",
+              : needsConnectionGoLive
+                ? "Package activated — Mark live when ready to publish"
+                : "Package activated — now public on the profile",
           )
         }
       >

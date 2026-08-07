@@ -157,6 +157,30 @@ export function adminStorefrontReadiness(input: {
   ];
 }
 
+/**
+ * Which storefront connection a saved package belongs to.
+ *
+ * Editing must never re-home an offer. `activePublicPackageWhere` publishes a
+ * package when it is unattached **or** its connection is LIVE, so inferring a
+ * connection for a carried-over legacy offer — every package on this
+ * marketplace is unattached — would pull it off the public site the first time
+ * an admin corrected a typo in it, with no visible cause. Inference is for
+ * creates, where there is no prior home to keep.
+ */
+export function resolvePackageStoreConnectionId(input: {
+  /** Connection the editing surface is scoped to, when it has one. */
+  explicit: string | null;
+  /** The package's current connection — null for a create. */
+  existing: string | null;
+  /** Connection matching this capper + provider, if one exists. */
+  inferred: string | null;
+  isEdit: boolean;
+}): string | null {
+  if (input.explicit) return input.explicit;
+  if (input.isEdit) return input.existing;
+  return input.inferred;
+}
+
 export function packagePublicationLabel(input: {
   isActive: boolean;
   hasCheckout: boolean;

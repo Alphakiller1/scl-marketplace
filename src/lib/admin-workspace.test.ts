@@ -26,6 +26,27 @@ test("capper package management targets the preferred storefront connection", ()
   assert.doesNotMatch(source, /profile\?\.storeConnections\[0\]\.id/);
 });
 
+test("every one of a capper's packages is editable from the capper page", () => {
+  // /admin/store-setup can only edit packages attached to a storefront
+  // connection, and every carried-over legacy package has none — so without
+  // this surface an admin cannot correct a live price or billing cadence
+  // anywhere in the product.
+  const source = readSource("src/app/(admin)/admin/cappers/[id]/page.tsx");
+
+  assert.match(source, /<AdminPackageRowControls/);
+  assert.match(source, /editorHref\(pkg\.id\)/);
+  assert.match(source, /id="package-editor"/);
+  // The form must open the chosen offer, not just create new ones.
+  assert.match(source, /initial=\{\s*editingPackage/);
+});
+
+test("editing a package never re-homes it to an inferred connection", () => {
+  const source = readSource("src/lib/actions/store.action.ts");
+
+  assert.match(source, /resolvePackageStoreConnectionId\(\{/);
+  assert.match(source, /isEdit: Boolean\(d\.id\)/);
+});
+
 test("package row controls meet the minimum mobile tap-target size", () => {
   const source = readSource(
     "src/components/scl/admin-package-row-controls.tsx",
