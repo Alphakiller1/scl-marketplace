@@ -1,19 +1,20 @@
 import Link from "next/link";
-import { Suspense } from "react";
 
-import { auth } from "@/auth";
-import { Button } from "@/components/ui/button";
 import { SclLogo } from "@/components/scl-logo";
-import { MobileSiteNav } from "@/components/scl/mobile-navigation";
+import { SiteHeaderAuth } from "@/components/site-header-auth";
 import { SiteNav } from "@/components/scl/site-nav";
-import { SignOutButton } from "@/components/sign-out-button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { getDefaultWorkspace } from "@/lib/auth-routing";
 import { SCL_BRAND_NAME } from "@/lib/brand";
 
 /**
- * Marketing chrome. Auth is a Suspense island so public nav links paint
- * immediately and do not wait on the session round-trip every click.
+ * Marketing chrome.
+ *
+ * Deliberately contains NO dynamic API. This header is rendered by the
+ * `(marketing)` layout, so anything dynamic here — `auth()`, `cookies()`,
+ * `headers()` — opts every public page into dynamic rendering, even inside a
+ * `<Suspense>` boundary. That is what was defeating `export const revalidate`
+ * on home, leaderboard, discover, packages and capper profiles. Session state
+ * now resolves in the browser; see `site-header-auth.tsx`.
  */
 export function SiteHeader() {
   return (
@@ -35,63 +36,9 @@ export function SiteHeader() {
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <ThemeToggle />
-          <Suspense fallback={<SiteHeaderAuthFallback />}>
-            <SiteHeaderAuth />
-          </Suspense>
+          <SiteHeaderAuth />
         </div>
       </div>
     </header>
   );
-}
-
-function SiteHeaderAuthFallback() {
-  return (
-    <>
-      <Button
-        render={<Link href="/login" />}
-        nativeButton={false}
-        variant="ghost"
-        size="sm"
-        className="hidden min-h-10 sm:inline-flex"
-      >
-        Log In
-      </Button>
-      <Button
-        render={<Link href="/signup" />}
-        nativeButton={false}
-        variant="brand"
-        size="sm"
-        className="hidden min-h-10 sm:inline-flex"
-      >
-        Join SCL
-      </Button>
-      <MobileSiteNav />
-    </>
-  );
-}
-
-async function SiteHeaderAuth() {
-  const session = await auth();
-  const user = session?.user;
-
-  if (user) {
-    const workspace = getDefaultWorkspace(user.role);
-    return (
-      <>
-        <Button
-          render={<Link href={workspace.href} />}
-          nativeButton={false}
-          variant="nav"
-          size="sm"
-          className="hidden min-h-10 sm:inline-flex"
-        >
-          {workspace.label}
-        </Button>
-        <SignOutButton className="hidden min-h-10 sm:inline-flex" />
-        <MobileSiteNav workspace={workspace} />
-      </>
-    );
-  }
-
-  return <SiteHeaderAuthFallback />;
 }
