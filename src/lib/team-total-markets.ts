@@ -73,3 +73,28 @@ export function parseTeamTotalSelection(
     line,
   };
 }
+
+/**
+ * The `description` an Odds API outcome must carry for this pick.
+ *
+ * The provider puts the PLAYER there for a prop and the CLUB there for a team
+ * total, and `collectAvailablePrices` only filters on it when a value is given.
+ * A team total stores its club in the selection text and leaves `player` empty,
+ * so nothing was filtering: the matcher took the first `Over 2.5` in the
+ * team_totals market, and BOTH clubs have one. A Red Sox line tapped at -650 was
+ * re-priced against the opponent's -650-shaped counterpart at -154 and written
+ * as -154 — a real inflation of the capper's record, reported by the capper.
+ *
+ * Returning the club here is what makes the lookup name the same side the capper
+ * tapped.
+ */
+export function outcomeDescriptionFor(pick: {
+  market: string;
+  selection: string;
+  player?: string | null;
+}): string | undefined {
+  if (isTeamTotalMarket(pick.market)) {
+    return parseTeamTotalSelection(pick.selection)?.team;
+  }
+  return pick.player?.trim() || undefined;
+}

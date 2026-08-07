@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   isTeamTotalMarket,
+  outcomeDescriptionFor,
   parseTeamTotalSelection,
   TEAM_TOTAL_LABEL,
   TEAM_TOTAL_MARKET_KEYS,
@@ -78,6 +79,60 @@ describe("TEAM_TOTAL_MARKET_KEYS", () => {
     assert.deepEqual(
       [...TEAM_TOTAL_MARKET_KEYS],
       ["team_totals", "alternate_team_totals"],
+    );
+  });
+});
+
+describe("outcomeDescriptionFor", () => {
+  // The live-price lookup filters on the provider's `description` only when a
+  // value is supplied. A team total that supplies none matches whichever side's
+  // Over/Under of the same number comes first — and both clubs have one — so the
+  // pick is re-priced against the opponent. That is how a Red Sox line tapped at
+  // -650 was written as -154.
+  it("names the club for a team total", () => {
+    assert.equal(
+      outcomeDescriptionFor({
+        market: "Team Total",
+        selection: "Boston Red Sox Over 2.5",
+      }),
+      "Boston Red Sox",
+    );
+  });
+
+  it("keeps the player for a prop", () => {
+    assert.equal(
+      outcomeDescriptionFor({
+        market: "Strikeouts",
+        selection: "Zack Wheeler Over 4.5",
+        player: "Zack Wheeler",
+      }),
+      "Zack Wheeler",
+    );
+  });
+
+  it("supplies nothing for a plain game line, so it is not over-filtered", () => {
+    assert.equal(
+      outcomeDescriptionFor({ market: "Total", selection: "Over 8.5" }),
+      undefined,
+    );
+    assert.equal(
+      outcomeDescriptionFor({
+        market: "Moneyline",
+        selection: "Boston Red Sox",
+      }),
+      undefined,
+    );
+  });
+
+  // Free text cannot be resolved to a club, so it supplies nothing rather than
+  // guessing — the lookup then fails to price it, which is the safe outcome.
+  it("supplies nothing for an unparseable team total", () => {
+    assert.equal(
+      outcomeDescriptionFor({
+        market: "Team Total",
+        selection: "Nats TT O4.5",
+      }),
+      undefined,
     );
   });
 });
