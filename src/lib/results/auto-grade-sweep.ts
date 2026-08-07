@@ -1,6 +1,6 @@
 import "server-only";
 
-import { after } from "next/server";
+import { afterResponse } from "@/lib/after-response";
 
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { autoGradePending } from "@/lib/results/auto-grade";
@@ -26,22 +26,29 @@ const SWEEP_WINDOW_MS = 10 * 60 * 1000;
  * failure here can never surface as a broken page. The schedulers stay as a
  * floor for quiet periods.
  */
-export async function maybeSweepGrading(): Promise<void> {
-  let allowed = false;
-  try {
-    allowed = await consumeRateLimit({
-      scope: "auto-grade-sweep",
-      identity: "global",
-      limit: 1,
-      windowMs: SWEEP_WINDOW_MS,
-    });
-  } catch {
-    // Throttle store unavailable — skip rather than risk a stampede.
-    return;
-  }
-  if (!allowed) return;
+export function maybeSweepGrading(): void {
+  // The throttle read/write is itself a database write, and it used to run
+  // BEFORE `after()` while every caller invoked this as `void
+  // maybeSweepGrading()`. So the response returned with that write still in
+  // flight and unprotected: the isolate froze mid-transaction and left the
+  // connection `idle in transaction`, starving a 60-connection instance until
+  // pick entry started returning 500s. Everything that touches the database now
+  // happens inside the deferred work.
+  afterResponse(async () => {
+    let allowed = false;
+    try {
+      allowed = await consumeRateLimit({
+        scope: "auto-grade-sweep",
+        identity: "global",
+        limit: 1,
+        windowMs: SWEEP_WINDOW_MS,
+      });
+    } catch {
+      // Throttle store unavailable — skip rather than risk a stampede.
+      return;
+    }
+    if (!allowed) return;
 
-  after(async () => {
     try {
       const result = await autoGradePending(getResultsProvider());
       if (result.graded > 0) {

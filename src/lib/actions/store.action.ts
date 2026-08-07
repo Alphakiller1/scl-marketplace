@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
+
+import { afterResponse } from "@/lib/after-response";
 import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
@@ -248,14 +250,21 @@ export async function submitStoreConnectionAction(
     };
   }
 
-  void sendAffiliateSignupNotificationEmail({
-    capperUsername: profile.user.username ?? profile.user.email,
-    capperEmail: profile.user.email,
-    provider: parsed.data.provider,
-    connectionId: connection.id,
-    submittedAt: now,
-  }).catch((error) => {
-    console.error("[store] affiliate signup notification failed:", error);
+  // Scheduled rather than fired-and-forgotten: an un-awaited send races the
+  // response and is dropped when the isolate is torn down, so this notification
+  // often never left the building.
+  afterResponse(async () => {
+    try {
+      await sendAffiliateSignupNotificationEmail({
+        capperUsername: profile.user.username ?? profile.user.email,
+        capperEmail: profile.user.email,
+        provider: parsed.data.provider,
+        connectionId: connection.id,
+        submittedAt: now,
+      });
+    } catch (error) {
+      console.error("[store] affiliate signup notification failed:", error);
+    }
   });
 
   await revalidateCommercePaths(profile.user.username, user.id);

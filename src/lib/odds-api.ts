@@ -1,5 +1,6 @@
 import "server-only";
 
+import { afterResponse } from "@/lib/after-response";
 import { bookmakersQueryParam, isBookKey } from "@/lib/books";
 import { shouldCircuitBreak } from "@/lib/odds-budget";
 import {
@@ -165,13 +166,19 @@ export function logOddsUsage(
       `[odds] purpose=${purpose} ${label}: cost=${last ?? "?"} remaining=${remainingHeader ?? "?"}`,
     );
   }
-  void persistOddsUsageDaily({
-    purpose,
-    sport: sport ?? null,
-    cost: Number.isFinite(cost) ? cost : 0,
-    remaining:
-      remaining != null && Number.isFinite(remaining) ? remaining : null,
-  }).catch(() => {});
+  // Scheduled, not fired-and-forgotten: an unawaited write here was being cut
+  // off mid-transaction when the isolate froze, wedging a pooled connection
+  // `idle in transaction` until it timed out. Telemetry must never cost the app
+  // a connection.
+  afterResponse(() =>
+    persistOddsUsageDaily({
+      purpose,
+      sport: sport ?? null,
+      cost: Number.isFinite(cost) ? cost : 0,
+      remaining:
+        remaining != null && Number.isFinite(remaining) ? remaining : null,
+    }),
+  );
 }
 
 async function persistOddsUsageDaily(opts: {
