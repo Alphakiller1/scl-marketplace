@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { formatCaptureClock, formatOdds } from "@/lib/format";
 import { bookShort } from "@/lib/books";
 import { selectionForActiveBook } from "@/lib/game-picker";
-import { CORE_GAME_MARKETS, isGameLineMarket } from "@/lib/market-kind";
+import { allGameLineLabels, isGameLineMarket } from "@/lib/market-kind";
 import { pickKey } from "@/lib/slip";
 import { toHeadshotLeague } from "@/lib/player-headshots";
 import {
@@ -58,7 +58,18 @@ type EventDetailData =
   | { status: "ready"; selections: OddsSelection[] }
   | { status: "error" };
 
-const MARKET_ORDER = CORE_GAME_MARKETS;
+/**
+ * Every game-line label, in the order a sportsbook lists them: full game first,
+ * then F3/F5/F7 and halves, then team totals.
+ *
+ * This drives the tab strip, and it must come from the registry rather than a
+ * hardcoded list. Tabs used to be `CORE_GAME_MARKETS` alone, so a period market
+ * had nowhere to render: `isGameLineMarket` correctly kept F5/F3/F7 out of the
+ * player-prop bucket, but no tab matched them, so they were fetched, billed and
+ * silently shown nowhere. Deriving the order here means registering a segment
+ * is enough to surface it.
+ */
+const MARKET_ORDER = allGameLineLabels();
 // Alternate spread/total ladders are long — show the closest-to-main lines, expand for the rest.
 const ALT_LINE_CAP = 8;
 
@@ -687,7 +698,11 @@ export function EventDetail({
         ) : null}
         {alt && alt.total > 0 ? (
           <div>
-            {marketLabel(`Alternate ${market}`)}
+            {/* The feed only flags full-game lines as featured, so a period
+                market (F5/F3/F7, halves) has no "main line" of its own — these
+                ARE its lines, and calling them alternates reads as a sidebar to
+                something that isn't shown. */}
+            {marketLabel(featured.length ? `Alternate ${market}` : market)}
             <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
               {alt.visible.map((s, i) => renderChip(s, `alt-${market}-${i}`))}
             </div>
