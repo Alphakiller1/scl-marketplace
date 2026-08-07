@@ -14,6 +14,17 @@ import {
   impliedProbFromAmerican,
 } from "@/lib/odds-verify";
 
+/**
+ * Implied-probability gap above which a "move" is treated as a mismatched line
+ * rather than a price change, and must be confirmed whichever way it points.
+ *
+ * Deliberately far above `DEFAULT_TOLERANCE_PROB` (0.02): ordinary movement,
+ * favorable or adverse, must keep flowing through without interrupting anyone.
+ * 15 points is a gap no live market crosses between tapping a chip and
+ * submitting it.
+ */
+export const IMPLAUSIBLE_MOVE_PROB = 0.15;
+
 /** Tolerance classes from M5 §3.1. */
 export type OddsMoveClass =
   | "unchanged"
@@ -139,6 +150,29 @@ export function classifyOddsMove(params: {
   const liveImplied = impliedProbFromAmerican(live);
   const delta = Math.abs(liveImplied - selectedImplied);
   const favorable = liveImplied < selectedImplied;
+
+  // A swing this large is not a market move — it is a different line. Confirm it
+  // in either direction, including a favorable one.
+  //
+  // `favorable` used to auto-accept without bound, on the reasonable-sounding
+  // logic that nobody minds a better price. But it silently REPLACES what the
+  // capper tapped, so any board that shows a wrong price writes a windfall onto
+  // a verified record with no prompt and no trace: a Team Total tapped at -650
+  // was recorded at -154, turning a +174 parlay out of one that should have
+  // priced near -109. The capper spotted it and reported it as inflation, which
+  // is exactly what it was.
+  //
+  // Real prices do not move 15 points of implied probability between tapping a
+  // chip and submitting it. Anything that big is a mismatch, and the honest
+  // response is to show both numbers and let the capper decide.
+  if (delta > IMPLAUSIBLE_MOVE_PROB) {
+    return {
+      class: "changed",
+      selectedOddsAmerican: selected,
+      updatedOddsAmerican: live,
+      deltaImplied: delta,
+    };
+  }
 
   if (favorable) {
     return {
