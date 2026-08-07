@@ -1,6 +1,7 @@
 import "server-only";
 
 import { unstable_cache } from "next/cache";
+import { reviveCachedDates } from "@/lib/cache-dates";
 import { prisma } from "@/lib/prisma";
 import { UNIT_MIN } from "@/lib/constants";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
@@ -61,7 +62,9 @@ export async function getDiscoverLanes(): Promise<{
   publicRecordCount: number;
   failed: boolean;
 }> {
-  return getCachedDiscoverLanes();
+  // Lanes carry CapperSummary rows whose `lastPlayAt` / `joinedAt` the cards
+  // format as Dates — rebuild them after the cache's JSON round trip.
+  return reviveCachedDates(await getCachedDiscoverLanes());
 }
 
 async function loadDiscoverLanes(): Promise<{
