@@ -9,12 +9,14 @@ import { sendAffiliateSignupNotificationEmail } from "@/lib/email";
 import { requireAdmin, requireCapperAccess } from "@/lib/session";
 import {
   adminPackageActiveSchema,
+  adminPackageDeleteSchema,
   adminPackageReorderSchema,
   adminPackageSchema,
   adminUpdateStoreConnectionSchema,
   markInstructionsViewedSchema,
   submitStoreConnectionSchema,
   type AdminPackageActiveInput,
+  type AdminPackageDeleteInput,
   type AdminPackageReorderInput,
   type AdminPackageInput,
   type AdminUpdateStoreConnectionInput,
@@ -604,6 +606,94 @@ export async function adminSetPackageActiveAction(
   // Publishing or hiding an offer is exactly the change a capper expects to see
   // reflected on their Whop storefront.
   mirrorPackageToWhop(pkg.id);
+  await revalidateCommercePaths(pkg.capper.user.username, pkg.capper.user.id);
+  return { ok: true };
+}
+
+/**
+ * Permanently remove one capper's package.
+ *
+ * Deletion is not the same tool as hiding, and the difference is not cosmetic:
+ * `Package` cascades to `TrackingUrl` (and every `ClickEvent` under it) and to
+ * `PlayPackage` / `ParlayPackage`. So deleting an offer that has been sold
+ * against destroys its click history *and* the attribution that makes
+ * "package results only include picks assigned to that offer" true. A capper's
+ * package record would silently change.
+ *
+ * So: packages with no history delete on one click, because those are the
+ * duplicates and typos an admin actually wants gone. Packages with history
+ * refuse once and report exactly what would be lost; the caller re-sends with
+ * `confirmDestructive` if that is genuinely the intent. `PackageAuditEvent`
+ * nulls rather than cascades, so the record of the deletion outlives the
+ * package — which is the whole point of an audit trail.
+ */
+export async function adminDeletePackageAction(
+  input: AdminPackageDeleteInput,
+): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const parsed = adminPackageDeleteSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid request." };
+
+  const pkg = await prisma.package.findUnique({
+    where: { id: parsed.data.packageId },
+    select: {
+      id: true,
+      title: true,
+      priceCents: true,
+      capperId: true,
+      storeConnectionId: true,
+      capper: { select: { user: { select: { id: true, username: true } } } },
+      _count: { select: { playLinks: true, parlayLinks: true } },
+    },
+  });
+  if (!pkg) return { ok: false, error: "Package not found." };
+
+  const clicks = await prisma.clickEvent.count({
+    where: { trackingUrl: { packageId: pkg.id } },
+  });
+  const attributed = pkg._count.playLinks + pkg._count.parlayLinks;
+
+  if ((attributed > 0 || clicks > 0) && !parsed.data.confirmDestructive) {
+    const losses = [
+      attributed > 0 ? `${attributed} attributed pick(s)` : null,
+      clicks > 0 ? `${clicks} recorded click(s)` : null,
+    ].filter(Boolean);
+    return {
+      ok: false,
+      error: `"${pkg.title}" has history — deleting also removes ${losses.join(
+        " and ",
+      )}. Hide it instead to keep the record, or confirm to delete permanently.`,
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // Written before the delete so the row exists to be nulled, not orphaned.
+    await tx.packageAuditEvent.create({
+      data: {
+        packageId: pkg.id,
+        capperId: pkg.capperId,
+        actorId: admin.id,
+        action: "DELETED",
+        summary: `Deleted "${pkg.title}" · ${
+          pkg.priceCents > 0
+            ? `$${(pkg.priceCents / 100).toFixed(2)}`
+            : "no price shown"
+        }${
+          attributed > 0 || clicks > 0
+            ? ` · discarded ${attributed} attributed pick(s), ${clicks} click(s)`
+            : ""
+        }`,
+      },
+    });
+    await tx.package.delete({ where: { id: pkg.id } });
+    if (pkg.storeConnectionId) {
+      await syncConnectionFromLivePackages(tx, pkg.storeConnectionId, admin.id);
+    }
+  });
+
+  // Deliberately NOT mirrored to Whop. Removing an SCL listing is a statement
+  // about SCL's marketplace; deleting the capper's product on their own Whop
+  // storefront is not ours to do, and is not reversible from here.
   await revalidateCommercePaths(pkg.capper.user.username, pkg.capper.user.id);
   return { ok: true };
 }
