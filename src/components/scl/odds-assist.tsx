@@ -14,8 +14,7 @@ import { cn } from "@/lib/utils";
 import { formatCaptureClock, formatOdds } from "@/lib/format";
 import { bookShort } from "@/lib/books";
 import { selectionForActiveBook } from "@/lib/game-picker";
-import { isPeriodMarket } from "@/lib/period-markets";
-import { isTeamTotalMarket } from "@/lib/team-total-markets";
+import { CORE_GAME_MARKETS, isGameLineMarket } from "@/lib/market-kind";
 import { pickKey } from "@/lib/slip";
 import { toHeadshotLeague } from "@/lib/player-headshots";
 import {
@@ -59,7 +58,7 @@ type EventDetailData =
   | { status: "ready"; selections: OddsSelection[] }
   | { status: "error" };
 
-const MARKET_ORDER = ["Moneyline", "Spread", "Total"] as const;
+const MARKET_ORDER = CORE_GAME_MARKETS;
 // Alternate spread/total ladders are long — show the closest-to-main lines, expand for the rest.
 const ALT_LINE_CAP = 8;
 
@@ -79,23 +78,16 @@ function marketOrder(market: string): number {
 }
 
 /**
- * Game lines, including the first-N-innings segments.
+ * Game lines, including period segments and team totals.
  *
- * Period markets ("1st 5 Innings Moneyline") are game lines, but they are not in
- * MARKET_ORDER, so everything that was not Moneyline/Spread/Total fell into the
- * PLAYER PROP bucket. That bucket then groups by `s.player` and drops anything
- * without one — and a period line has no player — so F3/F5/F7 appeared under
- * player props and rendered no lines at all. Both symptoms, one cause.
+ * Delegates to `isGameLineMarket`, which is derived from the market registries
+ * and covered by `market-kind.test.ts`. This test used to live here as a local
+ * literal list, un-exported and untestable inside a `.tsx` — which is how two
+ * markets shipped invisible: anything it failed to name fell into the player
+ * prop bucket, was grouped by a player it did not have, and was discarded.
  */
 function isGameMarket(market: string): boolean {
-  return (
-    (MARKET_ORDER as readonly string[]).includes(market) ||
-    isPeriodMarket(market) ||
-    // Same trap as the period markets: a team total carries a club in the same
-    // field a prop carries a player, so without this it lands in the prop
-    // bucket, gets grouped by `s.player`, finds none, and is dropped.
-    isTeamTotalMarket(market)
-  );
+  return isGameLineMarket(market);
 }
 
 /**
