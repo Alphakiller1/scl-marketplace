@@ -66,6 +66,53 @@ export function espnIdOf(game: SettledGame): string | null {
   return id?.startsWith("espn:") ? id.slice("espn:".length) : null;
 }
 
+/** Clubs only — the fixture without the clock the two providers can disagree on. */
+function clubsKey(g: SettledGame): string {
+  const team = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return [g.sport.toLowerCase(), team(g.home), team(g.away)].join("|");
+}
+
+const SAME_GAME_HOURS = 12;
+
+/**
+ * The ESPN id for a fixture, looking past the merge when it did not collapse.
+ *
+ * `fixtureKey` buckets by the hour, so if the two feeds disagree about first
+ * pitch by more than the rounding absorbs — a delayed start one of them updated
+ * — the same game stays as two entries. The Odds API copy is the one an
+ * event-bound play matches (it carries the hash), and it has no ESPN id, so
+ * box-score grading deferred that play forever while the id sat on the other
+ * copy of the very same game.
+ *
+ * Matching on clubs alone would cross-match a series, so a candidate must also
+ * start within half a day. A doubleheader yields two candidates and settles
+ * neither: an ambiguous id would grade a prop against the wrong game, which is
+ * worse than leaving it pending.
+ */
+export function espnIdForFixture(
+  game: SettledGame,
+  pool: readonly SettledGame[],
+): string | null {
+  const direct = espnIdOf(game);
+  if (direct) return direct;
+
+  const key = clubsKey(game);
+  const candidates = pool.filter(
+    (g) => g !== game && clubsKey(g) === key && espnIdOf(g) != null,
+  );
+  const near =
+    game.startsAt == null
+      ? candidates
+      : candidates.filter(
+          (g) =>
+            g.startsAt != null &&
+            Math.abs(g.startsAt.getTime() - game.startsAt!.getTime()) <=
+              SAME_GAME_HOURS * 3_600_000,
+        );
+
+  return near.length === 1 ? espnIdOf(near[0]!) : null;
+}
+
 export function mergeSettledGames(
   primary: SettledGame[],
   secondary: SettledGame[],

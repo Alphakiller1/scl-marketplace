@@ -14,7 +14,7 @@ import {
   resolveOutcome,
   type GradablePlay,
 } from "@/lib/results/match";
-import { espnIdOf, type SettledGame } from "@/lib/results/settled-game";
+import { espnIdForFixture, type SettledGame } from "@/lib/results/settled-game";
 import {
   overUnderOutcome,
   parsePeriodTotal,
@@ -102,7 +102,7 @@ function espnEventIdFor(
   games: SettledGame[],
 ): string | null {
   const game = findSettledGame(play, games);
-  return game ? espnIdOf(game) : null;
+  return game ? espnIdForFixture(game, games) : null;
 }
 
 /**
@@ -205,19 +205,28 @@ async function resolvePendingPlay(
   games: SettledGame[],
   now: Date,
 ): Promise<{ outcome: Outcome | null; reason: keyof SkipReasonCounts }> {
-  if (parsePeriodMarket(play.market)) {
+  const deferredMarket = parsePeriodMarket(play.market) || isDeferredProp(play);
+  if (deferredMarket) {
     // F3/F5/F7 settle from line-scores only — never from the final score.
-    const outcome = await resolvePeriodPlay(play, games);
-    return { outcome, reason: "props_deferred" };
-  }
-
-  if (isDeferredProp(play)) {
     // Period totals settle from line-scores; player props from the per-athlete
     // box score. Only a play neither resolver can settle still defers.
-    const outcome =
-      (await resolveDeferredPeriodTotal(play, games)) ??
-      (await resolvePlayerPropPlay(play, games));
-    return { outcome, reason: "props_deferred" };
+    const outcome = parsePeriodMarket(play.market)
+      ? await resolvePeriodPlay(play, games)
+      : ((await resolveDeferredPeriodTotal(play, games)) ??
+        (await resolvePlayerPropPlay(play, games)));
+    if (outcome) return { outcome, reason: "props_deferred" };
+
+    // Report WHY it deferred. `props_deferred` used to swallow "the results
+    // feed has no such game" too, so a prop stuck on a missing fixture was
+    // indistinguishable from one whose box score could not be read — and the
+    // health report counted it as normal prop behaviour either way.
+    const gameFound = findSettledGame(play, games) != null;
+    return {
+      outcome: null,
+      reason: gameFound
+        ? "props_deferred"
+        : classifySkipReason({ play, gameFound, now }),
+    };
   }
 
   const outcome = resolveOutcome(play, games);

@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { espnIdOf, mergeSettledGames } from "@/lib/results/settled-game";
+import {
+  espnIdForFixture,
+  espnIdOf,
+  mergeSettledGames,
+} from "@/lib/results/settled-game";
 import { findGame, type GradablePlay } from "@/lib/results/match";
 import type { SettledGame } from "@/lib/results/settled-game";
 
@@ -156,4 +160,56 @@ test("a doubleheader stays two fixtures", () => {
     startsAt: new Date("2026-08-05T20:00:00Z"),
   });
   assert.equal(mergeSettledGames([g1, g2], []).length, 2);
+});
+
+test("the ESPN id is still found when the two feeds disagree on first pitch", () => {
+  // `fixtureKey` buckets by the hour, so a delayed start that one feed updated
+  // leaves the same game as two entries. The play matches the Odds API copy,
+  // which has no ESPN id — and the id it needs is sitting on the other copy.
+  const oddsApi = game({
+    eventId: "de2d6836db4bc97363ff6663002a1226",
+    startsAt: new Date("2026-08-07T23:55:00Z"),
+  });
+  const espn = game({
+    eventId: "espn:401816429",
+    espnEventId: "401816429",
+    startsAt: new Date("2026-08-07T22:40:00Z"),
+  });
+
+  const merged = mergeSettledGames([oddsApi], [espn]);
+  assert.equal(merged.length, 2, "different buckets — deliberately not merged");
+  assert.equal(espnIdForFixture(merged[1]!, merged), "401816429");
+});
+
+test("a doubleheader refuses to guess which game the id belongs to", () => {
+  // Grading a prop against the wrong game of a doubleheader is worse than
+  // leaving it pending, so two candidates settle neither.
+  const oddsApi = game({
+    eventId: "hash",
+    startsAt: new Date("2026-08-07T23:55:00Z"),
+  });
+  const g1 = game({
+    eventId: "espn:1",
+    espnEventId: "1",
+    startsAt: new Date("2026-08-07T17:05:00Z"),
+  });
+  const g2 = game({
+    eventId: "espn:2",
+    espnEventId: "2",
+    startsAt: new Date("2026-08-07T22:40:00Z"),
+  });
+  assert.equal(espnIdForFixture(oddsApi, [oddsApi, g1, g2]), null);
+});
+
+test("the next day's game in the series is not borrowed", () => {
+  const oddsApi = game({
+    eventId: "hash",
+    startsAt: new Date("2026-08-07T23:55:00Z"),
+  });
+  const nextDay = game({
+    eventId: "espn:9",
+    espnEventId: "9",
+    startsAt: new Date("2026-08-08T22:40:00Z"),
+  });
+  assert.equal(espnIdForFixture(oddsApi, [oddsApi, nextDay]), null);
 });
