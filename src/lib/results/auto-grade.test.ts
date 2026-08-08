@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { test } from "node:test";
 
 import { resolveOutcome, type GradablePlay } from "@/lib/results/match";
@@ -193,5 +195,41 @@ test("first-five / innings markets stay deferred", () => {
       GAMES,
     ),
     null,
+  );
+});
+
+/**
+ * Straight plays and parlay legs must decide outcomes in ONE place.
+ *
+ * They were written out twice and drifted: the parlay branch deferred every
+ * prop unconditionally, so a player prop that graded fine on its own sat
+ * PENDING forever inside a parlay and held the whole unsettled ticket with it.
+ * Both loops now call `resolvePendingPlay`; a second copy of the branch is the
+ * regression this catches.
+ */
+test("both grading loops resolve through the same function", () => {
+  const src = fs.readFileSync(
+    path.join(process.cwd(), "src/lib/results/auto-grade.ts"),
+    "utf8",
+  );
+  const count = (re: RegExp) => (src.match(re) ?? []).length;
+
+  assert.equal(
+    count(/isDeferredProp\(/g),
+    1,
+    "Only resolvePendingPlay may decide that a play is a deferred prop — a " +
+      "second branch is how the parlay path stopped grading props at all.",
+  );
+  assert.equal(
+    count(/await resolvePendingPlay\(/g),
+    2,
+    "Straight plays and parlay legs must each resolve through " +
+      "resolvePendingPlay, so neither can drift from the other.",
+  );
+  assert.equal(
+    count(/resolveOutcome\(play, games\)/g),
+    1,
+    "resolveOutcome grades against the FULL-GAME score; reaching it from a " +
+      "second place is how a prop or period market gets a wrong result.",
   );
 });

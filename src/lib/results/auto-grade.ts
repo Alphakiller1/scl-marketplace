@@ -188,6 +188,50 @@ async function resolvePeriodPlay(
   return resolvePeriodTotal(play.selection, box);
 }
 
+/**
+ * Turn one pending play into an outcome — the ONE path, for straight plays and
+ * parlay legs alike.
+ *
+ * The two used to be written out separately and drifted: the parlay branch
+ * deferred every prop unconditionally, so a prop that graded fine on its own
+ * sat PENDING forever inside a parlay and held the whole ticket unsettled. A
+ * shared resolver makes that divergence impossible rather than merely fixed.
+ *
+ * A null outcome always carries the skip reason to record, so no caller has to
+ * decide what a deferral means.
+ */
+async function resolvePendingPlay(
+  play: GradablePlay,
+  games: SettledGame[],
+  now: Date,
+): Promise<{ outcome: Outcome | null; reason: keyof SkipReasonCounts }> {
+  if (parsePeriodMarket(play.market)) {
+    // F3/F5/F7 settle from line-scores only — never from the final score.
+    const outcome = await resolvePeriodPlay(play, games);
+    return { outcome, reason: "props_deferred" };
+  }
+
+  if (isDeferredProp(play)) {
+    // Period totals settle from line-scores; player props from the per-athlete
+    // box score. Only a play neither resolver can settle still defers.
+    const outcome =
+      (await resolveDeferredPeriodTotal(play, games)) ??
+      (await resolvePlayerPropPlay(play, games));
+    return { outcome, reason: "props_deferred" };
+  }
+
+  const outcome = resolveOutcome(play, games);
+  if (outcome) return { outcome, reason: "market_unhandled" };
+  return {
+    outcome: null,
+    reason: classifySkipReason({
+      play,
+      gameFound: findSettledGame(play, games) != null,
+      now,
+    }),
+  };
+}
+
 async function gradeStraightPlays(
   provider: ResultsProvider,
   now: Date,
@@ -244,40 +288,13 @@ async function gradeStraightPlays(
   let graded = 0;
 
   for (const play of pending) {
-    let outcome: Outcome | null;
-    if (parsePeriodMarket(play.market)) {
-      // F3/F5/F7 settle from line-scores only — never from the final score.
-      outcome = await resolvePeriodPlay(play, games);
-      if (!outcome) {
-        skippedByReason.props_deferred++;
-        logSkip("play", play, "props_deferred");
-        continue;
-      }
-    } else if (isDeferredProp(play)) {
-      // Period totals settle from line-scores; player props from the per-athlete
-      // box score. Only a play neither resolver can settle still defers.
-      outcome =
-        (await resolveDeferredPeriodTotal(play, games)) ??
-        (await resolvePlayerPropPlay(play, games));
-      if (!outcome) {
-        skippedByReason.props_deferred++;
-        logSkip("play", play, "props_deferred");
-        continue;
-      }
-    } else {
-      const game = findSettledGame(play, games);
-      outcome = resolveOutcome(play, games);
-      if (!outcome) {
-        const reason = classifySkipReason({
-          play,
-          gameFound: game != null,
-          now,
-        });
-        skippedByReason[reason]++;
-        logSkip("play", play, reason);
-        continue;
-      }
+    const resolved = await resolvePendingPlay(play, games, now);
+    if (!resolved.outcome) {
+      skippedByReason[resolved.reason]++;
+      logSkip("play", play, resolved.reason);
+      continue;
     }
+    const outcome = resolved.outcome;
     const profitUnits = profitUnitsForOutcome(
       outcome,
       play.oddsAmerican,
@@ -379,31 +396,13 @@ async function gradeParlayLegs(
   let graded = 0;
 
   for (const play of pending) {
-    let periodOutcome: Outcome | null = null;
-    if (parsePeriodMarket(play.market)) {
-      periodOutcome = await resolvePeriodPlay(play, games);
-      if (!periodOutcome) {
-        skippedByReason.props_deferred++;
-        logSkip("parlay leg", play, "props_deferred");
-        continue;
-      }
-    } else if (isDeferredProp(play)) {
-      skippedByReason.props_deferred++;
-      logSkip("parlay leg", play, "props_deferred");
+    const resolved = await resolvePendingPlay(play, games, now);
+    if (!resolved.outcome) {
+      skippedByReason[resolved.reason]++;
+      logSkip("parlay leg", play, resolved.reason);
       continue;
     }
-    const game = findSettledGame(play, games);
-    const outcome = periodOutcome ?? resolveOutcome(play, games);
-    if (!outcome) {
-      const reason = classifySkipReason({
-        play,
-        gameFound: game != null,
-        now,
-      });
-      skippedByReason[reason]++;
-      logSkip("parlay leg", play, reason);
-      continue;
-    }
+    const outcome = resolved.outcome;
     await prisma.$transaction([
       prisma.play.update({
         where: { id: play.id },
