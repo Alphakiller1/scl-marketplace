@@ -1,6 +1,6 @@
 import "server-only";
 
-import { unstable_cache } from "next/cache";
+import { cachedQuery } from "@/lib/cached-query";
 import { prisma } from "@/lib/prisma";
 import { UNIT_MIN } from "@/lib/constants";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
@@ -301,7 +301,7 @@ async function loadDiscoverLanes(): Promise<{
   }
 }
 
-const getCachedDiscoverLanes = unstable_cache(
+const getCachedDiscoverLanes = cachedQuery(
   loadDiscoverLanes,
   ["discover-lanes"],
   { revalidate: 60, tags: ["leaderboard", "discover"] },

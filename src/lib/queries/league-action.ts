@@ -1,8 +1,7 @@
 import "server-only";
 
 import type { VerificationTier } from "@prisma/client";
-import { unstable_cache } from "next/cache";
-
+import { cachedQuery } from "@/lib/cached-query";
 import { prisma } from "@/lib/prisma";
 import {
   platformTrackedPicks,
@@ -161,7 +160,7 @@ async function loadLeagueActionReport({
   }
 }
 
-const getCachedLeagueActionReport = unstable_cache(
+const getCachedLeagueActionReport = cachedQuery(
   async (cacheKey: string) => {
     const { windowDays, take } = JSON.parse(cacheKey) as {
       windowDays: number;

@@ -1,9 +1,9 @@
 import "server-only";
 
-import { unstable_cache } from "next/cache";
 import { cache } from "react";
 import type { Outcome } from "@prisma/client";
 
+import { cachedQuery } from "@/lib/cached-query";
 import { prisma } from "@/lib/prisma";
 import {
   buildPerformanceTrend,
@@ -433,7 +433,7 @@ async function loadLeaderboardResult(filters: LeaderboardFilters): Promise<{
   return { cappers: ranked, unranked, failed: false };
 }
 
-const getCachedLeaderboardResult = unstable_cache(
+const getCachedLeaderboardResult = cachedQuery(
   async (cacheKey: string) => {
     const filters = JSON.parse(cacheKey) as LeaderboardFilters;
     return loadLeaderboardResult(filters);

@@ -28,6 +28,19 @@ test("formatLastPickDate returns null when empty", () => {
   assert.equal(formatLastPickDate(undefined), null);
 });
 
+test("formatLastPickDate reads a date that arrived as a string", () => {
+  // The profile header crashed the whole page with "getFullYear is not a
+  // function" when the JSON cache handed back an ISO string. Degrade, never
+  // throw — the label is worth less than the page.
+  const label = formatLastPickDate(
+    "2026-07-13T20:00:00.000Z" as unknown as Date,
+    new Date("2026-07-14T16:00:00.000Z"),
+  );
+  assert.ok(label);
+  assert.match(label!, /Jul/);
+  assert.equal(formatLastPickDate("not a date" as unknown as Date), null);
+});
+
 test("formatLastPickDate is compact", () => {
   const label = formatLastPickDate(
     new Date("2026-07-13T20:00:00.000Z"),

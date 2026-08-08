@@ -36,12 +36,32 @@ export function formatRecord(w: number, l: number, p = 0): string {
   return p > 0 ? `${w}-${l}-${p}` : `${w}-${l}`;
 }
 
+/**
+ * Coerce a date-ish value to a usable Date, or null.
+ *
+ * A date that arrives as an ISO string instead of a Date must degrade to a
+ * missing label, never to a thrown render: `Intl.format("2026-08-08T…")` throws
+ * "Invalid time value" and `"…".getFullYear()` throws outright, and either one
+ * takes down the whole public profile it appears on. `reviveCachedDates` stops
+ * the JSON cache producing such values in the first place; this is the guard
+ * rail under it, for props that reach a formatter from anywhere else.
+ */
+export function asDate(value: Date | string | number | null | undefined) {
+  if (value == null) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 /** Public profile join date — e.g. "Jul 2026". */
-export function formatJoinedDate(date: Date): string {
+export function formatJoinedDate(
+  date: Date | string | number | null | undefined,
+): string {
+  const parsed = asDate(date);
+  if (!parsed) return "—";
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     year: "numeric",
-  }).format(date);
+  }).format(parsed);
 }
 
 /** Semantic tone for a signed number: positive=pos, negative=neg, else muted. */

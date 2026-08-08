@@ -3,6 +3,8 @@
  * Counts positions of record (straight plays + parlays), not parlay legs.
  */
 
+import { asDate } from "@/lib/format";
+
 export type CapperActivitySummary = {
   last3Days: number;
   last14Days: number;
@@ -47,14 +49,21 @@ export function computeCapperActivity(
   return { last3Days, last14Days, month };
 }
 
-/** Short “Last pick” label, e.g. "Jul 13" / "Jul 13, 2025". */
+/**
+ * Short “Last pick” label, e.g. "Jul 13" / "Jul 13, 2025".
+ *
+ * Accepts a date-ish value and returns null when it cannot be read: this label
+ * sits in the profile header, so a value that is not a real Date must drop the
+ * label rather than throw and take the page down with it.
+ */
 export function formatLastPickDate(
-  lastPlayAt: Date | null | undefined,
+  lastPlayAt: Date | string | number | null | undefined,
   now: Date = new Date(),
 ): string | null {
-  if (!lastPlayAt) return null;
-  const sameYear = lastPlayAt.getFullYear() === now.getFullYear();
-  return lastPlayAt.toLocaleDateString("en-US", {
+  const parsed = asDate(lastPlayAt);
+  if (!parsed) return null;
+  const sameYear = parsed.getFullYear() === now.getFullYear();
+  return parsed.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     ...(sameYear ? {} : { year: "numeric" }),
