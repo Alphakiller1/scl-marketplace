@@ -34,7 +34,7 @@ import { SampleMaturityMeter } from "@/components/scl/sample-maturity-meter";
 import { EmptyState } from "@/components/scl/states";
 import { loadPublicProfileHistory } from "@/app/actions/public-profile-history";
 import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
-import { formatOdds, formatUnits } from "@/lib/format";
+import { asDate, formatOdds, formatUnits } from "@/lib/format";
 import type { LegacySportRecordView } from "@/lib/legacy-sport-records";
 import type { CapperSummary } from "@/lib/mock";
 import type {
@@ -136,7 +136,7 @@ function playToProofReceipt(
       odds={formatOdds(play.oddsAmerican)}
       stake={formatUnits(play.units, true, false)}
       toWin={toWin}
-      capturedAt={play.createdAt.toISOString()}
+      capturedAt={asDate(play.createdAt)?.toISOString() ?? null}
       book={play.book}
       state={state}
       density={density}
@@ -550,12 +550,12 @@ function ProofHistoryLedger({
                     </button>
                   </td>
                   <td className="text-muted-foreground hidden truncate py-2.5 pr-2 tabular-nums sm:table-cell">
-                    {play.createdAt.toLocaleDateString("en-US", {
+                    {asDate(play.createdAt)?.toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
                       year: "numeric",
                       timeZone: "UTC",
-                    })}
+                    }) ?? "—"}
                   </td>
                   <td className="py-2.5 pr-2 font-medium">
                     <span className="flex min-w-0 items-center gap-2">

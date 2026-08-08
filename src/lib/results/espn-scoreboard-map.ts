@@ -75,6 +75,9 @@ export function mapEspnScoreboard(
       awayScore,
       completed: true,
       eventId: event.id ? `espn:${event.id}` : undefined,
+      // The bare id box-score grading needs, kept where the merge can carry it
+      // onto the Odds API copy of the same fixture.
+      espnEventId: event.id ? String(event.id) : undefined,
       startsAt:
         startsAt && !Number.isNaN(startsAt.getTime()) ? startsAt : undefined,
     });

@@ -1,8 +1,8 @@
 import "server-only";
 
-import { unstable_cache } from "next/cache";
 import { cache } from "react";
 
+import { cachedQuery } from "@/lib/cached-query";
 import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
 import { UNIT_MIN } from "@/lib/constants";
 import {
@@ -395,8 +395,12 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
  * Tagged `leaderboard` so the same revalidation that publishes a new grade also
  * refreshes the profile that shows it — a graded pick must not sit behind a
  * stale profile for a minute.
+ *
+ * Goes through `cachedQuery`, not `unstable_cache` directly: this payload
+ * carries Dates (`capper.lastPlayAt`, `capper.joinedAt`, every play's
+ * `createdAt`/`eventStartsAt`) and the JSON cache returns those as strings.
  */
-const getCachedPublicCapperByHandle = unstable_cache(
+const getCachedPublicCapperByHandle = cachedQuery(
   async (handle: string) => loadPublicCapperByHandle(handle),
   ["public-capper-by-handle"],
   { revalidate: 60, tags: ["leaderboard"] },

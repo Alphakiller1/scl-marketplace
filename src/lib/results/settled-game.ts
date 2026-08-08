@@ -9,6 +9,17 @@ export type SettledGame = {
   /** Odds API event id when available — preferred join key for grading. */
   eventId?: string;
   /**
+   * ESPN's numeric event id for this fixture, when a provider knows it.
+   *
+   * Kept SEPARATE from `eventId` because the two are needed for different
+   * things and only one of them can win the merge: `eventId` is the Odds API
+   * hash that event-bound plays are matched on, while box-score grading (player
+   * props, first-N-innings segments) has to call ESPN's summary endpoint, which
+   * only accepts this id. Folding both into one field is what stopped every
+   * prop grading — see `mergeSettledGames`.
+   */
+  espnEventId?: string;
+  /**
    * Scheduled start. Only used to date-scope the name-matching fallback for
    * plays that carry no eventId — without it, "Yankees ML" logged today can
    * match a Yankees game from last week that happens to be in the settled pool.
@@ -44,6 +55,17 @@ function fixtureKey(g: SettledGame): string {
   return [g.sport.toLowerCase(), team(g.home), team(g.away), when].join("|");
 }
 
+/**
+ * The ESPN id a settled game carries, from either shape a provider can use.
+ * The scoreboard mapper stamps `eventId: "espn:<id>"` on its own copy; the
+ * merged copy carries the bare id in `espnEventId`.
+ */
+export function espnIdOf(game: SettledGame): string | null {
+  if (game.espnEventId) return game.espnEventId;
+  const id = game.eventId;
+  return id?.startsWith("espn:") ? id.slice("espn:".length) : null;
+}
+
 export function mergeSettledGames(
   primary: SettledGame[],
   secondary: SettledGame[],
@@ -54,6 +76,17 @@ export function mergeSettledGames(
   // plays are matched on. When only the backstop has the game — anything past
   // the Odds API lookback — its copy is the one that survives, which is the
   // whole point of having a backstop.
-  for (const g of primary) byKey.set(fixtureKey(g), g);
+  //
+  // Carry the loser's ESPN id onto the winner, though. Box-score grading (every
+  // player prop, every F3/F5/F7 segment) can only call ESPN's summary endpoint,
+  // which needs ESPN's numeric id — and the Odds API copy, which wins any
+  // fixture inside its 3-day scores window, has only a hash. Dropping the ESPN
+  // id here meant no recent prop could EVER auto-grade: the grader read the
+  // merged game, found no ESPN id, and deferred the play every single run.
+  for (const g of primary) {
+    const key = fixtureKey(g);
+    const espnEventId = espnIdOf(g) ?? espnIdOf(byKey.get(key) ?? g);
+    byKey.set(key, espnEventId ? { ...g, espnEventId } : g);
+  }
   return [...byKey.values()];
 }

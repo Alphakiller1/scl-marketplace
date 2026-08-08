@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { mergeSettledGames } from "@/lib/results/settled-game";
+import { espnIdOf, mergeSettledGames } from "@/lib/results/settled-game";
 import { findGame, type GradablePlay } from "@/lib/results/match";
 import type { SettledGame } from "@/lib/results/settled-game";
 
@@ -26,6 +26,36 @@ test("the same fixture from both providers collapses to one", () => {
   assert.equal(merged.length, 1);
   // Primary wins: it carries the id that event-bound plays match on.
   assert.equal(merged[0]!.eventId, "3b23ade05c9d38068df5e7af422bca05");
+});
+
+test("the winning copy keeps the ESPN id box-score grading needs", () => {
+  // Losing this id is what stopped EVERY player prop and every F3/F5/F7 segment
+  // grading: those settle from ESPN's summary endpoint, which only accepts
+  // ESPN's numeric id, and the Odds API copy — which wins any fixture inside
+  // its 3-day scores window — carries a hash. The grader found no ESPN id on
+  // the merged game and deferred the play on every single run, forever.
+  const oddsApi = game({ eventId: "3b23ade05c9d38068df5e7af422bca05" });
+  const espn = game({ eventId: "espn:401816405", espnEventId: "401816405" });
+
+  const merged = mergeSettledGames([oddsApi], [espn]);
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0]!.eventId, "3b23ade05c9d38068df5e7af422bca05");
+  assert.equal(merged[0]!.espnEventId, "401816405");
+  assert.equal(espnIdOf(merged[0]!), "401816405");
+});
+
+test("espnIdOf reads both shapes, and reports none when there is none", () => {
+  assert.equal(espnIdOf(game({ eventId: "espn:401816405" })), "401816405");
+  assert.equal(espnIdOf(game({ espnEventId: "401816405" })), "401816405");
+  // An Odds API hash is not an ESPN id — passing it to the summary endpoint
+  // 404s, so it must read as absent rather than be tried.
+  assert.equal(espnIdOf(game({ eventId: "3b23ade05c9d38" })), null);
+  assert.equal(espnIdOf(game({})), null);
+});
+
+test("a fixture only the Odds API has stays without an ESPN id", () => {
+  const merged = mergeSettledGames([game({ eventId: "odds-only" })], []);
+  assert.equal(merged[0]!.espnEventId, undefined);
 });
 
 test("a duplicated fixture no longer makes every name match ambiguous", () => {

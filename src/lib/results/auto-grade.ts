@@ -14,7 +14,7 @@ import {
   resolveOutcome,
   type GradablePlay,
 } from "@/lib/results/match";
-import type { SettledGame } from "@/lib/results/settled-game";
+import { espnIdOf, type SettledGame } from "@/lib/results/settled-game";
 import {
   overUnderOutcome,
   parsePeriodTotal,
@@ -92,15 +92,17 @@ async function resolveDeferredPeriodTotal(
  * `Play.eventId` is an **Odds API hash** — in production every bound play
  * carries a 32-char hex id and not one carries an ESPN id. Passing that to
  * ESPN's summary endpoint 404s, which is why box-score grading had never
- * settled a single play. The ESPN provider already stamps `espn:<id>` onto the
- * games it returns, so the matched game carries the id we actually need.
+ * settled a single play. The ESPN provider stamps its id onto the games it
+ * returns and `mergeSettledGames` carries it onto the Odds API copy that wins
+ * the merge, so the matched game has the id we actually need whichever feed
+ * reported the fixture.
  */
 function espnEventIdFor(
   play: GradablePlay,
   games: SettledGame[],
 ): string | null {
-  const id = findSettledGame(play, games)?.eventId;
-  return id?.startsWith("espn:") ? id.slice("espn:".length) : null;
+  const game = findSettledGame(play, games);
+  return game ? espnIdOf(game) : null;
 }
 
 /**
