@@ -47,7 +47,11 @@ test("suspension and restoration never restore a storefront directly to live", (
 });
 
 test("invalid or duplicate transitions are rejected", () => {
-  assert.equal(storefrontTransition("NOT_STARTED", "APPROVE"), null);
+  // NOT_STARTED + APPROVE used to be asserted here as invalid. It is now
+  // deliberately allowed: refusing it stranded finished packages behind a
+  // connection nobody could advance. See "an admin can approve a connection
+  // stalled before submit".
+  assert.equal(storefrontTransition("LIVE", "APPROVE"), null);
   assert.equal(storefrontTransition("LIVE", "MARK_LIVE"), null);
   assert.equal(storefrontTransition("NEEDS_ACTION", "REQUEST_CHANGES"), null);
 });
@@ -258,4 +262,52 @@ test("storefront coverage: a capper is judged by their furthest connection", () 
   );
   assert.equal(furthestStorefrontStatus([]), null);
   assert.equal(furthestStorefrontStatus(["DISABLED", "LIVE"]), "LIVE");
+});
+
+// ── a stalled connection must not strand the offers behind it ────────────────
+//
+// Reported from the admin panel: SharpMetricsMLB's "SM Daily S-Tier Plays
+// (Weekly)" ($22.99/wk) read ready but was not live. The package was complete —
+// active, a real Winible checkout URL carrying SCL's affiliate code, a tracking
+// slug — but its connection sat at INSTRUCTIONS_VIEWED, which
+// `activePublicPackageWhere` does not publish, and from which neither APPROVE
+// nor MARK_LIVE could be reached. Ready packages, no button that helped.
+
+test("an admin can approve a connection stalled before submit", () => {
+  for (const stalled of ["NOT_STARTED", "INSTRUCTIONS_VIEWED"] as const) {
+    const withPackages = storefrontTransition(stalled, "APPROVE", {
+      hasPackages: true,
+    });
+    assert.deepEqual(withPackages, {
+      targetStatus: "PACKAGES_IMPORTED",
+      auditAction: "APPROVED",
+    });
+
+    const withoutPackages = storefrontTransition(stalled, "APPROVE", {
+      hasPackages: false,
+    });
+    assert.deepEqual(withoutPackages, {
+      targetStatus: "LINKS_RECEIVED",
+      auditAction: "APPROVED",
+    });
+  }
+});
+
+test("approving a stalled connection reaches LIVE in one more step", () => {
+  const approved = storefrontTransition("INSTRUCTIONS_VIEWED", "APPROVE", {
+    hasPackages: true,
+  });
+  assert.ok(approved);
+  const live = storefrontTransition(approved.targetStatus, "MARK_LIVE");
+  assert.deepEqual(live, {
+    targetStatus: "LIVE",
+    auditAction: "MARKED_LIVE",
+  });
+});
+
+// The gate itself stays: approval is still a deliberate admin act, and a stalled
+// connection is never silently promoted straight to LIVE.
+test("a stalled connection still cannot jump straight to LIVE", () => {
+  assert.equal(storefrontTransition("INSTRUCTIONS_VIEWED", "MARK_LIVE"), null);
+  assert.equal(storefrontTransition("NOT_STARTED", "MARK_LIVE"), null);
 });
