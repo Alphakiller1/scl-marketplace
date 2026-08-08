@@ -31,7 +31,13 @@ const ESPN_SUMMARY_PATH: Record<string, string> = {
 
 type EspnCompetitor = {
   homeAway?: string;
-  linescores?: { value?: number | string }[];
+  /**
+   * The SUMMARY endpoint writes each period as `displayValue` and carries no
+   * `value` at all (`{ displayValue: "4", hits: 4, errors: 0 }`), unlike the
+   * scoreboard endpoint. Reading only `value` produced NaN for every inning, so
+   * the mapper returned null and no first-N-innings play could ever settle.
+   */
+  linescores?: { value?: number | string; displayValue?: number | string }[];
 };
 
 export async function fetchPeriodBoxScore(
@@ -203,8 +209,21 @@ export function mapSummaryToBoxScore(data: unknown): BoxScore | null {
   const periods = (c: EspnCompetitor): number[] | null => {
     const ls = c.linescores;
     if (!Array.isArray(ls) || ls.length === 0) return null;
-    const nums = ls.map((l) => Number(l.value));
-    return nums.every((n) => Number.isFinite(n)) ? nums : null;
+
+    // Keep the readable PREFIX rather than demanding every period parse. A home
+    // team that never batted in the 9th shows "X", and an unplayed period shows
+    // "-"; discarding the whole line for that would throw away the first
+    // innings a period market is actually settled from. `periodScores` refuses
+    // anything the prefix does not cover, so a short line still defers.
+    const out: number[] = [];
+    for (const entry of ls) {
+      const raw = entry?.value ?? entry?.displayValue;
+      if (raw == null || String(raw).trim() === "") break;
+      const n = Number(raw);
+      if (!Number.isFinite(n)) break;
+      out.push(n);
+    }
+    return out.length > 0 ? out : null;
   };
 
   const homePeriods = periods(home);
