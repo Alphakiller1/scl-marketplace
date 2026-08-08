@@ -127,6 +127,23 @@ export function storefrontTransition(
         "PENDING_SCL_ACCEPTANCE",
         "PENDING_SCL_LINK_IMPORT",
         "NEEDS_ACTION",
+        // A stalled connection was a dead end for the offers behind it. A capper
+        // who built real packages but never pressed submit left them complete —
+        // active, a genuine affiliate checkout URL, a tracking slug — and
+        // unpublishable: `activePublicPackageWhere` needs the connection LIVE,
+        // and neither APPROVE nor MARK_LIVE could be reached from here. The
+        // admin saw ready packages and had no button that helped, while the
+        // capper's storefront silently earned nothing.
+        //
+        // Worse, a package with NO connection publishes freely, so attaching a
+        // storefront made an offer less visible than leaving it unattached.
+        //
+        // Approving from a stalled state is the same human judgement the action
+        // already encodes — an admin confirming the affiliate relationship is
+        // real — so it is allowed rather than requiring the capper to resubmit
+        // work they already finished.
+        "NOT_STARTED",
+        "INSTRUCTIONS_VIEWED",
       ].includes(currentStatus)
         ? {
             targetStatus: context.hasPackages
