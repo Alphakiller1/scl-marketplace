@@ -7,6 +7,9 @@ import { BOOK_KEYS, isBookKey } from "@/lib/books";
 import { getOddsForBook, type OddsSelection } from "@/lib/odds-board";
 import { filterBySlateDay, nearTermEvents, type SlateDay } from "@/lib/slate";
 
+/** A feed must never leave the pick-entry board spinning indefinitely. */
+export const ODDS_BOARD_REQUEST_TIMEOUT_MS = 20_000;
+
 /** Sports The Odds API board can serve (client-safe mirror of odds-api SCL_TO_ODDS_API keys). */
 export const ODDS_BOARD_SPORTS = [
   { key: "NFL", label: "NFL" },

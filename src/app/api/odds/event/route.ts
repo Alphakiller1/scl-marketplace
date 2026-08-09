@@ -12,6 +12,7 @@ import { getCurrentUser } from "@/lib/session";
  * GET /api/odds/event?sport=NBA&eventId=abc123
  */
 export async function GET(request: Request) {
+  const startedAt = Date.now();
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -22,6 +23,19 @@ export async function GET(request: Request) {
   const books = await getCapperBooks(user.id);
   const selections =
     sport && eventId ? await fetchEventBoard(sport, eventId, { books }) : [];
+  if (selections.length === 0) {
+    console.warn("[odds-board] event detail empty", {
+      sport,
+      hasEventId: Boolean(eventId),
+      durationMs: Date.now() - startedAt,
+    });
+  } else {
+    console.info("[odds-board] event detail ready", {
+      sport,
+      selectionCount: selections.length,
+      durationMs: Date.now() - startedAt,
+    });
+  }
   return NextResponse.json({
     selections,
     configured: Boolean(oddsApiKey()),
