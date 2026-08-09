@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { buildCapperProfileMetadata } from "@/lib/capper-profile-seo";
+import {
+  buildCapperHandleMetadata,
+  buildCapperProfileMetadata,
+} from "@/lib/capper-profile-seo";
 import type { CapperSummary } from "@/lib/mock";
 
 function stub(over: Partial<CapperSummary> = {}): CapperSummary {
@@ -47,4 +50,15 @@ test("multi/unknown sport uses generic title template", () => {
     stub({ rank: 1, settledPicks: 20, topSport: "MULTI" }),
   );
   assert.match(String(meta.title), /Record, Picks & Verified History/);
+});
+
+test("handle-only metadata preserves profile identity without profile hydration", () => {
+  const meta = buildCapperHandleMetadata("@InevitablePicks");
+
+  assert.match(String(meta.title), /@InevitablePicks/);
+  assert.match(String(meta.description), /public capper profile/i);
+  assert.match(
+    String(meta.alternates?.canonical),
+    /\/cappers\/InevitablePicks$/,
+  );
 });

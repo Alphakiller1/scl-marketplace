@@ -57,3 +57,40 @@ export function buildCapperProfileMetadata(capper: CapperSummary): Metadata {
     },
   };
 }
+
+/**
+ * Metadata that never hydrates the full profile.
+ *
+ * Next renders metadata alongside the page. Calling the full profile loader
+ * from both paths creates two concurrent cache misses on a cold request, which
+ * can exhaust a one-connection serverless pool before either render finishes.
+ */
+export function buildCapperHandleMetadata(handle: string): Metadata {
+  const bare = handle.replace(/^@+/, "").trim();
+  const name = formatHandle(bare) || "Capper";
+  const base = appUrl();
+  const encoded = encodeURIComponent(bare);
+  const pageUrl = `${base}/cappers/${encoded}`;
+  const ogImage = `${base}/api/og/capper/${encoded}`;
+  const title = `${name} Record, Picks & Verified History`;
+  const description = `Review ${name}'s public capper profile, graded picks, units, ROI, timestamps, verification status, and storefront links where available on ${SCL_BRAND_NAME}.`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: pageUrl },
+    openGraph: {
+      title,
+      description,
+      url: pageUrl,
+      type: "profile",
+      images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage],
+    },
+  };
+}

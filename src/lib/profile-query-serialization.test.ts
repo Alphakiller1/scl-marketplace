@@ -26,3 +26,14 @@ test("profile packages load before optional accolades", () => {
       pageSource.indexOf("await getCapperAccolades"),
   );
 });
+
+test("profile metadata does not start a second full profile hydration", () => {
+  const pageSource = source("src/app/(marketing)/cappers/[handle]/page.tsx");
+  const metadataSource = pageSource.slice(
+    pageSource.indexOf("export async function generateMetadata"),
+    pageSource.indexOf("export default async function CapperProfilePage"),
+  );
+
+  assert.doesNotMatch(metadataSource, /getPublicCapperByHandle/);
+  assert.match(metadataSource, /buildCapperHandleMetadata/);
+});

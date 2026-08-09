@@ -6,7 +6,7 @@ import { CapperProfileMeta } from "@/components/scl/capper-profile-meta";
 import { CapperStorefront } from "@/components/scl/capper-storefront";
 import { EvidenceBrief } from "@/components/scl/evidence-brief";
 import { ProfileTopPackages } from "@/components/scl/profile-top-packages";
-import { buildCapperProfileMetadata } from "@/lib/capper-profile-seo";
+import { buildCapperHandleMetadata } from "@/lib/capper-profile-seo";
 import { identityDisplayLinesFromCapper } from "@/lib/identity";
 import type { ProfilePackageInsight } from "@/lib/package-register";
 import { getCapperAccolades } from "@/lib/queries/capper-accolades";
@@ -22,9 +22,7 @@ export async function generateMetadata({
   params,
 }: ProfileParams): Promise<Metadata> {
   const { handle } = await params;
-  const data = await getPublicCapperByHandle(handle);
-  if (!data) return { title: "Capper Not Found" };
-  return buildCapperProfileMetadata(data.capper);
+  return buildCapperHandleMetadata(handle);
 }
 
 export default async function CapperProfilePage({ params }: ProfileParams) {
