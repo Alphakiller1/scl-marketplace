@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 
 import { EmptyState } from "@/components/scl/states";
 import { SnapshotBoardTable } from "@/components/scl/snapshot-board-table";
-import { formatUpdatedAgo } from "@/lib/format-freshness";
 import type { CapperSummary } from "@/lib/mock";
 import { cn } from "@/lib/utils";
 
@@ -17,13 +16,13 @@ import { cn } from "@/lib/utils";
 export function LeaderboardSnapshot({
   cappers,
   failed = false,
-  updatedAt,
+  updatedLabel,
   limit = 5,
   className,
 }: {
   cappers: CapperSummary[];
   failed?: boolean;
-  updatedAt: Date;
+  updatedLabel: string;
   limit?: number;
   className?: string;
 }) {
@@ -72,7 +71,7 @@ export function LeaderboardSnapshot({
             Rankings update after game results are graded.
           </p>
           <p className="scl-data text-muted-foreground mt-1 text-[0.65rem] tabular-nums sm:mt-1.5 sm:text-[0.7rem]">
-            {formatUpdatedAgo(updatedAt)}
+            {updatedLabel}
           </p>
         </div>
         <Link

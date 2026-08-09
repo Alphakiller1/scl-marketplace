@@ -1,4 +1,5 @@
 import { LeaderboardSnapshot } from "@/components/scl/leaderboard-snapshot";
+import { formatUpdatedAgo } from "@/lib/format-freshness";
 import type { CapperSummary } from "@/lib/mock";
 import { cn } from "@/lib/utils";
 
@@ -29,7 +30,7 @@ export function LiveBoardShell({
           <LeaderboardSnapshot
             cappers={cappers}
             failed={leaderboardFailed}
-            updatedAt={updatedAt}
+            updatedLabel={formatUpdatedAgo(updatedAt)}
             limit={5}
           />
         </div>
