@@ -277,7 +277,6 @@ export async function listActiveMarketplacePackagesResult(): Promise<{
         ...publicPackagePublicationWhere(excludeTest),
       },
       orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
-      take: 60,
       select: {
         id: true,
         title: true,
