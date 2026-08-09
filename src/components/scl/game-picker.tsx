@@ -82,53 +82,70 @@ export function GamePicker({
 
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
-      setLoading(true);
-      const results = await Promise.all(
-        ODDS_BOARD_SPORTS.map(async (s) => {
-          try {
-            const res = await fetch(
-              `/api/odds?sport=${encodeURIComponent(s.key)}`,
-            );
-            if (!res.ok) {
-              return {
-                events: [] as OddsEvent[],
-                configured: true,
-                failed: true,
-                books: [] as string[],
-              };
-            }
-            const data = (await res.json()) as {
-              events?: OddsEvent[];
-              configured?: boolean;
-              books?: string[];
-            };
-            return {
-              events: Array.isArray(data.events) ? data.events : [],
-              configured: Boolean(data.configured),
-              books: Array.isArray(data.books) ? data.books : [],
-            };
-          } catch {
-            return {
-              events: [] as OddsEvent[],
-              configured: true,
-              failed: true,
-              books: [] as string[],
-            };
-          }
-        }),
-      );
+    let completed = 0;
+    let failureCount = 0;
+    let configured = false;
+    let booksFromApi: string[] = [];
+    const accumulatedEvents: OddsEvent[] = [];
+
+    // Publish each sport as soon as it resolves. Soccer fans out across several
+    // leagues and can be materially slower than the domestic boards; waiting on
+    // Promise.all kept every already-priced game behind that slowest request.
+    const requests = ODDS_BOARD_SPORTS.map(async (sport) => {
+      let result: SlateState;
+      try {
+        const res = await fetch(
+          `/api/odds?sport=${encodeURIComponent(sport.key)}`,
+        );
+        if (!res.ok) {
+          result = {
+            events: [],
+            configured: true,
+            failed: true,
+            books: [],
+          };
+        } else {
+          const data = (await res.json()) as {
+            events?: OddsEvent[];
+            configured?: boolean;
+            books?: string[];
+          };
+          result = {
+            events: Array.isArray(data.events) ? data.events : [],
+            configured: Boolean(data.configured),
+            books: Array.isArray(data.books) ? data.books : [],
+          };
+        }
+      } catch {
+        result = {
+          events: [],
+          configured: true,
+          failed: true,
+          books: [],
+        };
+      }
+
       if (cancelled) return;
-      const events = dedupeOddsEvents(results.flatMap((r) => r.events));
-      const configured = results.some((r) => r.configured);
-      const failed = results.every((r) => r.failed);
-      const booksFromApi =
-        results.find((r) => r.books.length > 0)?.books ??
-        results[0]?.books ??
-        [];
-      setSlate({ events, configured, failed, books: booksFromApi });
-      setLoading(false);
-    })();
+      completed += 1;
+      if (result.failed) failureCount += 1;
+      configured ||= result.configured;
+      if (booksFromApi.length === 0 && result.books.length > 0) {
+        booksFromApi = result.books;
+      }
+      accumulatedEvents.push(...result.events);
+      const events = dedupeOddsEvents(accumulatedEvents);
+      const allComplete = completed === ODDS_BOARD_SPORTS.length;
+
+      setSlate({
+        events,
+        configured,
+        failed: allComplete && failureCount === ODDS_BOARD_SPORTS.length,
+        books: booksFromApi,
+      });
+      setLoading(!allComplete && events.length === 0);
+    });
+
+    void Promise.all(requests);
     return () => {
       cancelled = true;
     };
