@@ -4,7 +4,10 @@ import type { Outcome } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import type { CapperSummary, TodayPick } from "@/lib/mock";
-import { joinPlaysToPublicPicks } from "@/lib/public-picks";
+import {
+  joinPlaysToPublicPicks,
+  type PublicPlayJoinRow,
+} from "@/lib/public-picks";
 import {
   DEFAULT_PUBLIC_PICKS_FILTERS,
   type PublicPicksLedgerFilters,
@@ -75,8 +78,7 @@ export type ParlayView = {
 
 /** A record entry is either a straight play or a parlay; both share a createdAt for ordering. */
 export type RecordEntry =
-  | ({ kind: "play" } & PlayView)
-  | ({ kind: "parlay" } & ParlayView);
+  ({ kind: "play" } & PlayView) | ({ kind: "parlay" } & ParlayView);
 
 /** Merge plays + parlays into one most-recent-first record list (pure; no DB). */
 export function mergeRecordEntries(
@@ -253,6 +255,26 @@ export async function getPublicRecentPicksResult(
   filters: PublicPicksLedgerFilters = DEFAULT_PUBLIC_PICKS_FILTERS,
   now: Date = new Date(),
 ): Promise<{ picks: TodayPick[]; failed: boolean }> {
+  const result = await getPublicRecentPickRows(take, filters, now);
+  return {
+    picks: joinPlaysToPublicPicks(result.plays, cappers, now),
+    failed: result.failed,
+  };
+}
+
+/**
+ * Fetch the bounded public feed independently from capper summaries.
+ *
+ * The Picks page needs both this list and the leaderboard, but the database
+ * queries do not depend on one another. Keeping the fetch separate lets the
+ * route start both requests together rather than adding the feed latency to
+ * the leaderboard latency during navigation.
+ */
+export async function getPublicRecentPickRows(
+  take = 8,
+  filters: PublicPicksLedgerFilters = DEFAULT_PUBLIC_PICKS_FILTERS,
+  now: Date = new Date(),
+): Promise<{ plays: PublicPlayJoinRow[]; failed: boolean }> {
   try {
     const notesPublicReady = await hasNotesPublicColumn();
     const publicationWhere = await buildPublishedStraightPlayWhere();
@@ -293,12 +315,9 @@ export async function getPublicRecentPicksResult(
       .filter((p) => !hasQaNoteMarker(p.notes))
       .slice(0, take);
 
-    return {
-      picks: joinPlaysToPublicPicks(visible, cappers, now),
-      failed: false,
-    };
+    return { plays: visible, failed: false };
   } catch (error) {
     console.error("[getPublicRecentPicks] database unavailable:", error);
-    return { picks: [], failed: true };
+    return { plays: [], failed: true };
   }
 }

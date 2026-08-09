@@ -7,8 +7,8 @@ import { VerificationLegend } from "@/components/scl/verification-legend";
 import { getGradingHealth } from "@/lib/grading-health";
 import { parsePublicPicksLedgerFilters } from "@/lib/public-picks-ledger";
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
-import { getPublicRecentPicksResult } from "@/lib/queries/plays";
-import { publicFeedCappers } from "@/lib/public-picks";
+import { getPublicRecentPickRows } from "@/lib/queries/plays";
+import { joinPlaysToPublicPicks, publicFeedCappers } from "@/lib/public-picks";
 
 export const metadata: Metadata = {
   title: { absolute: "Latest picks · SCL" },
@@ -26,18 +26,21 @@ export default async function PicksPage({
   const params = await searchParams;
   const filters = parsePublicPicksLedgerFilters(params);
   const now = new Date();
-  const [board, gradingHealthy] = await Promise.all([
+  // The feed query only needs the board after it returns, to attach public
+  // capper identity. Start both database reads immediately so navigating to
+  // Picks costs the slower query, not the sum of both queries.
+  const [board, gradingHealthy, feed] = await Promise.all([
     getLeaderboardResult(),
     getGradingHealth(),
+    getPublicRecentPickRows(24, filters, now),
   ]);
   const { cappers, unranked, failed: leaderboardFailed } = board;
-  const { picks, failed: picksFailed } = await getPublicRecentPicksResult(
+  const picks = joinPlaysToPublicPicks(
+    feed.plays,
     publicFeedCappers(cappers, unranked),
-    24,
-    filters,
     now,
   );
-  const failed = leaderboardFailed || picksFailed;
+  const failed = leaderboardFailed || feed.failed;
   const requestedReceipt = Array.isArray(params.receipt)
     ? params.receipt[0]
     : params.receipt;
