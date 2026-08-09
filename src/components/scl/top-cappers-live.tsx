@@ -12,7 +12,9 @@ import { cn } from "@/lib/utils";
  * preserve that sort story when exiting to /leaderboard.
  */
 const WINDOW_CHIPS = [
+  { id: "1d", label: "1D", href: "/leaderboard?window=1d&sort=units" },
   { id: "7d", label: "7D", href: "/leaderboard?window=7d&sort=units" },
+  { id: "14d", label: "14D", href: "/leaderboard?window=14d&sort=units" },
   { id: "30d", label: "30D", href: "/leaderboard?window=30d&sort=units" },
   { id: "90d", label: "90D", href: "/leaderboard?window=90d&sort=units" },
   { id: "all", label: "ALL", href: "/leaderboard?window=all&sort=units" },

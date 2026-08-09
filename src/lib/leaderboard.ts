@@ -6,7 +6,9 @@ import { hasSignal } from "@/lib/sample";
 
 /** Compact Rank-mode time scopes (year kept for URL back-compat only). */
 export const LEADERBOARD_WINDOWS = [
+  { key: "1d", label: "1D", longLabel: "Past 24 Hours" },
   { key: "7d", label: "7D", longLabel: "Past 7 Days" },
+  { key: "14d", label: "14D", longLabel: "Past 14 Days" },
   { key: "30d", label: "30D", longLabel: "Past 30 Days" },
   { key: "90d", label: "90D", longLabel: "Past 90 Days" },
   { key: "all", label: "All", longLabel: "All Time" },

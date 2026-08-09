@@ -16,6 +16,8 @@ export type LiveTickerKind = "win" | "clv" | "posted";
 
 export type LiveTickerItem = {
   id: string;
+  /** Straight-play receipt that this activity item represents. */
+  receiptId: string;
   kind: LiveTickerKind;
   handle: string;
   sport: string;
@@ -124,6 +126,7 @@ export async function getLiveActivityTicker(): Promise<LiveActivityTickerPayload
       if (!handle || !row.gradedAt) continue;
       items.push({
         id: `win-${row.id}`,
+        receiptId: row.id,
         kind: "win",
         handle,
         sport: row.sport,
@@ -149,6 +152,7 @@ export async function getLiveActivityTicker(): Promise<LiveActivityTickerPayload
       if (!(captured instanceof Date)) continue;
       items.push({
         id: `clv-${row.id}`,
+        receiptId: row.id,
         kind: "clv",
         handle,
         sport: row.sport,
@@ -162,6 +166,7 @@ export async function getLiveActivityTicker(): Promise<LiveActivityTickerPayload
       if (!handle) continue;
       items.push({
         id: `posted-${row.id}`,
+        receiptId: row.id,
         kind: "posted",
         handle,
         sport: row.sport,

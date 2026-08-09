@@ -12,6 +12,7 @@ import type { LiveTickerItem } from "@/lib/queries/live-activity-ticker";
 const ITEMS: LiveTickerItem[] = [
   {
     id: "qa-1",
+    receiptId: "qa-receipt-1",
     kind: "win",
     handle: "bankofdennis",
     sport: "NBA",
@@ -20,6 +21,7 @@ const ITEMS: LiveTickerItem[] = [
   },
   {
     id: "qa-2",
+    receiptId: "qa-receipt-2",
     kind: "clv",
     handle: "mlbanalyticspro",
     sport: "MLB",
@@ -28,6 +30,7 @@ const ITEMS: LiveTickerItem[] = [
   },
   {
     id: "qa-3",
+    receiptId: "qa-receipt-3",
     kind: "posted",
     handle: "clownsportspick",
     sport: "NFL",
@@ -35,6 +38,7 @@ const ITEMS: LiveTickerItem[] = [
   },
   {
     id: "qa-4",
+    receiptId: "qa-receipt-4",
     kind: "win",
     handle: "wgsdfs",
     sport: "NHL",
