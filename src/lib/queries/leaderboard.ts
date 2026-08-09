@@ -373,7 +373,7 @@ export async function getLeaderboard(
 export async function getPublicCapperEvidenceByIds(
   requestedIds: string[],
 ): Promise<{ cappers: CapperSummary[]; failed: boolean }> {
-  const capperIds = [...new Set(requestedIds.filter(Boolean))].slice(0, 60);
+  const capperIds = [...new Set(requestedIds.filter(Boolean))];
   if (capperIds.length === 0) return { cappers: [], failed: false };
 
   try {

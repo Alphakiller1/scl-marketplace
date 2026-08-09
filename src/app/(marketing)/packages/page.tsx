@@ -84,20 +84,26 @@ function MarketplaceEmpty({ failed = false }: { failed?: boolean }) {
 
 export default async function PackagesPage() {
   const marketplace = await listActiveMarketplacePackagesResult();
-  const [evidence, packagePerformance] =
-    !marketplace.failed && marketplace.packages.length > 0
-      ? await Promise.all([
-          getPublicCapperEvidenceByIds(
-            marketplace.packages.map((pkg) => pkg.capperId),
-          ),
-          getPackagePerformanceEvidence(
-            marketplace.packages.map((pkg) => pkg.id),
-          ),
-        ])
-      : [
-          { cappers: [], failed: false },
-          { evidence: {}, failed: false },
-        ];
+  let evidence = { cappers: [], failed: false } as Awaited<
+    ReturnType<typeof getPublicCapperEvidenceByIds>
+  >;
+  let packagePerformance = {
+    evidence: {},
+    profiles: {},
+    failed: false,
+  } as Awaited<ReturnType<typeof getPackagePerformanceEvidence>>;
+
+  if (!marketplace.failed && marketplace.packages.length > 0) {
+    // Production intentionally uses one Prisma connection per serverless
+    // isolate. Keep these reads sequential so a full legacy catalog cannot
+    // make its own evidence queries compete for that single connection.
+    evidence = await getPublicCapperEvidenceByIds(
+      marketplace.packages.map((pkg) => pkg.capperId),
+    );
+    packagePerformance = await getPackagePerformanceEvidence(
+      marketplace.packages.map((pkg) => pkg.id),
+    );
+  }
 
   return (
     <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 sm:py-10 lg:px-8">

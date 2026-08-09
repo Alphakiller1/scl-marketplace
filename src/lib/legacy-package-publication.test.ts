@@ -1,0 +1,50 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import test from "node:test";
+
+function source(relativePath: string) {
+  return readFileSync(path.join(process.cwd(), relativePath), "utf8");
+}
+
+test("the marketplace query does not truncate the migrated package catalog", () => {
+  const storeSource = source("src/lib/queries/store.ts");
+  const marketplaceQuery = storeSource.slice(
+    storeSource.indexOf(
+      "export async function listActiveMarketplacePackagesResult",
+    ),
+    storeSource.indexOf(
+      "export async function listActiveMarketplacePackages()",
+    ),
+  );
+
+  assert.ok(marketplaceQuery.includes("prisma.package.findMany"));
+  // Nested relations may take one tracking URL. The package findMany itself
+  // must never cap the catalog before client-side search and sorting.
+  assert.doesNotMatch(marketplaceQuery, /^ {6}take\s*:/m);
+});
+
+test("marketplace capper evidence covers every returned capper", () => {
+  const leaderboardSource = source("src/lib/queries/leaderboard.ts");
+  const evidenceQuery = leaderboardSource.slice(
+    leaderboardSource.indexOf(
+      "export async function getPublicCapperEvidenceByIds",
+    ),
+    leaderboardSource.indexOf("async function loadLeaderboardResult"),
+  );
+
+  assert.doesNotMatch(evidenceQuery, /\.slice\s*\(/);
+});
+
+test("the package page serializes database-heavy evidence reads", () => {
+  const pageSource = source("src/app/(marketing)/packages/page.tsx");
+
+  assert.doesNotMatch(pageSource, /Promise\.all\s*\(/);
+});
+
+test("importing Prisma does not start competing schema patch queries", () => {
+  const prismaSource = source("src/lib/prisma.ts");
+
+  assert.doesNotMatch(prismaSource, /ensureAuthEmailSchema/);
+  assert.doesNotMatch(prismaSource, /ensureStorefrontMessagesSchema/);
+});
