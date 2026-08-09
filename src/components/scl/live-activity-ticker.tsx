@@ -115,15 +115,17 @@ function TickerChip({
       <span className="text-muted-foreground" aria-hidden>
         ·
       </span>
-      <span
+      <Link
+        href={`/picks?receipt=${encodeURIComponent(item.receiptId)}`}
         className={cn(
-          "inline-flex items-center gap-1 text-xs font-semibold tracking-wide uppercase",
+          "inline-flex items-center gap-1 text-xs font-semibold tracking-wide uppercase underline decoration-[color:var(--scl-blue)]/50 underline-offset-2 hover:decoration-[color:var(--scl-blue)]",
           meta.tone,
         )}
+        aria-label={`Open receipt for @${item.handle}'s ${meta.label.toLowerCase()} wager`}
       >
         <Icon className="size-3 shrink-0 opacity-90" aria-hidden />
         {meta.label}
-      </span>
+      </Link>
       {item.kind === "win" ? (
         <>
           <span className="text-muted-foreground" aria-hidden>

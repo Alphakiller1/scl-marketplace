@@ -107,6 +107,8 @@ export async function updateProfileAction(
   }
 
   revalidatePath("/dashboard/profile");
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/picks");
   revalidatePath("/cappers");
   revalidatePath("/leaderboard");
   revalidatePath("/discover");
