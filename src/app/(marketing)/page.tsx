@@ -97,23 +97,32 @@ async function HomeHero() {
   // hid the entire imported roster and left the hero board empty.
   // Last 90 days, matching the Top Cappers snapshot below. An all-time hero
   // board next to a 90-day one told two different stories about who is hot.
-  const { cappers, failed } = await getLeaderboardResult({
-    verifiedOnly: false,
-    window: "90d",
-  });
-  const snapshot = sortLeaderboard(cappers, "units")
-    .slice(0, 5)
-    .map(slimBoardCapper);
+  const snapshots = await Promise.all(
+    (
+      [
+        ["1d", "Last 1 Day"],
+        ["7d", "Last 7 Days"],
+        ["14d", "Last 14 Days"],
+      ] as const
+    ).map(async ([id, label]) => {
+      const result = await getLeaderboardResult({
+        window: id,
+        verifiedOnly: false,
+      });
+      return {
+        id,
+        label,
+        failed: result.failed,
+        cappers: sortLeaderboard(result.cappers, "roi")
+          .slice(0, 5)
+          .map(slimBoardCapper),
+      };
+    }),
+  );
 
   return (
     <CompetitionHero
-      board={
-        <LiveBoardShell
-          cappers={snapshot}
-          leaderboardFailed={failed}
-          updatedAt={updatedAt}
-        />
-      }
+      board={<LiveBoardShell boards={snapshots} updatedAt={updatedAt} />}
     />
   );
 }
@@ -136,20 +145,17 @@ async function HomeTopBoard() {
   // exists for picks SCL captured pre-game against a live market, which a
   // record imported from another platform can never have — sorting by it put
   // every carried-over capper at zero and emptied the list.
-  const topCappers = sortLeaderboard(leaderboard.cappers, "units")
-    .slice(0, 10)
-    .map(slimBoardCapper);
+  const initialBoard = {
+    failed: leaderboard.failed,
+    cappers: leaderboard.cappers.map(slimBoardCapper),
+  };
 
   return (
     <div className="scl-board min-w-0">
       <div className="relative grid min-w-0 gap-0 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,0.85fr)] lg:items-start">
         <div className="scl-board-rule relative min-w-0 border-b px-3 py-4 sm:px-5 sm:py-6 lg:border-r lg:border-b-0 lg:px-5 lg:pr-6 lg:pl-5">
           <div className="scl-live-rail hidden lg:block" aria-hidden />
-          <TopCappersLive
-            cappers={topCappers}
-            failed={leaderboard.failed}
-            activeWindow="90d"
-          />
+          <TopCappersLive initialBoard={initialBoard} initialWindow="90d" />
         </div>
         <div className="min-w-0 space-y-5 px-3 py-4 sm:space-y-7 sm:px-5 sm:py-6 lg:pl-6">
           <FeaturedProofReceipt play={featured.play} failed={featured.failed} />
