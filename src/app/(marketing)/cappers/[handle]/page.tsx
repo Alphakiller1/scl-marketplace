@@ -43,10 +43,10 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
     historyNextCursor,
     legacyBySport,
   } = data;
-  const [packages, accolades] = await Promise.all([
-    getLivePackagesForCapper(capper.id),
-    getCapperAccolades(capper.handle, capper.topSport),
-  ]);
+  // Keep profile reads sequential for the one-connection serverless pool. A
+  // package query must not lose a race to optional accolade hydration.
+  const packages = await getLivePackagesForCapper(capper.id);
+  const accolades = await getCapperAccolades(capper.handle, capper.topSport);
   const profileCapper = { ...capper, trophies: accolades };
   const identity = identityDisplayLinesFromCapper(profileCapper);
   const packagePerformance = await getPackagePerformanceEvidence(

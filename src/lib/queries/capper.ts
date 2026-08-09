@@ -213,79 +213,92 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
   let historyNextCursor: string | null = null;
   let legacyBySport: LegacySportRecordView[] = [];
 
-  const [historyResult, chartResult, clvResult, legacyResult] =
-    await Promise.allSettled([
-      getPublicProfileHistoryPage(capper.handle),
-      // Straight picks + whole parlays — same positions of record the
-      // Evidence Brief / leaderboard units aggregate uses.
-      Promise.all([
-        prisma.play.findMany({
-          where: {
-            capperId: capper.id,
-            units: { gte: UNIT_MIN },
-            parlayId: null,
-            outcome: { not: "PENDING" },
-          },
-          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-          take: PROFILE_CHART_QUERY_LIMIT,
-          select: {
-            createdAt: true,
-            outcome: true,
-            profitUnits: true,
-            sport: true,
-            notes: true,
-          },
-        }),
-        prisma.parlay.findMany({
-          where: {
-            capperId: capper.id,
-            units: { gte: UNIT_MIN },
-            outcome: { not: "PENDING" },
-          },
-          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-          take: PROFILE_CHART_QUERY_LIMIT,
-          select: {
-            createdAt: true,
-            outcome: true,
-            profitUnits: true,
-            // Parlay has no sport column — attribute to the first leg for
-            // sport-filtered charts; All-window ignores sport.
-            legs: {
-              select: { sport: true },
-              take: 1,
-              orderBy: { id: "asc" },
-            },
-          },
-        }),
-      ]),
-      (async () => {
-        const clvReady = await hasClvColumns();
-        if (!clvReady) return null;
-        return prisma.play.findMany({
-          where: {
-            capperId: capper.id,
-            clvPts: { not: null },
-            verificationTier: { in: ["VERIFIED", "AUTO_VERIFIED"] },
-            outcome: { not: "PENDING" },
-            parlayId: null,
-            units: { gte: UNIT_MIN },
-          },
-          select: { clvPts: true, notes: true },
-        });
-      })(),
-      // Per-sport PRE_IMPORT residuals (ALL excluded in sort helper).
-      prisma.legacyRecord.findMany({
-        where: { capperId: capper.id, scope: "PRE_IMPORT" },
-        select: {
-          sport: true,
-          wins: true,
-          losses: true,
-          pushes: true,
-          unitsRisked: true,
-          unitsNet: true,
+  async function settle<T>(operation: () => Promise<T>) {
+    try {
+      return { status: "fulfilled", value: await operation() } as const;
+    } catch (reason) {
+      return { status: "rejected", reason } as const;
+    }
+  }
+
+  // A production serverless isolate owns one Prisma connection. Run the
+  // profile's optional reads in order so they cannot time each other out and
+  // leave a carried-over storefront looking empty.
+  const historyResult = await settle(() =>
+    getPublicProfileHistoryPage(capper.handle),
+  );
+  const chartResult = await settle(async () => {
+    // Straight picks + whole parlays — same positions of record the
+    // Evidence Brief / leaderboard units aggregate uses.
+    const straightRows = await prisma.play.findMany({
+      where: {
+        capperId: capper.id,
+        units: { gte: UNIT_MIN },
+        parlayId: null,
+        outcome: { not: "PENDING" },
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: PROFILE_CHART_QUERY_LIMIT,
+      select: {
+        createdAt: true,
+        outcome: true,
+        profitUnits: true,
+        sport: true,
+        notes: true,
+      },
+    });
+    const parlayRows = await prisma.parlay.findMany({
+      where: {
+        capperId: capper.id,
+        units: { gte: UNIT_MIN },
+        outcome: { not: "PENDING" },
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: PROFILE_CHART_QUERY_LIMIT,
+      select: {
+        createdAt: true,
+        outcome: true,
+        profitUnits: true,
+        // Parlay has no sport column — attribute to the first leg for
+        // sport-filtered charts; All-window ignores sport.
+        legs: {
+          select: { sport: true },
+          take: 1,
+          orderBy: { id: "asc" },
         },
-      }),
-    ]);
+      },
+    });
+    return [straightRows, parlayRows] as const;
+  });
+  const clvResult = await settle(async () => {
+    const clvReady = await hasClvColumns();
+    if (!clvReady) return null;
+    return prisma.play.findMany({
+      where: {
+        capperId: capper.id,
+        clvPts: { not: null },
+        verificationTier: { in: ["VERIFIED", "AUTO_VERIFIED"] },
+        outcome: { not: "PENDING" },
+        parlayId: null,
+        units: { gte: UNIT_MIN },
+      },
+      select: { clvPts: true, notes: true },
+    });
+  });
+  // Per-sport PRE_IMPORT residuals (ALL excluded in sort helper).
+  const legacyResult = await settle(() =>
+    prisma.legacyRecord.findMany({
+      where: { capperId: capper.id, scope: "PRE_IMPORT" },
+      select: {
+        sport: true,
+        wins: true,
+        losses: true,
+        pushes: true,
+        unitsRisked: true,
+        unitsNet: true,
+      },
+    }),
+  );
 
   if (historyResult.status === "fulfilled") {
     plays = historyResult.value.plays;
