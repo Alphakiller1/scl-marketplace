@@ -7,13 +7,16 @@ import { cn } from "@/lib/utils";
  * Premium gloss = hairline + card shadow + solid ink (no blur / glass).
  */
 export function LiveBoardShell({
-  cappers,
-  leaderboardFailed,
+  boards,
   updatedAt,
   className,
 }: {
-  cappers: CapperSummary[];
-  leaderboardFailed?: boolean;
+  boards: {
+    id: "1d" | "7d" | "14d";
+    label: string;
+    cappers: CapperSummary[];
+    failed?: boolean;
+  }[];
   updatedAt: Date;
   className?: string;
 }) {
@@ -27,8 +30,7 @@ export function LiveBoardShell({
       <div className="scl-elevated border-border relative min-w-0 overflow-hidden rounded-[var(--scl-radius-card)] border bg-[color:var(--scl-ink-800)]">
         <div className="relative p-2.5 sm:p-4">
           <LeaderboardSnapshot
-            cappers={cappers}
-            failed={leaderboardFailed}
+            boards={boards}
             updatedAt={updatedAt}
             limit={5}
           />

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { History, Store } from "lucide-react";
+import { History, Pencil, Store } from "lucide-react";
 
 import { AdminCapperPackageInventory } from "@/components/scl/admin-capper-package-inventory";
 import { StorefrontConversationPanel } from "@/components/scl/storefront-conversation-panel";
@@ -552,12 +552,30 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
                             })()}
                           </span>
                         </Link>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="min-h-9"
+                          render={
+                            <Link
+                              href={detailHref({
+                                connectionId: selected.id,
+                                packageId: pkg.id,
+                              })}
+                            />
+                          }
+                          nativeButton={false}
+                        >
+                          <Pencil className="size-3.5" aria-hidden />
+                          Edit
+                        </Button>
                         <AdminPackageRowControls
                           packageId={pkg.id}
                           title={pkg.title}
                           isActive={pkg.isActive}
                           isFirst={index === 0}
                           isLast={index === selected.packages.length - 1}
+                          labeled
                         />
                       </div>
                     );

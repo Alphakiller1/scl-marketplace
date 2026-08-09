@@ -36,9 +36,12 @@ export function AdminPackageForm({
 }: {
   capperId: string;
   storeConnectionId?: string | null;
-  provider: StoreProvider;
+  provider?: StoreProvider | null;
   initial?: AdminPackageInitial | null;
 }) {
+  const [affiliateProvider, setAffiliateProvider] = useState<StoreProvider>(
+    provider ?? "WHOP",
+  );
   const [title, setTitle] = useState(initial?.title || "");
   const [description, setDescription] = useState(initial?.description || "");
   const [promoOffer, setPromoOffer] = useState(initial?.promoOffer || "");
@@ -65,7 +68,7 @@ export function AdminPackageForm({
         id: packageId || undefined,
         capperId,
         storeConnectionId: storeConnectionId || null,
-        affiliateProvider: provider,
+        affiliateProvider,
         title,
         description,
         promoOffer,
@@ -122,15 +125,26 @@ export function AdminPackageForm({
       }}
     >
       <p className="text-muted-foreground text-xs leading-relaxed">
-        Quick package setup for {providerLabel(provider)}. Paste the storefront
-        or package link, then fill in the name, price, promo details, and
-        description once — SCL generates the public card and CTA automatically.
+        Quick package setup for {providerLabel(affiliateProvider)}. Paste the
+        storefront or package link, then fill in the name, price, promo details,
+        and description once — SCL generates the public card and CTA
+        automatically.
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="provider">Platform</Label>
-          <Input id="provider" value={providerLabel(provider)} readOnly />
+          <select
+            id="provider"
+            className="border-border bg-background h-10 w-full rounded-md border px-3 text-sm"
+            value={affiliateProvider}
+            onChange={(event) =>
+              setAffiliateProvider(event.target.value as StoreProvider)
+            }
+          >
+            <option value="WHOP">Whop</option>
+            <option value="WINIBLE">Winible</option>
+          </select>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="billing">Billing cadence</Label>
@@ -188,7 +202,7 @@ export function AdminPackageForm({
 
       <div className="space-y-1.5">
         <Label htmlFor="dest">
-          {provider === "WINIBLE"
+          {affiliateProvider === "WINIBLE"
             ? "Winible storefront/package link"
             : "Whop storefront/package link"}
         </Label>
@@ -198,7 +212,7 @@ export function AdminPackageForm({
           value={checkoutUrl}
           onChange={(e) => setCheckoutUrl(e.target.value)}
           placeholder={
-            provider === "WHOP"
+            affiliateProvider === "WHOP"
               ? "Paste Whop product-specific link"
               : "Paste Winible storefront or package link"
           }
