@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { BetSlip } from "@/components/scl/bet-slip";
@@ -101,6 +101,22 @@ function UnifiedPickEntryInner() {
   const [submitting, setSubmitting] = useState(false);
   const [packageOptions, setPackageOptions] = useState<PickPackageOption[]>([]);
   const [selectedPackageIds, setSelectedPackageIds] = useState<string[]>([]);
+  const selectionFlowRef = useRef<HTMLDivElement>(null);
+
+  function makeAnotherSelection() {
+    setReceipt(null);
+    window.requestAnimationFrame(() => {
+      const selectionFlow = selectionFlowRef.current;
+      if (!selectionFlow) return;
+      selectionFlow.focus({ preventScroll: true });
+      selectionFlow.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+        block: "start",
+      });
+    });
+  }
 
   useEffect(() => {
     let active = true;
@@ -388,9 +404,15 @@ function UnifiedPickEntryInner() {
           </div>
         </div>
         {receipt.kind === "bulk" ? (
-          <ReceiptStack receipt={receipt} />
+          <ReceiptStack
+            receipt={receipt}
+            onMakeAnotherSelection={makeAnotherSelection}
+          />
         ) : (
-          <VerificationReceipt receipt={receipt} />
+          <VerificationReceipt
+            receipt={receipt}
+            onMakeAnotherSelection={makeAnotherSelection}
+          />
         )}
       </div>
     );
@@ -420,7 +442,11 @@ function UnifiedPickEntryInner() {
     receipt?.kind === "bulk" && receipt.suspendedCount > 0 ? receipt : null;
 
   return (
-    <div className="mx-auto max-w-xl space-y-5 lg:max-w-5xl">
+    <div
+      ref={selectionFlowRef}
+      tabIndex={-1}
+      className="mx-auto max-w-xl scroll-mt-24 space-y-5 outline-none lg:max-w-5xl"
+    >
       {partialBulk ? (
         <div className="mx-auto max-w-md space-y-3">
           <SectionHeader
@@ -432,7 +458,7 @@ function UnifiedPickEntryInner() {
             type="button"
             variant="outline"
             className="w-full"
-            onClick={() => setReceipt(null)}
+            onClick={makeAnotherSelection}
           >
             Back to slip
           </Button>

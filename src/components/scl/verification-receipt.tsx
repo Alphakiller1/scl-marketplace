@@ -25,10 +25,12 @@ const VIEW_PICKS_CTA = "scl-cta-brand";
 export function VerificationReceipt({
   receipt,
   picksHref = "/dashboard/picks",
+  onMakeAnotherSelection,
   className,
 }: {
   receipt: SubmissionReceipt;
   picksHref?: string;
+  onMakeAnotherSelection?: () => void;
   className?: string;
 }) {
   if (receipt.kind === "bulk") {
@@ -36,6 +38,7 @@ export function VerificationReceipt({
       <ReceiptStack
         receipt={receipt}
         picksHref={picksHref}
+        onMakeAnotherSelection={onMakeAnotherSelection}
         className={className}
       />
     );
@@ -139,6 +142,16 @@ export function VerificationReceipt({
             >
               View My Picks
             </Button>
+            {onMakeAnotherSelection ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-12 w-full text-base"
+                onClick={onMakeAnotherSelection}
+              >
+                Make Another Selection
+              </Button>
+            ) : null}
           </div>
         }
       />

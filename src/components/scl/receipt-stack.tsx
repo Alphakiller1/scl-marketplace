@@ -93,10 +93,12 @@ function IssueRow({ issue }: { issue: BulkReceiptIssue }) {
 export function ReceiptStack({
   receipt,
   picksHref = "/dashboard/picks",
+  onMakeAnotherSelection,
   className,
 }: {
   receipt: BulkSinglesReceipt;
   picksHref?: string;
+  onMakeAnotherSelection?: () => void;
   className?: string;
 }) {
   const copy = submissionReceiptCopy(receipt);
@@ -141,6 +143,16 @@ export function ReceiptStack({
       >
         View My Picks
       </Button>
+      {onMakeAnotherSelection ? (
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-12 w-full text-base"
+          onClick={onMakeAnotherSelection}
+        >
+          Make Another Selection
+        </Button>
+      ) : null}
     </div>
   );
 }
