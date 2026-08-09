@@ -27,11 +27,13 @@ export function RankBoardTable({
   cappers,
   density = "live",
   caption = "Ranked cappers",
+  rankOffset = 0,
   className,
 }: {
   cappers: CapperSummary[];
   density?: "snapshot" | "live";
   caption?: string;
+  rankOffset?: number;
   className?: string;
 }) {
   const compact = density === "snapshot";
@@ -57,7 +59,7 @@ export function RankBoardTable({
           <RankBoardMobileRow
             key={capper.id}
             capper={capper}
-            rank={i + 1}
+            rank={rankOffset + i + 1}
             compact={compact}
           />
         ))}
@@ -105,7 +107,7 @@ export function RankBoardTable({
             {cappers.map((capper, i) => {
               const graded = capper.settledPicks ?? 0;
               // Rank follows this board's order (parent already sorted).
-              const rank = i + 1;
+              const rank = rankOffset + i + 1;
               const sports = (
                 capper.sports?.length ? capper.sports : [capper.topSport]
               )
