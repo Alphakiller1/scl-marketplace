@@ -18,6 +18,90 @@ export type StoreConnectionRow = Awaited<
   ReturnType<typeof listStoreConnections>
 >[number];
 
+const ADMIN_PACKAGE_PAGE_SIZE = 50;
+
+/** Complete owner-facing package register, including unattached legacy offers. */
+export async function listAdminPackages(options: {
+  search?: string;
+  page?: number;
+}) {
+  const search = options.search?.trim().slice(0, 80) ?? "";
+  const page = Math.max(1, Math.floor(options.page ?? 1));
+  const where = search
+    ? {
+        OR: [
+          { title: { contains: search, mode: "insensitive" as const } },
+          {
+            capper: {
+              user: {
+                OR: [
+                  {
+                    username: {
+                      contains: search,
+                      mode: "insensitive" as const,
+                    },
+                  },
+                  {
+                    displayName: {
+                      contains: search,
+                      mode: "insensitive" as const,
+                    },
+                  },
+                  { email: { contains: search, mode: "insensitive" as const } },
+                ],
+              },
+            },
+          },
+        ],
+      }
+    : {};
+
+  const [packages, total] = await Promise.all([
+    prisma.package.findMany({
+      where,
+      orderBy: [{ updatedAt: "desc" }, { title: "asc" }],
+      skip: (page - 1) * ADMIN_PACKAGE_PAGE_SIZE,
+      take: ADMIN_PACKAGE_PAGE_SIZE,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        promoOffer: true,
+        checkoutUrl: true,
+        priceCents: true,
+        billingPeriod: true,
+        sortOrder: true,
+        isActive: true,
+        affiliateProvider: true,
+        storeConnectionId: true,
+        capperId: true,
+        updatedAt: true,
+        capper: {
+          select: {
+            user: {
+              select: { username: true, displayName: true, email: true },
+            },
+          },
+        },
+        storeConnection: { select: { provider: true, status: true } },
+        trackingUrls: {
+          orderBy: { createdAt: "asc" },
+          select: { slug: true, _count: { select: { clicks: true } } },
+        },
+      },
+    }),
+    prisma.package.count({ where }),
+  ]);
+
+  return {
+    packages,
+    total,
+    page,
+    pageSize: ADMIN_PACKAGE_PAGE_SIZE,
+    pageCount: Math.max(1, Math.ceil(total / ADMIN_PACKAGE_PAGE_SIZE)),
+  };
+}
+
 export async function getCapperProfileIdForUser(userId: string) {
   const profile = await prisma.capperProfile.findUnique({
     where: { userId },

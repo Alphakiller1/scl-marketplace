@@ -31,12 +31,16 @@ export function AdminPackageRowControls({
   isActive,
   isFirst,
   isLast,
+  showReorder = true,
+  labeled = false,
 }: {
   packageId: string;
   title: string;
   isActive: boolean;
   isFirst: boolean;
   isLast: boolean;
+  showReorder?: boolean;
+  labeled?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -87,38 +91,42 @@ export function AdminPackageRowControls({
 
   return (
     <span className="flex shrink-0 items-center gap-1">
+      {showReorder ? (
+        <Button
+          size="icon"
+          variant="outline"
+          disabled={pending || isFirst}
+          aria-label={`Move ${title} up`}
+          title="Move up"
+          onClick={() =>
+            run(
+              () => adminReorderPackageAction({ packageId, direction: "UP" }),
+              "Package moved up",
+            )
+          }
+        >
+          <ArrowUp className="size-3.5" aria-hidden />
+        </Button>
+      ) : null}
+      {showReorder ? (
+        <Button
+          size="icon"
+          variant="outline"
+          disabled={pending || isLast}
+          aria-label={`Move ${title} down`}
+          title="Move down"
+          onClick={() =>
+            run(
+              () => adminReorderPackageAction({ packageId, direction: "DOWN" }),
+              "Package moved down",
+            )
+          }
+        >
+          <ArrowDown className="size-3.5" aria-hidden />
+        </Button>
+      ) : null}
       <Button
-        size="icon"
-        variant="outline"
-        disabled={pending || isFirst}
-        aria-label={`Move ${title} up`}
-        title="Move up"
-        onClick={() =>
-          run(
-            () => adminReorderPackageAction({ packageId, direction: "UP" }),
-            "Package moved up",
-          )
-        }
-      >
-        <ArrowUp className="size-3.5" aria-hidden />
-      </Button>
-      <Button
-        size="icon"
-        variant="outline"
-        disabled={pending || isLast}
-        aria-label={`Move ${title} down`}
-        title="Move down"
-        onClick={() =>
-          run(
-            () => adminReorderPackageAction({ packageId, direction: "DOWN" }),
-            "Package moved down",
-          )
-        }
-      >
-        <ArrowDown className="size-3.5" aria-hidden />
-      </Button>
-      <Button
-        size="icon"
+        size={labeled ? "sm" : "icon"}
         variant="outline"
         disabled={pending}
         aria-label={
@@ -144,9 +152,10 @@ export function AdminPackageRowControls({
         ) : (
           <EyeOff className="size-3.5" aria-hidden />
         )}
+        {labeled ? (isActive ? "Hide" : "Show") : null}
       </Button>
       <Button
-        size="icon"
+        size={labeled ? "sm" : "icon"}
         variant="outline"
         disabled={pending}
         aria-label={`Delete ${title}`}
@@ -158,6 +167,7 @@ export function AdminPackageRowControls({
         }}
       >
         <Trash2 className="size-3.5" aria-hidden />
+        {labeled ? "Delete" : null}
       </Button>
 
       <Dialog
