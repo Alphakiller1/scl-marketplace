@@ -17,11 +17,13 @@ import {
   booksOnBoard,
   categoryCounts,
   filterGamePickerEvents,
+  ODDS_BOARD_REQUEST_TIMEOUT_MS,
   preGameEvents,
   railBooks,
   ODDS_BOARD_SPORTS,
 } from "@/lib/game-picker";
 import { dedupeOddsEvents } from "@/lib/odds-board";
+import { settleProgressively } from "@/lib/progressive-settlement";
 import { filterBySlateDay, type SlateDay } from "@/lib/slate";
 import { getTeamIdentity } from "@/lib/teams";
 import { cn } from "@/lib/utils";
@@ -82,7 +84,6 @@ export function GamePicker({
 
   useEffect(() => {
     let cancelled = false;
-    let completed = 0;
     let failureCount = 0;
     let configured = false;
     let booksFromApi: string[] = [];
@@ -96,6 +97,7 @@ export function GamePicker({
       try {
         const res = await fetch(
           `/api/odds?sport=${encodeURIComponent(sport.key)}`,
+          { signal: AbortSignal.timeout(ODDS_BOARD_REQUEST_TIMEOUT_MS) },
         );
         if (!res.ok) {
           result = {
@@ -116,7 +118,11 @@ export function GamePicker({
             books: Array.isArray(data.books) ? data.books : [],
           };
         }
-      } catch {
+      } catch (error) {
+        console.warn("[odds-board] sport request failed", {
+          sport: sport.key,
+          reason: error instanceof Error ? error.name : "unknown",
+        });
         result = {
           events: [],
           configured: true,
@@ -125,8 +131,11 @@ export function GamePicker({
         };
       }
 
+      return result;
+    });
+
+    void settleProgressively(requests, (result, progress) => {
       if (cancelled) return;
-      completed += 1;
       if (result.failed) failureCount += 1;
       configured ||= result.configured;
       if (booksFromApi.length === 0 && result.books.length > 0) {
@@ -134,18 +143,16 @@ export function GamePicker({
       }
       accumulatedEvents.push(...result.events);
       const events = dedupeOddsEvents(accumulatedEvents);
-      const allComplete = completed === ODDS_BOARD_SPORTS.length;
 
       setSlate({
         events,
         configured,
-        failed: allComplete && failureCount === ODDS_BOARD_SPORTS.length,
+        failed:
+          progress.allComplete && failureCount === ODDS_BOARD_SPORTS.length,
         books: booksFromApi,
       });
-      setLoading(!allComplete && events.length === 0);
+      setLoading(!progress.allComplete && events.length === 0);
     });
-
-    void Promise.all(requests);
     return () => {
       cancelled = true;
     };
@@ -198,8 +205,12 @@ export function GamePicker({
     let cancelled = false;
     fetch(
       `/api/odds/event?sport=${encodeURIComponent(openEvent.sport)}&eventId=${encodeURIComponent(openEvent.id)}`,
+      { signal: AbortSignal.timeout(ODDS_BOARD_REQUEST_TIMEOUT_MS) },
     )
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`Odds detail request failed: ${r.status}`);
+        return r.json();
+      })
       .then((d) => {
         if (cancelled) return;
         setDetail((prev) => ({
@@ -212,7 +223,11 @@ export function GamePicker({
           },
         }));
       })
-      .catch(() => {
+      .catch((error: unknown) => {
+        console.warn("[odds-board] event detail request failed", {
+          sport: openEvent.sport,
+          reason: error instanceof Error ? error.name : "unknown",
+        });
         if (!cancelled) {
           setDetail((prev) => ({
             ...prev,

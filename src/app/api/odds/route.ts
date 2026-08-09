@@ -17,6 +17,7 @@ import { getCurrentUser } from "@/lib/session";
  * GET /api/odds?sport=NBA
  */
 export async function GET(request: Request) {
+  const startedAt = Date.now();
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -37,6 +38,19 @@ export async function GET(request: Request) {
     configured,
     circuitBreak,
   });
+
+  const logContext = {
+    sport,
+    eventCount: events.length,
+    warning: meta.warning ?? null,
+    circuitBreak,
+    durationMs: Date.now() - startedAt,
+  };
+  if (meta.warning && meta.warning !== "no_upcoming_events") {
+    console.warn("[odds-board] degraded", logContext);
+  } else {
+    console.info("[odds-board] completed", logContext);
+  }
 
   return NextResponse.json({
     events,
