@@ -13,6 +13,10 @@ import { Button } from "@/components/ui/button";
 import { formatRecord, formatRoi, formatUnits } from "@/lib/format";
 import type { CapperSummary } from "@/lib/mock";
 import type { PackageEvidence } from "@/lib/package-register";
+import {
+  findMarketplaceCapperMatches,
+  type PublicMarketplaceCapper,
+} from "@/lib/marketplace-search";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
 import type { PublicMarketplacePackage } from "@/lib/queries/store";
 import { packageCtaLabel } from "@/lib/store-connection";
@@ -141,6 +145,7 @@ function CapperCell({ row }: { row: RegisterRow }) {
   return (
     <Link
       href={`/cappers/${row.pkg.capperHandle}`}
+      prefetch={false}
       className="focus-visible:ring-ring group inline-flex min-h-10 min-w-0 items-center gap-2 rounded-sm focus-visible:ring-2 focus-visible:outline-none"
     >
       <CapperAvatar name={name} src={row.capper?.avatarUrl} size="sm" />
@@ -214,11 +219,13 @@ function ExternalStorefront({ pkg }: { pkg: PublicMarketplacePackage }) {
 
 export function PackagesRegister({
   packages,
+  searchCappers,
   cappers,
   packageEvidence,
   evidenceFailed = false,
 }: {
   packages: PublicMarketplacePackage[];
+  searchCappers: PublicMarketplaceCapper[];
   cappers: CapperSummary[];
   packageEvidence: Record<string, PackageEvidence | null>;
   evidenceFailed?: boolean;
@@ -261,6 +268,15 @@ export function PackagesRegister({
     }
     return next;
   }, [cappers, packageEvidence, packages, query, sort]);
+  const profileMatches = useMemo(
+    () =>
+      findMarketplaceCapperMatches(
+        query,
+        searchCappers,
+        new Set(packages.map((pkg) => pkg.capperId)),
+      ),
+    [packages, query, searchCappers],
+  );
 
   // Reset the page window when filters change so search/sort never hide hits
   // behind a prior "Show more" ceiling.
@@ -277,6 +293,13 @@ export function PackagesRegister({
           />
           <p className="text-sm font-semibold">
             {rows.length} public offer{rows.length === 1 ? "" : "s"}
+            {profileMatches.length > 0 ? (
+              <span className="text-muted-foreground font-normal">
+                {" "}
+                · {profileMatches.length} capper profile
+                {profileMatches.length === 1 ? "" : "s"}
+              </span>
+            ) : null}
             {hasMore ? (
               <span className="text-muted-foreground font-normal">
                 {" "}
@@ -323,7 +346,40 @@ export function PackagesRegister({
         </div>
       </div>
 
-      {rows.length === 0 ? (
+      {profileMatches.length > 0 ? (
+        <div className="border-border bg-background border-b px-3 py-4 sm:px-4">
+          <h2 className="scl-eyebrow text-[color:var(--scl-muted-data)]">
+            Capper profiles matching your search
+          </h2>
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+            {profileMatches.map((capper) => (
+              <li key={capper.id}>
+                <Link
+                  href={`/cappers/${capper.handle}`}
+                  prefetch={false}
+                  className="border-border focus-visible:ring-ring group flex min-h-16 items-center gap-3 rounded-md border px-3 py-2.5 focus-visible:ring-2 focus-visible:outline-none"
+                >
+                  <CapperAvatar
+                    name={capper.name}
+                    src={capper.avatarUrl ?? undefined}
+                    size="sm"
+                  />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold underline-offset-4 group-hover:underline">
+                      @{capper.handle.replace(/^@/, "")}
+                    </span>
+                    <span className="text-muted-foreground block text-xs">
+                      No public offers yet · View public profile
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {rows.length === 0 && profileMatches.length === 0 ? (
         <p className="text-muted-foreground px-4 py-10 text-center text-sm">
           No public offers match this search.
         </p>

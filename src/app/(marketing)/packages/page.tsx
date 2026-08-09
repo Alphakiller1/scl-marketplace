@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/button";
 import { STOREFRONT_PAYMENT_DISCLAIMER } from "@/lib/cold-start-copy";
 import { getPublicCapperEvidenceByIds } from "@/lib/queries/leaderboard";
 import { getPackagePerformanceEvidence } from "@/lib/queries/package-performance";
-import { listActiveMarketplacePackagesResult } from "@/lib/queries/store";
+import {
+  listActiveMarketplacePackagesResult,
+  listPublicMarketplaceCappersResult,
+} from "@/lib/queries/store";
 
 export const metadata: Metadata = {
   title: "Packages",
@@ -84,6 +87,7 @@ function MarketplaceEmpty({ failed = false }: { failed?: boolean }) {
 
 export default async function PackagesPage() {
   const marketplace = await listActiveMarketplacePackagesResult();
+  const capperDirectory = await listPublicMarketplaceCappersResult();
   let evidence = { cappers: [], failed: false } as Awaited<
     ReturnType<typeof getPublicCapperEvidenceByIds>
   >;
@@ -150,6 +154,7 @@ export default async function PackagesPage() {
         <>
           <PackagesRegister
             packages={marketplace.packages}
+            searchCappers={capperDirectory.cappers}
             cappers={evidence.cappers}
             packageEvidence={packagePerformance.evidence}
             evidenceFailed={packagePerformance.failed}

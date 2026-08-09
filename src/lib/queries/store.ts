@@ -13,6 +13,7 @@ import {
   furthestStorefrontStatus,
   storefrontCoverageBucket,
 } from "@/lib/storefront-review";
+import type { PublicMarketplaceCapper } from "@/lib/marketplace-search";
 
 export type StoreConnectionRow = Awaited<
   ReturnType<typeof listStoreConnections>
@@ -200,6 +201,52 @@ export type PublicMarketplacePackage = PublicPackageCard & {
   capperHandle: string;
   capperName: string;
 };
+
+export async function listPublicMarketplaceCappersResult(): Promise<{
+  cappers: PublicMarketplaceCapper[];
+  failed: boolean;
+}> {
+  try {
+    const excludeTest = await prismaExcludeTestHandlesLive();
+    const profiles = await prisma.capperProfile.findMany({
+      where: {
+        user: {
+          username: { not: null },
+          accountStatus: "ACTIVE",
+          ...excludeTest,
+        },
+      },
+      select: {
+        id: true,
+        avatarUrl: true,
+        user: {
+          select: { username: true, displayName: true },
+        },
+      },
+    });
+
+    return {
+      cappers: profiles
+        .filter((profile) => profile.user.username)
+        .map((profile) => ({
+          id: profile.id,
+          handle: profile.user.username!,
+          name:
+            profile.user.displayName?.trim() ||
+            `@${profile.user.username!.replace(/^@/, "")}`,
+          avatarUrl: profile.avatarUrl,
+        }))
+        .sort((a, b) => a.handle.localeCompare(b.handle)),
+      failed: false,
+    };
+  } catch (error) {
+    console.error(
+      "[listPublicMarketplaceCappers] database unavailable:",
+      error,
+    );
+    return { cappers: [], failed: true };
+  }
+}
 
 /** Live packages for a public capper profile — CTAs use /go/[slug] only. */
 async function queryLivePackagesForCapper(
