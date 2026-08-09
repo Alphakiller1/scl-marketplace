@@ -378,6 +378,7 @@ function LeaderboardTableRow({
           <CapperAvatar name={capper.name} src={capper.avatarUrl} size="sm" />
           <Link
             href={`/cappers/${capper.handle}`}
+            prefetch={false}
             className="focus-visible:ring-ring inline-flex min-h-10 min-w-0 items-center rounded-sm focus-visible:ring-2 focus-visible:outline-none"
           >
             <CapperIdentityLabel
@@ -511,6 +512,7 @@ export function LeaderboardMobileCard({
         <div className="min-w-0 flex-1">
           <Link
             href={`/cappers/${capper.handle}`}
+            prefetch={false}
             className="focus-visible:ring-ring inline-flex min-h-10 items-center rounded-sm focus-visible:ring-2 focus-visible:outline-none"
           >
             <CapperIdentityLabel capper={capper} compact verified={false} />

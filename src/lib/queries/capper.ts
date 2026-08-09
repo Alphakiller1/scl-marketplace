@@ -192,7 +192,15 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
     await getPublicCapperEvidenceByIds([profile.id]);
   const capper = cappers[0];
   if (!capper) {
-    if (evidenceFailed) return null;
+    // A temporary database failure is not evidence that a public capper does
+    // not exist. Returning null here lets unstable_cache persist a false 404
+    // for a real leaderboard link. Throw instead so the failed result is never
+    // cached and the next request can recover normally.
+    if (evidenceFailed) {
+      throw new Error(
+        `[getPublicCapperByHandle] evidence unavailable for @${normalizedHandle}`,
+      );
+    }
     return null;
   }
 

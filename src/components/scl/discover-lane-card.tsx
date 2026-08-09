@@ -52,6 +52,7 @@ export function DiscoverLaneCard({ entry }: { entry: DiscoverLaneEntry }) {
   return (
     <Link
       href={`/cappers/${capper.handle}`}
+      prefetch={false}
       className="hover:bg-surface-2/60 focus-visible:ring-ring flex flex-col gap-2.5 py-3 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset sm:flex-row sm:items-center sm:gap-4"
     >
       <div className="flex min-w-0 flex-1 items-center gap-3">

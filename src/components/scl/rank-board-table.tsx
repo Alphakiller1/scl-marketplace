@@ -131,6 +131,7 @@ export function RankBoardTable({
                   <td className={cn(cell, "align-middle")}>
                     <Link
                       href={`/cappers/${capper.handle}`}
+                      prefetch={false}
                       className="focus-visible:ring-ring inline-flex rounded-full focus-visible:ring-2 focus-visible:outline-none"
                       aria-label={`Open rank ${rank}, ${capper.handle} profile`}
                     >
@@ -144,6 +145,7 @@ export function RankBoardTable({
                   <td className={cn(cell, "align-middle")}>
                     <Link
                       href={`/cappers/${capper.handle}`}
+                      prefetch={false}
                       className="focus-visible:ring-ring flex min-w-0 items-center gap-2 rounded-sm focus-visible:ring-2 focus-visible:outline-none"
                       aria-label={`Open ${capper.handle} profile`}
                     >
@@ -229,6 +231,7 @@ export function RankBoardTable({
                   >
                     <Link
                       href={`/cappers/${capper.handle}`}
+                      prefetch={false}
                       className="focus-visible:ring-ring inline-flex size-8 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:outline-none"
                       aria-label={`Open ${capper.handle} profile`}
                     >
@@ -272,6 +275,7 @@ function RankBoardMobileRow({
     <li>
       <Link
         href={`/cappers/${capper.handle}`}
+        prefetch={false}
         className={cn(
           "focus-visible:ring-ring flex min-h-10 items-center gap-2 px-2.5 py-1.5 focus-visible:ring-2 focus-visible:outline-none sm:min-h-12",
           compact ? "gap-1.5 px-2" : null,

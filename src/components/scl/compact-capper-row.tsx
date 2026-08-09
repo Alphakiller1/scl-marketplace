@@ -53,6 +53,7 @@ export function CompactCapperRow({
   return (
     <Link
       href={`/cappers/${capper.handle}`}
+      prefetch={false}
       className={cn(
         "focus-visible:ring-ring block outline-none focus-visible:ring-2",
         flush
