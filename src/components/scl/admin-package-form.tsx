@@ -32,13 +32,18 @@ export function AdminPackageForm({
   capperId,
   storeConnectionId,
   provider,
+  allowProviderSelection = false,
   initial,
 }: {
   capperId: string;
   storeConnectionId?: string | null;
   provider: StoreProvider;
+  /** New manual packages can choose either provider without an API connection. */
+  allowProviderSelection?: boolean;
   initial?: AdminPackageInitial | null;
 }) {
+  const [selectedProvider, setSelectedProvider] =
+    useState<StoreProvider>(provider);
   const [title, setTitle] = useState(initial?.title || "");
   const [description, setDescription] = useState(initial?.description || "");
   const [promoOffer, setPromoOffer] = useState(initial?.promoOffer || "");
@@ -64,8 +69,12 @@ export function AdminPackageForm({
       const res = await adminSavePackageAction({
         id: packageId || undefined,
         capperId,
-        storeConnectionId: storeConnectionId || null,
-        affiliateProvider: provider,
+        // Provider-selectable manual creation resolves the matching connection
+        // on the server. It remains unattached when no connection exists.
+        storeConnectionId: allowProviderSelection
+          ? null
+          : storeConnectionId || null,
+        affiliateProvider: selectedProvider,
         title,
         description,
         promoOffer,
@@ -122,15 +131,34 @@ export function AdminPackageForm({
       }}
     >
       <p className="text-muted-foreground text-xs leading-relaxed">
-        Quick package setup for {providerLabel(provider)}. Paste the storefront
-        or package link, then fill in the name, price, promo details, and
-        description once — SCL generates the public card and CTA automatically.
+        Manual package setup for {providerLabel(selectedProvider)}. This path
+        does not require a working provider API. Paste the package link, then
+        fill in the name, price, promo details, and description once — SCL
+        generates the public card and CTA automatically.
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="provider">Platform</Label>
-          <Input id="provider" value={providerLabel(provider)} readOnly />
+          {allowProviderSelection ? (
+            <select
+              id="provider"
+              className="border-border bg-background h-10 w-full rounded-md border px-3 text-sm"
+              value={selectedProvider}
+              onChange={(event) =>
+                setSelectedProvider(event.target.value as StoreProvider)
+              }
+            >
+              <option value="WHOP">Whop</option>
+              <option value="WINIBLE">Winible</option>
+            </select>
+          ) : (
+            <Input
+              id="provider"
+              value={providerLabel(selectedProvider)}
+              readOnly
+            />
+          )}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="billing">Billing cadence</Label>
@@ -188,7 +216,7 @@ export function AdminPackageForm({
 
       <div className="space-y-1.5">
         <Label htmlFor="dest">
-          {provider === "WINIBLE"
+          {selectedProvider === "WINIBLE"
             ? "Winible storefront/package link"
             : "Whop storefront/package link"}
         </Label>
@@ -198,7 +226,7 @@ export function AdminPackageForm({
           value={checkoutUrl}
           onChange={(e) => setCheckoutUrl(e.target.value)}
           placeholder={
-            provider === "WHOP"
+            selectedProvider === "WHOP"
               ? "Paste Whop product-specific link"
               : "Paste Winible storefront or package link"
           }

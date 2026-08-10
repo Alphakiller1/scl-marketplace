@@ -48,3 +48,21 @@ test("importing Prisma does not start competing schema patch queries", () => {
   assert.doesNotMatch(prismaSource, /ensureAuthEmailSchema/);
   assert.doesNotMatch(prismaSource, /ensureStorefrontMessagesSchema/);
 });
+
+test("production deploys fail closed on migration or package audit failure", () => {
+  const migrationSource = source("scripts/migrate-on-production-only.mjs");
+
+  assert.match(migrationSource, /blocking deployment/);
+  assert.match(migrationSource, /verify-package-integrity\.ts/);
+  assert.match(migrationSource, /process\.exit\(1\)/);
+});
+
+test("owners can manually manage Whop packages without API sync", () => {
+  const formSource = source("src/components/scl/admin-package-form.tsx");
+  const detailSource = source("src/app/(admin)/admin/cappers/[id]/page.tsx");
+
+  assert.match(formSource, /allowProviderSelection/);
+  assert.match(formSource, /does not require a working provider API/);
+  assert.match(detailSource, /Add Whop package/);
+  assert.match(detailSource, /AdminPackageRowControls/);
+});

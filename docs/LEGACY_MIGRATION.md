@@ -153,6 +153,20 @@ include them render the `Legacy` badge with the carried count.
 npm run db:import-legacy-packages -- prisma/legacy-packages.json
 ```
 
+The importer now performs a mandatory field-by-field readback after writing:
+package identity, owner, title, description, price, billing cadence, provider,
+checkout URL, tracking target, display order, and active state must all match the
+source file or the command exits non-zero. The same audit can be rerun without
+writing anything:
+
+```bash
+npm run verify:packages -- prisma/legacy-packages.json
+```
+
+Production deploys also run `verify:packages` after migrations and fail closed
+when the documented 122-offer floor, four-Whop floor, tracking invariants, or
+known corrective package expectations regress.
+
 Three things the importer has to get right:
 
 - **Every package gets a `TrackingUrl`.** `listActiveMarketplacePackages`

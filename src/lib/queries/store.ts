@@ -14,6 +14,10 @@ import {
   storefrontCoverageBucket,
 } from "@/lib/storefront-review";
 import type { PublicMarketplaceCapper } from "@/lib/marketplace-search";
+import {
+  inspectLegacyPackageIntegrity,
+  loadLegacyPackageIntegrityRows,
+} from "@/lib/legacy-package-integrity";
 
 export type StoreConnectionRow = Awaited<
   ReturnType<typeof listStoreConnections>
@@ -38,6 +42,56 @@ export async function countStoreConnectionsRequiringAttention() {
       error,
     );
     return 0;
+  }
+}
+
+/** Live owner-facing inventory and invariant report for every legacy offer. */
+export async function getLegacyPackageIntegrityForAdmin() {
+  try {
+    const rows = await loadLegacyPackageIntegrityRows(prisma);
+    const report = inspectLegacyPackageIntegrity(rows);
+    return {
+      ...report,
+      failed: false,
+      whopPackages: rows
+        .filter((row) => row.affiliateProvider === "WHOP")
+        .map((row) => ({
+          id: row.id,
+          userId: row.userId,
+          username: row.username,
+          title: row.title,
+          priceLabel:
+            formatPriceCents(row.priceCents, row.billingPeriod) ??
+            "Price shown by provider",
+          active: row.isActive,
+          publicEligible:
+            row.isActive &&
+            Boolean(row.checkoutUrl) &&
+            row.trackingUrls.length === 1 &&
+            (row.connectionStatus === null || row.connectionStatus === "LIVE"),
+          source: row.externalProductId ? "Whop API" : "Manual / legacy",
+          trackingIntact:
+            row.trackingUrls.length === 1 &&
+            row.trackingUrls[0]?.targetUrl === row.checkoutUrl,
+        })),
+    };
+  } catch (error) {
+    console.error("[getLegacyPackageIntegrityForAdmin] failed:", error);
+    return {
+      failed: true,
+      stats: {
+        total: 0,
+        active: 0,
+        publicEligible: 0,
+        whop: 0,
+        activeWhop: 0,
+        apiSynced: 0,
+        manualOrCarried: 0,
+      },
+      errors: ["Could not read the legacy package inventory."],
+      warnings: [],
+      whopPackages: [],
+    };
   }
 }
 

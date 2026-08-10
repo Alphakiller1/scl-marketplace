@@ -214,13 +214,13 @@ if (env !== "production") {
 ensureDatabaseEnvForMigrate();
 
 if (!trimmed(process.env.DATABASE_URL) && !trimmed(process.env.DIRECT_URL)) {
-  console.warn(
-    "[migrate] No DATABASE_URL / DIRECT_URL at build time — skipping migrate; runtime patch will apply.",
+  console.error(
+    "[migrate] No DATABASE_URL / DIRECT_URL at production build time; refusing an unverified deployment.",
   );
-  console.warn(
+  console.error(
     `[migrate] env hints: POSTGRES_URL=${Boolean(process.env.POSTGRES_URL)} POSTGRES_URL_NON_POOLING=${Boolean(process.env.POSTGRES_URL_NON_POOLING)}`,
   );
-  process.exit(0);
+  process.exit(1);
 }
 
 if (!forceAuthEmailMigration()) {
@@ -232,8 +232,28 @@ if (!forceAuthEmailMigration()) {
 console.log(`[migrate] VERCEL_ENV=${env ?? "(local)"} — applying migrations.`);
 const result = runPrisma(["migrate", "deploy"]);
 if (result.status !== 0) {
-  console.error("[migrate] prisma migrate deploy failed — continuing build");
+  console.error("[migrate] prisma migrate deploy failed — blocking deployment");
   console.error(result.stdout ?? "");
   console.error(result.stderr ?? "");
+  process.exit(1);
+}
+
+console.log("[migrate] verifying production legacy package integrity.");
+const packageAudit = spawnSync(
+  "npx",
+  ["tsx", "scripts/verify-package-integrity.ts"],
+  {
+    encoding: "utf8",
+    shell: process.platform === "win32",
+    env: { ...process.env },
+  },
+);
+console.log(packageAudit.stdout ?? "");
+if (packageAudit.status !== 0) {
+  console.error(
+    "[migrate] legacy package verification failed — blocking deployment",
+  );
+  console.error(packageAudit.stderr ?? "");
+  process.exit(1);
 }
 process.exit(0);

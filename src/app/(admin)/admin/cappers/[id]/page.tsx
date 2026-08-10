@@ -22,6 +22,7 @@ import { AdminDeleteCapperControl } from "@/components/scl/admin-delete-capper-c
 import { AccountStatusBadge } from "@/components/scl/account-trust";
 import { StatusBadge } from "@/components/scl/badges";
 import { AdminPackageForm } from "@/components/scl/admin-package-form";
+import { AdminPackageRowControls } from "@/components/scl/admin-package-row-controls";
 import { ProviderBadge } from "@/components/scl/provider-badge";
 import { SectionHeader } from "@/components/scl/section";
 import { StoreStatusChip } from "@/components/scl/store-status-chip";
@@ -53,10 +54,13 @@ const OUTCOME_TO_STATUS = {
 
 export default async function AdminCapperDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ packageId?: string; newProvider?: string }>;
 }) {
   const { id } = await params;
+  const sp = await searchParams;
   const capper = await getAdminCapperDetail(id);
   if (!capper) notFound();
 
@@ -77,6 +81,13 @@ export default async function AdminCapperDetailPage({
     profile?.storeConnections[0] ??
     null;
   const quickPackageProvider = primaryConnection?.provider ?? "WINIBLE";
+  const selectedPackage =
+    profile?.packages.find((pkg) => pkg.id === sp.packageId) ?? null;
+  const manualProvider =
+    selectedPackage?.affiliateProvider ??
+    (sp.newProvider === "WHOP" || sp.newProvider === "WINIBLE"
+      ? sp.newProvider
+      : quickPackageProvider);
   const threadMessages = primaryConnection
     ? await getStorefrontMessages(primaryConnection.id)
     : [];
@@ -397,13 +408,9 @@ export default async function AdminCapperDetailPage({
         <SectionHeader
           icon={PackageOpen}
           title="Packages & Clicks"
-          subtitle="Current display order, visibility, platform, price, and tracked traffic"
-          href={
-            primaryConnection
-              ? `/admin/store-setup?id=${primaryConnection.id}`
-              : undefined
-          }
-          hrefLabel="Manage packages"
+          subtitle="Create, edit, hide, reorder, or delete Winible and Whop offers without depending on provider sync"
+          href="#manual-package-manager"
+          hrefLabel="Add or edit packages"
         />
         {profile &&
         (profile.storefrontTitle || profile.storefrontDescription) ? (
@@ -421,7 +428,7 @@ export default async function AdminCapperDetailPage({
         {profile?.packages.length ? (
           <div className="border-border overflow-hidden rounded-xl border">
             <div className="divide-border divide-y">
-              {profile.packages.map((pkg) => {
+              {profile.packages.map((pkg, index) => {
                 const clicks = pkg.trackingUrls.reduce(
                   (total, url) => total + url._count.clicks,
                   0,
@@ -429,7 +436,7 @@ export default async function AdminCapperDetailPage({
                 return (
                   <article
                     key={pkg.id}
-                    className="bg-card grid gap-3 p-4 md:grid-cols-[minmax(0,1fr)_8rem_7rem_6rem] md:items-center"
+                    className="bg-card grid gap-3 p-4 md:grid-cols-[minmax(0,1fr)_8rem_7rem_6rem_auto] md:items-center"
                   >
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -438,6 +445,9 @@ export default async function AdminCapperDetailPage({
                           status={pkg.isActive ? "LIVE" : "NOT_STARTED"}
                           label={pkg.isActive ? "Visible" : "Hidden"}
                         />
+                        <span className="bg-surface-3 text-muted-foreground rounded px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-wide uppercase">
+                          {pkg.externalProductId ? "API synced" : "Manual"}
+                        </span>
                       </div>
                       <p className="text-muted-foreground mt-1 text-xs">
                         Display order {pkg.sortOrder} · Updated{" "}
@@ -463,6 +473,30 @@ export default async function AdminCapperDetailPage({
                         clicks
                       </span>
                     </p>
+                    <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                      <Button
+                        size="sm"
+                        variant={
+                          selectedPackage?.id === pkg.id ? "default" : "outline"
+                        }
+                        className="min-h-10"
+                        render={
+                          <Link
+                            href={`/admin/cappers/${capper.id}?packageId=${pkg.id}#manual-package-manager`}
+                          />
+                        }
+                        nativeButton={false}
+                      >
+                        Edit
+                      </Button>
+                      <AdminPackageRowControls
+                        packageId={pkg.id}
+                        title={pkg.title}
+                        isActive={pkg.isActive}
+                        isFirst={index === 0}
+                        isLast={index === profile.packages.length - 1}
+                      />
+                    </div>
                   </article>
                 );
               })}
@@ -516,16 +550,81 @@ export default async function AdminCapperDetailPage({
       </section>
 
       {profile ? (
-        <section className="border-border bg-card space-y-4 rounded-xl border p-4 sm:p-5">
+        <section
+          id="manual-package-manager"
+          className="border-border bg-card scroll-mt-24 space-y-4 rounded-xl border p-4 sm:p-5"
+        >
           <SectionHeader
             icon={PackageOpen}
-            title={`Quick ${providerLabel(quickPackageProvider)} package`}
-            subtitle={`Fast manual fallback when ${providerLabel(quickPackageProvider)} sync is unavailable — paste the link, price, promo, and description, then publish it to the capper profile.`}
+            title={
+              selectedPackage
+                ? `Edit ${providerLabel(manualProvider)} package`
+                : "Manual package manager"
+            }
+            subtitle="Create and maintain Whop or Winible packages directly in SCL. This remains available when provider API sync is unavailable."
           />
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant={
+                !selectedPackage && manualProvider === "WHOP"
+                  ? "default"
+                  : "outline"
+              }
+              className="min-h-10"
+              render={
+                <Link
+                  href={`/admin/cappers/${capper.id}?newProvider=WHOP#manual-package-manager`}
+                />
+              }
+              nativeButton={false}
+            >
+              Add Whop package
+            </Button>
+            <Button
+              size="sm"
+              variant={
+                !selectedPackage && manualProvider === "WINIBLE"
+                  ? "default"
+                  : "outline"
+              }
+              className="min-h-10"
+              render={
+                <Link
+                  href={`/admin/cappers/${capper.id}?newProvider=WINIBLE#manual-package-manager`}
+                />
+              }
+              nativeButton={false}
+            >
+              Add Winible package
+            </Button>
+          </div>
           <AdminPackageForm
+            key={selectedPackage?.id ?? `new-${manualProvider}`}
             capperId={profile.id}
-            storeConnectionId={primaryConnection?.id ?? null}
-            provider={quickPackageProvider}
+            storeConnectionId={selectedPackage?.storeConnectionId ?? null}
+            provider={manualProvider}
+            allowProviderSelection={!selectedPackage}
+            initial={
+              selectedPackage
+                ? {
+                    id: selectedPackage.id,
+                    title: selectedPackage.title,
+                    description: selectedPackage.description,
+                    promoOffer: selectedPackage.promoOffer,
+                    checkoutUrl: selectedPackage.checkoutUrl,
+                    priceCents: selectedPackage.priceCents,
+                    billingPeriod: selectedPackage.billingPeriod,
+                    sortOrder: selectedPackage.sortOrder,
+                    isActive: selectedPackage.isActive,
+                    trackingSlug: selectedPackage.trackingUrls[0]?.slug ?? null,
+                    clickCount: selectedPackage.trackingUrls.reduce(
+                      (total, tracking) => total + tracking._count.clicks,
+                      0,
+                    ),
+                  }
+                : null
+            }
           />
         </section>
       ) : null}
