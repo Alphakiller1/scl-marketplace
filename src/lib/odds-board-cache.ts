@@ -140,21 +140,6 @@ async function writeSnapshot(
   return snapshot;
 }
 
-/** Persist a provider-authoritative core board for the game-picker entry list. */
-export async function storeOddsBoardEvents(
-  sport: string,
-  events: OddsEvent[],
-): Promise<LoadedOddsBoard> {
-  const normalized = sport.toUpperCase();
-  const saved = await writeSnapshot(normalized, events);
-  return {
-    events: saved.events,
-    source: "provider",
-    savedAt: saved.savedAt,
-    stale: false,
-  };
-}
-
 async function refreshBoard(
   sport: string,
   cached: OddsBoardSnapshot | null,
