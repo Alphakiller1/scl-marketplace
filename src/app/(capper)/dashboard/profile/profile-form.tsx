@@ -138,8 +138,8 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
       {/* Account standing and setup progress are both "where you stand" — one
           band, so the page opens with status and then moves into editing
           rather than alternating between the two. */}
-      <div className="border-border bg-card divide-border divide-y rounded-xl border">
-        <div className="p-4 sm:p-5">
+      <div className="border-border bg-card divide-border w-full max-w-full min-w-0 divide-y overflow-hidden rounded-xl border">
+        <div className="min-w-0 p-4 sm:p-5">
           <AccountTrustSummary
             status={profile.user.accountStatus}
             emailVerified={Boolean(profile.user.emailVerified)}

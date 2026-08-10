@@ -51,3 +51,30 @@ test("global headers use legible mobile brand typography", () => {
   assert.match(appHeaderSource, /max-w-\[8\.75rem\] text-xs/);
   assert.match(siteHeaderSource, /max-w-\[9\.5rem\] text-xs/);
 });
+
+test("account trust cannot overflow or overlay the mobile profile", () => {
+  const accountTrustSource = readSource("src/components/scl/account-trust.tsx");
+  const profileFormSource = readSource(
+    "src/app/(capper)/dashboard/profile/profile-form.tsx",
+  );
+  const newPickFabSource = readSource("src/components/scl/new-pick-fab.tsx");
+
+  assert.match(
+    accountTrustSource,
+    /w-full max-w-full min-w-0 overflow-hidden rounded-xl/,
+  );
+  assert.match(accountTrustSource, /flex min-w-0 flex-wrap items-start/);
+  assert.match(accountTrustSource, /min-h-7 shrink-0[\s\S]*?whitespace-nowrap/);
+  assert.match(
+    accountTrustSource,
+    /min-h-10 max-w-full min-w-0[\s\S]*?overflow-hidden/,
+  );
+  assert.match(
+    profileFormSource,
+    /divide-border w-full max-w-full min-w-0[\s\S]*?overflow-hidden/,
+  );
+  assert.match(
+    newPickFabSource,
+    /OWN_PRIMARY_ACTION[\s\S]*?\/dashboard\/profile/,
+  );
+});

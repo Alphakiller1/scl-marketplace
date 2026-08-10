@@ -22,7 +22,7 @@ export function AccountStatusBadge({ status }: { status: AccountStatus }) {
   return (
     <span
       className={cn(
-        "inline-flex min-h-7 items-center rounded-lg border px-2 text-xs font-semibold",
+        "inline-flex min-h-7 shrink-0 items-center rounded-lg border px-2 text-xs font-semibold whitespace-nowrap",
         statusStyles[status],
       )}
     >
@@ -45,11 +45,11 @@ export function AccountTrustSummary({
   return (
     <section
       aria-labelledby="account-trust-title"
-      className="border-border bg-card rounded-xl border p-4"
+      className="border-border bg-card w-full max-w-full min-w-0 overflow-hidden rounded-xl border p-4"
     >
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 id="account-trust-title" className="font-semibold">
+      <div className="flex min-w-0 flex-wrap items-start justify-between gap-3 sm:flex-nowrap sm:items-center">
+        <div className="min-w-0 flex-1">
+          <h2 id="account-trust-title" className="truncate font-semibold">
             Account Trust
           </h2>
           <p className="text-muted-foreground text-sm">
@@ -99,17 +99,17 @@ function TrustRow({
   complete: boolean;
 }) {
   return (
-    <div className="bg-surface-2 flex min-h-10 items-center gap-3 rounded-lg px-3">
-      <Icon className="text-muted-foreground size-4" aria-hidden />
+    <div className="bg-surface-2 flex min-h-10 max-w-full min-w-0 items-center gap-3 overflow-hidden rounded-lg px-3">
+      <Icon className="text-muted-foreground size-4 shrink-0" aria-hidden />
       <div className="min-w-0 flex-1">
         <dt className="text-muted-foreground text-xs">{label}</dt>
         <dd className="truncate text-sm font-medium">{value}</dd>
       </div>
       {complete ? (
-        <Check className="text-pos size-4" aria-hidden />
+        <Check className="text-pos size-4 shrink-0" aria-hidden />
       ) : (
         <Clock3
-          className="size-4 text-[color:var(--scl-muted-label)]"
+          className="size-4 shrink-0 text-[color:var(--scl-muted-label)]"
           aria-hidden
         />
       )}
