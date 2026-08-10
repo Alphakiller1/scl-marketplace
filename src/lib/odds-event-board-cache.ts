@@ -84,6 +84,29 @@ async function writeSnapshot(
   return snapshot;
 }
 
+/** Read an event snapshot without spending provider credits. */
+export async function loadCachedEventBoard(
+  sport: string,
+  eventId: string,
+): Promise<OddsSelection[]> {
+  return (await readSnapshot(sport.toUpperCase(), eventId))?.selections ?? [];
+}
+
+/** Persist provider-authoritative selections while retaining last-good rows. */
+export async function storeEventBoardSelections(
+  sport: string,
+  eventId: string,
+  selections: OddsSelection[],
+): Promise<EventBoardSnapshot> {
+  const normalizedSport = sport.toUpperCase();
+  const cached = await readSnapshot(normalizedSport, eventId);
+  return writeSnapshot(
+    normalizedSport,
+    eventId,
+    mergeEventBoardSelections(cached?.selections ?? [], selections),
+  );
+}
+
 async function refreshEventBoard(
   sport: string,
   eventId: string,
