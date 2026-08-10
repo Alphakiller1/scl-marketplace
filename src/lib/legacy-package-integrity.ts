@@ -7,19 +7,29 @@ export const LEGACY_SOURCE_OFFER_COUNT = 122;
 export const LEGACY_WHOP_EXPECTATIONS = [
   {
     username: "BBlueprints",
-    title: "🔥 Bankroll Blueprint Exclusive",
-    checkoutUrl: "https://whop.com/the-bankroll-blueprint-2f72?a=scleaderboard",
+    title: "Bankroll Blueprint Weekly VIP",
+    checkoutUrl:
+      "https://whop.com/the-bankroll-blueprint-2f72/bankroll-blueprint-exclusive?a=scleaderboard",
   },
   {
     username: "SuperPicks1",
-    title: "3 Free Days of VIP",
+    title: "Super Picks 3-Day Free VIP Trial",
     checkoutUrl: "https://whop.com/checkout/plan_WDBMS1kVzsn54?a=scleaderboard",
   },
   {
     username: "SuperPicks1",
-    title: "Single Day of VIP",
-    checkoutUrl:
-      "https://whop.com/superpick/best-sports-picks-best-price?a=scleaderboard",
+    title: "Super Picks Monthly VIP",
+    checkoutUrl: "https://whop.com/checkout/plan_XQPxDbBRLRKM3?a=scleaderboard",
+  },
+  {
+    username: "SuperPicks1",
+    title: "Super Picks Single-Day VIP",
+    checkoutUrl: "https://whop.com/checkout/plan_sujbuYWnK69Cw?a=scleaderboard",
+  },
+  {
+    username: "InevitablePicks",
+    title: "Inevitable Picks Weekly VIP",
+    checkoutUrl: "https://whop.com/checkout/plan_L2zzDCtIjiSIE?a=scleaderboard",
   },
 ] as const;
 export const LEGACY_WHOP_OFFER_FLOOR = LEGACY_WHOP_EXPECTATIONS.length;
