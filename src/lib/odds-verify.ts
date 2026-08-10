@@ -430,7 +430,9 @@ export type PickSourceKind =
 
 /** Public trust tier — mirrors the Prisma `VerificationTier` enum. */
 export type VerificationTierValue =
-  "AUTO_VERIFIED" | "VERIFIED" | "SELF_REPORTED";
+  | "AUTO_VERIFIED"
+  | "VERIFIED"
+  | "SELF_REPORTED";
 
 export type PickIntegrityInput = {
   now: Date;
