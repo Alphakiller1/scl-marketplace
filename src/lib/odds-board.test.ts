@@ -321,3 +321,78 @@ test("alternate prop markets reach the board instead of being dropped", () => {
   assert.deepEqual(lines, [5.5, 6.5, 7.5]);
   assert.ok(strikeouts.every((s) => s.player === "Hunter Greene"));
 });
+
+test("MLB periods and props plus WNBA halves and props all reach selection rows", () => {
+  const event: RawEventOdds = {
+    id: "required-expanded-markets",
+    bookmakers: [
+      {
+        key: "draftkings",
+        markets: [
+          {
+            key: "alternate_totals_1st_7_innings",
+            outcomes: [{ name: "Over", point: 6.5, price: -105 }],
+          },
+          {
+            key: "batter_hits_alternate",
+            outcomes: [
+              {
+                name: "Over",
+                description: "Aaron Judge",
+                point: 1.5,
+                price: 145,
+              },
+            ],
+          },
+          {
+            key: "alternate_spreads_h1",
+            outcomes: [{ name: "Atlanta Dream", point: -2.5, price: 110 }],
+          },
+          {
+            key: "player_points_alternate",
+            outcomes: [
+              {
+                name: "Over",
+                description: "Rhyne Howard",
+                point: 24.5,
+                price: 125,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  const board = normalizeEventBoard(event);
+  assert.ok(
+    board.some(
+      (selection) =>
+        selection.market === "1st 7 Innings Total" && selection.line === 6.5,
+    ),
+  );
+  assert.ok(
+    board.some(
+      (selection) =>
+        selection.market === "Hits" &&
+        selection.player === "Aaron Judge" &&
+        selection.line === 1.5,
+    ),
+  );
+  assert.ok(
+    board.some(
+      (selection) =>
+        selection.market === "1st Half Spread" &&
+        selection.side === "Atlanta Dream" &&
+        selection.line === -2.5,
+    ),
+  );
+  assert.ok(
+    board.some(
+      (selection) =>
+        selection.market === "Points" &&
+        selection.player === "Rhyne Howard" &&
+        selection.line === 24.5,
+    ),
+  );
+});

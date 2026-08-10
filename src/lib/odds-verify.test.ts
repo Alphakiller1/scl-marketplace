@@ -182,6 +182,62 @@ test("expandedBoardMarkets omits already-loaded featured lines", () => {
   assert.ok(mlb.includes("pitcher_strikeouts_alternate"));
 });
 
+test("expanded MLB and WNBA boards request the complete owner-required matrix", () => {
+  const mlb = expandedBoardMarkets("MLB");
+  for (const market of [
+    "alternate_spreads",
+    "alternate_totals",
+    "pitcher_strikeouts",
+    "pitcher_strikeouts_alternate",
+    "pitcher_outs",
+    "pitcher_outs_alternate",
+    "pitcher_earned_runs",
+    "pitcher_earned_runs_alternate",
+    "batter_hits",
+    "batter_hits_alternate",
+  ]) {
+    assert.ok(mlb.includes(market), `MLB should request ${market}`);
+  }
+  for (const innings of [3, 5, 7]) {
+    for (const prefix of [
+      "h2h",
+      "spreads",
+      "alternate_spreads",
+      "totals",
+      "alternate_totals",
+    ]) {
+      const market = `${prefix}_1st_${innings}_innings`;
+      assert.ok(mlb.includes(market), `MLB should request ${market}`);
+    }
+  }
+
+  const wnba = expandedBoardMarkets("WNBA");
+  for (const market of [
+    "alternate_spreads",
+    "alternate_totals",
+    "player_points",
+    "player_points_alternate",
+    "player_rebounds",
+    "player_rebounds_alternate",
+    "player_assists",
+    "player_assists_alternate",
+  ]) {
+    assert.ok(wnba.includes(market), `WNBA should request ${market}`);
+  }
+  for (const half of [1, 2]) {
+    for (const prefix of [
+      "h2h",
+      "spreads",
+      "alternate_spreads",
+      "totals",
+      "alternate_totals",
+    ]) {
+      const market = `${prefix}_h${half}`;
+      assert.ok(wnba.includes(market), `WNBA should request ${market}`);
+    }
+  }
+});
+
 test("marketKeysForMarket bundles both team-total keys", () => {
   // A pick taken off the alternate ladder is priced only in the alternate key,
   // so verifying against the featured key alone could not find its line.
