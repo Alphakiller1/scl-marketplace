@@ -5,6 +5,7 @@ import { cache } from "react";
 import { cachedQuery } from "@/lib/cached-query";
 import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
 import { UNIT_MIN } from "@/lib/constants";
+import { withTransientDatabaseRetry } from "@/lib/database-retry";
 import {
   sortLegacySportRecords,
   type LegacySportRecordView,
@@ -175,17 +176,22 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
   if (!normalizedHandle) return null;
 
   // Targeted lookup — never scan the full leaderboard for one profile.
-  const excludeTest = await prismaExcludeTestHandlesLive();
-  const profile = await prisma.capperProfile.findFirst({
-    where: {
-      user: {
-        username: { equals: normalizedHandle, mode: "insensitive" },
-        accountStatus: "ACTIVE",
-        ...excludeTest,
-      },
+  const profile = await withTransientDatabaseRetry(
+    async () => {
+      const excludeTest = await prismaExcludeTestHandlesLive();
+      return prisma.capperProfile.findFirst({
+        where: {
+          user: {
+            username: { equals: normalizedHandle, mode: "insensitive" },
+            accountStatus: "ACTIVE",
+            ...excludeTest,
+          },
+        },
+        select: { id: true, user: { select: { username: true } } },
+      });
     },
-    select: { id: true, user: { select: { username: true } } },
-  });
+    { label: `public profile identity @${normalizedHandle}` },
+  );
   if (!profile?.user.username) return null;
 
   const { cappers, failed: evidenceFailed } =
@@ -213,21 +219,23 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
   let historyNextCursor: string | null = null;
   let legacyBySport: LegacySportRecordView[] = [];
 
-  async function settle<T>(operation: () => Promise<T>) {
+  async function settle<T>(label: string, operation: () => Promise<T>) {
     try {
-      return { status: "fulfilled", value: await operation() } as const;
+      return {
+        status: "fulfilled",
+        value: await withTransientDatabaseRetry(operation, { label }),
+      } as const;
     } catch (reason) {
       return { status: "rejected", reason } as const;
     }
   }
 
-  // A production serverless isolate owns one Prisma connection. Run the
-  // profile's optional reads in order so they cannot time each other out and
-  // leave a carried-over storefront looking empty.
-  const historyResult = await settle(() =>
+  // Keep one profile's heavier optional reads sequential so Fluid Compute can
+  // reserve the rest of the shared pool for concurrent public requests.
+  const historyResult = await settle("public profile history", () =>
     getPublicProfileHistoryPage(capper.handle),
   );
-  const chartResult = await settle(async () => {
+  const chartResult = await settle("public profile chart", async () => {
     // Straight picks + whole parlays — same positions of record the
     // Evidence Brief / leaderboard units aggregate uses.
     const straightRows = await prisma.play.findMany({
@@ -270,7 +278,7 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
     });
     return [straightRows, parlayRows] as const;
   });
-  const clvResult = await settle(async () => {
+  const clvResult = await settle("public profile CLV", async () => {
     const clvReady = await hasClvColumns();
     if (!clvReady) return null;
     return prisma.play.findMany({
@@ -286,7 +294,7 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
     });
   });
   // Per-sport PRE_IMPORT residuals (ALL excluded in sort helper).
-  const legacyResult = await settle(() =>
+  const legacyResult = await settle("public profile legacy records", () =>
     prisma.legacyRecord.findMany({
       where: { capperId: capper.id, scope: "PRE_IMPORT" },
       select: {

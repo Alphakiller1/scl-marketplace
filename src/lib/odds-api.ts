@@ -3,6 +3,7 @@ import "server-only";
 import { afterResponse } from "@/lib/after-response";
 import { bookmakersQueryParam, isBookKey } from "@/lib/books";
 import { shouldCircuitBreak } from "@/lib/odds-budget";
+import { oddsApiKey } from "@/lib/odds-config";
 import {
   SOCCER_LEAGUES,
   SOCCER_LEAGUE_LIMIT,
@@ -40,11 +41,13 @@ export {
   preferredThenAll,
 } from "@/lib/odds-board";
 export { getOddsForBookFromEvent as getOddsForBookEvent };
+export { oddsApiKey } from "@/lib/odds-config";
 
 /**
- * The Odds API client (odds-assist + auto-grade). Reads ODDS_API_KEY at runtime;
- * every function degrades gracefully to empty when the key or sport isn't available,
- * so the app works with or without a key configured.
+ * The Odds API client (odds-assist + auto-grade). Reads ODDS_API_KEY (or the
+ * historical ODD_API_KEY alias) at runtime. Individual calls still degrade
+ * gracefully, while production readiness fails closed if the provider is not
+ * configured and reachable.
  *
  * Monthly budget: 20,000 credits (board warm, verify, results cron, CLV).
  * See docs/qa/SCL_GPT_CLAUDE_DELIVERABLES.md Step 5 and src/lib/odds-budget.ts.
@@ -113,11 +116,6 @@ export function resolveOddsApiSport(
   const extra = league ? EXTRA_SPORT_BY_TAG[league.toUpperCase()] : undefined;
   if (extra) return extra;
   return toOddsApiSport(sclSport);
-}
-
-/** The Odds API key. Accepts the canonical name and the common `ODD_API_KEY` misspelling. */
-export function oddsApiKey(): string | undefined {
-  return process.env.ODDS_API_KEY || process.env.ODD_API_KEY;
 }
 
 export function toSclSport(oddsApiKey: string): string | undefined {

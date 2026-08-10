@@ -96,6 +96,9 @@ export function evaluateReleaseConfiguration(
   const releaseIdentityConfigured =
     env.VERCEL_ENV?.trim() !== "production" ||
     isConfigured(env.VERCEL_GIT_COMMIT_SHA);
+  const oddsConfigured = isConfigured(
+    env.ODDS_API_KEY?.trim() || env.ODD_API_KEY?.trim(),
+  );
 
   return [
     {
@@ -151,10 +154,10 @@ export function evaluateReleaseConfiguration(
     {
       id: "odds-provider",
       label: "Odds verification provider",
-      status: isConfigured(env.ODDS_API_KEY) ? "ready" : "blocked",
-      detail: isConfigured(env.ODDS_API_KEY)
+      status: oddsConfigured ? "ready" : "blocked",
+      detail: oddsConfigured
         ? "The Odds API credential is configured."
-        : "ODDS_API_KEY is required for Odds Verification and the pick-entry board.",
+        : "ODDS_API_KEY (or the deployed ODD_API_KEY alias) is required for Odds Verification and the pick-entry board.",
     },
     {
       id: "grading-cron",

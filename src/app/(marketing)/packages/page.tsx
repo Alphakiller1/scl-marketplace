@@ -98,9 +98,9 @@ export default async function PackagesPage() {
   } as Awaited<ReturnType<typeof getPackagePerformanceEvidence>>;
 
   if (!marketplace.failed && marketplace.packages.length > 0) {
-    // Production intentionally uses one Prisma connection per serverless
-    // isolate. Keep these reads sequential so a full legacy catalog cannot
-    // make its own evidence queries compete for that single connection.
+    // Keep the heavier catalog reads sequential inside this request. Fluid
+    // Compute can still serve other requests from the shared five-connection
+    // pool while this page hydrates its complete legacy catalog.
     evidence = await getPublicCapperEvidenceByIds(
       marketplace.packages.map((pkg) => pkg.capperId),
     );
@@ -109,8 +109,19 @@ export default async function PackagesPage() {
     );
   }
 
+  const pageFailed =
+    marketplace.failed ||
+    capperDirectory.failed ||
+    evidence.failed ||
+    packagePerformance.failed;
+
   return (
-    <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+    <main
+      className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 sm:py-10 lg:px-8"
+      data-scl-verification="packages"
+      data-data-status={pageFailed ? "degraded" : "ok"}
+      data-package-count={marketplace.packages.length}
+    >
       <header className="border-border border-b pb-6">
         <div className="scl-section-mark">
           <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">

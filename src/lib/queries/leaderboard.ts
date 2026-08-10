@@ -378,11 +378,12 @@ export async function getPublicCapperEvidenceByIds(
   if (capperIds.length === 0) return { cappers: [], failed: false };
 
   try {
-    const clvReady = await hasClvColumns();
-    const profiles = await fetchRankableProfiles(
-      DEFAULT_FILTERS,
-      clvReady,
-      capperIds,
+    const profiles = await withTransientDatabaseRetry(
+      async () => {
+        const clvReady = await hasClvColumns();
+        return fetchRankableProfiles(DEFAULT_FILTERS, clvReady, capperIds);
+      },
+      { label: "public capper evidence" },
     );
     return {
       // All-time evidence, so carried-over totals apply.

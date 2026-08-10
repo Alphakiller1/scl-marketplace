@@ -142,3 +142,12 @@ test("profile media accepts Supabase Vercel integration key names", () => {
   const profileMedia = checks.find((check) => check.id === "profile-media");
   assert.equal(profileMedia?.status, "ready");
 });
+
+test("odds readiness accepts the deployed ODD_API_KEY alias", () => {
+  const odds = evaluateReleaseConfiguration({
+    ...READY_ENV,
+    ODDS_API_KEY: undefined,
+    ODD_API_KEY: "legacy-production-key-name",
+  }).find((check) => check.id === "odds-provider");
+  assert.equal(odds?.status, "ready");
+});

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { maybeSweepGrading } from "@/lib/results/auto-grade-sweep";
-
 import { probeMailer } from "@/lib/email-deliverability";
 import { emailSenderStatus } from "@/lib/email-sender";
 import { emailVerificationEnforced } from "@/lib/email-verification-policy";
+import { probeOddsProvider } from "@/lib/odds-provider-health";
+import { databasePoolConfiguration } from "@/lib/prisma-url";
 import { getCoreSchemaHealth } from "@/lib/queries/release-readiness";
 import {
   supabaseIntegrationStatus,
@@ -19,20 +19,18 @@ import { whopIntegrationStatus } from "@/lib/whop-config";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/**
- * Health is polled far more reliably than either scheduler fires, so it doubles
- * as the grading heartbeat. Throttled globally and run via `after()`, so the
- * probe's own response is never delayed.
- */
 export async function GET() {
-  void maybeSweepGrading();
-  const health = await getCoreSchemaHealth();
-  const storageProbe = await probeProfileMediaStorage();
-  const mailer = await probeMailer();
+  const [health, storageProbe, mailer, odds] = await Promise.all([
+    getCoreSchemaHealth(),
+    probeProfileMediaStorage(),
+    probeMailer(),
+    probeOddsProvider(),
+  ]);
   const release = process.env.VERCEL_GIT_COMMIT_SHA ?? "local";
   const releaseIdentified =
     process.env.VERCEL_ENV !== "production" || release !== "local";
-  const ready = health.ready && releaseIdentified;
+  const ready =
+    health.ready && odds.configured && odds.reachable && releaseIdentified;
   const status = ready ? "ok" : "degraded";
   // Project refs, not keys. A cross-project URL/key pair fails as "bucket not
   // found", which sends you hunting in whichever project you happen to open —
@@ -58,6 +56,7 @@ export async function GET() {
     {
       status,
       database: health.database ? "reachable" : "unavailable",
+      databasePool: databasePoolConfiguration(process.env.DATABASE_URL),
       schema: {
         packageAttribution: health.playPackage && health.parlayPackage,
         eventLabels: health.eventLabel,
@@ -77,6 +76,7 @@ export async function GET() {
         // writes `emailVerified`, so this is the only thing that gates access.
         verificationEnforced: emailVerificationEnforced(),
       },
+      odds,
       whop: whopIntegrationStatus(),
       release,
       checkedAt: new Date().toISOString(),
