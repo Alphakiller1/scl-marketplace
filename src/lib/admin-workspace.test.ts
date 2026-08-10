@@ -16,13 +16,13 @@ test("admin grading diagnostics expose the manual auto-grade control", () => {
   assert.match(source, /<AutoGradeButton \/>/);
 });
 
-test("capper package management targets the preferred storefront connection", () => {
+test("capper package management is directly visible and provider aware", () => {
   const source = readSource("src/app/(admin)/admin/cappers/[id]/page.tsx");
 
-  assert.match(
-    source,
-    /primaryConnection\s*\?\s*`\/admin\/store-setup\?id=\$\{primaryConnection\.id\}`/,
-  );
+  assert.match(source, /id="manual-package-manager"/);
+  assert.match(source, /Add Whop package/);
+  assert.match(source, /Add Winible package/);
+  assert.match(source, /selectedPackage\?\.affiliateProvider/);
   assert.doesNotMatch(source, /profile\?\.storeConnections\[0\]\.id/);
 });
 

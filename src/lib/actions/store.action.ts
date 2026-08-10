@@ -473,8 +473,40 @@ export async function adminSavePackageAction(
   });
   if (!capper) return { ok: false, error: "Capper not found." };
 
-  let storeConnectionId = d.storeConnectionId || null;
-  if (!storeConnectionId) {
+  const existingPackage = d.id
+    ? await prisma.package.findUnique({
+        where: { id: d.id },
+        select: { capperId: true, storeConnectionId: true },
+      })
+    : null;
+  if (d.id && !existingPackage) {
+    return { ok: false, error: "Package not found." };
+  }
+  if (existingPackage && existingPackage.capperId !== d.capperId) {
+    return {
+      ok: false,
+      error: "Package does not belong to the selected capper.",
+    };
+  }
+
+  let storeConnectionId =
+    d.storeConnectionId ?? existingPackage?.storeConnectionId ?? null;
+  if (storeConnectionId) {
+    const suppliedConnection = await prisma.storeConnection.findUnique({
+      where: { id: storeConnectionId },
+      select: { capperId: true, provider: true },
+    });
+    if (
+      !suppliedConnection ||
+      suppliedConnection.capperId !== d.capperId ||
+      suppliedConnection.provider !== d.affiliateProvider
+    ) {
+      return {
+        ok: false,
+        error: "Store connection does not match this capper and provider.",
+      };
+    }
+  } else if (!existingPackage) {
     const conn = await prisma.storeConnection.findUnique({
       where: {
         capperId_provider: {

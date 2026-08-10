@@ -322,6 +322,10 @@ export function BetSlip({
                     value={s.units}
                     onChange={(u) => setSelectionUnits(s.id, u)}
                   />
+                  <p className="text-muted-foreground text-xs">
+                    Choose a preset or type any 0.25-unit increment up to
+                    100,000,000.
+                  </p>
                   <details className="border-border mt-3 rounded-lg border bg-[color:var(--scl-ink-900)] p-3">
                     <summary className="cursor-pointer text-sm font-semibold">
                       Analysis for {s.selection} (optional)
@@ -425,6 +429,7 @@ export function BetSlip({
           />
           <StakeQuickChips value={parlayUnits} onChange={setParlayUnits} />
           <p className="text-muted-foreground text-xs">
+            Choose a preset or type any 0.25-unit increment up to 100,000,000.
             Stake lives on the parlay; legs are components.
           </p>
         </div>

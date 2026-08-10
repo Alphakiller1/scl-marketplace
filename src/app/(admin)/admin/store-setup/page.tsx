@@ -7,6 +7,7 @@ import { AdminPackageForm } from "@/components/scl/admin-package-form";
 import { AdminPackageRowControls } from "@/components/scl/admin-package-row-controls";
 import { AdminStoreActions } from "@/components/scl/admin-store-actions";
 import { AdminWhopSyncPanel } from "@/components/scl/admin-whop-sync-panel";
+import { LegacyPackageIntegrityPanel } from "@/components/scl/legacy-package-integrity-panel";
 import { ProviderBadge } from "@/components/scl/provider-badge";
 import { StorefrontCoveragePanel } from "@/components/scl/storefront-coverage-panel";
 import { StoreStatusChip } from "@/components/scl/store-status-chip";
@@ -20,6 +21,7 @@ import {
 } from "@/lib/storefront-ops";
 import {
   getCapperPackagesForReview,
+  getLegacyPackageIntegrityForAdmin,
   getStorefrontCoverage,
   getStorefrontReviewHistory,
   listStoreConnections,
@@ -43,16 +45,16 @@ type Search = {
 export default async function AdminStoreSetupPage({ searchParams }: Search) {
   const sp = await searchParams;
   const requiresAttentionFilter = sp.requiresAttention === "true";
-  const [rows, coverage] = await Promise.all([
-    listStoreConnections({
-      provider:
-        sp.provider === "WINIBLE" || sp.provider === "WHOP"
-          ? sp.provider
-          : "ALL",
-      requiresAttentionOnly: requiresAttentionFilter,
-    }),
-    getStorefrontCoverage(),
-  ]);
+  // Production intentionally runs one Prisma connection per isolate. These
+  // owner reports are database-heavy, so keep them sequential instead of
+  // making the admin page compete with itself for the single connection.
+  const rows = await listStoreConnections({
+    provider:
+      sp.provider === "WINIBLE" || sp.provider === "WHOP" ? sp.provider : "ALL",
+    requiresAttentionOnly: requiresAttentionFilter,
+  });
+  const coverage = await getStorefrontCoverage();
+  const legacyIntegrity = await getLegacyPackageIntegrityForAdmin();
   const selected =
     rows.find((r) => r.id === sp.id) ||
     rows.find((r) =>
@@ -95,6 +97,8 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
         title="Store Setup Requests"
         subtitle="Winible requires affiliate acceptance. Whop may email SCL in some cases — either way, import from the Whop affiliate dashboard (%, package links, checkout, storefront)."
       />
+
+      <LegacyPackageIntegrityPanel report={legacyIntegrity} />
 
       <div className="flex flex-wrap gap-2">
         {(

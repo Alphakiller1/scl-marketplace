@@ -17,7 +17,8 @@ write it.
   (`providerType` in the current schema), editable default storefront title/description/
   visibility, `isLegacy`.
 - **Play** — `sport`, `league`, `market`, `selection`, `oddsAmerican` (int), `units`
-  (Decimal, **0.25–5**), `outcome` (PENDING/WIN/LOSS/PUSH/VOID), `profitUnits`, `parlayId`.
+  (Decimal, **0.25–100,000,000** in 0.25 increments), `outcome`
+  (PENDING/WIN/LOSS/PUSH/VOID), `profitUnits`, `parlayId`.
   Pick-integrity fields (all optional/defaulted, see `docs/SCL_PICK_INTEGRITY.md`): `eventId`,
   `eventStartsAt`, `loggedPreGame`, `line`, `side`, `source` (PickSource), `sourceRef`,
   `oddsVerified`, `verificationTier` (AUTO_VERIFIED/VERIFIED/SELF_REPORTED), `status`
@@ -51,8 +52,8 @@ mock metrics when the database is empty or unavailable.
 ## Money & odds rules
 
 - American odds are integers (`-110`, `+150`). Payout math centralized in `src/lib/grading`.
-- Units are `Decimal(10,2)`, standardized to **0.25–5** (enforced in Zod; see
-  `src/lib/constants.ts`). This keeps cappers comparable.
+- Units are `Decimal(16,2)`, accepted from **0.25–100,000,000** (enforced in Zod; see
+  `src/lib/constants.ts`). Quick chips remain available for common stake sizes.
 - Parlays: lose if any leg loses; push/void legs drop from the parlay.
 
 ## Access rules

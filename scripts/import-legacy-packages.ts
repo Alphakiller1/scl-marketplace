@@ -5,6 +5,11 @@ import process from "node:process";
 import { PrismaClient } from "@prisma/client";
 
 import {
+  inspectLegacyPackageIntegrity,
+  loadLegacyPackageIntegrityRows,
+  reconcileLegacyPackageSource,
+} from "../src/lib/legacy-package-integrity";
+import {
   legacyPackageSlug,
   legacyPackagesImportSchema,
   type LegacyPackageInput,
@@ -144,7 +149,16 @@ async function main() {
   console.log(
     `\nDone. ${created} created, ${updated} updated, ${failures.length} failed.`,
   );
-  if (failures.length) process.exitCode = 1;
+  const rows = await loadLegacyPackageIntegrityRows(prisma);
+  const integrity = inspectLegacyPackageIntegrity(rows);
+  const reconciliation = reconcileLegacyPackageSource(parsed.data, rows);
+  const verificationErrors = [...integrity.errors, ...reconciliation.errors];
+  console.log(
+    `Verified ${reconciliation.matched}/${parsed.data.length} source offers against persisted package, provider, price, cadence, checkout, tracking, order, and publication fields.`,
+  );
+  for (const warning of integrity.warnings) console.warn(`  ! ${warning}`);
+  for (const error of verificationErrors) console.error(`  ✖ ${error}`);
+  if (failures.length || verificationErrors.length) process.exitCode = 1;
 }
 
 main()

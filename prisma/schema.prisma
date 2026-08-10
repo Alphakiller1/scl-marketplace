@@ -516,11 +516,11 @@ model Play {
   selectedOddsAmerican Int?
   /// True when the capper explicitly accepted a beyond-tolerance odds move (M5).
   oddsMovedAccepted    Boolean   @default(false)
-  units                Decimal   @db.Decimal(10, 2) // standardized range 0.25–5 (enforced in Zod, see src/lib/constants.ts)
+  units                Decimal   @db.Decimal(16, 2) // 0.25–100,000,000 (enforced in Zod, see src/lib/constants.ts)
   /// Odds API bookmaker key captured at submit (src/lib/books.ts). Null = pre-book era / unknown.
   book                 String?
   outcome              Outcome   @default(PENDING)
-  profitUnits          Decimal?  @db.Decimal(10, 2)
+  profitUnits          Decimal?  @db.Decimal(16, 2)
   notes                String?
   /// When false, analysis is hidden on public pick cards (dashboard always shows).
   notesPublic          Boolean   @default(true)
@@ -567,9 +567,9 @@ model Parlay {
   id                   String    @id @default(cuid())
   capperId             String
   combinedOddsAmerican Int?
-  units                Decimal   @db.Decimal(10, 2)
+  units                Decimal   @db.Decimal(16, 2)
   outcome              Outcome   @default(PENDING)
-  profitUnits          Decimal?  @db.Decimal(10, 2)
+  profitUnits          Decimal?  @db.Decimal(16, 2)
   createdAt            DateTime  @default(now())
   gradedAt             DateTime?
 
@@ -627,8 +627,8 @@ model GradingAudit {
   playId              String
   previousOutcome     Outcome
   newOutcome          Outcome
-  previousProfitUnits Decimal?      @db.Decimal(10, 2)
-  newProfitUnits      Decimal?      @db.Decimal(10, 2)
+  previousProfitUnits Decimal?      @db.Decimal(16, 2)
+  newProfitUnits      Decimal?      @db.Decimal(16, 2)
   source              GradingSource
   gradedById          String?
   reason              String?
@@ -645,8 +645,8 @@ model ParlayGradingAudit {
   parlayId            String
   previousOutcome     Outcome
   newOutcome          Outcome
-  previousProfitUnits Decimal?      @db.Decimal(10, 2)
-  newProfitUnits      Decimal?      @db.Decimal(10, 2)
+  previousProfitUnits Decimal?      @db.Decimal(16, 2)
+  newProfitUnits      Decimal?      @db.Decimal(16, 2)
   source              GradingSource
   gradedById          String?
   reason              String?
