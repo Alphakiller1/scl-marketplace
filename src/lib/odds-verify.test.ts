@@ -269,7 +269,7 @@ test("decidePickIntegrity: C1 hard-rejects a pick at/after start time", () => {
   assert.equal(d.accept, false);
 });
 
-test("decidePickIntegrity: C3 hard-rejects fabricated odds with the verify reason", () => {
+test("decidePickIntegrity: changed odds do not block a pre-game board pick", () => {
   const d = decidePickIntegrity({
     now: BEFORE,
     eventStartsAt: START,
@@ -277,11 +277,15 @@ test("decidePickIntegrity: C3 hard-rejects fabricated odds with the verify reaso
     verify: REJECTED,
     source: "MANUAL",
   });
-  assert.equal(d.accept, false);
-  if (!d.accept) assert.equal(d.reason, REJECTED.reason);
+  assert.equal(d.accept, true);
+  if (d.accept) {
+    assert.equal(d.tier, "SELF_REPORTED");
+    assert.equal(d.loggedPreGame, true);
+    assert.equal(d.oddsVerified, false);
+  }
 });
 
-test("decidePickIntegrity: pre-game but unverifiable market is rejected", () => {
+test("decidePickIntegrity: provider failure does not block a pre-game board pick", () => {
   const d = decidePickIntegrity({
     now: BEFORE,
     eventStartsAt: START,
@@ -289,8 +293,28 @@ test("decidePickIntegrity: pre-game but unverifiable market is rejected", () => 
     verify: UNVERIFIABLE,
     source: "MANUAL",
   });
-  assert.equal(d.accept, false);
-  if (!d.accept) assert.equal(d.reason, UNVERIFIABLE.reason);
+  assert.equal(d.accept, true);
+  if (d.accept) {
+    assert.equal(d.tier, "SELF_REPORTED");
+    assert.equal(d.loggedPreGame, true);
+    assert.equal(d.oddsVerified, false);
+  }
+});
+
+test("decidePickIntegrity: skipped odds check does not block a pre-game board pick", () => {
+  const d = decidePickIntegrity({
+    now: BEFORE,
+    eventStartsAt: START,
+    eventBound: true,
+    verify: null,
+    source: "MANUAL",
+  });
+  assert.equal(d.accept, true);
+  if (d.accept) {
+    assert.equal(d.tier, "SELF_REPORTED");
+    assert.equal(d.loggedPreGame, true);
+    assert.equal(d.oddsVerified, false);
+  }
 });
 
 test("decidePickIntegrity: free-text pick without an event is rejected", () => {

@@ -7,10 +7,8 @@ import { BetSlip } from "@/components/scl/bet-slip";
 import { GamePicker } from "@/components/scl/game-picker";
 import { MobileSlipDock } from "@/components/scl/mobile-slip-dock";
 import { ReceiptStack } from "@/components/scl/receipt-stack";
-import { SectionHeader } from "@/components/scl/section";
 import { SlipStoreProvider, useSlipStore } from "@/components/scl/slip-store";
 import { VerificationReceipt } from "@/components/scl/verification-receipt";
-import { Button } from "@/components/ui/button";
 import { createParlay } from "@/lib/actions/parlay.action";
 import {
   getPickPackageOptions,
@@ -24,8 +22,6 @@ import {
   combineDecimalOdds,
   decimalToAmerican,
 } from "@/lib/odds";
-import { moveKey } from "@/lib/odds-movement";
-import type { AcceptedMove, MovedLinePayload } from "@/lib/odds-movement";
 import { toSlipLeg, type SlipMode } from "@/lib/slip";
 import { useIsLg } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
@@ -41,18 +37,6 @@ export function UnifiedPickEntry({ initialMode }: { initialMode: SlipMode }) {
       <UnifiedPickEntryInner />
     </SlipStoreProvider>
   );
-}
-
-function selectionMoveKey(
-  s: ReturnType<typeof useSlipStore>["selections"][number],
-) {
-  return moveKey({
-    eventId: s.eventId,
-    market: s.market,
-    side: s.side,
-    line: s.line,
-    player: s.player,
-  });
 }
 
 function selectionToPlayInput(
@@ -82,22 +66,10 @@ function selectionToPlayInput(
 }
 
 function UnifiedPickEntryInner() {
-  const {
-    mode,
-    selections,
-    parlayUnits,
-    selectedKeys,
-    addPick,
-    clearSlip,
-    removeSelection,
-  } = useSlipStore();
+  const { mode, selections, parlayUnits, selectedKeys, addPick, clearSlip } =
+    useSlipStore();
   const isLg = useIsLg();
   const [receipt, setReceipt] = useState<SubmissionReceipt | null>(null);
-  const [movedLines, setMovedLines] = useState<MovedLinePayload[] | null>(null);
-  const [unavailableLines, setUnavailableLines] = useState<
-    MovedLinePayload[] | null
-  >(null);
-  const [acceptedSoFar, setAcceptedSoFar] = useState<AcceptedMove[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [packageOptions, setPackageOptions] = useState<PickPackageOption[]>([]);
   const [selectedPackageIds, setSelectedPackageIds] = useState<string[]>([]);
@@ -142,52 +114,15 @@ function UnifiedPickEntryInner() {
     return null;
   }, [mode, selections]);
 
-  function applyPromptState(opts: {
-    needsConfirm?: MovedLinePayload[];
-    unavailable?: MovedLinePayload[];
-  }) {
-    const confirm = opts.needsConfirm ?? [];
-    const unavail = opts.unavailable ?? [];
-    // Merge into one prompt list when both present (bulk).
-    if (confirm.length && unavail.length) {
-      setMovedLines([...confirm, ...unavail]);
-      setUnavailableLines(null);
-      return;
-    }
-    if (confirm.length) {
-      setUnavailableLines(null);
-      setMovedLines(confirm);
-      return;
-    }
-    if (unavail.length) {
-      setMovedLines(null);
-      setUnavailableLines(unavail);
-    }
-  }
-
   async function handleBulkSuccess(bulk: BulkSinglesReceipt) {
-    setMovedLines(null);
-    setUnavailableLines(null);
-    setAcceptedSoFar([]);
-    const written = new Set(bulk.writtenMoveKeys);
-    const failedKeys = new Set(
-      bulk.failed.map((f) => f.moveKey).filter((k): k is string => Boolean(k)),
-    );
-    for (const s of selections) {
-      const key = selectionMoveKey(s);
-      if (written.has(key) || failedKeys.has(key)) removeSelection(s.id);
-    }
-    // Suspended stay in the slip; otherwise clear leftover rows.
-    if (bulk.suspendedCount === 0) {
-      clearSlip();
-    }
-    if (bulk.suspendedCount > 0 || bulk.failedCount > 0) {
+    clearSlip();
+    if (bulk.failedCount > 0) {
       toast.message(bulk.summaryLine);
     }
     setReceipt(bulk);
   }
 
-  async function submitWithMoves(acceptedMoves?: AcceptedMove[]) {
+  async function submitSelections() {
     setSubmitting(true);
     try {
       if (mode === "singles") {
@@ -201,25 +136,13 @@ function UnifiedPickEntryInner() {
               selections[0]!.notesPublic,
               selectedPackageIds,
             ),
-            acceptedMoves,
           );
           if (res.ok) {
-            setMovedLines(null);
-            setUnavailableLines(null);
-            setAcceptedSoFar([]);
             clearSlip();
             setReceipt(res.receipt);
             return;
           }
-          if ("needsConfirm" in res && res.needsConfirm) {
-            applyPromptState({ needsConfirm: res.needsConfirm });
-            return;
-          }
-          if ("unavailable" in res && res.unavailable) {
-            applyPromptState({ unavailable: res.unavailable });
-            return;
-          }
-          if ("error" in res) toast.error(res.error);
+          toast.error(res.error);
           return;
         }
 
@@ -227,166 +150,38 @@ function UnifiedPickEntryInner() {
           selections.map((s) =>
             selectionToPlayInput(s, s.notes, s.notesPublic, selectedPackageIds),
           ),
-          acceptedMoves,
         );
         if (res.ok) {
           await handleBulkSuccess(res.receipt);
           return;
         }
-        if ("needsConfirm" in res && res.needsConfirm) {
-          applyPromptState({
-            needsConfirm: res.needsConfirm,
-            unavailable: res.unavailable,
-          });
-          return;
-        }
-        if ("unavailable" in res && res.unavailable) {
-          applyPromptState({ unavailable: res.unavailable });
-          return;
-        }
-        if ("error" in res) toast.error(res.error);
+        toast.error(res.error);
         return;
       }
 
       // Parlay — all-or-nothing
       if (selections.length < 2) return;
-      const res = await createParlay(
-        {
-          units: parlayUnits,
-          packageIds: selectedPackageIds,
-          legs: selections.map((s) => toSlipLeg(s)),
-        },
-        acceptedMoves,
-      );
+      const res = await createParlay({
+        units: parlayUnits,
+        packageIds: selectedPackageIds,
+        legs: selections.map((s) => toSlipLeg(s)),
+      });
       if (res.ok) {
-        setMovedLines(null);
-        setUnavailableLines(null);
-        setAcceptedSoFar([]);
         clearSlip();
         setReceipt(res.receipt);
         return;
       }
-      if ("needsConfirm" in res && res.needsConfirm) {
-        applyPromptState({ needsConfirm: res.needsConfirm });
-        return;
-      }
-      if ("unavailable" in res && res.unavailable) {
-        applyPromptState({ unavailable: res.unavailable });
-        return;
-      }
-      if ("error" in res) toast.error(res.error);
+      toast.error(res.error);
     } finally {
       setSubmitting(false);
     }
   }
 
   async function onSubmit() {
-    setAcceptedSoFar([]);
-    await submitWithMoves();
+    await submitSelections();
   }
 
-  async function onAcceptMoved(lines: MovedLinePayload[]) {
-    const incoming: AcceptedMove[] = lines
-      .filter((l) => l.updatedOddsAmerican != null && l.class === "changed")
-      .map((l) => ({
-        moveKey: l.moveKey,
-        selectedOddsAmerican: l.selectedOddsAmerican,
-        acceptedOddsAmerican: l.updatedOddsAmerican as number,
-      }));
-    const merged = [
-      ...acceptedSoFar.filter(
-        (a) => !incoming.some((b) => b.moveKey === a.moveKey),
-      ),
-      ...incoming,
-    ];
-    setAcceptedSoFar(merged);
-    await submitWithMoves(merged);
-  }
-
-  async function onRemoveMovedLeg(line: MovedLinePayload) {
-    const match = selections.find((s) => selectionMoveKey(s) === line.moveKey);
-    if (match) removeSelection(match.id);
-    setMovedLines((prev) =>
-      prev ? prev.filter((l) => l.moveKey !== line.moveKey) : null,
-    );
-    setUnavailableLines((prev) =>
-      prev ? prev.filter((l) => l.moveKey !== line.moveKey) : null,
-    );
-    // After remove, resubmit remaining with any accepts already collected.
-    // Defer so removeSelection state settles via next click path — call submit
-    // with remaining selections from store after a microtask is fragile;
-    // instead submit using filtered list computed here.
-    const remaining = selections.filter(
-      (s) => selectionMoveKey(s) !== line.moveKey,
-    );
-    if (remaining.length === 0) {
-      setAcceptedSoFar([]);
-      setMovedLines(null);
-      setUnavailableLines(null);
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      if (mode === "singles") {
-        if (remaining.length === 1) {
-          const res = await createPlay(
-            selectionToPlayInput(
-              remaining[0]!,
-              remaining[0]!.notes,
-              remaining[0]!.notesPublic,
-              selectedPackageIds,
-            ),
-            acceptedSoFar,
-          );
-          if (res.ok) {
-            clearSlip();
-            setMovedLines(null);
-            setUnavailableLines(null);
-            setAcceptedSoFar([]);
-            setReceipt(res.receipt);
-            return;
-          }
-          if ("needsConfirm" in res && res.needsConfirm) {
-            applyPromptState({ needsConfirm: res.needsConfirm });
-            return;
-          }
-          if ("unavailable" in res && res.unavailable) {
-            applyPromptState({ unavailable: res.unavailable });
-            return;
-          }
-          if ("error" in res) toast.error(res.error);
-          return;
-        }
-        const res = await createPlays(
-          remaining.map((s) =>
-            selectionToPlayInput(s, s.notes, s.notesPublic, selectedPackageIds),
-          ),
-          acceptedSoFar,
-        );
-        if (res.ok) {
-          await handleBulkSuccess(res.receipt);
-          return;
-        }
-        if ("needsConfirm" in res && res.needsConfirm) {
-          applyPromptState({
-            needsConfirm: res.needsConfirm,
-            unavailable: res.unavailable,
-          });
-          return;
-        }
-        if ("unavailable" in res && res.unavailable) {
-          applyPromptState({ unavailable: res.unavailable });
-          return;
-        }
-        if ("error" in res) toast.error(res.error);
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  if (receipt && (receipt.kind !== "bulk" || receipt.suspendedCount === 0)) {
+  if (receipt) {
     return (
       <div className="mx-auto max-w-md space-y-4">
         <div className="space-y-1">
@@ -422,15 +217,6 @@ function UnifiedPickEntryInner() {
     <BetSlip
       onSubmit={onSubmit}
       submitting={submitting}
-      movedLines={movedLines}
-      unavailableLines={unavailableLines}
-      onAcceptMoved={onAcceptMoved}
-      onRemoveMovedLeg={onRemoveMovedLeg}
-      onCancelMoved={() => {
-        setMovedLines(null);
-        setAcceptedSoFar([]);
-      }}
-      onDismissUnavailable={() => setUnavailableLines(null)}
       packageOptions={packageOptions}
       selectedPackageIds={selectedPackageIds}
       onPackageSelectionChange={setSelectedPackageIds}
@@ -438,8 +224,6 @@ function UnifiedPickEntryInner() {
   );
 
   const hasSelections = selections.length > 0;
-  const partialBulk =
-    receipt?.kind === "bulk" && receipt.suspendedCount > 0 ? receipt : null;
 
   return (
     <div
@@ -447,24 +231,6 @@ function UnifiedPickEntryInner() {
       tabIndex={-1}
       className="mx-auto max-w-xl scroll-mt-24 space-y-5 outline-none lg:max-w-5xl"
     >
-      {partialBulk ? (
-        <div className="mx-auto max-w-md space-y-3">
-          <SectionHeader
-            title="Plays Logged"
-            subtitle="Partial submit — suspended lines stayed in your slip"
-          />
-          <ReceiptStack receipt={partialBulk} />
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={makeAnotherSelection}
-          >
-            Back to slip
-          </Button>
-        </div>
-      ) : null}
-
       <header>
         <p className="scl-eyebrow mb-1 text-[color:var(--scl-muted-data)]">
           Board Record Entry

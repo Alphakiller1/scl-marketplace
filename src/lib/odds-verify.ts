@@ -430,9 +430,7 @@ export type PickSourceKind =
 
 /** Public trust tier — mirrors the Prisma `VerificationTier` enum. */
 export type VerificationTierValue =
-  | "AUTO_VERIFIED"
-  | "VERIFIED"
-  | "SELF_REPORTED";
+  "AUTO_VERIFIED" | "VERIFIED" | "SELF_REPORTED";
 
 export type PickIntegrityInput = {
   now: Date;
@@ -456,15 +454,16 @@ export type PickIntegrityDecision =
 
 /**
  * The single trust gate for a newly submitted pick. Pure — the server action supplies `now`, the
- * event start, and the fetched verify result. Historical SELF_REPORTED rows remain readable, but
- * every new submission must clear all three checks:
+ * event start, and an optional verify result. Pick availability must not depend on an external
+ * odds service, so only the first two checks gate submission:
  *
  *   C1 — a known start time that has already passed (no post-game logging, ever).
  *   C2 — the pick is bound to a known event and structured selection.
- *   C3 — the submitted odds can be authenticated against the covered market.
+ *   C3 — when available, the submitted odds can be authenticated and labeled VERIFIED.
  *
- * VERIFIED requires the full strict path: event-bound + logged pre-game + odds verified. The same
- * bar reached through an authorized connector is AUTO_VERIFIED.
+ * Missing, moved, unavailable, or rejected odds never block a pre-game board selection; those
+ * records are honestly labeled SELF_REPORTED. The same verified bar reached through an authorized
+ * connector is AUTO_VERIFIED.
  */
 export function decidePickIntegrity(
   input: PickIntegrityInput,
@@ -481,9 +480,6 @@ export function decidePickIntegrity(
   const loggedPreGame =
     eventStartsAt !== null && now.getTime() < eventStartsAt.getTime();
 
-  if (verify?.status === "rejected") {
-    return { accept: false, reason: verify.reason };
-  }
   if (!eventBound || !loggedPreGame) {
     return {
       accept: false,
@@ -492,10 +488,10 @@ export function decidePickIntegrity(
   }
   if (!verify || verify.status !== "verified") {
     return {
-      accept: false,
-      reason:
-        verify?.reason ??
-        "SCL could not authenticate these odds. Refresh the board and try again.",
+      accept: true,
+      loggedPreGame,
+      oddsVerified: false,
+      tier: "SELF_REPORTED",
     };
   }
 
