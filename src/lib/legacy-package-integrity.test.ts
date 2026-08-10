@@ -103,7 +103,20 @@ test("the production gate catches a replaced Whop identity and Bankofdennis regr
     ),
   );
   assert.ok(report.errors.some((error) => error.includes("expected 12500")));
-  assert.ok(report.errors.some((error) => error.includes("expected ONE_TIME")));
+  assert.ok(
+    report.errors.some((error) => error.includes("expected ONE_TIME or YEAR")),
+  );
+});
+
+test("the production gate accepts $125 as a yearly full-year package", () => {
+  const rows = databaseRows(sourcePackages());
+  const bankIndex = LEGACY_WHOP_EXPECTATIONS.length;
+  rows[bankIndex] = {
+    ...rows[bankIndex]!,
+    billingPeriod: "YEAR",
+  };
+
+  assert.deepEqual(inspectLegacyPackageIntegrity(rows).errors, []);
 });
 
 test("the production gate catches Whop URL drift even when tracking matches it", () => {
