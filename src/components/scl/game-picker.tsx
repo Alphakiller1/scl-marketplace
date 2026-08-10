@@ -22,8 +22,7 @@ import {
   railBooks,
   ODDS_BOARD_SPORTS,
 } from "@/lib/game-picker";
-import { dedupeOddsEvents } from "@/lib/odds-board";
-import { settleProgressively } from "@/lib/progressive-settlement";
+import { loadOddsSlate } from "@/lib/odds-slate-client";
 import { filterBySlateDay, type SlateDay } from "@/lib/slate";
 import { getTeamIdentity } from "@/lib/teams";
 import { cn } from "@/lib/utils";
@@ -32,14 +31,15 @@ import type { OddsEvent, OddsSelection } from "@/lib/odds-board";
 export type { OddsPick };
 
 type EventDetailData =
-  | { status: "ready"; selections: OddsSelection[] }
-  | { status: "error" };
+  { status: "ready"; selections: OddsSelection[] } | { status: "error" };
 
 type SlateState = {
   events: OddsEvent[];
   configured: boolean;
   failed?: boolean;
   books: string[];
+  warning?: string;
+  stale?: boolean;
 };
 
 /**
@@ -84,75 +84,35 @@ export function GamePicker({
 
   useEffect(() => {
     let cancelled = false;
-    let failureCount = 0;
-    let configured = false;
-    let booksFromApi: string[] = [];
-    const accumulatedEvents: OddsEvent[] = [];
-
-    // Publish each sport as soon as it resolves. Soccer fans out across several
-    // leagues and can be materially slower than the domestic boards; waiting on
-    // Promise.all kept every already-priced game behind that slowest request.
-    const requests = ODDS_BOARD_SPORTS.map(async (sport) => {
-      let result: SlateState;
-      try {
-        const res = await fetch(
-          `/api/odds?sport=${encodeURIComponent(sport.key)}`,
-          { signal: AbortSignal.timeout(ODDS_BOARD_REQUEST_TIMEOUT_MS) },
-        );
-        if (!res.ok) {
-          result = {
+    loadOddsSlate()
+      .then((data) => {
+        if (cancelled) return;
+        setSlate({
+          events: data.events,
+          configured: data.configured,
+          books: data.books,
+          warning: data.meta?.warning,
+          stale: data.meta?.stale,
+          failed:
+            data.events.length === 0 && data.meta?.warning === "circuit_break",
+        });
+      })
+      .catch((error: unknown) => {
+        console.warn("[odds-board] slate request failed", {
+          reason: error instanceof Error ? error.name : "unknown",
+        });
+        if (!cancelled) {
+          setSlate({
             events: [],
             configured: true,
             failed: true,
             books: [],
-          };
-        } else {
-          const data = (await res.json()) as {
-            events?: OddsEvent[];
-            configured?: boolean;
-            books?: string[];
-          };
-          result = {
-            events: Array.isArray(data.events) ? data.events : [],
-            configured: Boolean(data.configured),
-            books: Array.isArray(data.books) ? data.books : [],
-          };
+          });
         }
-      } catch (error) {
-        console.warn("[odds-board] sport request failed", {
-          sport: sport.key,
-          reason: error instanceof Error ? error.name : "unknown",
-        });
-        result = {
-          events: [],
-          configured: true,
-          failed: true,
-          books: [],
-        };
-      }
-
-      return result;
-    });
-
-    void settleProgressively(requests, (result, progress) => {
-      if (cancelled) return;
-      if (result.failed) failureCount += 1;
-      configured ||= result.configured;
-      if (booksFromApi.length === 0 && result.books.length > 0) {
-        booksFromApi = result.books;
-      }
-      accumulatedEvents.push(...result.events);
-      const events = dedupeOddsEvents(accumulatedEvents);
-
-      setSlate({
-        events,
-        configured,
-        failed:
-          progress.allComplete && failureCount === ODDS_BOARD_SPORTS.length,
-        books: booksFromApi,
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
-      setLoading(!progress.allComplete && events.length === 0);
-    });
     return () => {
       cancelled = true;
     };
@@ -391,6 +351,16 @@ export function GamePicker({
           </div>
         </>
       )}
+
+      {slate?.stale && events.length > 0 ? (
+        <p
+          className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs text-[color:var(--scl-text)]"
+          role="status"
+        >
+          Showing the last available slate. Every price is checked live again
+          before your pick is recorded.
+        </p>
+      ) : null}
 
       {openEvent ? (
         <ul className="space-y-2 lg:max-h-[40rem] lg:overflow-y-auto lg:pr-1">

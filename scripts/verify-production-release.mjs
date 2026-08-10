@@ -50,6 +50,10 @@ export function verifyDeepHealth(health, expectedRelease) {
     "deep health found no public packages",
   );
   invariant(
+    Number(health?.counts?.selectableOddsBoardEvents) > 0,
+    "Log a Pick has no selectable Today/Tomorrow events",
+  );
+  invariant(
     Array.isArray(health?.legacy?.errors) && health.legacy.errors.length === 0,
     `legacy package errors: ${(health?.legacy?.errors ?? ["missing report"]).join("; ")}`,
   );
