@@ -23,8 +23,10 @@ type OddsBoardSnapshot = {
 export type OddsBoardSource =
   | "provider"
   | "runtime_cache"
+  | "stale_cache_only"
   | "stale_circuit_break"
   | "stale_provider_failure"
+  | "cache_empty"
   | "circuit_break_empty"
   | "provider_empty";
 
@@ -86,6 +88,30 @@ async function readSnapshot(sport: string): Promise<OddsBoardSnapshot | null> {
     });
     return null;
   }
+}
+
+/** Read the shared board without spending provider credits. Used by health probes. */
+export async function loadCachedOddsBoard(
+  sport: string,
+): Promise<LoadedOddsBoard> {
+  const normalized = sport.toUpperCase();
+  const cached = await readSnapshot(normalized);
+  if (!cached) {
+    return {
+      events: [],
+      source: "cache_empty",
+      savedAt: null,
+      stale: false,
+    };
+  }
+
+  const stale = Date.now() - cached.savedAt > ODDS_BOARD_FRESH_SECONDS * 1_000;
+  return {
+    events: cached.events,
+    source: stale ? "stale_cache_only" : "runtime_cache",
+    savedAt: cached.savedAt,
+    stale,
+  };
 }
 
 async function writeSnapshot(

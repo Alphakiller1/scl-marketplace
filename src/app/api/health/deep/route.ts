@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { withTransientDatabaseRetry } from "@/lib/database-retry";
 import { ODDS_BOARD_SPORTS, preGameEvents } from "@/lib/game-picker";
-import { loadOddsBoard } from "@/lib/odds-board-cache";
+import { loadCachedOddsBoard } from "@/lib/odds-board-cache";
 import { probeOddsProvider } from "@/lib/odds-provider-health";
 import { prisma } from "@/lib/prisma";
 import { databasePoolConfiguration } from "@/lib/prisma-url";
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
       Promise.all(
         ODDS_BOARD_SPORTS.map(async (sport) => ({
           sport: sport.key,
-          board: await loadOddsBoard(sport.key),
+          board: await loadCachedOddsBoard(sport.key),
         })),
       ),
     ]);

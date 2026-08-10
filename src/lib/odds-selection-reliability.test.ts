@@ -67,6 +67,21 @@ test("server cache is shared across users and retains last-good boards", () => {
   assert.doesNotMatch(route, /fetchUpcomingOdds\(sport, \{ books \}\)/);
 });
 
+test("deployment health reads cached boards without spending odds credits", () => {
+  const health = fs.readFileSync(
+    path.join(root, "src/app/api/health/deep/route.ts"),
+    "utf8",
+  );
+  const cache = fs.readFileSync(
+    path.join(root, "src/lib/odds-board-cache.ts"),
+    "utf8",
+  );
+  assert.match(health, /loadCachedOddsBoard\(sport\.key\)/);
+  assert.doesNotMatch(health, /loadOddsBoard\(sport\.key\)/);
+  assert.match(cache, /source: "cache_empty"/);
+  assert.match(cache, /source: stale \? "stale_cache_only"/);
+});
+
 test("event snapshots use one provider scope across capper profiles", () => {
   const source = fs.readFileSync(
     path.join(root, "src/lib/odds-api.ts"),
