@@ -240,8 +240,8 @@ function UnifiedPickEntryInner() {
             Log A Pick
           </h1>
           <p className="text-muted-foreground mt-1 max-w-2xl text-sm leading-relaxed">
-            Choose a source book, open a matchup, and capture a pre-game price
-            into your public record.
+            Open a matchup and capture the best available pre-game price into
+            your public record.
           </p>
         </div>
       </header>

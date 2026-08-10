@@ -91,3 +91,29 @@ test("board provider refresh is measured in hours, not per pick", () => {
   );
   assert.match(source, /export const BOARD_TTL = 4 \* 60 \* 60/);
 });
+
+test("today's pick board exposes only best-available pricing", () => {
+  const source = fs.readFileSync(
+    path.join(root, "src/components/scl/game-picker.tsx"),
+    "utf8",
+  );
+  assert.match(source, /Best available · all books/);
+  assert.doesNotMatch(source, /function BookRail/);
+  assert.doesNotMatch(source, /setBookChoice/);
+});
+
+test("event details retain the last populated prop and period board", () => {
+  const cache = fs.readFileSync(
+    path.join(root, "src/lib/odds-event-board-cache.ts"),
+    "utf8",
+  );
+  const route = fs.readFileSync(
+    path.join(root, "src/app/api/odds/event/route.ts"),
+    "utf8",
+  );
+  assert.match(cache, /source: "stale_circuit_break"/);
+  assert.match(cache, /source: "stale_provider_failure"/);
+  assert.match(cache, /selections: cached\.selections/);
+  assert.match(route, /loadEventBoard\(sport, eventId\)/);
+  assert.match(route, /"Cache-Control": "private, no-store"/);
+});

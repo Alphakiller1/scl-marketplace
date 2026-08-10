@@ -15,16 +15,10 @@ test("shared compact controls retain 40px mobile touch targets", () => {
   const stakeChipsSource = readSource(
     "src/components/scl/stake-quick-chips.tsx",
   );
-  const gamePickerSource = readSource("src/components/scl/game-picker.tsx");
-
   assert.match(buttonSource, /sm: "h-10[\s\S]*?lg:h-9/);
   assert.match(buttonSource, /"icon-sm":[\s\S]*?size-10[\s\S]*?lg:size-9/);
   assert.match(sportPillsSource, /flex h-11 shrink-0 items-center/);
   assert.match(stakeChipsSource, /min-h-10 min-w-10/);
-  assert.match(
-    gamePickerSource,
-    /flex h-11 shrink-0 items-center justify-center/,
-  );
 });
 
 test("public profile and home filters avoid undersized mobile actions", () => {

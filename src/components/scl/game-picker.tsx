@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ChevronDown, LayoutGrid, Lock, Search } from "lucide-react";
 import { toast } from "sonner";
 
@@ -10,16 +10,13 @@ import { EventDetail, type OddsPick } from "@/components/scl/odds-assist";
 import { LeagueMark } from "@/components/scl/league-mark";
 import { SkeletonCard } from "@/components/scl/states";
 import { TeamMark } from "@/components/scl/team-mark";
-import { BookMark } from "@/components/scl/book-mark";
 import { bookShort } from "@/lib/books";
 import {
   activeRailBook,
-  booksOnBoard,
   categoryCounts,
   filterGamePickerEvents,
   ODDS_BOARD_REQUEST_TIMEOUT_MS,
   preGameEvents,
-  railBooks,
   ODDS_BOARD_SPORTS,
 } from "@/lib/game-picker";
 import { loadOddsSlate } from "@/lib/odds-slate-client";
@@ -31,36 +28,31 @@ import type { OddsEvent, OddsSelection } from "@/lib/odds-board";
 export type { OddsPick };
 
 type EventDetailData =
-  | { status: "ready"; selections: OddsSelection[] }
-  | { status: "error" };
+  { status: "ready"; selections: OddsSelection[] } | { status: "error" };
 
 type SlateState = {
   events: OddsEvent[];
   configured: boolean;
   failed?: boolean;
-  books: string[];
   warning?: string;
   stale?: boolean;
 };
 
 /**
  * Shared game browser for straight + parlay (M4 PR-3).
- * Multi-sport slate · day toggle · search · category pills with counts · book rail ·
+ * Multi-sport slate · day toggle · search · category pills with counts · best price ·
  * TeamMark rows · Request coverage · expands existing EventDetail.
  * Entry-page wiring lands in PR-4 — this ships the component + tests only.
  */
 export function GamePicker({
   onPick,
   selectedKeys,
-  books: booksProp,
   lockedBook,
   onRequestCoverage,
   className,
 }: {
   onPick: (pick: OddsPick) => void;
   selectedKeys?: Set<string>;
-  /** CapperProfile.books override; when omitted, read from `/api/odds` response. */
-  books?: readonly string[];
   /** A parlay's first leg locks every later leg to the same sportsbook. */
   lockedBook?: string | null;
   /** Interest only — must not create a pick. */
@@ -76,7 +68,6 @@ export function GamePicker({
   const [dayChoice, setDayChoice] = useState<SlateDay | null>(null);
   const [category, setCategory] = useState<string>("all");
   const [search, setSearch] = useState("");
-  const [bookChoice, setBookChoice] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Record<string, EventDetailData>>({});
   const [coverageSent, setCoverageSent] = useState(false);
@@ -91,7 +82,6 @@ export function GamePicker({
         setSlate({
           events: data.events,
           configured: data.configured,
-          books: data.books,
           warning: data.meta?.warning,
           stale: data.meta?.stale,
           failed:
@@ -107,7 +97,6 @@ export function GamePicker({
             events: [],
             configured: true,
             failed: true,
-            books: [],
           });
         }
       })
@@ -119,13 +108,10 @@ export function GamePicker({
     };
   }, []);
 
-  const profileBooks = useMemo(
-    () =>
-      railBooks(booksProp ?? slate?.books, booksOnBoard(slate?.events ?? [])),
-    [booksProp, slate?.books, slate?.events],
-  );
-
-  const activeBook = activeRailBook({ chosen: bookChoice, lockedBook });
+  // Temporary simplified board: singles always show the best attributed price
+  // across covered books. Parlays retain their first-leg book lock because a
+  // multi-book parlay cannot exist at a real sportsbook.
+  const activeBook = activeRailBook({ lockedBook });
 
   // Pre-game only, everywhere. Day defaults, counts, cards, and the focused
   // matchup all read from this list so a started game is never selectable.
@@ -255,14 +241,13 @@ export function GamePicker({
 
       <div className="space-y-1.5">
         <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
-          Source Book
+          Source Price
         </p>
-        <BookRail
-          books={profileBooks}
-          active={activeBook}
-          locked={lockedBook ?? null}
-          onChange={setBookChoice}
-        />
+        <p className="scl-data inline-flex min-h-8 items-center rounded-full border border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] px-3 text-[10px] font-semibold tracking-[0.08em] text-[color:var(--scl-blue-ink)] uppercase">
+          {activeBook
+            ? `Parlay locked · ${bookShort(activeBook)}`
+            : "Best available · all books"}
+        </p>
       </div>
 
       {openEvent ? (
@@ -440,80 +425,6 @@ export function GamePicker({
         </button>
       ) : null}
     </Card>
-  );
-}
-
-/** Book rail — radius 18px, mono abbr; active = BLUE (navigation); ≥44px tap. */
-function BookRail({
-  books,
-  active,
-  locked,
-  onChange,
-}: {
-  books: readonly string[];
-  active: string | null;
-  locked: string | null;
-  onChange: (book: string | null) => void;
-}) {
-  return (
-    <div
-      className="-mx-1 flex scroll-px-1 [scrollbar-width:none] gap-1.5 overflow-x-auto px-1 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-      role="group"
-      aria-label="Active sportsbook"
-    >
-      {/* Best available across every book — the default, and the only option
-          guaranteed to price every market on the board. */}
-      <button
-        type="button"
-        onClick={() => onChange(null)}
-        disabled={Boolean(locked)}
-        aria-pressed={active === null}
-        aria-label="Best available price across all sportsbooks"
-        title={
-          locked
-            ? `This parlay is locked to ${bookShort(locked)}. Remove all legs to change sportsbooks.`
-            : undefined
-        }
-        className={cn(
-          "scl-data flex h-8 shrink-0 items-center justify-center rounded-full border px-2.5 text-[10px] leading-none font-medium tracking-[0.08em] uppercase transition-colors",
-          active === null
-            ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
-            : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",
-          locked && "cursor-not-allowed opacity-40",
-        )}
-      >
-        Best
-      </button>
-      {books.map((key) => {
-        const isActive = active === key;
-        const disabled = Boolean(locked && key !== locked);
-        return (
-          <button
-            key={key}
-            type="button"
-            onClick={() => onChange(key)}
-            disabled={disabled}
-            aria-pressed={isActive}
-            aria-label={`Sportsbook ${bookShort(key)}`}
-            title={
-              disabled
-                ? `This parlay is locked to ${bookShort(locked!)}. Remove all legs to change sportsbooks.`
-                : undefined
-            }
-            className={cn(
-              "scl-data flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full border px-2.5 text-[10px] leading-none font-medium tracking-[0.08em] uppercase transition-colors",
-              isActive
-                ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
-                : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",
-              disabled && "cursor-not-allowed opacity-40",
-            )}
-          >
-            <BookMark bookKey={key} size={16} />
-            {bookShort(key)}
-          </button>
-        );
-      })}
-    </div>
   );
 }
 

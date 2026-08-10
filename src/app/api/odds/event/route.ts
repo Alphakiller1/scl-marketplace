@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { getCapperBooks } from "@/lib/capper-books";
-import { fetchEventBoard, oddsApiKey } from "@/lib/odds-api";
+import { oddsApiKey } from "@/lib/odds-api";
+import { loadEventBoard } from "@/lib/odds-event-board-cache";
 import { getCurrentUser } from "@/lib/session";
 
 /**
@@ -20,25 +20,37 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const sport = params.get("sport") ?? "";
   const eventId = params.get("eventId") ?? "";
-  const books = await getCapperBooks(user.id);
-  const selections =
-    sport && eventId ? await fetchEventBoard(sport, eventId, { books }) : [];
+  const board =
+    sport && eventId
+      ? await loadEventBoard(sport, eventId)
+      : {
+          selections: [],
+          source: "provider_empty" as const,
+          stale: false,
+        };
+  const { selections } = board;
   if (selections.length === 0) {
     console.warn("[odds-board] event detail empty", {
       sport,
       hasEventId: Boolean(eventId),
+      source: board.source,
       durationMs: Date.now() - startedAt,
     });
   } else {
     console.info("[odds-board] event detail ready", {
       sport,
       selectionCount: selections.length,
+      source: board.source,
+      stale: board.stale,
       durationMs: Date.now() - startedAt,
     });
   }
-  return NextResponse.json({
-    selections,
-    configured: Boolean(oddsApiKey()),
-    books,
-  });
+  return NextResponse.json(
+    {
+      selections,
+      configured: Boolean(oddsApiKey()),
+      meta: { source: board.source, stale: board.stale },
+    },
+    { headers: { "Cache-Control": "private, no-store" } },
+  );
 }
