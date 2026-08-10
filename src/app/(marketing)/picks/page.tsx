@@ -26,14 +26,12 @@ export default async function PicksPage({
   const params = await searchParams;
   const filters = parsePublicPicksLedgerFilters(params);
   const now = new Date();
-  // The feed query only needs the board after it returns, to attach public
-  // capper identity. Start both database reads immediately so navigating to
-  // Picks costs the slower query, not the sum of both queries.
-  const [board, gradingHealthy, feed] = await Promise.all([
-    getLeaderboardResult(),
-    getGradingHealth(),
-    getPublicRecentPickRows(24, filters, now),
-  ]);
+  // Production uses a one-connection Prisma pool per serverless isolate.
+  // Serial reads prevent independent queries from spending 15 seconds queued
+  // behind one another and failing with P2024 during a cold request.
+  const board = await getLeaderboardResult();
+  const gradingHealthy = await getGradingHealth();
+  const feed = await getPublicRecentPickRows(24, filters, now);
   const { cappers, unranked, failed: leaderboardFailed } = board;
   const picks = joinPlaysToPublicPicks(
     feed.plays,

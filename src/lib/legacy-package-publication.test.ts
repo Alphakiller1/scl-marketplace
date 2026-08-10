@@ -42,6 +42,24 @@ test("the package page serializes database-heavy evidence reads", () => {
   assert.doesNotMatch(pageSource, /Promise\.all\s*\(/);
 });
 
+test("one-connection production routes do not fan out competing database reads", () => {
+  const prismaUrlSource = source("src/lib/prisma-url.ts");
+  const picksPageSource = source("src/app/(marketing)/picks/page.tsx");
+  const gradingSource = source("src/lib/grading-health.ts");
+  const storeSource = source("src/lib/queries/store.ts");
+  const storeQuerySource = storeSource.slice(
+    storeSource.indexOf(
+      "export async function getLegacyPackageIntegrityForAdmin",
+    ),
+    storeSource.indexOf("export async function listConnectionsForCapper"),
+  );
+
+  assert.match(prismaUrlSource, /:\s*1;/);
+  assert.doesNotMatch(picksPageSource, /Promise\.all\s*\(/);
+  assert.doesNotMatch(gradingSource, /Promise\.all\s*\(/);
+  assert.doesNotMatch(storeQuerySource, /Promise\.all\s*\(/);
+});
+
 test("importing Prisma does not start competing schema patch queries", () => {
   const prismaSource = source("src/lib/prisma.ts");
 

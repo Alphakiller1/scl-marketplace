@@ -1,6 +1,7 @@
 import "server-only";
 
 import { UNIT_MIN } from "@/lib/constants";
+import { withTransientDatabaseRetry } from "@/lib/database-retry";
 import { prisma } from "@/lib/prisma";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 import {
@@ -59,20 +60,26 @@ export async function getGradingHealthReport(
     capper: await publicPendingCapperFilter(),
   };
 
-  const [pendingPast24h, cliffRisk] = await Promise.all([
-    prisma.play.count({
-      where: {
-        ...baseWhere,
-        eventStartsAt: { not: null, lt: past24h },
-      },
-    }),
-    prisma.play.count({
-      where: {
-        ...baseWhere,
-        eventStartsAt: { not: null, lt: cliffBefore },
-      },
-    }),
-  ]);
+  const pendingPast24h = await withTransientDatabaseRetry(
+    () =>
+      prisma.play.count({
+        where: {
+          ...baseWhere,
+          eventStartsAt: { not: null, lt: past24h },
+        },
+      }),
+    { label: "grading health pending count" },
+  );
+  const cliffRisk = await withTransientDatabaseRetry(
+    () =>
+      prisma.play.count({
+        where: {
+          ...baseWhere,
+          eventStartsAt: { not: null, lt: cliffBefore },
+        },
+      }),
+    { label: "grading health cliff count" },
+  );
 
   const status: GradingHealthStatus =
     pendingPast24h > 0 ? "UNHEALTHY" : "HEALTHY";

@@ -50,16 +50,14 @@ export async function countStoreConnectionsRequiringAttention() {
 /** Live owner-facing inventory and invariant report for every legacy offer. */
 export async function getLegacyPackageIntegrityForAdmin() {
   try {
-    const [rows, lifecycleEvents] = await Promise.all([
-      loadLegacyPackageIntegrityRows(prisma),
-      prisma.packageAuditEvent.findMany({
-        where: {
-          capper: { isLegacy: true },
-          action: { in: ["CREATED", "DELETED"] },
-        },
-        select: { action: true },
-      }),
-    ]);
+    const rows = await loadLegacyPackageIntegrityRows(prisma);
+    const lifecycleEvents = await prisma.packageAuditEvent.findMany({
+      where: {
+        capper: { isLegacy: true },
+        action: { in: ["CREATED", "DELETED"] },
+      },
+      select: { action: true },
+    });
     const report = inspectLegacyPackageIntegrity(rows);
     const lineage = inspectLegacyPackageLineage(rows.length, lifecycleEvents);
     return {
