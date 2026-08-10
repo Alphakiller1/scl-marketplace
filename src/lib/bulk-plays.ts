@@ -141,12 +141,12 @@ export function buildBulkSinglesReceipt(params: {
   const parts: string[] = [];
   if (failedCount === 0 && suspendedCount === 0) {
     parts.push(
-      `${submittedCount} pick${submittedCount === 1 ? "" : "s"} verified`,
+      `${submittedCount} pick${submittedCount === 1 ? "" : "s"} submitted`,
     );
   } else {
     parts.push(`${submittedCount} of ${params.attemptedCount} submitted`);
     if (failedCount > 0) {
-      parts.push(`${failedCount} couldn't be verified`);
+      parts.push(`${failedCount} couldn't be submitted`);
     }
     if (suspendedCount > 0) {
       parts.push(`${suspendedCount} suspended`);

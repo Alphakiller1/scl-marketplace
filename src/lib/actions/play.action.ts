@@ -8,21 +8,14 @@ import {
   shapeBulkSinglesOutcome,
   type BulkLinePrep,
 } from "@/lib/bulk-plays";
-import { outcomeDescriptionFor } from "@/lib/team-total-markets";
 import { isBookKey } from "@/lib/books";
-import { fetchLiveLine, verifyPick } from "@/lib/odds-api";
-import { moveKey, resolveCaptureOdds } from "@/lib/odds-movement";
-import type { AcceptedMove, MovedLinePayload } from "@/lib/odds-movement";
+import { moveKey } from "@/lib/odds-movement";
 import {
   capperDefaultPackageIds,
   resolvePackageAttribution,
   validatePackageAttribution,
 } from "@/lib/package-attribution";
-import {
-  decidePickIntegrity,
-  marketKeysForMarket,
-  type VerifyResult,
-} from "@/lib/odds-verify";
+import { decidePickIntegrity } from "@/lib/odds-verify";
 import { americanToDecimal } from "@/lib/odds";
 import { isExtremeAmericanOdds } from "@/lib/odds-board";
 import { prisma } from "@/lib/prisma";
@@ -68,24 +61,11 @@ async function playCreateData(data: ReadyPlayData) {
 
 export type PlayResult =
   | { ok: true; receipt: StraightReceipt }
-  | { ok: false; error: string }
-  | { ok: false; needsConfirm: MovedLinePayload[] }
-  | { ok: false; unavailable: MovedLinePayload[] };
+  | { ok: false; error: string };
 
 export type CreatePlaysResult =
-  | {
-      ok: true;
-      receipt: BulkSinglesReceipt;
-      /** Present when some lines were suspended after a partial write. */
-      unavailable?: MovedLinePayload[];
-    }
-  | { ok: false; error: string }
-  | {
-      ok: false;
-      needsConfirm: MovedLinePayload[];
-      unavailable?: MovedLinePayload[];
-    }
-  | { ok: false; unavailable: MovedLinePayload[] };
+  | { ok: true; receipt: BulkSinglesReceipt }
+  | { ok: false; error: string };
 
 type AccountGate = { ok: true; userId: string } | { ok: false; error: string };
 
@@ -136,20 +116,19 @@ type ReadyWrite = {
 };
 
 /**
- * Shared per-line verified + odds-guarded body (createPlay / createPlays).
+ * Shared per-line validation body (createPlay / createPlays).
+ *
+ * Submission deliberately does not call the odds provider or re-price the line.
+ * A board selection is captured exactly as the user selected it and recorded as
+ * SELF_REPORTED. This keeps pick logging available when odds move, a market is
+ * suspended, or the provider is unavailable.
  * Does not write — caller persists ReadyWrite rows.
  */
 async function preparePlayLine(
   input: PlayInput,
-  opts: {
-    books: readonly string[];
-    acceptedMoves?: AcceptedMove[];
-    now: Date;
-  },
+  opts: { now: Date },
 ): Promise<
   | { status: "ready"; ready: ReadyWrite }
-  | { status: "needs_confirm"; moved: MovedLinePayload }
-  | { status: "unavailable"; moved: MovedLinePayload }
   | {
       status: "error";
       error: string;
@@ -202,7 +181,6 @@ async function preparePlayLine(
       market: d.market,
     };
   }
-  const marketKeys = marketKeysForMarket(d.market);
   const key = moveKey({
     eventId: d.eventId,
     market: d.market,
@@ -212,69 +190,11 @@ async function preparePlayLine(
   });
   const captureBook = d.book && isBookKey(d.book) ? d.book : null;
 
-  const { event: liveEvent, liveAmerican } = await fetchLiveLine({
-    sclSport: d.sport,
-    eventId: d.eventId,
-    marketKeys,
-    side: d.side,
-    line: d.line,
-    // The provider's `description`: the player for a prop, the CLUB for a team
-    // total. Without it a team total matches whichever side's Over/Under of the
-    // same number comes first, which re-prices the pick against the opponent.
-    player: outcomeDescriptionFor(d),
-    book: captureBook,
-    books: opts.books,
-  });
-  if (!liveEvent) {
-    return {
-      status: "error",
-      error: "Odds unavailable for this event — try again in a moment.",
-      moveKey: key,
-      selection: d.selection,
-      market: d.market,
-    };
-  }
-
-  const capture = resolveCaptureOdds({
-    selectedAmerican: d.oddsAmerican,
-    liveAmerican,
-    acceptedMoves: opts.acceptedMoves,
-    moveKey: key,
-    eventId: d.eventId,
-    eventLabel: d.eventLabel ?? d.selection,
-    market: d.market,
-    selection: d.selection,
-    side: d.side,
-    sport: d.sport,
-    line: d.line,
-    player: d.player,
-    book: captureBook,
-    verifiedAt: opts.now,
-  });
-
-  if (capture.status === "unavailable") {
-    return { status: "unavailable", moved: capture.moved };
-  }
-  if (capture.status === "needs_confirm") {
-    return { status: "needs_confirm", moved: capture.moved };
-  }
-
-  const verify: VerifyResult = await verifyPick({
-    sclSport: d.sport,
-    eventId: d.eventId,
-    marketKeys,
-    side: d.side,
-    line: d.line,
-    player: d.player,
-    claimedAmerican: capture.oddsAmerican,
-    books: opts.books,
-  });
-
   const decision = decidePickIntegrity({
     now: opts.now,
     eventStartsAt,
     eventBound: true,
-    verify,
+    verify: null,
     source: "MANUAL",
   });
   if (!decision.accept) {
@@ -297,13 +217,13 @@ async function preparePlayLine(
         league: d.league ?? null,
         market: d.market,
         selection: d.selection,
-        oddsAmerican: capture.oddsAmerican,
-        selectedOddsAmerican: capture.selectedOddsAmerican,
-        oddsMovedAccepted: capture.oddsMovedAccepted,
+        oddsAmerican: d.oddsAmerican,
+        selectedOddsAmerican: d.oddsAmerican,
+        oddsMovedAccepted: false,
         units: d.units,
         notes: d.notes ?? null,
         notesPublic: d.notesPublic ?? true,
-        needsReview: isExtremeAmericanOdds(capture.selectedOddsAmerican),
+        needsReview: isExtremeAmericanOdds(d.oddsAmerican),
         eventId: d.eventId,
         eventLabel: d.eventLabel ?? null,
         eventStartsAt,
@@ -320,45 +240,30 @@ async function preparePlayLine(
         market: d.market,
         sport: d.sport,
         side: d.side,
-        oddsAmerican: capture.oddsAmerican,
+        oddsAmerican: d.oddsAmerican,
         loggedPreGame: decision.loggedPreGame,
         oddsVerified: decision.oddsVerified,
         tier: decision.tier,
         units: d.units,
-        toWinUnits: d.units * (americanToDecimal(capture.oddsAmerican) - 1),
-        moveNote: capture.moveNote,
+        toWinUnits: d.units * (americanToDecimal(d.oddsAmerican) - 1),
         book: captureBook,
       },
     },
   };
 }
 
-export async function createPlay(
-  input: PlayInput,
-  acceptedMoves?: AcceptedMove[],
-): Promise<PlayResult> {
+export async function createPlay(input: PlayInput): Promise<PlayResult> {
   const gate = await requireActiveCapper();
   if (!gate.ok) return gate;
 
   const profile = await prisma.capperProfile.findUnique({
     where: { userId: gate.userId },
-    select: { id: true, books: true },
+    select: { id: true },
   });
   if (!profile) return { ok: false, error: "No capper profile found." };
 
   const now = new Date();
-  const prep = await preparePlayLine(input, {
-    books: profile.books,
-    acceptedMoves,
-    now,
-  });
-
-  if (prep.status === "unavailable") {
-    return { ok: false, unavailable: [prep.moved] };
-  }
-  if (prep.status === "needs_confirm") {
-    return { ok: false, needsConfirm: [prep.moved] };
-  }
+  const prep = await preparePlayLine(input, { now });
   if (prep.status === "error") {
     return { ok: false, error: prep.error };
   }
@@ -398,13 +303,11 @@ export async function createPlay(
 }
 
 /**
- * Bulk singles submit (M5 PR-4). Each line is odds-guarded independently.
- * needsConfirm blocks the whole write (Cancel writes nothing). Unavailable does
- * not block clean lines — those write and suspended keys stay in the slip.
+ * Bulk singles submit. Every valid pre-game board selection writes without an
+ * odds-provider round trip. Invalid rows are surfaced on the bulk receipt.
  */
 export async function createPlays(
   inputs: PlayInput[],
-  acceptedMoves?: AcceptedMove[],
 ): Promise<CreatePlaysResult> {
   const gate = await requireActiveCapper();
   if (!gate.ok) return gate;
@@ -418,7 +321,7 @@ export async function createPlays(
 
   const profile = await prisma.capperProfile.findUnique({
     where: { userId: gate.userId },
-    select: { id: true, books: true },
+    select: { id: true },
   });
   if (!profile) return { ok: false, error: "No capper profile found." };
 
@@ -427,11 +330,7 @@ export async function createPlays(
   const readyWrites: ReadyWrite[] = [];
 
   for (const input of inputs) {
-    const prep = await preparePlayLine(input, {
-      books: profile.books,
-      acceptedMoves,
-      now,
-    });
+    const prep = await preparePlayLine(input, { now });
     if (prep.status === "ready") {
       readyWrites.push(prep.ready);
       preps.push({
@@ -443,10 +342,6 @@ export async function createPlays(
           capturedAt: now.toISOString(),
         },
       });
-    } else if (prep.status === "needs_confirm") {
-      preps.push({ status: "needs_confirm", moved: prep.moved });
-    } else if (prep.status === "unavailable") {
-      preps.push({ status: "unavailable", moved: prep.moved });
     } else {
       preps.push({
         status: "error",
@@ -460,20 +355,14 @@ export async function createPlays(
 
   const shaped = shapeBulkSinglesOutcome(preps);
 
-  if (shaped.phase === "error") {
-    return { ok: false, error: shaped.error };
-  }
-  if (shaped.phase === "needs_confirm") {
+  if (shaped.phase !== "write") {
     return {
       ok: false,
-      needsConfirm: shaped.needsConfirm,
-      unavailable: shaped.unavailable.length ? shaped.unavailable : undefined,
+      error:
+        shaped.phase === "error"
+          ? shaped.error
+          : "Unable to prepare these picks. Refresh the board and try again.",
     };
-  }
-  if (shaped.phase === "unavailable_only") {
-    // Nothing to write — still return unavailable for the slip prompt path.
-    // Failed lines (if any) are not written either; client keeps them via no written keys.
-    return { ok: false, unavailable: shaped.unavailable };
   }
 
   const requestedPackageIds = [
@@ -499,7 +388,7 @@ export async function createPlays(
     ? await capperDefaultPackageIds(profile.id)
     : [];
 
-  // Write every ready line independently (only shaped.ready — never stale/needsConfirm).
+  // Write every valid pre-game line independently.
   const readyByKey = new Map(readyWrites.map((r) => [r.moveKey, r]));
   const writtenReceipts: StraightReceipt[] = [];
   const writtenMoveKeys: string[] = [];
@@ -530,24 +419,12 @@ export async function createPlays(
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/picks");
 
-  const suspended = shaped.unavailable.map((u) => ({
-    kind: "suspended" as const,
-    selection: u.selection,
-    reason: "line unavailable or suspended",
-    moveKey: u.moveKey,
-    market: u.market,
-  }));
   const receipt = buildBulkSinglesReceipt({
     picks: writtenReceipts,
     attemptedCount: inputs.length,
     writtenMoveKeys,
-    suspended,
     failed: shaped.failed,
   });
 
-  return {
-    ok: true,
-    receipt,
-    unavailable: shaped.unavailable.length ? shaped.unavailable : undefined,
-  };
+  return { ok: true, receipt };
 }

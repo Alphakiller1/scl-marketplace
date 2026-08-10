@@ -5,7 +5,6 @@ import { X } from "lucide-react";
 import { BettingTitle } from "@/components/scl/betting-title";
 import { BookMark } from "@/components/scl/book-mark";
 import { LeagueRef, TeamRef, isTeamSide } from "@/components/scl/entity-marks";
-import { LineMovedPrompt } from "@/components/scl/line-moved-prompt";
 import { SlipConflictPrompt } from "@/components/scl/slip-conflict-prompt";
 import { SlipModeToggle } from "@/components/scl/slip-mode-toggle";
 import { useSlipStore } from "@/components/scl/slip-store";
@@ -24,7 +23,6 @@ import {
   combineDecimalOdds,
   decimalToAmerican,
 } from "@/lib/odds";
-import type { MovedLinePayload } from "@/lib/odds-movement";
 import { bookShort, isBookKey, type BookKey } from "@/lib/books";
 import { cn } from "@/lib/utils";
 
@@ -37,12 +35,6 @@ const SUBMIT_CTA = "scl-cta-brand";
 export function BetSlip({
   onSubmit,
   submitting,
-  movedLines,
-  unavailableLines,
-  onAcceptMoved,
-  onRemoveMovedLeg,
-  onCancelMoved,
-  onDismissUnavailable,
   packageOptions = [],
   selectedPackageIds = [],
   onPackageSelectionChange,
@@ -50,12 +42,6 @@ export function BetSlip({
 }: {
   onSubmit: () => void;
   submitting?: boolean;
-  movedLines?: MovedLinePayload[] | null;
-  unavailableLines?: MovedLinePayload[] | null;
-  onAcceptMoved?: (lines: MovedLinePayload[]) => void;
-  onRemoveMovedLeg?: (line: MovedLinePayload) => void;
-  onCancelMoved?: () => void;
-  onDismissUnavailable?: () => void;
   packageOptions?: PickPackageOption[];
   selectedPackageIds?: string[];
   onPackageSelectionChange?: (ids: string[]) => void;
@@ -95,7 +81,6 @@ export function BetSlip({
       ? parlayUnits * (americanToDecimal(combinedAmerican) - 1)
       : null;
 
-  const hasPrompt = Boolean(movedLines?.length || unavailableLines?.length);
   const parlayBlockedByConflicts =
     mode === "parlay" && internalConflicts.length > 0;
   const parlayNeedLegs = mode === "parlay" && selections.length < 2;
@@ -109,7 +94,6 @@ export function BetSlip({
 
   const submitDisabled =
     submitting ||
-    hasPrompt ||
     (mode === "singles" && !canSubmitSingles) ||
     (mode === "parlay" && !canSubmitParlay);
 
@@ -142,7 +126,7 @@ export function BetSlip({
         ? "MIXED"
         : null;
 
-  if (selections.length === 0 && !hasPrompt) {
+  if (selections.length === 0) {
     return (
       <Card
         className={cn(
@@ -435,40 +419,20 @@ export function BetSlip({
         </div>
       ) : null}
 
-      {unavailableLines?.length ? (
-        <LineMovedPrompt
-          mode="blocked"
-          lines={unavailableLines}
-          onRemoveLeg={(line) => onRemoveMovedLeg?.(line)}
-          onCancel={() => onDismissUnavailable?.()}
-        />
-      ) : null}
-      {movedLines?.length ? (
-        <LineMovedPrompt
-          mode="confirm"
-          lines={movedLines}
-          onAcceptAll={(lines) => onAcceptMoved?.(lines)}
-          onRemoveLeg={(line) => onRemoveMovedLeg?.(line)}
-          onCancel={() => onCancelMoved?.()}
-        />
-      ) : null}
-
-      {gateReason && !hasPrompt ? (
+      {gateReason ? (
         <p className="text-muted-foreground text-xs" role="status">
           {gateReason}
         </p>
       ) : null}
 
-      {!hasPrompt ? (
-        <Button
-          type="button"
-          onClick={onSubmit}
-          disabled={submitDisabled}
-          className={`min-h-12 w-full text-base ${SUBMIT_CTA}`}
-        >
-          {submitLabel}
-        </Button>
-      ) : null}
+      <Button
+        type="button"
+        onClick={onSubmit}
+        disabled={submitDisabled}
+        className={`min-h-12 w-full text-base ${SUBMIT_CTA}`}
+      >
+        {submitLabel}
+      </Button>
     </Card>
   );
 }

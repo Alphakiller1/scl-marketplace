@@ -172,7 +172,7 @@ test("buildBulkSinglesReceipt: full success summary", () => {
   });
   assert.equal(receipt.kind, "bulk");
   assert.equal(receipt.submittedCount, 3);
-  assert.equal(receipt.summaryLine, "3 picks verified");
+  assert.equal(receipt.summaryLine, "3 picks submitted");
   assert.equal(receipt.suspendedCount, 0);
   assert.equal(receipt.failedCount, 0);
   assert.deepEqual(receipt.writtenMoveKeys, ["a", "b", "c"]);
@@ -217,7 +217,7 @@ test("buildBulkSinglesReceipt: mixed clean/failed summary is honest", () => {
   assert.equal(receipt.failedCount, 1);
   assert.equal(
     receipt.summaryLine,
-    "2 of 3 submitted · 1 couldn't be verified",
+    "2 of 3 submitted · 1 couldn't be submitted",
   );
   assert.equal(receipt.failed[0]!.reason, "no longer pre-game");
 });
@@ -246,7 +246,7 @@ test("buildBulkSinglesReceipt: failed + suspended both shown in summary", () => 
   });
   assert.equal(
     receipt.summaryLine,
-    "1 of 3 submitted · 1 couldn't be verified · 1 suspended",
+    "1 of 3 submitted · 1 couldn't be submitted · 1 suspended",
   );
   assert.equal(receipt.failedCount, 1);
   assert.equal(receipt.suspendedCount, 1);
