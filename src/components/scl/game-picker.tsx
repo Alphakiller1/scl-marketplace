@@ -31,7 +31,8 @@ import type { OddsEvent, OddsSelection } from "@/lib/odds-board";
 export type { OddsPick };
 
 type EventDetailData =
-  { status: "ready"; selections: OddsSelection[] } | { status: "error" };
+  | { status: "ready"; selections: OddsSelection[] }
+  | { status: "error" };
 
 type SlateState = {
   events: OddsEvent[];
