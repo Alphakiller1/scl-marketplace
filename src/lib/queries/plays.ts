@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Outcome } from "@prisma/client";
 
+import { withTransientDatabaseRetry } from "@/lib/database-retry";
 import { prisma } from "@/lib/prisma";
 import type { CapperSummary, TodayPick } from "@/lib/mock";
 import {
@@ -277,40 +278,45 @@ export async function getPublicRecentPickRows(
   now: Date = new Date(),
 ): Promise<{ plays: PublicPlayJoinRow[]; failed: boolean }> {
   try {
-    const notesPublicReady = await hasNotesPublicColumn();
-    const publicationWhere = await buildPublishedStraightPlayWhere();
-    const scopeWhere = buildPublicPicksScopeWhere(filters, now);
-    const plays = await prisma.play.findMany({
-      where: {
-        ...publicationWhere,
-        ...scopeWhere,
+    const plays = await withTransientDatabaseRetry(
+      async () => {
+        const notesPublicReady = await hasNotesPublicColumn();
+        const publicationWhere = await buildPublishedStraightPlayWhere();
+        const scopeWhere = buildPublicPicksScopeWhere(filters, now);
+        return prisma.play.findMany({
+          where: {
+            ...publicationWhere,
+            ...scopeWhere,
+          },
+          select: {
+            id: true,
+            capperId: true,
+            sport: true,
+            league: true,
+            market: true,
+            selection: true,
+            oddsAmerican: true,
+            units: true,
+            outcome: true,
+            profitUnits: true,
+            createdAt: true,
+            verificationTier: true,
+            side: true,
+            eventStartsAt: true,
+            eventLabel: true,
+            book: true,
+            closingOddsAmerican: true,
+            clvPts: true,
+            notes: true,
+            ...(notesPublicReady ? { notesPublic: true } : {}),
+          },
+          orderBy: { createdAt: "desc" },
+          // Over-fetch so QA-noted plays dropped below don't shrink the feed.
+          take: take * 2,
+        });
       },
-      select: {
-        id: true,
-        capperId: true,
-        sport: true,
-        league: true,
-        market: true,
-        selection: true,
-        oddsAmerican: true,
-        units: true,
-        outcome: true,
-        profitUnits: true,
-        createdAt: true,
-        verificationTier: true,
-        side: true,
-        eventStartsAt: true,
-        eventLabel: true,
-        book: true,
-        closingOddsAmerican: true,
-        clvPts: true,
-        notes: true,
-        ...(notesPublicReady ? { notesPublic: true } : {}),
-      },
-      orderBy: { createdAt: "desc" },
-      // Over-fetch so QA-noted plays dropped below don't shrink the feed.
-      take: take * 2,
-    });
+      { label: "public picks feed" },
+    );
 
     const visible = plays
       .filter((p) => !hasQaNoteMarker(p.notes))

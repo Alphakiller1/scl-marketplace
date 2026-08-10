@@ -4,6 +4,7 @@ import { cache } from "react";
 import type { Outcome } from "@prisma/client";
 
 import { cachedQuery } from "@/lib/cached-query";
+import { withTransientDatabaseRetry } from "@/lib/database-retry";
 import { prisma } from "@/lib/prisma";
 import {
   buildPerformanceTrend,
@@ -406,8 +407,13 @@ async function loadLeaderboardResult(filters: LeaderboardFilters): Promise<{
 }> {
   let profiles: ProfileRow[];
   try {
-    const clvReady = await hasClvColumns();
-    profiles = await fetchRankableProfiles(filters, clvReady);
+    profiles = await withTransientDatabaseRetry(
+      async () => {
+        const clvReady = await hasClvColumns();
+        return fetchRankableProfiles(filters, clvReady);
+      },
+      { label: "leaderboard read" },
+    );
   } catch (err) {
     console.error("[getLeaderboard] database unavailable:", err);
     return { cappers: [], unranked: [], failed: true };
