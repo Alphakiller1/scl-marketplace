@@ -26,9 +26,8 @@ export default async function PicksPage({
   const params = await searchParams;
   const filters = parsePublicPicksLedgerFilters(params);
   const now = new Date();
-  // Production uses a one-connection Prisma pool per serverless isolate.
-  // Serial reads prevent independent queries from spending 15 seconds queued
-  // behind one another and failing with P2024 during a cold request.
+  // Keep this request's heavier reads sequential so concurrent Fluid Compute
+  // requests retain capacity in the shared five-connection pool.
   const board = await getLeaderboardResult();
   const gradingHealthy = await getGradingHealth();
   const feed = await getPublicRecentPickRows(24, filters, now);

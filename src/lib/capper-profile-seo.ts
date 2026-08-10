@@ -62,8 +62,8 @@ export function buildCapperProfileMetadata(capper: CapperSummary): Metadata {
  * Metadata that never hydrates the full profile.
  *
  * Next renders metadata alongside the page. Calling the full profile loader
- * from both paths creates two concurrent cache misses on a cold request, which
- * can exhaust a one-connection serverless pool before either render finishes.
+ * from both paths duplicates database work on a cold request and wastes shared
+ * Fluid Compute pool capacity before either render finishes.
  */
 export function buildCapperHandleMetadata(handle: string): Metadata {
   const bare = handle.replace(/^@+/, "").trim();
