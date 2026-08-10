@@ -248,7 +248,7 @@ export function buildOddsBoardMeta(
 
 const SOCCER_FETCH_PARALLEL = 3;
 /** Board cache window (seconds) — see the note at the fetch site. */
-const BOARD_TTL = 600;
+export const BOARD_TTL = 4 * 60 * 60;
 
 /**
  * Which soccer competitions are in season right now, from the Odds API catalog.
@@ -489,8 +489,9 @@ export async function fetchUpcomingOdds(
 
 /**
  * One BUNDLED per-event odds call (featured + alternate + curated props), cached for
- * VERIFY_TTL_SECONDS. When `books` is set, requests those bookmakers; falls back to
- * regions=us if the filtered payload has no bookmakers. Returns null when no key /
+ * VERIFY_TTL_SECONDS. The provider call always uses shared regions=us data;
+ * user book preferences are applied locally so all cappers reuse one snapshot.
+ * Returns null when no key /
  * unsupported / fetch fails — caller marks SELF-REPORTED, never rejected.
  */
 export async function fetchEventOddsForVerification(
@@ -534,17 +535,7 @@ export async function fetchEventOddsForVerification(
   };
 
   try {
-    const preferred = opts?.books;
-    const event = await attempt(preferred);
-    if (event && (event.bookmakers?.length ?? 0) > 0) return event;
-
-    if (bookmakersQueryParam(preferred ?? [])) {
-      console.info(
-        `[odds] event ${eventId}: bookmakers filter empty, falling back to regions=us`,
-      );
-      return await attempt(undefined);
-    }
-    return event;
+    return await attempt(undefined);
   } catch {
     return null;
   }

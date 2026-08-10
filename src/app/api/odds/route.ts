@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { getCapperBooks } from "@/lib/capper-books";
-import {
-  buildOddsBoardMeta,
-  fetchUpcomingOdds,
-  getLastOddsApiRemaining,
-  oddsApiKey,
-} from "@/lib/odds-api";
-import { shouldCircuitBreak } from "@/lib/odds-budget";
+import { buildOddsBoardMeta, oddsApiKey } from "@/lib/odds-api";
+import { loadOddsBoard } from "@/lib/odds-board-cache";
+import { dedupeOddsEvents } from "@/lib/odds-board";
+import { ODDS_BOARD_SPORTS } from "@/lib/game-picker";
 import { getCurrentUser } from "@/lib/session";
 
 /**
@@ -21,24 +18,47 @@ export async function GET(request: Request) {
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const sport = new URL(request.url).searchParams.get("sport") ?? "";
+  const requestedSport =
+    new URL(request.url).searchParams.get("sport")?.toUpperCase() ?? "";
   const books = await getCapperBooks(user.id);
   const configured = Boolean(oddsApiKey());
-  const circuitBreak = shouldCircuitBreak(getLastOddsApiRemaining());
-  const events =
-    configured && !circuitBreak
-      ? await fetchUpcomingOdds(sport, { books })
-      : [];
-  const meta = buildOddsBoardMeta(sport, events.length, {
+  const sports =
+    requestedSport === "ALL"
+      ? ODDS_BOARD_SPORTS.map((sport) => sport.key)
+      : [requestedSport];
+  const boards = configured
+    ? await Promise.all(sports.map((sport) => loadOddsBoard(sport)))
+    : [];
+  const events = dedupeOddsEvents(boards.flatMap((board) => board.events));
+  const stale = boards.some((board) => board.stale);
+  const circuitBreak = boards.some(
+    (board) =>
+      board.source === "stale_circuit_break" ||
+      board.source === "circuit_break_empty",
+  );
+  const baseMeta = buildOddsBoardMeta(requestedSport, events.length, {
     configured,
     circuitBreak,
   });
+  const meta = {
+    ...baseMeta,
+    ...(stale && events.length > 0 ? { warning: "stale_cache" } : {}),
+    stale,
+    sources: Object.fromEntries(
+      sports.map((sport, index) => [
+        sport,
+        boards[index]?.source ?? "disabled",
+      ]),
+    ),
+  };
 
   const logContext = {
-    sport,
+    sport: requestedSport,
     eventCount: events.length,
     warning: meta.warning ?? null,
     circuitBreak,
+    stale,
+    sources: meta.sources,
     durationMs: Date.now() - startedAt,
   };
   if (meta.warning && meta.warning !== "no_upcoming_events") {
@@ -47,10 +67,8 @@ export async function GET(request: Request) {
     console.info("[odds-board] completed", logContext);
   }
 
-  return NextResponse.json({
-    events,
-    configured,
-    books,
-    meta,
-  });
+  return NextResponse.json(
+    { events, configured, books, meta },
+    { headers: { "Cache-Control": "private, no-store" } },
+  );
 }

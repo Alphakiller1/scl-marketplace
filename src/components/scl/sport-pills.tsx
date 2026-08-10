@@ -48,22 +48,28 @@ export function SportPills({
     if (countsProp) return;
     let cancelled = false;
     void (async () => {
-      const entries = await Promise.all(
-        SPORTS.map(async (s) => {
-          try {
-            const res = await fetch(
-              `/api/odds?sport=${encodeURIComponent(s.key)}`,
-            );
-            if (!res.ok) return [s.key, 0] as const;
-            const data = (await res.json()) as {
-              events?: { commenceTime: string }[];
-            };
-            return [s.key, nearTermCount(data.events ?? [])] as const;
-          } catch {
-            return [s.key, 0] as const;
-          }
-        }),
-      );
+      let entries: ReadonlyArray<readonly [string, number]>;
+      try {
+        const res = await fetch("/api/odds?sport=ALL");
+        const data = res.ok
+          ? ((await res.json()) as {
+              events?: { sport: string; commenceTime: string }[];
+            })
+          : null;
+        entries = SPORTS.map(
+          (sport) =>
+            [
+              sport.key,
+              nearTermCount(
+                (data?.events ?? []).filter(
+                  (event) => event.sport === sport.key,
+                ),
+              ),
+            ] as const,
+        );
+      } catch {
+        entries = SPORTS.map((sport) => [sport.key, 0] as const);
+      }
       if (!cancelled) setFetched(Object.fromEntries(entries));
     })();
     return () => {

@@ -36,7 +36,12 @@ test("deep health rejects a 200-shaped payload with failed data checks", () => {
     status: "ok",
     release,
     checks: { databaseSchema: true, picksData: true },
-    counts: { publicCappers: 1, publicPicks: 1, publicPackages: 1 },
+    counts: {
+      publicCappers: 1,
+      publicPicks: 1,
+      publicPackages: 1,
+      selectableOddsBoardEvents: 1,
+    },
     legacy: { errors: [] },
   };
   assert.doesNotThrow(() => verifyDeepHealth(healthy, release));
@@ -47,6 +52,17 @@ test("deep health rejects a 200-shaped payload with failed data checks", () => {
         release,
       ),
     /picksData/,
+  );
+  assert.throws(
+    () =>
+      verifyDeepHealth(
+        {
+          ...healthy,
+          counts: { ...healthy.counts, selectableOddsBoardEvents: 0 },
+        },
+        release,
+      ),
+    /no selectable Today\/Tomorrow events/,
   );
 });
 

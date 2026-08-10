@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { withTransientDatabaseRetry } from "@/lib/database-retry";
+import { ODDS_BOARD_SPORTS, preGameEvents } from "@/lib/game-picker";
+import { loadOddsBoard } from "@/lib/odds-board-cache";
 import { probeOddsProvider } from "@/lib/odds-provider-health";
 import { prisma } from "@/lib/prisma";
 import { databasePoolConfiguration } from "@/lib/prisma-url";
@@ -11,6 +13,7 @@ import {
   getLegacyPackageIntegrityForAdmin,
   listActiveMarketplacePackagesResult,
 } from "@/lib/queries/store";
+import { nearTermEvents } from "@/lib/slate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,7 +44,7 @@ export async function GET(request: NextRequest) {
     { label: "deep health public eligibility" },
   );
 
-  const [schema, publicCappers, picks, marketplace, legacy, odds] =
+  const [schema, publicCappers, picks, marketplace, legacy, odds, oddsBoards] =
     await Promise.all([
       getCoreSchemaHealth(),
       withTransientDatabaseRetry(
@@ -61,7 +64,18 @@ export async function GET(request: NextRequest) {
       listActiveMarketplacePackagesResult(),
       getLegacyPackageIntegrityForAdmin(),
       probeOddsProvider(),
+      Promise.all(
+        ODDS_BOARD_SPORTS.map(async (sport) => ({
+          sport: sport.key,
+          board: await loadOddsBoard(sport.key),
+        })),
+      ),
     ]);
+
+  const oddsBoardEvents = oddsBoards.flatMap(({ board }) => board.events);
+  const selectableOddsBoardEvents = nearTermEvents(
+    preGameEvents(oddsBoardEvents),
+  );
 
   const checks = {
     databaseSchema: schema.ready,
@@ -75,6 +89,7 @@ export async function GET(request: NextRequest) {
       legacy.errors.length === 0 &&
       legacy.lineage.errors.length === 0,
     oddsProvider: odds.configured && odds.reachable,
+    oddsSelectionBoard: selectableOddsBoardEvents.length > 0,
   };
   const ready = Object.values(checks).every(Boolean);
   const result = {
@@ -87,6 +102,8 @@ export async function GET(request: NextRequest) {
       publicPackages: marketplace.packages.length,
       legacyPackages: legacy.stats.total,
       legacyWhopPackages: legacy.stats.whop,
+      oddsBoardEvents: oddsBoardEvents.length,
+      selectableOddsBoardEvents: selectableOddsBoardEvents.length,
     },
     legacy: {
       stats: legacy.stats,
@@ -94,6 +111,12 @@ export async function GET(request: NextRequest) {
       errors: legacy.errors,
     },
     odds,
+    oddsBoard: {
+      sources: Object.fromEntries(
+        oddsBoards.map(({ sport, board }) => [sport, board.source]),
+      ),
+      stale: oddsBoards.some(({ board }) => board.stale),
+    },
     databasePool: pool,
     durationMs: Date.now() - startedAt,
     checkedAt: new Date().toISOString(),
