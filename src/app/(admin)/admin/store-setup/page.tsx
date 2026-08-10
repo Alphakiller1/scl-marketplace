@@ -45,9 +45,8 @@ type Search = {
 export default async function AdminStoreSetupPage({ searchParams }: Search) {
   const sp = await searchParams;
   const requiresAttentionFilter = sp.requiresAttention === "true";
-  // Production intentionally runs one Prisma connection per isolate. These
-  // owner reports are database-heavy, so keep them sequential instead of
-  // making the admin page compete with itself for the single connection.
+  // These owner reports are database-heavy. Keep them sequential so this admin
+  // request leaves shared Fluid Compute pool capacity for public traffic.
   const rows = await listStoreConnections({
     provider:
       sp.provider === "WINIBLE" || sp.provider === "WHOP" ? sp.provider : "ALL",

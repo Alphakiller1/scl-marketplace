@@ -41,8 +41,8 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
     historyNextCursor,
     legacyBySport,
   } = data;
-  // Keep profile reads sequential for the one-connection serverless pool. A
-  // package query must not lose a race to optional accolade hydration.
+  // Keep one profile's heavier reads sequential so it does not consume the
+  // entire shared Fluid Compute pool while other public requests are active.
   const packages = await getLivePackagesForCapper(capper.id);
   const accolades = await getCapperAccolades(capper.handle, capper.topSport);
   const profileCapper = { ...capper, trophies: accolades };

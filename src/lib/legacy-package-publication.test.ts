@@ -60,6 +60,17 @@ test("Fluid Compute pool and heavy routes stay concurrency safe", () => {
   assert.doesNotMatch(storeQuerySource, /Promise\.all\s*\(/);
 });
 
+test("server routes never restore obsolete one-connection guidance", () => {
+  for (const path of [
+    "src/app/(marketing)/picks/page.tsx",
+    "src/app/(marketing)/cappers/[handle]/page.tsx",
+    "src/app/(admin)/admin/store-setup/page.tsx",
+    "src/lib/capper-profile-seo.ts",
+  ]) {
+    assert.doesNotMatch(source(path), /one[- ]connection|single connection/i);
+  }
+});
+
 test("production verification rejects degraded 200 responses", () => {
   const deploySource = source(".github/workflows/deploy.yml");
   const verifierSource = source("scripts/verify-production-release.mjs");
