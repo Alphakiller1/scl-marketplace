@@ -6,6 +6,7 @@ import { fetchEventBoard, getLastOddsApiRemaining } from "@/lib/odds-api";
 import type { OddsSelection } from "@/lib/odds-board";
 import { shouldCircuitBreak } from "@/lib/odds-budget";
 import {
+  mergeEventBoardSelections,
   parseEventBoardSnapshot,
   type EventBoardSnapshot,
 } from "@/lib/odds-event-board-contract";
@@ -99,11 +100,16 @@ async function refreshEventBoard(
     });
   }
   if (selections.length > 0) {
-    const saved = await writeSnapshot(sport, eventId, selections);
-    return {
+    const merged = mergeEventBoardSelections(
+      cached?.selections ?? [],
       selections,
+    );
+    const retainedCachedRows = merged.length > selections.length;
+    const saved = await writeSnapshot(sport, eventId, merged);
+    return {
+      selections: merged,
       source: "provider",
-      stale: false,
+      stale: retainedCachedRows,
       savedAt: saved.savedAt,
     };
   }

@@ -26,6 +26,7 @@ import {
   VERIFY_REGIONS,
   VERIFY_TTL_SECONDS,
   collectAvailablePrices,
+  expandedBoardMarkets,
   getOddsForBook as getOddsForBookFromEvent,
   liveLineAmerican,
   verificationMarkets,
@@ -630,7 +631,10 @@ export async function fetchEventBoard(
   eventId: string,
   opts?: OddsBoardOpts,
 ): Promise<OddsSelection[]> {
-  const event = await fetchEventOddsForVerification(sclSport, eventId, opts);
+  const event = await fetchEventOddsForVerification(sclSport, eventId, {
+    ...opts,
+    markets: expandedBoardMarkets(sclSport),
+  });
   if (!event) return [];
   return normalizeEventBoard(event, opts);
 }

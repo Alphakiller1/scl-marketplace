@@ -27,6 +27,14 @@ test("MLB requests F3/F5/F7 across all three kinds; other sports request none", 
         `MLB should request ${periodMarketKey(innings as 3 | 5 | 7, kind)}`,
       );
     }
+    assert.ok(
+      mlb.includes(`alternate_spreads_1st_${innings}_innings`),
+      `MLB should request alternate F${innings} spreads`,
+    );
+    assert.ok(
+      mlb.includes(`alternate_totals_1st_${innings}_innings`),
+      `MLB should request alternate F${innings} totals`,
+    );
   }
   // Full-game markets are still there — period markets are additive.
   assert.ok(mlb.includes("h2h") && mlb.includes("alternate_totals"));
@@ -35,10 +43,14 @@ test("MLB requests F3/F5/F7 across all three kinds; other sports request none", 
   assert.deepEqual(periodMarketKeysForSport("NBA"), [
     "h2h_h1",
     "spreads_h1",
+    "alternate_spreads_h1",
     "totals_h1",
+    "alternate_totals_h1",
     "h2h_h2",
     "spreads_h2",
+    "alternate_spreads_h2",
     "totals_h2",
+    "alternate_totals_h2",
   ]);
   // Hockey has periods, not halves — it gets neither.
   assert.deepEqual(periodMarketKeysForSport("NHL"), []);
@@ -51,6 +63,7 @@ test("stored labels round-trip back to their market key", () => {
   assert.deepEqual(marketKeysForMarket(label), ["h2h_1st_5_innings"]);
   assert.deepEqual(marketKeysForMarket(periodMarketLabel(3, "total")), [
     "totals_1st_3_innings",
+    "alternate_totals_1st_3_innings",
   ]);
 });
 
@@ -115,7 +128,13 @@ test("half lines get a half label, not F0", () => {
 
 test("CFL first-half keys round-trip to a priceable market key", () => {
   assert.deepEqual(periodMarketKeysForLabel("1st Half Moneyline"), ["h2h_h1"]);
-  assert.deepEqual(periodMarketKeysForLabel("1st Half Spread"), ["spreads_h1"]);
-  assert.deepEqual(periodMarketKeysForLabel("2nd Half Total"), ["totals_h2"]);
+  assert.deepEqual(periodMarketKeysForLabel("1st Half Spread"), [
+    "spreads_h1",
+    "alternate_spreads_h1",
+  ]);
+  assert.deepEqual(periodMarketKeysForLabel("2nd Half Total"), [
+    "totals_h2",
+    "alternate_totals_h2",
+  ]);
   assert.deepEqual(marketKeysForMarket("1st Half Moneyline"), ["h2h_h1"]);
 });

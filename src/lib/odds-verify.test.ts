@@ -5,6 +5,7 @@ import {
   bestAvailableAmerican,
   collectAvailablePrices,
   decidePickIntegrity,
+  expandedBoardMarkets,
   getOddsForBook,
   impliedProbFromAmerican,
   marketKeysForMarket,
@@ -169,6 +170,16 @@ test("verificationMarkets bundles core + curated sport props", () => {
     "team_totals",
     "alternate_team_totals",
   ]);
+});
+
+test("expandedBoardMarkets omits already-loaded featured lines", () => {
+  const mlb = expandedBoardMarkets("MLB");
+  assert.ok(!mlb.includes("h2h"));
+  assert.ok(!mlb.includes("spreads"));
+  assert.ok(!mlb.includes("totals"));
+  assert.ok(mlb.includes("alternate_spreads"));
+  assert.ok(mlb.includes("alternate_spreads_1st_5_innings"));
+  assert.ok(mlb.includes("pitcher_strikeouts_alternate"));
 });
 
 test("marketKeysForMarket bundles both team-total keys", () => {

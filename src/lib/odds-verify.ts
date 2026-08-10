@@ -104,6 +104,22 @@ export function verificationMarkets(sclSport: string): string[] {
 }
 
 /**
+ * Markets needed only after a user opens a game. Featured h2h/spreads/totals
+ * already arrive on the shared slate, so rebilling them here wastes three
+ * credits per event without adding a selectable line.
+ */
+export function expandedBoardMarkets(sclSport: string): string[] {
+  const props = PROP_MARKETS_BY_SPORT[sclSport] ?? [];
+  return [
+    "alternate_spreads",
+    "alternate_totals",
+    ...TEAM_TOTAL_MARKET_KEYS,
+    ...periodMarketKeysForSport(sclSport),
+    ...props.flatMap(propMarketKeysWithAlternates),
+  ];
+}
+
+/**
  * Human labels for the curated prop markets (Odds API key → display). The board stores the label
  * as the Play's `market` (so it reads "Strikeouts", not `pitcher_strikeouts`) and verification maps
  * it back via {@link marketKeysForMarket}.
@@ -430,9 +446,7 @@ export type PickSourceKind =
 
 /** Public trust tier — mirrors the Prisma `VerificationTier` enum. */
 export type VerificationTierValue =
-  | "AUTO_VERIFIED"
-  | "VERIFIED"
-  | "SELF_REPORTED";
+  "AUTO_VERIFIED" | "VERIFIED" | "SELF_REPORTED";
 
 export type PickIntegrityInput = {
   now: Date;

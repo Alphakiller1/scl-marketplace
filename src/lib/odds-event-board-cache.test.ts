@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { parseEventBoardSnapshot } from "@/lib/odds-event-board-contract";
+import {
+  mergeEventBoardSelections,
+  parseEventBoardSnapshot,
+} from "@/lib/odds-event-board-contract";
 
 const selection = {
   label: "Away +1.5 (F5 Spread)",
@@ -48,4 +51,41 @@ test("rejects empty, malformed, or cross-event snapshots", () => {
     ),
     null,
   );
+});
+
+test("partial refresh retains missing last-good market groups", () => {
+  const prop = {
+    ...selection,
+    label: "Pitcher Over 6.5",
+    market: "Strikeouts",
+    selection: "Pitcher Over 6.5",
+    side: "Over",
+    line: 6.5,
+    player: "Pitcher",
+  };
+  const refreshed = { ...selection, oddsAmerican: -110, book: "draftkings" };
+  assert.deepEqual(mergeEventBoardSelections([selection, prop], [refreshed]), [
+    refreshed,
+    prop,
+  ]);
+});
+
+test("merge keeps same-line team totals for both clubs", () => {
+  const yankees = {
+    ...selection,
+    market: "Team Total",
+    label: "Yankees Over 4.5",
+    selection: "Yankees Over 4.5",
+    side: "Over",
+    line: 4.5,
+  };
+  const redSox = {
+    ...yankees,
+    label: "Red Sox Over 4.5",
+    selection: "Red Sox Over 4.5",
+  };
+  assert.deepEqual(mergeEventBoardSelections([yankees], [redSox]), [
+    yankees,
+    redSox,
+  ]);
 });

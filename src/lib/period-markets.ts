@@ -48,6 +48,18 @@ export function periodMarketKey(
   return `${prefix}_1st_${innings}_innings`;
 }
 
+/** Alternate ladder key for a period spread/total; moneylines have no alternate ladder. */
+export function alternatePeriodMarketKey(
+  segment: PeriodInnings | `h${PeriodHalf}`,
+  kind: PeriodMarketKind,
+): string | null {
+  if (kind === "moneyline") return null;
+  const prefix = kind === "spread" ? "alternate_spreads" : "alternate_totals";
+  return typeof segment === "number"
+    ? `${prefix}_1st_${segment}_innings`
+    : `${prefix}_${segment}`;
+}
+
 /**
  * Stored `market` label, e.g. "1st 5 Innings Moneyline".
  *
@@ -114,16 +126,24 @@ export function segmentShortLabel(market: string): string {
 /** Odds API key → stored label, for every segment/kind combination. */
 export const PERIOD_MARKET_LABEL: Record<string, string> = Object.fromEntries([
   ...PERIOD_INNINGS.flatMap((innings) =>
-    (Object.keys(KIND_LABEL) as PeriodMarketKind[]).map((kind) => [
-      periodMarketKey(innings, kind),
-      periodMarketLabel(innings, kind),
-    ]),
+    (Object.keys(KIND_LABEL) as PeriodMarketKind[]).flatMap((kind) => {
+      const label = periodMarketLabel(innings, kind);
+      const alternate = alternatePeriodMarketKey(innings, kind);
+      return [
+        [periodMarketKey(innings, kind), label],
+        ...(alternate ? [[alternate, label]] : []),
+      ];
+    }),
   ),
   ...PERIOD_HALVES.flatMap((half) =>
-    (Object.keys(KIND_LABEL) as PeriodMarketKind[]).map((kind) => [
-      halfMarketKey(half, kind),
-      halfMarketLabel(half, kind),
-    ]),
+    (Object.keys(KIND_LABEL) as PeriodMarketKind[]).flatMap((kind) => {
+      const label = halfMarketLabel(half, kind);
+      const alternate = alternatePeriodMarketKey(`h${half}`, kind);
+      return [
+        [halfMarketKey(half, kind), label],
+        ...(alternate ? [[alternate, label]] : []),
+      ];
+    }),
   ),
 ]);
 
@@ -135,6 +155,8 @@ export function periodMarketKeysForSport(sclSport: string): string[] {
     for (const innings of PERIOD_INNINGS) {
       for (const kind of Object.keys(KIND_LABEL) as PeriodMarketKind[]) {
         keys.push(periodMarketKey(innings, kind));
+        const alternate = alternatePeriodMarketKey(innings, kind);
+        if (alternate) keys.push(alternate);
       }
     }
   }
@@ -142,6 +164,8 @@ export function periodMarketKeysForSport(sclSport: string): string[] {
     for (const half of PERIOD_HALVES) {
       for (const kind of Object.keys(KIND_LABEL) as PeriodMarketKind[]) {
         keys.push(halfMarketKey(half, kind));
+        const alternate = alternatePeriodMarketKey(`h${half}`, kind);
+        if (alternate) keys.push(alternate);
       }
     }
   }
@@ -212,10 +236,17 @@ export function periodMarketKeysForLabel(label: string): string[] | null {
   // silently downgraded every half pick to SELF_REPORTED.
   if (parsed.innings === 0) {
     const half = /\b(2nd|second)\s*half\b|\bh2\b/i.test(label) ? 2 : 1;
-    return [halfMarketKey(half as PeriodHalf, parsed.kind)];
+    const main = halfMarketKey(half as PeriodHalf, parsed.kind);
+    const alternate = alternatePeriodMarketKey(
+      `h${half as PeriodHalf}`,
+      parsed.kind,
+    );
+    return alternate ? [main, alternate] : [main];
   }
 
   const innings = parsed.innings as PeriodInnings;
   if (!PERIOD_INNINGS.includes(innings)) return null;
-  return [periodMarketKey(innings, parsed.kind)];
+  const main = periodMarketKey(innings, parsed.kind);
+  const alternate = alternatePeriodMarketKey(innings, parsed.kind);
+  return alternate ? [main, alternate] : [main];
 }

@@ -28,6 +28,7 @@ import { filterBySlateDay, type SlateDay } from "@/lib/slate";
 import { getTeamIdentity, type TeamIdentity } from "@/lib/teams";
 import type { OddsEvent, OddsSelection } from "@/lib/odds-board";
 import { dedupeOddsEvents, isExtremeAmericanOdds } from "@/lib/odds-board";
+import { mergeEventBoardSelections } from "@/lib/odds-event-board-contract";
 
 /** Re-export for callers that historically imported `pickKey` from this module. */
 export { pickKey } from "@/lib/slip";
@@ -55,8 +56,7 @@ type BoardData = { events: OddsEvent[]; configured: boolean; failed?: boolean };
 
 // Per-event board load: absent = still loading; ready (may be empty) or error otherwise.
 type EventDetailData =
-  | { status: "ready"; selections: OddsSelection[] }
-  | { status: "error" };
+  { status: "ready"; selections: OddsSelection[] } | { status: "error" };
 
 /**
  * Every game-line label, in the order a sportsbook lists them: full game first,
@@ -562,7 +562,7 @@ export function EventDetail({
 
   const shown =
     detail?.status === "ready" && detail.selections.length > 0
-      ? detail.selections
+      ? mergeEventBoardSelections(event.selections, detail.selections)
       : event.selections;
 
   // Hierarchy: featured game lines (always visible) → player props (searchable) → alternate

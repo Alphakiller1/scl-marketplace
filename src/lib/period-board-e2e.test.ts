@@ -64,6 +64,13 @@ const MLB_EVENT: RawEventOdds = {
           ],
         },
         {
+          key: "alternate_totals_1st_5_innings",
+          outcomes: [
+            { name: "Over", price: 125, point: 5.5 },
+            { name: "Under", price: -145, point: 5.5 },
+          ],
+        },
+        {
           key: "spreads_1st_3_innings",
           outcomes: [
             { name: "New York Yankees", price: -120, point: -0.5 },
@@ -160,11 +167,19 @@ describe("period lines reach the board", () => {
     const f5Total = selections.filter(
       (s) => s.market === "1st 5 Innings Total",
     );
-    assert.equal(f5Total.length, 2, "expected an Over and an Under");
+    assert.equal(
+      f5Total.length,
+      4,
+      "expected main and alternate Over/Under lines",
+    );
     const over = f5Total.find((s) => /over/i.test(s.side));
     assert.ok(over, "no Over side");
     assert.equal(over.line, 4.5);
     assert.equal(over.oddsAmerican, -115);
+    assert.ok(
+      f5Total.some((selection) => selection.line === 5.5),
+      "alternate F5 total was fetched but did not reach the selectable board",
+    );
     // Selection text must name the segment, so the logged play still reads as
     // a period pick anywhere only the selection is shown.
     assert.match(over.selection, /F5|1st 5/i);
