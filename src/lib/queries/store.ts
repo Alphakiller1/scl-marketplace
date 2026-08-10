@@ -15,7 +15,9 @@ import {
 } from "@/lib/storefront-review";
 import type { PublicMarketplaceCapper } from "@/lib/marketplace-search";
 import {
+  inspectLegacyPackageLineage,
   inspectLegacyPackageIntegrity,
+  LEGACY_SOURCE_OFFER_COUNT,
   loadLegacyPackageIntegrityRows,
 } from "@/lib/legacy-package-integrity";
 
@@ -48,10 +50,22 @@ export async function countStoreConnectionsRequiringAttention() {
 /** Live owner-facing inventory and invariant report for every legacy offer. */
 export async function getLegacyPackageIntegrityForAdmin() {
   try {
-    const rows = await loadLegacyPackageIntegrityRows(prisma);
+    const [rows, lifecycleEvents] = await Promise.all([
+      loadLegacyPackageIntegrityRows(prisma),
+      prisma.packageAuditEvent.findMany({
+        where: {
+          capper: { isLegacy: true },
+          action: { in: ["CREATED", "DELETED"] },
+        },
+        select: { action: true },
+      }),
+    ]);
     const report = inspectLegacyPackageIntegrity(rows);
+    const lineage = inspectLegacyPackageLineage(rows.length, lifecycleEvents);
     return {
       ...report,
+      errors: [...report.errors, ...lineage.errors],
+      lineage,
       failed: false,
       whopPackages: rows
         .filter((row) => row.affiliateProvider === "WHOP")
@@ -90,6 +104,14 @@ export async function getLegacyPackageIntegrityForAdmin() {
       },
       errors: ["Could not read the legacy package inventory."],
       warnings: [],
+      lineage: {
+        sourceTotal: LEGACY_SOURCE_OFFER_COUNT,
+        created: 0,
+        deleted: 0,
+        expectedTotal: LEGACY_SOURCE_OFFER_COUNT,
+        currentTotal: 0,
+        errors: ["Could not verify legacy package lineage."],
+      },
       whopPackages: [],
     };
   }

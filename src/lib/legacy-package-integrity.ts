@@ -4,7 +4,25 @@ import type { LegacyPackageInput } from "@/lib/schemas/legacy-packages.schema";
 import { legacyPackageSlug } from "@/lib/schemas/legacy-packages.schema";
 
 export const LEGACY_SOURCE_OFFER_COUNT = 122;
-export const LEGACY_WHOP_OFFER_FLOOR = 4;
+export const LEGACY_WHOP_EXPECTATIONS = [
+  {
+    username: "BBlueprints",
+    title: "🔥 Bankroll Blueprint Exclusive",
+    checkoutUrl: "https://whop.com/the-bankroll-blueprint-2f72?a=scleaderboard",
+  },
+  {
+    username: "SuperPicks1",
+    title: "3 Free Days of VIP",
+    checkoutUrl: "https://whop.com/checkout/plan_WDBMS1kVzsn54?a=scleaderboard",
+  },
+  {
+    username: "SuperPicks1",
+    title: "Single Day of VIP",
+    checkoutUrl:
+      "https://whop.com/superpick/best-sports-picks-best-price?a=scleaderboard",
+  },
+] as const;
+export const LEGACY_WHOP_OFFER_FLOOR = LEGACY_WHOP_EXPECTATIONS.length;
 
 export type LegacyPackageIntegrityRow = {
   id: string;
@@ -35,6 +53,15 @@ export type LegacyPackageIntegrityReport = {
   };
   errors: string[];
   warnings: string[];
+};
+
+export type LegacyPackageLineageReport = {
+  sourceTotal: number;
+  created: number;
+  deleted: number;
+  expectedTotal: number;
+  currentTotal: number;
+  errors: string[];
 };
 
 export async function loadLegacyPackageIntegrityRows(
@@ -176,6 +203,38 @@ export function inspectLegacyPackageIntegrity(
     );
   }
 
+  for (const expected of LEGACY_WHOP_EXPECTATIONS) {
+    const matches = rows.filter(
+      (row) =>
+        row.username?.toLowerCase() === expected.username.toLowerCase() &&
+        row.title === expected.title,
+    );
+    const expectedLabel = `@${expected.username} · ${expected.title}`;
+    if (matches.length !== 1) {
+      errors.push(
+        `${expectedLabel}: expected exactly one migrated legacy Whop package; found ${matches.length}`,
+      );
+      continue;
+    }
+
+    const actual = matches[0]!;
+    if (actual.affiliateProvider !== "WHOP") {
+      errors.push(
+        `${expectedLabel}: provider is ${actual.affiliateProvider ?? "missing"}; expected WHOP`,
+      );
+    }
+    if (
+      normalizedUrl(actual.checkoutUrl) !== normalizedUrl(expected.checkoutUrl)
+    ) {
+      errors.push(
+        `${expectedLabel}: checkout URL does not match migration source`,
+      );
+    }
+    if (!actual.isActive) {
+      errors.push(`${expectedLabel}: migrated legacy Whop package is inactive`);
+    }
+  }
+
   const bankRows = rows.filter(
     (row) =>
       row.username?.toLowerCase() === "bankofdennis" &&
@@ -229,6 +288,34 @@ export function inspectLegacyPackageIntegrity(
     },
     errors,
     warnings,
+  };
+}
+
+export function inspectLegacyPackageLineage(
+  currentTotal: number,
+  lifecycleEvents: { action: string }[],
+): LegacyPackageLineageReport {
+  const created = lifecycleEvents.filter(
+    (event) => event.action === "CREATED",
+  ).length;
+  const deleted = lifecycleEvents.filter(
+    (event) => event.action === "DELETED",
+  ).length;
+  const expectedTotal = LEGACY_SOURCE_OFFER_COUNT + created - deleted;
+  const errors =
+    currentTotal === expectedTotal
+      ? []
+      : [
+          `Legacy package lineage mismatch: source ${LEGACY_SOURCE_OFFER_COUNT} + ${created} created - ${deleted} deleted = ${expectedTotal}, but the database contains ${currentTotal}`,
+        ];
+
+  return {
+    sourceTotal: LEGACY_SOURCE_OFFER_COUNT,
+    created,
+    deleted,
+    expectedTotal,
+    currentTotal,
+    errors,
   };
 }
 

@@ -164,8 +164,12 @@ npm run verify:packages -- prisma/legacy-packages.json
 ```
 
 Production deploys also run `verify:packages` after migrations and fail closed
-when the documented 122-offer floor, four-Whop floor, tracking invariants, or
-known corrective package expectations regress.
+when the documented 122-offer baseline, the audited create/delete lineage,
+tracking invariants, or known corrective package expectations regress. The
+three migrated Whop offers are checked by exact owner, title, provider, active
+state, and checkout URL. The historical "120 Winible / 4 Whop" aggregate also
+included one non-legacy Whop package and must not be used as the legacy-only
+baseline.
 
 Three things the importer has to get right:
 

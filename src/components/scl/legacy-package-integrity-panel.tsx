@@ -76,6 +76,13 @@ export function LegacyPackageIntegrityPanel({ report }: { report: Report }) {
         ))}
       </dl>
 
+      <p className="text-muted-foreground text-sm">
+        Count lineage: {report.lineage.sourceTotal} imported +{" "}
+        {report.lineage.created} audited additions - {report.lineage.deleted}{" "}
+        audited deletions = {report.lineage.expectedTotal} expected;{" "}
+        {report.lineage.currentTotal} currently stored.
+      </p>
+
       {report.errors.length ? (
         <div role="alert" className="space-y-1 text-sm">
           <p className="font-semibold">Blocking failures</p>
@@ -103,6 +110,11 @@ export function LegacyPackageIntegrityPanel({ report }: { report: Report }) {
           <ShieldCheck className="size-4" aria-hidden />
           <h3 className="text-sm font-semibold">Whop package inventory</h3>
         </div>
+        <p className="text-muted-foreground text-sm">
+          The original three migrated Whop offers are matched by owner, title,
+          provider, active state, and exact checkout URL. Additional manual or
+          API-synced Whop offers appear here too.
+        </p>
         {report.whopPackages.length ? (
           <ul className="divide-border overflow-hidden rounded-lg border">
             {report.whopPackages.map((pkg) => (
