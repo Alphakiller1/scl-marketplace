@@ -84,21 +84,6 @@ async function writeSnapshot(
   return snapshot;
 }
 
-/** Persist a provider-authoritative event board without exposing provider credentials. */
-export async function storeEventBoardSelections(
-  sport: string,
-  eventId: string,
-  selections: OddsSelection[],
-): Promise<EventBoardSnapshot> {
-  const normalizedSport = sport.toUpperCase();
-  const cached = await readSnapshot(normalizedSport, eventId);
-  return writeSnapshot(
-    normalizedSport,
-    eventId,
-    mergeEventBoardSelections(cached?.selections ?? [], selections),
-  );
-}
-
 async function refreshEventBoard(
   sport: string,
   eventId: string,
