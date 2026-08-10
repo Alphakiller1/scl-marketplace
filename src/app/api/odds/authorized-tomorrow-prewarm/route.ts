@@ -20,6 +20,9 @@ export const maxDuration = 60;
 
 const SPORTS = ["MLB", "WNBA"] as const;
 const CORE_BOARD_CREDIT_COST = 3;
+// The provider bills these bundled event requests at the observed per-call
+// cost, which is lower than the raw market-key count for alternate families.
+const DETAIL_CREDIT_COST = { MLB: 23, WNBA: 12 } as const;
 const EASTERN_DATE = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/New_York",
   year: "numeric",
@@ -190,7 +193,7 @@ export async function POST(request: Request) {
 
   const estimatedCredits =
     missingDetails.reduce(
-      (sum, { sport }) => sum + requiredMarkets(sport).length,
+      (sum, { sport }) => sum + DETAIL_CREDIT_COST[sport],
       0,
     ) +
     missingCoreSports.length * CORE_BOARD_CREDIT_COST;
