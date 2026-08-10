@@ -252,9 +252,9 @@ export function inspectLegacyPackageIntegrity(
         `Bankofdennis 365 DAYS price is ${bank.priceCents} cents; expected 12500`,
       );
     }
-    if (bank.billingPeriod !== "ONE_TIME") {
+    if (bank.billingPeriod !== "ONE_TIME" && bank.billingPeriod !== "YEAR") {
       errors.push(
-        `Bankofdennis 365 DAYS cadence is ${bank.billingPeriod}; expected ONE_TIME`,
+        `Bankofdennis 365 DAYS cadence is ${bank.billingPeriod}; expected ONE_TIME or YEAR`,
       );
     }
     if (!bank.description?.includes("$125")) {
