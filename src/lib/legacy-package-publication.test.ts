@@ -60,9 +60,15 @@ test("production deploys fail closed on migration or package audit failure", () 
 test("owners can manually manage Whop packages without API sync", () => {
   const formSource = source("src/components/scl/admin-package-form.tsx");
   const detailSource = source("src/app/(admin)/admin/cappers/[id]/page.tsx");
+  const integrityPanelSource = source(
+    "src/components/scl/legacy-package-integrity-panel.tsx",
+  );
 
   assert.match(formSource, /allowProviderSelection/);
   assert.match(formSource, /does not require a working provider API/);
   assert.match(detailSource, /Add Whop package/);
   assert.match(detailSource, /AdminPackageRowControls/);
+  assert.match(integrityPanelSource, /Count lineage:/);
+  assert.match(integrityPanelSource, /original three migrated Whop offers/);
+  assert.match(integrityPanelSource, /Verify or edit/);
 });

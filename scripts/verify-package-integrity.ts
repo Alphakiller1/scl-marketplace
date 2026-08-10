@@ -5,6 +5,7 @@ import process from "node:process";
 import { PrismaClient } from "@prisma/client";
 
 import {
+  inspectLegacyPackageLineage,
   inspectLegacyPackageIntegrity,
   loadLegacyPackageIntegrityRows,
   reconcileLegacyPackageSource,
@@ -21,6 +22,36 @@ const prisma = new PrismaClient();
 async function main() {
   const rows = await loadLegacyPackageIntegrityRows(prisma);
   const integrity = inspectLegacyPackageIntegrity(rows);
+  const lifecycleEvents = await prisma.packageAuditEvent.findMany({
+    where: {
+      capper: { isLegacy: true },
+      action: { in: ["CREATED", "DELETED"] },
+    },
+    select: { action: true },
+  });
+  const lineage = inspectLegacyPackageLineage(rows.length, lifecycleEvents);
+  const recentLegacyPackageAudits =
+    integrity.errors.length || lineage.errors.length
+      ? await prisma.packageAuditEvent.findMany({
+          where: { capper: { isLegacy: true } },
+          orderBy: { createdAt: "desc" },
+          take: 100,
+          select: {
+            action: true,
+            summary: true,
+            createdAt: true,
+            package: {
+              select: {
+                id: true,
+                title: true,
+                affiliateProvider: true,
+                checkoutUrl: true,
+              },
+            },
+            capper: { select: { user: { select: { username: true } } } },
+          },
+        })
+      : [];
   const sourceArg = process.argv[2];
   let sourceReconciliation:
     | { source: string; matched: number; errors: string[] }
@@ -39,15 +70,49 @@ async function main() {
     };
   }
 
-  const errors = [...integrity.errors, ...(sourceReconciliation?.errors ?? [])];
+  const errors = [
+    ...integrity.errors,
+    ...lineage.errors,
+    ...(sourceReconciliation?.errors ?? []),
+  ];
   console.log(
     JSON.stringify(
       {
         ok: errors.length === 0,
         stats: integrity.stats,
+        lineage: {
+          sourceTotal: lineage.sourceTotal,
+          created: lineage.created,
+          deleted: lineage.deleted,
+          expectedTotal: lineage.expectedTotal,
+          currentTotal: lineage.currentTotal,
+        },
         warnings: integrity.warnings,
         errors,
         sourceReconciliation,
+        diagnostics: errors.length
+          ? {
+              whopPackages: rows
+                .filter((row) => row.affiliateProvider === "WHOP")
+                .map((row) => ({
+                  id: row.id,
+                  username: row.username,
+                  title: row.title,
+                  active: row.isActive,
+                  checkoutUrl: row.checkoutUrl,
+                })),
+              inactivePackages: rows
+                .filter((row) => !row.isActive)
+                .map((row) => ({
+                  id: row.id,
+                  username: row.username,
+                  title: row.title,
+                  provider: row.affiliateProvider,
+                  checkoutUrl: row.checkoutUrl,
+                })),
+              recentLegacyPackageAudits,
+            }
+          : undefined,
       },
       null,
       2,
