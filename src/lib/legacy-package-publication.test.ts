@@ -42,7 +42,7 @@ test("the package page serializes database-heavy evidence reads", () => {
   assert.doesNotMatch(pageSource, /Promise\.all\s*\(/);
 });
 
-test("one-connection production routes do not fan out competing database reads", () => {
+test("Fluid Compute pool and heavy routes stay concurrency safe", () => {
   const prismaUrlSource = source("src/lib/prisma-url.ts");
   const picksPageSource = source("src/app/(marketing)/picks/page.tsx");
   const gradingSource = source("src/lib/grading-health.ts");
@@ -54,10 +54,23 @@ test("one-connection production routes do not fan out competing database reads",
     storeSource.indexOf("export async function listConnectionsForCapper"),
   );
 
-  assert.match(prismaUrlSource, /:\s*1;/);
+  assert.match(prismaUrlSource, /DEFAULT_POOLED_CONNECTION_LIMIT\s*=\s*5/);
   assert.doesNotMatch(picksPageSource, /Promise\.all\s*\(/);
   assert.doesNotMatch(gradingSource, /Promise\.all\s*\(/);
   assert.doesNotMatch(storeQuerySource, /Promise\.all\s*\(/);
+});
+
+test("production verification rejects degraded 200 responses", () => {
+  const deploySource = source(".github/workflows/deploy.yml");
+  const verifierSource = source("scripts/verify-production-release.mjs");
+  const deepHealthSource = source("src/app/api/health/deep/route.ts");
+
+  assert.match(deploySource, /verify-production-release\.mjs/);
+  assert.match(deploySource, /CRON_SECRET/);
+  assert.match(verifierSource, /data-data-status/);
+  assert.match(verifierSource, /verifyDeepHealth/);
+  assert.match(deepHealthSource, /legacyPackages/);
+  assert.match(deepHealthSource, /oddsProvider/);
 });
 
 test("importing Prisma does not start competing schema patch queries", () => {

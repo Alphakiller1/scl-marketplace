@@ -31,6 +31,9 @@ export default async function LeaderboardPage({
     <div
       className="mx-auto max-w-[1400px] px-4 py-4 sm:px-6 sm:py-5"
       data-visual-mode="rank"
+      data-scl-verification="leaderboard"
+      data-data-status={failed ? "degraded" : "ok"}
+      data-capper-count={cappers.length + unranked.length}
     >
       <LeaderboardOverview />
       <LeaderboardFilters filters={filters} />

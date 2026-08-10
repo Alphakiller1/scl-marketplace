@@ -143,7 +143,12 @@ async function HomeTopBoard() {
     .map(slimBoardCapper);
 
   return (
-    <div className="scl-board min-w-0">
+    <div
+      className="scl-board min-w-0"
+      data-scl-verification="home-leaderboard"
+      data-data-status={leaderboard.failed ? "degraded" : "ok"}
+      data-capper-count={topCappers.length}
+    >
       <div className="relative grid min-w-0 gap-0 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,0.85fr)] lg:items-start">
         <div className="scl-board-rule relative min-w-0 border-b px-3 py-4 sm:px-5 sm:py-6 lg:border-r lg:border-b-0 lg:px-5 lg:pr-6 lg:pl-5">
           <div className="scl-live-rail hidden lg:block" aria-hidden />

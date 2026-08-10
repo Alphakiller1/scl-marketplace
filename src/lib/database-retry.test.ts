@@ -70,3 +70,21 @@ test("a persistent pool failure stops after the bounded retry", async () => {
   );
   assert.equal(attempts, 3);
 });
+
+test("nested retry guards do not multiply attempts after exhaustion", async () => {
+  let attempts = 0;
+  await assert.rejects(
+    withTransientDatabaseRetry(
+      () =>
+        withTransientDatabaseRetry(
+          async () => {
+            attempts += 1;
+            throw databaseError("P2024");
+          },
+          { label: "inner", retryDelayMs: 0, onRetry: () => undefined },
+        ),
+      { label: "outer", retryDelayMs: 0, onRetry: () => undefined },
+    ),
+  );
+  assert.equal(attempts, 3);
+});

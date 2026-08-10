@@ -50,6 +50,9 @@ export default async function PicksPage({
     <main
       className="mx-auto max-w-[1400px] px-4 py-5 sm:px-6 sm:py-7 lg:px-8"
       data-visual-mode="proof"
+      data-scl-verification="picks"
+      data-data-status={failed ? "degraded" : "ok"}
+      data-pick-count={picks.length}
     >
       <header className="border-border border-b pb-5 sm:pb-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">

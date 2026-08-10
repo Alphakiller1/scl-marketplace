@@ -35,6 +35,7 @@ manually “promoting” deployments.
 | ------------------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------- |
 | `DATABASE_URL`                  | Supabase **Transaction pooler** URI, port **6543**, ending `?pgbouncer=true&schema=scl` | Serverless-safe pooled connections           |
 | `DIRECT_URL`                    | Supabase **direct** URI, port **5432**, ending `?schema=scl`                            | Used only for migrations                     |
+| `PRISMA_POOL_CONNECTION_LIMIT`  | `5`                                                                                     | Minimum per-instance pool for Fluid Compute  |
 | `AUTH_SECRET`                   | a strong secret (`npx auth secret`)                                                     | required (all environments)                  |
 | `AUTH_URL`                      | the deployed origin, e.g. `https://scl-marketplace.vercel.app`                          | **Production only** — leave unset on Preview |
 | `AUTH_TRUST_HOST`               | `true`                                                                                  | required for Auth.js on Vercel               |
@@ -45,7 +46,7 @@ manually “promoting” deployments.
 | `SUPABASE_URL`                  | Supabase project API URL                                                                | **required for avatar/cover uploads**        |
 | `SUPABASE_SERVICE_ROLE_KEY`     | Supabase service-role key                                                               | server only; never expose to the browser     |
 | `SUPABASE_PROFILE_MEDIA_BUCKET` | `scl-profile-media`                                                                     | optional bucket-name override                |
-| `ODDS_API_KEY`                  | The Odds API key                                                                        | later (odds-assist/grading)                  |
+| `ODDS_API_KEY`                  | The Odds API key                                                                        | odds selection and grading                   |
 | `CRON_SECRET`                   | strong shared secret                                                                    | required by automatic grading                |
 | `SCL_ALLOW_GHOST_PUBLICATION`   | unset or `0`                                                                            | never set to `1` for launch                  |
 | `WHOP_WEBHOOK_SECRET`           | Whop signing secret                                                                     | optional while using the manual workflow     |
@@ -121,6 +122,18 @@ branch/PR preview deploys working as testing environments.
 > For a quick first test deploy you may reuse your local direct URL for both, then switch
 > `DATABASE_URL` to the pooler before real traffic.
 
+> **Do not reduce the Prisma pool to one connection.** Vercel Fluid Compute serves concurrent
+> requests inside a warm function instance. SCL defaults the Prisma transaction-pooler limit
+> to five so those requests do not queue behind one connection and fail with `P2024`. If the
+> limit is overridden, SCL clamps values below five and the production release gate checks
+> that effective floor. Automatic
+> grading runs only through authenticated cron routes; public health, odds, and page requests
+> never launch grading work in the background.
+
+`ODD_API_KEY` is accepted as a backward-compatible alias because it exists in an older SCL
+production configuration. New and rotated credentials should use the canonical
+`ODDS_API_KEY` name.
+
 ### Migrations
 
 Production Vercel builds run `npm run db:deploy` before `next build`. Ordinary
@@ -160,11 +173,13 @@ That’s it. You do not need `VERCEL_TOKEN` / org / project IDs if the hook is s
 
 Once `VERCEL_DEPLOY_HOOK_URL` is saved under Environments → Production, every push to `main` rebuilds the live site automatically.
 
-The deploy workflow does not stop at an accepted hook. It polls `/api/health`
-until the production alias reports the exact Git commit being deployed and the
-launch schema is ready, then verifies the home, leaderboard, packages,
-verification, support, and login routes. A green deploy job therefore means the
-live alias changed successfully; it does not merely mean Vercel accepted a build.
+The deploy workflow does not stop at an accepted hook or at HTTP 200. It polls
+`/api/health` until the production alias reports the exact Git commit being deployed, then
+runs eight cache-busted verification rounds. Every round checks the authenticated deep
+health route, database and pool configuration, odds-provider reachability, leaderboard and
+pick data, marketplace packages, legacy/Whop lineage (including Bankofdennis VIP 365 at
+$125/year), and explicit non-degraded markers on the home, leaderboard, picks, and packages
+pages. A fallback page, empty result, failed database read, or stale build fails the job.
 
 ### Production owner promotion
 

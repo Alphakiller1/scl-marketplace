@@ -48,12 +48,19 @@ test("afterResponse swallows failures so post-response work cannot break a page"
 const VOID_ALLOWLIST = new Set([
   // The fallback inside afterResponse itself — no response to race there.
   "src/lib/after-response.ts",
-  // Self-deferring: its entire body runs inside afterResponse.
-  "src/app/api/health/route.ts",
-  "src/app/api/odds/route.ts",
   // Module-scope schema probes, before any response exists.
   "src/lib/prisma.ts",
 ]);
+
+test("public health and odds routes never launch grading work", () => {
+  for (const rel of [
+    "src/app/api/health/route.ts",
+    "src/app/api/odds/route.ts",
+  ]) {
+    const source = fs.readFileSync(path.join(process.cwd(), rel), "utf8");
+    assert.doesNotMatch(source, /maybeSweepGrading|autoGradePending/);
+  }
+});
 
 function sourceFiles(dir: string, out: string[] = []): string[] {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {

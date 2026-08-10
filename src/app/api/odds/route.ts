@@ -8,7 +8,6 @@ import {
   oddsApiKey,
 } from "@/lib/odds-api";
 import { shouldCircuitBreak } from "@/lib/odds-budget";
-import { maybeSweepGrading } from "@/lib/results/auto-grade-sweep";
 import { getCurrentUser } from "@/lib/session";
 
 /**
@@ -22,10 +21,6 @@ export async function GET(request: Request) {
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  // Cappers browsing the board are the most reliable traffic this app gets, so
-  // it carries the grading heartbeat too. Globally throttled, fire-and-forget.
-  void maybeSweepGrading();
-
   const sport = new URL(request.url).searchParams.get("sport") ?? "";
   const books = await getCapperBooks(user.id);
   const configured = Boolean(oddsApiKey());

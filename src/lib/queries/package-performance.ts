@@ -2,6 +2,7 @@ import "server-only";
 
 import type { PackageEvidence } from "@/lib/package-register";
 import { summarizePackagePositions } from "@/lib/package-performance";
+import { withTransientDatabaseRetry } from "@/lib/database-retry";
 import {
   buildProfileChartSeries,
   type ProfileChartSeries,
@@ -26,34 +27,38 @@ export async function getPackagePerformanceEvidence(
     return { evidence: {}, profiles: {}, failed: false };
   }
   try {
-    const packages = await prisma.package.findMany({
-      where: { id: { in: packageIds } },
-      select: {
-        id: true,
-        playLinks: {
-          where: { play: { parlayId: null } },
+    const packages = await withTransientDatabaseRetry(
+      () =>
+        prisma.package.findMany({
+          where: { id: { in: packageIds } },
           select: {
-            play: {
+            id: true,
+            playLinks: {
+              where: { play: { parlayId: null } },
               select: {
-                outcome: true,
-                units: true,
-                profitUnits: true,
-                createdAt: true,
-                sport: true,
-                notes: true,
+                play: {
+                  select: {
+                    outcome: true,
+                    units: true,
+                    profitUnits: true,
+                    createdAt: true,
+                    sport: true,
+                    notes: true,
+                  },
+                },
+              },
+            },
+            parlayLinks: {
+              select: {
+                parlay: {
+                  select: { outcome: true, units: true, profitUnits: true },
+                },
               },
             },
           },
-        },
-        parlayLinks: {
-          select: {
-            parlay: {
-              select: { outcome: true, units: true, profitUnits: true },
-            },
-          },
-        },
-      },
-    });
+        }),
+      { label: "package performance evidence" },
+    );
 
     const now = new Date();
     const evidence: Record<string, PackageEvidence | null> = {};

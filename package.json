@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
-    "test": "tsx --test src/lib/*.test.ts src/lib/og/*.test.ts src/lib/schemas/*.test.ts src/lib/results/*.test.ts",
+    "test": "tsx --test src/lib/*.test.ts src/lib/og/*.test.ts src/lib/schemas/*.test.ts src/lib/results/*.test.ts && node --test scripts/verify-production-release.test.mjs",
     "verify:packages": "tsx scripts/verify-package-integrity.ts",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",

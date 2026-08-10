@@ -2,6 +2,7 @@ import "server-only";
 
 import type { StoreProvider } from "@prisma/client";
 
+import { withTransientDatabaseRetry } from "@/lib/database-retry";
 import { prisma } from "@/lib/prisma";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 import {
@@ -282,22 +283,26 @@ export async function listPublicMarketplaceCappersResult(): Promise<{
 }> {
   try {
     const excludeTest = await prismaExcludeTestHandlesLive();
-    const profiles = await prisma.capperProfile.findMany({
-      where: {
-        user: {
-          username: { not: null },
-          accountStatus: "ACTIVE",
-          ...excludeTest,
-        },
-      },
-      select: {
-        id: true,
-        avatarUrl: true,
-        user: {
-          select: { username: true, displayName: true },
-        },
-      },
-    });
+    const profiles = await withTransientDatabaseRetry(
+      () =>
+        prisma.capperProfile.findMany({
+          where: {
+            user: {
+              username: { not: null },
+              accountStatus: "ACTIVE",
+              ...excludeTest,
+            },
+          },
+          select: {
+            id: true,
+            avatarUrl: true,
+            user: {
+              select: { username: true, displayName: true },
+            },
+          },
+        }),
+      { label: "public marketplace capper directory" },
+    );
 
     return {
       cappers: profiles
@@ -393,34 +398,38 @@ export async function listActiveMarketplacePackagesResult(): Promise<{
 }> {
   try {
     const excludeTest = await prismaExcludeTestHandlesLive();
-    const packages = await prisma.package.findMany({
-      where: {
-        ...publicPackagePublicationWhere(excludeTest),
-      },
-      orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        promoOffer: true,
-        priceCents: true,
-        billingPeriod: true,
-        affiliateProvider: true,
-        trackingUrls: {
-          select: { slug: true },
-          take: 1,
-          orderBy: { createdAt: "asc" },
-        },
-        capper: {
+    const packages = await withTransientDatabaseRetry(
+      () =>
+        prisma.package.findMany({
+          where: {
+            ...publicPackagePublicationWhere(excludeTest),
+          },
+          orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
           select: {
             id: true,
-            user: {
-              select: { username: true, displayName: true },
+            title: true,
+            description: true,
+            promoOffer: true,
+            priceCents: true,
+            billingPeriod: true,
+            affiliateProvider: true,
+            trackingUrls: {
+              select: { slug: true },
+              take: 1,
+              orderBy: { createdAt: "asc" },
+            },
+            capper: {
+              select: {
+                id: true,
+                user: {
+                  select: { username: true, displayName: true },
+                },
+              },
             },
           },
-        },
-      },
-    });
+        }),
+      { label: "public marketplace packages" },
+    );
 
     return {
       packages: packages

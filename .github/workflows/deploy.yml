@@ -35,6 +35,12 @@ jobs:
     runs-on: ubuntu-latest
     environment: Production
     steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Trigger Vercel Deploy Hook
         id: hook
         if: github.event_name == 'workflow_dispatch'
@@ -92,14 +98,6 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/checkout@v4
-        if: steps.cfg.outputs.ready == 'true'
-
-      - uses: actions/setup-node@v4
-        if: steps.cfg.outputs.ready == 'true'
-        with:
-          node-version: 22
-
       - name: Deploy to Vercel (CLI fallback)
         if: steps.cfg.outputs.ready == 'true'
         env:
@@ -107,7 +105,7 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          npm install -g vercel@latest
+          npm install -g vercel@58.9.0
           vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
           vercel build --prod --token="$VERCEL_TOKEN"
           URL=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
@@ -118,6 +116,7 @@ jobs:
         env:
           EXPECTED_SHA: ${{ github.sha }}
           PRODUCTION_URL: ${{ vars.PRODUCTION_URL || 'https://scl-marketplace.vercel.app' }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           echo "Waiting for $PRODUCTION_URL to serve $EXPECTED_SHA"
           ready=false
@@ -157,11 +156,16 @@ jobs:
             exit 1
           fi
 
-          for path in / /leaderboard /packages /verification /support /login; do
-            code=$(curl -L -sS --max-time 30 -o /dev/null -w "%{http_code}" "$PRODUCTION_URL$path")
-            echo "$path -> HTTP $code"
-            test "$code" = "200"
-          done
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET is required for the authenticated deep production gate."
+            exit 1
+          fi
+
+          # Eight cache-busted rounds load the public data stories concurrently.
+          # Explicit health markers prevent a 200 page with empty fallback data
+          # from passing the deployment gate.
+          node scripts/verify-production-release.mjs \
+            "$PRODUCTION_URL" "$EXPECTED_SHA" 8 2000
 
           echo "### ✅ Live release verified" >> "$GITHUB_STEP_SUMMARY"
-          echo "Commit \`$EXPECTED_SHA\` is healthy and all core public routes returned HTTP 200." >> "$GITHUB_STEP_SUMMARY"
+          echo "Commit \`$EXPECTED_SHA\` passed eight deep data, odds-provider, package-integrity, and public-page rounds." >> "$GITHUB_STEP_SUMMARY"
