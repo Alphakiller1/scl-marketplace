@@ -415,11 +415,12 @@ export async function fetchUpcomingOdds(
 ): Promise<OddsEvent[]> {
   if (sclSport === "SOCCER") return fetchSoccerBoard(opts);
 
-  const apiKey = opts?.apiKeyOverride?.trim() || oddsApiKey();
+  const apiKeyOverride = opts?.apiKeyOverride?.trim();
+  const apiKey = apiKeyOverride || oddsApiKey();
   const apiSport = toOddsApiSport(sclSport);
   if (!apiKey || !apiSport) return [];
 
-  if (shouldCircuitBreak(lastOddsApiRemaining)) {
+  if (!apiKeyOverride && shouldCircuitBreak(lastOddsApiRemaining)) {
     console.warn(
       `[odds] circuit-breaker active (remaining=${lastOddsApiRemaining}) — skipping uncached board fetch for ${sclSport}`,
     );
