@@ -5,6 +5,7 @@ import {
   findPlayer,
   normalizeName,
   playerNameFromSelection,
+  playerPropCandidateEventIds,
   resolvePlayerProp,
   statKeyForMarket,
   type PlayerBoxScore,
@@ -13,6 +14,64 @@ import {
   inningsToOuts,
   mapSummaryToPlayerBox,
 } from "@/lib/results/stats-provider";
+
+test("legacy player props inspect only nearby settled ESPN events", () => {
+  const startsAt = new Date("2026-08-10T23:00:00Z");
+  const games = [
+    {
+      sport: "MLB",
+      home: "Tigers",
+      away: "White Sox",
+      homeScore: 2,
+      awayScore: 1,
+      completed: true,
+      espnEventId: "nearby",
+      startsAt: new Date("2026-08-10T23:05:00Z"),
+    },
+    // A duplicate provider copy must not cause false ambiguity.
+    {
+      sport: "MLB",
+      home: "Tigers",
+      away: "White Sox",
+      homeScore: 2,
+      awayScore: 1,
+      completed: true,
+      eventId: "espn:nearby",
+      startsAt: new Date("2026-08-10T23:05:00Z"),
+    },
+    {
+      sport: "MLB",
+      home: "Mets",
+      away: "Braves",
+      homeScore: 3,
+      awayScore: 4,
+      completed: true,
+      espnEventId: "too-late",
+      startsAt: new Date("2026-08-11T01:00:01Z"),
+    },
+    {
+      sport: "WNBA",
+      home: "Liberty",
+      away: "Fever",
+      homeScore: 80,
+      awayScore: 75,
+      completed: true,
+      espnEventId: "wrong-sport",
+      startsAt,
+    },
+  ];
+  assert.deepEqual(
+    playerPropCandidateEventIds(
+      { sport: "MLB", eventStartsAt: startsAt },
+      games,
+    ),
+    ["nearby"],
+  );
+  assert.deepEqual(
+    playerPropCandidateEventIds({ sport: "MLB", eventStartsAt: null }, games),
+    [],
+  );
+});
 
 /**
  * These cases are the real plays that sat PENDING in production on 2026-08-06

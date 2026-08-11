@@ -1,6 +1,7 @@
 import type { Outcome } from "@prisma/client";
 
 import { overUnderOutcome } from "@/lib/results/prop-resolve";
+import { espnIdOf, type SettledGame } from "@/lib/results/settled-game";
 
 /**
  * Settle player props from an ESPN box score.
@@ -22,6 +23,46 @@ export type PlayerStatLine = {
 };
 
 export type PlayerBoxScore = { players: PlayerStatLine[] };
+
+const PLAYER_PROP_FIXTURE_WINDOW_MS = 90 * 60 * 1_000;
+
+/**
+ * ESPN event ids close enough to a legacy prop's scheduled start to inspect.
+ *
+ * A short-lived picker bug saved an Odds API event id but omitted both clubs,
+ * so the normal fixture matcher cannot bind those props to results. Time alone
+ * is never enough to grade one; the caller must additionally find the named
+ * athlete in exactly one candidate box score. This helper only narrows the
+ * safe candidate pool and de-duplicates provider copies of the same fixture.
+ */
+export function playerPropCandidateEventIds(
+  play: Pick<GradablePlayerProp, "sport" | "eventStartsAt">,
+  games: readonly SettledGame[],
+): string[] {
+  const startsAt = play.eventStartsAt;
+  if (!startsAt) return [];
+
+  const ids = new Set<string>();
+  for (const game of games) {
+    if (
+      !game.completed ||
+      game.sport.toUpperCase() !== play.sport.toUpperCase() ||
+      !game.startsAt ||
+      Math.abs(game.startsAt.getTime() - startsAt.getTime()) >
+        PLAYER_PROP_FIXTURE_WINDOW_MS
+    ) {
+      continue;
+    }
+    const id = espnIdOf(game);
+    if (id) ids.add(id);
+  }
+  return [...ids];
+}
+
+type GradablePlayerProp = {
+  sport: string;
+  eventStartsAt?: Date | null;
+};
 
 /**
  * SCL market label → the canonical stat key produced by the ESPN mappers.

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getGradingHealthReport } from "@/lib/grading-health";
+import { getCachedOddsCoverageReport } from "@/lib/odds-coverage-report";
 import { autoGradePending } from "@/lib/results/auto-grade";
 import { snapshotClosingOdds } from "@/lib/results/closing-snapshot";
 import { getResultsProvider } from "@/lib/results/provider";
@@ -79,6 +80,10 @@ async function runGrade(req: NextRequest) {
   try {
     const result = await autoGradePending(getResultsProvider());
     const health = await getGradingHealthReport();
+    const oddsCoverage = await getCachedOddsCoverageReport().catch((error) => {
+      console.error("[cron/grade] odds coverage audit failed:", error);
+      return null;
+    });
 
     const stuckPlays =
       (result.skippedByReason?.aged_out ?? 0) > 0
@@ -95,7 +100,20 @@ async function runGrade(req: NextRequest) {
         skipped: result.skipped ?? 0,
         parlaysGraded: result.parlaysGraded ?? 0,
         skippedByReason: result.skippedByReason ?? {},
-        meta: { clvSnapshots, clvBackfilled, health },
+        meta: {
+          clvSnapshots,
+          clvBackfilled,
+          health,
+          oddsCoverage: oddsCoverage
+            ? {
+                totalGames: oddsCoverage.totalGames,
+                gamesWithExpandedBoard: oddsCoverage.gamesWithExpandedBoard,
+                gamesFullyCovered: oddsCoverage.gamesFullyCovered,
+                cacheComplete: oddsCoverage.cacheComplete,
+                marketComplete: oddsCoverage.marketComplete,
+              }
+            : null,
+        },
       },
     });
 
@@ -123,6 +141,7 @@ async function runGrade(req: NextRequest) {
       clvSnapshots,
       clvBackfilled,
       health,
+      oddsCoverage,
       stuckPlays,
     });
   } catch (err) {

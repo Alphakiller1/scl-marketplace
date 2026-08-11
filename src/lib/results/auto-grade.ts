@@ -27,7 +27,13 @@ import {
   fetchPeriodBoxScore,
   fetchPlayerBoxScore,
 } from "@/lib/results/stats-provider";
-import { resolvePlayerProp } from "@/lib/results/player-props";
+import {
+  findPlayer,
+  playerNameFromSelection,
+  playerPropCandidateEventIds,
+  resolvePlayerProp,
+  type PlayerBoxScore,
+} from "@/lib/results/player-props";
 import type { ResultsProvider } from "@/lib/results/provider";
 import { hasClvColumns } from "@/lib/results/schema-features";
 import {
@@ -52,6 +58,21 @@ type GradeBatch = {
   skipped: number;
   skippedByReason: SkipReasonCounts;
 };
+
+type PlayerBoxCache = Map<string, Promise<PlayerBoxScore | null>>;
+
+function cachedPlayerBox(
+  cache: PlayerBoxCache,
+  sport: string,
+  espnId: string,
+): Promise<PlayerBoxScore | null> {
+  const key = `${sport.toUpperCase()}:${espnId}`;
+  const existing = cache.get(key);
+  if (existing) return existing;
+  const pending = fetchPlayerBoxScore(sport, espnId);
+  cache.set(key, pending);
+  return pending;
+}
 
 function logSkip(
   kind: "play" | "parlay leg",
@@ -136,11 +157,41 @@ function espnEventIdFor(
 async function resolvePlayerPropPlay(
   play: GradablePlay,
   games: SettledGame[],
+  boxCache: PlayerBoxCache,
 ): Promise<Outcome | null> {
   const espnId = espnEventIdFor(play, games);
-  if (!espnId) return null;
-  const box = await fetchPlayerBoxScore(play.sport, espnId);
-  if (!box) return null;
+  if (espnId) {
+    const box = await cachedPlayerBox(boxCache, play.sport, espnId);
+    if (!box) return null;
+    return resolvePlayerProp(
+      {
+        market: play.market,
+        selection: play.selection,
+        side: play.side,
+        line: play.line ?? null,
+      },
+      box,
+    );
+  }
+
+  // Legacy picker rows can carry the Odds API id and scheduled start but no
+  // club metadata. Inspect only nearby settled games, then require the named
+  // athlete to occur in exactly one box score. Ambiguous/missing stays pending.
+  const playerName = playerNameFromSelection(play.selection);
+  if (!playerName) return null;
+  const candidateIds = playerPropCandidateEventIds(play, games);
+  const candidates = await Promise.all(
+    candidateIds.map(async (candidateId) => ({
+      box: await cachedPlayerBox(boxCache, play.sport, candidateId),
+    })),
+  );
+  const matches = candidates.filter(({ box }) => {
+    if (!box) return false;
+    const player = findPlayer(box, playerName);
+    return player !== null && player !== "AMBIGUOUS";
+  });
+  if (matches.length !== 1 || !matches[0]!.box) return null;
+  const box = matches[0]!.box;
   return resolvePlayerProp(
     {
       market: play.market,
@@ -223,6 +274,7 @@ async function resolvePendingPlay(
   play: GradablePlay,
   games: SettledGame[],
   now: Date,
+  boxCache: PlayerBoxCache,
 ): Promise<{ outcome: Outcome | null; reason: keyof SkipReasonCounts }> {
   const deferredMarket = parsePeriodMarket(play.market) || isDeferredProp(play);
   if (deferredMarket) {
@@ -232,7 +284,7 @@ async function resolvePendingPlay(
     const outcome = parsePeriodMarket(play.market)
       ? await resolvePeriodPlay(play, games)
       : ((await resolveDeferredPeriodTotal(play, games)) ??
-        (await resolvePlayerPropPlay(play, games)));
+        (await resolvePlayerPropPlay(play, games, boxCache)));
     if (outcome) return { outcome, reason: "props_deferred" };
 
     // Report WHY it deferred. `props_deferred` used to swallow "the results
@@ -263,6 +315,7 @@ async function resolvePendingPlay(
 async function gradeStraightPlays(
   provider: ResultsProvider,
   now: Date,
+  boxCache: PlayerBoxCache,
 ): Promise<GradeBatch> {
   const clvReady = await hasClvColumns();
   const skippedByReason = emptySkipCounts();
@@ -317,7 +370,7 @@ async function gradeStraightPlays(
   let graded = 0;
 
   for (const play of pending) {
-    const resolved = await resolvePendingPlay(play, games, now);
+    const resolved = await resolvePendingPlay(play, games, now, boxCache);
     if (!resolved.outcome) {
       skippedByReason[resolved.reason]++;
       logSkip("play", play, resolved.reason);
@@ -384,6 +437,7 @@ async function gradeStraightPlays(
 async function gradeParlayLegs(
   provider: ResultsProvider,
   now: Date,
+  boxCache: PlayerBoxCache,
 ): Promise<GradeBatch> {
   const skippedByReason = emptySkipCounts();
   const pending = (
@@ -426,7 +480,7 @@ async function gradeParlayLegs(
   let graded = 0;
 
   for (const play of pending) {
-    const resolved = await resolvePendingPlay(play, games, now);
+    const resolved = await resolvePendingPlay(play, games, now, boxCache);
     if (!resolved.outcome) {
       skippedByReason[resolved.reason]++;
       logSkip("parlay leg", play, resolved.reason);
@@ -541,9 +595,10 @@ export async function autoGradePending(
   provider: ResultsProvider,
 ): Promise<AutoGradeResult> {
   const now = new Date();
+  const boxCache: PlayerBoxCache = new Map();
 
-  const straight = await gradeStraightPlays(provider, now);
-  const legs = await gradeParlayLegs(provider, now);
+  const straight = await gradeStraightPlays(provider, now, boxCache);
+  const legs = await gradeParlayLegs(provider, now, boxCache);
   const parlaysGraded = await gradePendingParlays();
   const skippedByReason = mergeSkipCounts(
     straight.skippedByReason,

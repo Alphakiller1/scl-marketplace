@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { withTransientDatabaseRetry } from "@/lib/database-retry";
 import { ODDS_BOARD_SPORTS, preGameEvents } from "@/lib/game-picker";
 import { loadCachedOddsBoard } from "@/lib/odds-board-cache";
+import { getCachedOddsCoverageReport } from "@/lib/odds-coverage-report";
 import { probeOddsProvider } from "@/lib/odds-provider-health";
 import { prisma } from "@/lib/prisma";
 import { databasePoolConfiguration } from "@/lib/prisma-url";
@@ -76,6 +77,7 @@ export async function GET(request: NextRequest) {
   const selectableOddsBoardEvents = nearTermEvents(
     preGameEvents(oddsBoardEvents),
   );
+  const oddsCoverage = await getCachedOddsCoverageReport();
 
   const checks = {
     databaseSchema: schema.ready,
@@ -90,6 +92,7 @@ export async function GET(request: NextRequest) {
       legacy.lineage.errors.length === 0,
     oddsProvider: odds.configured && odds.reachable,
     oddsSelectionBoard: selectableOddsBoardEvents.length > 0,
+    oddsExpandedBoards: oddsCoverage.cacheComplete,
   };
   const ready = Object.values(checks).every(Boolean);
   const result = {
@@ -117,6 +120,7 @@ export async function GET(request: NextRequest) {
       ),
       stale: oddsBoards.some(({ board }) => board.stale),
     },
+    oddsCoverage,
     databasePool: pool,
     durationMs: Date.now() - startedAt,
     checkedAt: new Date().toISOString(),

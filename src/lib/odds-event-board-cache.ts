@@ -31,6 +31,13 @@ export type LoadedEventBoard = {
   savedAt: number | null;
 };
 
+export type CachedEventBoard = {
+  selections: OddsSelection[];
+  source: "runtime_cache" | "stale_cache_only" | "cache_empty";
+  stale: boolean;
+  savedAt: number | null;
+};
+
 const inFlight = new Map<string, Promise<LoadedEventBoard>>();
 
 function cacheKey(sport: string, eventId: string): string {
@@ -96,6 +103,29 @@ async function writeSnapshot(
     });
   }
   return snapshot;
+}
+
+/** Read one expanded event board without refreshing or spending provider credits. */
+export async function loadCachedEventBoard(
+  sport: string,
+  eventId: string,
+): Promise<CachedEventBoard> {
+  const cached = await readSnapshot(sport.toUpperCase(), eventId);
+  if (!cached) {
+    return {
+      selections: [],
+      source: "cache_empty",
+      stale: false,
+      savedAt: null,
+    };
+  }
+  const stale = Date.now() - cached.savedAt > ODDS_EVENT_FRESH_SECONDS * 1_000;
+  return {
+    selections: cached.selections,
+    source: stale ? "stale_cache_only" : "runtime_cache",
+    stale,
+    savedAt: cached.savedAt,
+  };
 }
 
 async function refreshEventBoard(
