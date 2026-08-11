@@ -124,3 +124,5 @@ export function buildOddsCoverageReport(games: EventMarketCoverage[]) {
     games,
   };
 }
+
+export type OddsCoverageReport = ReturnType<typeof buildOddsCoverageReport>;

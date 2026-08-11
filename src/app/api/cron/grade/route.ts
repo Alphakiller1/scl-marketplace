@@ -3,7 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getGradingHealthReport } from "@/lib/grading-health";
-import { getCachedOddsCoverageReport } from "@/lib/odds-coverage-report";
+import {
+  getCachedOddsCoverageReport,
+  warmMissingOddsCoverage,
+} from "@/lib/odds-coverage-report";
 import { autoGradePending } from "@/lib/results/auto-grade";
 import { snapshotClosingOdds } from "@/lib/results/closing-snapshot";
 import { getResultsProvider } from "@/lib/results/provider";
@@ -80,10 +83,19 @@ async function runGrade(req: NextRequest) {
   try {
     const result = await autoGradePending(getResultsProvider());
     const health = await getGradingHealthReport();
-    const oddsCoverage = await getCachedOddsCoverageReport().catch((error) => {
+    let oddsCoverage = await getCachedOddsCoverageReport().catch((error) => {
       console.error("[cron/grade] odds coverage audit failed:", error);
       return null;
     });
+    const oddsWarmupRequested =
+      req.nextUrl.searchParams.get("warmOdds") === "1";
+    const oddsWarmup =
+      oddsWarmupRequested && oddsCoverage
+        ? await warmMissingOddsCoverage(oddsCoverage)
+        : null;
+    if (oddsWarmup) {
+      oddsCoverage = await getCachedOddsCoverageReport();
+    }
 
     const stuckPlays =
       (result.skippedByReason?.aged_out ?? 0) > 0
@@ -142,6 +154,7 @@ async function runGrade(req: NextRequest) {
       clvBackfilled,
       health,
       oddsCoverage,
+      oddsWarmup,
       stuckPlays,
     });
   } catch (err) {

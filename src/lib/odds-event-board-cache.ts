@@ -177,13 +177,18 @@ async function refreshEventBoard(
 export async function loadEventBoard(
   sport: string,
   eventId: string,
+  options: { forceRefresh?: boolean } = {},
 ): Promise<LoadedEventBoard> {
   const normalizedSport = sport.toUpperCase();
   const key = cacheKey(normalizedSport, eventId);
   const cached = await readSnapshot(normalizedSport, eventId);
   const ageMs = cached ? Date.now() - cached.savedAt : Number.POSITIVE_INFINITY;
 
-  if (cached && ageMs <= ODDS_EVENT_FRESH_SECONDS * 1_000) {
+  if (
+    !options.forceRefresh &&
+    cached &&
+    ageMs <= ODDS_EVENT_FRESH_SECONDS * 1_000
+  ) {
     return {
       selections: cached.selections,
       source: "runtime_cache",
@@ -192,7 +197,7 @@ export async function loadEventBoard(
     };
   }
 
-  if (shouldCircuitBreak(getLastOddsApiRemaining())) {
+  if (!options.forceRefresh && shouldCircuitBreak(getLastOddsApiRemaining())) {
     if (cached) {
       return {
         selections: cached.selections,

@@ -8,6 +8,12 @@ on:
   schedule:
     - cron: "*/15 * * * *"
   workflow_dispatch:
+    inputs:
+      warm_odds:
+        description: "Fill missing per-game props and alternate markets"
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: grade-cron
@@ -34,6 +40,9 @@ jobs:
           CRON_GRADE_URL: ${{ secrets.CRON_GRADE_URL }}
         run: |
           URL="${CRON_GRADE_URL:-https://scl-marketplace.vercel.app/api/cron/grade}"
+          if [ "${{ inputs.warm_odds || false }}" = "true" ]; then
+            URL="${URL}?warmOdds=1"
+          fi
           code=$(curl -sS -o /tmp/grade.json -w "%{http_code}" \
             -H "Authorization: $CRON_SECRET" \
             -H "Accept: application/json" \
