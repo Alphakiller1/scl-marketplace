@@ -43,12 +43,16 @@ describe("books", () => {
     assert.equal(oddsSourceBoardLabel("fanduel"), "FanDuel BOARD");
   });
 
-  it("formatOddsCaptureSourceLine includes SOURCE board", () => {
+  it("formatOddsCaptureSourceLine includes source without exposing capture time", () => {
     const withBook = formatOddsCaptureSourceLine({
       capturedAt: "2026-07-14T16:00:00.000Z",
       book: "draftkings",
     });
-    assert.match(withBook, /^ODDS CAPTURED /);
+    assert.equal(
+      withBook,
+      "ODDS CAPTURED · SOURCE: DraftKings BOARD · GRADES AUTOMATICALLY",
+    );
+    assert.doesNotMatch(withBook, /2026|16:00|ET/);
     assert.match(withBook, /SOURCE: DraftKings BOARD/);
     assert.match(withBook, /GRADES AUTOMATICALLY$/);
 

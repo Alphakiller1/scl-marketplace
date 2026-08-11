@@ -7,7 +7,7 @@ import { BookMark } from "@/components/scl/book-mark";
 import { PlayerHeadshot } from "@/components/scl/player-headshot";
 import { bookShort } from "@/lib/books";
 import { cn } from "@/lib/utils";
-import { formatCaptureClock, formatOdds } from "@/lib/format";
+import { formatOdds } from "@/lib/format";
 import { isExtremeAmericanOdds } from "@/lib/odds-board";
 import { extractPlayerName, type HeadshotLeague } from "@/lib/player-headshots";
 
@@ -21,7 +21,6 @@ export function MarketChip({
   label,
   oddsAmerican,
   book,
-  oddsCapturedAt,
   league,
   selected,
   disabled,
@@ -33,8 +32,6 @@ export function MarketChip({
   oddsAmerican: number | null;
   /** Odds API bookmaker key — shown as a mono short tag when present. */
   book?: string;
-  /** Bookmaker last_update ISO — shown inline when the price is extreme. */
-  oddsCapturedAt?: string;
   /** Player-prop league hint so a named player shows a real headshot. */
   league?: HeadshotLeague;
   selected?: boolean;
@@ -49,8 +46,6 @@ export function MarketChip({
       ? isExtremeAmericanOdds(oddsAmerican)
       : false;
   const bookTag = book && !missing ? bookShort(book) : null;
-  const captureLabel =
-    extreme && oddsCapturedAt ? formatCaptureClock(oddsCapturedAt) : null;
   return (
     <button
       type="button"
@@ -116,7 +111,6 @@ export function MarketChip({
           >
             Review
             {bookTag ? ` · ${bookTag}` : ""}
-            {captureLabel ? ` · ${captureLabel}` : ""}
           </span>
         ) : null}
       </span>

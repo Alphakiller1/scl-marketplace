@@ -11,7 +11,7 @@ import { PlayerHeadshot } from "@/components/scl/player-headshot";
 import { SkeletonCard } from "@/components/scl/states";
 import { TeamMark } from "@/components/scl/team-mark";
 import { cn } from "@/lib/utils";
-import { formatCaptureClock, formatOdds } from "@/lib/format";
+import { formatOdds } from "@/lib/format";
 import { bookShort } from "@/lib/books";
 import { selectionForActiveBook } from "@/lib/game-picker";
 import { allGameLineLabels, isGameLineMarket } from "@/lib/market-kind";
@@ -505,10 +505,6 @@ function BoardMlPrice({
   }
   const extreme = isExtremeAmericanOdds(american);
   const bookTag = selection?.book ? bookShort(selection.book) : null;
-  const captureLabel =
-    extreme && selection?.oddsCapturedAt
-      ? formatCaptureClock(selection.oddsCapturedAt)
-      : null;
   return (
     <span
       className={cn(
@@ -524,7 +520,6 @@ function BoardMlPrice({
         <span className="scl-data text-[0.5rem] font-medium tracking-[0.1em] text-[color:var(--scl-muted-label)] uppercase">
           Review
           {bookTag ? ` · ${bookTag}` : ""}
-          {captureLabel ? ` · ${captureLabel}` : ""}
         </span>
       ) : null}
     </span>
@@ -614,7 +609,6 @@ export function EventDetail({
         label={labelOverride ?? s.selection}
         oddsAmerican={priced.oddsAmerican}
         book={priced.book}
-        oddsCapturedAt={priced.oddsCapturedAt}
         selected={selected}
         onClick={pick ? () => onPick(pick) : undefined}
       />

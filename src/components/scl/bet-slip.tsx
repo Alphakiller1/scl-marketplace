@@ -20,7 +20,6 @@ import {
   PREDICTION_UNIT_STEP,
 } from "@/lib/constants";
 import type { PickPackageOption } from "@/lib/actions/package-options.action";
-import { formatCapturedHmEt } from "@/lib/format-capture";
 import { formatOdds } from "@/lib/format";
 import {
   americanToDecimal,
@@ -218,7 +217,6 @@ export function BetSlip({
 
       <ul className="space-y-3">
         {selections.map((s) => {
-          const capturedLabel = formatCapturedHmEt(s.capturedAt);
           return (
             <li
               key={s.id}
@@ -253,11 +251,6 @@ export function BetSlip({
                       <span className="scl-data text-foreground font-semibold">
                         {formatOdds(s.oddsAmerican)}
                       </span>
-                      {capturedLabel ? (
-                        <span className="scl-data tracking-[0.06em] uppercase">
-                          {capturedLabel}
-                        </span>
-                      ) : null}
                       {s.book && isBookKey(s.book) ? (
                         <span className="inline-flex items-center gap-1">
                           <BookMark bookKey={s.book} size={16} />
