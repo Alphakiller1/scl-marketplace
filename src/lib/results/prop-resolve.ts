@@ -74,10 +74,10 @@ export function periodScores(
 /**
  * First-N-innings moneyline.
  *
- * `pickedHome` is null when the capper took the Draw (books price F5 three-way).
- * A tie with a TEAM selected is deliberately NOT settled: two-way books push it
- * and three-way books lose it, and nothing in the stored pick says which was
- * taken — so it defers to a human rather than guessing at someone's record.
+ * `pickedHome` is null when the capper took an explicit Draw selection. A tie
+ * with a TEAM selected pushes: SCL requests the two-way
+ * `h2h_1st_N_innings` market, while The Odds API exposes three-way innings
+ * results under separate `h2h_3_way_1st_N_innings` keys SCL does not request.
  */
 export function resolvePeriodMoneyline(
   box: BoxScore,
@@ -88,7 +88,7 @@ export function resolvePeriodMoneyline(
   if (!scores) return null;
   const tied = scores.home === scores.away;
   if (pickedHome === null) return tied ? "WIN" : "LOSS";
-  if (tied) return null;
+  if (tied) return "PUSH";
   return pickedHome === scores.home > scores.away ? "WIN" : "LOSS";
 }
 

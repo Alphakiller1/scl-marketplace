@@ -102,7 +102,7 @@ test("resolvePeriodMoneyline settles an explicit Draw selection", () => {
     awayPeriods: [0, 0, 1, 0, 0],
   };
   assert.equal(resolvePeriodMoneyline(tied, 5, null), "WIN");
-  assert.equal(resolvePeriodMoneyline(tied, 5, true), null); // 2-way vs 3-way unknown
+  assert.equal(resolvePeriodMoneyline(tied, 5, true), "PUSH");
   const decided: BoxScore = {
     homePeriods: [1, 1, 0, 0, 0],
     awayPeriods: [0, 0, 1, 0, 0],
