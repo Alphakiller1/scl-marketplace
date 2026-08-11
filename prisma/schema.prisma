@@ -622,6 +622,17 @@ model OddsUsageDaily {
   @@index([date])
 }
 
+/// Deployment-independent last-good odds snapshots used by the pick maker.
+model OddsCacheSnapshot {
+  key       String   @id
+  payload   Json
+  savedAt   DateTime
+  expiresAt DateTime
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
+}
+
 model GradingAudit {
   id                  String        @id @default(cuid())
   playId              String

@@ -56,11 +56,23 @@ test("server cache is shared across users and retains last-good boards", () => {
     path.join(root, "src/lib/odds-board-cache.ts"),
     "utf8",
   );
+  const durable = fs.readFileSync(
+    path.join(root, "src/lib/odds-durable-cache.ts"),
+    "utf8",
+  );
+  const schema = fs.readFileSync(
+    path.join(root, "prisma/schema.prisma"),
+    "utf8",
+  );
   const route = fs.readFileSync(
     path.join(root, "src/app/api/odds/route.ts"),
     "utf8",
   );
   assert.match(source, /getCache\(\{ namespace: "scl-odds" \}\)/);
+  assert.match(source, /readDurableOddsSnapshot/);
+  assert.match(source, /writeDurableOddsSnapshot/);
+  assert.match(durable, /prisma\.oddsCacheSnapshot\.upsert/);
+  assert.match(schema, /model OddsCacheSnapshot/);
   assert.match(source, /stale_circuit_break/);
   assert.match(source, /stale_provider_failure/);
   assert.match(route, /loadOddsBoard\(sport\)/);
@@ -129,6 +141,8 @@ test("event details retain the last populated prop and period board", () => {
   assert.match(cache, /source: "stale_circuit_break"/);
   assert.match(cache, /source: "stale_provider_failure"/);
   assert.match(cache, /selections: cached\.selections/);
+  assert.match(cache, /readDurableOddsSnapshot/);
+  assert.match(cache, /writeDurableOddsSnapshot/);
   assert.match(route, /loadEventBoard\(sport, eventId\)/);
   assert.match(route, /"Cache-Control": "private, no-store"/);
 });

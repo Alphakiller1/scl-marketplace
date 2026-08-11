@@ -411,15 +411,16 @@ async function fetchExtraSportBoards(
 /** Upcoming games with moneyline + totals for a SCL sport. [] when no key/unsupported. */
 export async function fetchUpcomingOdds(
   sclSport: string,
-  opts?: OddsBoardOpts,
+  opts?: OddsBoardOpts & { apiKeyOverride?: string },
 ): Promise<OddsEvent[]> {
   if (sclSport === "SOCCER") return fetchSoccerBoard(opts);
 
-  const apiKey = oddsApiKey();
+  const apiKeyOverride = opts?.apiKeyOverride?.trim();
+  const apiKey = apiKeyOverride || oddsApiKey();
   const apiSport = toOddsApiSport(sclSport);
   if (!apiKey || !apiSport) return [];
 
-  if (shouldCircuitBreak(lastOddsApiRemaining)) {
+  if (!apiKeyOverride && shouldCircuitBreak(lastOddsApiRemaining)) {
     console.warn(
       `[odds] circuit-breaker active (remaining=${lastOddsApiRemaining}) — skipping uncached board fetch for ${sclSport}`,
     );

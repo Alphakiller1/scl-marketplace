@@ -5,6 +5,10 @@ import { getCache } from "@vercel/functions";
 import { fetchUpcomingOdds, getLastOddsApiRemaining } from "@/lib/odds-api";
 import type { OddsEvent } from "@/lib/odds-board";
 import { shouldCircuitBreak } from "@/lib/odds-budget";
+import {
+  readDurableOddsSnapshot,
+  writeDurableOddsSnapshot,
+} from "@/lib/odds-durable-cache";
 
 /**
  * Board prices are discovery data. Every submitted line is fetched again and
@@ -76,18 +80,18 @@ export function parseOddsBoardSnapshot(
 }
 
 async function readSnapshot(sport: string): Promise<OddsBoardSnapshot | null> {
+  const key = cacheKey(sport);
   try {
-    const value = await getCache({ namespace: "scl-odds" }).get(
-      cacheKey(sport),
-    );
-    return parseOddsBoardSnapshot(value, sport);
+    const value = await getCache({ namespace: "scl-odds" }).get(key);
+    const snapshot = parseOddsBoardSnapshot(value, sport);
+    if (snapshot) return snapshot;
   } catch (error) {
     console.warn("[odds-board-cache] read failed", {
       sport,
       reason: error instanceof Error ? error.message : String(error),
     });
-    return null;
   }
+  return parseOddsBoardSnapshot(await readDurableOddsSnapshot(key), sport);
 }
 
 /** Read the shared board without spending provider credits. Used by health probes. */
@@ -124,6 +128,12 @@ async function writeSnapshot(
     events,
     savedAt: Date.now(),
   };
+  await writeDurableOddsSnapshot(
+    cacheKey(sport),
+    snapshot,
+    snapshot.savedAt,
+    ODDS_BOARD_RETENTION_SECONDS,
+  );
   try {
     await getCache({ namespace: "scl-odds" }).set(cacheKey(sport), snapshot, {
       ttl: ODDS_BOARD_RETENTION_SECONDS,
@@ -138,6 +148,21 @@ async function writeSnapshot(
     });
   }
   return snapshot;
+}
+
+/** Persist an owner-authorized core board into both cache layers. */
+export async function storeOddsBoardEvents(
+  sport: string,
+  events: OddsEvent[],
+): Promise<LoadedOddsBoard> {
+  const normalized = sport.toUpperCase();
+  const saved = await writeSnapshot(normalized, events);
+  return {
+    events: saved.events,
+    source: "provider",
+    savedAt: saved.savedAt,
+    stale: false,
+  };
 }
 
 async function refreshBoard(

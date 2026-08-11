@@ -6,6 +6,10 @@ import { fetchEventBoard, getLastOddsApiRemaining } from "@/lib/odds-api";
 import type { OddsSelection } from "@/lib/odds-board";
 import { shouldCircuitBreak } from "@/lib/odds-budget";
 import {
+  readDurableOddsSnapshot,
+  writeDurableOddsSnapshot,
+} from "@/lib/odds-durable-cache";
+import {
   mergeEventBoardSelections,
   parseEventBoardSnapshot,
   type EventBoardSnapshot,
@@ -37,19 +41,23 @@ async function readSnapshot(
   sport: string,
   eventId: string,
 ): Promise<EventBoardSnapshot | null> {
+  const key = cacheKey(sport, eventId);
   try {
-    const value = await getCache({ namespace: "scl-odds" }).get(
-      cacheKey(sport, eventId),
-    );
-    return parseEventBoardSnapshot(value, sport, eventId);
+    const value = await getCache({ namespace: "scl-odds" }).get(key);
+    const snapshot = parseEventBoardSnapshot(value, sport, eventId);
+    if (snapshot) return snapshot;
   } catch (error) {
     console.warn("[odds-event-cache] read failed", {
       sport,
       eventId,
       reason: error instanceof Error ? error.message : String(error),
     });
-    return null;
   }
+  return parseEventBoardSnapshot(
+    await readDurableOddsSnapshot(key),
+    sport,
+    eventId,
+  );
 }
 
 async function writeSnapshot(
@@ -64,6 +72,12 @@ async function writeSnapshot(
     selections,
     savedAt: Date.now(),
   };
+  await writeDurableOddsSnapshot(
+    cacheKey(sport, eventId),
+    snapshot,
+    snapshot.savedAt,
+    ODDS_EVENT_RETENTION_SECONDS,
+  );
   try {
     await getCache({ namespace: "scl-odds" }).set(
       cacheKey(sport, eventId),
@@ -90,6 +104,21 @@ export async function loadCachedEventBoard(
   eventId: string,
 ): Promise<OddsSelection[]> {
   return (await readSnapshot(sport.toUpperCase(), eventId))?.selections ?? [];
+}
+
+/** Persist owner-authorized detail rows into both cache layers. */
+export async function storeEventBoardSelections(
+  sport: string,
+  eventId: string,
+  selections: OddsSelection[],
+): Promise<EventBoardSnapshot> {
+  const normalizedSport = sport.toUpperCase();
+  const cached = await readSnapshot(normalizedSport, eventId);
+  return writeSnapshot(
+    normalizedSport,
+    eventId,
+    mergeEventBoardSelections(cached?.selections ?? [], selections),
+  );
 }
 
 async function refreshEventBoard(
