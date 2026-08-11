@@ -78,6 +78,30 @@ test("an event-bound play matches the same fixture from a backstop provider", ()
   assert.equal(found?.eventId, "espn:401999001");
 });
 
+test("a legacy bound play missing its fixture label recovers from team and start slot", () => {
+  const found = findGame(
+    play({
+      selection: "Tampa Bay Rays (F5 ML)",
+      eventId: "79a0c1e324175df9d0c7f93de8d4dc44",
+      eventLabel: null,
+      eventStartsAt: new Date("2026-08-09T01:50:00.000Z"),
+    }),
+    [
+      {
+        sport: "MLB",
+        home: "Seattle Mariners",
+        away: "Tampa Bay Rays",
+        homeScore: 2,
+        awayScore: 4,
+        completed: true,
+        eventId: "espn:401999004",
+        startsAt: new Date("2026-08-09T01:52:00.000Z"),
+      },
+    ],
+  );
+  assert.equal(found?.eventId, "espn:401999004");
+});
+
 test("cross-provider matching still rejects an older same-team result", () => {
   const found = findGame(
     play({
@@ -114,8 +138,30 @@ test("cross-provider matching refuses an ambiguous doubleheader", () => {
       eventStartsAt: start,
     }),
     [
-      fixture("401999002", "2026-08-10T19:00:00.000Z"),
-      fixture("401999003", "2026-08-10T22:00:00.000Z"),
+      fixture("401999002", "2026-08-10T19:30:00.000Z"),
+      fixture("401999003", "2026-08-10T20:30:00.000Z"),
+    ],
+  );
+  assert.equal(found, null);
+});
+
+test("a finished doubleheader opener cannot settle a bound nightcap", () => {
+  const found = findGame(
+    play({
+      eventLabel: null,
+      eventStartsAt: new Date("2026-08-10T22:00:00.000Z"),
+    }),
+    [
+      {
+        sport: "MLB",
+        home: "Houston Astros",
+        away: "Texas Rangers",
+        homeScore: 5,
+        awayScore: 1,
+        completed: true,
+        eventId: "espn:401999002",
+        startsAt: new Date("2026-08-10T19:00:00.000Z"),
+      },
     ],
   );
   assert.equal(found, null);

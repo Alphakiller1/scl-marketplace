@@ -211,6 +211,14 @@ function teamsAreOpponents(a: string, b: string, game: SettledGame): boolean {
 const SAME_FIXTURE_WINDOW_MS = 4 * 60 * 60 * 1000;
 
 /**
+ * Bound board events carry the provider's scheduled start, so a cross-provider
+ * join can be much tighter than an imported/free-text date match. Keeping this
+ * below the usual doubleheader gap prevents a finished opener from settling a
+ * still-live nightcap when only the opener exists in the settled pool.
+ */
+const BOUND_CROSS_PROVIDER_WINDOW_MS = 90 * 60 * 1000;
+
+/**
  * Restrict candidates to games plausibly on the same date as the play.
  *
  * Only applies when both sides carry a timestamp. If either is unknown we
@@ -228,6 +236,19 @@ function sameFixtureWindow(
     (g) =>
       !g.startsAt ||
       Math.abs(g.startsAt.getTime() - when.getTime()) <= SAME_FIXTURE_WINDOW_MS,
+  );
+}
+
+function sameBoundFixtureWindow(
+  play: GradablePlay,
+  games: SettledGame[],
+): SettledGame[] {
+  if (!play.eventStartsAt) return [];
+  return games.filter(
+    (game) =>
+      game.startsAt != null &&
+      Math.abs(game.startsAt.getTime() - play.eventStartsAt!.getTime()) <=
+        BOUND_CROSS_PROVIDER_WINDOW_MS,
   );
 }
 
@@ -265,22 +286,32 @@ export function findGame(
     // Provider ids are not portable: The Odds API stores a hexadecimal id on
     // the play while ESPN returns the same fixture under a numeric id. When the
     // paid provider is unavailable, require all of the independent fixture
-    // evidence the board stored (start time + both clubs) before accepting the
-    // free scoreboard copy. This preserves the live-game protection above: an
-    // unfinished fixture is absent from the settled pool, an older same-team
-    // game falls outside the four-hour window, and a doubleheader is ambiguous.
+    // evidence the board stored before accepting the free scoreboard copy. New
+    // rows carry the full fixture. A short-lived legacy board bug omitted that
+    // label, so those rows may recover from the named selection/side only when
+    // one settled game occupies the same tight scheduled-start slot.
     const fixture =
       play.homeTeam && play.awayTeam
         ? { a: play.homeTeam, b: play.awayTeam }
         : play.eventLabel
           ? parseEventLabel(play.eventLabel)
           : null;
-    if (!play.eventStartsAt || !fixture) return null;
-    const crossProvider = sameFixtureWindow(play, bySport).filter(
-      (game) =>
-        game.startsAt != null && teamsAreOpponents(fixture.a, fixture.b, game),
-    );
-    return sole(crossProvider);
+    const sameSlot = sameBoundFixtureWindow(play, bySport);
+    if (fixture) {
+      return sole(
+        sameSlot.filter((game) =>
+          teamsAreOpponents(fixture.a, fixture.b, game),
+        ),
+      );
+    }
+
+    const namedTeam = sameSlot.filter((game) => {
+      const text = `${play.selection} ${play.side ?? ""}`;
+      const pickedHome = mentions(text, game.home, game.sport);
+      const pickedAway = mentions(text, game.away, game.sport);
+      return pickedHome !== pickedAway;
+    });
+    return sole(namedTeam);
   }
 
   // Plays with no eventId — every imported legacy pick — still reach the name
