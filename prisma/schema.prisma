@@ -495,9 +495,9 @@ enum PickStatus {
   COMMITTED
 }
 
-// Public trust tier surfaced on the leaderboard. VERIFIED = event-bound, logged
-// pre-game, and claimed odds within tolerance of the market. AUTO_VERIFIED is the
-// same bar reached through an authorized connector. SELF_REPORTED = everything else.
+// Public trust tier surfaced on the leaderboard. VERIFIED = a confirmed manual
+// board selection logged pre-game. AUTO_VERIFIED is the same bar reached through
+// an authorized connector. SELF_REPORTED is reserved for legacy/imported records.
 enum VerificationTier {
   AUTO_VERIFIED
   VERIFIED
@@ -549,7 +549,7 @@ model Play {
   side             String? // structured side: team, Over/Under (C2)
   source           PickSource       @default(MANUAL) // provenance (C5)
   sourceRef        String? // permalink to the originating post, when imported (C5)
-  oddsVerified     Boolean          @default(false) // claimed price within tolerance (C3)
+  oddsVerified     Boolean          @default(false) // confirmed board price or connector-authenticated price (C3)
   verificationTier VerificationTier @default(SELF_REPORTED) // public trust tier (M2-3)
   status           PickStatus       @default(COMMITTED) // DRAFT is editable; COMMITTED is locked (C4)
 

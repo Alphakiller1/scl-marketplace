@@ -12,8 +12,8 @@
  *
  * Comparison is in IMPLIED-PROBABILITY space because American odds are non-linear (+100→+110 and
  * −110→−120 are unequal moves). "Best available" = the most bettor-favorable price across all
- * covered US books for the exact { market, side, line }. Unverifiable (uncovered book/market) is
- * never a rejection — the caller marks it SELF-REPORTED.
+ * covered US books for the exact { market, side, line }. This bound remains available for
+ * authorized import paths; manual SCL board selections are confirmed at selection time.
  */
 
 import {
@@ -446,7 +446,9 @@ export type PickSourceKind =
 
 /** Public trust tier — mirrors the Prisma `VerificationTier` enum. */
 export type VerificationTierValue =
-  "AUTO_VERIFIED" | "VERIFIED" | "SELF_REPORTED";
+  | "AUTO_VERIFIED"
+  | "VERIFIED"
+  | "SELF_REPORTED";
 
 export type PickIntegrityInput = {
   now: Date;
@@ -475,11 +477,11 @@ export type PickIntegrityDecision =
  *
  *   C1 — a known start time that has already passed (no post-game logging, ever).
  *   C2 — the pick is bound to a known event and structured selection.
- *   C3 — when available, the submitted odds can be authenticated and labeled VERIFIED.
+ *   C3 — a manual board selection is confirmed from the captured board payload and labeled
+ *        VERIFIED; authorized imports still require a successful odds check.
  *
- * Missing, moved, unavailable, or rejected odds never block a pre-game board selection; those
- * records are honestly labeled SELF_REPORTED. The same verified bar reached through an authorized
- * connector is AUTO_VERIFIED.
+ * Missing, moved, unavailable, or rejected follow-up odds never downgrade a confirmed manual
+ * board selection. The same verified bar reached through an authorized connector is AUTO_VERIFIED.
  */
 export function decidePickIntegrity(
   input: PickIntegrityInput,
@@ -502,6 +504,15 @@ export function decidePickIntegrity(
       reason: "Select a pre-game line from the SCL odds board.",
     };
   }
+  if (source === "MANUAL") {
+    return {
+      accept: true,
+      loggedPreGame,
+      oddsVerified: true,
+      tier: "VERIFIED",
+    };
+  }
+
   if (!verify || verify.status !== "verified") {
     return {
       accept: true,
@@ -511,7 +522,10 @@ export function decidePickIntegrity(
     };
   }
 
-  const tier = source === "MANUAL" ? "VERIFIED" : "AUTO_VERIFIED";
-
-  return { accept: true, loggedPreGame, oddsVerified: true, tier };
+  return {
+    accept: true,
+    loggedPreGame,
+    oddsVerified: true,
+    tier: "AUTO_VERIFIED",
+  };
 }

@@ -22,6 +22,7 @@ const betSlip = readFileSync(
 test("straight and bulk pick submission never call or import the odds provider", () => {
   assert.doesNotMatch(playAction, /from ["']@\/lib\/odds-api["']/);
   assert.doesNotMatch(playAction, /\b(?:fetchLiveLine|verifyPick)\s*\(/);
+  assert.match(playAction, /confirmBoardSelection\s*\(/);
   assert.match(playAction, /verify:\s*null/);
   assert.match(playAction, /oddsAmerican:\s*d\.oddsAmerican/);
   assert.match(playAction, /selectedOddsAmerican:\s*d\.oddsAmerican/);
@@ -30,6 +31,7 @@ test("straight and bulk pick submission never call or import the odds provider",
 test("parlay submission never calls or imports the odds provider", () => {
   assert.doesNotMatch(parlayAction, /from ["']@\/lib\/odds-api["']/);
   assert.doesNotMatch(parlayAction, /\b(?:fetchLiveLine|verifyPick)\s*\(/);
+  assert.match(parlayAction, /confirmBoardSelection\s*\(/);
   assert.match(parlayAction, /verify:\s*null/);
   assert.match(parlayAction, /oddsAmerican:\s*l\.oddsAmerican/);
   assert.match(parlayAction, /selectedOddsAmerican:\s*l\.oddsAmerican/);

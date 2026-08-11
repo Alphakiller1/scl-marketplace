@@ -194,21 +194,3 @@ export function booksOnBoard(
   }
   return BOOK_KEYS.filter((b) => seen.has(b));
 }
-
-/**
- * The book whose price the board shows, or null for best-available.
- *
- * Null is the default on purpose. Pinning the capper's first book means every
- * market that book doesn't price renders as an unpriced, unclickable chip — the
- * line reads as missing when it is merely absent at one shop. A parlay's locked
- * book still wins, because all legs must come from one book.
- */
-export function activeRailBook(opts: {
-  chosen?: string | null;
-  lockedBook?: string | null;
-}): string | null {
-  const locked = opts.lockedBook;
-  if (locked && isBookKey(locked)) return locked;
-  const chosen = opts.chosen;
-  return chosen && isBookKey(chosen) ? chosen : null;
-}

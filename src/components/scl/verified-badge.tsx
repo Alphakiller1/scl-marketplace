@@ -81,7 +81,7 @@ export function VerifiedBadge({
           : "text-muted-foreground border border-[color:var(--scl-line)]",
         className,
       )}
-      aria-label={verified ? "Odds-Verified Pick" : "Odds Not Verified"}
+      aria-label={verified ? "Verified Pick" : "Recorded Pick"}
     >
       {verified ? (
         <ShieldCheck
@@ -89,7 +89,7 @@ export function VerifiedBadge({
           aria-hidden
         />
       ) : null}
-      {verified ? "Odds Verified" : "Odds Not Verified"}
+      {verified ? "Verified" : "Recorded"}
     </span>
   );
 }

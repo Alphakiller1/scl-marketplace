@@ -559,7 +559,7 @@ function ExpandedEvidence({
           />
           <AuditRow
             label="Submission Proof"
-            value={boardVerified ? "Odds verified" : "Odds not verified"}
+            value={boardVerified ? "Verified" : "Recorded"}
           />
           <AuditRow
             label="Settlement"

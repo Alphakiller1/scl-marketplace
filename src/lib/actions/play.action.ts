@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { assertAnalysisSafe } from "@/lib/analysis-moderation";
+import { confirmBoardSelection } from "@/lib/board-selection-confirmation";
 import {
   buildBulkSinglesReceipt,
   shapeBulkSinglesOutcome,
@@ -60,10 +61,12 @@ async function playCreateData(data: ReadyPlayData) {
 }
 
 export type PlayResult =
-  { ok: true; receipt: StraightReceipt } | { ok: false; error: string };
+  | { ok: true; receipt: StraightReceipt }
+  | { ok: false; error: string };
 
 export type CreatePlaysResult =
-  { ok: true; receipt: BulkSinglesReceipt } | { ok: false; error: string };
+  | { ok: true; receipt: BulkSinglesReceipt }
+  | { ok: false; error: string };
 
 type AccountGate = { ok: true; userId: string } | { ok: false; error: string };
 
@@ -117,9 +120,9 @@ type ReadyWrite = {
  * Shared per-line validation body (createPlay / createPlays).
  *
  * Submission deliberately does not call the odds provider or re-price the line.
- * A board selection is captured exactly as the user selected it and recorded as
- * SELF_REPORTED. This keeps pick logging available when odds move, a market is
- * suspended, or the provider is unavailable.
+ * Manual entry is disabled, so a structured pre-game board selection is captured
+ * exactly as selected and recorded as VERIFIED. This keeps pick logging available
+ * when odds move, a market is suspended, or the provider is unavailable.
  * Does not write — caller persists ReadyWrite rows.
  */
 async function preparePlayLine(
@@ -189,6 +192,27 @@ async function preparePlayLine(
     player: d.player,
   });
   const captureBook = d.book && isBookKey(d.book) ? d.book : null;
+  const boardConfirmed = await confirmBoardSelection({
+    sport: d.sport,
+    eventId: d.eventId,
+    eventStartsAt,
+    market: d.market,
+    side: d.side,
+    line: d.line,
+    player: d.player,
+    oddsAmerican: d.oddsAmerican,
+    book: captureBook,
+  });
+  if (!boardConfirmed) {
+    return {
+      status: "error",
+      error:
+        "This line could not be confirmed from the SCL board. Reopen the matchup and select it again.",
+      moveKey: key,
+      selection: d.selection,
+      market: d.market,
+    };
+  }
 
   const decision = decidePickIntegrity({
     now: opts.now,

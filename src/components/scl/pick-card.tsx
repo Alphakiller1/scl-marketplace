@@ -118,7 +118,7 @@ function CapperTicketFooter({ pick }: { pick: TodayPick }) {
   );
 }
 
-/** Today's-pick card — Ticket signature for every pick (verified + self-reported). */
+/** Today's-pick card — Ticket signature for verified and legacy recorded picks. */
 export function PickCard({
   pick,
   compact = false,

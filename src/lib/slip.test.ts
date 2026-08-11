@@ -170,7 +170,7 @@ test("different games same market allowed", () => {
   assert.equal(canAddLeg([game1], game2), true);
 });
 
-test("parlay rejects a leg from a different sportsbook", () => {
+test("parlay allows legs from different sportsbooks", () => {
   const draftKings = leg({
     eventId: "evt-1",
     market: "Moneyline",
@@ -184,11 +184,11 @@ test("parlay rejects a leg from a different sportsbook", () => {
     book: "fanduel",
   });
   const conflict = findConflict([draftKings], fanDuel);
-  assert.equal(conflict?.kind, "book");
-  assert.match(conflict?.message ?? "", /locked to draftkings/i);
+  assert.equal(conflict, null);
+  assert.equal(canAddLeg([draftKings], fanDuel), true);
 });
 
-test("mode switch surfaces mixed-sportsbook parlay legs", () => {
+test("mode switch does not flag mixed-sportsbook parlay legs", () => {
   const conflicts = findInternalParlayConflicts([
     leg({ market: "Moneyline", side: "Lakers", book: "draftkings" }),
     leg({
@@ -198,8 +198,7 @@ test("mode switch surfaces mixed-sportsbook parlay legs", () => {
       book: "fanduel",
     }),
   ]);
-  assert.equal(conflicts.length, 1);
-  assert.match(conflicts[0]!.message, /one sportsbook/i);
+  assert.equal(conflicts.length, 0);
 });
 
 test("different market families on same game are allowed", () => {

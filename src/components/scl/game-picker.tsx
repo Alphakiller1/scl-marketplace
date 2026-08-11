@@ -10,9 +10,7 @@ import { EventDetail, type OddsPick } from "@/components/scl/odds-assist";
 import { LeagueMark } from "@/components/scl/league-mark";
 import { SkeletonCard } from "@/components/scl/states";
 import { TeamMark } from "@/components/scl/team-mark";
-import { bookShort } from "@/lib/books";
 import {
-  activeRailBook,
   categoryCounts,
   filterGamePickerEvents,
   ODDS_BOARD_REQUEST_TIMEOUT_MS,
@@ -50,14 +48,11 @@ const EMPTY_SLATE_RETRY_MS = 15_000;
 export function GamePicker({
   onPick,
   selectedKeys,
-  lockedBook,
   onRequestCoverage,
   className,
 }: {
   onPick: (pick: OddsPick) => void;
   selectedKeys?: Set<string>;
-  /** A parlay's first leg locks every later leg to the same sportsbook. */
-  lockedBook?: string | null;
   /** Interest only — must not create a pick. */
   onRequestCoverage?: (ctx: {
     search: string;
@@ -120,11 +115,6 @@ export function GamePicker({
       if (retryTimer) clearTimeout(retryTimer);
     };
   }, []);
-
-  // Temporary simplified board: singles always show the best attributed price
-  // across covered books. Parlays retain their first-leg book lock because a
-  // multi-book parlay cannot exist at a real sportsbook.
-  const activeBook = activeRailBook({ lockedBook });
 
   // Pre-game only, everywhere. Day defaults, counts, cards, and the expanded
   // matchup all read from this list so a started game is never selectable.
@@ -238,9 +228,7 @@ export function GamePicker({
           Source Price
         </p>
         <p className="scl-data inline-flex min-h-8 items-center rounded-full border border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] px-3 text-[10px] font-semibold tracking-[0.08em] text-[color:var(--scl-blue-ink)] uppercase">
-          {activeBook
-            ? `Parlay locked · ${bookShort(activeBook)}`
-            : "Best available · all books"}
+          Best available · all books
         </p>
       </div>
 
@@ -349,7 +337,6 @@ export function GamePicker({
                     detail={detail[e.id]}
                     onPick={onPick}
                     selectedKeys={selectedKeys}
-                    activeBook={activeBook}
                   />
                 ) : null}
               </li>

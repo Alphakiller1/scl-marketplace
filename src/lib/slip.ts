@@ -37,7 +37,6 @@ export type SlipMode = "singles" | "parlay";
 
 export type SlipConflictKind =
   | "duplicate"
-  | "book"
   | "moneyline"
   | "spread"
   | "total"
@@ -108,7 +107,7 @@ export function conflictKey(p: {
 
 function conflictKindFor(
   market: string,
-): Exclude<SlipConflictKind, "duplicate" | "book"> {
+): Exclude<SlipConflictKind, "duplicate"> {
   if (market === "Moneyline") return "moneyline";
   if (market === "Spread") return "spread";
   if (market === "Total") return "total";
@@ -116,7 +115,7 @@ function conflictKindFor(
 }
 
 function conflictMessage(
-  kind: Exclude<SlipConflictKind, "duplicate" | "book">,
+  kind: Exclude<SlipConflictKind, "duplicate">,
   market: string,
 ): string {
   switch (kind) {
@@ -152,15 +151,6 @@ export function findConflict(
         message: "That leg is already in your slip",
       };
     }
-  }
-
-  const lockedBook = existingLegs.find((leg) => leg.book)?.book;
-  if (lockedBook && pick.book && pick.book !== lockedBook) {
-    return {
-      kind: "book",
-      index: existingLegs.findIndex((leg) => leg.book === lockedBook),
-      message: `This parlay is locked to ${lockedBook}. Remove its legs before choosing another sportsbook.`,
-    };
   }
 
   for (let i = 0; i < existingLegs.length; i++) {
@@ -253,14 +243,6 @@ export function findInternalParlayConflicts(
       const a = selections[i]!;
       const b = selections[j]!;
       if (pickKey(a) === pickKey(b)) continue;
-      if (a.book && b.book && a.book !== b.book) {
-        out.push({
-          a: i,
-          b: j,
-          message: `Parlay legs must use one sportsbook. ${a.book} and ${b.book} cannot be combined.`,
-        });
-        continue;
-      }
       if (conflictKey(a) !== conflictKey(b)) continue;
       const kind = conflictKindFor(b.market);
       out.push({ a: i, b: j, message: conflictMessage(kind, b.market) });

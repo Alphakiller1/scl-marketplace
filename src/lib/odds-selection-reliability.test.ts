@@ -158,6 +158,26 @@ test("today's pick board exposes only best-available pricing", () => {
   assert.match(source, /Best available · all books/);
   assert.doesNotMatch(source, /function BookRail/);
   assert.doesNotMatch(source, /setBookChoice/);
+  assert.doesNotMatch(source, /lockedBook/);
+  assert.doesNotMatch(source, /Parlay locked/);
+});
+
+test("confirmed picks never render an Odds Not Verified designation", () => {
+  const verification = fs.readFileSync(
+    path.join(root, "src/lib/verification.ts"),
+    "utf8",
+  );
+  const badge = fs.readFileSync(
+    path.join(root, "src/components/scl/verified-badge.tsx"),
+    "utf8",
+  );
+  const ledger = fs.readFileSync(
+    path.join(root, "src/components/scl/public-picks-ledger.tsx"),
+    "utf8",
+  );
+  const publicCopy = `${verification}\n${badge}\n${ledger}`;
+  assert.doesNotMatch(publicCopy, /odds not verified/i);
+  assert.match(badge, /verified \? "Verified" : "Recorded"/);
 });
 
 test("event details retain the last populated prop and period board", () => {

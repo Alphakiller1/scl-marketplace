@@ -42,7 +42,7 @@ export function VerificationBadge({
 
 /**
  * Per-pick trust tier (pick integrity, §C3/M2-3). Verified/auto-verified read as a positive
- * signal; self-reported is deliberately neutral — it counts, but isn't market-checked.
+ * signal; legacy or imported records use a neutral Recorded designation.
  */
 export function PickTierBadge({
   tier,

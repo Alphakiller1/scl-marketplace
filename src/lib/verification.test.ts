@@ -22,22 +22,16 @@ test("isVerifiedTier: only VERIFIED and AUTO_VERIFIED clear the bar", () => {
   assert.equal(isVerifiedTier("SELF_REPORTED"), false);
 });
 
-test("verificationTierMeta uses the public Odds Verification terminology", () => {
+test("verificationTierMeta uses verified or neutral recorded terminology", () => {
   assert.equal(verificationTierMeta("VERIFIED").tone, "verified");
   assert.equal(verificationTierMeta("AUTO_VERIFIED").tone, "verified");
   assert.equal(verificationTierMeta("SELF_REPORTED").tone, "muted");
   assert.equal(verificationTierMeta("VERIFIED").short, "Odds Verified");
-  assert.equal(
-    verificationTierMeta("SELF_REPORTED").short,
-    "Not Odds Verified",
-  );
-  assert.equal(
-    verificationTierMeta("SELF_REPORTED").label,
-    "Odds Not Verified",
-  );
+  assert.equal(verificationTierMeta("SELF_REPORTED").short, "Recorded");
+  assert.equal(verificationTierMeta("SELF_REPORTED").label, "Recorded Pick");
   assert.match(
     verificationTierMeta("SELF_REPORTED").description,
-    /without a stored market-price check/i,
+    /legacy or imported/i,
   );
 });
 
@@ -70,7 +64,7 @@ test("submissionReceiptCopy: verified straight pick", () => {
   assert.equal(copy.tone, "verified");
 });
 
-test("submissionReceiptCopy: self-reported straight does not claim verified", () => {
+test("submissionReceiptCopy: legacy straight uses neutral recorded language", () => {
   const copy = submissionReceiptCopy({
     kind: "straight",
     selection: "Lakers -4.5",
@@ -82,7 +76,8 @@ test("submissionReceiptCopy: self-reported straight does not claim verified", ()
     tier: "SELF_REPORTED",
   });
   assert.equal(copy.headline, "Pick Submitted");
-  assert.match(copy.statusLine, /not verified/i);
+  assert.match(copy.statusLine, /recorded pre-game/i);
+  assert.doesNotMatch(copy.statusLine, /not verified/i);
   assert.equal(copy.tone, "muted");
   assert.doesNotMatch(copy.headline, /verified/i);
 });
@@ -116,5 +111,6 @@ test("submissionReceiptCopy: mixed-tier parlay stays honest", () => {
   });
   assert.equal(copy.headline, "Parlay Submitted");
   assert.match(copy.statusLine, /2 of 3 legs odds-verified/i);
+  assert.doesNotMatch(copy.statusLine, /not verified/i);
   assert.equal(copy.tone, "muted");
 });

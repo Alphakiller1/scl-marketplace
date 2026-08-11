@@ -37,9 +37,8 @@ export const playSchema = z.object({
   notesPublic: z.boolean().optional().default(true),
   packageIds: z.array(z.string().min(1)).max(10).optional().default([]),
 
-  // Pick-integrity binding
-  // supplies them for the strict/verified path; a legacy free-text pick omits them and lands as
-  // SELF_REPORTED. The server never trusts these — it re-derives the lock and re-fetches odds.
+  // Pick-integrity binding. The board supplies these for the confirmed VERIFIED path;
+  // the server rejects submissions that omit them and re-derives the pre-game lock.
   eventId: optionalText(64),
   eventLabel: optionalText(160),
   eventStartsAt: z

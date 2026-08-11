@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { settleParlay } from "@/lib/grading";
 import { profitUnitsEqual } from "@/lib/grading-correction";
 import { isBookKey } from "@/lib/books";
+import { confirmBoardSelection } from "@/lib/board-selection-confirmation";
 import { decidePickIntegrity } from "@/lib/odds-verify";
 import {
   americanToDecimal,
@@ -73,8 +74,8 @@ export async function createParlay(
   const now = new Date();
 
   // Every leg must be board-bound and pre-game, but submission never re-prices
-  // a selected line or depends on the odds provider. The selected prices are
-  // captured exactly as shown and labeled SELF_REPORTED.
+  // a selected line or depends on the odds provider. Manual entry is disabled,
+  // so selected board prices are captured exactly as shown and labeled VERIFIED.
   const decided: Array<{
     leg: (typeof d.legs)[number];
     eventStartsAt: Date;
@@ -99,6 +100,24 @@ export async function createParlay(
       return {
         ok: false,
         error: `Leg ${i + 1}: this event has already started. SCL only accepts pre-game picks — no live betting.`,
+      };
+    }
+    const captureBook = l.book && isBookKey(l.book) ? l.book : null;
+    const boardConfirmed = await confirmBoardSelection({
+      sport: l.sport,
+      eventId: l.eventId,
+      eventStartsAt,
+      market: l.market,
+      side: l.side,
+      line: l.line,
+      player: l.player,
+      oddsAmerican: l.oddsAmerican,
+      book: captureBook,
+    });
+    if (!boardConfirmed) {
+      return {
+        ok: false,
+        error: `Leg ${i + 1}: this line could not be confirmed from the SCL board. Reopen the matchup and select it again.`,
       };
     }
     const decision = decidePickIntegrity({

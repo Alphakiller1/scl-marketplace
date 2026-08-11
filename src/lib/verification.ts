@@ -43,10 +43,10 @@ export const VERIFICATION_TIER_META: Record<
     tone: "verified",
   },
   SELF_REPORTED: {
-    label: "Odds Not Verified",
-    short: "Not Odds Verified",
+    label: "Recorded Pick",
+    short: "Recorded",
     description:
-      "Historical entry without a stored market-price check. Its result can still be graded and shown in the public record.",
+      "A legacy or imported selection stored without an SCL board confirmation. It remains in the public record and grades normally.",
     tone: "muted",
   },
 };
@@ -220,7 +220,7 @@ export function submissionReceiptCopy(receipt: SubmissionReceipt): ReceiptCopy {
       summary: `${receipt.selection} ${odds}`,
       context: receipt.market,
       statusLine:
-        "Odds were not verified against a stored market snapshot; the result will still be graded",
+        "Selection recorded pre-game; the result will still be graded",
       gradingLine: "Still graded automatically after the event settles",
       tone: "muted",
     };
@@ -251,8 +251,7 @@ export function submissionReceiptCopy(receipt: SubmissionReceipt): ReceiptCopy {
       headline: "Parlay Submitted",
       summary,
       context: null,
-      statusLine:
-        "Odds were not verified on every leg; the result will still be graded",
+      statusLine: "All legs were recorded; the result will still be graded",
       gradingLine: "Still graded automatically after results settle",
       tone: "muted",
     };

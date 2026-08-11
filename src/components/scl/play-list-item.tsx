@@ -214,7 +214,9 @@ export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
   const source =
     legBooks.length === 1
       ? oddsSourceBoardLabel(legBooks[0]!)
-      : oddsSourceBoardLabel(null);
+      : legBooks.length > 1
+        ? oddsSourceBoardLabel("Mixed Books")
+        : oddsSourceBoardLabel(null);
 
   return (
     <div className="border-border bg-card overflow-hidden rounded-xl border p-3.5">
@@ -317,7 +319,11 @@ export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
           </p>
           <ProofReceipt
             selectionTitle={`${parlay.legs.length}-Leg Parlay\n${parlay.legs.map((leg) => leg.selection).join(" · ")}`}
-            eventLine="All legs captured from one sportsbook"
+            eventLine={
+              legBooks.length > 1
+                ? "Legs captured from multiple sportsbooks"
+                : "All legs captured from one sportsbook"
+            }
             legs={parlay.legs.length}
             odds={
               parlay.combinedOddsAmerican == null
@@ -342,7 +348,13 @@ export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
                     })()
             }
             capturedAt={parlay.createdAt.toISOString()}
-            book={legBooks.length === 1 ? legBooks[0] : null}
+            book={
+              legBooks.length === 1
+                ? legBooks[0]
+                : legBooks.length > 1
+                  ? "Mixed Books"
+                  : null
+            }
             state={receiptState(
               parlay.outcome,
               parlay.eventStartsAt,
