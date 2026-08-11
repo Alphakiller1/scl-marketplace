@@ -39,6 +39,8 @@ type SlateState = {
   stale?: boolean;
 };
 
+const EMPTY_SLATE_RETRY_MS = 15_000;
+
 /**
  * Shared game browser for straight + parlay (M4 PR-3).
  * Multi-sport slate · day toggle · search · category pills with counts · best price ·
@@ -77,35 +79,47 @@ export function GamePicker({
 
   useEffect(() => {
     let cancelled = false;
-    loadOddsSlate()
-      .then((data) => {
-        if (cancelled) return;
-        setSlate({
-          events: data.events,
-          configured: data.configured,
-          warning: data.meta?.warning,
-          stale: data.meta?.stale,
-          failed:
-            data.events.length === 0 && data.meta?.warning === "circuit_break",
-        });
-      })
-      .catch((error: unknown) => {
-        console.warn("[odds-board] slate request failed", {
-          reason: error instanceof Error ? error.name : "unknown",
-        });
-        if (!cancelled) {
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const requestSlate = () => {
+      loadOddsSlate()
+        .then((data) => {
+          if (cancelled) return;
           setSlate({
-            events: [],
-            configured: true,
-            failed: true,
+            events: data.events,
+            configured: data.configured,
+            warning: data.meta?.warning,
+            stale: data.meta?.stale,
+            failed:
+              data.events.length === 0 &&
+              data.meta?.warning === "circuit_break",
           });
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+          if (data.configured && data.events.length === 0) {
+            retryTimer = setTimeout(requestSlate, EMPTY_SLATE_RETRY_MS);
+          }
+        })
+        .catch((error: unknown) => {
+          console.warn("[odds-board] slate request failed", {
+            reason: error instanceof Error ? error.name : "unknown",
+          });
+          if (!cancelled) {
+            setSlate({
+              events: [],
+              configured: true,
+              failed: true,
+            });
+            retryTimer = setTimeout(requestSlate, EMPTY_SLATE_RETRY_MS);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    };
+
+    requestSlate();
     return () => {
       cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
     };
   }, []);
 

@@ -51,6 +51,26 @@ test("a receipt remount reuses the same browser slate request", async () => {
   resetOddsSlateClientCache();
 });
 
+test("an empty picker slate is not pinned in the browser", async () => {
+  resetOddsSlateClientCache();
+  let calls = 0;
+  const fetchImpl: typeof fetch = async () => {
+    calls += 1;
+    return Response.json({
+      events: [],
+      configured: true,
+      books: [],
+      meta: { warning: "no_upcoming_events" },
+    });
+  };
+
+  await loadOddsSlate(fetchImpl);
+  await loadOddsSlate(fetchImpl);
+
+  assert.equal(calls, 2);
+  resetOddsSlateClientCache();
+});
+
 test("server cache is shared across users and retains last-good boards", () => {
   const source = fs.readFileSync(
     path.join(root, "src/lib/odds-board-cache.ts"),

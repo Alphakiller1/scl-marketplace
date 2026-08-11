@@ -41,11 +41,9 @@ export async function loadOddsSlate(
       if (!validPayload(payload)) {
         throw new Error("Odds slate response was malformed");
       }
-      // Never pin a circuit-breaker empty response in the browser.
-      if (
-        payload.events.length > 0 ||
-        payload.meta?.warning === "no_upcoming_events"
-      ) {
+      // Never pin an empty response in the browser. The server may recover its
+      // durable board while this picker remains mounted.
+      if (payload.events.length > 0) {
         cached = { payload, savedAt: Date.now() };
       }
       return payload;
