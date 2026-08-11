@@ -34,7 +34,10 @@ import {
   resolvePlayerProp,
   type PlayerBoxScore,
 } from "@/lib/results/player-props";
-import type { ResultsProvider } from "@/lib/results/provider";
+import type {
+  ResultsProvider,
+  ResultsQueryScope,
+} from "@/lib/results/provider";
 import { hasClvColumns } from "@/lib/results/schema-features";
 import {
   classifySkipReason,
@@ -60,6 +63,21 @@ type GradeBatch = {
 };
 
 type PlayerBoxCache = Map<string, Promise<PlayerBoxScore | null>>;
+
+function resultsQueryScopeFor(
+  plays: readonly { sport: string; league?: string | null }[],
+): ResultsQueryScope {
+  return {
+    soccerLeagues: [
+      ...new Set(
+        plays
+          .filter((play) => play.sport === "SOCCER")
+          .map((play) => play.league?.trim())
+          .filter((league): league is string => Boolean(league)),
+      ),
+    ],
+  };
+}
 
 function cachedPlayerBox(
   cache: PlayerBoxCache,
@@ -366,7 +384,10 @@ async function gradeStraightPlays(
   }
 
   const sports = [...new Set(pending.map((p) => p.sport))];
-  const games = await provider.fetchSettledForSports(sports);
+  const games = await provider.fetchSettledForSports(
+    sports,
+    resultsQueryScopeFor(pending),
+  );
   let graded = 0;
 
   for (const play of pending) {
@@ -457,6 +478,7 @@ async function gradeParlayLegs(
         awayTeam: true,
         side: true,
         line: true,
+        league: true,
       },
       take: 500,
     })
@@ -476,7 +498,10 @@ async function gradeParlayLegs(
   }
 
   const sports = [...new Set(pending.map((p) => p.sport))];
-  const games = await provider.fetchSettledForSports(sports);
+  const games = await provider.fetchSettledForSports(
+    sports,
+    resultsQueryScopeFor(pending),
+  );
   let graded = 0;
 
   for (const play of pending) {
