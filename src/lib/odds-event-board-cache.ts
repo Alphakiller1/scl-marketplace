@@ -84,6 +84,14 @@ async function writeSnapshot(
   return snapshot;
 }
 
+/** Read an event snapshot without spending provider credits. */
+export async function loadCachedEventBoard(
+  sport: string,
+  eventId: string,
+): Promise<OddsSelection[]> {
+  return (await readSnapshot(sport.toUpperCase(), eventId))?.selections ?? [];
+}
+
 async function refreshEventBoard(
   sport: string,
   eventId: string,
