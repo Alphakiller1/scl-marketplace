@@ -148,7 +148,9 @@ export type ParlayReceipt = {
 };
 
 export type SubmissionReceipt =
-  StraightReceipt | ParlayReceipt | BulkSinglesReceipt;
+  | StraightReceipt
+  | ParlayReceipt
+  | BulkSinglesReceipt;
 
 /** Presentation strings for the post-submit confirmation card. */
 export type ReceiptCopy = {

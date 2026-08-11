@@ -36,7 +36,11 @@ export type SlipSelection = SlipPick & {
 export type SlipMode = "singles" | "parlay";
 
 export type SlipConflictKind =
-  "duplicate" | "moneyline" | "spread" | "total" | "player_prop";
+  | "duplicate"
+  | "moneyline"
+  | "spread"
+  | "total"
+  | "player_prop";
 
 export type SlipConflict = {
   kind: SlipConflictKind;

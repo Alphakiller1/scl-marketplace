@@ -61,10 +61,12 @@ async function playCreateData(data: ReadyPlayData) {
 }
 
 export type PlayResult =
-  { ok: true; receipt: StraightReceipt } | { ok: false; error: string };
+  | { ok: true; receipt: StraightReceipt }
+  | { ok: false; error: string };
 
 export type CreatePlaysResult =
-  { ok: true; receipt: BulkSinglesReceipt } | { ok: false; error: string };
+  | { ok: true; receipt: BulkSinglesReceipt }
+  | { ok: false; error: string };
 
 type AccountGate = { ok: true; userId: string } | { ok: false; error: string };
 

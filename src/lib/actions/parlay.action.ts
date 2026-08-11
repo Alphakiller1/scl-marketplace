@@ -25,7 +25,8 @@ import { isVerifiedTier, type ParlayReceipt } from "@/lib/verification";
 
 type Result = { ok: true } | { ok: false; error: string };
 export type CreateParlayResult =
-  { ok: true; receipt: ParlayReceipt } | { ok: false; error: string };
+  | { ok: true; receipt: ParlayReceipt }
+  | { ok: false; error: string };
 
 /** Capper logs a multi-leg parlay. Stake lives on the parlay; legs are components. */
 export async function createParlay(
