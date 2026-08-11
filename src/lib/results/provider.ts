@@ -194,7 +194,16 @@ export function compositeResultsProvider(
         primary.fetchSettledForSports(sports),
         secondary.fetchSettledForSports(sports),
       ]);
-      return mergeSettledGames(a, b);
+      const merged = mergeSettledGames(a, b);
+      console.info("[results] provider batch", {
+        sports,
+        primary: primary.name,
+        primaryCount: a.length,
+        secondary: secondary.name,
+        secondaryCount: b.length,
+        mergedCount: merged.length,
+      });
+      return merged;
     },
   };
 }

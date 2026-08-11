@@ -35,10 +35,19 @@ test("isAgedOut: boundary — exactly at cutoff is not aged out", () => {
   assert.equal(isAgedOut(new Date(cutoff.getTime() - 1), NOW), true);
 });
 
-test("classifySkipReason: props_deferred", () => {
+test("classifySkipReason: a prop without a settled fixture is event_not_found", () => {
   const reason = classifySkipReason({
     play: play({ market: "Player Prop", selection: "Player Points 25.5" }),
     gameFound: false,
+    now: NOW,
+  });
+  assert.equal(reason, "event_not_found");
+});
+
+test("classifySkipReason: props_deferred only after its fixture is found", () => {
+  const reason = classifySkipReason({
+    play: play({ market: "Player Prop", selection: "Player Points 25.5" }),
+    gameFound: true,
     now: NOW,
   });
   assert.equal(reason, "props_deferred");

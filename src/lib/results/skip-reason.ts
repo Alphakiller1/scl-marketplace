@@ -54,14 +54,13 @@ export function classifySkipReason(opts: {
   now: Date;
   lookbackDays?: number;
 }): SkipReason {
-  if (isDeferredProp(opts.play)) return "props_deferred";
-  if (
-    isAgedOut(opts.play.eventStartsAt, opts.now, opts.lookbackDays) &&
-    !opts.gameFound
-  ) {
-    return "aged_out";
+  if (!opts.gameFound) {
+    if (isAgedOut(opts.play.eventStartsAt, opts.now, opts.lookbackDays)) {
+      return "aged_out";
+    }
+    return "event_not_found";
   }
-  if (!opts.gameFound) return "event_not_found";
+  if (isDeferredProp(opts.play)) return "props_deferred";
   return "market_unhandled";
 }
 

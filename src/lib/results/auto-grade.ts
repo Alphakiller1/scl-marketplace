@@ -55,17 +55,27 @@ type GradeBatch = {
 
 function logSkip(
   kind: "play" | "parlay leg",
-  play: {
-    id: string;
-    sport: string;
-    eventId?: string | null;
-  },
+  play: GradablePlay,
   reason: keyof SkipReasonCounts,
 ) {
   console.info(
     `[auto-grade] ${kind} ${play.id} skipped: ${reason}` +
       ` sport=${play.sport} eventId=${play.eventId ?? "null"}`,
   );
+  const startsAt = play.eventStartsAt;
+  if (startsAt && startsAt.getTime() < Date.now() - 24 * 60 * 60 * 1_000) {
+    console.warn("[auto-grade] delayed play diagnostic", {
+      kind,
+      id: play.id,
+      sport: play.sport,
+      market: play.market,
+      selection: play.selection,
+      eventId: play.eventId ?? null,
+      eventLabel: play.eventLabel ?? null,
+      eventStartsAt: startsAt.toISOString(),
+      reason,
+    });
+  }
 }
 
 /**
