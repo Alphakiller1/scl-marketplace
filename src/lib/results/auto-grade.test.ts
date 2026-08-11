@@ -232,4 +232,10 @@ test("both grading loops resolve through the same function", () => {
     "resolveOutcome grades against the FULL-GAME score; reaching it from a " +
       "second place is how a prop or period market gets a wrong result.",
   );
+  assert.equal(
+    count(/eventLabel: true/g),
+    2,
+    "Straight plays and parlay legs must both load the board fixture label " +
+      "needed to match ESPN when the primary results provider is unavailable.",
+  );
 });

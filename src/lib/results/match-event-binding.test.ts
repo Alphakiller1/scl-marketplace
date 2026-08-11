@@ -54,6 +54,73 @@ test("an event-bound play still grades against its own event", () => {
   assert.equal(found?.eventId, "evt-mlb-today");
 });
 
+test("an event-bound play matches the same fixture from a backstop provider", () => {
+  const start = new Date("2026-08-10T23:10:00.000Z");
+  const espnGame: SettledGame = {
+    sport: "MLB",
+    home: "Houston Astros",
+    away: "Texas Rangers",
+    homeScore: 5,
+    awayScore: 1,
+    completed: true,
+    eventId: "espn:401999001",
+    espnEventId: "401999001",
+    startsAt: new Date("2026-08-10T23:12:00.000Z"),
+  };
+  const found = findGame(
+    play({
+      eventId: "0f2a3b4c5d6e7f8091a2b3c4d5e6f708",
+      eventLabel: "Texas Rangers @ Houston Astros",
+      eventStartsAt: start,
+    }),
+    [espnGame],
+  );
+  assert.equal(found?.eventId, "espn:401999001");
+});
+
+test("cross-provider matching still rejects an older same-team result", () => {
+  const found = findGame(
+    play({
+      eventLabel: "Texas Rangers @ Houston Astros",
+      eventStartsAt: new Date("2026-08-10T23:10:00.000Z"),
+    }),
+    [
+      {
+        ...YESTERDAYS_ASTROS_GAME,
+        away: "Texas Rangers",
+        startsAt: new Date("2026-08-09T23:10:00.000Z"),
+        eventId: "espn:401999000",
+      },
+    ],
+  );
+  assert.equal(found, null);
+});
+
+test("cross-provider matching refuses an ambiguous doubleheader", () => {
+  const start = new Date("2026-08-10T20:00:00.000Z");
+  const fixture = (id: string, startsAt: string): SettledGame => ({
+    sport: "MLB",
+    home: "Houston Astros",
+    away: "Texas Rangers",
+    homeScore: 5,
+    awayScore: 1,
+    completed: true,
+    eventId: `espn:${id}`,
+    startsAt: new Date(startsAt),
+  });
+  const found = findGame(
+    play({
+      eventLabel: "Texas Rangers @ Houston Astros",
+      eventStartsAt: start,
+    }),
+    [
+      fixture("401999002", "2026-08-10T19:00:00.000Z"),
+      fixture("401999003", "2026-08-10T22:00:00.000Z"),
+    ],
+  );
+  assert.equal(found, null);
+});
+
 test("a play with no event id may still match on team names", () => {
   // Legacy and free-text picks carry no binding; name matching is all there is,
   // and removing it would leave them permanently ungradable.

@@ -21,6 +21,8 @@ export type GradablePlay = {
   oddsAmerican: number;
   units: number;
   eventId?: string | null;
+  /** Board fixture label, normally "Away @ Home". */
+  eventLabel?: string | null;
   side?: string | null;
   line?: number | null;
   homeTeam?: string | null;
@@ -173,6 +175,15 @@ function parseMatchupSides(text: string): { a: string; b: string } | null {
   return null;
 }
 
+/** Parse the board's explicit "Away @ Home" fixture label. */
+function parseEventLabel(text: string): { a: string; b: string } | null {
+  const at = text.match(/^\s*(.+?)\s+@\s+(.+?)\s*$/);
+  if (at?.[1] && at[2]) {
+    return { a: at[1].trim(), b: at[2].trim() };
+  }
+  return parseMatchupSides(text);
+}
+
 function teamsAreOpponents(a: string, b: string, game: SettledGame): boolean {
   const aHome = mentions(a, game.home, game.sport);
   const aAway = mentions(a, game.away, game.sport);
@@ -239,16 +250,37 @@ export function findGame(
 ): SettledGame | null {
   const bySport = games.filter((g) => g.sport === play.sport);
 
-  // An event-bound play grades against that event or not at all.
+  // Prefer the provider event id whenever that provider is available.
   //
-  // This used to fall through to the name matching below when the event was
-  // absent from the settled set — which is exactly the case while the game is
-  // still being played. The settled pool spans two weeks of scoreboard history,
-  // so "Houston Astros" then matched a DIFFERENT, already-final Astros game and
-  // graded a live pick with an old result: a bet settled WIN in the 3rd inning
-  // at 0-0. Absent means not finished yet; the correct answer is to wait.
+  // This used to fall through to generic name matching when the event was
+  // absent from the settled set — which is exactly the case while a game is
+  // still being played. The settled pool spans two weeks of history, so
+  // "Houston Astros" matched a different final game and graded a live pick.
+  // Never use generic matching here; the only fallback below requires the full
+  // stored fixture and timestamp to identify a cross-provider copy.
   if (play.eventId) {
-    return bySport.find((g) => g.eventId === play.eventId) ?? null;
+    const exact = bySport.find((g) => g.eventId === play.eventId);
+    if (exact) return exact;
+
+    // Provider ids are not portable: The Odds API stores a hexadecimal id on
+    // the play while ESPN returns the same fixture under a numeric id. When the
+    // paid provider is unavailable, require all of the independent fixture
+    // evidence the board stored (start time + both clubs) before accepting the
+    // free scoreboard copy. This preserves the live-game protection above: an
+    // unfinished fixture is absent from the settled pool, an older same-team
+    // game falls outside the four-hour window, and a doubleheader is ambiguous.
+    const fixture =
+      play.homeTeam && play.awayTeam
+        ? { a: play.homeTeam, b: play.awayTeam }
+        : play.eventLabel
+          ? parseEventLabel(play.eventLabel)
+          : null;
+    if (!play.eventStartsAt || !fixture) return null;
+    const crossProvider = sameFixtureWindow(play, bySport).filter(
+      (game) =>
+        game.startsAt != null && teamsAreOpponents(fixture.a, fixture.b, game),
+    );
+    return sole(crossProvider);
   }
 
   // Plays with no eventId — every imported legacy pick — still reach the name
