@@ -256,7 +256,6 @@ export function QaBoardOddsHygiene() {
                   label={s.label}
                   oddsAmerican={s.oddsAmerican}
                   book={s.book}
-                  oddsCapturedAt={s.oddsCapturedAt}
                   selected={selected}
                   onClick={() => setSelectedKey(key)}
                   className={cn(!extreme && "ring-0")}

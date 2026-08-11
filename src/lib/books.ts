@@ -52,8 +52,11 @@ export function oddsSourceBoardLabel(book?: string | null): string {
 }
 
 /**
- * Capture + source line for Ticket (§4 / recipe 1d):
- * `ODDS CAPTURED <ts> ET / SOURCE: <BOOK|LIVE> BOARD · GRADES AUTOMATICALLY`
+ * Capture + source line for Ticket (§4 / recipe 1d).
+ *
+ * `capturedAt` remains part of the receipt/audit data, but is intentionally not
+ * rendered. Users only need to see that the odds were captured, where they
+ * came from, and whether the pick grades automatically.
  */
 export function formatOddsCaptureSourceLine(opts: {
   capturedAt?: string | null;
@@ -66,28 +69,5 @@ export function formatOddsCaptureSourceLine(opts: {
     opts.gradingHealthy === false
       ? "GRADING DELAYED — CHECK BACK SOON"
       : "GRADES AUTOMATICALLY";
-  if (!opts.capturedAt) {
-    return `ODDS CAPTURED · SOURCE: ${source} · ${gradeBit}`;
-  }
-  const date = new Date(opts.capturedAt);
-  if (Number.isNaN(date.getTime())) {
-    return `ODDS CAPTURED · SOURCE: ${source} · ${gradeBit}`;
-  }
-
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York",
-    year: "2-digit",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).formatToParts(date);
-
-  const get = (type: Intl.DateTimeFormatPartTypes) =>
-    parts.find((p) => p.type === type)?.value ?? "";
-
-  const stamp = `${get("month")}·${get("day")}·${get("year")} ${get("hour")}:${get("minute")}:${get("second")} ET`;
-  return `ODDS CAPTURED ${stamp} / SOURCE: ${source} · ${gradeBit}`;
+  return `ODDS CAPTURED · SOURCE: ${source} · ${gradeBit}`;
 }
