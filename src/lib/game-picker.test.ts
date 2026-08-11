@@ -3,7 +3,6 @@ import { test } from "node:test";
 
 import { BOOK_KEYS } from "@/lib/books";
 import {
-  activeRailBook,
   categoryCounts,
   eventMatchesSearch,
   filterGamePickerEvents,
@@ -201,28 +200,6 @@ test("a configured book list narrows the rail to it", () => {
   assert.deepEqual(railBooks(["fanduel", "betmgm"]), ["fanduel", "betmgm"]);
   // Unknown keys are dropped, known ones kept.
   assert.deepEqual(railBooks(["fanduel", "not-a-book"]), ["fanduel"]);
-});
-
-test("the board defaults to best-available price, not a pinned book", () => {
-  // Pinning one book renders every market it doesn't price as an unpriced,
-  // unclickable chip — the line reads as missing when it is merely absent
-  // at one shop.
-  assert.equal(activeRailBook({}), null);
-  assert.equal(activeRailBook({ chosen: null }), null);
-  assert.equal(activeRailBook({ chosen: "not-a-book" }), null);
-  assert.equal(activeRailBook({ chosen: "fanduel" }), "fanduel");
-});
-
-test("a parlay's locked book overrides the rail choice", () => {
-  assert.equal(
-    activeRailBook({ chosen: "fanduel", lockedBook: "draftkings" }),
-    "draftkings",
-  );
-  // Best-available cannot escape the lock either — all legs share one book.
-  assert.equal(
-    activeRailBook({ chosen: null, lockedBook: "draftkings" }),
-    "draftkings",
-  );
 });
 
 test("best-available shows a price where a single book has none", () => {

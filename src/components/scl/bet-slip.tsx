@@ -127,7 +127,7 @@ export function BetSlip({
     bookKeys.length === 1
       ? bookShort(bookKeys[0]!)
       : bookKeys.length > 1
-        ? "MIXED"
+        ? "MIXED BOOKS"
         : null;
 
   if (selections.length === 0) {

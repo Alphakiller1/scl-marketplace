@@ -336,7 +336,7 @@ test("decidePickIntegrity: C1 hard-rejects a pick at/after start time", () => {
   assert.equal(d.accept, false);
 });
 
-test("decidePickIntegrity: changed odds do not block a pre-game board pick", () => {
+test("decidePickIntegrity: changed odds do not downgrade a confirmed board pick", () => {
   const d = decidePickIntegrity({
     now: BEFORE,
     eventStartsAt: START,
@@ -346,13 +346,13 @@ test("decidePickIntegrity: changed odds do not block a pre-game board pick", () 
   });
   assert.equal(d.accept, true);
   if (d.accept) {
-    assert.equal(d.tier, "SELF_REPORTED");
+    assert.equal(d.tier, "VERIFIED");
     assert.equal(d.loggedPreGame, true);
-    assert.equal(d.oddsVerified, false);
+    assert.equal(d.oddsVerified, true);
   }
 });
 
-test("decidePickIntegrity: provider failure does not block a pre-game board pick", () => {
+test("decidePickIntegrity: provider failure does not downgrade a confirmed board pick", () => {
   const d = decidePickIntegrity({
     now: BEFORE,
     eventStartsAt: START,
@@ -362,13 +362,13 @@ test("decidePickIntegrity: provider failure does not block a pre-game board pick
   });
   assert.equal(d.accept, true);
   if (d.accept) {
-    assert.equal(d.tier, "SELF_REPORTED");
+    assert.equal(d.tier, "VERIFIED");
     assert.equal(d.loggedPreGame, true);
-    assert.equal(d.oddsVerified, false);
+    assert.equal(d.oddsVerified, true);
   }
 });
 
-test("decidePickIntegrity: skipped odds check does not block a pre-game board pick", () => {
+test("decidePickIntegrity: skipped follow-up check keeps a confirmed board pick verified", () => {
   const d = decidePickIntegrity({
     now: BEFORE,
     eventStartsAt: START,
@@ -378,9 +378,9 @@ test("decidePickIntegrity: skipped odds check does not block a pre-game board pi
   });
   assert.equal(d.accept, true);
   if (d.accept) {
-    assert.equal(d.tier, "SELF_REPORTED");
+    assert.equal(d.tier, "VERIFIED");
     assert.equal(d.loggedPreGame, true);
-    assert.equal(d.oddsVerified, false);
+    assert.equal(d.oddsVerified, true);
   }
 });
 

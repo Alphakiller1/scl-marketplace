@@ -5,6 +5,7 @@ import {
   dedupeOddsEvents,
   getOddsForBook,
   isExtremeAmericanOdds,
+  matchesBoardSelection,
   normalizeEventBoard,
   preferredThenAll,
   type OddsEvent,
@@ -108,6 +109,46 @@ test("getOddsForBook on selection is honest null (no silent substitute)", () => 
   assert.equal(getOddsForBook(spread, "fanduel"), -105);
   assert.equal(getOddsForBook(spread, "draftkings"), -110);
   assert.equal(getOddsForBook(spread, "betmgm"), null);
+});
+
+test("matchesBoardSelection confirms the exact market, line, book, and price", () => {
+  const spread = normalizeEventBoard(EVENT).find(
+    (selection) =>
+      selection.market === "Spread" &&
+      selection.side === "Lakers" &&
+      selection.line === -3.5,
+  );
+  assert.ok(spread);
+  assert.equal(
+    matchesBoardSelection(spread, {
+      market: "Spread",
+      side: "Lakers",
+      line: -3.5,
+      oddsAmerican: -105,
+      book: "fanduel",
+    }),
+    true,
+  );
+  assert.equal(
+    matchesBoardSelection(spread, {
+      market: "Spread",
+      side: "Lakers",
+      line: -3.5,
+      oddsAmerican: -104,
+      book: "fanduel",
+    }),
+    false,
+  );
+  assert.equal(
+    matchesBoardSelection(spread, {
+      market: "Spread",
+      side: "Lakers",
+      line: -4.5,
+      oddsAmerican: -105,
+      book: "fanduel",
+    }),
+    false,
+  );
 });
 
 test("preferredThenAll falls back when preferred books miss the market", () => {

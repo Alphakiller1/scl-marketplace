@@ -27,13 +27,12 @@ test("parlay schema accepts one sportsbook across every leg", () => {
   );
 });
 
-test("parlay schema rejects mixed sportsbooks at the server boundary", () => {
-  const result = createParlaySchema.safeParse({
-    units: 1,
-    legs: [leg("draftkings"), leg("fanduel")],
-  });
-  assert.equal(result.success, false);
-  if (!result.success) {
-    assert.match(result.error.issues[0]?.message ?? "", /same sportsbook/i);
-  }
+test("parlay schema accepts legs from different sportsbooks", () => {
+  assert.equal(
+    createParlaySchema.safeParse({
+      units: 1,
+      legs: [leg("draftkings"), leg("fanduel")],
+    }).success,
+    true,
+  );
 });

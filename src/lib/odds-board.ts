@@ -69,6 +69,41 @@ export type OddsBoardOpts = {
   books?: readonly string[];
 };
 
+export type BoardSelectionClaim = {
+  market: string;
+  side: string;
+  line?: number;
+  player?: string;
+  oddsAmerican: number;
+  book?: string | null;
+};
+
+function sameOptionalText(a?: string, b?: string): boolean {
+  return (a ?? "").trim().toLowerCase() === (b ?? "").trim().toLowerCase();
+}
+
+/** Exact server-side confirmation of a line previously rendered by the SCL board. */
+export function matchesBoardSelection(
+  selection: OddsSelection,
+  claim: BoardSelectionClaim,
+): boolean {
+  if (!sameOptionalText(selection.market, claim.market)) return false;
+  if (!sameOptionalText(selection.side, claim.side)) return false;
+  if (!sameOptionalText(selection.player, claim.player)) return false;
+  if ((selection.line ?? null) !== (claim.line ?? null)) return false;
+
+  if (claim.book) {
+    const bookPrice = getOddsForBook(selection, claim.book);
+    if (bookPrice !== null) return bookPrice === claim.oddsAmerican;
+    return (
+      selection.book === claim.book &&
+      selection.oddsAmerican === claim.oddsAmerican
+    );
+  }
+
+  return selection.oddsAmerican === claim.oddsAmerican;
+}
+
 /**
  * Honest price for one book on a board selection, or null when that book has no line
  * (UI renders "—"; never substitutes another book's price).

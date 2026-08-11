@@ -13,7 +13,7 @@ export const BOARD_VERIFIED_PICK_HELP =
   "This pick was submitted through SCL’s board with event, market, odds, and timestamp captured before grading.";
 
 export const SELF_REPORTED_PICK_HELP =
-  "This pick was entered without full board verification, so it remains visible but carries less verification weight.";
+  "This legacy or imported pick remains visible in the public record and grades normally.";
 
 export const STOREFRONT_EMPTY_TITLE = "No storefront linked yet";
 

@@ -252,15 +252,7 @@ function UnifiedPickEntryInner() {
         )}
       >
         <div className="min-w-0">
-          <GamePicker
-            onPick={addPick}
-            selectedKeys={selectedKeys}
-            lockedBook={
-              mode === "parlay"
-                ? (selections.find((selection) => selection.book)?.book ?? null)
-                : null
-            }
-          />
+          <GamePicker onPick={addPick} selectedKeys={selectedKeys} />
         </div>
 
         {isLg ? (

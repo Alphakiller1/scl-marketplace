@@ -133,8 +133,8 @@ export default function SignupPage() {
       <AuthHeader
         icon={UserRoundPlus}
         eyebrow="Capper Onboarding"
-        title="Create your SCL Profile"
-        description="Start a secure account and claim the username attached to your public record."
+        title="Create Your Free SCL Profile"
+        description="Join 100+ sports cappers building verified records, growing their credibility, and competing on the SCL Leaderboard."
       />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>

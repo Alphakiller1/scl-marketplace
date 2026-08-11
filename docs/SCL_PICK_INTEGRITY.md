@@ -40,8 +40,8 @@ client-supplied start time is never trusted.
   clock-skew buffer, e.g. lock at `eventStartsAt`). Submissions at/after start are **rejected**,
   not silently downgraded.
 - Store `submittedAt` (= `createdAt`) and `eventStartsAt`; derive `loggedPreGame`.
-- Only `loggedPreGame` picks are eligible for the **verified leaderboard**. A late pick can exist
-  on a profile but is `SELF-REPORTED` and excluded from headline ranking.
+- Only `loggedPreGame` picks are eligible for the **verified leaderboard**. Late picks are rejected
+  and never enter the public record.
 - **Fairness:** the error is explicit — _"This game started 6 minutes ago; picks lock at start
   time."_ No ambiguity about why it failed.
 
@@ -71,10 +71,13 @@ per sport.
 
 ### C3 · Line & odds verification (game lines + alt lines + props)
 
-**Status (M2):** wired in `createPlay` — on the event-bound path it calls `verifyPick` and feeds the
-result into `decidePickIntegrity` (rejected → hard-fail; verified → eligible for VERIFIED tier;
-unverifiable → `SELF-REPORTED`). Implemented as pure logic in `src/lib/odds-verify.ts` (unit-tested),
-plus a server fetch in `src/lib/odds-api.ts` (`verifyPick` / `fetchEventOddsForVerification`).
+**Status (M2):** manual entry is disabled. `createPlay` accepts only structured pre-game selections
+captured from the SCL board and records those confirmed selections as `VERIFIED` without making a
+second provider request at submit time. The server matches the event, scheduled start, market, side,
+line, player, book, and price against SCL's last-good slate/event caches before writing. This avoids
+downgrading or blocking a valid selection when the provider moves, suspends, or removes a line after
+it was selected. Authorized import paths still use `verifyPick` /
+`fetchEventOddsForVerification` before receiving `AUTO_VERIFIED` status.
 
 - **One-sided bound, in implied-probability space.** Fraud is always claiming a price _better_
   than was obtainable; a capper has no incentive to claim a worse one. So we don't match a
@@ -87,9 +90,8 @@ plus a server fetch in `src/lib/odds-api.ts` (`verifyPick` / `fetchEventOddsForV
   `regions=us`, cached (Next fetch `revalidate` TTL) so picks on the same event share one snapshot.
 - **Grade at the claimed price** (authenticity); expose a **median reference** price so the
   leaderboard can rank on a fabrication-proof number.
-- **Degrade, never hard-block.** If no covered book offered that exact market/side/line →
-  `unverifiable` → the pick is `SELF-REPORTED` (§M2-3), not rejected. Only a price clearly better
-  than best-available (beyond tolerance) is **rejected**.
+- **Do not downgrade confirmed board selections.** Provider movement, suspension, or temporary
+  failure after selection does not change a manual board submission from `VERIFIED`.
 - **Fairness:** the tolerance band absorbs normal book-to-book + timing variance; only clearly
   fabricated prices are blocked.
 
@@ -147,11 +149,11 @@ IMPORTED_TELEGRAM, SCREENSHOT_OCR}` + `sourceRef` (permalink to the capper's own
 
 ## Verification-tier mapping (how strictness surfaces publicly)
 
-| Tier              | Requires                                                                                                                                          |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **AUTO-VERIFIED** | provenance = authorized connector · pre-game · structured/event-bound · official-graded                                                           |
-| **VERIFIED**      | manual entry · pre-game · structured/event-bound · odds within tolerance · official-graded                                                        |
-| **SELF-REPORTED** | any strictness check failed (post-start, free-text, unverifiable odds, OCR-only) — visible on profile, **excluded from the headline leaderboard** |
+| Tier              | Requires                                                                                                   |
+| ----------------- | ---------------------------------------------------------------------------------------------------------- |
+| **AUTO-VERIFIED** | authorized connector · pre-game · structured/event-bound · connector-authenticated price · official-graded |
+| **VERIFIED**      | confirmed SCL board selection · pre-game · structured/event-bound · official-graded                        |
+| **SELF-REPORTED** | legacy/imported record without SCL board confirmation — displayed neutrally as **Recorded**                |
 
 The tier is **computed from facts** (timing, provenance, structure, grading source), never
 self-asserted. It's the single public signal that says "how much should you trust this record."
@@ -189,10 +191,10 @@ from the official schedule — for now `eventId` + `eventStartsAt` are denormali
 partial unique index on active `(capperId, eventId, market, side)` for C6 dedup.
 
 Enforcement points: the `playSchema` (Zod) validates structure/odds/units and carries the optional
-event fields; `createPlay` enforces the pre-game lock (C1) + odds check (C3) via `decidePickIntegrity`
-**server-side before the write**, and sets `loggedPreGame` / `oddsVerified` / `verificationTier` /
-`source` from verified facts. Dedup + throttle + the DB immutability guard are still to come; grading
-stays official + audited.
+event fields; `createPlay` enforces board binding and the pre-game lock through
+`decidePickIntegrity` **server-side before the write**, then sets `loggedPreGame` / `oddsVerified` /
+`verificationTier` / `source`. Dedup + throttle + the DB immutability guard are still to come;
+grading stays official + audited.
 
 ## Milestone 2 sequence
 
@@ -200,8 +202,8 @@ stays official + audited.
    auto-grading. Structured selection replaces free text. _Landed_: schema + server gate + the
    board selector that binds picks to real events (moneyline/spread/total). Remaining: typeahead
    for large slates + props/alt lines on the board.
-2. **Line/odds verification (C3)** — _landed_: `verifyPick` wired into `createPlay` on the
-   event-bound path (one-sided implied-prob bound over the bundled per-event odds).
+2. **Line/odds confirmation (C3)** — _landed_: confirmed manual board selections are stored as
+   `VERIFIED`; authorized imports use the one-sided implied-prob verification path.
 3. **Formal immutability (C4)** — server invariant + `scl` DB guard.
 4. **Dedup/hedge (C6)** + **throttle (C8)** — cheap, close obvious gaming.
 5. **Provenance/tiers (C5)** — ties into the connector work (§M2-4) and tier surfacing (§M2-3).

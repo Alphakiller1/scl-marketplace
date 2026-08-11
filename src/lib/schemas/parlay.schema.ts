@@ -60,29 +60,14 @@ export const parlayLegSchema = z.object({
 });
 
 /** A parlay carries the stake; its legs are components (units live on the parlay). */
-export const createParlaySchema = z
-  .object({
-    units: unitsField,
-    packageIds: z.array(z.string().min(1)).max(10).optional().default([]),
-    legs: z
-      .array(parlayLegSchema)
-      .min(2, "A parlay needs at least 2 legs")
-      .max(12, "Up to 12 legs"),
-  })
-  .superRefine((value, context) => {
-    const books = new Set(
-      value.legs
-        .map((leg) => leg.book)
-        .filter((book): book is string => !!book),
-    );
-    if (books.size > 1) {
-      context.addIssue({
-        code: "custom",
-        path: ["legs"],
-        message: "Every parlay leg must use the same sportsbook.",
-      });
-    }
-  });
+export const createParlaySchema = z.object({
+  units: unitsField,
+  packageIds: z.array(z.string().min(1)).max(10).optional().default([]),
+  legs: z
+    .array(parlayLegSchema)
+    .min(2, "A parlay needs at least 2 legs")
+    .max(12, "Up to 12 legs"),
+});
 
 export const gradeParlaySchema = z
   .object({
