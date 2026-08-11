@@ -106,21 +106,6 @@ export async function loadCachedEventBoard(
   return (await readSnapshot(sport.toUpperCase(), eventId))?.selections ?? [];
 }
 
-/** Persist owner-authorized detail rows into both cache layers. */
-export async function storeEventBoardSelections(
-  sport: string,
-  eventId: string,
-  selections: OddsSelection[],
-): Promise<EventBoardSnapshot> {
-  const normalizedSport = sport.toUpperCase();
-  const cached = await readSnapshot(normalizedSport, eventId);
-  return writeSnapshot(
-    normalizedSport,
-    eventId,
-    mergeEventBoardSelections(cached?.selections ?? [], selections),
-  );
-}
-
 async function refreshEventBoard(
   sport: string,
   eventId: string,
