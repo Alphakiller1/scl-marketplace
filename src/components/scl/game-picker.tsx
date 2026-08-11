@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ChevronDown, LayoutGrid, Lock, Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronDown, LayoutGrid, Lock, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { Card } from "@/components/ui/card";
@@ -74,8 +74,6 @@ export function GamePicker({
   const [openId, setOpenId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Record<string, EventDetailData>>({});
   const [coverageSent, setCoverageSent] = useState(false);
-  const backButtonRef = useRef<HTMLButtonElement>(null);
-  const restoreFocusIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -128,7 +126,7 @@ export function GamePicker({
   // multi-book parlay cannot exist at a real sportsbook.
   const activeBook = activeRailBook({ lockedBook });
 
-  // Pre-game only, everywhere. Day defaults, counts, cards, and the focused
+  // Pre-game only, everywhere. Day defaults, counts, cards, and the expanded
   // matchup all read from this list so a started game is never selectable.
   const events = preGameEvents(slate?.events ?? []);
   const todayEvents = filterBySlateDay(events, "today");
@@ -145,21 +143,6 @@ export function GamePicker({
   const openEvent = openId
     ? (events.find((e) => e.id === openId) ?? null)
     : null;
-
-  useEffect(() => {
-    if (openId) {
-      const frame = requestAnimationFrame(() => backButtonRef.current?.focus());
-      return () => cancelAnimationFrame(frame);
-    }
-
-    const restoreId = restoreFocusIdRef.current;
-    if (!restoreId) return;
-    restoreFocusIdRef.current = null;
-    const frame = requestAnimationFrame(() =>
-      document.getElementById(`market-event-${restoreId}`)?.focus(),
-    );
-    return () => cancelAnimationFrame(frame);
-  }, [openId]);
 
   useEffect(() => {
     if (!openEvent) return;
@@ -213,12 +196,10 @@ export function GamePicker({
   }
 
   function openMatchup(eventId: string) {
-    restoreFocusIdRef.current = eventId;
     setOpenId(eventId);
   }
 
   function closeMatchup() {
-    if (openId) restoreFocusIdRef.current = openId;
     setOpenId(null);
   }
 
@@ -240,7 +221,7 @@ export function GamePicker({
             aria-hidden
           />
           <h2 className="scl-display text-sm font-semibold tracking-[0.08em] uppercase">
-            {openEvent ? "Focused Matchup" : "Market Board"}
+            Market Board
           </h2>
         </div>
         <span
@@ -248,9 +229,7 @@ export function GamePicker({
           title="SCL accepts pre-game picks only — no live betting"
         >
           <Lock className="size-3 shrink-0" aria-hidden />
-          {openEvent
-            ? "Pre-game only"
-            : `${loading ? "…" : visible.length} pre-game`}
+          {loading ? "…" : visible.length} pre-game
         </span>
       </div>
 
@@ -265,93 +244,77 @@ export function GamePicker({
         </p>
       </div>
 
-      {openEvent ? (
-        <div className="border-y border-[color:var(--scl-line)] py-2">
-          <button
-            ref={backButtonRef}
-            type="button"
-            onClick={closeMatchup}
-            className="hover:bg-surface-2 inline-flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-[color:var(--scl-muted-data)] transition-colors hover:text-[color:var(--scl-text)]"
-          >
-            <ArrowLeft className="size-4" aria-hidden />
-            Back to slate
-          </button>
-        </div>
-      ) : (
-        <>
-          <DayToggle
-            day={day}
-            todayCount={todayEvents.length}
-            tomorrowCount={tomorrowEvents.length}
-            loading={loading}
-            onChange={(d) => {
-              setDayChoice(d);
-              setOpenId(null);
-            }}
-          />
+      <DayToggle
+        day={day}
+        todayCount={todayEvents.length}
+        tomorrowCount={tomorrowEvents.length}
+        loading={loading}
+        onChange={(d) => {
+          setDayChoice(d);
+          setOpenId(null);
+        }}
+      />
 
-          <label className="relative block">
-            <span className="sr-only">Search teams, leagues, or matchups</span>
-            <Search
-              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[color:var(--scl-muted-data)]"
-              aria-hidden
-            />
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search teams, leagues, or matchups…"
-              className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-lg border bg-transparent py-2 pr-3 pl-10 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
-            />
-          </label>
+      <label className="relative block">
+        <span className="sr-only">Search teams, leagues, or matchups</span>
+        <Search
+          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[color:var(--scl-muted-data)]"
+          aria-hidden
+        />
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search teams, leagues, or matchups…"
+          className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-lg border bg-transparent py-2 pr-3 pl-10 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none"
+        />
+      </label>
 
-          <div
-            className="-mx-1 flex scroll-px-1 [scrollbar-width:none] gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-            role="group"
-            aria-label="Filter by sport"
-          >
-            {categoryPills.map((p) => {
-              const active = category === p.key;
-              return (
-                <button
-                  key={p.key}
-                  type="button"
-                  onClick={() => {
-                    setCategory(p.key);
-                    setOpenId(null);
-                  }}
-                  aria-pressed={active}
-                  className={cn(
-                    "scl-display flex h-11 shrink-0 items-center gap-2 rounded-[22px] border px-3.5 text-[15px] font-semibold tracking-[0.05em] transition-opacity",
-                    active
-                      ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
-                      : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",
-                  )}
-                >
-                  {p.key !== "all" ? (
-                    <LeagueMark
-                      leagueKey={p.key}
-                      size="sm"
-                      className="rounded-md"
-                    />
-                  ) : null}
-                  {p.label}
-                  <span
-                    className={cn(
-                      "scl-data rounded-[9px] border px-1.5 py-0.5 text-[10px] font-medium",
-                      active
-                        ? "border-transparent bg-black/18 text-[color:var(--scl-blue-ink)]"
-                        : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-950)] text-[color:var(--scl-muted-data)]",
-                    )}
-                  >
-                    {p.count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </>
-      )}
+      <div
+        className="-mx-1 flex scroll-px-1 [scrollbar-width:none] gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        role="group"
+        aria-label="Filter by sport"
+      >
+        {categoryPills.map((p) => {
+          const active = category === p.key;
+          return (
+            <button
+              key={p.key}
+              type="button"
+              onClick={() => {
+                setCategory(p.key);
+                setOpenId(null);
+              }}
+              aria-pressed={active}
+              className={cn(
+                "scl-display flex h-11 shrink-0 items-center gap-2 rounded-[22px] border px-3.5 text-[15px] font-semibold tracking-[0.05em] transition-opacity",
+                active
+                  ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
+                  : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",
+              )}
+            >
+              {p.key !== "all" ? (
+                <LeagueMark
+                  leagueKey={p.key}
+                  size="sm"
+                  className="rounded-md"
+                />
+              ) : null}
+              {p.label}
+              <span
+                className={cn(
+                  "scl-data rounded-[9px] border px-1.5 py-0.5 text-[10px] font-medium",
+                  active
+                    ? "border-transparent bg-black/18 text-[color:var(--scl-blue-ink)]"
+                    : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-950)] text-[color:var(--scl-muted-data)]",
+                )}
+              >
+                {p.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
       {slate?.stale && events.length > 0 ? (
         <p
@@ -363,20 +326,7 @@ export function GamePicker({
         </p>
       ) : null}
 
-      {openEvent ? (
-        <ul className="space-y-2 lg:max-h-[40rem] lg:overflow-y-auto lg:pr-1">
-          <li className="bg-card border-border overflow-hidden rounded-[14px] border">
-            <GameRow event={openEvent} open onToggle={closeMatchup} />
-            <EventDetail
-              event={openEvent}
-              detail={detail[openEvent.id]}
-              onPick={onPick}
-              selectedKeys={selectedKeys}
-              activeBook={activeBook}
-            />
-          </li>
-        </ul>
-      ) : loading ? (
+      {loading ? (
         <SkeletonCard />
       ) : visible.length ? (
         <ul className="space-y-2 lg:max-h-[40rem] lg:overflow-y-auto lg:pr-1">
@@ -427,18 +377,16 @@ export function GamePicker({
         </p>
       )}
 
-      {!openEvent ? (
-        <button
-          type="button"
-          onClick={requestCoverage}
-          disabled={coverageSent}
-          className="flex min-h-10 w-full items-center justify-center rounded-[14px] border border-dashed border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] px-3 text-sm font-medium text-[color:var(--scl-muted-data)] transition-colors hover:bg-[color:var(--scl-ink-700)] disabled:opacity-60"
-        >
-          {coverageSent
-            ? "Coverage request recorded"
-            : "Request coverage — tell us what's missing"}
-        </button>
-      ) : null}
+      <button
+        type="button"
+        onClick={requestCoverage}
+        disabled={coverageSent}
+        className="flex min-h-10 w-full items-center justify-center rounded-[14px] border border-dashed border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] px-3 text-sm font-medium text-[color:var(--scl-muted-data)] transition-colors hover:bg-[color:var(--scl-ink-700)] disabled:opacity-60"
+      >
+        {coverageSent
+          ? "Coverage request recorded"
+          : "Request coverage — tell us what's missing"}
+      </button>
     </Card>
   );
 }

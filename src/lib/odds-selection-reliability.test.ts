@@ -71,6 +71,17 @@ test("an empty picker slate is not pinned in the browser", async () => {
   resetOddsSlateClientCache();
 });
 
+test("opening a matchup keeps every game in the visible slate", () => {
+  const source = fs.readFileSync(
+    path.join(root, "src/components/scl/game-picker.tsx"),
+    "utf8",
+  );
+  assert.match(source, /visible\.map\(\(e\) =>/);
+  assert.match(source, /open \? \(\s*<EventDetail/);
+  assert.doesNotMatch(source, /Focused Matchup/);
+  assert.doesNotMatch(source, /Back to slate/);
+});
+
 test("server cache is shared across users and retains last-good boards", () => {
   const source = fs.readFileSync(
     path.join(root, "src/lib/odds-board-cache.ts"),
