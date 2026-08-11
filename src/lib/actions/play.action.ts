@@ -60,12 +60,10 @@ async function playCreateData(data: ReadyPlayData) {
 }
 
 export type PlayResult =
-  | { ok: true; receipt: StraightReceipt }
-  | { ok: false; error: string };
+  { ok: true; receipt: StraightReceipt } | { ok: false; error: string };
 
 export type CreatePlaysResult =
-  | { ok: true; receipt: BulkSinglesReceipt }
-  | { ok: false; error: string };
+  { ok: true; receipt: BulkSinglesReceipt } | { ok: false; error: string };
 
 type AccountGate = { ok: true; userId: string } | { ok: false; error: string };
 
@@ -141,7 +139,9 @@ async function preparePlayLine(
   if (!parsed.success) {
     return {
       status: "error",
-      error: "Please check the form and try again.",
+      error:
+        parsed.error.issues[0]?.message ??
+        "Please check the form and try again.",
       selection:
         typeof input.selection === "string" ? input.selection : undefined,
       market: typeof input.market === "string" ? input.market : undefined,

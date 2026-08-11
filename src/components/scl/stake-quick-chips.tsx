@@ -4,7 +4,7 @@ import { UNIT_QUICK_CHIPS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 /**
- * Stake quick-chips (0.5 / 1 / 2 / 3u) beside the units input.
+ * Owner-approved 1 / 2 / 3 / 4 / 5-unit quick chips beside the stake input.
  * Parent owns value + to-win recompute via setValue / controlled state.
  */
 export function StakeQuickChips({

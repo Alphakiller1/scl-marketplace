@@ -9,7 +9,7 @@ const play = {
   market: "Moneyline",
   selection: "Lakers",
   oddsAmerican: -110,
-  units: 100_000_000,
+  units: 5,
 };
 
 const leg = (side: string) => ({
@@ -24,25 +24,22 @@ const leg = (side: string) => ({
   book: "draftkings",
 });
 
-test("a capper can manually enter exactly 100,000,000 units", () => {
+test("the owner-approved maximum is exactly 5 units", () => {
   assert.equal(playSchema.safeParse(play).success, true);
   assert.equal(
     createParlaySchema.safeParse({
-      units: 100_000_000,
+      units: 5,
       legs: [leg("Lakers"), leg("Celtics")],
     }).success,
     true,
   );
 });
 
-test("stakes above 100,000,000 remain rejected at the server boundary", () => {
-  assert.equal(
-    playSchema.safeParse({ ...play, units: 100_000_000.25 }).success,
-    false,
-  );
+test("stakes above 5 units are rejected at the server boundary", () => {
+  assert.equal(playSchema.safeParse({ ...play, units: 5.01 }).success, false);
   assert.equal(
     createParlaySchema.safeParse({
-      units: 100_000_000.25,
+      units: 5.01,
       legs: [leg("Lakers"), leg("Celtics")],
     }).success,
     false,

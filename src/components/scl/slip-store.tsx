@@ -11,6 +11,7 @@ import {
 import { toast } from "sonner";
 
 import type { OddsPick } from "@/components/scl/game-picker";
+import { clampPredictionUnits } from "@/lib/prediction-units";
 import {
   findConflict,
   findInternalParlayConflicts,
@@ -59,7 +60,7 @@ export function SlipStoreProvider({
 }) {
   const [mode, setModeState] = useState<SlipMode>(initialMode);
   const [selections, setSelections] = useState<SlipSelection[]>([]);
-  const [parlayUnits, setParlayUnits] = useState(DEFAULT_UNITS);
+  const [parlayUnits, setParlayUnitsState] = useState(DEFAULT_UNITS);
   const [pendingConflict, setPendingConflict] =
     useState<PendingConflict | null>(null);
   const [unitsDropWarned, setUnitsDropWarned] = useState(false);
@@ -68,6 +69,10 @@ export function SlipStoreProvider({
     () => selectedKeysFromSelections(selections),
     [selections],
   );
+
+  const setParlayUnits = useCallback((units: number) => {
+    setParlayUnitsState(clampPredictionUnits(units));
+  }, []);
 
   const internalConflicts = useMemo(
     () => (mode === "parlay" ? findInternalParlayConflicts(selections) : []),
@@ -169,8 +174,9 @@ export function SlipStoreProvider({
   }, []);
 
   const setSelectionUnits = useCallback((id: string, units: number) => {
+    const nextUnits = clampPredictionUnits(units);
     setSelections((curr) =>
-      curr.map((s) => (s.id === id ? { ...s, units } : s)),
+      curr.map((s) => (s.id === id ? { ...s, units: nextUnits } : s)),
     );
   }, []);
 
@@ -220,6 +226,7 @@ export function SlipStoreProvider({
       pendingConflict,
       internalConflicts,
       setMode,
+      setParlayUnits,
       setSelectionUnits,
       setSelectionNotes,
       setSelectionNotesPublic,

@@ -14,7 +14,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UNIT_MAX, UNIT_MIN, UNIT_STEP } from "@/lib/constants";
+import {
+  PREDICTION_UNIT_MAX,
+  PREDICTION_UNIT_MIN,
+  PREDICTION_UNIT_STEP,
+} from "@/lib/constants";
 import type { PickPackageOption } from "@/lib/actions/package-options.action";
 import { formatCapturedHmEt } from "@/lib/format-capture";
 import { formatOdds } from "@/lib/format";
@@ -283,9 +287,9 @@ export function BetSlip({
                       <Input
                         id={`units-${s.id}`}
                         type="number"
-                        step={UNIT_STEP}
-                        min={UNIT_MIN}
-                        max={UNIT_MAX}
+                        step={PREDICTION_UNIT_STEP}
+                        min={PREDICTION_UNIT_MIN}
+                        max={PREDICTION_UNIT_MAX}
                         value={s.units}
                         onChange={(e) => {
                           const n = Number(e.target.value);
@@ -307,8 +311,8 @@ export function BetSlip({
                     onChange={(u) => setSelectionUnits(s.id, u)}
                   />
                   <p className="text-muted-foreground text-xs">
-                    Choose a preset or type any 0.25-unit increment up to
-                    100,000,000.
+                    Enter 1–5 units. Decimals up to two places are allowed, such
+                    as 1.25, 3.75, or 4.40.
                   </p>
                   <details className="border-border mt-3 rounded-lg border bg-[color:var(--scl-ink-900)] p-3">
                     <summary className="cursor-pointer text-sm font-semibold">
@@ -402,9 +406,9 @@ export function BetSlip({
           <Input
             id="parlay-units"
             type="number"
-            step={UNIT_STEP}
-            min={UNIT_MIN}
-            max={UNIT_MAX}
+            step={PREDICTION_UNIT_STEP}
+            min={PREDICTION_UNIT_MIN}
+            max={PREDICTION_UNIT_MAX}
             value={parlayUnits}
             onChange={(e) => {
               const n = Number(e.target.value);
@@ -413,8 +417,8 @@ export function BetSlip({
           />
           <StakeQuickChips value={parlayUnits} onChange={setParlayUnits} />
           <p className="text-muted-foreground text-xs">
-            Choose a preset or type any 0.25-unit increment up to 100,000,000.
-            Stake lives on the parlay; legs are components.
+            Enter 1–5 units. Decimals up to two places are allowed, such as
+            1.25, 3.75, or 4.40. Stake lives on the parlay; legs are components.
           </p>
         </div>
       ) : null}

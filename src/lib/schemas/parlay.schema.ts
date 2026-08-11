@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-import { SPORT_KEYS, UNIT_MAX, UNIT_MIN } from "@/lib/constants";
+import {
+  PREDICTION_UNIT_MAX,
+  PREDICTION_UNIT_MIN,
+  SPORT_KEYS,
+} from "@/lib/constants";
+import { isValidPredictionUnits } from "@/lib/prediction-units";
 import {
   ALL_OUTCOMES,
   CORRECTION_REASON_MIN,
@@ -18,13 +23,10 @@ const optionalText = (max: number) =>
 const unitsField = z.coerce
   .number()
   .refine(
-    (n) => n >= UNIT_MIN && n <= UNIT_MAX,
-    `Units must be between ${UNIT_MIN} and ${UNIT_MAX}`,
+    (n) => n >= PREDICTION_UNIT_MIN && n <= PREDICTION_UNIT_MAX,
+    `Units must be between ${PREDICTION_UNIT_MIN} and ${PREDICTION_UNIT_MAX}`,
   )
-  .refine(
-    (n) => Math.round(n * 100) % 25 === 0,
-    "Units must be in 0.25 increments",
-  );
+  .refine(isValidPredictionUnits, "Units can have at most 2 decimal places");
 
 export const parlayLegSchema = z.object({
   sport: z.enum(SPORT_KEYS as [string, ...string[]], {

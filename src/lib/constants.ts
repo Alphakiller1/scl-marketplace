@@ -26,13 +26,16 @@ export const SPORTS = [
 export type SportKey = (typeof SPORTS)[number]["key"];
 export const SPORT_KEYS = SPORTS.map((s) => s.key) as SportKey[];
 
-// Cappers may use the quick chips or type their own stake. Keep this value in
-// sync with the Decimal widths on Play/Parlay and their grading audit tables.
+// Historical/public records can contain quarter-unit stakes from the legacy
+// platform. Keep that eligibility threshold separate from the owner-controlled
+// range for NEW predictions so changing the entry rule never hides old picks.
 export const UNIT_MIN = 0.25;
-export const UNIT_MAX = 100_000_000;
-export const UNIT_STEP = 0.25;
-/** Convenient defaults; these are not the full range accepted by the input. */
-export const UNIT_QUICK_CHIPS = [0.5, 1, 2, 3, 4, 5] as const;
+
+/** Owner-controlled stake range for every new straight and parlay prediction. */
+export const PREDICTION_UNIT_MIN = 1;
+export const PREDICTION_UNIT_MAX = 5;
+export const PREDICTION_UNIT_STEP = 0.01;
+export const UNIT_QUICK_CHIPS = [1, 2, 3, 4, 5] as const;
 
 // Leaderboard timeframes (days; null = season/year handled separately).
 export const LEADERBOARD_TIMEFRAMES = [
