@@ -4,6 +4,7 @@ import { SPORT_KEYS } from "@/lib/constants";
 import {
   logOddsUsage,
   oddsApiKey,
+  resolveOddsApiSport,
   toOddsApiSport,
   toSclSport,
 } from "@/lib/odds-api";
@@ -18,6 +19,11 @@ export type { SettledGame };
 export { mergeSettledGames };
 export { RESULTS_LOOKBACK_DAYS };
 
+/** League context needed when one SCL sport fans out across provider leagues. */
+export type ResultsQueryScope = {
+  soccerLeagues?: readonly string[];
+};
+
 /**
  * Results providers feed the auto-grader. A provider returns completed games with
  * final scores; the auto-grader ("results are in") turns those into play outcomes.
@@ -31,7 +37,10 @@ export { RESULTS_LOOKBACK_DAYS };
 export interface ResultsProvider {
   readonly name: string;
   fetchSettled(): Promise<SettledGame[]>;
-  fetchSettledForSports(sports: string[]): Promise<SettledGame[]>;
+  fetchSettledForSports(
+    sports: string[],
+    scope?: ResultsQueryScope,
+  ): Promise<SettledGame[]>;
 }
 
 export class ResultsProviderUnavailable extends Error {}
@@ -88,21 +97,24 @@ const DEMO_GAMES: SettledGame[] = [
   },
 ];
 
-function mapOddsApiScores(events: OddsApiScore[]): SettledGame[] {
+function mapOddsApiScores(
+  events: OddsApiScore[],
+  fallbackSport?: string,
+): SettledGame[] {
   return events
     .filter(
       (e) =>
         e.completed &&
         Array.isArray(e.scores) &&
         e.scores.length === 2 &&
-        toSclSport(e.sport_key) != null,
+        (toSclSport(e.sport_key) ?? fallbackSport) != null,
     )
     .map((e) => {
       const home = e.scores!.find((s) => s.name === e.home_team);
       const away = e.scores!.find((s) => s.name === e.away_team);
       const startsAt = e.commence_time ? new Date(e.commence_time) : undefined;
       return {
-        sport: toSclSport(e.sport_key)!,
+        sport: toSclSport(e.sport_key) ?? fallbackSport!,
         home: e.home_team,
         away: e.away_team,
         homeScore: Number(home?.score ?? 0),
@@ -122,8 +134,11 @@ export function oddsApiResultsProvider(): ResultsProvider {
     throw new ResultsProviderUnavailable("ODDS_API_KEY is not configured");
   }
 
-  const fetchSportScores = async (sclSport: string): Promise<SettledGame[]> => {
-    const apiSport = toOddsApiSport(sclSport);
+  const fetchSportScores = async (
+    sclSport: string,
+    league?: string,
+  ): Promise<SettledGame[]> => {
+    const apiSport = resolveOddsApiSport(sclSport, league);
     if (!apiSport) return [];
 
     const url =
@@ -139,7 +154,10 @@ export function oddsApiResultsProvider(): ResultsProvider {
         return [];
       }
       const events = (await res.json()) as OddsApiScore[];
-      return mapOddsApiScores(events);
+      return mapOddsApiScores(
+        events,
+        sclSport === "SOCCER" ? "SOCCER" : undefined,
+      );
     } catch (err) {
       console.error(`[results] scores fetch ${sclSport} error:`, err);
       return [];
@@ -152,13 +170,25 @@ export function oddsApiResultsProvider(): ResultsProvider {
       const sports = SPORT_KEYS.filter((s) => toOddsApiSport(s));
       return this.fetchSettledForSports(sports);
     },
-    async fetchSettledForSports(sports: string[]): Promise<SettledGame[]> {
-      const distinct = [...new Set(sports)].filter((s) => toOddsApiSport(s));
-      if (distinct.length === 0) return [];
+    async fetchSettledForSports(
+      sports: string[],
+      scope?: ResultsQueryScope,
+    ): Promise<SettledGame[]> {
+      const distinct = [...new Set(sports)];
+      const soccerLeagues = [
+        ...new Set(scope?.soccerLeagues?.filter(Boolean) ?? []),
+      ];
+      const requests = distinct.flatMap((sport) => {
+        if (sport === "SOCCER") {
+          return soccerLeagues.map((league) =>
+            fetchSportScores("SOCCER", league),
+          );
+        }
+        return toOddsApiSport(sport) ? [fetchSportScores(sport)] : [];
+      });
+      if (requests.length === 0) return [];
 
-      const batches = await Promise.all(
-        distinct.map((sport) => fetchSportScores(sport)),
-      );
+      const batches = await Promise.all(requests);
       return batches.flat();
     },
   };
@@ -189,10 +219,10 @@ export function compositeResultsProvider(
       ]);
       return mergeSettledGames(a, b);
     },
-    async fetchSettledForSports(sports: string[]) {
+    async fetchSettledForSports(sports: string[], scope?: ResultsQueryScope) {
       const [a, b] = await Promise.all([
-        primary.fetchSettledForSports(sports),
-        secondary.fetchSettledForSports(sports),
+        primary.fetchSettledForSports(sports, scope),
+        secondary.fetchSettledForSports(sports, scope),
       ]);
       const merged = mergeSettledGames(a, b);
       console.info("[results] provider batch", {

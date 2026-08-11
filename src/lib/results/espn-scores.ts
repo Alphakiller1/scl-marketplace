@@ -4,6 +4,7 @@ import {
   mapEspnScoreboard,
   yyyymmddUtc,
 } from "@/lib/results/espn-scoreboard-map";
+import { espnSoccerLeagueSlug } from "@/lib/results/espn-soccer-leagues";
 import type { SettledGame } from "@/lib/results/settled-game";
 
 /** Days of ESPN scoreboard history to pull when Odds API lookback is exhausted. */
@@ -29,8 +30,13 @@ const ESPN_SPORT_PATH: Record<string, { sport: string; league: string }> = {
 async function fetchEspnScoreboardDay(
   sclSport: string,
   yyyymmdd: string,
+  soccerLeague?: string,
 ): Promise<SettledGame[]> {
-  const path = ESPN_SPORT_PATH[sclSport];
+  const soccerSlug =
+    sclSport === "SOCCER" ? espnSoccerLeagueSlug(soccerLeague) : null;
+  const path = soccerSlug
+    ? { sport: "soccer", league: soccerSlug }
+    : ESPN_SPORT_PATH[sclSport];
   if (!path) return [];
 
   const url =
@@ -68,7 +74,10 @@ export function espnHistoricalResultsProvider(
 ): {
   name: string;
   fetchSettled(): Promise<SettledGame[]>;
-  fetchSettledForSports(sports: string[]): Promise<SettledGame[]>;
+  fetchSettledForSports(
+    sports: string[],
+    scope?: { soccerLeagues?: readonly string[] },
+  ): Promise<SettledGame[]>;
 } {
   const dates: string[] = [];
   for (let i = 0; i < days; i++) {
@@ -81,15 +90,28 @@ export function espnHistoricalResultsProvider(
     async fetchSettled() {
       return this.fetchSettledForSports(Object.keys(ESPN_SPORT_PATH));
     },
-    async fetchSettledForSports(sports: string[]) {
-      const distinct = [...new Set(sports)].filter((s) => ESPN_SPORT_PATH[s]);
-      if (distinct.length === 0) return [];
-
-      const batches = await Promise.all(
-        distinct.flatMap((sport) =>
+    async fetchSettledForSports(
+      sports: string[],
+      scope?: { soccerLeagues?: readonly string[] },
+    ) {
+      const distinct = [...new Set(sports)];
+      const standardSports = distinct.filter((s) => ESPN_SPORT_PATH[s]);
+      const soccerLeagues = [
+        ...new Set(scope?.soccerLeagues?.filter(Boolean) ?? []),
+      ].filter((league) => espnSoccerLeagueSlug(league));
+      const requests = [
+        ...standardSports.flatMap((sport) =>
           dates.map((day) => fetchEspnScoreboardDay(sport, day)),
         ),
-      );
+        ...(distinct.includes("SOCCER")
+          ? soccerLeagues.flatMap((league) =>
+              dates.map((day) => fetchEspnScoreboardDay("SOCCER", day, league)),
+            )
+          : []),
+      ];
+      if (requests.length === 0) return [];
+
+      const batches = await Promise.all(requests);
       return batches.flat();
     },
   };
