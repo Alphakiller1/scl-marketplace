@@ -26,6 +26,9 @@ export type SettledGame = {
    * Optional because a provider may not report it; absent means "don't filter".
    */
   startsAt?: Date;
+  /** Per-inning/period scoring supplied by the settled scoreboard, when present. */
+  homePeriods?: number[];
+  awayPeriods?: number[];
 };
 
 /**
@@ -132,8 +135,16 @@ export function mergeSettledGames(
   // merged game, found no ESPN id, and deferred the play every single run.
   for (const g of primary) {
     const key = fixtureKey(g);
-    const espnEventId = espnIdOf(g) ?? espnIdOf(byKey.get(key) ?? g);
-    byKey.set(key, espnEventId ? { ...g, espnEventId } : g);
+    const secondaryCopy = byKey.get(key);
+    const espnEventId = espnIdOf(g) ?? espnIdOf(secondaryCopy ?? g);
+    const homePeriods = g.homePeriods ?? secondaryCopy?.homePeriods;
+    const awayPeriods = g.awayPeriods ?? secondaryCopy?.awayPeriods;
+    byKey.set(key, {
+      ...g,
+      ...(espnEventId ? { espnEventId } : {}),
+      ...(homePeriods ? { homePeriods } : {}),
+      ...(awayPeriods ? { awayPeriods } : {}),
+    });
   }
   return [...byKey.values()];
 }

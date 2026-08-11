@@ -89,11 +89,22 @@ async function resolveDeferredPeriodTotal(
   games: SettledGame[],
 ): Promise<Outcome | null> {
   if (!parsePeriodTotal(play.selection)) return null;
-  const espnId = espnEventIdFor(play, games);
-  if (!espnId) return null;
-  const box = await fetchPeriodBoxScore(play.sport, espnId);
+  const box = await periodBoxScoreFor(play, games);
   if (!box) return null;
   return resolvePeriodTotal(play.selection, box);
+}
+
+async function periodBoxScoreFor(play: GradablePlay, games: SettledGame[]) {
+  const game = findSettledGame(play, games);
+  if (!game) return null;
+  if (game.homePeriods?.length && game.awayPeriods?.length) {
+    return {
+      homePeriods: game.homePeriods,
+      awayPeriods: game.awayPeriods,
+    };
+  }
+  const espnId = espnIdForFixture(game, games);
+  return espnId ? fetchPeriodBoxScore(play.sport, espnId) : null;
 }
 
 /**
@@ -159,9 +170,9 @@ async function resolvePeriodPlay(
   // provider only maps baseball line-scores.
   if (!period || period.innings <= 0) return null;
 
-  const espnId = espnEventIdFor(play, games);
-  if (!espnId) return null;
-  const box = await fetchPeriodBoxScore(play.sport, espnId);
+  const game = findSettledGame(play, games);
+  if (!game) return null;
+  const box = await periodBoxScoreFor(play, games);
   if (!box) return null;
 
   if (period.kind === "total") {
@@ -180,8 +191,6 @@ async function resolvePeriodPlay(
     );
   }
 
-  const game = findSettledGame(play, games);
-  if (!game) return null;
   const side = pickedSideForGame(play, game);
   if (side === undefined) return null;
 

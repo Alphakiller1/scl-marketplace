@@ -39,13 +39,20 @@ test("the winning copy keeps the ESPN id box-score grading needs", () => {
   // its 3-day scores window — carries a hash. The grader found no ESPN id on
   // the merged game and deferred the play on every single run, forever.
   const oddsApi = game({ eventId: "3b23ade05c9d38068df5e7af422bca05" });
-  const espn = game({ eventId: "espn:401816405", espnEventId: "401816405" });
+  const espn = game({
+    eventId: "espn:401816405",
+    espnEventId: "401816405",
+    homePeriods: [0, 1, 0, 2, 0],
+    awayPeriods: [1, 0, 0, 0, 0],
+  });
 
   const merged = mergeSettledGames([oddsApi], [espn]);
   assert.equal(merged.length, 1);
   assert.equal(merged[0]!.eventId, "3b23ade05c9d38068df5e7af422bca05");
   assert.equal(merged[0]!.espnEventId, "401816405");
   assert.equal(espnIdOf(merged[0]!), "401816405");
+  assert.deepEqual(merged[0]!.homePeriods, [0, 1, 0, 2, 0]);
+  assert.deepEqual(merged[0]!.awayPeriods, [1, 0, 0, 0, 0]);
 });
 
 test("espnIdOf reads both shapes, and reports none when there is none", () => {

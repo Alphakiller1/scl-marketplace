@@ -3,8 +3,24 @@ import type { SettledGame } from "@/lib/results/settled-game";
 type EspnCompetitor = {
   homeAway?: string;
   score?: string | number;
+  linescores?: { value?: string | number; displayValue?: string | number }[];
   team?: { displayName?: string; name?: string; shortDisplayName?: string };
 };
+
+function periodValues(
+  competitor: EspnCompetitor | undefined,
+): number[] | undefined {
+  if (!competitor?.linescores?.length) return undefined;
+  const values: number[] = [];
+  for (const line of competitor.linescores) {
+    const raw = line.value ?? line.displayValue;
+    if (raw == null || String(raw).trim() === "") break;
+    const value = Number(raw);
+    if (!Number.isFinite(value)) break;
+    values.push(value);
+  }
+  return values.length > 0 ? values : undefined;
+}
 
 type EspnEvent = {
   id?: string;
@@ -80,6 +96,8 @@ export function mapEspnScoreboard(
       espnEventId: event.id ? String(event.id) : undefined,
       startsAt:
         startsAt && !Number.isNaN(startsAt.getTime()) ? startsAt : undefined,
+      homePeriods: periodValues(home),
+      awayPeriods: periodValues(away),
     });
   }
   return out;

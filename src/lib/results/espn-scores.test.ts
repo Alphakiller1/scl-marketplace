@@ -38,11 +38,13 @@ test("mapEspnScoreboard extracts completed finals", () => {
               {
                 homeAway: "home",
                 score: "0",
+                linescores: [{ displayValue: "0" }, { displayValue: "1" }],
                 team: { displayName: "National All-Stars" },
               },
               {
                 homeAway: "away",
                 score: "4",
+                linescores: [{ value: 2 }, { value: 0 }],
                 team: { displayName: "American All-Stars" },
               },
             ],
@@ -78,4 +80,6 @@ test("mapEspnScoreboard extracts completed finals", () => {
   assert.equal(games[0]!.homeScore, 0);
   assert.equal(games[0]!.awayScore, 4);
   assert.equal(games[0]!.eventId, "espn:401696123");
+  assert.deepEqual(games[0]!.homePeriods, [0, 1]);
+  assert.deepEqual(games[0]!.awayPeriods, [2, 0]);
 });
