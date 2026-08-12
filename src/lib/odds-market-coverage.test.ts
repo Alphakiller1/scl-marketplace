@@ -35,6 +35,7 @@ test("MLB coverage distinguishes every requested expanded market family", () => 
     event,
     [
       selection("Spread", { featured: false, line: 1.5 }),
+      selection("Total", { featured: false, line: 8.5 }),
       selection("Strikeouts", { player: "Pitcher", line: 5.5 }),
       selection("Team Total", { line: 4.5 }),
       selection("1st 3 Innings Total", { line: 2.5 }),
@@ -47,7 +48,9 @@ test("MLB coverage distinguishes every requested expanded market family", () => 
 
   assert.equal(coverage.fullyCovered, true);
   assert.equal(coverage.props, 1);
-  assert.equal(coverage.alternateGameLines, 1);
+  assert.equal(coverage.alternateGameLines, 2);
+  assert.equal(coverage.alternateSpreads, 1);
+  assert.equal(coverage.alternateTotals, 1);
   assert.equal(coverage.teamTotals, 1);
   assert.deepEqual(coverage.missing, []);
 });
