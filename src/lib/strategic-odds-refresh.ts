@@ -97,9 +97,22 @@ export async function runStrategicOddsRefresh(
     const today = new Intl.DateTimeFormat("en-CA", {
       timeZone: "America/New_York",
     }).format(now);
-    const bootstrapSlot = `${competition.id}:${today}:bootstrap`;
+    const providerDays = [
+      ...new Set(
+        starts
+          .filter((date) => date > now)
+          .map((date) =>
+            new Intl.DateTimeFormat("en-CA", {
+              timeZone: "America/New_York",
+            }).format(date),
+          ),
+      ),
+    ];
+    const bootstrapSlots = providerDays.map(
+      (day) => `${competition.id}:${day}:bootstrap`,
+    );
     const possible = [
-      bootstrapSlot,
+      ...bootstrapSlots,
       ...competition.slots.flatMap((slot) => {
         if (slot.kind === "before-first")
           return starts.map(
@@ -115,13 +128,24 @@ export async function runStrategicOddsRefresh(
     for (const slot of possible)
       if (await readDurableOddsSnapshot(markerKey(slot))) completed.add(slot);
     const cached = await loadCachedOddsBoard(competition.sclSport);
-    const hasCurrentSegment = cached.events.some((event) => {
-      if (Date.parse(event.commenceTime) <= now.getTime()) return false;
-      return competition.league ? event.league === competition.league : true;
-    });
     const due = dueRefreshSlots(competition, starts, completed, now);
-    if (!hasCurrentSegment && !completed.has(bootstrapSlot)) {
-      due.unshift(bootstrapSlot);
+    const cachedDays = new Set(
+      cached.events
+        .filter((event) => {
+          if (Date.parse(event.commenceTime) <= now.getTime()) return false;
+          return competition.league
+            ? event.league === competition.league
+            : true;
+        })
+        .map((event) =>
+          new Intl.DateTimeFormat("en-CA", {
+            timeZone: "America/New_York",
+          }).format(new Date(event.commenceTime)),
+        ),
+    );
+    for (const day of providerDays) {
+      const slot = `${competition.id}:${day}:bootstrap`;
+      if (!cachedDays.has(day) && !completed.has(slot)) due.unshift(slot);
     }
     if (!due.length) {
       result.skipped.push(`${competition.id}:not-due`);
