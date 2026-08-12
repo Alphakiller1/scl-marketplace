@@ -662,7 +662,11 @@ export function EventDetail({
       : []),
     ...gameMarketTabs.map((market) => ({
       key: `market:${market}`,
-      label: market,
+      label: altSections.some(
+        (section) => section.market === market && section.total,
+      )
+        ? `${market} + Alts`
+        : market,
       count: shown.filter((s) => s.market === market).length,
     })),
     ...(propSelections.length
@@ -675,8 +679,12 @@ export function EventDetail({
         ]
       : []),
   ];
-  const activeTab =
-    tab && tabs.some((t) => t.key === tab) ? tab : (tabs[0]?.key ?? "popular");
+  const expandedSport = event.sport === "MLB" || event.sport === "WNBA";
+  const defaultTab =
+    expandedSport && detail?.status === "ready" && propSelections.length
+      ? "props"
+      : (tabs[0]?.key ?? "popular");
+  const activeTab = tab && tabs.some((t) => t.key === tab) ? tab : defaultTab;
 
   const marketBlock = (market: string) => {
     const featured = shown.filter((s) => s.market === market && s.featured);

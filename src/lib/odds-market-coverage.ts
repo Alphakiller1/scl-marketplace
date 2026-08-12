@@ -18,6 +18,8 @@ export type EventMarketCoverage = {
   selectionCount: number;
   props: number;
   alternateGameLines: number;
+  alternateSpreads: number;
+  alternateTotals: number;
   teamTotals: number;
   f3: number;
   f5: number;
@@ -37,6 +39,8 @@ export function summarizeEventMarketCoverage(
   const sport = event.sport.toUpperCase();
   let props = 0;
   let alternateGameLines = 0;
+  let alternateSpreads = 0;
+  let alternateTotals = 0;
   let teamTotals = 0;
   let f3 = 0;
   let f5 = 0;
@@ -57,6 +61,8 @@ export function summarizeEventMarketCoverage(
       (selection.market === "Spread" || selection.market === "Total")
     ) {
       alternateGameLines++;
+      if (selection.market === "Spread") alternateSpreads++;
+      if (selection.market === "Total") alternateTotals++;
     }
     if (isTeamTotalMarket(selection.market)) teamTotals++;
     if (period?.innings === 3) f3++;
@@ -67,7 +73,8 @@ export function summarizeEventMarketCoverage(
 
   const missing: string[] = [];
   if (selections.length === 0) missing.push("expanded board");
-  if (alternateGameLines === 0) missing.push("alternate game lines");
+  if (alternateSpreads === 0) missing.push("alternate spreads");
+  if (alternateTotals === 0) missing.push("alternate totals");
   if ((PROP_MARKETS_BY_SPORT[sport]?.length ?? 0) > 0 && props === 0) {
     missing.push("player props");
   }
@@ -88,6 +95,8 @@ export function summarizeEventMarketCoverage(
     selectionCount: selections.length,
     props,
     alternateGameLines,
+    alternateSpreads,
+    alternateTotals,
     teamTotals,
     f3,
     f5,
