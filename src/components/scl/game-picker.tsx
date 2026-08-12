@@ -38,6 +38,7 @@ type SlateState = {
 };
 
 const EMPTY_SLATE_RETRY_MS = 15_000;
+const SLATE_BACKGROUND_REFRESH_MS = 60_000;
 
 /**
  * Shared game browser for straight + parlay (M4 PR-3).
@@ -74,8 +75,8 @@ export function GamePicker({
     let cancelled = false;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const requestSlate = () => {
-      loadOddsSlate()
+    const requestSlate = (forceRefresh = false) => {
+      loadOddsSlate(fetch, forceRefresh)
         .then((data) => {
           if (cancelled) return;
           setSlate({
@@ -88,7 +89,10 @@ export function GamePicker({
               data.meta?.warning === "circuit_break",
           });
           if (data.configured && data.events.length === 0) {
-            retryTimer = setTimeout(requestSlate, EMPTY_SLATE_RETRY_MS);
+            retryTimer = setTimeout(
+              () => requestSlate(true),
+              EMPTY_SLATE_RETRY_MS,
+            );
           }
         })
         .catch((error: unknown) => {
@@ -101,7 +105,10 @@ export function GamePicker({
               configured: true,
               failed: true,
             });
-            retryTimer = setTimeout(requestSlate, EMPTY_SLATE_RETRY_MS);
+            retryTimer = setTimeout(
+              () => requestSlate(true),
+              EMPTY_SLATE_RETRY_MS,
+            );
           }
         })
         .finally(() => {
@@ -110,8 +117,13 @@ export function GamePicker({
     };
 
     requestSlate();
+    const refreshInterval = setInterval(
+      () => requestSlate(true),
+      SLATE_BACKGROUND_REFRESH_MS,
+    );
     return () => {
       cancelled = true;
+      clearInterval(refreshInterval);
       if (retryTimer) clearTimeout(retryTimer);
     };
   }, []);
