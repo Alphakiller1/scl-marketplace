@@ -8,6 +8,7 @@ import {
   RESULTS_CLIFF_WARNING_DAYS,
   RESULTS_LOOKBACK_DAYS,
 } from "@/lib/results/lookback";
+import { expectedFinalAt } from "@/lib/results/grading-window";
 
 /** Pending past this lag → pipeline UNHEALTHY (Task A). */
 const UNHEALTHY_PENDING_HOURS = 24;
@@ -20,6 +21,8 @@ export type GradingHealthReport = {
   healthy: boolean;
   /** PENDING plays with eventStartsAt older than 24h. */
   pendingPast24h: number;
+  /** PENDING plays beyond the sport-specific maximum expected final window. */
+  pendingPastExpectedFinal: number;
   /**
    * PENDING plays whose start is older than (LOOKBACK - 1) days — about to
    * become permanently ungradeable via the live scores feed (Task C).
@@ -55,6 +58,7 @@ export async function getGradingHealthReport(
 
   const baseWhere = {
     outcome: "PENDING" as const,
+    status: "COMMITTED" as const,
     eventStartsAt: { not: null },
     units: { gte: UNIT_MIN },
     capper: await publicPendingCapperFilter(),
@@ -81,13 +85,30 @@ export async function getGradingHealthReport(
     { label: "grading health cliff count" },
   );
 
+  const pendingCandidates = await withTransientDatabaseRetry(
+    () =>
+      prisma.play.findMany({
+        where: baseWhere,
+        select: { sport: true, eventStartsAt: true },
+        orderBy: { eventStartsAt: "asc" as const },
+        take: 1_000,
+      }),
+    { label: "grading health expected-final inventory" },
+  );
+  const pendingPastExpectedFinal = pendingCandidates.filter(
+    (play) =>
+      play.eventStartsAt != null &&
+      expectedFinalAt(play.sport, play.eventStartsAt) <= now,
+  ).length;
+
   const status: GradingHealthStatus =
-    pendingPast24h > 0 ? "UNHEALTHY" : "HEALTHY";
+    pendingPastExpectedFinal > 0 ? "UNHEALTHY" : "HEALTHY";
 
   return {
     status,
     healthy: status === "HEALTHY",
     pendingPast24h,
+    pendingPastExpectedFinal,
     cliffRisk,
     lookbackDays: RESULTS_LOOKBACK_DAYS,
     cliffWarningDays: RESULTS_CLIFF_WARNING_DAYS,

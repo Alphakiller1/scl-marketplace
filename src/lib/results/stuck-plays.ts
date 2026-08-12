@@ -2,6 +2,8 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import { isAgedOut } from "@/lib/results/skip-reason";
+import { expectedFinalAt } from "@/lib/results/grading-window";
+import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 
 export type StuckPlayRow = {
   id: string;
@@ -64,6 +66,60 @@ export async function listAgedOutPendingPlays(
         parlayId: p.parlayId,
       }))
   );
+}
+
+/** Pending committed plays whose sport-specific final deadline has passed. */
+export async function listOverduePendingPlays(
+  now = new Date(),
+  take = 50,
+): Promise<StuckPlayRow[]> {
+  const excludedUsers = await prismaExcludeTestHandlesLive();
+  const rows = await prisma.play.findMany({
+    where: {
+      outcome: "PENDING",
+      status: "COMMITTED",
+      capper: {
+        user: {
+          accountStatus: "ACTIVE",
+          username: { not: null },
+          ...excludedUsers,
+        },
+      },
+    },
+    select: {
+      id: true,
+      sport: true,
+      market: true,
+      selection: true,
+      oddsAmerican: true,
+      units: true,
+      eventId: true,
+      eventStartsAt: true,
+      parlayId: true,
+      capper: { select: { user: { select: { username: true } } } },
+    },
+    orderBy: { eventStartsAt: "asc" },
+    take: 1_000,
+  });
+  return rows
+    .filter(
+      (play) =>
+        play.eventStartsAt != null &&
+        expectedFinalAt(play.sport, play.eventStartsAt) <= now,
+    )
+    .slice(0, take)
+    .map((play) => ({
+      id: play.id,
+      handle: play.capper.user.username,
+      sport: play.sport,
+      market: play.market,
+      selection: play.selection,
+      oddsAmerican: play.oddsAmerican,
+      units: Number(play.units),
+      eventId: play.eventId,
+      eventStartsAt: play.eventStartsAt?.toISOString() ?? null,
+      parlayId: play.parlayId,
+    }));
 }
 
 /** Every pending committed play, aged out or not — the number ops actually needs. */

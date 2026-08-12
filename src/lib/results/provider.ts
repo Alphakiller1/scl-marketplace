@@ -9,6 +9,9 @@ import {
   toSclSport,
 } from "@/lib/odds-api";
 import { espnHistoricalResultsProvider } from "@/lib/results/espn-scores";
+import { mlbOfficialResultsProvider } from "@/lib/results/mlb-official";
+import { sportsPuffResultsProvider } from "@/lib/results/sportspuff-scores";
+import { fetchWithOddsKeyRollover } from "@/lib/odds-key-rollover";
 import { RESULTS_LOOKBACK_DAYS } from "@/lib/results/lookback";
 import {
   mergeSettledGames,
@@ -141,11 +144,14 @@ export function oddsApiResultsProvider(): ResultsProvider {
     const apiSport = resolveOddsApiSport(sclSport, league);
     if (!apiSport) return [];
 
-    const url =
-      `https://api.the-odds-api.com/v4/sports/${apiSport}/scores/` +
-      `?daysFrom=${RESULTS_LOOKBACK_DAYS}&apiKey=${apiKey}`;
     try {
-      const res = await fetch(url, { cache: "no-store" });
+      const { response: res } = await fetchWithOddsKeyRollover(
+        (key) =>
+          `https://api.the-odds-api.com/v4/sports/${apiSport}/scores/` +
+          `?daysFrom=${RESULTS_LOOKBACK_DAYS}&apiKey=${key}`,
+        { cache: "no-store" },
+      );
+      if (!res) return [];
       logOddsUsage(res, `scores ${sclSport}`, "results");
       if (!res.ok) {
         console.error(
@@ -244,12 +250,20 @@ export function compositeResultsProvider(
  */
 export function getResultsProvider(): ResultsProvider {
   const espn = espnHistoricalResultsProvider();
+  const planC = compositeResultsProvider(
+    mlbOfficialResultsProvider(),
+    sportsPuffResultsProvider(),
+  );
+  const independentBackstops = compositeResultsProvider(espn, planC);
   try {
     if (oddsApiKey()) {
-      return compositeResultsProvider(oddsApiResultsProvider(), espn);
+      return compositeResultsProvider(
+        oddsApiResultsProvider(),
+        independentBackstops,
+      );
     }
   } catch {
     /* fall through */
   }
-  return espn;
+  return independentBackstops;
 }

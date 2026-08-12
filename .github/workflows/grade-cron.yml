@@ -6,7 +6,8 @@ name: Grade pending picks
 
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    # Avoid GitHub's heavily delayed quarter-hour queue boundaries.
+    - cron: "7,22,37,52 * * * *"
   workflow_dispatch:
     inputs:
       warm_odds:
@@ -43,7 +44,7 @@ jobs:
           if [ "${{ inputs.warm_odds || false }}" = "true" ]; then
             URL="${URL}?warmOdds=1"
           fi
-          code=$(curl -sS -o /tmp/grade.json -w "%{http_code}" \
+          code=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -o /tmp/grade.json -w "%{http_code}" \
             -H "Authorization: $CRON_SECRET" \
             -H "Accept: application/json" \
             "$URL")
@@ -61,9 +62,14 @@ jobs:
             const health = d.health?.status || "UNKNOWN";
             const aged = d.skippedByReason?.aged_out || 0;
             const graded = d.graded || 0;
+            const overdue = d.overduePending?.length || 0;
             console.log("health=", health, "graded=", graded, "skippedByReason=", d.skippedByReason);
             if (health === "UNHEALTHY") {
-              console.error("Grade health UNHEALTHY — pending plays past 24h");
+              console.error("Grade health UNHEALTHY — plays remain pending past expected final time");
+              process.exit(1);
+            }
+            if (overdue > 0) {
+              console.error(`${overdue} committed plays remain pending past expected final time`);
               process.exit(1);
             }
             if (graded === 0 && aged > 0 && (d.skipped || 0) === aged) {

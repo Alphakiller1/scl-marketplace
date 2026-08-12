@@ -10,7 +10,12 @@ import {
 import { autoGradePending } from "@/lib/results/auto-grade";
 import { snapshotClosingOdds } from "@/lib/results/closing-snapshot";
 import { getResultsProvider } from "@/lib/results/provider";
-import { listAgedOutPendingPlays } from "@/lib/results/stuck-plays";
+import {
+  listAgedOutPendingPlays,
+  listOverduePendingPlays,
+} from "@/lib/results/stuck-plays";
+
+export const maxDuration = 300;
 
 function authorizeCron(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET?.trim();
@@ -47,13 +52,29 @@ async function runGrade(req: NextRequest) {
     where: { status: "RUNNING" },
   });
   if (running) {
-    console.warn(
-      `[cron/grade] overlapping run prevented — existing run ${running.id}`,
-    );
-    return NextResponse.json(
-      { error: "Run already in progress", runId: running.id },
-      { status: 409 },
-    );
+    const beganAt = running.startedAt ?? running.createdAt;
+    const stale = Date.now() - beganAt.getTime() > 10 * 60 * 1_000;
+    if (!stale) {
+      console.warn("[cron/grade] overlapping run prevented", {
+        runId: running.id,
+      });
+      return NextResponse.json(
+        { error: "Run already in progress", runId: running.id },
+        { status: 409 },
+      );
+    }
+    await prisma.gradeJobRun.update({
+      where: { id: running.id },
+      data: {
+        status: "FAILED",
+        finishedAt: new Date(),
+        error: "Recovered stale RUNNING grader lock after 10 minutes",
+      },
+    });
+    console.error("[cron/grade] recovered stale grader lock", {
+      runId: running.id,
+      beganAt: beganAt.toISOString(),
+    });
   }
 
   const provider = process.env.RESULTS_PROVIDER || "default";
@@ -101,17 +122,23 @@ async function runGrade(req: NextRequest) {
       (result.skippedByReason?.aged_out ?? 0) > 0
         ? await listAgedOutPendingPlays()
         : [];
+    const overduePending = await listOverduePendingPlays();
+    const gradeOk =
+      health.status !== "UNHEALTHY" && overduePending.length === 0;
 
     // Update job run with final stats
     await prisma.gradeJobRun.update({
       where: { id: job.id },
       data: {
         finishedAt: new Date(),
-        status: "SUCCESS",
+        status: gradeOk ? "SUCCESS" : "FAILED",
         graded: result.graded ?? 0,
         skipped: result.skipped ?? 0,
         parlaysGraded: result.parlaysGraded ?? 0,
         skippedByReason: result.skippedByReason ?? {},
+        error: gradeOk
+          ? null
+          : `${overduePending.length} plays remain pending past expected final time`,
         meta: {
           clvSnapshots,
           clvBackfilled,
@@ -125,6 +152,7 @@ async function runGrade(req: NextRequest) {
                 marketComplete: oddsCoverage.marketComplete,
               }
             : null,
+          overduePending: overduePending.length,
         },
       },
     });
@@ -140,23 +168,28 @@ async function runGrade(req: NextRequest) {
 
     if (health.status === "UNHEALTHY") {
       console.warn(
-        `[cron/grade] health=UNHEALTHY pendingPast24h=${health.pendingPast24h}` +
+        `[cron/grade] health=UNHEALTHY pendingPastExpectedFinal=${health.pendingPastExpectedFinal}` +
+          ` pendingPast24h=${health.pendingPast24h}` +
           ` cliffRisk=${health.cliffRisk}` +
           ` skippedByReason=${JSON.stringify(result.skippedByReason)}`,
       );
     }
 
-    return NextResponse.json({
-      ok: true,
-      runId: job.id,
-      ...result,
-      clvSnapshots,
-      clvBackfilled,
-      health,
-      oddsCoverage,
-      oddsWarmup,
-      stuckPlays,
-    });
+    return NextResponse.json(
+      {
+        ok: gradeOk,
+        runId: job.id,
+        ...result,
+        clvSnapshots,
+        clvBackfilled,
+        health,
+        oddsCoverage,
+        oddsWarmup,
+        overduePending,
+        stuckPlays,
+      },
+      { status: gradeOk ? 200 : 503 },
+    );
   } catch (err) {
     console.error("[cron/grade] autoGradePending failed:", err);
     const message = err instanceof Error ? err.message : "Grade job failed";
