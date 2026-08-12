@@ -180,7 +180,87 @@ const MLB_TEAMS: TeamRecord[] = [
   ]),
 ];
 
+const NFL_TEAMS: TeamRecord[] = [
+  team("NFL", "ARI", "Cardinals", "Arizona Cardinals", "#97233f", ["Arizona"]),
+  team("NFL", "ATL", "Falcons", "Atlanta Falcons", "#a71930", ["Atlanta"]),
+  team("NFL", "BAL", "Ravens", "Baltimore Ravens", "#241773", ["Baltimore"]),
+  team("NFL", "BUF", "Bills", "Buffalo Bills", "#00338d", ["Buffalo"]),
+  team("NFL", "CAR", "Panthers", "Carolina Panthers", "#0085ca", ["Carolina"]),
+  team("NFL", "CHI", "Bears", "Chicago Bears", "#0b162a", ["Chicago"]),
+  team("NFL", "CIN", "Bengals", "Cincinnati Bengals", "#fb4f14", [
+    "Cincinnati",
+  ]),
+  team("NFL", "CLE", "Browns", "Cleveland Browns", "#311d00", ["Cleveland"]),
+  team("NFL", "DAL", "Cowboys", "Dallas Cowboys", "#003594", ["Dallas"]),
+  team("NFL", "DEN", "Broncos", "Denver Broncos", "#fb4f14", ["Denver"]),
+  team("NFL", "DET", "Lions", "Detroit Lions", "#0076b6", ["Detroit"]),
+  team("NFL", "GB", "Packers", "Green Bay Packers", "#203731", [
+    "Green Bay",
+    "GBP",
+  ]),
+  team("NFL", "HOU", "Texans", "Houston Texans", "#03202f", ["Houston"]),
+  team("NFL", "IND", "Colts", "Indianapolis Colts", "#002c5f", [
+    "Indianapolis",
+  ]),
+  team("NFL", "JAX", "Jaguars", "Jacksonville Jaguars", "#006778", [
+    "Jacksonville",
+    "JAC",
+  ]),
+  team("NFL", "KC", "Chiefs", "Kansas City Chiefs", "#e31837", [
+    "Kansas City",
+    "KCC",
+  ]),
+  team("NFL", "LV", "Raiders", "Las Vegas Raiders", "#000000", [
+    "Las Vegas",
+    "Oakland Raiders",
+    "OAK",
+  ]),
+  team("NFL", "LAC", "Chargers", "Los Angeles Chargers", "#0080c6", [
+    "LA Chargers",
+    "San Diego Chargers",
+  ]),
+  team("NFL", "LAR", "Rams", "Los Angeles Rams", "#003594", [
+    "LA Rams",
+    "St. Louis Rams",
+  ]),
+  team("NFL", "MIA", "Dolphins", "Miami Dolphins", "#008e97", ["Miami"]),
+  team("NFL", "MIN", "Vikings", "Minnesota Vikings", "#4f2683", ["Minnesota"]),
+  team("NFL", "NE", "Patriots", "New England Patriots", "#002244", [
+    "New England",
+    "NEP",
+  ]),
+  team("NFL", "NO", "Saints", "New Orleans Saints", "#d3bc8d", [
+    "New Orleans",
+    "NOS",
+  ]),
+  team("NFL", "NYG", "Giants", "New York Giants", "#0b2265", ["NY Giants"]),
+  team("NFL", "NYJ", "Jets", "New York Jets", "#125740", ["NY Jets"]),
+  team("NFL", "PHI", "Eagles", "Philadelphia Eagles", "#004c54", [
+    "Philadelphia",
+  ]),
+  team("NFL", "PIT", "Steelers", "Pittsburgh Steelers", "#ffb612", [
+    "Pittsburgh",
+  ]),
+  team("NFL", "SEA", "Seahawks", "Seattle Seahawks", "#002244", ["Seattle"]),
+  team("NFL", "SF", "49ers", "San Francisco 49ers", "#aa0000", [
+    "San Francisco",
+    "SFO",
+  ]),
+  team("NFL", "TB", "Buccaneers", "Tampa Bay Buccaneers", "#d50a0a", [
+    "Tampa Bay",
+    "TBB",
+  ]),
+  team("NFL", "TEN", "Titans", "Tennessee Titans", "#0c2340", ["Tennessee"]),
+  team("NFL", "WSH", "Commanders", "Washington Commanders", "#5a1414", [
+    "Washington",
+    "Washington Football Team",
+    "Washington Redskins",
+    "WAS",
+  ]),
+];
+
 const TEAMS_BY_SPORT: Record<string, TeamRecord[]> = {
+  NFL: NFL_TEAMS,
   MLB: MLB_TEAMS,
   WNBA: WNBA_TEAMS,
 };
@@ -209,6 +289,7 @@ function toTeamMap(teams: TeamRecord[]): Record<string, TeamMapEntry> {
 
 export const WNBA: Record<string, TeamMapEntry> = toTeamMap(WNBA_TEAMS);
 export const MLB: Record<string, TeamMapEntry> = toTeamMap(MLB_TEAMS);
+export const NFL: Record<string, TeamMapEntry> = toTeamMap(NFL_TEAMS);
 
 const TEAM_INDEX = new Map<string, TeamRecord>();
 
@@ -253,7 +334,7 @@ export function readableTextColor(hex: string): "#0b0f19" | "#ffffff" {
 }
 
 function team(
-  sport: "MLB" | "WNBA",
+  sport: "MLB" | "WNBA" | "NFL",
   abbr: string,
   shortName: string,
   fullName: string,

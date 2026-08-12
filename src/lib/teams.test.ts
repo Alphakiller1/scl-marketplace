@@ -35,6 +35,20 @@ test("seeded MLB/WNBA teams use ESPN CDN logos", () => {
   );
 });
 
+test("all NFL teams resolve to self-hosted logo assets", () => {
+  for (const name of [
+    "Detroit Lions",
+    "Green Bay Packers",
+    "Pittsburgh Steelers",
+    "New England Patriots",
+    "Las Vegas Raiders",
+    "San Francisco 49ers",
+  ]) {
+    const identity = getTeamIdentity(name, "NFL");
+    assert.match(identity.logoUrl ?? "", /^\/marks\/teams\/nfl\/[a-z]+\.png/);
+  }
+});
+
 test("espnTeamLogoUrl applies abbr overrides", () => {
   assert.equal(
     espnTeamLogoUrl("MLB", "CWS"),
