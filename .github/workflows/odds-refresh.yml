@@ -1,0 +1,25 @@
+name: Strategic odds refresh
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: strategic-odds-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call production odds scheduler
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          CRON_ODDS_URL: ${{ secrets.CRON_ODDS_URL }}
+        run: |
+          test -n "$CRON_SECRET"
+          URL="${CRON_ODDS_URL:-https://scl-marketplace.vercel.app/api/cron/odds-refresh}"
+          code=$(curl -sS -o /tmp/odds.json -w "%{http_code}" -H "Authorization: $CRON_SECRET" "$URL")
+          cat /tmp/odds.json
+          test "$code" = "200"
