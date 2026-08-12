@@ -2,6 +2,7 @@ import "server-only";
 
 import { normalizeUpcomingEvent, type OddsEvent } from "@/lib/odds-board";
 import { updateOddsBoardSegment } from "@/lib/odds-board-cache";
+import { loadCachedOddsBoard } from "@/lib/odds-board-cache";
 import {
   readDurableOddsSnapshot,
   writeDurableOddsSnapshot,
@@ -68,20 +69,35 @@ export async function runStrategicOddsRefresh(
     }
     const starts = schedule.map((event) => new Date(event.commence_time));
 
-    const possible = competition.slots.flatMap((slot) => {
-      if (slot.kind === "before-first")
-        return starts.map(
-          (date) =>
-            `${competition.id}:${new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(date)}:${slot.id}`,
-        );
-      return [
-        `${competition.id}:${new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(now)}:${slot.id}`,
-      ];
-    });
+    const today = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/New_York",
+    }).format(now);
+    const bootstrapSlot = `${competition.id}:${today}:bootstrap`;
+    const possible = [
+      bootstrapSlot,
+      ...competition.slots.flatMap((slot) => {
+        if (slot.kind === "before-first")
+          return starts.map(
+            (date) =>
+              `${competition.id}:${new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(date)}:${slot.id}`,
+          );
+        return [
+          `${competition.id}:${new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(now)}:${slot.id}`,
+        ];
+      }),
+    ];
     const completed = new Set<string>();
     for (const slot of possible)
       if (await readDurableOddsSnapshot(markerKey(slot))) completed.add(slot);
+    const cached = await loadCachedOddsBoard(competition.sclSport);
+    const hasCurrentSegment = cached.events.some((event) => {
+      if (Date.parse(event.commenceTime) <= now.getTime()) return false;
+      return competition.league ? event.league === competition.league : true;
+    });
     const due = dueRefreshSlots(competition, starts, completed, now);
+    if (!hasCurrentSegment && !completed.has(bootstrapSlot)) {
+      due.unshift(bootstrapSlot);
+    }
     if (!due.length) {
       result.skipped.push(`${competition.id}:not-due`);
       continue;
