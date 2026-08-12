@@ -14,7 +14,11 @@ import {
   resolveOutcome,
   type GradablePlay,
 } from "@/lib/results/match";
-import { espnIdForFixture, type SettledGame } from "@/lib/results/settled-game";
+import {
+  espnIdForFixture,
+  mlbGamePkForFixture,
+  type SettledGame,
+} from "@/lib/results/settled-game";
 import {
   overUnderOutcome,
   parsePeriodTotal,
@@ -26,6 +30,7 @@ import {
 import {
   fetchPeriodBoxScore,
   fetchPlayerBoxScore,
+  fetchMlbOfficialPlayerBoxScore,
 } from "@/lib/results/stats-provider";
 import {
   findPlayer,
@@ -88,6 +93,18 @@ function cachedPlayerBox(
   const existing = cache.get(key);
   if (existing) return existing;
   const pending = fetchPlayerBoxScore(sport, espnId);
+  cache.set(key, pending);
+  return pending;
+}
+
+function cachedMlbOfficialBox(
+  cache: PlayerBoxCache,
+  gamePk: string,
+): Promise<PlayerBoxScore | null> {
+  const key = `MLB-OFFICIAL:${gamePk}`;
+  const existing = cache.get(key);
+  if (existing) return existing;
+  const pending = fetchMlbOfficialPlayerBoxScore(gamePk);
   cache.set(key, pending);
   return pending;
 }
@@ -177,19 +194,41 @@ async function resolvePlayerPropPlay(
   games: SettledGame[],
   boxCache: PlayerBoxCache,
 ): Promise<Outcome | null> {
+  const matchedGame = findSettledGame(play, games);
   const espnId = espnEventIdFor(play, games);
   if (espnId) {
     const box = await cachedPlayerBox(boxCache, play.sport, espnId);
-    if (!box) return null;
-    return resolvePlayerProp(
-      {
-        market: play.market,
-        selection: play.selection,
-        side: play.side,
-        line: play.line ?? null,
-      },
-      box,
-    );
+    if (box) {
+      const outcome = resolvePlayerProp(
+        {
+          market: play.market,
+          selection: play.selection,
+          side: play.side,
+          line: play.line ?? null,
+        },
+        box,
+      );
+      if (outcome) return outcome;
+    }
+  }
+
+  // Plan C is genuinely independent of ESPN: match the same final fixture to
+  // MLB's official gamePk and read the official box score.
+  const gamePk = matchedGame ? mlbGamePkForFixture(matchedGame, games) : null;
+  if (play.sport.toUpperCase() === "MLB" && gamePk) {
+    const box = await cachedMlbOfficialBox(boxCache, gamePk);
+    if (box) {
+      const outcome = resolvePlayerProp(
+        {
+          market: play.market,
+          selection: play.selection,
+          side: play.side,
+          line: play.line ?? null,
+        },
+        box,
+      );
+      if (outcome) return outcome;
+    }
   }
 
   // Legacy picker rows can carry the Odds API id and scheduled start but no
@@ -547,6 +586,7 @@ function mergeSkipCounts(
   b: SkipReasonCounts,
 ): SkipReasonCounts {
   return {
+    awaiting_final: a.awaiting_final + b.awaiting_final,
     props_deferred: a.props_deferred + b.props_deferred,
     event_not_found: a.event_not_found + b.event_not_found,
     aged_out: a.aged_out + b.aged_out,

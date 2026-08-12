@@ -83,6 +83,75 @@ export async function fetchPlayerBoxScore(
   }
 }
 
+type MlbBoxPlayer = {
+  person?: { fullName?: string };
+  stats?: {
+    batting?: { gamesPlayed?: number; hits?: number };
+    pitching?: {
+      gamesPlayed?: number;
+      strikeOuts?: number;
+      outs?: number;
+      earnedRuns?: number;
+    };
+  };
+};
+
+type MlbBoxTeam = {
+  team?: { name?: string };
+  players?: Record<string, MlbBoxPlayer>;
+};
+
+/** Pure mapper for MLB's official game box score. */
+export function mapMlbOfficialPlayerBox(data: unknown): PlayerBoxScore | null {
+  const teams = (data as { teams?: { home?: MlbBoxTeam; away?: MlbBoxTeam } })
+    ?.teams;
+  const rows: PlayerStatLine[] = [];
+  for (const team of [teams?.home, teams?.away]) {
+    const teamName = team?.team?.name ?? "unknown";
+    for (const player of Object.values(team?.players ?? {})) {
+      const name = player.person?.fullName;
+      if (!name) continue;
+      const batting = player.stats?.batting;
+      const pitching = player.stats?.pitching;
+      const stats: Record<string, number> = {};
+      if (typeof batting?.hits === "number") stats.hits = batting.hits;
+      if (typeof pitching?.strikeOuts === "number") {
+        stats.strikeouts = pitching.strikeOuts;
+      }
+      if (typeof pitching?.outs === "number") stats.outs = pitching.outs;
+      if (typeof pitching?.earnedRuns === "number") {
+        stats.earnedRuns = pitching.earnedRuns;
+      }
+      rows.push({
+        name,
+        team: teamName,
+        played:
+          (batting?.gamesPlayed ?? 0) > 0 || (pitching?.gamesPlayed ?? 0) > 0,
+        stats,
+      });
+    }
+  }
+  return rows.length ? { players: rows } : null;
+}
+
+/** Independent MLB Plan C for player-prop settlement. */
+export async function fetchMlbOfficialPlayerBoxScore(
+  gamePk: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<PlayerBoxScore | null> {
+  if (!/^\d+$/.test(gamePk)) return null;
+  try {
+    const response = await fetchImpl(
+      `https://statsapi.mlb.com/api/v1/game/${encodeURIComponent(gamePk)}/boxscore`,
+      { cache: "no-store", headers: { Accept: "application/json" } },
+    );
+    if (!response.ok) return null;
+    return mapMlbOfficialPlayerBox(await response.json());
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Canonical stat keys per ESPN stat group.
  *

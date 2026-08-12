@@ -65,7 +65,8 @@ export default async function AdminGradingPage() {
             <dd className="scl-data mt-1 text-sm font-semibold tabular-nums">
               {health.status}
               <span className="text-muted-foreground ml-2 font-normal">
-                ({health.pendingPast24h} pending &gt;24h)
+                ({health.pendingPastExpectedFinal} past expected final /{" "}
+                {health.pendingPast24h} &gt;24h)
               </span>
             </dd>
           </div>

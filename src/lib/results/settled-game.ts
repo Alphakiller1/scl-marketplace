@@ -19,6 +19,8 @@ export type SettledGame = {
    * prop grading — see `mergeSettledGames`.
    */
   espnEventId?: string;
+  /** MLB Stats API gamePk used by the independent official box-score backstop. */
+  mlbGamePk?: string;
   /**
    * Scheduled start. Only used to date-scope the name-matching fallback for
    * plays that carry no eventId — without it, "Yankees ML" logged today can
@@ -116,6 +118,31 @@ export function espnIdForFixture(
   return near.length === 1 ? espnIdOf(near[0]!) : null;
 }
 
+/** MLB gamePk for the same confidently matched fixture. */
+export function mlbGamePkForFixture(
+  game: SettledGame,
+  pool: readonly SettledGame[],
+): string | null {
+  if (game.mlbGamePk) return game.mlbGamePk;
+  const key = clubsKey(game);
+  const candidates = pool.filter(
+    (candidate) =>
+      candidate !== game &&
+      clubsKey(candidate) === key &&
+      candidate.mlbGamePk != null,
+  );
+  const near =
+    game.startsAt == null
+      ? candidates
+      : candidates.filter(
+          (candidate) =>
+            candidate.startsAt != null &&
+            Math.abs(candidate.startsAt.getTime() - game.startsAt!.getTime()) <=
+              SAME_GAME_HOURS * 3_600_000,
+        );
+  return near.length === 1 ? (near[0]!.mlbGamePk ?? null) : null;
+}
+
 export function mergeSettledGames(
   primary: SettledGame[],
   secondary: SettledGame[],
@@ -137,11 +164,13 @@ export function mergeSettledGames(
     const key = fixtureKey(g);
     const secondaryCopy = byKey.get(key);
     const espnEventId = espnIdOf(g) ?? espnIdOf(secondaryCopy ?? g);
+    const mlbGamePk = g.mlbGamePk ?? secondaryCopy?.mlbGamePk;
     const homePeriods = g.homePeriods ?? secondaryCopy?.homePeriods;
     const awayPeriods = g.awayPeriods ?? secondaryCopy?.awayPeriods;
     byKey.set(key, {
       ...g,
       ...(espnEventId ? { espnEventId } : {}),
+      ...(mlbGamePk ? { mlbGamePk } : {}),
       ...(homePeriods ? { homePeriods } : {}),
       ...(awayPeriods ? { awayPeriods } : {}),
     });

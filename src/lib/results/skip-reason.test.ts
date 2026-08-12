@@ -73,6 +73,16 @@ test("classifySkipReason: event_not_found inside lookback window", () => {
   assert.equal(reason, "event_not_found");
 });
 
+test("classifySkipReason: a recently started game is awaiting_final, not failed", () => {
+  const starts = new Date(NOW.getTime() - 2 * 60 * 60 * 1000);
+  const reason = classifySkipReason({
+    play: { ...play(), eventStartsAt: starts },
+    gameFound: false,
+    now: NOW,
+  });
+  assert.equal(reason, "awaiting_final");
+});
+
 test("classifySkipReason: market_unhandled when game found but unresolved", () => {
   const starts = new Date(NOW.getTime() - 1 * 24 * 60 * 60 * 1000);
   const reason = classifySkipReason({

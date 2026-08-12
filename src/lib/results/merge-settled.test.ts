@@ -55,6 +55,14 @@ test("the winning copy keeps the ESPN id box-score grading needs", () => {
   assert.deepEqual(merged[0]!.awayPeriods, [1, 0, 0, 0, 0]);
 });
 
+test("the winning copy keeps MLB's official gamePk for Plan C box scores", () => {
+  const oddsApi = game({ eventId: "3b23ade05c9d38068df5e7af422bca05" });
+  const official = game({ eventId: "mlb:824240", mlbGamePk: "824240" });
+  const merged = mergeSettledGames([oddsApi], [official]);
+  assert.equal(merged[0]!.eventId, "3b23ade05c9d38068df5e7af422bca05");
+  assert.equal(merged[0]!.mlbGamePk, "824240");
+});
+
 test("espnIdOf reads both shapes, and reports none when there is none", () => {
   assert.equal(espnIdOf(game({ eventId: "espn:401816405" })), "401816405");
   assert.equal(espnIdOf(game({ espnEventId: "401816405" })), "401816405");

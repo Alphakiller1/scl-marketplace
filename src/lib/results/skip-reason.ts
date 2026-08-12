@@ -1,4 +1,5 @@
 import { RESULTS_LOOKBACK_DAYS } from "@/lib/results/lookback";
+import { isAwaitingExpectedFinal } from "@/lib/results/grading-window";
 import {
   findGame,
   isDeferredProp,
@@ -11,6 +12,7 @@ export { RESULTS_LOOKBACK_DAYS };
 
 /** Why a pending play was not auto-graded this run. */
 export type SkipReason =
+  | "awaiting_final"
   | "props_deferred"
   | "event_not_found"
   | "aged_out"
@@ -20,6 +22,7 @@ export type SkipReasonCounts = Record<SkipReason, number>;
 
 export function emptySkipCounts(): SkipReasonCounts {
   return {
+    awaiting_final: 0,
     props_deferred: 0,
     event_not_found: 0,
     aged_out: 0,
@@ -55,6 +58,15 @@ export function classifySkipReason(opts: {
   lookbackDays?: number;
 }): SkipReason {
   if (!opts.gameFound) {
+    if (
+      isAwaitingExpectedFinal(
+        opts.play.sport,
+        opts.play.eventStartsAt,
+        opts.now,
+      )
+    ) {
+      return "awaiting_final";
+    }
     if (isAgedOut(opts.play.eventStartsAt, opts.now, opts.lookbackDays)) {
       return "aged_out";
     }
