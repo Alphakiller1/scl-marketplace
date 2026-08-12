@@ -16,7 +16,7 @@ import {
 } from "@/lib/odds-event-board-contract";
 
 export const ODDS_EVENT_FRESH_SECONDS = 10 * 60;
-export const ODDS_EVENT_RETENTION_SECONDS = 2 * 24 * 60 * 60;
+export const ODDS_EVENT_RETENTION_SECONDS = 30 * 24 * 60 * 60;
 
 export type LoadedEventBoard = {
   selections: OddsSelection[];

@@ -139,6 +139,23 @@ test("scheduled refreshes preserve omitted future captures and verify durable co
   assert.match(scheduler, /loadDurableOddsBoard/);
 });
 
+test("production cron rejects incomplete MLB expanded markets and event fetches roll over keys", () => {
+  const route = fs.readFileSync(
+    path.join(root, "src/app/api/cron/odds-refresh/route.ts"),
+    "utf8",
+  );
+  const coverage = fs.readFileSync(
+    path.join(root, "src/lib/odds-coverage-report.ts"),
+    "utf8",
+  );
+  const api = fs.readFileSync(path.join(root, "src/lib/odds-api.ts"), "utf8");
+  assert.match(route, /warmMissingOddsCoverage/);
+  assert.match(route, /expandedFailures/);
+  assert.match(route, /!game\.fullyCovered/);
+  assert.match(coverage, /!game\.fullyCovered/);
+  assert.match(api, /fetchWithOddsKeyRollover/);
+});
+
 test("deployment health reads cached boards without spending odds credits", () => {
   const health = fs.readFileSync(
     path.join(root, "src/app/api/health/deep/route.ts"),

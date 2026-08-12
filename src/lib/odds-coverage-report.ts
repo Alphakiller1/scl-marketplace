@@ -44,7 +44,10 @@ export async function getCachedOddsCoverageReport() {
  * the run so an exhausted or invalid key is never hammered across the slate.
  */
 export async function warmMissingOddsCoverage(report: OddsCoverageReport) {
-  const missing = report.games.filter((game) => !game.cacheCovered);
+  // A basic or partially populated event board is still missing. MLB is not
+  // complete until alternates, player props, F3, F5 and F7 all survive durable
+  // read-back; WNBA likewise requires its complete expanded matrix.
+  const missing = report.games.filter((game) => !game.fullyCovered);
   let attempted = 0;
   let populated = 0;
   let stoppedReason: "provider_empty" | "credits_exhausted" | null = null;
