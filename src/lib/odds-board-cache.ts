@@ -15,7 +15,10 @@ import {
  * verified, so the discovery board can outlive the final recorded price.
  */
 export const ODDS_BOARD_FRESH_SECONDS = 4 * 60 * 60;
-export const ODDS_BOARD_RETENTION_SECONDS = 7 * 24 * 60 * 60;
+// Keep durable last-good captures long enough to survive an extended provider,
+// credit, scheduler, or deployment outage. Upcoming events are pruned after
+// kickoff whenever a successful segment write occurs.
+export const ODDS_BOARD_RETENTION_SECONDS = 30 * 24 * 60 * 60;
 
 type OddsBoardSnapshot = {
   version: 1;
@@ -153,7 +156,7 @@ async function writeSnapshot(
 /** Replace one scheduled league segment without erasing other leagues or last-good data. */
 export async function updateOddsBoardSegment(
   sport: string,
-  league: string | undefined,
+  _league: string | undefined,
   events: OddsEvent[],
 ): Promise<LoadedOddsBoard> {
   const normalized = sport.toUpperCase();
@@ -168,10 +171,14 @@ export async function updateOddsBoardSegment(
         }
       : { events: [], source: "provider_empty", savedAt: null, stale: false };
   }
-  const retained = league
-    ? (cached?.events ?? []).filter((event) => event.league !== league)
-    : [];
-  const merged = [...retained, ...events]
+  const now = Date.now();
+  const retained = (cached?.events ?? []).filter((event) => {
+    if (Date.parse(event.commenceTime) <= now) return false;
+    // Preserve every future last-good event omitted by a partial response.
+    // New events are placed first below, so matching IDs still receive fresh prices.
+    return true;
+  });
+  const merged = [...events, ...retained]
     .filter(
       (event, index, all) =>
         all.findIndex((row) => row.id === event.id) === index,
@@ -184,6 +191,25 @@ export async function updateOddsBoardSegment(
     savedAt: saved.savedAt,
     stale: false,
   };
+}
+
+/** Database-only read-back used by cron so an ephemeral cache write cannot fake success. */
+export async function loadDurableOddsBoard(
+  sport: string,
+): Promise<LoadedOddsBoard> {
+  const normalized = sport.toUpperCase();
+  const snapshot = parseOddsBoardSnapshot(
+    await readDurableOddsSnapshot(cacheKey(normalized)),
+    normalized,
+  );
+  return snapshot
+    ? {
+        events: snapshot.events,
+        source: "runtime_cache",
+        savedAt: snapshot.savedAt,
+        stale: Date.now() - snapshot.savedAt > ODDS_BOARD_FRESH_SECONDS * 1_000,
+      }
+    : { events: [], source: "cache_empty", savedAt: null, stale: true };
 }
 
 async function refreshBoard(
