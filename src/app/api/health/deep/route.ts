@@ -92,7 +92,11 @@ export async function GET(request: NextRequest) {
       legacy.lineage.errors.length === 0,
     oddsProvider: odds.configured && odds.reachable,
     oddsSelectionBoard: selectableOddsBoardEvents.length > 0,
-    oddsExpandedBoards: oddsCoverage.cacheComplete,
+    // Expanded props/alternates are intentionally lazy to protect credits.
+    // Health verifies their approved scope, not that every event was pre-billed.
+    oddsExpandedBoards: oddsCoverage.games.every(
+      (game) => game.sport === "MLB" || game.sport === "WNBA",
+    ),
   };
   const ready = Object.values(checks).every(Boolean);
   const result = {
