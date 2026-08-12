@@ -77,7 +77,40 @@ export function normalizeLeagueKey(key: string): string {
 
 /** `${SPORT}:${ABBR}` keys with a file in public/marks/teams/{sport}/ */
 export const TEAM_MARKS = new Set<string>([
-  // Example: "MLB:LAD", "WNBA:LAS"
+  ...[
+    "ARI",
+    "ATL",
+    "BAL",
+    "BUF",
+    "CAR",
+    "CHI",
+    "CIN",
+    "CLE",
+    "DAL",
+    "DEN",
+    "DET",
+    "GB",
+    "HOU",
+    "IND",
+    "JAX",
+    "KC",
+    "LV",
+    "LAC",
+    "LAR",
+    "MIA",
+    "MIN",
+    "NE",
+    "NO",
+    "NYG",
+    "NYJ",
+    "PHI",
+    "PIT",
+    "SEA",
+    "SF",
+    "TB",
+    "TEN",
+    "WSH",
+  ].map((abbr) => `NFL:${abbr}`),
 ]);
 
 /** Bump when replacing league mark binaries so CDN/browser caches refresh. */
