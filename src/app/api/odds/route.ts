@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getCapperBooks } from "@/lib/capper-books";
 import { buildOddsBoardMeta, oddsApiKey } from "@/lib/odds-api";
 import { loadOddsBoard } from "@/lib/odds-board-cache";
-import { dedupeOddsEvents } from "@/lib/odds-board";
+import { dedupeOddsEvents, sortByKickoff } from "@/lib/odds-board";
 import { ODDS_BOARD_SPORTS } from "@/lib/game-picker";
 import { getCurrentUser } from "@/lib/session";
 
@@ -29,7 +29,9 @@ export async function GET(request: Request) {
   const boards = configured
     ? await Promise.all(sports.map((sport) => loadOddsBoard(sport)))
     : [];
-  const events = dedupeOddsEvents(boards.flatMap((board) => board.events));
+  const events = sortByKickoff(
+    dedupeOddsEvents(boards.flatMap((board) => board.events)),
+  );
   const stale = boards.some((board) => board.stale);
   const circuitBreak = boards.some(
     (board) =>

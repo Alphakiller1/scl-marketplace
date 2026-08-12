@@ -271,7 +271,7 @@ export function GamePicker({
       </label>
 
       <div
-        className="-mx-1 flex scroll-px-1 [scrollbar-width:none] gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        className="flex flex-wrap gap-2 pb-1"
         role="group"
         aria-label="Filter by sport"
       >
