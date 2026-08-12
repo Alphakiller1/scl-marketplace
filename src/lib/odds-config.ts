@@ -11,10 +11,9 @@ export function oddsApiKey(
  * Ordered provider keys. The existing key always burns down first; rollover is
  * used only after the provider rejects/exhausts it. Duplicate values collapse.
  */
-export function oddsApiKeys(
-  env: OddsEnvironment = process.env,
-): string[] {
+export function oddsApiKeys(env: OddsEnvironment = process.env): string[] {
   return [oddsApiKey(env), env.ODDS_API_KEY_FALLBACK?.trim()].filter(
-    (key, index, keys): key is string => Boolean(key) && keys.indexOf(key) === index,
+    (key, index, keys): key is string =>
+      Boolean(key) && keys.indexOf(key) === index,
   );
 }

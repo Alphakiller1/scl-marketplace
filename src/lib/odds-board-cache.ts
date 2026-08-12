@@ -160,17 +160,30 @@ export async function updateOddsBoardSegment(
   const cached = await readSnapshot(normalized);
   if (events.length === 0) {
     return cached
-      ? { events: cached.events, source: "stale_provider_failure", savedAt: cached.savedAt, stale: true }
+      ? {
+          events: cached.events,
+          source: "stale_provider_failure",
+          savedAt: cached.savedAt,
+          stale: true,
+        }
       : { events: [], source: "provider_empty", savedAt: null, stale: false };
   }
   const retained = league
     ? (cached?.events ?? []).filter((event) => event.league !== league)
     : [];
   const merged = [...retained, ...events]
-    .filter((event, index, all) => all.findIndex((row) => row.id === event.id) === index)
+    .filter(
+      (event, index, all) =>
+        all.findIndex((row) => row.id === event.id) === index,
+    )
     .sort((a, b) => Date.parse(a.commenceTime) - Date.parse(b.commenceTime));
   const saved = await writeSnapshot(normalized, merged);
-  return { events: merged, source: "provider", savedAt: saved.savedAt, stale: false };
+  return {
+    events: merged,
+    source: "provider",
+    savedAt: saved.savedAt,
+    stale: false,
+  };
 }
 
 async function refreshBoard(
