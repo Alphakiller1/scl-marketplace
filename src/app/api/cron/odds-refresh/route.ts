@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runStrategicOddsRefresh } from "@/lib/strategic-odds-refresh";
+import {
+  getStrategicOddsBoardStatus,
+  runStrategicOddsRefresh,
+} from "@/lib/strategic-odds-refresh";
 
 export const maxDuration = 300;
 
@@ -9,5 +12,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const result = await runStrategicOddsRefresh();
-  return NextResponse.json({ ok: true, ...result });
+  const boardStatus = await getStrategicOddsBoardStatus();
+  const ok = result.verificationFailures.length === 0;
+  return NextResponse.json(
+    { ok, ...result, boardStatus },
+    { status: ok ? 200 : 503 },
+  );
 }

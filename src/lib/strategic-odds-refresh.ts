@@ -30,15 +30,40 @@ async function providerJson<T>(
 
 export type StrategicRefreshResult = {
   refreshed: string[];
+  verified: Array<{ competition: string; events: number; selections: number }>;
+  verificationFailures: string[];
   retained: string[];
   skipped: string[];
 };
+
+export async function getStrategicOddsBoardStatus(now = new Date()) {
+  return Promise.all(
+    STRATEGIC_ODDS_COMPETITIONS.map(async (competition) => {
+      const board = await loadCachedOddsBoard(competition.sclSport);
+      const events = board.events.filter((event) => {
+        if (Date.parse(event.commenceTime) <= now.getTime()) return false;
+        return competition.league ? event.league === competition.league : true;
+      });
+      return {
+        competition: competition.id,
+        events: events.length,
+        selections: events.reduce(
+          (total, event) => total + event.selections.length,
+          0,
+        ),
+        source: board.source,
+      };
+    }),
+  );
+}
 
 export async function runStrategicOddsRefresh(
   now = new Date(),
 ): Promise<StrategicRefreshResult> {
   const result: StrategicRefreshResult = {
     refreshed: [],
+    verified: [],
+    verificationFailures: [],
     retained: [],
     skipped: [],
   };
@@ -128,6 +153,19 @@ export async function runStrategicOddsRefresh(
       competition.league,
       events,
     );
+    const readBack = await loadCachedOddsBoard(competition.sclSport);
+    const verifiedEvents = readBack.events.filter((event) => {
+      if (Date.parse(event.commenceTime) <= now.getTime()) return false;
+      return competition.league ? event.league === competition.league : true;
+    });
+    const selectionCount = verifiedEvents.reduce(
+      (total, event) => total + event.selections.length,
+      0,
+    );
+    if (!verifiedEvents.length || selectionCount === 0) {
+      result.verificationFailures.push(competition.id);
+      continue;
+    }
     for (const slot of due)
       await writeDurableOddsSnapshot(
         markerKey(slot),
@@ -136,6 +174,11 @@ export async function runStrategicOddsRefresh(
         MARKER_TTL,
       );
     result.refreshed.push(competition.id);
+    result.verified.push({
+      competition: competition.id,
+      events: verifiedEvents.length,
+      selections: selectionCount,
+    });
   }
   return result;
 }
