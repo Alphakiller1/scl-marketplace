@@ -1,7 +1,10 @@
 import "server-only";
 
 import { normalizeUpcomingEvent, type OddsEvent } from "@/lib/odds-board";
-import { updateOddsBoardSegment } from "@/lib/odds-board-cache";
+import {
+  loadDurableOddsBoard,
+  updateOddsBoardSegment,
+} from "@/lib/odds-board-cache";
 import { loadCachedOddsBoard } from "@/lib/odds-board-cache";
 import {
   readDurableOddsSnapshot,
@@ -80,6 +83,11 @@ export async function runStrategicOddsRefresh(
           competition.catalogMatch?.test(`${row.key} ${row.title}`),
       )?.key;
     if (!providerKey) {
+      if (competition.catalogMatch && catalog === null) {
+        result.verificationFailures.push(
+          `${competition.id}:catalog-unavailable`,
+        );
+      }
       result.skipped.push(`${competition.id}:unavailable`);
       continue;
     }
@@ -88,7 +96,14 @@ export async function runStrategicOddsRefresh(
       (key) =>
         `https://api.the-odds-api.com/v4/sports/${providerKey}/events?apiKey=${key}`,
     );
-    if (!schedule?.length) {
+    if (schedule === null) {
+      result.verificationFailures.push(
+        `${competition.id}:schedule-unavailable`,
+      );
+      result.retained.push(competition.id);
+      continue;
+    }
+    if (!schedule.length) {
       result.skipped.push(`${competition.id}:no-events`);
       continue;
     }
@@ -97,10 +112,22 @@ export async function runStrategicOddsRefresh(
     const today = new Intl.DateTimeFormat("en-CA", {
       timeZone: "America/New_York",
     }).format(now);
+    const tomorrowDate = new Date(now);
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrow = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/New_York",
+    }).format(tomorrowDate);
+    const relevantSchedule = schedule.filter((event) => {
+      const start = new Date(event.commence_time);
+      const day = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/New_York",
+      }).format(start);
+      return start > now && (day === today || day === tomorrow);
+    });
     const providerDays = [
       ...new Set(
-        starts
-          .filter((date) => date > now)
+        relevantSchedule
+          .map((event) => new Date(event.commence_time))
           .map((date) =>
             new Intl.DateTimeFormat("en-CA", {
               timeZone: "America/New_York",
@@ -127,8 +154,17 @@ export async function runStrategicOddsRefresh(
     const completed = new Set<string>();
     for (const slot of possible)
       if (await readDurableOddsSnapshot(markerKey(slot))) completed.add(slot);
-    const cached = await loadCachedOddsBoard(competition.sclSport);
+    const cached = await loadDurableOddsBoard(competition.sclSport);
     const due = dueRefreshSlots(competition, starts, completed, now);
+    const cachedCompetitionEvents = cached.events.filter((event) => {
+      if (Date.parse(event.commenceTime) <= now.getTime()) return false;
+      return competition.league ? event.league === competition.league : true;
+    });
+    const cachedEventIds = new Set(
+      cachedCompetitionEvents
+        .filter((event) => event.selections.length > 0)
+        .map((event) => event.id),
+    );
     const cachedDays = new Set(
       cached.events
         .filter((event) => {
@@ -146,6 +182,12 @@ export async function runStrategicOddsRefresh(
     for (const day of providerDays) {
       const slot = `${competition.id}:${day}:bootstrap`;
       if (!cachedDays.has(day) && !completed.has(slot)) due.unshift(slot);
+    }
+    const missingProviderIds = relevantSchedule
+      .map((event) => event.id)
+      .filter((id) => !cachedEventIds.has(id));
+    if (missingProviderIds.length) {
+      due.unshift(`${competition.id}:${today}:event-coverage`);
     }
     if (!due.length) {
       result.skipped.push(`${competition.id}:not-due`);
@@ -169,6 +211,11 @@ export async function runStrategicOddsRefresh(
       .filter((event) => event.selections.length > 0);
     if (!events.length) {
       result.retained.push(competition.id);
+      if (missingProviderIds.length) {
+        result.verificationFailures.push(
+          `${competition.id}:missing-event-odds:${missingProviderIds.length}`,
+        );
+      }
       continue;
     }
 
@@ -177,7 +224,7 @@ export async function runStrategicOddsRefresh(
       competition.league,
       events,
     );
-    const readBack = await loadCachedOddsBoard(competition.sclSport);
+    const readBack = await loadDurableOddsBoard(competition.sclSport);
     const verifiedEvents = readBack.events.filter((event) => {
       if (Date.parse(event.commenceTime) <= now.getTime()) return false;
       return competition.league ? event.league === competition.league : true;
@@ -186,8 +233,14 @@ export async function runStrategicOddsRefresh(
       (total, event) => total + event.selections.length,
       0,
     );
-    if (!verifiedEvents.length || selectionCount === 0) {
-      result.verificationFailures.push(competition.id);
+    const verifiedIds = new Set(verifiedEvents.map((event) => event.id));
+    const stillMissing = relevantSchedule
+      .map((event) => event.id)
+      .filter((id) => !verifiedIds.has(id));
+    if (!verifiedEvents.length || selectionCount === 0 || stillMissing.length) {
+      result.verificationFailures.push(
+        `${competition.id}:durable-coverage:${stillMissing.length}`,
+      );
       continue;
     }
     for (const slot of due)

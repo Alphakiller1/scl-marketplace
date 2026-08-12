@@ -120,6 +120,25 @@ test("server cache is shared across users and retains last-good boards", () => {
   assert.doesNotMatch(route, /fetchUpcomingOdds\(sport, \{ books \}\)/);
 });
 
+test("scheduled refreshes preserve omitted future captures and verify durable coverage", () => {
+  const cache = fs.readFileSync(
+    path.join(root, "src/lib/odds-board-cache.ts"),
+    "utf8",
+  );
+  const scheduler = fs.readFileSync(
+    path.join(root, "src/lib/strategic-odds-refresh.ts"),
+    "utf8",
+  );
+  assert.match(cache, /\.\.\.events, \.\.\.retained/);
+  assert.match(cache, /loadDurableOddsBoard/);
+  assert.match(cache, /30 \* 24 \* 60 \* 60/);
+  assert.match(scheduler, /missingProviderIds/);
+  assert.match(scheduler, /missing-event-odds/);
+  assert.match(scheduler, /stillMissing/);
+  assert.match(scheduler, /schedule-unavailable/);
+  assert.match(scheduler, /loadDurableOddsBoard/);
+});
+
 test("deployment health reads cached boards without spending odds credits", () => {
   const health = fs.readFileSync(
     path.join(root, "src/app/api/health/deep/route.ts"),
