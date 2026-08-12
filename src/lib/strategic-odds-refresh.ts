@@ -36,6 +36,27 @@ export type StrategicRefreshResult = {
   skipped: string[];
 };
 
+export async function getStrategicOddsBoardStatus(now = new Date()) {
+  return Promise.all(
+    STRATEGIC_ODDS_COMPETITIONS.map(async (competition) => {
+      const board = await loadCachedOddsBoard(competition.sclSport);
+      const events = board.events.filter((event) => {
+        if (Date.parse(event.commenceTime) <= now.getTime()) return false;
+        return competition.league ? event.league === competition.league : true;
+      });
+      return {
+        competition: competition.id,
+        events: events.length,
+        selections: events.reduce(
+          (total, event) => total + event.selections.length,
+          0,
+        ),
+        source: board.source,
+      };
+    }),
+  );
+}
+
 export async function runStrategicOddsRefresh(
   now = new Date(),
 ): Promise<StrategicRefreshResult> {
