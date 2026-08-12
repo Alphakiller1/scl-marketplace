@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { recoverFixtureFromSelections } from "@/lib/results/cached-fixture";
+import {
+  recoverFixtureFromIdentity,
+  recoverFixtureFromSelections,
+} from "@/lib/results/cached-fixture";
 
 const play = {
   id: "play",
@@ -79,5 +82,46 @@ test("cache recovery refuses incomplete or ambiguous moneyline identity", () => 
       [],
     ),
     null,
+  );
+});
+
+test("archived identity disambiguates simultaneous finals by both opponents", () => {
+  const games = [
+    {
+      sport: "MLB",
+      home: "Minnesota Twins",
+      away: "Baltimore Orioles",
+      homeScore: 2,
+      awayScore: 5,
+      completed: true,
+      eventId: "mlb:823673",
+      startsAt: new Date("2026-08-11T23:40:00Z"),
+    },
+    {
+      sport: "MLB",
+      home: "Chicago White Sox",
+      away: "Cincinnati Reds",
+      homeScore: 4,
+      awayScore: 5,
+      completed: true,
+      eventId: "mlb:824563",
+      startsAt: new Date("2026-08-11T23:40:00Z"),
+    },
+  ];
+  assert.deepEqual(
+    recoverFixtureFromIdentity(
+      { ...play, eventId: "legacy-hash" },
+      {
+        sport: "MLB",
+        home: "Chicago White Sox",
+        away: "Cincinnati Reds",
+      },
+      games,
+    ),
+    {
+      homeTeam: "Chicago White Sox",
+      awayTeam: "Cincinnati Reds",
+      eventLabel: "Cincinnati Reds @ Chicago White Sox",
+    },
   );
 });

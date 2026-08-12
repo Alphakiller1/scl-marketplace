@@ -5,8 +5,10 @@ import type { Outcome } from "@prisma/client";
 import { settleParlay } from "@/lib/grading";
 import { profitUnitsForOutcome } from "@/lib/odds";
 import { loadCachedEventBoard } from "@/lib/odds-event-board-cache";
+import { loadOddsEventIdentity } from "@/lib/odds-event-identity-cache";
 import { prisma } from "@/lib/prisma";
 import {
+  recoverFixtureFromIdentity,
   recoverFixtureFromSelections,
   type RecoveredFixture,
 } from "@/lib/results/cached-fixture";
@@ -127,10 +129,15 @@ function cachedRecoveredFixture(
   const key = `${play.sport.toUpperCase()}:${play.eventId}`;
   const existing = cache.get(key);
   if (existing) return existing;
-  const pending = loadCachedEventBoard(play.sport, play.eventId)
-    .then((board) =>
-      recoverFixtureFromSelections(play, board.selections, games),
-    )
+  const pending = loadOddsEventIdentity(play.sport, play.eventId)
+    .then(async (identity) => {
+      const archived = identity
+        ? recoverFixtureFromIdentity(play, identity, games)
+        : null;
+      if (archived) return archived;
+      const board = await loadCachedEventBoard(play.sport, play.eventId!);
+      return recoverFixtureFromSelections(play, board.selections, games);
+    })
     .catch((error) => {
       console.warn("[auto-grade] cached fixture recovery failed", {
         sport: play.sport,

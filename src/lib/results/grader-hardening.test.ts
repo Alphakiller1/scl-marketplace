@@ -55,6 +55,14 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
     "utf8",
   );
   assert.match(grader, /One immutable provider snapshot per job/);
+  assert.match(grader, /loadOddsEventIdentity/);
+  assert.match(grader, /recoverFixtureFromIdentity/);
   assert.match(grader, /recoverFixtureFromSelections/);
   assert.match(grader, /fetchWnbaOfficialPeriodBoxScore/);
+
+  const boardCache = fs.readFileSync(
+    path.join(root, "src/lib/odds-board-cache.ts"),
+    "utf8",
+  );
+  assert.match(boardCache, /archiveOddsEventIdentities\(events\)/);
 });
