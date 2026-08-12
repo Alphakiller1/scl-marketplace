@@ -45,6 +45,8 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
   assert.match(route, /listOverduePendingPlays/);
   assert.match(route, /status: gradeOk \? 200 : 503/);
   assert.match(route, /status: gradeOk \? "SUCCESS" : "FAILED"/);
+  assert.match(route, /revalidateTag\("leaderboard", \{ expire: 0 \}\)/);
+  assert.match(route, /revalidatePath\("\/cappers\/\[handle\]", "page"\)/);
   assert.match(health, /pendingPastExpectedFinal/);
   assert.match(workflow, /7,22,37,52 \* \* \* \*/);
   assert.match(workflow, /--retry 3/);
