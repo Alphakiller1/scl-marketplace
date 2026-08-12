@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getGradingHealthReport } from "@/lib/grading-health";
 import {
@@ -157,13 +157,20 @@ async function runGrade(req: NextRequest) {
       },
     });
 
-    // Revalidate admin and public pages
+    // The public profile query is a cross-request cache tagged `leaderboard`.
+    // Path-only invalidation left a freshly graded play visibly "Awaiting" for
+    // up to a minute even though the database and leaderboard had updated.
+    // Expire the shared data tag and the dynamic profile route together so the
+    // first reader after this job sees the committed result.
+    revalidateTag("leaderboard", { expire: 0 });
     revalidatePath("/admin/grading");
     revalidatePath("/admin/plays");
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/picks");
     revalidatePath("/picks");
     revalidatePath("/leaderboard");
+    revalidatePath("/discover");
+    revalidatePath("/cappers/[handle]", "page");
     revalidatePath("/");
 
     if (health.status === "UNHEALTHY") {
