@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { settleParlay } from "@/lib/grading";
 import { profitUnitsEqual } from "@/lib/grading-correction";
 import { isBookKey } from "@/lib/books";
-import { confirmBoardSelection } from "@/lib/board-selection-confirmation";
+import { confirmedBoardEvent } from "@/lib/board-selection-confirmation";
 import { decidePickIntegrity } from "@/lib/odds-verify";
 import {
   americanToDecimal,
@@ -85,6 +85,8 @@ export async function createParlay(
     loggedPreGame: boolean;
     oddsVerified: boolean;
     tier: "AUTO_VERIFIED" | "VERIFIED" | "SELF_REPORTED";
+    homeTeam: string;
+    awayTeam: string;
   }> = [];
 
   for (const [i, l] of d.legs.entries()) {
@@ -103,7 +105,7 @@ export async function createParlay(
       };
     }
     const captureBook = l.book && isBookKey(l.book) ? l.book : null;
-    const boardConfirmed = await confirmBoardSelection({
+    const confirmedEvent = await confirmedBoardEvent({
       sport: l.sport,
       eventId: l.eventId,
       eventStartsAt,
@@ -114,7 +116,7 @@ export async function createParlay(
       oddsAmerican: l.oddsAmerican,
       book: captureBook,
     });
-    if (!boardConfirmed) {
+    if (!confirmedEvent) {
       return {
         ok: false,
         error: `Leg ${i + 1}: this line could not be confirmed from the SCL board. Reopen the matchup and select it again.`,
@@ -139,6 +141,8 @@ export async function createParlay(
       loggedPreGame: decision.loggedPreGame,
       oddsVerified: decision.oddsVerified,
       tier: decision.tier,
+      homeTeam: confirmedEvent.home,
+      awayTeam: confirmedEvent.away,
     });
   }
 
@@ -174,6 +178,8 @@ export async function createParlay(
             oddsAmerican,
             selectedOddsAmerican,
             oddsMovedAccepted,
+            homeTeam,
+            awayTeam,
             ...v
           }) => ({
             capperId: profile.id,
@@ -186,7 +192,9 @@ export async function createParlay(
             oddsMovedAccepted,
             units: 0, // the parlay carries the stake; legs are components
             eventId: l.eventId,
-            eventLabel: l.eventLabel ?? null,
+            eventLabel: `${awayTeam} @ ${homeTeam}`,
+            homeTeam,
+            awayTeam,
             eventStartsAt,
             side: l.side,
             line: l.line ?? null,

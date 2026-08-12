@@ -39,6 +39,7 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
   );
   assert.match(provider, /fetchWithOddsKeyRollover/);
   assert.match(provider, /mlbOfficialResultsProvider/);
+  assert.match(provider, /wnbaOfficialResultsProvider/);
   assert.match(provider, /sportsPuffResultsProvider/);
   assert.match(route, /Recovered stale RUNNING grader lock/);
   assert.match(route, /listOverduePendingPlays/);
@@ -48,4 +49,12 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
   assert.match(workflow, /7,22,37,52 \* \* \* \*/);
   assert.match(workflow, /--retry 3/);
   assert.match(workflow, /overduePending/);
+
+  const grader = fs.readFileSync(
+    path.join(root, "src/lib/results/auto-grade.ts"),
+    "utf8",
+  );
+  assert.match(grader, /One immutable provider snapshot per job/);
+  assert.match(grader, /recoverFixtureFromSelections/);
+  assert.match(grader, /fetchWnbaOfficialPeriodBoxScore/);
 });

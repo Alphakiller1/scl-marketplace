@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { assertAnalysisSafe } from "@/lib/analysis-moderation";
-import { confirmBoardSelection } from "@/lib/board-selection-confirmation";
+import { confirmedBoardEvent } from "@/lib/board-selection-confirmation";
 import {
   buildBulkSinglesReceipt,
   shapeBulkSinglesOutcome,
@@ -42,6 +42,8 @@ type ReadyPlayData = {
   needsReview: boolean;
   eventId: string;
   eventLabel: string | null;
+  homeTeam: string;
+  awayTeam: string;
   eventStartsAt: Date;
   side: string;
   line: number | null;
@@ -105,6 +107,8 @@ type ReadyWrite = {
     needsReview: boolean;
     eventId: string;
     eventLabel: string | null;
+    homeTeam: string;
+    awayTeam: string;
     eventStartsAt: Date;
     side: string;
     line: number | null;
@@ -192,7 +196,7 @@ async function preparePlayLine(
     player: d.player,
   });
   const captureBook = d.book && isBookKey(d.book) ? d.book : null;
-  const boardConfirmed = await confirmBoardSelection({
+  const confirmedEvent = await confirmedBoardEvent({
     sport: d.sport,
     eventId: d.eventId,
     eventStartsAt,
@@ -203,7 +207,7 @@ async function preparePlayLine(
     oddsAmerican: d.oddsAmerican,
     book: captureBook,
   });
-  if (!boardConfirmed) {
+  if (!confirmedEvent) {
     return {
       status: "error",
       error:
@@ -249,7 +253,9 @@ async function preparePlayLine(
         notesPublic: d.notesPublic ?? true,
         needsReview: isExtremeAmericanOdds(d.oddsAmerican),
         eventId: d.eventId,
-        eventLabel: d.eventLabel ?? null,
+        eventLabel: `${confirmedEvent.away} @ ${confirmedEvent.home}`,
+        homeTeam: confirmedEvent.home,
+        awayTeam: confirmedEvent.away,
         eventStartsAt,
         side: d.side,
         line: d.line ?? null,

@@ -6,6 +6,7 @@ import { mergeEventBoardSelections } from "@/lib/odds-event-board-contract";
 import {
   matchesBoardSelection,
   type BoardSelectionClaim,
+  type OddsEvent,
 } from "@/lib/odds-board";
 
 export type BoardSelectionConfirmation = BoardSelectionClaim & {
@@ -22,6 +23,16 @@ export type BoardSelectionConfirmation = BoardSelectionClaim & {
 export async function confirmBoardSelection(
   claim: BoardSelectionConfirmation,
 ): Promise<boolean> {
+  return (await confirmedBoardEvent(claim)) !== null;
+}
+
+/**
+ * Confirm the line and return the server-owned fixture behind it.
+ * Callers persist this identity instead of trusting an optional client label.
+ */
+export async function confirmedBoardEvent(
+  claim: BoardSelectionConfirmation,
+): Promise<OddsEvent | null> {
   const [slate, detail] = await Promise.all([
     loadCachedOddsBoard(claim.sport),
     loadCachedEventBoard(claim.sport, claim.eventId),
@@ -29,21 +40,21 @@ export async function confirmBoardSelection(
   const event = slate.events.find(
     (candidate) => candidate.id === claim.eventId,
   );
-  if (!event) return false;
+  if (!event) return null;
 
   const expectedStart = Date.parse(event.commenceTime);
   if (
     Number.isNaN(expectedStart) ||
     expectedStart !== claim.eventStartsAt.getTime()
   ) {
-    return false;
+    return null;
   }
 
   const selections = mergeEventBoardSelections(
     event.selections,
     detail.selections,
   );
-  return selections.some((selection) =>
-    matchesBoardSelection(selection, claim),
-  );
+  return selections.some((selection) => matchesBoardSelection(selection, claim))
+    ? event
+    : null;
 }

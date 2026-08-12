@@ -11,6 +11,7 @@ import {
 import { espnHistoricalResultsProvider } from "@/lib/results/espn-scores";
 import { mlbOfficialResultsProvider } from "@/lib/results/mlb-official";
 import { sportsPuffResultsProvider } from "@/lib/results/sportspuff-scores";
+import { wnbaOfficialResultsProvider } from "@/lib/results/wnba-official";
 import { fetchWithOddsKeyRollover } from "@/lib/odds-key-rollover";
 import { RESULTS_LOOKBACK_DAYS } from "@/lib/results/lookback";
 import {
@@ -250,8 +251,12 @@ export function compositeResultsProvider(
  */
 export function getResultsProvider(): ResultsProvider {
   const espn = espnHistoricalResultsProvider();
-  const planC = compositeResultsProvider(
+  const officialPlanC = compositeResultsProvider(
     mlbOfficialResultsProvider(),
+    wnbaOfficialResultsProvider(),
+  );
+  const planC = compositeResultsProvider(
+    officialPlanC,
     sportsPuffResultsProvider(),
   );
   const independentBackstops = compositeResultsProvider(espn, planC);
