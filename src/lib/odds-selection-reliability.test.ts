@@ -15,7 +15,8 @@ test("Log a Pick loads one aggregate board instead of nine sport requests", () =
     path.join(root, "src/components/scl/game-picker.tsx"),
     "utf8",
   );
-  assert.match(source, /loadOddsSlate\(\)/);
+  assert.match(source, /loadOddsSlate\(fetch, forceRefresh\)/);
+  assert.match(source, /setInterval\([\s\S]*requestSlate\(true\)/);
   assert.doesNotMatch(source, /ODDS_BOARD_SPORTS\.map\(async/);
   assert.doesNotMatch(source, /api\/odds\?sport=.*sport\.key/);
 });

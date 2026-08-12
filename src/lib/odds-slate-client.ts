@@ -24,8 +24,13 @@ function validPayload(value: unknown): value is OddsSlatePayload {
 /** One request for the slate, reused across receipt -> selection remounts. */
 export async function loadOddsSlate(
   fetchImpl: typeof fetch = fetch,
+  forceRefresh = false,
 ): Promise<OddsSlatePayload> {
-  if (cached && Date.now() - cached.savedAt <= CLIENT_SLATE_TTL_MS) {
+  if (
+    !forceRefresh &&
+    cached &&
+    Date.now() - cached.savedAt <= CLIENT_SLATE_TTL_MS
+  ) {
     return cached.payload;
   }
   if (inFlight) return inFlight;
