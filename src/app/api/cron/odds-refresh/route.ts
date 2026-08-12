@@ -9,5 +9,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const result = await runStrategicOddsRefresh();
-  return NextResponse.json({ ok: true, ...result });
+  const ok = result.verificationFailures.length === 0;
+  return NextResponse.json({ ok, ...result }, { status: ok ? 200 : 503 });
 }
