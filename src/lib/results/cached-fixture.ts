@@ -1,4 +1,5 @@
 import type { OddsSelection } from "@/lib/odds-board";
+import type { OddsEventIdentity } from "@/lib/odds-event-identity-contract";
 import { findGame, type GradablePlay } from "@/lib/results/match";
 import type { SettledGame } from "@/lib/results/settled-game";
 
@@ -7,6 +8,34 @@ export type RecoveredFixture = {
   awayTeam: string;
   eventLabel: string;
 };
+
+/**
+ * Recover a cross-provider final from an immutable board-event identity.
+ * Both opponents and the scheduled-start window still have to identify one
+ * final, so even simultaneous games and doubleheaders cannot grade by accident.
+ */
+export function recoverFixtureFromIdentity(
+  play: GradablePlay,
+  identity: Pick<OddsEventIdentity, "sport" | "home" | "away">,
+  games: SettledGame[],
+): RecoveredFixture | null {
+  if (identity.sport.toUpperCase() !== play.sport.toUpperCase()) return null;
+  const matched = findGame(
+    {
+      ...play,
+      homeTeam: identity.home,
+      awayTeam: identity.away,
+      eventLabel: `${identity.away} @ ${identity.home}`,
+    },
+    games,
+  );
+  if (!matched) return null;
+  return {
+    homeTeam: matched.home,
+    awayTeam: matched.away,
+    eventLabel: `${matched.away} @ ${matched.home}`,
+  };
+}
 
 /**
  * Recover a provider-bound fixture from its retained event board.
@@ -34,19 +63,9 @@ export function recoverFixtureFromSelections(
     ),
   ];
   if (sides.length !== 2) return null;
-  const matched = findGame(
-    {
-      ...play,
-      homeTeam: sides[0],
-      awayTeam: sides[1],
-      eventLabel: `${sides[0]} @ ${sides[1]}`,
-    },
+  return recoverFixtureFromIdentity(
+    play,
+    { sport: play.sport, home: sides[0]!, away: sides[1]! },
     games,
   );
-  if (!matched) return null;
-  return {
-    homeTeam: matched.home,
-    awayTeam: matched.away,
-    eventLabel: `${matched.away} @ ${matched.home}`,
-  };
 }

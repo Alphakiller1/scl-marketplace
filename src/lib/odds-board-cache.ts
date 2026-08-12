@@ -9,6 +9,7 @@ import {
   readDurableOddsSnapshot,
   writeDurableOddsSnapshot,
 } from "@/lib/odds-durable-cache";
+import { archiveOddsEventIdentities } from "@/lib/odds-event-identity-cache";
 
 /**
  * Board prices are discovery data. Every submitted line is fetched again and
@@ -131,6 +132,7 @@ async function writeSnapshot(
     events,
     savedAt: Date.now(),
   };
+  await archiveOddsEventIdentities(events);
   await writeDurableOddsSnapshot(
     cacheKey(sport),
     snapshot,
