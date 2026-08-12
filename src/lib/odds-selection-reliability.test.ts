@@ -19,6 +19,15 @@ test("Log a Pick loads one aggregate board instead of nine sport requests", () =
   assert.match(source, /setInterval\([\s\S]*requestSlate\(true\)/);
   assert.doesNotMatch(source, /ODDS_BOARD_SPORTS\.map\(async/);
   assert.doesNotMatch(source, /api\/odds\?sport=.*sport\.key/);
+  assert.match(source, /flex flex-wrap gap-2/);
+});
+
+test("the aggregate odds route orders every sport by kickoff", () => {
+  const route = fs.readFileSync(
+    path.join(root, "src/app/api/odds/route.ts"),
+    "utf8",
+  );
+  assert.match(route, /sortByKickoff\(/);
 });
 
 test("a receipt remount reuses the same browser slate request", async () => {
