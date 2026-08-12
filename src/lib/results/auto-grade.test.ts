@@ -227,7 +227,7 @@ test("both grading loops resolve through the same function", () => {
       "resolvePendingPlay, so neither can drift from the other.",
   );
   assert.equal(
-    count(/resolveOutcome\(play, games\)/g),
+    count(/resolveOutcome\(boundPlay, games\)/g),
     1,
     "resolveOutcome grades against the FULL-GAME score; reaching it from a " +
       "second place is how a prop or period market gets a wrong result.",

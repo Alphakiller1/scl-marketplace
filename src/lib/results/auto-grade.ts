@@ -4,7 +4,12 @@ import type { Outcome } from "@prisma/client";
 
 import { settleParlay } from "@/lib/grading";
 import { profitUnitsForOutcome } from "@/lib/odds";
+import { loadCachedEventBoard } from "@/lib/odds-event-board-cache";
 import { prisma } from "@/lib/prisma";
+import {
+  recoverFixtureFromSelections,
+  type RecoveredFixture,
+} from "@/lib/results/cached-fixture";
 import { ensureClosingAndClv } from "@/lib/results/closing-snapshot";
 import { parsePeriodMarket } from "@/lib/period-markets";
 import {
@@ -44,6 +49,7 @@ import type {
   ResultsQueryScope,
 } from "@/lib/results/provider";
 import { hasClvColumns } from "@/lib/results/schema-features";
+import { fetchWnbaOfficialPeriodBoxScore } from "@/lib/results/wnba-official";
 import {
   classifySkipReason,
   emptySkipCounts,
@@ -68,6 +74,7 @@ type GradeBatch = {
 };
 
 type PlayerBoxCache = Map<string, Promise<PlayerBoxScore | null>>;
+type FixtureCache = Map<string, Promise<RecoveredFixture | null>>;
 
 function resultsQueryScopeFor(
   plays: readonly { sport: string; league?: string | null }[],
@@ -105,6 +112,33 @@ function cachedMlbOfficialBox(
   const existing = cache.get(key);
   if (existing) return existing;
   const pending = fetchMlbOfficialPlayerBoxScore(gamePk);
+  cache.set(key, pending);
+  return pending;
+}
+
+function cachedRecoveredFixture(
+  cache: FixtureCache,
+  play: GradablePlay,
+  games: SettledGame[],
+): Promise<RecoveredFixture | null> {
+  if (!play.eventId || findSettledGame(play, games)) {
+    return Promise.resolve(null);
+  }
+  const key = `${play.sport.toUpperCase()}:${play.eventId}`;
+  const existing = cache.get(key);
+  if (existing) return existing;
+  const pending = loadCachedEventBoard(play.sport, play.eventId)
+    .then((board) =>
+      recoverFixtureFromSelections(play, board.selections, games),
+    )
+    .catch((error) => {
+      console.warn("[auto-grade] cached fixture recovery failed", {
+        sport: play.sport,
+        eventId: play.eventId,
+        reason: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    });
   cache.set(key, pending);
   return pending;
 }
@@ -158,6 +192,10 @@ async function periodBoxScoreFor(play: GradablePlay, games: SettledGame[]) {
       homePeriods: game.homePeriods,
       awayPeriods: game.awayPeriods,
     };
+  }
+  if (game.wnbaGameSlug) {
+    const official = await fetchWnbaOfficialPeriodBoxScore(game.wnbaGameSlug);
+    if (official) return official;
   }
   const espnId = espnIdForFixture(game, games);
   return espnId ? fetchPeriodBoxScore(play.sport, espnId) : null;
@@ -273,25 +311,56 @@ async function resolvePeriodPlay(
   games: SettledGame[],
 ): Promise<Outcome | null> {
   const period = parsePeriodMarket(play.market);
-  // innings <= 0 is a half: recognised as a partial-game market (so it is never
-  // graded on the full-game score) but not yet settleable, because the box-score
-  // provider only maps baseball line-scores.
-  if (!period || period.innings <= 0) return null;
+  if (!period) return null;
 
   const game = findSettledGame(play, games);
   if (!game) return null;
-  const box = await periodBoxScoreFor(play, games);
-  if (!box) return null;
+  const rawBox = await periodBoxScoreFor(play, games);
+  if (!rawBox) return null;
+  const isHalf = period.innings === 0;
+  const secondHalf = /\b(2nd|second)\s*half\b|\bh2\b/i.test(play.market);
+  const box = isHalf
+    ? {
+        homePeriods: rawBox.homePeriods.slice(
+          secondHalf ? 2 : 0,
+          secondHalf ? 4 : 2,
+        ),
+        awayPeriods: rawBox.awayPeriods.slice(
+          secondHalf ? 2 : 0,
+          secondHalf ? 4 : 2,
+        ),
+      }
+    : rawBox;
+  const segmentPeriods = isHalf ? 2 : period.innings;
 
   if (period.kind === "total") {
     // The segment is already known from the market, so the line/side only has
     // to be read off the selection ("Over 4.5").
+    const scores = periodScores(box, segmentPeriods);
+    if (!scores) return null;
+    if (isHalf) {
+      const side =
+        /^under$/i.test(play.side ?? "") ||
+        /\bunder\b|\bu\s*\d/i.test(play.selection)
+          ? "under"
+          : /^over$/i.test(play.side ?? "") ||
+              /\bover\b|\bo\s*\d/i.test(play.selection)
+            ? "over"
+            : null;
+      const line =
+        play.line ??
+        Number(
+          play.selection.match(
+            /(?:over|under|\bo|\bu)\s*([0-9]+(?:\.[0-9]+)?)/i,
+          )?.[1],
+        );
+      if (!side || !Number.isFinite(line)) return null;
+      return overUnderOutcome(scores.home + scores.away, line, side);
+    }
     const parsed = parsePeriodTotal(
       `first ${period.innings} innings ${play.selection}`,
     );
     if (!parsed) return null;
-    const scores = periodScores(box, period.innings);
-    if (!scores) return null;
     return overUnderOutcome(
       scores.home + scores.away,
       parsed.line,
@@ -305,10 +374,10 @@ async function resolvePeriodPlay(
   if (period.kind === "spread") {
     const line = play.line ?? parseSpreadFromSelection(play.selection)?.line;
     if (line == null || Number.isNaN(line) || side === null) return null;
-    return resolvePeriodSpread(box, period.innings, side, line);
+    return resolvePeriodSpread(box, segmentPeriods, side, line);
   }
   if (period.kind === "moneyline") {
-    return resolvePeriodMoneyline(box, period.innings, side);
+    return resolvePeriodMoneyline(box, segmentPeriods, side);
   }
   // Segment known but not the market kind (carried-over "First Five Innings"
   // rows) — only the total form is safe to infer, from the selection text.
@@ -332,40 +401,50 @@ async function resolvePendingPlay(
   games: SettledGame[],
   now: Date,
   boxCache: PlayerBoxCache,
-): Promise<{ outcome: Outcome | null; reason: keyof SkipReasonCounts }> {
-  const deferredMarket = parsePeriodMarket(play.market) || isDeferredProp(play);
+  fixtureCache: FixtureCache,
+): Promise<{
+  outcome: Outcome | null;
+  reason: keyof SkipReasonCounts;
+  fixture: RecoveredFixture | null;
+}> {
+  const fixture = await cachedRecoveredFixture(fixtureCache, play, games);
+  const boundPlay = fixture ? { ...play, ...fixture } : play;
+  const deferredMarket =
+    parsePeriodMarket(boundPlay.market) || isDeferredProp(boundPlay);
   if (deferredMarket) {
     // F3/F5/F7 settle from line-scores only — never from the final score.
     // Period totals settle from line-scores; player props from the per-athlete
     // box score. Only a play neither resolver can settle still defers.
-    const outcome = parsePeriodMarket(play.market)
-      ? await resolvePeriodPlay(play, games)
-      : ((await resolveDeferredPeriodTotal(play, games)) ??
-        (await resolvePlayerPropPlay(play, games, boxCache)));
-    if (outcome) return { outcome, reason: "props_deferred" };
+    const outcome = parsePeriodMarket(boundPlay.market)
+      ? await resolvePeriodPlay(boundPlay, games)
+      : ((await resolveDeferredPeriodTotal(boundPlay, games)) ??
+        (await resolvePlayerPropPlay(boundPlay, games, boxCache)));
+    if (outcome) return { outcome, reason: "props_deferred", fixture };
 
     // Report WHY it deferred. `props_deferred` used to swallow "the results
     // feed has no such game" too, so a prop stuck on a missing fixture was
     // indistinguishable from one whose box score could not be read — and the
     // health report counted it as normal prop behaviour either way.
-    const gameFound = findSettledGame(play, games) != null;
+    const gameFound = findSettledGame(boundPlay, games) != null;
     return {
       outcome: null,
       reason: gameFound
         ? "props_deferred"
-        : classifySkipReason({ play, gameFound, now }),
+        : classifySkipReason({ play: boundPlay, gameFound, now }),
+      fixture,
     };
   }
 
-  const outcome = resolveOutcome(play, games);
-  if (outcome) return { outcome, reason: "market_unhandled" };
+  const outcome = resolveOutcome(boundPlay, games);
+  if (outcome) return { outcome, reason: "market_unhandled", fixture };
   return {
     outcome: null,
     reason: classifySkipReason({
-      play,
-      gameFound: findSettledGame(play, games) != null,
+      play: boundPlay,
+      gameFound: findSettledGame(boundPlay, games) != null,
       now,
     }),
+    fixture,
   };
 }
 
@@ -373,6 +452,8 @@ async function gradeStraightPlays(
   provider: ResultsProvider,
   now: Date,
   boxCache: PlayerBoxCache,
+  fixtureCache: FixtureCache,
+  games: SettledGame[],
 ): Promise<GradeBatch> {
   const clvReady = await hasClvColumns();
   const skippedByReason = emptySkipCounts();
@@ -422,16 +503,27 @@ async function gradeStraightPlays(
     return { graded: 0, skipped: 0, skippedByReason };
   }
 
-  const sports = [...new Set(pending.map((p) => p.sport))];
-  const games = await provider.fetchSettledForSports(
-    sports,
-    resultsQueryScopeFor(pending),
-  );
   let graded = 0;
 
   for (const play of pending) {
-    const resolved = await resolvePendingPlay(play, games, now, boxCache);
+    const resolved = await resolvePendingPlay(
+      play,
+      games,
+      now,
+      boxCache,
+      fixtureCache,
+    );
     if (!resolved.outcome) {
+      if (
+        resolved.fixture &&
+        (!play.homeTeam || !play.awayTeam || !play.eventLabel)
+      ) {
+        await prisma.play.update({
+          where: { id: play.id },
+          data: resolved.fixture,
+          select: { id: true },
+        });
+      }
       skippedByReason[resolved.reason]++;
       logSkip("play", play, resolved.reason);
       continue;
@@ -463,6 +555,7 @@ async function gradeStraightPlays(
           outcome,
           profitUnits,
           gradedAt: new Date(),
+          ...(resolved.fixture ?? {}),
           ...(clv.clvPts != null ? { clvPts: clv.clvPts } : {}),
           ...(clv.closingOddsAmerican != null &&
           play.closingOddsAmerican == null
@@ -498,6 +591,8 @@ async function gradeParlayLegs(
   provider: ResultsProvider,
   now: Date,
   boxCache: PlayerBoxCache,
+  fixtureCache: FixtureCache,
+  games: SettledGame[],
 ): Promise<GradeBatch> {
   const skippedByReason = emptySkipCounts();
   const pending = (
@@ -536,16 +631,27 @@ async function gradeParlayLegs(
     return { graded: 0, skipped: 0, skippedByReason };
   }
 
-  const sports = [...new Set(pending.map((p) => p.sport))];
-  const games = await provider.fetchSettledForSports(
-    sports,
-    resultsQueryScopeFor(pending),
-  );
   let graded = 0;
 
   for (const play of pending) {
-    const resolved = await resolvePendingPlay(play, games, now, boxCache);
+    const resolved = await resolvePendingPlay(
+      play,
+      games,
+      now,
+      boxCache,
+      fixtureCache,
+    );
     if (!resolved.outcome) {
+      if (
+        resolved.fixture &&
+        (!play.homeTeam || !play.awayTeam || !play.eventLabel)
+      ) {
+        await prisma.play.update({
+          where: { id: play.id },
+          data: resolved.fixture,
+          select: { id: true },
+        });
+      }
       skippedByReason[resolved.reason]++;
       logSkip("parlay leg", play, resolved.reason);
       continue;
@@ -558,6 +664,7 @@ async function gradeParlayLegs(
           outcome,
           profitUnits: 0,
           gradedAt: new Date(),
+          ...(resolved.fixture ?? {}),
         },
         select: { id: true },
       }),
@@ -661,9 +768,41 @@ export async function autoGradePending(
 ): Promise<AutoGradeResult> {
   const now = new Date();
   const boxCache: PlayerBoxCache = new Map();
+  const fixtureCache: FixtureCache = new Map();
 
-  const straight = await gradeStraightPlays(provider, now, boxCache);
-  const legs = await gradeParlayLegs(provider, now, boxCache);
+  // One immutable provider snapshot per job. The old straight/leg passes each
+  // fetched independently, so an exhausted key could expose different games to
+  // two plays bound to the same event during the very same grader invocation.
+  const targets = await prisma.play.findMany({
+    where: {
+      outcome: "PENDING",
+      OR: [{ eventStartsAt: null }, { eventStartsAt: { lte: now } }],
+    },
+    select: { sport: true, league: true },
+    take: 1_000,
+  });
+  const sports = [...new Set(targets.map((play) => play.sport))];
+  const games = sports.length
+    ? await provider.fetchSettledForSports(
+        sports,
+        resultsQueryScopeFor(targets),
+      )
+    : [];
+
+  const straight = await gradeStraightPlays(
+    provider,
+    now,
+    boxCache,
+    fixtureCache,
+    games,
+  );
+  const legs = await gradeParlayLegs(
+    provider,
+    now,
+    boxCache,
+    fixtureCache,
+    games,
+  );
   const parlaysGraded = await gradePendingParlays();
   const skippedByReason = mergeSkipCounts(
     straight.skippedByReason,

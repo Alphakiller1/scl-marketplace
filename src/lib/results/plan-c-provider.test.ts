@@ -4,6 +4,10 @@ import test from "node:test";
 import { mapMlbOfficialSchedule } from "@/lib/results/mlb-official";
 import { mapSportsPuffScores } from "@/lib/results/sportspuff-scores";
 import { mapMlbOfficialPlayerBox } from "@/lib/results/stats-provider";
+import {
+  mapWnbaOfficialGamePage,
+  mapWnbaOfficialSchedule,
+} from "@/lib/results/wnba-official";
 
 test("MLB official Plan C accepts only final games and retains innings/gamePk", () => {
   const games = mapMlbOfficialSchedule({
@@ -69,6 +73,74 @@ test("broad-sport Plan C never maps scheduled games as finals", () => {
   });
   assert.equal(games.length, 1);
   assert.equal(games[0]!.eventId, "sportspuff:final");
+});
+
+test("official WNBA Plan C maps finals, identities, and quarter scores", () => {
+  const games = mapWnbaOfficialSchedule(
+    {
+      leagueSchedule: {
+        gameDates: [
+          {
+            games: [
+              {
+                gameId: "1022600245",
+                gameStatus: 3,
+                gameStatusText: "Final",
+                gameDateTimeUTC: "2026-08-11T23:30:00Z",
+                homeTeam: {
+                  teamCity: "Indiana",
+                  teamName: "Fever",
+                  teamTricode: "IND",
+                  score: 106,
+                },
+                awayTeam: {
+                  teamCity: "New York",
+                  teamName: "Liberty",
+                  teamTricode: "NYL",
+                  score: 92,
+                },
+              },
+            ],
+          },
+        ],
+      },
+    },
+    new Date("2026-08-01T00:00:00Z"),
+    new Date("2026-08-12T20:00:00Z"),
+  );
+  assert.equal(games.length, 1);
+  assert.equal(games[0]!.wnbaGameId, "1022600245");
+  assert.equal(games[0]!.wnbaGameSlug, "nyl-vs-ind-1022600245");
+
+  const periods = mapWnbaOfficialGamePage({
+    props: {
+      pageProps: {
+        game: {
+          gameStatus: 3,
+          homeTeam: {
+            periods: [
+              { score: 25 },
+              { score: 31 },
+              { score: 24 },
+              { score: 26 },
+            ],
+          },
+          awayTeam: {
+            periods: [
+              { score: 20 },
+              { score: 22 },
+              { score: 23 },
+              { score: 27 },
+            ],
+          },
+        },
+      },
+    },
+  });
+  assert.deepEqual(periods, {
+    homePeriods: [25, 31, 24, 26],
+    awayPeriods: [20, 22, 23, 27],
+  });
 });
 
 test("MLB official box score maps every owner-required baseball prop", () => {

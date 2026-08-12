@@ -10,7 +10,7 @@ test("auto-grade sends stored soccer leagues to both result providers", () => {
     path.join(root, "src/lib/results/auto-grade.ts"),
     "utf8",
   );
-  assert.match(grader, /resultsQueryScopeFor\(pending\)/);
+  assert.match(grader, /resultsQueryScopeFor\(targets\)/);
   assert.match(grader, /play\.sport === "SOCCER"/);
   assert.match(grader, /league: true/);
 });

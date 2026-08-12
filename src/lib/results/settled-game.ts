@@ -21,6 +21,9 @@ export type SettledGame = {
   espnEventId?: string;
   /** MLB Stats API gamePk used by the independent official box-score backstop. */
   mlbGamePk?: string;
+  /** WNBA game identity and official page slug used for quarter scores. */
+  wnbaGameId?: string;
+  wnbaGameSlug?: string;
   /**
    * Scheduled start. Only used to date-scope the name-matching fallback for
    * plays that carry no eventId — without it, "Yankees ML" logged today can
@@ -165,12 +168,16 @@ export function mergeSettledGames(
     const secondaryCopy = byKey.get(key);
     const espnEventId = espnIdOf(g) ?? espnIdOf(secondaryCopy ?? g);
     const mlbGamePk = g.mlbGamePk ?? secondaryCopy?.mlbGamePk;
+    const wnbaGameId = g.wnbaGameId ?? secondaryCopy?.wnbaGameId;
+    const wnbaGameSlug = g.wnbaGameSlug ?? secondaryCopy?.wnbaGameSlug;
     const homePeriods = g.homePeriods ?? secondaryCopy?.homePeriods;
     const awayPeriods = g.awayPeriods ?? secondaryCopy?.awayPeriods;
     byKey.set(key, {
       ...g,
       ...(espnEventId ? { espnEventId } : {}),
       ...(mlbGamePk ? { mlbGamePk } : {}),
+      ...(wnbaGameId ? { wnbaGameId } : {}),
+      ...(wnbaGameSlug ? { wnbaGameSlug } : {}),
       ...(homePeriods ? { homePeriods } : {}),
       ...(awayPeriods ? { awayPeriods } : {}),
     });
