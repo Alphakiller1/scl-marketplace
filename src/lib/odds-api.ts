@@ -4,6 +4,7 @@ import { afterResponse } from "@/lib/after-response";
 import { bookmakersQueryParam, isBookKey } from "@/lib/books";
 import { shouldCircuitBreak } from "@/lib/odds-budget";
 import { oddsApiKey } from "@/lib/odds-config";
+import { fetchWithOddsKeyRollover } from "@/lib/odds-key-rollover";
 import {
   SOCCER_LEAGUES,
   SOCCER_LEAGUE_LIMIT,
@@ -514,9 +515,8 @@ export async function fetchEventOddsForVerification(
     markets?: readonly string[];
   },
 ): Promise<RawEventOdds | null> {
-  const apiKey = oddsApiKey();
   const apiSport = resolveOddsApiSport(sclSport, opts?.league);
-  if (!apiKey || !apiSport) return null;
+  if (!apiSport) return null;
   const requested = opts?.markets?.length
     ? [...new Set(opts.markets)]
     : verificationMarkets(sclSport);
@@ -524,12 +524,18 @@ export async function fetchEventOddsForVerification(
   const purpose = opts?.purpose ?? "verify";
 
   const attempt = async (books: readonly string[] | undefined) => {
-    const url =
-      `https://api.the-odds-api.com/v4/sports/${apiSport}/events/${eventId}/odds/` +
-      `?apiKey=${apiKey}&${oddsScopeQuery(books)}&markets=${markets}&oddsFormat=american`;
-    const res = await fetch(url, {
-      next: { revalidate: VERIFY_TTL_SECONDS, tags: [`odds-event:${eventId}`] },
-    });
+    const { response: res } = await fetchWithOddsKeyRollover(
+      (apiKey) =>
+        `https://api.the-odds-api.com/v4/sports/${apiSport}/events/${eventId}/odds/` +
+        `?apiKey=${apiKey}&${oddsScopeQuery(books)}&markets=${markets}&oddsFormat=american`,
+      {
+        next: {
+          revalidate: VERIFY_TTL_SECONDS,
+          tags: [`odds-event:${eventId}`],
+        },
+      },
+    );
+    if (!res) return null;
     logOddsUsage(res, `event ${eventId}`, purpose, sclSport);
     if (!res.ok) return null;
     return (await res.json()) as RawEventOdds;
