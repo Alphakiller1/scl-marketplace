@@ -56,7 +56,8 @@ type BoardData = { events: OddsEvent[]; configured: boolean; failed?: boolean };
 
 // Per-event board load: absent = still loading; ready (may be empty) or error otherwise.
 type EventDetailData =
-  { status: "ready"; selections: OddsSelection[] } | { status: "error" };
+  | { status: "ready"; selections: OddsSelection[] }
+  | { status: "error" };
 
 /**
  * Every game-line label, in the order a sportsbook lists them: full game first,
