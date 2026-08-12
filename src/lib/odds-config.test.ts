@@ -1,14 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { oddsApiKeys } from "./odds-config";
 
-import { oddsApiKey } from "@/lib/odds-config";
-
-test("odds provider accepts the canonical and deployed legacy key names", () => {
-  assert.equal(oddsApiKey({ ODDS_API_KEY: " canonical " }), "canonical");
-  assert.equal(oddsApiKey({ ODD_API_KEY: " legacy " }), "legacy");
-  assert.equal(
-    oddsApiKey({ ODDS_API_KEY: "canonical", ODD_API_KEY: "legacy" }),
-    "canonical",
-  );
-  assert.equal(oddsApiKey({}), undefined);
+test("existing Odds API key remains first and fallback is deduplicated", () => {
+  assert.deepEqual(oddsApiKeys({ ODD_API_KEY: "old", ODDS_API_KEY_FALLBACK: "new" }), ["old", "new"]);
+  assert.deepEqual(oddsApiKeys({ ODDS_API_KEY: "same", ODDS_API_KEY_FALLBACK: "same" }), ["same"]);
 });

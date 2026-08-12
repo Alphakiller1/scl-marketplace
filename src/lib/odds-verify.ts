@@ -109,6 +109,7 @@ export function verificationMarkets(sclSport: string): string[] {
  * credits per event without adding a selectable line.
  */
 export function expandedBoardMarkets(sclSport: string): string[] {
+  if (sclSport !== "MLB" && sclSport !== "WNBA") return [];
   const props = PROP_MARKETS_BY_SPORT[sclSport] ?? [];
   return [
     "alternate_spreads",

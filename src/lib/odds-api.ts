@@ -631,9 +631,11 @@ export async function fetchEventBoard(
   eventId: string,
   opts?: OddsBoardOpts,
 ): Promise<OddsSelection[]> {
+  const markets = expandedBoardMarkets(sclSport);
+  if (markets.length === 0) return [];
   const event = await fetchEventOddsForVerification(sclSport, eventId, {
     ...opts,
-    markets: expandedBoardMarkets(sclSport),
+    markets,
   });
   if (!event) return [];
   return normalizeEventBoard(event, opts);
