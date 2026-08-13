@@ -161,11 +161,20 @@ export function formatClosingLine(
 
 /**
  * CLV display — honest em-dash until computed (cold start default).
+ *
+ * A value that rounds to zero at two decimals also reads as an em-dash. The
+ * board only ever stores CLV it actually measured, so a true 0.0001 is a real
+ * number — but "+0.00 pts" claims a beat that rounds to nothing, and "-0.00
+ * pts" is worse: a signed zero reads as a loss the capper did not take. Neither
+ * survives being printed next to a "Beat Close" label, so both defer to the
+ * same em-dash the codebase uses everywhere a value is not worth asserting.
  */
 export function formatClvPts(clvPts: number | null | undefined): string {
   if (clvPts == null || !Number.isFinite(clvPts)) return "—";
-  const sign = clvPts > 0 ? "+" : "";
-  return `${sign}${clvPts.toFixed(2)} pts`;
+  const rounded = Number(clvPts.toFixed(2));
+  if (rounded === 0) return "—";
+  const sign = rounded > 0 ? "+" : "";
+  return `${sign}${rounded.toFixed(2)} pts`;
 }
 
 /**

@@ -28,12 +28,19 @@ export function RankBoardTable({
   density = "live",
   caption = "Ranked cappers",
   rankOffset = 0,
+  primaryMetric = "units",
   className,
 }: {
   cappers: CapperSummary[];
   density?: "snapshot" | "live";
   caption?: string;
   rankOffset?: number;
+  /**
+   * Which figure earns the prominent right-hand cell on the dense row. Should
+   * match whatever the board is ranked by — a board sorted by ROI that leads
+   * with units invites the reader to check the ranking against the wrong number.
+   */
+  primaryMetric?: "units" | "roi";
   className?: string;
 }) {
   const compact = density === "snapshot";
@@ -61,6 +68,7 @@ export function RankBoardTable({
             capper={capper}
             rank={rankOffset + i + 1}
             compact={compact}
+            primaryMetric={primaryMetric}
           />
         ))}
       </ul>
@@ -254,15 +262,21 @@ export function RankBoardTable({
 /**
  * Compact Rank row for phones: identity + headline stats on one scan path.
  * Keeps Record / ROI / Units / Sample / Verified without tall multi-band cards.
+ *
+ * `primaryMetric` decides which figure takes the prominent right-hand cell and
+ * which falls back into the supporting line — the home snapshot ranks by ROI,
+ * so ROI leads there; the units-ranked boards are unchanged.
  */
 function RankBoardMobileRow({
   capper,
   rank,
   compact,
+  primaryMetric = "units",
 }: {
   capper: CapperSummary;
   rank: number;
   compact: boolean;
+  primaryMetric?: "units" | "roi";
 }) {
   const graded = capper.settledPicks ?? 0;
   const sports = (capper.sports?.length ? capper.sports : [capper.topSport])
@@ -270,6 +284,13 @@ function RankBoardMobileRow({
     .slice(0, compact ? 2 : 3);
   const roiScale = perfScale("roi", capper.roi, { gradedCount: graded });
   const unitsScale = perfScale("units", capper.units, { gradedCount: graded });
+  const leadByRoi = primaryMetric === "roi";
+  const primary = leadByRoi
+    ? { text: formatRoi(capper.roi), scale: roiScale }
+    : { text: formatUnits(capper.units), scale: unitsScale };
+  const supporting = leadByRoi
+    ? { text: formatUnits(capper.units), scale: unitsScale }
+    : { text: formatRoi(capper.roi), scale: roiScale };
 
   return (
     <li>
@@ -311,11 +332,11 @@ function RankBoardMobileRow({
             <span
               className={cn(
                 "scl-data font-semibold tabular-nums",
-                perfToneClass(roiScale.tone),
+                perfToneClass(supporting.scale.tone),
               )}
-              title={roiScale.ariaLabel}
+              title={supporting.scale.ariaLabel}
             >
-              {formatRoi(capper.roi)}
+              {supporting.text}
             </span>
             <span aria-hidden className="text-border">
               ·
@@ -331,11 +352,11 @@ function RankBoardMobileRow({
         <span
           className={cn(
             "scl-data shrink-0 text-right text-sm font-semibold tabular-nums",
-            perfToneClass(unitsScale.tone),
+            perfToneClass(primary.scale.tone),
           )}
-          title={unitsScale.ariaLabel}
+          title={primary.scale.ariaLabel}
         >
-          {formatUnits(capper.units)}
+          {primary.text}
         </span>
         <ChevronRight
           className="size-3.5 shrink-0 text-[color:var(--scl-muted-data)]"

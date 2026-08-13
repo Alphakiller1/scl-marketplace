@@ -33,7 +33,11 @@ export type DiscoverLaneId =
   | "newly_credible"
   | "market_beaters";
 
-export type DiscoverPrimaryKind = "roi" | "clv" | "verifiedShare";
+/**
+ * No "verifiedShare": no lane leads with that number any more. It survives as
+ * an eligibility gate on Newly Credible, not as something a card renders.
+ */
+export type DiscoverPrimaryKind = "roi" | "clv";
 
 export type DiscoverLaneMeta = {
   id: DiscoverLaneId;
@@ -88,8 +92,8 @@ export const DISCOVER_LANES: readonly DiscoverLaneMeta[] = [
     id: "newly_credible",
     title: "Newly Credible",
     explainer:
-      "Newer Cappers With A High Odds-Verified Share And A Growing Graded Sample.",
-    primaryLabel: "Odds-Verified Share",
+      "Newer Cappers Whose Growing Record Was Captured From The Board At Submission.",
+    primaryLabel: "Early ROI",
     empty:
       "No Newer Capper Currently Meets Both The Verification And Sample Requirements.",
   },
@@ -281,6 +285,17 @@ export function buildSpecialistsLane(
   return entries.sort(byRoiDesc).slice(0, limit);
 }
 
+/**
+ * Verified share stays the *gate* here and stops being the headline.
+ *
+ * As an eligibility test it still does real work: it is what separates a newer
+ * capper genuinely building a board-captured record from one whose sample is
+ * mostly carried-over self-reported history. As a displayed number it did not,
+ * because the roster is overwhelmingly legacy — so the lane led with a figure
+ * that mostly reported how recently someone joined. Cappers who clear the gate
+ * are now ranked and shown on ROI over that young sample, which is the thing a
+ * reader is actually trying to judge.
+ */
 export function buildNewlyCredibleLane(
   inputs: DiscoverCapperInput[],
   limit = DISCOVER_LANE_LIMIT,
@@ -296,19 +311,13 @@ export function buildNewlyCredibleLane(
     if (share < NEWLY_CREDIBLE_MIN_VERIFIED_SHARE) continue;
     entries.push({
       capper: summary,
-      primaryKind: "verifiedShare",
-      primaryValue: share,
+      primaryKind: "roi",
+      primaryValue: summary.roi,
       primaryLabel: meta.primaryLabel,
       gradedSample: graded,
     });
   }
-  entries.sort(
-    (a, b) =>
-      (b.primaryValue ?? 0) - (a.primaryValue ?? 0) ||
-      b.gradedSample - a.gradedSample ||
-      a.capper.handle.localeCompare(b.capper.handle),
-  );
-  return entries.slice(0, limit);
+  return entries.sort(byRoiDesc).slice(0, limit);
 }
 
 export function buildMarketBeatersLane(

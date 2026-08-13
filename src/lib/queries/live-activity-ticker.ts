@@ -12,6 +12,17 @@ const WINDOW_MS = 7 * 86_400_000;
 const PER_KIND = 12;
 const MAX_ITEMS = 28;
 
+/**
+ * Smallest CLV that still renders as a number.
+ *
+ * `clvPts > 0` was already the filter, so the "BEAT CLOSE · +0.00 pts" chips on
+ * the live board were never unfiltered rows — they were genuine but tiny beats
+ * that vanished at `toFixed(2)`. A marquee chip whose whole job is to show a
+ * number must not show zero, so the floor is half a hundredth: anything above
+ * it rounds to +0.01 or better.
+ */
+const MIN_TICKER_CLV_PTS = 0.005;
+
 export type LiveTickerKind = "win" | "clv" | "posted";
 
 export type LiveTickerItem = {
@@ -103,7 +114,7 @@ export async function getLiveActivityTicker(): Promise<LiveActivityTickerPayload
         ? prisma.play.findMany({
             where: {
               ...baseWhere,
-              clvPts: { gt: 0 },
+              clvPts: { gte: MIN_TICKER_CLV_PTS },
               closingCapturedAt: { gte: since },
             },
             select: {
@@ -145,7 +156,7 @@ export async function getLiveActivityTicker(): Promise<LiveActivityTickerPayload
         !handle ||
         clvPts == null ||
         !Number.isFinite(clvPts) ||
-        clvPts <= 0
+        clvPts < MIN_TICKER_CLV_PTS
       ) {
         continue;
       }

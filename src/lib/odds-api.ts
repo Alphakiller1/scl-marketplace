@@ -555,9 +555,15 @@ export async function fetchUpcomingOdds(
     // The pick entry page fans out across every board sport on mount, so this
     // window sets how often a browsing session bills the Odds API. At 120s a
     // handful of cappers browsing could re-bill every sport thirty times an
-    // hour. Browsing tolerates a slightly older price: the number that actually
-    // goes on the record is re-fetched per event at submit time and bounded
-    // against the live market there.
+    // hour.
+    //
+    // This comment used to say the recorded price is re-fetched per event at
+    // submit time. It is not, and has not been since the final odds check was
+    // removed: `preparePlayLine` confirms the selection against the cached SCL
+    // board and records the price as selected, deliberately, so logging keeps
+    // working when a market moves or the provider is down. What that means for
+    // this constant is that TTL is the whole story — a stale board here is a
+    // stale price on the record, not something a later check corrects.
     const { response: res } = await fetchWithOddsKeyRollover(
       (key) =>
         `https://api.the-odds-api.com/v4/sports/${apiSport}/odds/` +

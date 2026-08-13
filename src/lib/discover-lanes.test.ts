@@ -200,7 +200,8 @@ test("newly credible requires developing sample + high verified share", () => {
   const lane = buildNewlyCredibleLane([established, lowVerify, ok]);
   assert.equal(lane.length, 1);
   assert.equal(lane[0].capper.handle, "new");
-  assert.equal(lane[0].primaryKind, "verifiedShare");
+  // Verified share still gates the lane; ROI is what the lane now reports.
+  assert.equal(lane[0].primaryKind, "roi");
 });
 
 test("market beaters require verified graded positive avg CLV", () => {
@@ -264,7 +265,12 @@ test("DISCOVER_LANES locks exact titles and empty copy", () => {
   }
   assert.equal(
     DISCOVER_LANES.find((l) => l.id === "newly_credible")?.explainer,
-    "Newer Cappers With A High Odds-Verified Share And A Growing Graded Sample.",
+    "Newer Cappers Whose Growing Record Was Captured From The Board At Submission.",
+  );
+  // The lane is gated on verified share but never reports it as a figure.
+  assert.equal(
+    DISCOVER_LANES.find((l) => l.id === "newly_credible")?.primaryLabel,
+    "Early ROI",
   );
   assert.equal(
     discoverLaneEmptyDescription("proven"),

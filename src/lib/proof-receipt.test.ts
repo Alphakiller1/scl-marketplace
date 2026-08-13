@@ -106,6 +106,20 @@ describe("honest closing / CLV / evidence", () => {
     assert.equal(formatClvPts(-0.02), "-0.02 pts");
   });
 
+  it("never renders a CLV that rounds to zero", () => {
+    // The live board showed "BEAT CLOSE · +0.00 pts" and the Evidence Brief
+    // showed "-0.00 pts". Both were real measurements too small to survive two
+    // decimals — a signed zero asserts a beat, or a loss, that is not there.
+    assert.equal(formatClvPts(0), "—");
+    assert.equal(formatClvPts(-0), "—");
+    assert.equal(formatClvPts(0.0001), "—");
+    assert.equal(formatClvPts(-0.0001), "—");
+    assert.equal(formatClvPts(0.004), "—");
+    // The first value that genuinely rounds to a hundredth still renders.
+    assert.equal(formatClvPts(0.005), "+0.01 pts");
+    assert.equal(formatClvPts(-0.005), "-0.01 pts");
+  });
+
   it("shortens evidence id", () => {
     assert.equal(formatEvidenceId(null), "—");
     assert.equal(formatEvidenceId("abcdefghijkl"), "ABCD…IJKL");

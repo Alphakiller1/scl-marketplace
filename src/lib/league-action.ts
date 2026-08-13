@@ -90,8 +90,10 @@ export const LEAGUE_ACTION_CATEGORY_EMPTY: Record<
 };
 
 /** Matches leaderboard public-surface eligibility tone (ranked + building). */
+// The ROI/Units sentence went with the columns: this panel reports activity,
+// not returns, so a note about when returns appear has nothing to point at.
 export const PLATFORM_REPORT_ELIGIBILITY_FOOTNOTE =
-  "Odds-Verified Picks From Publicly Listed Cappers, Including Ranked Cappers And Cappers Building A Record. Test Accounts Are Excluded. ROI And Units Appear Only After The Minimum Graded Sample Is Met.";
+  "Odds-Verified Picks From Publicly Listed Cappers, Including Ranked Cappers And Cappers Building A Record. Test Accounts Are Excluded.";
 
 /** Homepage section subtitle (GPT-locked voice — no “most successful” hype). */
 export function platformReportSubtitle(windowDays: number): string {

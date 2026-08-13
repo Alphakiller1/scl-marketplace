@@ -316,13 +316,20 @@ export function GamePicker({
         })}
       </div>
 
+      {/*
+        The second half of this notice used to promise "every price is checked
+        live again before your pick is recorded". That stopped being true when
+        the final odds check was removed — `preparePlayLine` states outright that
+        submission does not call the odds provider or re-price the line. The
+        stale-slate warning itself is still honest and still earns its place, so
+        only the claim the product no longer honours is gone.
+      */}
       {slate?.stale && events.length > 0 ? (
         <p
           className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs text-[color:var(--scl-text)]"
           role="status"
         >
-          Showing the last available slate. Every price is checked live again
-          before your pick is recorded.
+          Showing the last available slate — prices may have moved.
         </p>
       ) : null}
 
