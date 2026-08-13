@@ -188,7 +188,9 @@ export function AdminPackageForm({
               value={countableBilling ? billingIntervalCount : 1}
               disabled={!countableBilling}
               onChange={(e) =>
-                setBillingIntervalCount(Math.max(1, Number(e.target.value) || 1))
+                setBillingIntervalCount(
+                  Math.max(1, Number(e.target.value) || 1),
+                )
               }
             />
             <select
@@ -206,11 +208,19 @@ export function AdminPackageForm({
               }}
             >
               <option value="ONE_TIME">One time</option>
-              <option value="DAY">{billingIntervalCount > 1 ? "Days" : "Day"}</option>
-              <option value="WEEK">{billingIntervalCount > 1 ? "Weeks" : "Week"}</option>
-              <option value="MONTH">{billingIntervalCount > 1 ? "Months" : "Month"}</option>
+              <option value="DAY">
+                {billingIntervalCount > 1 ? "Days" : "Day"}
+              </option>
+              <option value="WEEK">
+                {billingIntervalCount > 1 ? "Weeks" : "Week"}
+              </option>
+              <option value="MONTH">
+                {billingIntervalCount > 1 ? "Months" : "Month"}
+              </option>
               <option value="SEASON">Season</option>
-              <option value="YEAR">{billingIntervalCount > 1 ? "Years" : "Year"}</option>
+              <option value="YEAR">
+                {billingIntervalCount > 1 ? "Years" : "Year"}
+              </option>
             </select>
           </div>
           <p className="text-muted-foreground text-xs">

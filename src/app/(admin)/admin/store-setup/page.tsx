@@ -589,7 +589,8 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
                       checkoutUrl: selectedPackage.checkoutUrl || "",
                       priceCents: selectedPackage.priceCents,
                       billingPeriod: selectedPackage.billingPeriod,
-                        billingIntervalCount: selectedPackage.billingIntervalCount,
+                      billingIntervalCount:
+                        selectedPackage.billingIntervalCount,
                       sortOrder: selectedPackage.sortOrder,
                       isActive: selectedPackage.isActive,
                       trackingSlug:

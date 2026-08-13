@@ -102,7 +102,8 @@ export const adminPackageSchema = z
     // season is a season. Reject rather than silently coercing, so the form says
     // what it did instead of quietly changing the operator's input.
     if (
-      (input.billingPeriod === "ONE_TIME" || input.billingPeriod === "SEASON") &&
+      (input.billingPeriod === "ONE_TIME" ||
+        input.billingPeriod === "SEASON") &&
       input.billingIntervalCount !== 1
     ) {
       context.addIssue({
