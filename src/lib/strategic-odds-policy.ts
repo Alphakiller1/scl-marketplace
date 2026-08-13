@@ -67,12 +67,20 @@ export const STRATEGIC_ODDS_COMPETITIONS: readonly StrategicCompetition[] = [
     markets: BASIC,
     slots: [{ kind: "before-first", id: "pre-first", leadMinutes: 60 }],
   },
+  // The Europa and Europa Conference League qualifiers were requested, but The
+  // Odds API does not carry them: `soccer_uefa_europa_league` and
+  // `soccer_uefa_europa_conference_league` both report `active: false` with zero
+  // events, and there is no `..._qualification` key for either (both 404
+  // UNKNOWN_SPORT). Sweeping all 40+ in-season soccer competitions on 2026-08-13
+  // found no European qualifier fixture anywhere in the feed. Pointing at a dead
+  // key spends a refresh slot to return nothing, forever and silently, so this
+  // is the one UEFA qualifying competition the provider actually prices.
   {
-    id: "europa-clq",
-    label: "Europa CLQ",
+    id: "ucl-qualification",
+    label: "UEFA Champions League Qualification",
     sclSport: "SOCCER",
-    providerKey: "soccer_uefa_europa_conference_league",
-    league: "EUROPA_CLQ",
+    providerKey: "soccer_uefa_champs_league_qualification",
+    league: "UCL_QUALIFICATION",
     markets: BASIC,
     slots: [{ kind: "before-first", id: "pre-first", leadMinutes: 60 }],
   },
@@ -88,12 +96,26 @@ export const STRATEGIC_ODDS_COMPETITIONS: readonly StrategicCompetition[] = [
       { kind: "before-first", id: "pre-first", leadMinutes: 180 },
     ],
   },
+  // Qualifying is NOT a separate competition on The Odds API — it is filed
+  // inside the tournament's own key, so `/tennis.*atp.*qual/` matched no catalog
+  // row and this slot fetched nothing. The Cincinnati key carries the qualifying
+  // draw alongside the main draw (verified 2026-08-13: 20 matches across 8/13
+  // and 8/14, qualifiers included), which is what "ATP Quals Cincinnati" means.
   {
-    id: "atp-quals",
-    label: "ATP Quals",
+    id: "atp-cincinnati",
+    label: "ATP Cincinnati",
     sclSport: "TENNIS",
-    catalogMatch: /tennis.*atp.*qual|atp.*qual/i,
-    league: "ATP_QUALS",
+    providerKey: "tennis_atp_cincinnati_open",
+    league: "ATP_CINCINNATI_OPEN",
+    markets: BASIC,
+    slots: [{ kind: "before-first", id: "pre-first", leadMinutes: 60 }],
+  },
+  {
+    id: "wta-cincinnati",
+    label: "WTA Cincinnati",
+    sclSport: "TENNIS",
+    providerKey: "tennis_wta_cincinnati_open",
+    league: "WTA_CINCINNATI_OPEN",
     markets: BASIC,
     slots: [{ kind: "before-first", id: "pre-first", leadMinutes: 60 }],
   },

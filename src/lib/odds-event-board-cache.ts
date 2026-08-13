@@ -2,7 +2,11 @@ import "server-only";
 
 import { getCache } from "@vercel/functions";
 
-import { fetchEventBoard, getLastOddsApiRemaining } from "@/lib/odds-api";
+import {
+  fetchEventBoard,
+  getLastOddsApiCapacity,
+  getLastOddsApiRemaining,
+} from "@/lib/odds-api";
 import type { OddsSelection } from "@/lib/odds-board";
 import { shouldCircuitBreak } from "@/lib/odds-budget";
 import {
@@ -197,7 +201,10 @@ export async function loadEventBoard(
     };
   }
 
-  if (!options.forceRefresh && shouldCircuitBreak(getLastOddsApiRemaining())) {
+  if (
+    !options.forceRefresh &&
+    shouldCircuitBreak(getLastOddsApiRemaining(), getLastOddsApiCapacity())
+  ) {
     if (cached) {
       return {
         selections: cached.selections,
