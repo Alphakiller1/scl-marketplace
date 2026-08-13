@@ -1,7 +1,40 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { perfScale } from "@/lib/perf-scale";
+import { formatPerfValue, perfScale } from "@/lib/perf-scale";
+import { formatClvPts } from "@/lib/proof-receipt";
+import { summarizeClvTracker } from "@/lib/clv-tracker";
+
+describe("a CLV that rounds to zero never carries a sign", () => {
+  /*
+   * Three separate places format CLV, and only one of them went through
+   * formatClvPts. Production shipped a receipt whose visible value was an
+   * em-dash while its aria-label read "CLV: -0.00 pts" and the distribution
+   * sentence read "average -0.00 pts" — a screen-reader user was told the
+   * capper finished behind the close on a value that is zero at the precision
+   * anyone can see. Pinned together so the three cannot drift apart again.
+   */
+  it("the displayed value defers to an em-dash", () => {
+    assert.equal(formatClvPts(-0.0001), "—");
+    assert.equal(formatClvPts(0.0001), "—");
+  });
+
+  it("the aria-label keeps the number but drops the sign", () => {
+    assert.equal(formatPerfValue("clv", -0.0001), "0.00 pts");
+    assert.equal(formatPerfValue("clv", 0.0001), "0.00 pts");
+    // A real value is still signed.
+    assert.equal(formatPerfValue("clv", 0.04), "+0.04 pts");
+    assert.equal(formatPerfValue("clv", -0.04), "-0.04 pts");
+  });
+
+  it("the distribution sentence drops the sign too", () => {
+    // Ten snapshots clears the signal floor; they average a hair below zero.
+    const points = Array.from({ length: 10 }, () => -0.0001);
+    const summary = summarizeClvTracker(points).distributionSummary;
+    assert.match(summary, /average 0\.00 pts/);
+    assert.doesNotMatch(summary, /-0\.00|\+0\.00/);
+  });
+});
 
 describe("perfScale ROI boundaries", () => {
   it("strong / solid / soft / weak", () => {

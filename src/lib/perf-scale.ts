@@ -117,8 +117,19 @@ export function formatPerfValue(metric: PerfMetric, value: number): string {
       return `${value > 0 ? "+" : ""}${value.toFixed(1)}%`;
     case "units":
       return `${value > 0 ? "+" : ""}${value.toFixed(2).replace(/\.00$/, "")}U`;
-    case "clv":
-      return `${value > 0 ? "+" : ""}${value.toFixed(2)} pts`;
+    case "clv": {
+      // A CLV that rounds to zero keeps the number and loses the sign. This
+      // string is mostly an aria-label, and "-0.00 pts" told a screen-reader
+      // user the capper came out behind the close while the sighted user saw
+      // an em-dash. Zero is the honest reading; the minus was an artifact of
+      // rounding a tiny negative.
+      //
+      // Round through Number first: toFixed carries the sign itself, so
+      // (-0.0001).toFixed(2) is "-0.00" no matter what prefix we choose. The
+      // round-trip lands on -0, which formats as "0.00".
+      const rounded = Number(value.toFixed(2));
+      return `${rounded > 0 ? "+" : ""}${rounded.toFixed(2)} pts`;
+    }
     case "winPct":
       return `${value.toFixed(1)}%`;
   }
