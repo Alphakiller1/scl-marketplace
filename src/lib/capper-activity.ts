@@ -14,7 +14,23 @@ export type CapperActivitySummary = {
 const DAY_MS = 86_400_000;
 export const PUBLIC_CAPPER_INACTIVITY_DAYS = 30;
 
-/** A public capper returns to the leaderboard immediately after a new position. */
+/**
+ * The 30-day inactivity rule, and exactly what it does.
+ *
+ * This is the whole of what the product calls "auto-archiving" an inactive
+ * capper: it de-lists them from the two discovery surfaces — the leaderboard
+ * (`queries/leaderboard.ts`) and Discover (`queries/discover.ts`) — and nothing
+ * more. It is deliberately not an account state. Nothing is written, no column
+ * flips, the profile at /cappers/[handle] still resolves, direct links and
+ * anything already sold keep working, and a capper reappears the moment they
+ * log a position. That last part is why this stays a read-time filter: a stored
+ * archived flag would need a job to set it and another to clear it, and would
+ * be wrong for however long it took to run.
+ *
+ * If profiles themselves should ever go dark, that is a different feature —
+ * an account status, a gravestone page, and a reactivation path — not a wider
+ * reading of this cutoff.
+ */
 export function publicCapperActivityCutoff(now: Date = new Date()): Date {
   return new Date(now.getTime() - PUBLIC_CAPPER_INACTIVITY_DAYS * DAY_MS);
 }

@@ -344,8 +344,15 @@ function LeaderboardTableRow({
   capper: CapperSummary;
   rank: number;
 }) {
+  // `graded` is the window's sample and keeps gating ROI and Units: those
+  // figures are computed from the window, so how far to trust them is a
+  // question about the window. `career` is the capper's whole record and drives
+  // the maturity meter and the Early flag, which are claims about the capper —
+  // under a 1D filter the two were the same number, so a capper with 1,218
+  // graded picks read "Early" because three of them settled yesterday.
   const graded = capper.settledPicks ?? 0;
-  const provisional = isProvisional(graded);
+  const career = capper.lifetimeGraded ?? graded;
+  const provisional = isProvisional(career);
   const sports = (
     capper.sports?.length ? capper.sports : [capper.topSport]
   ).slice(0, 3);
@@ -357,7 +364,7 @@ function LeaderboardTableRow({
         <div className="flex items-center gap-1.5">
           <RankBadge
             rank={rank}
-            settledPicks={graded}
+            settledPicks={career}
             className="size-8 text-xs"
           />
           <div className="flex min-w-0 flex-col items-start leading-none">
@@ -428,7 +435,7 @@ function LeaderboardTableRow({
       </td>
       <td className="min-w-[5.75rem] overflow-hidden px-1.5 py-2 text-right align-middle">
         <div className="ml-auto w-full max-w-[6rem]">
-          <SampleMaturityMeter graded={graded} compact />
+          <SampleMaturityMeter graded={career} compact />
         </div>
       </td>
       <td className="px-1.5 py-2 text-right align-middle">
@@ -474,6 +481,9 @@ export function LeaderboardMobileCard({
   primaryMetric?: "units" | "roi";
 }) {
   const graded = capper.settledPicks ?? 0;
+  // See LeaderboardTableRow: window sample gates the figures, career sample
+  // describes the capper.
+  const career = capper.lifetimeGraded ?? graded;
   const roiScale = perfScale("roi", capper.roi, { gradedCount: graded });
   const unitsScale = perfScale("units", capper.units, { gradedCount: graded });
   if (compact) {
@@ -490,7 +500,7 @@ export function LeaderboardMobileCard({
     <article className="border-border scl-elevated flex min-h-40 flex-col gap-3 rounded-[14px] border p-3.5">
       <div className="flex items-start gap-3">
         <div className="flex flex-col items-center gap-0.5">
-          <RankBadge rank={rank ?? capper.rank} settledPicks={graded} />
+          <RankBadge rank={rank ?? capper.rank} settledPicks={career} />
           <RankMovementIndicator delta={capper.rankDelta} />
         </div>
         <CapperAvatar name={capper.name} src={capper.avatarUrl} size="md" />
@@ -527,7 +537,7 @@ export function LeaderboardMobileCard({
         <MobileStat label="Win%" value={`${capper.winPct.toFixed(1)}%`} />
       </div>
       <div className="bg-surface-2 flex min-h-10 items-center justify-between gap-3 rounded-lg px-3 py-2">
-        <SampleMaturityMeter graded={graded} compact className="min-w-[4rem]" />
+        <SampleMaturityMeter graded={career} compact className="min-w-[4rem]" />
         {capper.recentForm.length ? (
           <RecentFormStrip form={capper.recentForm.slice(-5)} />
         ) : (

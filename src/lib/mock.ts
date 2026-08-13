@@ -42,7 +42,22 @@ export type CapperSummary = {
   streak: number; // + win streak, - loss streak
   recentForm: FormResult[]; // most recent last
   trophies: string[];
+  /** Graded positions inside the active filter window — drives every figure. */
   settledPicks?: number;
+  /**
+   * Graded positions across the capper's whole record, ignoring the filter
+   * window, and including anything carried over from the previous platform.
+   *
+   * Kept separate from `settledPicks` because the two answer different
+   * questions. `settledPicks` says how much evidence is behind the ROI on
+   * screen; this says how much of a track record exists at all. Reading the
+   * windowed count as the second is what put established cappers in the "Early"
+   * maturity bucket the moment someone filtered the board to a single day.
+   *
+   * Absent on surfaces that never window (the profile, Discover) — callers
+   * should fall back to `settledPicks`.
+   */
+  lifetimeGraded?: number;
   verifiedShare?: number; // 0–100: share of tracked picks that are market-verified
   /** Average CLV pts on board-verified graded plays with a close (null = unavailable). */
   avgClv?: number | null;

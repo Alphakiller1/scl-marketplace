@@ -11,7 +11,10 @@ import {
   type VerificationTier,
 } from "@/lib/verification";
 import { resolveStorefrontIdentity } from "@/lib/storefront";
-import { computeCapperActivity } from "@/lib/capper-activity";
+import {
+  computeCapperActivity,
+  publicCapperActivityCutoff,
+} from "@/lib/capper-activity";
 import { buildPerformanceTrend } from "@/lib/leaderboard";
 import type { CapperSummary, FormResult } from "@/lib/mock";
 import {
@@ -72,8 +75,19 @@ async function loadDiscoverLanes(): Promise<{
   try {
     const clvReady = await hasClvColumns();
     const excludeTest = await prismaExcludeTestHandlesLive();
+    const activityCutoff = publicCapperActivityCutoff();
     const profiles = await prisma.capperProfile.findMany({
       where: {
+        // Same inactivity gate the leaderboard applies. Discover never had it,
+        // which is why the two surfaces disagreed: the board listed only
+        // cappers with a position in the last 30 days while Discover kept
+        // showing everyone who had ever logged one. A discovery lane that
+        // recommends someone who stopped posting months ago is worse than a
+        // short lane, and a capper returns the moment they log again.
+        OR: [
+          { plays: { some: { createdAt: { gte: activityCutoff } } } },
+          { parlays: { some: { createdAt: { gte: activityCutoff } } } },
+        ],
         user: {
           username: { not: null },
           accountStatus: "ACTIVE",
