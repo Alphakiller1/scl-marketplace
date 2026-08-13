@@ -13,6 +13,7 @@ import {
   type OddsApiSportRow,
   type SoccerLeague,
 } from "@/lib/soccer-leagues";
+import { tennisTourByKey } from "@/lib/tennis-tours";
 import { prisma } from "@/lib/prisma";
 import {
   dedupeOddsEvents,
@@ -113,6 +114,14 @@ export function resolveOddsApiSport(
     if (!league) return undefined;
     return soccerLeagueByKey(league)?.oddsApiKey;
   }
+  // Tennis, like soccer, has no single sport key — one key per tournament, and
+  // a tournament lasts about a week. The league tag carried on the event is the
+  // only route back to its key once the tour has moved on, which is what lets a
+  // pick logged at Cincinnati still verify in September.
+  if (sclSport === "TENNIS") {
+    if (!league) return undefined;
+    return tennisTourByKey(league)?.oddsApiKey;
+  }
   // A preseason pick must verify against the preseason key it came from, not
   // the regular-season one, or its event is simply absent.
   const extra = league ? EXTRA_SPORT_BY_TAG[league.toUpperCase()] : undefined;
@@ -126,7 +135,9 @@ export function toSclSport(oddsApiKey: string): string | undefined {
 
 /** Sports we can odds-assist / auto-grade as game moneyline + totals. */
 export function oddsAssistSupported(sclKey: string): boolean {
-  return sclKey in SCL_TO_ODDS_API || sclKey === "SOCCER";
+  return (
+    sclKey in SCL_TO_ODDS_API || sclKey === "SOCCER" || sclKey === "TENNIS"
+  );
 }
 
 /** regions=us when books empty; else bookmakers=<keys>. */
@@ -139,10 +150,22 @@ function oddsScopeQuery(books?: readonly string[]): string {
 export type OddsUsagePurpose = "board" | "verify" | "results" | "clv";
 
 let lastOddsApiRemaining: number | null = null;
+let lastOddsApiCapacity: number | null = null;
 
 /** Last `x-requests-remaining` observed from an Odds API response. */
 export function getLastOddsApiRemaining(): number | null {
   return lastOddsApiRemaining;
+}
+
+/**
+ * Plan size of the key in use, as `remaining + used` from the last response.
+ *
+ * The Odds API never states the plan directly, but it returns both halves of it
+ * on every response, so the cap is observable without configuring it. The
+ * circuit-breaker reserve scales from this — see `circuitBreakThreshold`.
+ */
+export function getLastOddsApiCapacity(): number | null {
+  return lastOddsApiCapacity;
 }
 
 /** Log Odds API credit usage from a response so burn is observable vs. the plan cap. */
@@ -154,9 +177,18 @@ export function logOddsUsage(
 ): void {
   const remainingHeader = res.headers.get("x-requests-remaining");
   const last = res.headers.get("x-requests-last");
+  const usedHeader = res.headers.get("x-requests-used");
   if (remainingHeader !== null) {
     const parsed = Number(remainingHeader);
     if (!Number.isNaN(parsed)) lastOddsApiRemaining = parsed;
+  }
+  // remaining + used is the plan cap, which nothing else reports.
+  if (remainingHeader !== null && usedHeader !== null) {
+    const rem = Number(remainingHeader);
+    const used = Number(usedHeader);
+    if (!Number.isNaN(rem) && !Number.isNaN(used) && rem + used > 0) {
+      lastOddsApiCapacity = rem + used;
+    }
   }
   const cost = last != null ? Number(last) : 0;
   const remaining =
@@ -293,7 +325,7 @@ export async function fetchSoccerBoard(
   const apiKey = oddsApiKey();
   if (!apiKey) return [];
 
-  if (shouldCircuitBreak(lastOddsApiRemaining)) {
+  if (shouldCircuitBreak(lastOddsApiRemaining, lastOddsApiCapacity)) {
     console.warn(
       `[odds] circuit-breaker active (remaining=${lastOddsApiRemaining}) — skipping soccer board`,
     );
@@ -420,7 +452,7 @@ export async function fetchUpcomingOdds(
   const apiSport = toOddsApiSport(sclSport);
   if (!apiKey || !apiSport) return [];
 
-  if (shouldCircuitBreak(lastOddsApiRemaining)) {
+  if (shouldCircuitBreak(lastOddsApiRemaining, lastOddsApiCapacity)) {
     console.warn(
       `[odds] circuit-breaker active (remaining=${lastOddsApiRemaining}) — skipping uncached board fetch for ${sclSport}`,
     );

@@ -2,7 +2,11 @@ import "server-only";
 
 import { getCache } from "@vercel/functions";
 
-import { fetchUpcomingOdds, getLastOddsApiRemaining } from "@/lib/odds-api";
+import {
+  fetchUpcomingOdds,
+  getLastOddsApiCapacity,
+  getLastOddsApiRemaining,
+} from "@/lib/odds-api";
 import type { OddsEvent } from "@/lib/odds-board";
 import { shouldCircuitBreak } from "@/lib/odds-budget";
 import {
@@ -266,7 +270,7 @@ export async function loadOddsBoard(sport: string): Promise<LoadedOddsBoard> {
     };
   }
 
-  if (shouldCircuitBreak(getLastOddsApiRemaining())) {
+  if (shouldCircuitBreak(getLastOddsApiRemaining(), getLastOddsApiCapacity())) {
     if (cached?.events.length) {
       return {
         events: cached.events,
