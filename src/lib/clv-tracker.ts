@@ -5,6 +5,12 @@
 
 import { hasSignal, MIN_GRADED_FOR_SIGNAL } from "@/lib/sample";
 
+/** Signed average CLV, except that an average rounding to zero loses the sign. */
+function clvAverageLabel(avgClv: number): string {
+  const rounded = Number(avgClv.toFixed(2));
+  return `${rounded > 0 ? "+" : ""}${rounded.toFixed(2)}`;
+}
+
 export type ClvTrackerSummary = {
   /** Picks with a stored closing snapshot (clvPts not null). */
   snapshotCount: number;
@@ -110,7 +116,11 @@ export function summarizeClvTracker(
       : signal
         ? `CLV distribution across ${snapshotCount} closing snapshots. ${beatCloseCount} beat the close${
             avgClv != null
-              ? `; average ${avgClv >= 0 ? "+" : ""}${avgClv.toFixed(2)} pts`
+              ? // Same rule as formatPerfValue: an average that rounds to zero
+                // keeps the number and loses the sign, so the sentence cannot
+                // read "average -0.00 pts" off a tiny negative. Rounding via
+                // Number is what drops it — toFixed carries the sign itself.
+                `; average ${clvAverageLabel(avgClv)} pts`
               : ""
           }.`
         : `CLV distribution unavailable — ${snapshotCount} of ${MIN_GRADED_FOR_SIGNAL} required snapshots recorded.`;
