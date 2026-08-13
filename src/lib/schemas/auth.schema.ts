@@ -12,39 +12,45 @@ const normalizedHandle = z
   .transform((value) => value.replace(/^@+/, "").toLowerCase());
 
 /**
+ * Longest public @handle SCL accepts.
+ *
+ * 30 rather than 20 because that is what the rest of the system already used:
+ * the legacy importer and extractor accept 30, so imported cappers have always
+ * existed above the old signup ceiling. Keeping new signups at 20 meant SCL
+ * would refuse to create a handle it was perfectly willing to host.
+ */
+export const SCL_USERNAME_MAX_LENGTH = 30;
+const USERNAME_MIN_LENGTH = 3;
+const USERNAME_TOO_SHORT = `Username must be at least ${USERNAME_MIN_LENGTH} characters`;
+const USERNAME_TOO_LONG = `Username must be ${SCL_USERNAME_MAX_LENGTH} characters or fewer`;
+const USERNAME_CHARSET = "Letters, numbers, and underscores only";
+
+/**
  * Public SCL @handle — for *creating* or *changing* a handle (signup, profile).
  * Strips a leading `@`, lowercases, then enforces length + charset.
  */
 export const sclUsernameSchema = normalizedHandle.pipe(
   z
     .string()
-    .min(3, "Username must be at least 3 characters")
-    .max(20, "Username must be under 20 characters")
-    .regex(/^[a-z0-9_]+$/, "Letters, numbers, and underscores only"),
+    .min(USERNAME_MIN_LENGTH, USERNAME_TOO_SHORT)
+    .max(SCL_USERNAME_MAX_LENGTH, USERNAME_TOO_LONG)
+    .regex(/^[a-z0-9_]+$/, USERNAME_CHARSET),
 );
 
 /**
  * The same handle when someone is *identifying an account they already have* —
  * signing in, resetting a password, re-requesting verification.
  *
- * Deliberately more permissive on length: the legacy importer and extractor
- * accept handles up to 30 characters (`legacy-import.schema.ts`,
- * `extract-legacy-mysql.py`), so imported cappers exist whose handle is longer
- * than today's 20-character ceiling for new signups. Judging an existing handle
- * by the rules for a new one rejected them at the form, before any lookup ran —
- * they could never sign in, whatever password they typed, and the error blamed
- * their credentials.
- *
- * Charset and the 3-character floor still apply, so this is not a way to smuggle
- * junk into a lookup.
+ * This used to be the more permissive of the two, because signup capped handles
+ * at 20 while imported cappers ran to 30: judging an existing handle by the
+ * rules for a new one rejected them at the form before any lookup ran, so they
+ * could never sign in whatever password they typed, and the error blamed their
+ * credentials. Both now share one ceiling and the split no longer does any
+ * work — kept as a separate export because sign-in and signup are different
+ * operations, and a future rule that tightens one should not silently lock out
+ * accounts created under the other.
  */
-export const sclExistingUsernameSchema = normalizedHandle.pipe(
-  z
-    .string()
-    .min(3, "Username must be at least 3 characters")
-    .max(30, "Username must be under 30 characters")
-    .regex(/^[a-z0-9_]+$/, "Letters, numbers, and underscores only"),
-);
+export const sclExistingUsernameSchema = sclUsernameSchema;
 
 /**
  * What someone types to identify themselves at sign-in: a username or an email.

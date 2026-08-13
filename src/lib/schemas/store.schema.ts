@@ -82,10 +82,39 @@ export const adminPackageSchema = z
     billingPeriod: z
       .enum(["ONE_TIME", "DAY", "WEEK", "MONTH", "SEASON", "YEAR"])
       .default("MONTH"),
+    /**
+     * How many periods one term covers: 4 + DAY is a 4-day pass.
+     *
+     * Capped at 365 so the unit still carries the meaning — "500 months" is a
+     * data-entry slip, not an offer, and the label it renders is public.
+     */
+    billingIntervalCount: z
+      .number()
+      .int("Whole units only.")
+      .min(1, "A term is at least one unit long.")
+      .max(365, "That term is too long — use a larger unit instead.")
+      .default(1),
     sortOrder: z.number().int().min(0).max(10_000).default(0),
     isActive: z.boolean().default(false),
   })
   .superRefine((input, context) => {
+    // A count is meaningless for these two — "3 one time" is not an offer, and a
+    // season is a season. Reject rather than silently coercing, so the form says
+    // what it did instead of quietly changing the operator's input.
+    if (
+      (input.billingPeriod === "ONE_TIME" ||
+        input.billingPeriod === "SEASON") &&
+      input.billingIntervalCount !== 1
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["billingIntervalCount"],
+        message:
+          input.billingPeriod === "ONE_TIME"
+            ? "A one-time package has no repeat count."
+            : "A season package has no repeat count.",
+      });
+    }
     if (input.affiliateProvider === "WINIBLE") {
       for (const message of winibleCheckoutUrlIssues(input.checkoutUrl)) {
         context.addIssue({

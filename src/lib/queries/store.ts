@@ -192,6 +192,7 @@ export async function listStoreConnections(filters?: {
             checkoutUrl: true,
             priceCents: true,
             billingPeriod: true,
+            billingIntervalCount: true,
             sortOrder: true,
             trackingUrls: {
               select: {
@@ -352,6 +353,7 @@ async function queryLivePackagesForCapper(
         promoOffer: true,
         priceCents: true,
         billingPeriod: true,
+        billingIntervalCount: true,
         affiliateProvider: true,
         trackingUrls: {
           select: { slug: true },
@@ -368,7 +370,11 @@ async function queryLivePackagesForCapper(
         title: p.title,
         description: p.description,
         promoOffer: p.promoOffer,
-        priceLabel: formatPriceCents(p.priceCents, p.billingPeriod),
+        priceLabel: formatPriceCents(
+          p.priceCents,
+          p.billingPeriod,
+          p.billingIntervalCount,
+        ),
         provider: p.affiliateProvider,
         trackingPath: `/go/${p.trackingUrls[0]!.slug}`,
       }));
@@ -412,6 +418,7 @@ export async function listActiveMarketplacePackagesResult(): Promise<{
             promoOffer: true,
             priceCents: true,
             billingPeriod: true,
+            billingIntervalCount: true,
             affiliateProvider: true,
             trackingUrls: {
               select: { slug: true },
@@ -439,7 +446,11 @@ export async function listActiveMarketplacePackagesResult(): Promise<{
           title: p.title,
           description: p.description,
           promoOffer: p.promoOffer,
-          priceLabel: formatPriceCents(p.priceCents, p.billingPeriod),
+          priceLabel: formatPriceCents(
+            p.priceCents,
+            p.billingPeriod,
+            p.billingIntervalCount,
+          ),
           provider: p.affiliateProvider,
           trackingPath: `/go/${p.trackingUrls[0]!.slug}`,
           capperId: p.capper.id,
@@ -646,6 +657,7 @@ export async function getCapperPackagesForReview(capperId: string) {
         title: true,
         priceCents: true,
         billingPeriod: true,
+        billingIntervalCount: true,
         isActive: true,
         sortOrder: true,
         checkoutUrl: true,
@@ -664,7 +676,11 @@ export async function getCapperPackagesForReview(capperId: string) {
     return packages.map((pkg) => ({
       id: pkg.id,
       title: pkg.title,
-      priceLabel: formatPriceCents(pkg.priceCents, pkg.billingPeriod),
+      priceLabel: formatPriceCents(
+        pkg.priceCents,
+        pkg.billingPeriod,
+        pkg.billingIntervalCount,
+      ),
       isActive: pkg.isActive,
       sortOrder: pkg.sortOrder,
       hasCheckoutUrl: Boolean(pkg.checkoutUrl),

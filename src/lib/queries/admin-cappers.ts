@@ -240,6 +240,7 @@ export async function getAdminCapperDetail(userId: string) {
               checkoutUrl: true,
               priceCents: true,
               billingPeriod: true,
+              billingIntervalCount: true,
               isActive: true,
               sortOrder: true,
               affiliateProvider: true,

@@ -25,9 +25,11 @@ export function CompactCapperRow({
   variant?: "card" | "flush";
 }) {
   const graded = capper.settledPicks ?? 0;
+  // Career sample for the maturity claim; window sample stays the caption.
+  const career = capper.lifetimeGraded ?? graded;
   const display = publicRecordDisplay(capper);
   const hasGradedRecord = display.hasGradedRecord;
-  const provisional = isProvisional(graded);
+  const provisional = isProvisional(career);
   const primaryValue = hasGradedRecord
     ? primaryMetric === "units"
       ? display.units
@@ -62,7 +64,7 @@ export function CompactCapperRow({
       )}
     >
       <div className="flex min-w-0 items-center gap-3">
-        <RankBadge rank={rank} settledPicks={graded} className="size-9" />
+        <RankBadge rank={rank} settledPicks={career} className="size-9" />
         <CapperAvatar name={capper.name} src={capper.avatarUrl} size="sm" />
 
         <div className="min-w-0 flex-1">

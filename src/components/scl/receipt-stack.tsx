@@ -41,6 +41,11 @@ function CompactPickTicket({ pick }: { pick: StraightReceipt }) {
         eventLine={
           <span className="inline-flex flex-wrap items-center gap-1.5 tracking-normal normal-case">
             {sport ? <LeagueRef sport={sport} /> : null}
+            {pick.eventLabel?.trim() ? (
+              <span className="scl-data tracking-[0.06em] uppercase">
+                {pick.eventLabel.trim()}
+              </span>
+            ) : null}
             {pick.book ? (
               <span className="scl-data inline-flex items-center gap-1 tracking-[0.06em] uppercase">
                 <BookMark bookKey={pick.book} size={16} />
@@ -60,6 +65,7 @@ function CompactPickTicket({ pick }: { pick: StraightReceipt }) {
         toWin={toWin}
         capturedAt={pick.capturedAt}
         book={pick.book}
+        eventStartsAt={pick.eventStartsAt ?? null}
         status={verified ? "verified" : "muted"}
         className="shadow-none"
       />

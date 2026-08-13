@@ -16,7 +16,6 @@ import { SportTag } from "@/components/scl/badges";
 import { StatValue } from "@/components/scl/stat-value";
 import { EmptyState } from "@/components/scl/states";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatRoi, formatUnits } from "@/lib/format";
 import {
   LEAGUE_ACTION_CATEGORY_EMPTY,
   PLATFORM_REPORT_ELIGIBILITY_FOOTNOTE,
@@ -29,8 +28,6 @@ import {
   type LeagueActionCategoryItem,
   type LeagueActionItem,
 } from "@/lib/league-action";
-import { perfScale, perfToneClass, type PerfTone } from "@/lib/perf-scale";
-import { hasSignal } from "@/lib/sample";
 import { cn } from "@/lib/utils";
 
 const LEAGUES_EMPTY =
@@ -40,9 +37,13 @@ const LEAGUES_EMPTY =
 const LEAGUE_LIST_COLS =
   "grid-cols-[1.5rem_1.75rem_minmax(0,1fr)_4.5rem_4.5rem]";
 
-/** Desktop bet-type tracks — never applied under sm (mobile uses cards). */
-const BET_TYPE_COLS =
-  "grid-cols-[minmax(0,1.1fr)_minmax(5.5rem,0.7fr)_4.25rem_4.25rem_4.5rem]";
+/**
+ * Desktop bet-type tracks — never applied under sm (mobile uses cards).
+ * Type · Sample · Graded. ROI and Units were dropped from this panel: it is a
+ * platform activity report, and a return figure aggregated across every capper
+ * is not a number anyone can act on.
+ */
+const BET_TYPE_COLS = "grid-cols-[minmax(0,1.6fr)_minmax(5.5rem,0.7fr)_4.5rem]";
 
 type TabKey = "types" | "leagues";
 
@@ -120,111 +121,13 @@ function SampleVolumeBar({ value, max }: { value: number; max: number }) {
   );
 }
 
-function perfBarFill(tone: PerfTone): string {
-  switch (tone) {
-    case "pos":
-      return "bg-[color:var(--scl-perf-strong)]";
-    case "neg":
-      return "bg-[color:var(--scl-perf-weak)]";
-    case "amber":
-      return "bg-[color:var(--scl-perf-mid)]";
-    case "muted":
-    default:
-      return "bg-[color:var(--scl-muted-label)]/55";
-  }
-}
-
-/**
- * Performance magnitude bar — fill from perf-scale tone (never blue).
- * Static width (not on the sanctioned motion list).
- */
-function PerfMagnitudeBar({
-  metric,
-  value,
-  graded,
-  maxAbs,
-}: {
-  metric: "roi" | "units";
-  value: number | null;
-  graded: number;
-  maxAbs: number;
-}) {
-  if (value == null || !hasSignal(graded) || maxAbs <= 0) {
-    return (
-      <div
-        className="bg-surface-3 h-1.5 w-full overflow-hidden rounded-full"
-        aria-hidden
-      />
-    );
-  }
-  const scale = perfScale(metric, value, { gradedCount: graded });
-  const pct = Math.max(8, Math.min(100, (Math.abs(value) / maxAbs) * 100));
-  return (
-    <div
-      className="bg-surface-3 h-1.5 w-full overflow-hidden rounded-full"
-      aria-hidden
-    >
-      <div
-        className={cn("h-full rounded-full", perfBarFill(scale.tone))}
-        style={{ width: `${pct}%` }}
-      />
-    </div>
-  );
-}
-
-function PerfCell({
-  metric,
-  value,
-  graded,
-  align = "right",
-}: {
-  metric: "roi" | "units";
-  value: number | null;
-  graded: number;
-  align?: "left" | "right";
-}) {
-  const alignClass = align === "right" ? "text-right" : "text-left";
-  if (value == null || !hasSignal(graded)) {
-    return (
-      <span
-        className={cn("block", alignClass)}
-        title="Not Available — below the minimum graded sample."
-      >
-        <StatValue tone="data" className="text-sm font-semibold">
-          —
-        </StatValue>
-      </span>
-    );
-  }
-  const scale = perfScale(metric, value, { gradedCount: graded });
-  return (
-    <span className={cn("block", alignClass)} title={scale.ariaLabel}>
-      <StatValue
-        tone="text"
-        className={cn(
-          "text-sm font-bold tabular-nums",
-          perfToneClass(scale.tone),
-        )}
-      >
-        {metric === "roi" ? formatRoi(value) : formatUnits(value)}
-      </StatValue>
-    </span>
-  );
-}
-
 function betTypeTiming(cat: LeagueActionCategoryItem): string | null {
   if (cat.preGame == null || cat.live == null) return null;
   return `${cat.preGame.toLocaleString()} entered before start · ${cat.live.toLocaleString()} entered after start`;
 }
 
 /** Mobile card — stacks metrics; no horizontal min-width. */
-function BetTypeMobileCard({
-  cat,
-  maxUnitsAbs,
-}: {
-  cat: LeagueActionCategoryItem;
-  maxUnitsAbs: number;
-}) {
+function BetTypeMobileCard({ cat }: { cat: LeagueActionCategoryItem }) {
   if (cat.picks <= 0) {
     return (
       <li className="border-border border-b border-[color:var(--scl-line)] py-3 last:border-b-0">
@@ -253,53 +156,17 @@ function BetTypeMobileCard({
         </div>
         <SampleMaturityMeter graded={cat.graded} compact />
       </div>
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <p className="scl-eyebrow">Graded</p>
-          <StatValue tone="text" className="mt-0.5 text-sm font-bold">
-            {cat.graded.toLocaleString()}
-          </StatValue>
-        </div>
-        <div>
-          <p className="scl-eyebrow">ROI</p>
-          <div className="mt-0.5">
-            <PerfCell
-              metric="roi"
-              value={cat.roi}
-              graded={cat.graded}
-              align="left"
-            />
-          </div>
-        </div>
-        <div>
-          <p className="scl-eyebrow">Units</p>
-          <div className="mt-0.5">
-            <PerfCell
-              metric="units"
-              value={cat.units}
-              graded={cat.graded}
-              align="left"
-            />
-          </div>
-        </div>
+      <div>
+        <p className="scl-eyebrow">Graded</p>
+        <StatValue tone="text" className="mt-0.5 text-sm font-bold">
+          {cat.graded.toLocaleString()}
+        </StatValue>
       </div>
-      <PerfMagnitudeBar
-        metric="units"
-        value={cat.units}
-        graded={cat.graded}
-        maxAbs={maxUnitsAbs || 1}
-      />
     </li>
   );
 }
 
-function BetTypeDesktopRow({
-  cat,
-  maxUnitsAbs,
-}: {
-  cat: LeagueActionCategoryItem;
-  maxUnitsAbs: number;
-}) {
+function BetTypeDesktopRow({ cat }: { cat: LeagueActionCategoryItem }) {
   if (cat.picks <= 0) {
     return (
       <li className="border-border border-b py-3 last:border-b-0">
@@ -326,14 +193,6 @@ function BetTypeDesktopRow({
           {countLabel(cat.cappers, "capper", "cappers")}
           {timing ? ` · ${timing}` : ""}
         </p>
-        <div className="mt-1.5 max-w-[12rem]">
-          <PerfMagnitudeBar
-            metric="units"
-            value={cat.units}
-            graded={cat.graded}
-            maxAbs={maxUnitsAbs || 1}
-          />
-        </div>
       </div>
       <SampleMaturityMeter graded={cat.graded} compact />
       <StatValue
@@ -342,8 +201,6 @@ function BetTypeDesktopRow({
       >
         {cat.graded.toLocaleString()}
       </StatValue>
-      <PerfCell metric="roi" value={cat.roi} graded={cat.graded} />
-      <PerfCell metric="units" value={cat.units} graded={cat.graded} />
     </li>
   );
 }
@@ -351,11 +208,9 @@ function BetTypeDesktopRow({
 function BetTypeSection({
   title,
   rows,
-  maxUnitsAbs,
 }: {
   title: string;
   rows: LeagueActionCategoryItem[];
-  maxUnitsAbs: number;
 }) {
   return (
     <section className="space-y-2">
@@ -364,11 +219,7 @@ function BetTypeSection({
       {/* Mobile cards — no min-width, no page h-scroll at 375 */}
       <ul className="border-border divide-border divide-y overflow-hidden rounded-lg border px-3 sm:hidden">
         {rows.map((cat) => (
-          <BetTypeMobileCard
-            key={cat.key}
-            cat={cat}
-            maxUnitsAbs={maxUnitsAbs}
-          />
+          <BetTypeMobileCard key={cat.key} cat={cat} />
         ))}
       </ul>
 
@@ -380,16 +231,10 @@ function BetTypeSection({
           <span>Type</span>
           <span className="text-right">Sample</span>
           <span className="text-right">Graded</span>
-          <span className="text-right">ROI</span>
-          <span className="text-right">Units</span>
         </div>
         <ul className="px-3">
           {rows.map((cat) => (
-            <BetTypeDesktopRow
-              key={cat.key}
-              cat={cat}
-              maxUnitsAbs={maxUnitsAbs}
-            />
+            <BetTypeDesktopRow key={cat.key} cat={cat} />
           ))}
         </ul>
       </div>
@@ -479,13 +324,6 @@ export function LeagueActionReport({
     () => Math.max(0, ...leagues.map((l) => l.pickCount)),
     [leagues],
   );
-  const maxUnitsAbs = useMemo(() => {
-    const vals = categories
-      .map((c) => c.units)
-      .filter((v): v is number => v != null && Number.isFinite(v));
-    return vals.length ? Math.max(...vals.map(Math.abs)) : 0;
-  }, [categories]);
-
   const [tab, setTab] = useState<TabKey>(
     leagues.length > 0
       ? "leagues"
@@ -579,7 +417,6 @@ export function LeagueActionReport({
           shape={shape}
           market={market}
           leagues={leagues}
-          maxUnitsAbs={maxUnitsAbs}
           maxLeaguePicks={maxLeaguePicks}
         />
       </details>
@@ -590,7 +427,6 @@ export function LeagueActionReport({
           shape={shape}
           market={market}
           leagues={leagues}
-          maxUnitsAbs={maxUnitsAbs}
           maxLeaguePicks={maxLeaguePicks}
         />
       </div>
@@ -606,13 +442,11 @@ function PlatformReportDesktop({
   shape,
   market,
   leagues,
-  maxUnitsAbs,
   maxLeaguePicks,
 }: {
   shape: LeagueActionCategoryItem[];
   market: LeagueActionCategoryItem[];
   leagues: LeagueActionItem[];
-  maxUnitsAbs: number;
   maxLeaguePicks: number;
 }) {
   return (
@@ -625,16 +459,8 @@ function PlatformReportDesktop({
             maxLeaguePicks={maxLeaguePicks}
           />
         </section>
-        <BetTypeColumnSection
-          title="Shape"
-          rows={shape}
-          maxUnitsAbs={maxUnitsAbs}
-        />
-        <BetTypeColumnSection
-          title="Market"
-          rows={market}
-          maxUnitsAbs={maxUnitsAbs}
-        />
+        <BetTypeColumnSection title="Shape" rows={shape} />
+        <BetTypeColumnSection title="Market" rows={market} />
       </div>
       <div className="mt-5 border-t border-[color:var(--scl-line)] pt-3">
         <ButtonishPicksLink label="Browse Verified Picks" />
@@ -646,20 +472,16 @@ function PlatformReportDesktop({
 function BetTypeColumnSection({
   title,
   rows,
-  maxUnitsAbs,
 }: {
   title: string;
   rows: LeagueActionCategoryItem[];
-  maxUnitsAbs: number;
 }) {
   return (
     <section className="min-w-0 space-y-2">
       <h3 className="scl-eyebrow">{title}</h3>
       <div className="border-border overflow-hidden rounded-lg border">
-        <div className="text-muted-foreground grid grid-cols-[minmax(0,1fr)_4.25rem_4.5rem] gap-3 border-b px-3 py-2 text-[0.7rem] font-semibold uppercase">
+        <div className="text-muted-foreground grid grid-cols-[minmax(0,1fr)] gap-3 border-b px-3 py-2 text-[0.7rem] font-semibold uppercase">
           <span>Type And Sample</span>
-          <span className="text-right">ROI</span>
-          <span className="text-right">Units</span>
         </div>
         <ul className="divide-border divide-y px-3">
           {rows.map((cat) => {
@@ -678,7 +500,7 @@ function BetTypeColumnSection({
             return (
               <li
                 key={cat.key}
-                className="grid min-h-20 grid-cols-[minmax(0,1fr)_4.25rem_4.5rem] items-center gap-3 py-3"
+                className="grid min-h-16 grid-cols-[minmax(0,1fr)] items-center gap-3 py-3"
               >
                 <div className="min-w-0">
                   <div className="flex items-center justify-between gap-2">
@@ -694,21 +516,7 @@ function BetTypeColumnSection({
                     {countLabel(cat.cappers, "capper", "cappers")}
                     {timing ? ` · ${timing}` : ""}
                   </p>
-                  <div className="mt-2">
-                    <PerfMagnitudeBar
-                      metric="units"
-                      value={cat.units}
-                      graded={cat.graded}
-                      maxAbs={maxUnitsAbs || 1}
-                    />
-                  </div>
                 </div>
-                <PerfCell metric="roi" value={cat.roi} graded={cat.graded} />
-                <PerfCell
-                  metric="units"
-                  value={cat.units}
-                  graded={cat.graded}
-                />
               </li>
             );
           })}
@@ -796,7 +604,6 @@ function PlatformReportTabs({
   shape,
   market,
   leagues,
-  maxUnitsAbs,
   maxLeaguePicks,
 }: {
   tab: TabKey;
@@ -804,7 +611,6 @@ function PlatformReportTabs({
   shape: LeagueActionCategoryItem[];
   market: LeagueActionCategoryItem[];
   leagues: LeagueActionItem[];
-  maxUnitsAbs: number;
   maxLeaguePicks: number;
 }) {
   return (
@@ -840,16 +646,8 @@ function PlatformReportTabs({
 
       <div className="px-4 py-4 pl-5 sm:px-5 sm:pl-6">
         <TabsContent value="types" className="mt-0 space-y-6">
-          <BetTypeSection
-            title="Shape"
-            rows={shape}
-            maxUnitsAbs={maxUnitsAbs}
-          />
-          <BetTypeSection
-            title="Market"
-            rows={market}
-            maxUnitsAbs={maxUnitsAbs}
-          />
+          <BetTypeSection title="Shape" rows={shape} />
+          <BetTypeSection title="Market" rows={market} />
           <ButtonishPicksLink label="Browse Verified Picks" />
         </TabsContent>
 

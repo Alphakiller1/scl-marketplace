@@ -86,7 +86,10 @@ test("opening a matchup keeps every game in the visible slate", () => {
     path.join(root, "src/components/scl/game-picker.tsx"),
     "utf8",
   );
-  assert.match(source, /visible\.map\(\(e\) =>/);
+  // The rule is that the whole slate keeps rendering and the detail opens
+  // inline — not that the callback has one parameter. It takes an index now,
+  // to date-group the upcoming list.
+  assert.match(source, /visible\.map\(\(e(?:,\s*\w+)?\) =>/);
   assert.match(source, /open \? \(\s*<EventDetail/);
   assert.doesNotMatch(source, /Focused Matchup/);
   assert.doesNotMatch(source, /Back to slate/);

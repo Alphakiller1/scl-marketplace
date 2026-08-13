@@ -4,6 +4,12 @@ import type { Outcome } from "@prisma/client";
 
 import { withTransientDatabaseRetry } from "@/lib/database-retry";
 import { prisma } from "@/lib/prisma";
+import {
+  sortLegacySportRecords,
+  type LegacySportRecordView,
+} from "@/lib/legacy-sport-records";
+import { LEGACY_RECORD_ALL_SPORTS } from "@/lib/schemas/legacy-records.schema";
+import type { StatsBaseline } from "@/lib/stats";
 import type { CapperSummary, TodayPick } from "@/lib/mock";
 import {
   joinPlaysToPublicPicks,
@@ -37,6 +43,13 @@ export type PlayView = {
   /** Structured board side when present — never invent from free-text selection. */
   side: string | null;
   eventLabel?: string | null;
+  /**
+   * Stored fixture teams. Reconstruct the matchup line via `matchupLabel` when
+   * `eventLabel` is absent — it only exists on picks logged after the board
+   * started recording it.
+   */
+  homeTeam?: string | null;
+  awayTeam?: string | null;
   /** Scheduled event start (C2) — drives the pre-game/live/awaiting-grade lifecycle. */
   eventStartsAt: Date | null;
   /** Odds API bookmaker key at capture (M5 §4 source surfacing). */
@@ -94,6 +107,77 @@ export function mergeRecordEntries(
   return entries.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
 
+export type CapperLegacyRecords = {
+  /** Combined PRE_IMPORT total, ready to hand to computeCapperStats. */
+  baseline: StatsBaseline | null;
+  /** Per-sport PRE_IMPORT rows for the dashboard's By Sport table. */
+  bySport: LegacySportRecordView[];
+};
+
+/**
+ * A capper's carried-over totals from the previous SCL platform.
+ *
+ * The dashboard computed its record from Play rows alone while every public
+ * surface added this baseline, so a capper saw one career on their own
+ * dashboard and a different one on their public profile — 518 graded against
+ * 1,946 for the capper who reported it. Same numbers, same source, both places.
+ *
+ * PRE_IMPORT only, and that matters: it is the legacy season total with the
+ * individually imported plays already subtracted. The other scopes on the same
+ * table (LAST_30D, CURRENT_SEASON, YEAR_2025 and the rest) overlap each other
+ * and the imported plays, so summing across scopes double-counts. One capper
+ * carries 61 of these rows.
+ */
+export async function getCapperLegacyRecords(
+  userId: string,
+): Promise<CapperLegacyRecords> {
+  const profile = await prisma.capperProfile.findUnique({
+    where: { userId },
+    select: { id: true },
+  });
+  if (!profile) return { baseline: null, bySport: [] };
+
+  const rows = await prisma.legacyRecord.findMany({
+    where: { capperId: profile.id, scope: "PRE_IMPORT" },
+    select: {
+      sport: true,
+      wins: true,
+      losses: true,
+      pushes: true,
+      unitsRisked: true,
+      unitsNet: true,
+    },
+  });
+  if (rows.length === 0) return { baseline: null, bySport: [] };
+
+  const normalized = rows.map((row) => ({
+    sport: row.sport,
+    wins: row.wins,
+    losses: row.losses,
+    pushes: row.pushes,
+    unitsRisked: Number(row.unitsRisked),
+    unitsNet: Number(row.unitsNet),
+  }));
+
+  const combined = normalized.find(
+    (row) => row.sport === LEGACY_RECORD_ALL_SPORTS,
+  );
+
+  return {
+    baseline: combined
+      ? {
+          wins: combined.wins,
+          losses: combined.losses,
+          pushes: combined.pushes,
+          stakedUnits: combined.unitsRisked,
+          units: combined.unitsNet,
+        }
+      : null,
+    // sortLegacySportRecords drops the ALL sentinel and any empty row.
+    bySport: sortLegacySportRecords(normalized),
+  };
+}
+
 /** A capper's plays (most recent first), with Decimals serialized to numbers. */
 export async function getCapperPlays(
   userId: string,
@@ -127,6 +211,8 @@ export async function getCapperPlays(
       side: true,
       eventStartsAt: true,
       eventLabel: true,
+      homeTeam: true,
+      awayTeam: true,
       book: true,
       notes: true,
       ...(notesPublicReady ? { notesPublic: true } : {}),
@@ -149,6 +235,8 @@ export async function getCapperPlays(
     side: p.side,
     eventStartsAt: p.eventStartsAt,
     eventLabel: p.eventLabel,
+    homeTeam: p.homeTeam,
+    awayTeam: p.awayTeam,
     book: p.book,
     notes: p.notes,
     notesPublic:
@@ -304,6 +392,8 @@ export async function getPublicRecentPickRows(
             side: true,
             eventStartsAt: true,
             eventLabel: true,
+            homeTeam: true,
+            awayTeam: true,
             book: true,
             closingOddsAmerican: true,
             clvPts: true,

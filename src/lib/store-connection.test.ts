@@ -53,6 +53,13 @@ describe("store-connection helpers", () => {
 
   it("formats display prices", () => {
     assert.equal(formatPriceCents(9900, "MONTH"), "$99 / month");
-    assert.equal(formatPriceCents(0, "MONTH"), null);
+    // Zero is a price, not a missing one — and carries no cadence, because a
+    // free trial's stored billingPeriod is frequently wrong and was invisible
+    // for as long as the price was hidden.
+    assert.equal(formatPriceCents(0, "MONTH"), "Free");
+    assert.equal(formatPriceCents(0, "DAY"), "Free");
+    // Only a nonsense price has nothing to show.
+    assert.equal(formatPriceCents(-1, "MONTH"), null);
+    assert.equal(formatPriceCents(Number.NaN, "MONTH"), null);
   });
 });

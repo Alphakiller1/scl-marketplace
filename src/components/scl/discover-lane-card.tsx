@@ -4,7 +4,6 @@ import { CapperAvatar } from "@/components/scl/capper-avatar";
 import { CapperIdentityLabel } from "@/components/scl/capper-identity-label";
 import { SportTag } from "@/components/scl/badges";
 import { SampleMaturityMeter } from "@/components/scl/sample-maturity-meter";
-import { VerifiedShareMeter } from "@/components/scl/verified-share-meter";
 import { formatRoi, formatUnits } from "@/lib/format";
 import { formatClvPts } from "@/lib/proof-receipt";
 import type { DiscoverLaneEntry } from "@/lib/discover-lanes";
@@ -43,10 +42,6 @@ export function DiscoverLaneCard({ entry }: { entry: DiscoverLaneEntry }) {
     primaryDisplay = formatClvPts(primaryValue);
     primaryClass = perfToneClass(scale.tone);
     primaryAria = `${scale.ariaLabel}. Closing Line Value is a pricing metric — submitted price versus market close — not a prediction.`;
-  } else if (primaryKind === "verifiedShare" && primaryValue != null) {
-    primaryDisplay = `${Math.round(primaryValue)}%`;
-    primaryClass = "text-foreground";
-    primaryAria = `${Math.round(primaryValue)} percent Odds-Verified`;
   }
 
   return (
@@ -86,8 +81,14 @@ export function DiscoverLaneCard({ entry }: { entry: DiscoverLaneEntry }) {
         </div>
       </div>
 
+      {/*
+        No verified-share meter: it is not a quality signal on this roster. Every
+        record carried over from the previous platform is self-reported by
+        definition — SCL never captured those prices pre-game — so the percentage
+        read as "how much of this capper's history is post-migration", which is
+        not what a reader standing in a discovery lane takes it for.
+      */}
       <div className="flex flex-wrap items-center justify-end gap-3 sm:gap-4">
-        <VerifiedShareMeter pct={capper.verifiedShare} />
         <SampleMaturityMeter
           graded={sampleForScale}
           compact

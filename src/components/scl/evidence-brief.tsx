@@ -42,7 +42,11 @@ import type {
   ProfilePackageInsight,
 } from "@/lib/package-register";
 import { profitUnitsForOutcome } from "@/lib/odds";
-import { pickContextLabel } from "@/lib/pick-identity";
+import {
+  matchupLabel,
+  pickContextLabel,
+  pickEventDate,
+} from "@/lib/pick-identity";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
 import { toHeadshotLeague } from "@/lib/player-headshots";
 import {
@@ -100,8 +104,9 @@ function playToProofReceipt(
     );
   const toWin =
     receiptUnits == null ? "—" : formatUnits(receiptUnits, true, settled);
+  // Matchup first, market label only when the fixture was never recorded.
   const eventContext =
-    play.eventLabel ??
+    matchupLabel(play) ??
     pickContextLabel({
       sport: play.sport,
       league: play.league,
@@ -145,7 +150,7 @@ function playToProofReceipt(
       closingOddsAmerican={play.closingOddsAmerican ?? null}
       clvPts={play.clvPts ?? null}
       evidenceId={play.id}
-      eventStartsAt={play.eventStartsAt}
+      eventStartsAt={pickEventDate(play)}
       analysis={play.notesPublic === false ? null : play.notes}
     />
   );
@@ -203,10 +208,11 @@ export function EvidenceBrief({
     gradedCount: clvTracker.snapshotCount,
   });
 
-  // Default to the full capper record so Evidence Brief matches leaderboard
-  // totals (including legacy-carried). Package views are opt-in — starting on
-  // the first offer with no attributed picks made profiles look empty.
-  const [selectedPackageId, setSelectedPackageId] = useState("all");
+  // Package filtering is off until the capper opt-in flow exists: every offer
+  // shared one unattributed record, so the selector only ever redrew the same
+  // numbers under a different label. `packageInsights` still arrives from the
+  // profile query so restoring the control is a UI change alone.
+  const selectedPackageId = "all";
   const [chartSport, setChartSport] = useState("ALL");
   const [chartWindow, setChartWindow] = useState<ProfileChartWindow>("all");
 
@@ -263,25 +269,6 @@ export function EvidenceBrief({
           Evidence Brief
         </h2>
         <div className="flex flex-wrap items-center gap-2">
-          {packageInsights.length > 0 ? (
-            <label className="flex min-w-0 items-center gap-2">
-              <span className="scl-eyebrow text-[color:var(--scl-muted-data)]">
-                Package view
-              </span>
-              <select
-                value={selectedPackageId}
-                onChange={(event) => setSelectedPackageId(event.target.value)}
-                className="border-input bg-background min-h-10 max-w-64 rounded-md border px-3 text-sm"
-              >
-                <option value="all">Full capper record</option>
-                {packageInsights.map((pkg) => (
-                  <option key={pkg.id} value={pkg.id}>
-                    {pkg.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
           {provisional ? <ProvisionalRecordHelp iconOnly /> : null}
         </div>
       </div>
@@ -520,7 +507,7 @@ function ProofHistoryLedger({
             const resultLabel = proofResultLabel(play);
             const resultClass = proofResultClass(play.outcome);
             const game =
-              play.eventLabel ??
+              matchupLabel(play) ??
               pickContextLabel({
                 sport: play.sport,
                 league: play.league,

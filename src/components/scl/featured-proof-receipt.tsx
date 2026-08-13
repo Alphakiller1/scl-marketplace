@@ -6,7 +6,11 @@ import { ProofReceipt } from "@/components/scl/proof-receipt";
 import { EmptyState } from "@/components/scl/states";
 import { formatOdds, formatUnits } from "@/lib/format";
 import { profitUnitsForOutcome } from "@/lib/odds";
-import { pickContextLabel } from "@/lib/pick-identity";
+import {
+  matchupLabel,
+  pickContextLabel,
+  pickEventDate,
+} from "@/lib/pick-identity";
 import { deriveProofReceiptState } from "@/lib/proof-receipt";
 import type { FeaturedGradedPlay } from "@/lib/queries/home-live";
 import { isVerifiedTier } from "@/lib/verification";
@@ -95,7 +99,7 @@ function FeaturedReceiptBody({ play }: { play: FeaturedGradedPlay }) {
         ? formatUnits(computedResult)
         : "—";
   const eventContext =
-    play.eventLabel ??
+    matchupLabel(play) ??
     pickContextLabel({
       sport: play.sport,
       league: play.league,
@@ -132,7 +136,7 @@ function FeaturedReceiptBody({ play }: { play: FeaturedGradedPlay }) {
       closingOddsAmerican={play.closingOddsAmerican ?? null}
       clvPts={play.clvPts ?? null}
       evidenceId={play.id}
-      eventStartsAt={play.eventStartsAt}
+      eventStartsAt={pickEventDate(play)}
       analysis={play.notesPublic === false ? null : play.notes}
       footerAction={
         <Link

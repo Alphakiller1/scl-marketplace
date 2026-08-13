@@ -277,6 +277,8 @@ async function preparePlayLine(
         units: d.units,
         toWinUnits: d.units * (americanToDecimal(d.oddsAmerican) - 1),
         book: captureBook,
+        eventLabel: `${confirmedEvent.away} @ ${confirmedEvent.home}`,
+        eventStartsAt: eventStartsAt.toISOString(),
       },
     },
   };

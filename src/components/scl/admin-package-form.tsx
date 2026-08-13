@@ -11,7 +11,7 @@ import {
   adminSavePackageAction,
   adminSetPackageActiveAction,
 } from "@/lib/actions/store.action";
-import { providerLabel } from "@/lib/store-connection";
+import { formatPriceCents, providerLabel } from "@/lib/store-connection";
 import { cn } from "@/lib/utils";
 
 export type AdminPackageInitial = {
@@ -22,6 +22,7 @@ export type AdminPackageInitial = {
   checkoutUrl: string | null;
   priceCents: number;
   billingPeriod: BillingPeriod;
+  billingIntervalCount?: number;
   sortOrder?: number;
   isActive: boolean;
   trackingSlug?: string | null;
@@ -54,9 +55,19 @@ export function AdminPackageForm({
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>(
     initial?.billingPeriod || "MONTH",
   );
+  const [billingIntervalCount, setBillingIntervalCount] = useState(
+    initial?.billingIntervalCount ?? 1,
+  );
   const [sortOrder, setSortOrder] = useState(String(initial?.sortOrder ?? 0));
   const [isActive, setIsActive] = useState(initial?.isActive ?? false);
   const [packageId, setPackageId] = useState(initial?.id || "");
+  // ONE_TIME and SEASON have no repeat count; the input is disabled and pinned
+  // to 1 for them rather than submitting a stale value from a previous choice.
+  const countableBilling =
+    billingPeriod !== "ONE_TIME" && billingPeriod !== "SEASON";
+  const priceCents = Math.round(
+    Number.parseFloat(priceDollars || "0") * 100 || 0,
+  );
   const trackingSlug = initial?.trackingSlug || "";
   const clickCount = initial?.clickCount ?? 0;
   const [pending, startTransition] = useTransition();
@@ -81,6 +92,7 @@ export function AdminPackageForm({
         checkoutUrl,
         priceCents: Number.isFinite(cents) ? Math.max(0, cents) : 0,
         billingPeriod,
+        billingIntervalCount: countableBilling ? billingIntervalCount : 1,
         sortOrder: Number.isFinite(order) ? Math.max(0, order) : 0,
         isActive: publish ? true : isActive,
       });
@@ -162,19 +174,60 @@ export function AdminPackageForm({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="billing">Billing cadence</Label>
-          <select
-            id="billing"
-            className="border-border bg-background h-10 w-full rounded-md border px-3 text-sm"
-            value={billingPeriod}
-            onChange={(e) => setBillingPeriod(e.target.value as BillingPeriod)}
-          >
-            <option value="ONE_TIME">One time</option>
-            <option value="DAY">Day</option>
-            <option value="WEEK">Week</option>
-            <option value="MONTH">Month</option>
-            <option value="SEASON">Season</option>
-            <option value="YEAR">Year</option>
-          </select>
+          <div className="flex gap-2">
+            {/* Every/N: a term is a COUNT of units, so 4 days and 5 days are
+                reachable without inventing an enum member for each. */}
+            <Input
+              id="billingCount"
+              type="number"
+              min={1}
+              max={365}
+              step={1}
+              className="h-10 w-20"
+              aria-label="Number of billing periods"
+              value={countableBilling ? billingIntervalCount : 1}
+              disabled={!countableBilling}
+              onChange={(e) =>
+                setBillingIntervalCount(
+                  Math.max(1, Number(e.target.value) || 1),
+                )
+              }
+            />
+            <select
+              id="billing"
+              className="border-border bg-background h-10 w-full rounded-md border px-3 text-sm"
+              value={billingPeriod}
+              onChange={(e) => {
+                const next = e.target.value as BillingPeriod;
+                setBillingPeriod(next);
+                // A count is meaningless for these two; reset so a stale 4 can
+                // never be submitted alongside them.
+                if (next === "ONE_TIME" || next === "SEASON") {
+                  setBillingIntervalCount(1);
+                }
+              }}
+            >
+              <option value="ONE_TIME">One time</option>
+              <option value="DAY">
+                {billingIntervalCount > 1 ? "Days" : "Day"}
+              </option>
+              <option value="WEEK">
+                {billingIntervalCount > 1 ? "Weeks" : "Week"}
+              </option>
+              <option value="MONTH">
+                {billingIntervalCount > 1 ? "Months" : "Month"}
+              </option>
+              <option value="SEASON">Season</option>
+              <option value="YEAR">
+                {billingIntervalCount > 1 ? "Years" : "Year"}
+              </option>
+            </select>
+          </div>
+          <p className="text-muted-foreground text-xs">
+            {priceCents > 0
+              ? `Reads as ${formatPriceCents(priceCents, billingPeriod, countableBilling ? billingIntervalCount : 1)}`
+              : "Set a price to preview how the cadence reads."}
+          </p>
         </div>
       </div>
 

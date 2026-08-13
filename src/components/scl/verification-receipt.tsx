@@ -66,6 +66,9 @@ export function VerificationReceipt({
       : [receipt.market, copy.statusLine].filter(Boolean);
   const sport = receipt.kind === "straight" ? receipt.sport?.trim() || "" : "";
   const side = receipt.kind === "straight" ? receipt.side : null;
+  // A parlay spans fixtures, so it names none — its legs carry them.
+  const matchup =
+    receipt.kind === "straight" ? receipt.eventLabel?.trim() || null : null;
 
   const stake =
     receipt.units != null ? formatUnits(receipt.units, true, false) : "—";
@@ -103,6 +106,11 @@ export function VerificationReceipt({
         eventLine={
           <span className="inline-flex flex-wrap items-center gap-1.5 tracking-normal normal-case">
             {sport ? <LeagueRef sport={sport} /> : null}
+            {matchup ? (
+              <span className="scl-data tracking-[0.06em] uppercase">
+                {matchup}
+              </span>
+            ) : null}
             {statusBits.length ? (
               <span className="scl-data tracking-[0.06em] uppercase">
                 {statusBits.join(" · ")}
@@ -118,6 +126,7 @@ export function VerificationReceipt({
         book={receipt.book}
         state={state}
         density="expanded-paper"
+        eventStartsAt={receipt.eventStartsAt ?? null}
         settling
         statusNote={copy.gradingLine}
         footerAction={

@@ -167,31 +167,79 @@ export function pendingStatusLabel(provider: StoreProvider): string {
   return provider === "WHOP" ? "Pending SCL review" : "Awaiting SCL acceptance";
 }
 
+/**
+ * How one billing term reads: "/ day", "/ 4 days", "/ 2 weeks".
+ *
+ * A term is a COUNT of periods, so the unit alone is not enough — a 4-day pass
+ * and a 1-day pass are both DAY. A count of 1 stays in the singular short form
+ * a price is normally read in ("$20 / month", not "$20 / 1 month").
+ *
+ * ONE_TIME and SEASON have no count: "3 one time" is not a thing, and a season
+ * is a season. Both ignore the number rather than rendering nonsense if one is
+ * ever stored.
+ */
+export function billingTermLabel(
+  billingPeriod: string,
+  intervalCount = 1,
+): string {
+  if (billingPeriod === "ONE_TIME") return "";
+  if (billingPeriod === "SEASON") return "season";
+
+  const unit =
+    billingPeriod === "DAY"
+      ? "day"
+      : billingPeriod === "WEEK"
+        ? "week"
+        : billingPeriod === "MONTH"
+          ? "month"
+          : billingPeriod === "YEAR"
+            ? "year"
+            : "";
+  if (!unit) return "";
+
+  // Guard the stored value rather than trusting it: a 0 or negative count would
+  // read as "$20 / 0 days", and the price label is public.
+  const count = Number.isFinite(intervalCount) ? Math.trunc(intervalCount) : 1;
+  if (count <= 1) return unit;
+  return `${count} ${unit}s`;
+}
+
+/**
+ * Public price label, or null when there is nothing to say.
+ *
+ * A price of zero is a real price and now says so. It used to return null,
+ * which dropped the card through to "See provider for current price" — so an
+ * admin could set an offer to $0, see it saved, and watch the storefront keep
+ * asking buyers to go and ask. Every zero-priced package on the platform is a
+ * free trial ("3 Days Free VIP BANKERS", "VIP 2 Days FREE"), so "Free" is both
+ * accurate and the word a buyer is looking for.
+ *
+ * Free deliberately carries no billing term. Those packages inherited a cadence
+ * that was invisible while the price was hidden and is frequently wrong — a
+ * three-day trial stored as MONTH, a two-day trial stored as WEEK — so
+ * rendering it would publish "Free / month" on a three-day trial the moment
+ * this shipped. A trial's real length belongs in billingIntervalCount, and it
+ * can be shown here once someone has actually set it.
+ *
+ * Known gap: the schema cannot tell "free" from "price never entered", because
+ * priceCents is a non-nullable Int defaulting to 0. That is fine today —
+ * nothing is sitting at 0 by accident — but a future import could reintroduce
+ * the ambiguity, and the fix would be to make the column nullable.
+ */
 export function formatPriceCents(
   cents: number,
   billingPeriod: string,
+  intervalCount = 1,
 ): string | null {
-  if (!cents || cents <= 0) return null;
+  if (!Number.isFinite(cents) || cents < 0) return null;
+  if (cents === 0) return "Free";
   const dollars = (cents / 100).toLocaleString("en-US", {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: cents % 100 === 0 ? 0 : 2,
   });
-  const period =
-    billingPeriod === "ONE_TIME"
-      ? ""
-      : billingPeriod === "DAY"
-        ? " / day"
-        : billingPeriod === "WEEK"
-          ? " / week"
-          : billingPeriod === "MONTH"
-            ? " / month"
-            : billingPeriod === "SEASON"
-              ? " / season"
-              : billingPeriod === "YEAR"
-                ? " / year"
-                : "";
-  return `${dollars}${period}`;
+  const term = billingTermLabel(billingPeriod, intervalCount);
+  return term ? `${dollars} / ${term}` : dollars;
 }
 
 export function makeTrackingSlug(seed?: string): string {

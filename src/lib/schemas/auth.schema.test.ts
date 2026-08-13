@@ -7,25 +7,22 @@ import {
   passwordResetRequestSchema,
   passwordSchema,
   resetPasswordSchema,
+  SCL_USERNAME_MAX_LENGTH,
   sclExistingUsernameSchema,
   sclUsernameSchema,
   signupSchema,
 } from "@/lib/schemas/auth.schema";
 
 /*
- * The legacy importer accepts handles up to 30 characters; new signups are
- * capped at 20. Sign-in and recovery identify accounts that already exist, so
- * they have to accept the longer imported handles — otherwise an imported capper
- * is rejected at the form, before any lookup, and told their credentials are
- * wrong.
+ * Signup and sign-in now share one 30-character ceiling, which is what the
+ * legacy importer and extractor always accepted. Before, signup capped at 20
+ * while imported cappers ran to 30, so an imported capper was rejected at the
+ * form before any lookup and told their credentials were wrong.
  */
 const IMPORTED_LONG_HANDLE = "a".repeat(24);
 
-test("an imported handle longer than the signup cap can still sign in and recover", () => {
-  assert.equal(
-    sclUsernameSchema.safeParse(IMPORTED_LONG_HANDLE).success,
-    false,
-  );
+test("a 24-character imported handle works for signup, sign-in and recovery", () => {
+  assert.equal(sclUsernameSchema.safeParse(IMPORTED_LONG_HANDLE).success, true);
   assert.equal(
     sclExistingUsernameSchema.safeParse(IMPORTED_LONG_HANDLE).success,
     true,
@@ -46,19 +43,20 @@ test("an imported handle longer than the signup cap can still sign in and recove
   );
 });
 
-test("the longer allowance still enforces the floor, charset, and its own ceiling", () => {
-  assert.equal(sclExistingUsernameSchema.safeParse("ab").success, false);
-  assert.equal(
-    sclExistingUsernameSchema.safeParse("bad-handle").success,
-    false,
-  );
-  assert.equal(
-    sclExistingUsernameSchema.safeParse("a".repeat(31)).success,
-    false,
-  );
-  // Creating a new handle is unchanged — still capped at 20.
-  assert.equal(sclUsernameSchema.safeParse("a".repeat(20)).success, true);
-  assert.equal(sclUsernameSchema.safeParse("a".repeat(21)).success, false);
+test("both schemas enforce the same floor, charset, and ceiling", () => {
+  for (const schema of [sclUsernameSchema, sclExistingUsernameSchema]) {
+    assert.equal(schema.safeParse("ab").success, false);
+    assert.equal(schema.safeParse("bad-handle").success, false);
+    assert.equal(
+      schema.safeParse("a".repeat(SCL_USERNAME_MAX_LENGTH)).success,
+      true,
+    );
+    assert.equal(
+      schema.safeParse("a".repeat(SCL_USERNAME_MAX_LENGTH + 1)).success,
+      false,
+    );
+  }
+  assert.equal(SCL_USERNAME_MAX_LENGTH, 30);
 });
 
 test("password contract requires at least 12 characters", () => {

@@ -17,11 +17,29 @@ import { UNIT_MIN } from "@/lib/constants";
 import { formatOdds, formatUnits, signTone } from "@/lib/format";
 import { deriveLifecycle } from "@/lib/lifecycle";
 import { profitUnitsForOutcome } from "@/lib/odds";
-import { pickContextLabel, teamIdentityFromSide } from "@/lib/pick-identity";
+import {
+  matchupLabel,
+  pickContextLabel,
+  pickEventDate,
+  teamIdentityFromSide,
+} from "@/lib/pick-identity";
 import type { ProofReceiptState } from "@/lib/proof-receipt";
 import type { ParlayView, PlayView } from "@/lib/queries/plays";
 import { cn } from "@/lib/utils";
 import { isVerifiedTier } from "@/lib/verification";
+
+const GAME_DATE_FORMAT = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York",
+  month: "short",
+  day: "numeric",
+});
+
+/** Short game date for a slip row — null when there is nothing honest to show. */
+function formatGameDate(value: Date | string | null): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : GAME_DATE_FORMAT.format(date);
+}
 
 function receiptState(
   outcome: PlayView["outcome"],
@@ -57,6 +75,11 @@ export function PlayListItem({
   const source = oddsSourceBoardLabel(play.book);
   const invalidStake = dashboard && play.units < UNIT_MIN;
   const showNotes = dashboard || play.notesPublic !== false ? play.notes : null;
+  const matchup = matchupLabel(play);
+  // The game date belongs on the collapsed row, not only inside the expanded
+  // receipt: a capper scanning their slip list needs to tell one Under 9 from
+  // another without opening every card.
+  const gameDate = formatGameDate(pickEventDate(play));
 
   return (
     <div className="border-border bg-card overflow-hidden rounded-xl border p-3.5">
@@ -66,6 +89,11 @@ export function PlayListItem({
           {context ? (
             <span className="text-muted-foreground truncate text-xs">
               {context}
+            </span>
+          ) : null}
+          {gameDate ? (
+            <span className="scl-data text-muted-foreground shrink-0 text-xs tabular-nums">
+              {gameDate}
             </span>
           ) : null}
           <VerifiedBadge tier={play.verificationTier} />
@@ -164,9 +192,9 @@ export function PlayListItem({
             eventLine={
               <span className="inline-flex flex-wrap items-center gap-1.5 tracking-normal normal-case">
                 <LeagueRef sport={play.sport} league={play.league} />
-                {context ? (
+                {(matchup ?? context) ? (
                   <span className="scl-data tracking-[0.06em] uppercase">
-                    {context}
+                    {matchup ?? context}
                   </span>
                 ) : null}
               </span>
@@ -192,7 +220,7 @@ export function PlayListItem({
             closingOddsAmerican={play.closingOddsAmerican ?? null}
             clvPts={play.clvPts ?? null}
             evidenceId={play.id}
-            eventStartsAt={play.eventStartsAt}
+            eventStartsAt={pickEventDate(play)}
             analysis={showNotes}
             className="mx-auto"
           />
@@ -206,6 +234,8 @@ export function PlayListItem({
 export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
   const [open, setOpen] = useState(false);
   const hasResult = parlay.profitUnits != null;
+  // A parlay is dated by its earliest leg, which is what ParlayView carries.
+  const parlayDate = formatGameDate(pickEventDate(parlay));
   const legBooks = [
     ...new Set(
       parlay.legs.map((l) => l.book).filter((b): b is string => Boolean(b)),
@@ -225,6 +255,11 @@ export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
           <span className="bg-surface-2 text-muted-foreground rounded-md px-1.5 py-0.5 text-[0.7rem] font-semibold tracking-wide uppercase">
             {parlay.legs.length}-Leg Parlay
           </span>
+          {parlayDate ? (
+            <span className="scl-data text-muted-foreground shrink-0 text-xs tabular-nums">
+              {parlayDate}
+            </span>
+          ) : null}
           <VerifiedBadge tier={parlay.verificationTier} />
         </div>
         <div className="flex shrink-0 items-center gap-1">

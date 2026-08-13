@@ -4,4 +4,4 @@
  * meter) from crushing into each other when the board sits beside the rail.
  * Narrower viewports scroll horizontally via the table wrap.
  */
-export const LEADERBOARD_TABLE_MIN_WIDTH = "min-w-[64rem]";
+export const LEADERBOARD_TABLE_MIN_WIDTH = "min-w-[56rem]";

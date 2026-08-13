@@ -401,26 +401,29 @@ enum BillingPeriod {
 }
 
 model Package {
-  id                String         @id @default(cuid())
-  capperId          String
-  storeConnectionId String?
-  title             String
-  description       String?
+  id                   String         @id @default(cuid())
+  capperId             String
+  storeConnectionId    String?
+  title                String
+  description          String?
   /// Free trial / intro offer microcopy shown on package cards (optional).
-  promoOffer        String?
-  priceCents        Int            @default(0)
-  billingPeriod     BillingPeriod  @default(MONTH)
+  promoOffer           String?
+  priceCents           Int            @default(0)
+  billingPeriod        BillingPeriod  @default(MONTH)
+  /// How many `billingPeriod` units one term covers: 4 + DAY is a 4-day pass,
+  /// 2 + WEEK a fortnight. Always 1 for ONE_TIME and SEASON, which have no count.
+  billingIntervalCount Int            @default(1)
   // Provider affiliate / product destination URL — admin-owned for M3.
-  checkoutUrl       String?
-  affiliateProvider StoreProvider?
-  providerType      ProviderType   @default(PREMIUM)
+  checkoutUrl          String?
+  affiliateProvider    StoreProvider?
+  providerType         ProviderType   @default(PREMIUM)
   /// Lower numbers appear first on profile + marketplace.
-  sortOrder         Int            @default(0)
-  isActive          Boolean        @default(true)
+  sortOrder            Int            @default(0)
+  isActive             Boolean        @default(true)
   /// Whop product id (prod_…) when imported via API sync.
-  externalProductId String?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  externalProductId    String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
 
   capper             CapperProfile       @relation(fields: [capperId], references: [id], onDelete: Cascade)
   storeConnection    StoreConnection?    @relation(fields: [storeConnectionId], references: [id], onDelete: SetNull)

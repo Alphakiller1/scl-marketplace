@@ -176,6 +176,57 @@ async function fetchRankableProfiles(
 
 type ProfileRow = Awaited<ReturnType<typeof fetchRankableProfiles>>[number];
 
+/** Graded positions per capper across their whole record, window ignored. */
+type LifetimeGradedByCapper = Map<string, number>;
+
+const SETTLED_OUTCOMES: Outcome[] = ["WIN", "LOSS", "PUSH"];
+
+/**
+ * How many graded positions each capper has ever had.
+ *
+ * The main profile query filters plays to the selected window, so the count it
+ * produces cannot answer "does this capper have a track record" — under a 1D
+ * filter it reports how many picks graded yesterday. Two grouped counts are
+ * cheap, run once per board rather than per capper, and keep the windowed
+ * figures on the row exactly as they were.
+ *
+ * Legacy carried results are added per capper in `summarize`, since those live
+ * on the profile rows already fetched.
+ */
+async function fetchLifetimeGraded(
+  capperIds: string[],
+): Promise<LifetimeGradedByCapper> {
+  const totals: LifetimeGradedByCapper = new Map();
+  if (capperIds.length === 0) return totals;
+
+  const [plays, parlays] = await Promise.all([
+    prisma.play.groupBy({
+      by: ["capperId"],
+      where: {
+        capperId: { in: capperIds },
+        parlayId: null,
+        units: { gte: UNIT_MIN },
+        outcome: { in: SETTLED_OUTCOMES },
+      },
+      _count: { _all: true },
+    }),
+    prisma.parlay.groupBy({
+      by: ["capperId"],
+      where: {
+        capperId: { in: capperIds },
+        units: { gte: UNIT_MIN },
+        outcome: { in: SETTLED_OUTCOMES },
+      },
+      _count: { _all: true },
+    }),
+  ]);
+
+  for (const row of [...plays, ...parlays]) {
+    totals.set(row.capperId, (totals.get(row.capperId) ?? 0) + row._count._all);
+  }
+  return totals;
+}
+
 function topSport(sports: string[], fallback?: string): string {
   if (sports.length === 0) return fallback ?? "—";
   const counts = new Map<string, number>();
@@ -230,6 +281,7 @@ function baselineFor(
 function summarize(
   p: ProfileRow,
   applyBaseline: boolean,
+  lifetimeGradedPositions?: LifetimeGradedByCapper,
 ): CapperSummary | null {
   const username = p.user.username;
   if (!username) return null;
@@ -288,6 +340,17 @@ function summarize(
 
   const displayName = null; // dormant — public identity is username-only
   const activity = computeCapperActivity(positions.map((x) => x.createdAt));
+
+  // Carried-over results count toward the track record whatever window is
+  // selected — they are a settled history, not something that happened this
+  // week. `legacyBaseline` is window-aware (all-time only), so read the row.
+  const carriedResults = p.legacyRecords[0]
+    ? p.legacyRecords[0].wins +
+      p.legacyRecords[0].losses +
+      p.legacyRecords[0].pushes
+    : 0;
+  const lifetimeGraded =
+    (lifetimeGradedPositions?.get(p.id) ?? stats.settled) + carriedResults;
   const publicPackages = p.packages.filter((pkg) => pkg.trackingUrls[0]?.slug);
 
   const clvValues = plays
@@ -322,6 +385,7 @@ function summarize(
     recentForm,
     trophies: [],
     settledPicks: stats.settled,
+    lifetimeGraded,
     verifiedShare: computeVerifiedShare(plays.map((x) => x.verificationTier)),
     avgClv,
     stakedUnits: stats.stakedUnits,
@@ -407,6 +471,7 @@ async function loadLeaderboardResult(filters: LeaderboardFilters): Promise<{
   failed: boolean;
 }> {
   let profiles: ProfileRow[];
+  let lifetimeGraded: LifetimeGradedByCapper = new Map();
   try {
     profiles = await withTransientDatabaseRetry(
       async () => {
@@ -415,13 +480,17 @@ async function loadLeaderboardResult(filters: LeaderboardFilters): Promise<{
       },
       { label: "leaderboard read" },
     );
+    lifetimeGraded = await withTransientDatabaseRetry(
+      () => fetchLifetimeGraded(profiles.map((p) => p.id)),
+      { label: "leaderboard lifetime sample" },
+    );
   } catch (err) {
     console.error("[getLeaderboard] database unavailable:", err);
     return { cappers: [], unranked: [], failed: true };
   }
 
   const cappers = profiles
-    .map((p) => summarize(p, filters.window === "all"))
+    .map((p) => summarize(p, filters.window === "all", lifetimeGraded))
     .filter((c): c is CapperSummary => c !== null);
 
   const { ranked, unranked } = partitionLeaderboard(cappers, filters);

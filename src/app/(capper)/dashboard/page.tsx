@@ -2,6 +2,7 @@ import { BarChart3, ClipboardList, MailWarning } from "lucide-react";
 
 import { getCurrentUser } from "@/lib/session";
 import {
+  getCapperLegacyRecords,
   getCapperParlays,
   getCapperPlays,
   mergeRecordEntries,
@@ -12,6 +13,7 @@ import { NewPickButton } from "@/components/scl/new-pick-button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/scl/states";
 import { SectionHeader } from "@/components/scl/section";
+import { LegacySportBreakdown } from "@/components/scl/legacy-sport-breakdown";
 import { ParlayListItem, PlayListItem } from "@/components/scl/play-list-item";
 import { PerformanceBySport } from "@/components/scl/performance-by-sport";
 import { PerformanceScoreboard } from "@/components/scl/performance-scoreboard";
@@ -21,10 +23,17 @@ export const metadata = { title: "Dashboard" };
 export default async function DashboardPage() {
   const user = await getCurrentUser();
   const verified = Boolean(user?.emailVerified);
-  const [plays, parlays] = user
-    ? await Promise.all([getCapperPlays(user.id), getCapperParlays(user.id)])
-    : [[], []];
-  const stats = computeCapperStats(plays);
+  const [plays, parlays, legacy] = user
+    ? await Promise.all([
+        getCapperPlays(user.id),
+        getCapperParlays(user.id),
+        getCapperLegacyRecords(user.id),
+      ])
+    : [[], [], { baseline: null, bySport: [] }];
+  // The carried-over legacy total is part of the capper's record on every
+  // public surface, so it is part of it here too. Without it the dashboard
+  // reported a different career than the profile it links to.
+  const stats = computeCapperStats(plays, legacy.baseline);
   const bySport = computeStatsBySport(plays);
   // Stats stay on straight plays; the recent feed also surfaces parlays as positions.
   const recent = mergeRecordEntries(plays, parlays).slice(0, 6);
@@ -86,9 +95,29 @@ export default async function DashboardPage() {
           <SectionHeader
             icon={BarChart3}
             title="By Sport"
-            subtitle="Your settled record and return in each sport"
+            subtitle={
+              legacy.bySport.length
+                ? "Your settled record and return in each sport, from picks logged on SCL"
+                : "Your settled record and return in each sport"
+            }
           />
           <PerformanceBySport items={bySport} />
+        </section>
+      ) : null}
+
+      {/*
+        The same carried-over breakdown the public profile shows. By Sport above
+        counts SCL-logged plays only, so without this the two tables were the
+        headline mismatch in miniature: the totals include the legacy record,
+        the per-sport rows did not.
+      */}
+      {legacy.bySport.length ? (
+        <section
+          className="scl-reveal"
+          style={{ animationDelay: "110ms" }}
+          aria-label="Legacy record by sport"
+        >
+          <LegacySportBreakdown records={legacy.bySport} />
         </section>
       ) : null}
 

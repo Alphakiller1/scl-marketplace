@@ -20,6 +20,8 @@ export function SnapshotBoardTable({
       density="snapshot"
       caption="Leaderboard Snapshot Ranked By ROI."
       rankOffset={rankOffset}
+      // This board is ranked by ROI, so ROI takes the prominent cell.
+      primaryMetric="roi"
       className={className}
     />
   );
