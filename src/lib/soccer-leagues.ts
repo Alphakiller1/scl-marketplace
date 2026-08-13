@@ -109,13 +109,17 @@ function derivedKey(apiKey: string): string {
 }
 
 /**
- * The competitions to fetch, from the live catalog.
+ * The candidate competitions, from the live catalog.
  *
  * Keeps only in-season soccer competitions that price actual fixtures —
  * `has_outrights` entries are futures markets (title winner) with no game
  * lines, so fetching them spends credits and returns nothing bettable.
  * Registry leagues come first in registry order; everything else follows
  * alphabetically, so the budget goes to the majors when both are in season.
+ *
+ * NOTE: this is the CANDIDATE list, not the final slate. "In season" is much
+ * weaker than "playing this week" — see {@link selectLeaguesWithFixtures},
+ * which is what decides where the credits actually go.
  */
 export function selectSoccerLeagues(
   catalog: readonly OddsApiSportRow[],
@@ -152,6 +156,85 @@ export function selectSoccerLeagues(
   extra.sort((a, b) => a.label.localeCompare(b.label));
 
   return [...known, ...extra].slice(0, Math.max(0, limit));
+}
+
+/** What the free `/events` probe learned about one competition. */
+export type LeagueFixtureWindow = {
+  /** Fixtures kicking off inside the lookahead window. */
+  upcoming: number;
+  /** Epoch ms of the soonest of them, or null when there are none. */
+  firstKickoffMs: number | null;
+};
+
+/**
+ * The competitions to actually spend credits on — the ones playing soonest.
+ *
+ * "In season" is a far weaker claim than "playing this week", and the gap
+ * between them is what emptied the soccer board. On 2026-08-13 the catalog
+ * called 45 competitions in season, so the registry's prestige order handed
+ * NINE of the ten paid slots to competitions with no fixture for days — EPL did
+ * not kick off until 8/21, Serie A 8/22, Bundesliga 8/28, MLS and Liga MX 8/15
+ * — while J-League (10 matches inside 48h), Ligue 2 (9), Bundesliga 2 (5),
+ * Saudi (4), Libertadores and Sudamericana were never fetched at all. Cappers
+ * saw a soccer tab that was essentially MLS fixtures three days out.
+ *
+ * Prestige is the wrong sort key for a board whose job is "what can I bet
+ * today". Competitions with a fixture in the window come first, soonest kickoff
+ * first; the registry survives only as the tiebreaker among equals and as the
+ * filler when too few competitions are playing to use the budget.
+ *
+ * The ranking input is free: `/v4/sports/{key}/events` is not billed, so the
+ * paid odds calls are aimed rather than guessed.
+ */
+export function selectLeaguesWithFixtures(
+  leagues: readonly SoccerLeague[],
+  windowByApiKey: ReadonlyMap<string, LeagueFixtureWindow>,
+  limit: number = SOCCER_LEAGUE_LIMIT,
+  now: number = Date.now(),
+): SoccerLeague[] {
+  const registryRank = new Map(
+    SOCCER_LEAGUES.map((l, index) => [l.oddsApiKey, index]),
+  );
+  const rankOf = (l: SoccerLeague) =>
+    registryRank.get(l.oddsApiKey) ?? Number.MAX_SAFE_INTEGER;
+
+  const playing: SoccerLeague[] = [];
+  const idle: SoccerLeague[] = [];
+  for (const league of leagues) {
+    const win = windowByApiKey.get(league.oddsApiKey);
+    if (win && win.upcoming > 0 && win.firstKickoffMs != null) {
+      playing.push(league);
+    } else {
+      idle.push(league);
+    }
+  }
+
+  // Bucket into rolling 24h days, then order by how much each competition
+  // actually offers that day. Sorting on raw kickoff time alone made a single
+  // early fixture outrank a full matchday: Denmark's one match displaced the
+  // EFL Championship's nine for the sake of a two-hour head start. Day first
+  // keeps "tonight before tomorrow"; volume within the day keeps the slot on
+  // the competition a capper can actually build a card from.
+  const dayOf = (l: SoccerLeague) =>
+    Math.floor(
+      (windowByApiKey.get(l.oddsApiKey)!.firstKickoffMs! - now) / 86_400_000,
+    );
+
+  playing.sort((a, b) => {
+    const dayDiff = dayOf(a) - dayOf(b);
+    if (dayDiff !== 0) return dayDiff;
+    const volDiff =
+      windowByApiKey.get(b.oddsApiKey)!.upcoming -
+      windowByApiKey.get(a.oddsApiKey)!.upcoming;
+    if (volDiff !== 0) return volDiff;
+    return rankOf(a) - rankOf(b);
+  });
+
+  // Idle competitions keep the registry's order, so when the tour is quiet the
+  // leftover slots still go to the majors rather than to whatever sorted first.
+  idle.sort((a, b) => rankOf(a) - rankOf(b));
+
+  return [...playing, ...idle].slice(0, Math.max(0, limit));
 }
 
 /**
