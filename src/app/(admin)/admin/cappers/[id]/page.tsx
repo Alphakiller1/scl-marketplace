@@ -464,7 +464,7 @@ export default async function AdminCapperDetailPage({
                       )}
                     </div>
                     <p className="text-sm font-semibold tabular-nums">
-                      {formatPriceCents(pkg.priceCents, pkg.billingPeriod) ||
+                      {formatPriceCents(pkg.priceCents, pkg.billingPeriod, pkg.billingIntervalCount) ||
                         "No price"}
                     </p>
                     <p className="text-sm font-semibold tabular-nums">
