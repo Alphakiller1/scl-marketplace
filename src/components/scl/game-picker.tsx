@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { ChevronDown, LayoutGrid, Lock, Search } from "lucide-react";
 import { toast } from "sonner";
 
@@ -18,7 +18,12 @@ import {
   ODDS_BOARD_SPORTS,
 } from "@/lib/game-picker";
 import { loadOddsSlate } from "@/lib/odds-slate-client";
-import { filterBySlateDay, type SlateDay } from "@/lib/slate";
+import {
+  filterBySlateDay,
+  slateGroupKey,
+  slateGroupLabel,
+  type SlateDay,
+} from "@/lib/slate";
 import { getTeamIdentity } from "@/lib/teams";
 import { cn } from "@/lib/utils";
 import type { OddsEvent, OddsSelection } from "@/lib/odds-board";
@@ -132,9 +137,9 @@ export function GamePicker({
   // matchup all read from this list so a started game is never selectable.
   const events = preGameEvents(slate?.events ?? []);
   const todayEvents = filterBySlateDay(events, "today");
-  const tomorrowEvents = filterBySlateDay(events, "tomorrow");
+  const upcomingEvents = filterBySlateDay(events, "upcoming");
   const day: SlateDay =
-    dayChoice ?? (todayEvents.length ? "today" : "tomorrow");
+    dayChoice ?? (todayEvents.length ? "today" : "upcoming");
   const counts = categoryCounts(events);
   const visible = filterGamePickerEvents(events, {
     day,
@@ -247,7 +252,7 @@ export function GamePicker({
       <DayToggle
         day={day}
         todayCount={todayEvents.length}
-        tomorrowCount={tomorrowEvents.length}
+        upcomingCount={upcomingEvents.length}
         loading={loading}
         onChange={(d) => {
           setDayChoice(d);
@@ -337,28 +342,45 @@ export function GamePicker({
         <SkeletonCard />
       ) : visible.length ? (
         <ul className="space-y-2 lg:max-h-[40rem] lg:overflow-y-auto lg:pr-1">
-          {visible.map((e) => {
+          {visible.map((e, index) => {
             const open = openId === e.id;
+            // Upcoming spans up to two weeks, so a flat list gives no sense of
+            // which day a game belongs to. Today needs no headings: every row
+            // is the same date.
+            const heading =
+              day === "upcoming" &&
+              (index === 0 ||
+                slateGroupKey(e.commenceTime) !==
+                  slateGroupKey(visible[index - 1]!.commenceTime))
+                ? slateGroupLabel(e.commenceTime)
+                : null;
             return (
-              <li
-                key={e.id}
-                className="bg-card border-border overflow-hidden rounded-[14px] border"
-              >
-                <GameRow
-                  event={e}
-                  open={open}
-                  triggerId={`market-event-${e.id}`}
-                  onToggle={() => (open ? closeMatchup() : openMatchup(e.id))}
-                />
-                {open ? (
-                  <EventDetail
-                    event={e}
-                    detail={detail[e.id]}
-                    onPick={onPick}
-                    selectedKeys={selectedKeys}
-                  />
+              <Fragment key={e.id}>
+                {heading ? (
+                  <li
+                    className="scl-eyebrow px-1 pt-2 text-[color:var(--scl-muted-label)] first:pt-0"
+                    aria-hidden
+                  >
+                    {heading}
+                  </li>
                 ) : null}
-              </li>
+                <li className="bg-card border-border overflow-hidden rounded-[14px] border">
+                  <GameRow
+                    event={e}
+                    open={open}
+                    triggerId={`market-event-${e.id}`}
+                    onToggle={() => (open ? closeMatchup() : openMatchup(e.id))}
+                  />
+                  {open ? (
+                    <EventDetail
+                      event={e}
+                      detail={detail[e.id]}
+                      onPick={onPick}
+                      selectedKeys={selectedKeys}
+                    />
+                  ) : null}
+                </li>
+              </Fragment>
             );
           })}
         </ul>

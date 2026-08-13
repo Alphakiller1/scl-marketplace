@@ -159,7 +159,7 @@ export function OddsAssist({
   const [openId, setOpenId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Record<string, EventDetailData>>({});
   // Keyed to the sport so switching sports auto-re-defaults the day (no reset effect needed);
-  // null / a stale sport = auto (default to whichever of today/tomorrow has games).
+  // null / a stale sport = auto (default to whichever of today/upcoming has games).
   const [dayChoice, setDayChoice] = useState<{
     sport: string;
     day: SlateDay;
@@ -267,12 +267,12 @@ export function OddsAssist({
 
   const list = events ?? [];
   const todayEvents = filterBySlateDay(list, "today");
-  const tomorrowEvents = filterBySlateDay(list, "tomorrow");
-  const hasNearTerm = todayEvents.length + tomorrowEvents.length > 0;
+  const upcomingEvents = filterBySlateDay(list, "upcoming");
+  const hasNearTerm = todayEvents.length + upcomingEvents.length > 0;
   const chosenDay = dayChoice?.sport === boardSport ? dayChoice.day : null;
   const day: SlateDay =
-    chosenDay ?? (todayEvents.length ? "today" : "tomorrow");
-  const dayEvents = day === "today" ? todayEvents : tomorrowEvents;
+    chosenDay ?? (todayEvents.length ? "today" : "upcoming");
+  const dayEvents = day === "today" ? todayEvents : upcomingEvents;
 
   return (
     <Card
@@ -303,7 +303,7 @@ export function OddsAssist({
           <DayToggle
             day="today"
             todayCount={0}
-            tomorrowCount={0}
+            upcomingCount={0}
             loading
             onChange={() => {}}
           />
@@ -314,7 +314,7 @@ export function OddsAssist({
           <DayToggle
             day={day}
             todayCount={todayEvents.length}
-            tomorrowCount={tomorrowEvents.length}
+            upcomingCount={upcomingEvents.length}
             loading={false}
             onChange={(d) => {
               setDayChoice({ sport: boardSport, day: d });
@@ -349,19 +349,19 @@ export function OddsAssist({
             </ul>
           ) : (
             <p className="text-muted-foreground text-xs">
-              No {day === "today" ? "more games today" : "games tomorrow"} for
+              No {day === "today" ? "more games today" : "upcoming games"} for
               this sport —{" "}
               <button
                 type="button"
                 onClick={() =>
                   setDayChoice({
                     sport: boardSport,
-                    day: day === "today" ? "tomorrow" : "today",
+                    day: day === "today" ? "upcoming" : "today",
                   })
                 }
                 className="inline-flex min-h-10 items-center font-medium text-[color:var(--scl-muted-data)] underline-offset-2 hover:underline"
               >
-                {day === "today" ? "check Tomorrow" : "check Today"}
+                {day === "today" ? "check Upcoming" : "check Today"}
               </button>{" "}
               or pick another sport above.
             </p>
@@ -369,8 +369,8 @@ export function OddsAssist({
         </>
       ) : events.length ? (
         <p className="text-muted-foreground text-xs">
-          No games today or tomorrow for this sport yet — check back closer to
-          game day, or pick another sport above.
+          No games on the board for this sport yet — check back closer to game
+          day, or pick another sport above.
         </p>
       ) : board?.failed ? (
         <p className="text-muted-foreground text-xs">

@@ -5,33 +5,44 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { slateDateLabel, type SlateDay } from "@/lib/slate";
 
-/** Today / Tomorrow slate switch — SEGMENTED CONTROL recipe (blue = navigation). */
+const DAY_LABEL: Record<SlateDay, string> = {
+  today: "Today",
+  upcoming: "Upcoming",
+};
+
+/**
+ * Today / Upcoming slate switch — SEGMENTED CONTROL recipe (blue = navigation).
+ *
+ * "Upcoming" replaced "Tomorrow" so a capper can log a game several days out.
+ * The label is a range rather than a single date, and the list behind it is
+ * grouped by day, so the button says what it will actually show.
+ */
 export function DayToggle({
   day,
   todayCount,
-  tomorrowCount,
+  upcomingCount,
   loading,
   onChange,
 }: {
   day: SlateDay;
   todayCount: number;
-  tomorrowCount: number;
+  upcomingCount: number;
   loading?: boolean;
   onChange: (day: SlateDay) => void;
 }) {
   const counts: Record<SlateDay, number> = {
     today: todayCount,
-    tomorrow: tomorrowCount,
+    upcoming: upcomingCount,
   };
   const now = new Date();
   const dateLabel: Record<SlateDay, string> = {
     today: slateDateLabel("today", now),
-    tomorrow: slateDateLabel("tomorrow", now),
+    upcoming: slateDateLabel("upcoming", now),
   };
 
   return (
     <div className="grid grid-cols-2 gap-[3px] rounded-[10px] border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] p-[3px]">
-      {(["today", "tomorrow"] as const).map((d) => (
+      {(["today", "upcoming"] as const).map((d) => (
         <button
           key={d}
           type="button"
@@ -46,7 +57,7 @@ export function DayToggle({
             loading && "opacity-60",
           )}
         >
-          {d}
+          {DAY_LABEL[d]}
           <span
             className={cn(
               "scl-data mt-0.5 block text-[0.65rem] font-medium tracking-[0.08em] normal-case",

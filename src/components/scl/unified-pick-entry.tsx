@@ -7,6 +7,7 @@ import { BetSlip } from "@/components/scl/bet-slip";
 import { GamePicker } from "@/components/scl/game-picker";
 import { MobileSlipDock } from "@/components/scl/mobile-slip-dock";
 import { ReceiptStack } from "@/components/scl/receipt-stack";
+import { SlipModeToggle } from "@/components/scl/slip-mode-toggle";
 import { SlipStoreProvider, useSlipStore } from "@/components/scl/slip-store";
 import { VerificationReceipt } from "@/components/scl/verification-receipt";
 import { createParlay } from "@/lib/actions/parlay.action";
@@ -66,8 +67,15 @@ function selectionToPlayInput(
 }
 
 function UnifiedPickEntryInner() {
-  const { mode, selections, parlayUnits, selectedKeys, addPick, clearSlip } =
-    useSlipStore();
+  const {
+    mode,
+    setMode,
+    selections,
+    parlayUnits,
+    selectedKeys,
+    addPick,
+    clearSlip,
+  } = useSlipStore();
   const isLg = useIsLg();
   const [receipt, setReceipt] = useState<SubmissionReceipt | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -230,7 +238,23 @@ function UnifiedPickEntryInner() {
           "grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start",
         )}
       >
-        <div className="min-w-0">
+        <div className="min-w-0 space-y-4">
+          {/*
+            Mobile only: the slip lives in a dock that does not exist until
+            something is in it, so on a phone this control was unreachable until
+            after the picking was done — exactly backwards for deciding whether
+            you are building a parlay. Desktop keeps the slip in view throughout
+            and already has it. Both read the same store, so switching here and
+            switching in the slip are the same action.
+          */}
+          {isLg === false ? (
+            <div className="space-y-1.5 lg:hidden">
+              <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
+                Bet type
+              </p>
+              <SlipModeToggle mode={mode} onChange={setMode} />
+            </div>
+          ) : null}
           <GamePicker onPick={addPick} selectedKeys={selectedKeys} />
         </div>
 

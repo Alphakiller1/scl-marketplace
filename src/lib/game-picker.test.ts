@@ -83,14 +83,14 @@ test("filterGamePickerEvents applies day + category + search", () => {
   });
   assert.equal(allToday.length, 2);
 
-  const tomorrow = filterGamePickerEvents(EVENTS, {
-    day: "tomorrow",
+  const upcoming = filterGamePickerEvents(EVENTS, {
+    day: "upcoming",
     category: "all",
     search: "",
     now,
   });
-  assert.equal(tomorrow.length, 1);
-  assert.equal(tomorrow[0]!.id, "3");
+  assert.equal(upcoming.length, 1);
+  assert.equal(upcoming[0]!.id, "3");
 });
 
 test("categoryCounts totals near-term slate", () => {
