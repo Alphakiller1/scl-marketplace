@@ -42,7 +42,11 @@ import type {
   ProfilePackageInsight,
 } from "@/lib/package-register";
 import { profitUnitsForOutcome } from "@/lib/odds";
-import { pickContextLabel } from "@/lib/pick-identity";
+import {
+  matchupLabel,
+  pickContextLabel,
+  pickEventDate,
+} from "@/lib/pick-identity";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
 import { toHeadshotLeague } from "@/lib/player-headshots";
 import {
@@ -100,8 +104,9 @@ function playToProofReceipt(
     );
   const toWin =
     receiptUnits == null ? "—" : formatUnits(receiptUnits, true, settled);
+  // Matchup first, market label only when the fixture was never recorded.
   const eventContext =
-    play.eventLabel ??
+    matchupLabel(play) ??
     pickContextLabel({
       sport: play.sport,
       league: play.league,
@@ -145,7 +150,7 @@ function playToProofReceipt(
       closingOddsAmerican={play.closingOddsAmerican ?? null}
       clvPts={play.clvPts ?? null}
       evidenceId={play.id}
-      eventStartsAt={play.eventStartsAt}
+      eventStartsAt={pickEventDate(play)}
       analysis={play.notesPublic === false ? null : play.notes}
     />
   );
@@ -502,7 +507,7 @@ function ProofHistoryLedger({
             const resultLabel = proofResultLabel(play);
             const resultClass = proofResultClass(play.outcome);
             const game =
-              play.eventLabel ??
+              matchupLabel(play) ??
               pickContextLabel({
                 sport: play.sport,
                 league: play.league,

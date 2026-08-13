@@ -225,6 +225,10 @@ export async function createParlay(
       units: d.units,
       toWinUnits: d.units * (combinedDecimal - 1),
       book: parlayBook,
+      // Earliest leg start, matching how ParlayView dates a parlay elsewhere.
+      eventStartsAt: new Date(
+        Math.min(...decided.map((leg) => leg.eventStartsAt.getTime())),
+      ).toISOString(),
     },
   };
 }

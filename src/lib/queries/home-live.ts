@@ -193,6 +193,8 @@ export async function getFeaturedGradedPlay(): Promise<{
         verificationTier: true,
         side: true,
         eventLabel: true,
+        homeTeam: true,
+        awayTeam: true,
         eventStartsAt: true,
         book: true,
         notes: true,

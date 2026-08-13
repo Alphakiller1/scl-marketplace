@@ -98,6 +98,8 @@ export async function getPublicProfileHistoryPage(
         side: true,
         eventStartsAt: true,
         eventLabel: true,
+        homeTeam: true,
+        awayTeam: true,
         book: true,
         notes: true,
         ...(notesPublicReady ? { notesPublic: true } : {}),
@@ -130,7 +132,11 @@ export async function getPublicProfileHistoryPage(
             verificationTier: row.verificationTier,
             side: embargo.isEmbargoed ? null : row.side,
             eventStartsAt: row.eventStartsAt,
+            // Which game, not which side of it — disclosed on the same terms as
+            // eventLabel, which an embargoed row already carries.
             eventLabel: row.eventLabel,
+            homeTeam: row.homeTeam,
+            awayTeam: row.awayTeam,
             book: embargo.isEmbargoed ? null : row.book,
             notes:
               embargo.isEmbargoed ||

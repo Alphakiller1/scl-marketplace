@@ -1,6 +1,6 @@
 import { deriveLifecycle } from "@/lib/lifecycle";
 import type { CapperSummary, TodayPick } from "@/lib/mock";
-import { pickContextLabel } from "@/lib/pick-identity";
+import { matchupLabel, pickContextLabel } from "@/lib/pick-identity";
 import { isValidPublicStake } from "@/lib/public-eligibility";
 import { publicPickEmbargoState } from "@/lib/public-pick-embargo";
 import type { VerificationTier } from "@/lib/verification";
@@ -29,6 +29,8 @@ export type PublicPlayJoinRow = {
   verificationTier: VerificationTier;
   side: string | null;
   eventLabel?: string | null;
+  homeTeam?: string | null;
+  awayTeam?: string | null;
   eventStartsAt: Date | null;
   book?: string | null;
   closingOddsAmerican?: number | null;
@@ -69,7 +71,7 @@ export function joinPlaysToPublicPicks(
         capperSettledPicks: capper.settledPicks ?? 0,
         sport: play.sport,
         event:
-          play.eventLabel ??
+          matchupLabel(play) ??
           pickContextLabel({
             sport: play.sport,
             league: play.league,

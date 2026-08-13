@@ -43,6 +43,13 @@ export type PlayView = {
   /** Structured board side when present — never invent from free-text selection. */
   side: string | null;
   eventLabel?: string | null;
+  /**
+   * Stored fixture teams. Reconstruct the matchup line via `matchupLabel` when
+   * `eventLabel` is absent — it only exists on picks logged after the board
+   * started recording it.
+   */
+  homeTeam?: string | null;
+  awayTeam?: string | null;
   /** Scheduled event start (C2) — drives the pre-game/live/awaiting-grade lifecycle. */
   eventStartsAt: Date | null;
   /** Odds API bookmaker key at capture (M5 §4 source surfacing). */
@@ -204,6 +211,8 @@ export async function getCapperPlays(
       side: true,
       eventStartsAt: true,
       eventLabel: true,
+      homeTeam: true,
+      awayTeam: true,
       book: true,
       notes: true,
       ...(notesPublicReady ? { notesPublic: true } : {}),
@@ -226,6 +235,8 @@ export async function getCapperPlays(
     side: p.side,
     eventStartsAt: p.eventStartsAt,
     eventLabel: p.eventLabel,
+    homeTeam: p.homeTeam,
+    awayTeam: p.awayTeam,
     book: p.book,
     notes: p.notes,
     notesPublic:
@@ -381,6 +392,8 @@ export async function getPublicRecentPickRows(
             side: true,
             eventStartsAt: true,
             eventLabel: true,
+            homeTeam: true,
+            awayTeam: true,
             book: true,
             closingOddsAmerican: true,
             clvPts: true,

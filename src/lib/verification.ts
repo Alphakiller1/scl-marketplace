@@ -98,6 +98,17 @@ export type StraightReceipt = {
   moveNote?: string;
   /** Odds API bookmaker key at capture, when known. */
   book?: string | null;
+  /**
+   * The game, so the confirmation names it.
+   *
+   * A capper submitting several picks across a slate got back receipts that
+   * said only "Under 9" — no date, no matchup — which is the least useful
+   * moment to omit them. Both come straight off the confirmed board event that
+   * the write already used, so this costs nothing.
+   */
+  eventLabel?: string | null;
+  /** ISO scheduled start of the game this pick is on. */
+  eventStartsAt?: string | null;
 };
 
 /** One non-written line surfaced on a bulk receipt (PR-5 honesty). */
@@ -145,6 +156,12 @@ export type ParlayReceipt = {
    * Book when every priced leg shares one key; null when mixed/unknown → LIVE BOARD.
    */
   book?: string | null;
+  /**
+   * Earliest leg start — the parlay's own date, matching how ParlayView derives
+   * its lifecycle. A parlay spans fixtures, so there is no single matchup to
+   * name; the leg list already carries them.
+   */
+  eventStartsAt?: string | null;
 };
 
 export type SubmissionReceipt =
