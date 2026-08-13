@@ -8,8 +8,10 @@ import { fetchWithOddsKeyRollover } from "@/lib/odds-key-rollover";
 import {
   SOCCER_LEAGUES,
   SOCCER_LEAGUE_LIMIT,
+  selectLeaguesWithFixtures,
   selectSoccerLeagues,
   soccerLeagueByKey,
+  type LeagueFixtureWindow,
   type OddsApiSportRow,
   type SoccerLeague,
 } from "@/lib/soccer-leagues";
@@ -309,7 +311,11 @@ export async function fetchInSeasonSoccerLeagues(): Promise<
     }
     const rows = (await res.json()) as OddsApiSportRow[];
     if (!Array.isArray(rows)) return null;
-    const leagues = selectSoccerLeagues(rows);
+    // Every in-season competition, not the top ten. This is the CANDIDATE pool
+    // that `selectPlayingSoccerLeagues` ranks by actual fixtures — cutting to
+    // ten here on prestige order is what buried the competitions playing today
+    // beneath five European leagues that had not started their season.
+    const leagues = selectSoccerLeagues(rows, SOCCER_CANDIDATE_LIMIT);
     return leagues.length ? leagues : null;
   } catch (err) {
     console.warn("[odds] sports catalog fetch failed", err);
@@ -368,12 +374,13 @@ export async function fetchSoccerBoard(
     return board;
   };
 
-  // Ask the catalog what is actually in season before spending credits. Falling
-  // back to the full registry keeps the old behaviour when the catalog is
-  // unreachable — degraded, never empty by construction.
-  const leagues =
+  // Ask the catalog what is in season, then ask — for free — which of those are
+  // actually playing. Falling back to the registry keeps the old behaviour when
+  // the catalog is unreachable: degraded, never empty by construction.
+  const candidates =
     (await fetchInSeasonSoccerLeagues()) ??
     SOCCER_LEAGUES.slice(0, SOCCER_LEAGUE_LIMIT);
+  const leagues = await selectPlayingSoccerLeagues(candidates);
 
   const all: OddsEvent[] = [];
   try {
@@ -386,15 +393,96 @@ export async function fetchSoccerBoard(
     }
     if (all.length === 0) {
       console.info(
-        `[odds] soccer: 0 events across ${leagues.length} in-season competitions` +
+        `[odds] soccer: 0 events across ${leagues.length} competitions` +
           ` (${leagues.map((l) => l.key).join(", ")})`,
       );
     }
-    return dedupeOddsEvents(all).slice(0, 80);
+    // Sort before the cap, or the cap silently decides the slate. MLS and the
+    // Brazilian league post their whole remaining season at once, so 80 slots
+    // filled in fetch order are 80 fixtures days away while tonight's match in
+    // another competition never appears.
+    return sortByKickoff(dedupeOddsEvents(all)).slice(0, 80);
   } catch (err) {
     console.warn("[odds] soccer board fetch failed", err);
     return [];
   }
+}
+
+/**
+ * How many in-season competitions to consider before ranking by fixtures.
+ *
+ * Generous because the probe that ranks them is free — the cost is bounded by
+ * SOCCER_LEAGUE_LIMIT, which caps how many are actually priced.
+ */
+const SOCCER_CANDIDATE_LIMIT = 60;
+
+/** How far ahead a fixture counts as "playing", for slate selection. */
+const SOCCER_FIXTURE_WINDOW_HOURS = 72;
+/** Free `/events` probes to run at once while ranking competitions. */
+const SOCCER_PROBE_PARALLEL = 8;
+
+/**
+ * Narrow the in-season candidates to the competitions actually playing soon.
+ *
+ * `/v4/sports/{key}/events` returns fixtures WITHOUT odds and is not billed, so
+ * this aims the paid odds calls instead of guessing with a prestige order that
+ * knows nothing about the calendar. Cached for an hour: fixture lists move on
+ * the order of days, and the probe must not become the expensive part.
+ *
+ * Any probe failure leaves that competition with no window, which sorts it into
+ * the idle group rather than excluding it — a flaky probe degrades the ordering,
+ * never the coverage.
+ */
+async function selectPlayingSoccerLeagues(
+  candidates: readonly SoccerLeague[],
+): Promise<SoccerLeague[]> {
+  if (candidates.length <= SOCCER_LEAGUE_LIMIT) return [...candidates];
+
+  const now = Date.now();
+  const horizon = now + SOCCER_FIXTURE_WINDOW_HOURS * 3_600_000;
+  const windows = new Map<string, LeagueFixtureWindow>();
+
+  const probe = async (league: SoccerLeague) => {
+    try {
+      const { response: res } = await fetchWithOddsKeyRollover(
+        (key) =>
+          `https://api.the-odds-api.com/v4/sports/${league.oddsApiKey}/events/` +
+          `?apiKey=${key}`,
+        { next: { revalidate: 3600 } },
+      );
+      if (!res?.ok) return;
+      const rows = (await res.json()) as Array<{ commence_time?: string }>;
+      if (!Array.isArray(rows)) return;
+      let upcoming = 0;
+      let first: number | null = null;
+      for (const row of rows) {
+        const ms = Date.parse(row.commence_time ?? "");
+        if (!Number.isFinite(ms) || ms < now) continue;
+        if (ms <= horizon) upcoming += 1;
+        if (first == null || ms < first) first = ms;
+      }
+      windows.set(league.oddsApiKey, { upcoming, firstKickoffMs: first });
+    } catch {
+      // Leave it unranked; it falls back to registry order.
+    }
+  };
+
+  for (let i = 0; i < candidates.length; i += SOCCER_PROBE_PARALLEL) {
+    await Promise.all(
+      candidates.slice(i, i + SOCCER_PROBE_PARALLEL).map(probe),
+    );
+  }
+
+  const selected = selectLeaguesWithFixtures(
+    candidates,
+    windows,
+    SOCCER_LEAGUE_LIMIT,
+  );
+  console.info(
+    `[odds] soccer slate: ${selected.map((l) => l.key).join(", ")}` +
+      ` (from ${candidates.length} in season)`,
+  );
+  return selected;
 }
 
 /**
