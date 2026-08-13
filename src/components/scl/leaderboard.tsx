@@ -178,12 +178,9 @@ export function Leaderboard({
               >
                 Capper
               </th>
-              <th
-                scope="col"
-                className="min-w-[8rem] px-1.5 py-2 text-left font-semibold"
-              >
-                Package
-              </th>
+              {/* No Package column: attribution is off until capper opt-in.
+                  The Buy control below stays — it is a purchase CTA, not a
+                  claim about which offer produced the record. */}
               <th scope="col" className="px-1.5 py-2 text-left font-semibold">
                 Sports
               </th>
@@ -389,18 +386,6 @@ function LeaderboardTableRow({
             />
           </Link>
         </div>
-      </td>
-      <td className="px-1.5 py-2 align-middle">
-        <span
-          className="text-muted-foreground block max-w-36 truncate text-xs"
-          title={capper.publicOffers?.featuredTitle}
-        >
-          {capper.publicOffers
-            ? capper.publicOffers.count > 1
-              ? `${capper.publicOffers.featuredTitle} +${capper.publicOffers.count - 1}`
-              : capper.publicOffers.featuredTitle
-            : "—"}
-        </span>
       </td>
       <td className="px-1.5 py-2 align-middle">
         <div className="flex flex-wrap items-center gap-1">

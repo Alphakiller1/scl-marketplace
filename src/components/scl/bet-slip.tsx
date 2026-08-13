@@ -19,7 +19,6 @@ import {
   PREDICTION_UNIT_MIN,
   PREDICTION_UNIT_STEP,
 } from "@/lib/constants";
-import type { PickPackageOption } from "@/lib/actions/package-options.action";
 import { formatOdds } from "@/lib/format";
 import {
   americanToDecimal,
@@ -34,20 +33,19 @@ const SUBMIT_CTA = "scl-cta-brand";
 /**
  * Unified sportsbook-style bet slip (M5 PR-3 / PR-4).
  * Singles: per-row units + bulk createPlays. Parlay: one stake + combined odds.
+ *
+ * Package attribution is deliberately absent: picks are no longer assigned to
+ * an offer at entry, and every pick counts toward the capper's whole record
+ * until the capper opt-in flow exists. The server still accepts `packageIds`,
+ * so restoring this is a UI change alone.
  */
 export function BetSlip({
   onSubmit,
   submitting,
-  packageOptions = [],
-  selectedPackageIds = [],
-  onPackageSelectionChange,
   className,
 }: {
   onSubmit: () => void;
   submitting?: boolean;
-  packageOptions?: PickPackageOption[];
-  selectedPackageIds?: string[];
-  onPackageSelectionChange?: (ids: string[]) => void;
   className?: string;
 }) {
   const {
@@ -349,49 +347,6 @@ export function BetSlip({
           );
         })}
       </ul>
-
-      {packageOptions.length > 0 ? (
-        <fieldset className="rounded-[12px] border border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] p-3">
-          <legend className="px-1 text-sm font-semibold">
-            Package attribution
-          </legend>
-          <p className="text-muted-foreground mb-2 text-xs leading-relaxed">
-            Select the packages this pick belongs to. Leave every box unchecked
-            and it goes to all{" "}
-            {packageOptions.length === 1
-              ? "of your packages"
-              : `${packageOptions.length} of your packages`}
-            .
-          </p>
-          <div className="space-y-1">
-            {packageOptions.map((option) => {
-              const checked = selectedPackageIds.includes(option.id);
-              const atLimit = selectedPackageIds.length >= 10;
-              return (
-                <label
-                  key={option.id}
-                  className="hover:bg-surface-2 flex min-h-10 cursor-pointer items-center gap-2 rounded-md px-2 text-sm"
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    disabled={!checked && atLimit}
-                    onChange={() => {
-                      onPackageSelectionChange?.(
-                        checked
-                          ? selectedPackageIds.filter((id) => id !== option.id)
-                          : [...selectedPackageIds, option.id],
-                      );
-                    }}
-                    className="size-4 rounded border-[color:var(--scl-line)]"
-                  />
-                  <span>{option.title}</span>
-                </label>
-              );
-            })}
-          </div>
-        </fieldset>
-      ) : null}
 
       {mode === "parlay" ? (
         <div className="space-y-1.5">

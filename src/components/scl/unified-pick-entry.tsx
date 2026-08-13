@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { BetSlip } from "@/components/scl/bet-slip";
@@ -10,10 +10,6 @@ import { ReceiptStack } from "@/components/scl/receipt-stack";
 import { SlipStoreProvider, useSlipStore } from "@/components/scl/slip-store";
 import { VerificationReceipt } from "@/components/scl/verification-receipt";
 import { createParlay } from "@/lib/actions/parlay.action";
-import {
-  getPickPackageOptions,
-  type PickPackageOption,
-} from "@/lib/actions/package-options.action";
 import { createPlay, createPlays } from "@/lib/actions/play.action";
 import type { SportKey } from "@/lib/constants";
 import { formatOdds } from "@/lib/format";
@@ -39,6 +35,10 @@ export function UnifiedPickEntry({ initialMode }: { initialMode: SlipMode }) {
   );
 }
 
+/**
+ * Picks are no longer attributed to a package at entry — `packageIds` stays on
+ * the server contract but is always empty until the capper opt-in flow lands.
+ */
 function selectionToPlayInput(
   s: ReturnType<typeof useSlipStore>["selections"][number],
   notes?: string,
@@ -71,8 +71,6 @@ function UnifiedPickEntryInner() {
   const isLg = useIsLg();
   const [receipt, setReceipt] = useState<SubmissionReceipt | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [packageOptions, setPackageOptions] = useState<PickPackageOption[]>([]);
-  const [selectedPackageIds, setSelectedPackageIds] = useState<string[]>([]);
   const selectionFlowRef = useRef<HTMLDivElement>(null);
 
   function makeAnotherSelection() {
@@ -89,16 +87,6 @@ function UnifiedPickEntryInner() {
       });
     });
   }
-
-  useEffect(() => {
-    let active = true;
-    void getPickPackageOptions().then((options) => {
-      if (active) setPackageOptions(options);
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
 
   const dockOdds = useMemo(() => {
     if (selections.length === 0) return null;
@@ -134,7 +122,6 @@ function UnifiedPickEntryInner() {
               selections[0]!,
               selections[0]!.notes,
               selections[0]!.notesPublic,
-              selectedPackageIds,
             ),
           );
           if (res.ok) {
@@ -148,7 +135,7 @@ function UnifiedPickEntryInner() {
 
         const res = await createPlays(
           selections.map((s) =>
-            selectionToPlayInput(s, s.notes, s.notesPublic, selectedPackageIds),
+            selectionToPlayInput(s, s.notes, s.notesPublic),
           ),
         );
         if (res.ok) {
@@ -163,7 +150,7 @@ function UnifiedPickEntryInner() {
       if (selections.length < 2) return;
       const res = await createParlay({
         units: parlayUnits,
-        packageIds: selectedPackageIds,
+        packageIds: [],
         legs: selections.map((s) => toSlipLeg(s)),
       });
       if (res.ok) {
@@ -213,15 +200,7 @@ function UnifiedPickEntryInner() {
     );
   }
 
-  const slip = (
-    <BetSlip
-      onSubmit={onSubmit}
-      submitting={submitting}
-      packageOptions={packageOptions}
-      selectedPackageIds={selectedPackageIds}
-      onPackageSelectionChange={setSelectedPackageIds}
-    />
-  );
+  const slip = <BetSlip onSubmit={onSubmit} submitting={submitting} />;
 
   const hasSelections = selections.length > 0;
 
