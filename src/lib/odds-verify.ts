@@ -32,19 +32,46 @@ export const VERIFY_TTL_SECONDS = 600;
 /** Default accept band, in implied-probability points (0.02 = 2 pts). Widen for volatile props. */
 export const DEFAULT_TOLERANCE_PROB = 0.02;
 
-/** Featured + alternate markets requested for every event (game-line verification). */
-export const CORE_MARKETS = [
-  "h2h",
-  "spreads",
-  "totals",
+/** Featured game lines. Requested for every sport — the floor of a usable board. */
+export const BASE_GAME_MARKETS = ["h2h", "spreads", "totals"] as const;
+
+/**
+ * The alternate ladders, requested only for {@link DEPTH_SPORTS}.
+ *
+ * Team totals price one club's runs, not the game's, and cappers post them
+ * routinely. Both keys, for the same reason spreads and totals take both: the
+ * featured key carries the main line per club and the alternate carries the
+ * ladder around it.
+ */
+export const ALTERNATE_GAME_MARKETS = [
   "alternate_spreads",
   "alternate_totals",
-  // Team totals price one club's runs, not the game's, and cappers post them
-  // routinely. Both keys, for the same reason spreads and totals take both: the
-  // featured key carries the main line per club and the alternate carries the
-  // ladder around it.
   ...TEAM_TOTAL_MARKET_KEYS,
 ] as const;
+
+/**
+ * Sports that get the full ladder — alternate game lines AND player props.
+ *
+ * Every market key on a per-event request is billed separately, so depth is
+ * bought sport by sport rather than everywhere by default: the full bundle runs
+ * ~20 credits per event against ~3 for game lines alone. MLB and WNBA are where
+ * cappers actually post props and milestone lines, so they carry the ladder and
+ * the rest of the board stays on featured game lines.
+ *
+ * This governs what is REQUESTED, not what can be priced. A prop already logged
+ * against a sport that is no longer listed here still resolves through
+ * {@link PROP_MARKET_LABEL} and verifies normally — narrowing this set must
+ * never orphan a pick already on a capper's record.
+ */
+export const DEPTH_SPORTS = new Set(["MLB", "WNBA"]);
+
+/** Featured + alternate markets requested for one sport's events. */
+export function coreMarketsForSport(sclSport: string): string[] {
+  const sport = sclSport.trim().toUpperCase();
+  return DEPTH_SPORTS.has(sport)
+    ? [...BASE_GAME_MARKETS, ...ALTERNATE_GAME_MARKETS]
+    : [...BASE_GAME_MARKETS];
+}
 
 /**
  * Curated player-prop market keys per SCL sport. Kept intentionally small — verify the props
@@ -60,17 +87,7 @@ export const PROP_MARKETS_BY_SPORT: Record<string, readonly string[]> = {
     "pitcher_earned_runs",
     "batter_hits",
   ],
-  NBA: ["player_points", "player_rebounds", "player_assists", "player_threes"],
   WNBA: ["player_points", "player_rebounds", "player_assists"],
-  NCAAB: ["player_points"],
-  NFL: [
-    "player_pass_yds",
-    "player_rush_yds",
-    "player_receptions",
-    "player_reception_yds",
-  ],
-  NCAAF: ["player_pass_yds", "player_rush_yds"],
-  NHL: ["player_points", "player_shots_on_goal"],
 };
 
 /**
@@ -97,7 +114,7 @@ export function propMarketKeysWithAlternates(propKey: string): string[] {
 export function verificationMarkets(sclSport: string): string[] {
   const props = PROP_MARKETS_BY_SPORT[sclSport] ?? [];
   return [
-    ...CORE_MARKETS,
+    ...coreMarketsForSport(sclSport),
     ...periodMarketKeysForSport(sclSport),
     ...props.flatMap(propMarketKeysWithAlternates),
   ];

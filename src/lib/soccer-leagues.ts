@@ -46,6 +46,18 @@ export const SOCCER_LEAGUES: readonly SoccerLeague[] = [
     label: "UEFA Champions League",
     oddsApiKey: "soccer_uefa_champs_league",
   },
+  // The qualifying rounds are a SEPARATE sport key that is live exactly when
+  // the group stage is not — through August, while `soccer_uefa_champs_league`
+  // reports itself out of season and returns nothing. Ranked here, above the
+  // domestic leagues, because in mid-August it is the only UEFA football being
+  // priced at all. Note the Europa and Conference League qualifiers have no
+  // equivalent key: The Odds API does not carry them, so those ties cannot
+  // reach the board no matter how the budget is spent.
+  {
+    key: "UCL_QUAL",
+    label: "UEFA Champions League Qualification",
+    oddsApiKey: "soccer_uefa_champs_league_qualification",
+  },
   {
     key: "EUROPA",
     label: "UEFA Europa League",

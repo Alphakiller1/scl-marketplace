@@ -153,21 +153,47 @@ test("collectAvailablePrices filters a prop by player (description)", () => {
   assert.deepEqual(prices, [-120]);
 });
 
-test("verificationMarkets bundles core + curated sport props", () => {
-  const mlb = verificationMarkets("MLB");
-  assert.ok(mlb.includes("h2h"));
-  assert.ok(mlb.includes("alternate_totals"));
-  assert.ok(mlb.includes("pitcher_strikeouts"));
-  // unknown sport → core markets only. Team totals are core, not per-sport:
-  // any sport whose book prices them should surface them.
-  assert.deepEqual(verificationMarkets("PGA"), [
-    "h2h",
-    "spreads",
-    "totals",
-    "alternate_spreads",
-    "alternate_totals",
-    "team_totals",
-    "alternate_team_totals",
+test("verificationMarkets bundles the ladder only for the depth sports", () => {
+  // MLB and WNBA carry the props cappers actually post, so they buy the full
+  // bundle: featured lines, the alternate ladders, team totals and props.
+  for (const sport of ["MLB", "WNBA"]) {
+    const markets = verificationMarkets(sport);
+    assert.ok(markets.includes("h2h"), `${sport} h2h`);
+    assert.ok(markets.includes("alternate_totals"), `${sport} alt totals`);
+    assert.ok(markets.includes("team_totals"), `${sport} team totals`);
+  }
+  assert.ok(verificationMarkets("MLB").includes("pitcher_strikeouts"));
+  assert.ok(verificationMarkets("WNBA").includes("player_points"));
+
+  // Every other sport is featured game lines only. Each extra market key is
+  // billed per event, so depth is bought per sport rather than by default —
+  // the full bundle runs ~20 credits an event against 3 for game lines.
+  assert.deepEqual(verificationMarkets("PGA"), ["h2h", "spreads", "totals"]);
+  for (const sport of ["NFL", "NBA", "NHL", "TENNIS", "SOCCER"]) {
+    const markets = verificationMarkets(sport);
+    assert.ok(
+      !markets.includes("alternate_spreads"),
+      `${sport} no alt spreads`,
+    );
+    assert.ok(!markets.includes("team_totals"), `${sport} no team totals`);
+    assert.ok(
+      !markets.some((m) => m.startsWith("player_") || m.startsWith("pitcher_")),
+      `${sport} no props`,
+    );
+  }
+});
+
+test("narrowing the requested props never orphans a logged pick", () => {
+  // NFL and NHL props are no longer REQUESTED, but plays already carrying those
+  // labels must still resolve to their market keys or they would silently stop
+  // verifying — a record already on a capper's profile going unpriceable.
+  assert.deepEqual(marketKeysForMarket("Passing Yds"), [
+    "player_pass_yds",
+    "player_pass_yds_alternate",
+  ]);
+  assert.deepEqual(marketKeysForMarket("Shots On Goal"), [
+    "player_shots_on_goal",
+    "player_shots_on_goal_alternate",
   ]);
 });
 

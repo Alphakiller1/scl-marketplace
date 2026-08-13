@@ -4,6 +4,13 @@ import { afterResponse } from "@/lib/after-response";
 import { bookmakersQueryParam, isBookKey } from "@/lib/books";
 import { shouldCircuitBreak } from "@/lib/odds-budget";
 import {
+  isOddsKeyExhausted,
+  markOddsKeyExhausted,
+  nextOddsApiKey,
+  parseOddsApiKeys,
+  resetOddsKeyRotation,
+} from "@/lib/odds-keys";
+import {
   SOCCER_LEAGUES,
   SOCCER_LEAGUE_LIMIT,
   selectSoccerLeagues,
@@ -11,6 +18,12 @@ import {
   type OddsApiSportRow,
   type SoccerLeague,
 } from "@/lib/soccer-leagues";
+import {
+  TENNIS_TOUR_LIMIT,
+  selectTennisTours,
+  tennisTourByKey,
+  type TennisTour,
+} from "@/lib/tennis-tours";
 import { prisma } from "@/lib/prisma";
 import {
   dedupeOddsEvents,
@@ -108,6 +121,13 @@ export function resolveOddsApiSport(
     if (!league) return undefined;
     return soccerLeagueByKey(league)?.oddsApiKey;
   }
+  // Tennis, like soccer, has no single sport key — one key per tournament, and
+  // a tournament lasts about a week. The league tag carried on the event is the
+  // only way back to the key once the tour has moved on.
+  if (sclSport === "TENNIS") {
+    if (!league) return undefined;
+    return tennisTourByKey(league)?.oddsApiKey;
+  }
   // A preseason pick must verify against the preseason key it came from, not
   // the regular-season one, or its event is simply absent.
   const extra = league ? EXTRA_SPORT_BY_TAG[league.toUpperCase()] : undefined;
@@ -115,10 +135,17 @@ export function resolveOddsApiSport(
   return toOddsApiSport(sclSport);
 }
 
-/** The Odds API key. Accepts the canonical name and the common `ODD_API_KEY` misspelling. */
+/**
+ * The Odds API key to spend next.
+ *
+ * Rotation lives in `odds-keys.ts` — see there for why an exhausted key is a
+ * silent failure rather than a loud one.
+ */
 export function oddsApiKey(): string | undefined {
-  return process.env.ODDS_API_KEY || process.env.ODD_API_KEY;
+  return nextOddsApiKey();
 }
+
+export { parseOddsApiKeys as oddsApiKeys, resetOddsKeyRotation };
 
 export function toSclSport(oddsApiKey: string): string | undefined {
   return ODDS_API_TO_SCL[oddsApiKey];
@@ -126,7 +153,9 @@ export function toSclSport(oddsApiKey: string): string | undefined {
 
 /** Sports we can odds-assist / auto-grade as game moneyline + totals. */
 export function oddsAssistSupported(sclKey: string): boolean {
-  return sclKey in SCL_TO_ODDS_API || sclKey === "SOCCER";
+  return (
+    sclKey in SCL_TO_ODDS_API || sclKey === "SOCCER" || sclKey === "TENNIS"
+  );
 }
 
 /** regions=us when books empty; else bookmakers=<keys>. */
@@ -139,10 +168,22 @@ function oddsScopeQuery(books?: readonly string[]): string {
 export type OddsUsagePurpose = "board" | "verify" | "results" | "clv";
 
 let lastOddsApiRemaining: number | null = null;
+let lastOddsApiCapacity: number | null = null;
 
 /** Last `x-requests-remaining` observed from an Odds API response. */
 export function getLastOddsApiRemaining(): number | null {
   return lastOddsApiRemaining;
+}
+
+/**
+ * The plan size of the key in use, as `remaining + used` from the last response.
+ *
+ * The Odds API never states the plan directly, but it returns both halves of it
+ * on every response, so the cap is observable without configuring it. The
+ * circuit-breaker reserve is scaled from this — see `circuitBreakThreshold`.
+ */
+export function getLastOddsApiCapacity(): number | null {
+  return lastOddsApiCapacity;
 }
 
 /** Log Odds API credit usage from a response so burn is observable vs. the plan cap. */
@@ -154,9 +195,18 @@ export function logOddsUsage(
 ): void {
   const remainingHeader = res.headers.get("x-requests-remaining");
   const last = res.headers.get("x-requests-last");
+  const usedHeader = res.headers.get("x-requests-used");
   if (remainingHeader !== null) {
     const parsed = Number(remainingHeader);
     if (!Number.isNaN(parsed)) lastOddsApiRemaining = parsed;
+  }
+  // remaining + used is the plan cap, which nothing else reports.
+  if (remainingHeader !== null && usedHeader !== null) {
+    const rem = Number(remainingHeader);
+    const used = Number(usedHeader);
+    if (!Number.isNaN(rem) && !Number.isNaN(used) && rem + used > 0) {
+      lastOddsApiCapacity = rem + used;
+    }
   }
   const cost = last != null ? Number(last) : 0;
   const remaining =
@@ -218,6 +268,51 @@ async function persistOddsUsageDaily(opts: {
   });
 }
 
+/**
+ * A billed Odds API request, retried down the key chain when a key is refused.
+ *
+ * The Odds API answers an exhausted or revoked key with 401/429 and no usage
+ * headers, which is indistinguishable at the call site from "no lines today" —
+ * every board fetch here swallows a non-OK response and returns an empty slate.
+ * That is how a dead key reads as an empty site rather than an outage. Rotating
+ * here means one refused key costs a retry, not the board.
+ *
+ * `buildUrl` takes the key so the caller keeps ownership of its query string;
+ * the returned Response is whatever the first accepting key gave, or the last
+ * refusal when every key is spent.
+ */
+async function oddsApiFetch(
+  buildUrl: (apiKey: string) => string,
+  init: Parameters<typeof fetch>[1],
+  log: { label: string; purpose: OddsUsagePurpose; sport?: string },
+): Promise<Response | null> {
+  let lastRefusal: Response | null = null;
+
+  for (const key of parseOddsApiKeys()) {
+    if (isOddsKeyExhausted(key)) continue;
+
+    const res = await fetch(buildUrl(key), init);
+    logOddsUsage(res, log.label, log.purpose, log.sport);
+
+    if (res.status === 401 || res.status === 429) {
+      markOddsKeyExhausted(key, `HTTP ${res.status}`);
+      lastRefusal = res;
+      continue;
+    }
+
+    // Read this response's own header rather than the module-level total: a
+    // refusal carries no usage headers, so the stale value from the previous
+    // key would otherwise condemn the key that just succeeded.
+    const remaining = Number(res.headers.get("x-requests-remaining"));
+    if (Number.isFinite(remaining) && remaining <= 0) {
+      markOddsKeyExhausted(key, "0 credits remaining");
+    }
+    return res;
+  }
+
+  return lastRefusal;
+}
+
 export type OddsBoardMeta = {
   sport: string;
   supported: boolean;
@@ -249,8 +344,36 @@ export function buildOddsBoardMeta(
 }
 
 const SOCCER_FETCH_PARALLEL = 3;
-/** Board cache window (seconds) — see the note at the fetch site. */
-const BOARD_TTL = 600;
+
+/**
+ * Board refreshes allowed per sport per day.
+ *
+ * The board is budgeted in refreshes rather than freshness because the plan is
+ * small and the spend has to be predictable: one refresh costs 3 credits per
+ * sport key, and the cache window is simply the day divided by this number. MLB
+ * and WNBA carry the picks cappers actually log, so they get a second look —
+ * enough to pick up a starter scratch or a line move before first pitch. The
+ * rest are posted once and left alone.
+ *
+ * This bounds BROWSING only. The price written onto a pick is never taken from
+ * this cache: submission re-fetches the event live and bounds the claim against
+ * it, so a stale board costs a capper nothing but a slightly old-looking number.
+ */
+const BOARD_REFRESHES_PER_DAY: Record<string, number> = {
+  MLB: 2,
+  WNBA: 2,
+};
+
+const DEFAULT_BOARD_REFRESHES_PER_DAY = 1;
+const SECONDS_PER_DAY = 86_400;
+
+/** Board cache window (seconds) for a sport — the day split by its refresh budget. */
+export function boardTtlForSport(sclSport: string): number {
+  const perDay =
+    BOARD_REFRESHES_PER_DAY[sclSport.trim().toUpperCase()] ??
+    DEFAULT_BOARD_REFRESHES_PER_DAY;
+  return Math.floor(SECONDS_PER_DAY / Math.max(1, perDay));
+}
 
 /**
  * Which soccer competitions are in season right now, from the Odds API catalog.
@@ -261,39 +384,59 @@ const BOARD_TTL = 600;
  * Returns null on any failure so the caller falls back to the static registry
  * rather than emptying the board.
  */
-export async function fetchInSeasonSoccerLeagues(): Promise<
-  SoccerLeague[] | null
-> {
-  const apiKey = oddsApiKey();
-  if (!apiKey) return null;
+async function fetchSportsCatalog(): Promise<OddsApiSportRow[] | null> {
+  if (!oddsApiKey()) return null;
   try {
-    const res = await fetch(
-      `https://api.the-odds-api.com/v4/sports/?apiKey=${apiKey}`,
+    const res = await oddsApiFetch(
+      (apiKey) => `https://api.the-odds-api.com/v4/sports/?apiKey=${apiKey}`,
       { next: { revalidate: 3600, tags: ["odds-sports-catalog"] } },
+      // Deliberately labelled but not billed: the catalog endpoint is free, so
+      // it reports cost=0 and only serves to surface key rotation in the log.
+      { label: "sports catalog", purpose: "board" },
     );
-    // Deliberately not logged as usage: the catalog endpoint is not billed.
-    if (!res.ok) {
-      console.warn(`[odds] sports catalog: HTTP ${res.status}`);
+    if (!res?.ok) {
+      console.warn(
+        `[odds] sports catalog: HTTP ${res?.status ?? "no-response"}`,
+      );
       return null;
     }
     const rows = (await res.json()) as OddsApiSportRow[];
-    if (!Array.isArray(rows)) return null;
-    const leagues = selectSoccerLeagues(rows);
-    return leagues.length ? leagues : null;
+    return Array.isArray(rows) ? rows : null;
   } catch (err) {
     console.warn("[odds] sports catalog fetch failed", err);
     return null;
   }
 }
 
+export async function fetchInSeasonSoccerLeagues(): Promise<
+  SoccerLeague[] | null
+> {
+  const rows = await fetchSportsCatalog();
+  if (!rows) return null;
+  const leagues = selectSoccerLeagues(rows);
+  return leagues.length ? leagues : null;
+}
+
+/**
+ * Which tennis tournaments are on right now, from the same free catalog.
+ *
+ * Returns null rather than an empty list on failure so the caller can tell
+ * "could not ask" from "the tour is genuinely dark this week" — there is no
+ * static fallback to degrade to, because a tennis registry is stale in days.
+ */
+export async function fetchInSeasonTennisTours(): Promise<TennisTour[] | null> {
+  const rows = await fetchSportsCatalog();
+  if (!rows) return null;
+  return selectTennisTours(rows, TENNIS_TOUR_LIMIT);
+}
+
 /** Soccer board — fans out across SOCCER_LEAGUES with capped parallelism. */
 export async function fetchSoccerBoard(
   opts?: OddsBoardOpts,
 ): Promise<OddsEvent[]> {
-  const apiKey = oddsApiKey();
-  if (!apiKey) return [];
+  if (!oddsApiKey()) return [];
 
-  if (shouldCircuitBreak(lastOddsApiRemaining)) {
+  if (shouldCircuitBreak(lastOddsApiRemaining, lastOddsApiCapacity)) {
     console.warn(
       `[odds] circuit-breaker active (remaining=${lastOddsApiRemaining}) — skipping soccer board`,
     );
@@ -301,11 +444,8 @@ export async function fetchSoccerBoard(
   }
 
   const preferred = opts?.books;
-  const fetchLeague = async (oddsApiKey: string, leagueKey: string) => {
+  const fetchLeague = async (leagueApiSport: string, leagueKey: string) => {
     const attempt = async (books: readonly string[] | undefined) => {
-      const url =
-        `https://api.the-odds-api.com/v4/sports/${oddsApiKey}/odds/` +
-        `?apiKey=${apiKey}&${oddsScopeQuery(books)}&markets=h2h,spreads,totals&oddsFormat=american`;
       // Soccer is the one sport that fans out over many competitions, so its
       // board is by far the most expensive to refresh. Selecting only in-season
       // competitions means every one of these calls now returns fixtures and is
@@ -313,10 +453,17 @@ export async function fetchSoccerBoard(
       // window widens to keep the monthly burn flat. Browsing tolerates a
       // slightly older price: the number that actually goes on the record is
       // re-fetched per event at submit time.
-      const res = await fetch(url, { next: { revalidate: BOARD_TTL } });
-      logOddsUsage(res, `soccer ${leagueKey}`, "board", "SOCCER");
-      if (!res.ok) {
-        console.warn(`[odds] soccer ${leagueKey}: HTTP ${res.status}`);
+      const res = await oddsApiFetch(
+        (apiKey) =>
+          `https://api.the-odds-api.com/v4/sports/${leagueApiSport}/odds/` +
+          `?apiKey=${apiKey}&${oddsScopeQuery(books)}&markets=h2h,spreads,totals&oddsFormat=american`,
+        { next: { revalidate: boardTtlForSport("SOCCER") } },
+        { label: `soccer ${leagueKey}`, purpose: "board", sport: "SOCCER" },
+      );
+      if (!res?.ok) {
+        console.warn(
+          `[odds] soccer ${leagueKey}: HTTP ${res?.status ?? "no-response"}`,
+        );
         return [] as OddsEvent[];
       }
       const events = (await res.json()) as Parameters<
@@ -365,6 +512,82 @@ export async function fetchSoccerBoard(
 }
 
 /**
+ * Tennis board — fans out across the tournaments currently on tour.
+ *
+ * Same shape as soccer, with one difference that matters: there is no static
+ * registry to fall back on. If the catalog cannot be reached the board is empty
+ * rather than wrong, because guessing which tournament is on this week would be
+ * guessing at a key that stopped existing days ago.
+ */
+export async function fetchTennisBoard(
+  opts?: OddsBoardOpts,
+): Promise<OddsEvent[]> {
+  if (!oddsApiKey()) return [];
+
+  if (shouldCircuitBreak(lastOddsApiRemaining, lastOddsApiCapacity)) {
+    console.warn(
+      `[odds] circuit-breaker active (remaining=${lastOddsApiRemaining}) — skipping tennis board`,
+    );
+    return [];
+  }
+
+  const tours = await fetchInSeasonTennisTours();
+  if (!tours?.length) {
+    console.info("[odds] tennis: no in-season tournaments in the catalog");
+    return [];
+  }
+
+  const preferred = opts?.books;
+  const fetchTour = async (tour: TennisTour) => {
+    const attempt = async (books: readonly string[] | undefined) => {
+      const res = await oddsApiFetch(
+        (apiKey) =>
+          `https://api.the-odds-api.com/v4/sports/${tour.oddsApiKey}/odds/` +
+          `?apiKey=${apiKey}&${oddsScopeQuery(books)}&markets=h2h,spreads,totals&oddsFormat=american`,
+        { next: { revalidate: boardTtlForSport("TENNIS") } },
+        { label: `tennis ${tour.key}`, purpose: "board", sport: "TENNIS" },
+      );
+      if (!res?.ok) {
+        console.warn(
+          `[odds] tennis ${tour.key}: HTTP ${res?.status ?? "no-response"}`,
+        );
+        return [] as OddsEvent[];
+      }
+      const events = (await res.json()) as Parameters<
+        typeof normalizeUpcomingEvent
+      >[1][];
+      // A match already under way carries no bookmakers; `selections.length`
+      // drops it, which is also what keeps completed qualifying off the board.
+      return events
+        .map((e) => normalizeUpcomingEvent("TENNIS", e, preferred, tour.key))
+        .filter((e) => e.selections.length > 0);
+    };
+
+    const board = await attempt(preferred);
+    if (board.length > 0) return board;
+    if (bookmakersQueryParam(preferred ?? [])) {
+      return await attempt(undefined);
+    }
+    return board;
+  };
+
+  try {
+    const chunks = await Promise.all(tours.map(fetchTour));
+    const all = chunks.flat();
+    if (all.length === 0) {
+      console.info(
+        `[odds] tennis: 0 events across ${tours.length} tournaments` +
+          ` (${tours.map((t) => t.key).join(", ")})`,
+      );
+    }
+    return sortByKickoff(dedupeOddsEvents(all)).slice(0, 80);
+  } catch (err) {
+    console.warn("[odds] tennis board fetch failed", err);
+    return [];
+  }
+}
+
+/**
  * Boards for a sport's extra Odds API keys — today, preseason.
  *
  * Each event is tagged with the key it came from so a pick logged against it
@@ -375,19 +598,20 @@ async function fetchExtraSportBoards(
   sclSport: string,
   preferred: readonly string[] | undefined,
 ): Promise<OddsEvent[]> {
-  const apiKey = oddsApiKey();
   const extras = ODDS_API_EXTRA_SPORTS[sclSport] ?? [];
-  if (!apiKey || extras.length === 0) return [];
+  if (!oddsApiKey() || extras.length === 0) return [];
 
   const boards = await Promise.all(
     extras.map(async (apiSport) => {
       try {
-        const url =
-          `https://api.the-odds-api.com/v4/sports/${apiSport}/odds/` +
-          `?apiKey=${apiKey}&${oddsScopeQuery(preferred)}&markets=h2h,spreads,totals&oddsFormat=american`;
-        const res = await fetch(url, { next: { revalidate: BOARD_TTL } });
-        logOddsUsage(res, `upcoming ${apiSport}`, "board", sclSport);
-        if (!res.ok) return [] as OddsEvent[];
+        const res = await oddsApiFetch(
+          (apiKey) =>
+            `https://api.the-odds-api.com/v4/sports/${apiSport}/odds/` +
+            `?apiKey=${apiKey}&${oddsScopeQuery(preferred)}&markets=h2h,spreads,totals&oddsFormat=american`,
+          { next: { revalidate: boardTtlForSport(sclSport) } },
+          { label: `upcoming ${apiSport}`, purpose: "board", sport: sclSport },
+        );
+        if (!res?.ok) return [] as OddsEvent[];
         const events = (await res.json()) as Parameters<
           typeof normalizeUpcomingEvent
         >[1][];
@@ -415,12 +639,12 @@ export async function fetchUpcomingOdds(
   opts?: OddsBoardOpts,
 ): Promise<OddsEvent[]> {
   if (sclSport === "SOCCER") return fetchSoccerBoard(opts);
+  if (sclSport === "TENNIS") return fetchTennisBoard(opts);
 
-  const apiKey = oddsApiKey();
   const apiSport = toOddsApiSport(sclSport);
-  if (!apiKey || !apiSport) return [];
+  if (!oddsApiKey() || !apiSport) return [];
 
-  if (shouldCircuitBreak(lastOddsApiRemaining)) {
+  if (shouldCircuitBreak(lastOddsApiRemaining, lastOddsApiCapacity)) {
     console.warn(
       `[odds] circuit-breaker active (remaining=${lastOddsApiRemaining}) — skipping uncached board fetch for ${sclSport}`,
     );
@@ -429,19 +653,23 @@ export async function fetchUpcomingOdds(
 
   const preferred = opts?.books;
   const attempt = async (books: readonly string[] | undefined) => {
-    const url =
-      `https://api.the-odds-api.com/v4/sports/${apiSport}/odds/` +
-      `?apiKey=${apiKey}&${oddsScopeQuery(books)}&markets=h2h,spreads,totals&oddsFormat=american`;
     // The pick entry page fans out across every board sport on mount, so this
-    // window sets how often a browsing session bills the Odds API. At 120s a
-    // handful of cappers browsing could re-bill every sport thirty times an
-    // hour. Browsing tolerates a slightly older price: the number that actually
-    // goes on the record is re-fetched per event at submit time and bounded
-    // against the live market there.
-    const res = await fetch(url, { next: { revalidate: BOARD_TTL } });
-    logOddsUsage(res, `upcoming ${sclSport}`, "board", sclSport);
-    if (!res.ok) {
-      console.warn(`[odds] upcoming ${sclSport}: HTTP ${res.status}`);
+    // window sets how often a browsing session bills the Odds API — see
+    // `BOARD_REFRESHES_PER_DAY`, which budgets it in refreshes per day rather
+    // than in seconds. Browsing tolerates a slightly older price: the number
+    // that actually goes on the record is re-fetched per event at submit time
+    // and bounded against the live market there.
+    const res = await oddsApiFetch(
+      (apiKey) =>
+        `https://api.the-odds-api.com/v4/sports/${apiSport}/odds/` +
+        `?apiKey=${apiKey}&${oddsScopeQuery(books)}&markets=h2h,spreads,totals&oddsFormat=american`,
+      { next: { revalidate: boardTtlForSport(sclSport) } },
+      { label: `upcoming ${sclSport}`, purpose: "board", sport: sclSport },
+    );
+    if (!res?.ok) {
+      console.warn(
+        `[odds] upcoming ${sclSport}: HTTP ${res?.status ?? "no-response"}`,
+      );
       return [] as OddsEvent[];
     }
     const events = (await res.json()) as Parameters<
@@ -514,9 +742,8 @@ export async function fetchEventOddsForVerification(
     markets?: readonly string[];
   },
 ): Promise<RawEventOdds | null> {
-  const apiKey = oddsApiKey();
   const apiSport = resolveOddsApiSport(sclSport, opts?.league);
-  if (!apiKey || !apiSport) return null;
+  if (!oddsApiKey() || !apiSport) return null;
   const requested = opts?.markets?.length
     ? [...new Set(opts.markets)]
     : verificationMarkets(sclSport);
@@ -524,14 +751,26 @@ export async function fetchEventOddsForVerification(
   const purpose = opts?.purpose ?? "verify";
 
   const attempt = async (books: readonly string[] | undefined) => {
-    const url =
-      `https://api.the-odds-api.com/v4/sports/${apiSport}/events/${eventId}/odds/` +
-      `?apiKey=${apiKey}&${oddsScopeQuery(books)}&markets=${markets}&oddsFormat=american`;
-    const res = await fetch(url, {
-      next: { revalidate: VERIFY_TTL_SECONDS, tags: [`odds-event:${eventId}`] },
-    });
-    logOddsUsage(res, `event ${eventId}`, purpose, sclSport);
-    if (!res.ok) return null;
+    const res = await oddsApiFetch(
+      (apiKey) =>
+        `https://api.the-odds-api.com/v4/sports/${apiSport}/events/${eventId}/odds/` +
+        `?apiKey=${apiKey}&${oddsScopeQuery(books)}&markets=${markets}&oddsFormat=american`,
+      {
+        next: {
+          revalidate: VERIFY_TTL_SECONDS,
+          tags: [`odds-event:${eventId}`],
+        },
+      },
+      { label: `event ${eventId}`, purpose, sport: sclSport },
+    );
+    // A rejected per-event request used to be indistinguishable from "no lines":
+    // both returned null with nothing logged.
+    if (!res?.ok) {
+      console.warn(
+        `[odds] event ${eventId} (${sclSport}): HTTP ${res?.status ?? "no-response"}`,
+      );
+      return null;
+    }
     return (await res.json()) as RawEventOdds;
   };
 
