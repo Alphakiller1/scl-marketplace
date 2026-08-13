@@ -54,13 +54,15 @@ test("competitions playing soonest win the paid slots", () => {
     ["soccer_france_ligue_two", win(31, 9)],
   ]);
 
-  const picked = selectLeaguesWithFixtures(candidates, windows, 4).map(
+  const picked = selectLeaguesWithFixtures(candidates, windows, 4, NOW).map(
     (l) => l.oddsApiKey,
   );
+  // Same rolling day (all inside 24h) -> ordered by how many fixtures each
+  // offers, so a full matchday outranks a lone early kickoff.
   assert.deepEqual(picked, [
-    "soccer_conmebol_copa_sudamericana",
-    "soccer_concacaf_leagues_cup",
     "soccer_japan_j_league",
+    "soccer_concacaf_leagues_cup",
+    "soccer_conmebol_copa_sudamericana",
     "soccer_france_ligue_two",
   ]);
   // The whole point: a competition 8 days out must not outrank tonight's match
@@ -76,7 +78,9 @@ test("a competition with no fixture in the window never outranks one that has", 
     ["soccer_japan_j_league", win(23, 10)],
   ]);
   assert.deepEqual(
-    selectLeaguesWithFixtures(candidates, windows, 1).map((l) => l.oddsApiKey),
+    selectLeaguesWithFixtures(candidates, windows, 1, NOW).map(
+      (l) => l.oddsApiKey,
+    ),
     ["soccer_japan_j_league"],
   );
 });
@@ -93,7 +97,9 @@ test("idle competitions still fill leftover slots, in registry order", () => {
     ["soccer_japan_j_league", win(5, 2)],
   ]);
   assert.deepEqual(
-    selectLeaguesWithFixtures(candidates, windows, 3).map((l) => l.oddsApiKey),
+    selectLeaguesWithFixtures(candidates, windows, 3, NOW).map(
+      (l) => l.oddsApiKey,
+    ),
     ["soccer_japan_j_league", "soccer_epl", "soccer_italy_serie_a"],
   );
 });
@@ -101,25 +107,55 @@ test("idle competitions still fill leftover slots, in registry order", () => {
 test("an unprobed competition degrades to idle, never to excluded", () => {
   // A failed probe writes no window. That must cost ordering, not coverage.
   const candidates = [league("soccer_epl"), league("soccer_japan_j_league")];
-  const picked = selectLeaguesWithFixtures(candidates, new Map(), 2);
+  const picked = selectLeaguesWithFixtures(candidates, new Map(), 2, NOW);
   assert.equal(picked.length, 2);
 });
 
-test("equal kickoffs fall back to registry prestige", () => {
+test("same day and same volume falls back to registry prestige", () => {
   const candidates = [league("soccer_japan_j_league"), league("soccer_epl")];
   const windows = new Map<string, LeagueFixtureWindow>([
-    ["soccer_japan_j_league", win(6)],
-    ["soccer_epl", win(6)],
+    ["soccer_japan_j_league", win(6, 4)],
+    ["soccer_epl", win(6, 4)],
   ]);
   assert.deepEqual(
-    selectLeaguesWithFixtures(candidates, windows, 1).map((l) => l.oddsApiKey),
+    selectLeaguesWithFixtures(candidates, windows, 1, NOW).map(
+      (l) => l.oddsApiKey,
+    ),
     ["soccer_epl"],
+  );
+});
+
+test("tonight outranks a bigger matchday tomorrow", () => {
+  // Day beats volume: a capper betting now needs tonight's card, even if
+  // tomorrow's is larger.
+  const candidates = [
+    league("soccer_efl_champ"),
+    league("soccer_concacaf_leagues_cup"),
+  ];
+  const windows = new Map<string, LeagueFixtureWindow>([
+    ["soccer_efl_champ", win(30, 9)],
+    ["soccer_concacaf_leagues_cup", win(12, 2)],
+  ]);
+  assert.deepEqual(
+    selectLeaguesWithFixtures(candidates, windows, 1, NOW).map(
+      (l) => l.oddsApiKey,
+    ),
+    ["soccer_concacaf_leagues_cup"],
   );
 });
 
 test("the limit is respected and never negative", () => {
   const candidates = SOCCER_LEAGUES.slice(0, 5);
-  assert.equal(selectLeaguesWithFixtures(candidates, new Map(), 3).length, 3);
-  assert.equal(selectLeaguesWithFixtures(candidates, new Map(), 0).length, 0);
-  assert.equal(selectLeaguesWithFixtures(candidates, new Map(), -1).length, 0);
+  assert.equal(
+    selectLeaguesWithFixtures(candidates, new Map(), 3, NOW).length,
+    3,
+  );
+  assert.equal(
+    selectLeaguesWithFixtures(candidates, new Map(), 0, NOW).length,
+    0,
+  );
+  assert.equal(
+    selectLeaguesWithFixtures(candidates, new Map(), -1, NOW).length,
+    0,
+  );
 });

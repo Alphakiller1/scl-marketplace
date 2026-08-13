@@ -190,6 +190,7 @@ export function selectLeaguesWithFixtures(
   leagues: readonly SoccerLeague[],
   windowByApiKey: ReadonlyMap<string, LeagueFixtureWindow>,
   limit: number = SOCCER_LEAGUE_LIMIT,
+  now: number = Date.now(),
 ): SoccerLeague[] {
   const registryRank = new Map(
     SOCCER_LEAGUES.map((l, index) => [l.oddsApiKey, index]),
@@ -208,10 +209,25 @@ export function selectLeaguesWithFixtures(
     }
   }
 
+  // Bucket into rolling 24h days, then order by how much each competition
+  // actually offers that day. Sorting on raw kickoff time alone made a single
+  // early fixture outrank a full matchday: Denmark's one match displaced the
+  // EFL Championship's nine for the sake of a two-hour head start. Day first
+  // keeps "tonight before tomorrow"; volume within the day keeps the slot on
+  // the competition a capper can actually build a card from.
+  const dayOf = (l: SoccerLeague) =>
+    Math.floor(
+      (windowByApiKey.get(l.oddsApiKey)!.firstKickoffMs! - now) / 86_400_000,
+    );
+
   playing.sort((a, b) => {
-    const aMs = windowByApiKey.get(a.oddsApiKey)!.firstKickoffMs!;
-    const bMs = windowByApiKey.get(b.oddsApiKey)!.firstKickoffMs!;
-    return aMs !== bMs ? aMs - bMs : rankOf(a) - rankOf(b);
+    const dayDiff = dayOf(a) - dayOf(b);
+    if (dayDiff !== 0) return dayDiff;
+    const volDiff =
+      windowByApiKey.get(b.oddsApiKey)!.upcoming -
+      windowByApiKey.get(a.oddsApiKey)!.upcoming;
+    if (volDiff !== 0) return volDiff;
+    return rankOf(a) - rankOf(b);
   });
 
   // Idle competitions keep the registry's order, so when the tour is quiet the

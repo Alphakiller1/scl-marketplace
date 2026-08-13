@@ -477,6 +477,7 @@ async function selectPlayingSoccerLeagues(
     candidates,
     windows,
     SOCCER_LEAGUE_LIMIT,
+    now,
   );
   console.info(
     `[odds] soccer slate: ${selected.map((l) => l.key).join(", ")}` +
