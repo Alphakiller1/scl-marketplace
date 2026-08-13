@@ -12,3 +12,32 @@ test("existing Odds API key remains first and fallback is deduplicated", () => {
     ["same"],
   );
 });
+
+test("ODDS_API_KEYS adds capacity without a deploy", () => {
+  // The outage this covers: a replacement key was put in the environment while
+  // both read names were exhausted, so the app never reached it and every board
+  // stayed empty — identical to having no key at all.
+  assert.deepEqual(
+    oddsApiKeys({ ODDS_API_KEY: "spent", ODDS_API_KEYS: " third , fourth " }),
+    ["spent", "third", "fourth"],
+  );
+  // Read last on purpose: the singles above may still have credit, and rollover
+  // is meant to burn those down first.
+  assert.deepEqual(
+    oddsApiKeys({
+      ODDS_API_KEY: "primary",
+      ODDS_API_KEY_FALLBACK: "fallback",
+      ODDS_API_KEY_2: "second",
+      ODDS_API_KEYS: "listed",
+    }),
+    ["primary", "fallback", "second", "listed"],
+  );
+  // A key repeated across names is still spent once.
+  assert.deepEqual(
+    oddsApiKeys({ ODDS_API_KEY: "dup", ODDS_API_KEYS: "dup,other" }),
+    ["dup", "other"],
+  );
+  // Empty entries and stray commas never become a request with a blank key.
+  assert.deepEqual(oddsApiKeys({ ODDS_API_KEYS: " , ,, " }), []);
+  assert.deepEqual(oddsApiKeys({}), []);
+});
