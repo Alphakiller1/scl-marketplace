@@ -1,5 +1,10 @@
-import "server-only";
-
+// Deliberately NOT `server-only`. Every caller that reaches The Odds API is
+// required to route through this module, which put it in the import chain of
+// `odds-provider-health` and therefore of that module's test — and a
+// `server-only` import there fails to resolve under tsx, taking the whole suite
+// down. Nothing here is a secret in its own right: the keys come from
+// non-NEXT_PUBLIC env vars, which are undefined in a browser bundle, and the
+// modules that actually serve odds (`odds-api`) keep their own `server-only`.
 import { oddsApiKeys } from "@/lib/odds-config";
 
 let preferredIndex = 0;
