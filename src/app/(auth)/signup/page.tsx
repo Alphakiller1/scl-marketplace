@@ -14,6 +14,7 @@ import { AuthHeader, AuthStatusNotice } from "@/components/scl/auth-header";
 import { PasswordField } from "@/components/scl/password-field";
 import { signupSchema, type SignupInput } from "@/lib/schemas/auth.schema";
 import { signupAction } from "@/lib/actions/signup.action";
+import { trackCompleteRegistration } from "@/lib/meta-pixel";
 
 type Done = { emailDelivered: boolean; verifyUrl?: string };
 
@@ -53,6 +54,9 @@ export default function SignupPage() {
         emailDelivered: result.emailDelivered,
         verifyUrl: result.verifyUrl,
       });
+      // Fires only on a confirmed account creation. Not on submit, not on a rejected
+      // form, not on a duplicate email — those all return before reaching this line.
+      trackCompleteRegistration("email");
     } catch {
       // Never fail silently — a thrown server error must surface to the user.
       toast.error(
