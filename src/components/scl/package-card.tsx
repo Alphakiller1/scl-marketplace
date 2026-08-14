@@ -1,9 +1,8 @@
 import Link from "next/link";
 import type { StoreProvider } from "@prisma/client";
-import { ArrowUpRight } from "lucide-react";
 
+import { PackageCheckoutLink } from "@/components/scl/package-checkout-link";
 import { ProviderBadge } from "@/components/scl/provider-badge";
-import { Button } from "@/components/ui/button";
 import { STOREFRONT_OUTBOUND_MICROCOPY } from "@/lib/cold-start-copy";
 import { packageCtaLabel } from "@/lib/store-connection";
 import { cn } from "@/lib/utils";
@@ -71,23 +70,14 @@ export function PackageCard({
             {pkg.priceLabel ?? "See provider for current price"}
           </p>
         </div>
-        <Button
-          render={
-            <Link
-              href={pkg.trackingPath}
-              target="_blank"
-              rel="noopener noreferrer"
-              // /go/[slug] writes a ClickEvent on every GET — prefetching it
-              // would record a click nobody made. See packages-register.tsx.
-              prefetch={false}
-            />
-          }
-          nativeButton={false}
+        <PackageCheckoutLink
+          packageId={pkg.id}
+          title={pkg.title}
+          provider={pkg.provider}
+          trackingPath={pkg.trackingPath}
+          label={cta}
           className="min-h-10 gap-1.5"
-        >
-          {cta}
-          <ArrowUpRight className="size-4" aria-hidden />
-        </Button>
+        />
       </div>
       <p className="text-muted-foreground text-[0.65rem] leading-relaxed">
         {STOREFRONT_OUTBOUND_MICROCOPY}

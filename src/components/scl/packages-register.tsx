@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowUpRight, Search, ShieldCheck } from "lucide-react";
+import { Search, ShieldCheck } from "lucide-react";
 
 const PACKAGES_PAGE_SIZE = 20;
 
 import { CapperAvatar } from "@/components/scl/capper-avatar";
+import { PackageCheckoutLink } from "@/components/scl/package-checkout-link";
 import { ProviderBadge } from "@/components/scl/provider-badge";
 import { SampleMaturityMeter } from "@/components/scl/sample-maturity-meter";
 import { Button } from "@/components/ui/button";
@@ -193,26 +194,15 @@ function ExternalStorefront({ pkg }: { pkg: PublicMarketplacePackage }) {
           {pkg.priceLabel ?? "See provider for current price"}
         </p>
       </div>
-      <Button
-        render={
-          <Link
-            href={pkg.trackingPath}
-            target="_blank"
-            rel="noopener noreferrer"
-            // /go/[slug] writes a ClickEvent on every GET, so prefetching it
-            // records a click nobody made. Next prefetches links on hover and
-            // in-viewport by default, which silently inflated the count for
-            // every offer rendered on the page.
-            prefetch={false}
-          />
-        }
-        nativeButton={false}
+      <PackageCheckoutLink
+        packageId={pkg.id}
+        title={pkg.title}
+        provider={pkg.provider}
+        trackingPath={pkg.trackingPath}
+        label={packageCtaLabel(pkg.provider)}
         variant="outline"
         className="min-h-10 gap-1.5"
-      >
-        {packageCtaLabel(pkg.provider)}
-        <ArrowUpRight className="size-4" aria-hidden />
-      </Button>
+      />
     </div>
   );
 }
