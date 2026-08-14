@@ -67,6 +67,29 @@ export const STRATEGIC_ODDS_COMPETITIONS: readonly StrategicCompetition[] = [
     markets: BASIC,
     slots: [{ kind: "before-first", id: "pre-first", leadMinutes: 60 }],
   },
+  // The on-demand soccer board discovers these from the catalog, but that path
+  // ranks ~40 in-season competitions and keeps only SOCCER_LEAGUE_LIMIT of them,
+  // so a requested league is covered on a good day and silently dropped on a
+  // busy one. A strategic slot is what makes coverage guaranteed rather than
+  // incidental.
+  {
+    id: "la-liga",
+    label: "La Liga - Spain",
+    sclSport: "SOCCER",
+    providerKey: "soccer_spain_la_liga",
+    league: "LA_LIGA",
+    markets: BASIC,
+    slots: [{ kind: "before-first", id: "pre-first", leadMinutes: 60 }],
+  },
+  {
+    id: "primeira-liga",
+    label: "Primeira Liga - Portugal",
+    sclSport: "SOCCER",
+    providerKey: "soccer_portugal_primeira_liga",
+    league: "PRIMEIRA_LIGA",
+    markets: BASIC,
+    slots: [{ kind: "before-first", id: "pre-first", leadMinutes: 60 }],
+  },
   // The Europa and Europa Conference League qualifiers were requested, but The
   // Odds API does not carry them: `soccer_uefa_europa_league` and
   // `soccer_uefa_europa_conference_league` both report `active: false` with zero
