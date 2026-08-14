@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Barlow, Barlow_Condensed, Inter } from "next/font/google";
 import "./globals.css";
 
+import { MetaPixel } from "@/components/providers/meta-pixel";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { appUrl } from "@/lib/app-url";
@@ -48,6 +49,7 @@ export default function RootLayout({
       className={`${barlow.variable} ${barlowCondensed.variable} ${interData.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
+        <MetaPixel />
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
