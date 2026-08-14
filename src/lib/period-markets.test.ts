@@ -97,6 +97,37 @@ test("parsePeriodMarket also recognizes the shapes legacy imports produced", () 
   assert.equal(isPeriodMarket("First Five Innings"), true);
 });
 
+test("the first inning is its own segment, spelled singular", () => {
+  const mlb = verificationMarkets("MLB");
+  assert.ok(mlb.includes("h2h_1st_1_innings"));
+  assert.ok(mlb.includes("totals_1st_1_innings"));
+  // The featured F1 run line is not offered by US books, but the alternate
+  // ladder is; both are requested and the absent one is simply never billed.
+  assert.ok(mlb.includes("spreads_1st_1_innings"));
+  assert.ok(mlb.includes("alternate_totals_1st_1_innings"));
+
+  // "1st 1 Innings Moneyline" is what the general form would produce, and it
+  // would be the stored label on a public record.
+  const label = periodMarketLabel(1, "moneyline");
+  assert.equal(label, "1st Inning Moneyline");
+  assert.deepEqual(parsePeriodMarket(label), { innings: 1, kind: "moneyline" });
+  assert.deepEqual(periodMarketKeysForLabel(label), ["h2h_1st_1_innings"]);
+  assert.deepEqual(marketKeysForMarket(periodMarketLabel(1, "total")), [
+    "totals_1st_1_innings",
+    "alternate_totals_1st_1_innings",
+  ]);
+
+  // The singular form must not swallow the counted ones, or an F5 pick would
+  // grade on the first inning alone.
+  assert.deepEqual(parsePeriodMarket("1st 5 Innings Total"), {
+    innings: 5,
+    kind: "total",
+  });
+  // Not "F1" — that reads as Formula 1 on a multi-sport board.
+  assert.equal(segmentShortLabel(label), "1st Inn ML");
+  assert.equal(segmentShortLabel("1st 5 Innings Total"), "F5 Total");
+});
+
 test("CFL and the other clock sports offer half lines", () => {
   const cfl = periodMarketKeysForSport("CFL");
   assert.ok(cfl.includes("h2h_h1") && cfl.includes("totals_h2"));

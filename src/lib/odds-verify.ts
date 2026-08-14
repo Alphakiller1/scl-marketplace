@@ -59,9 +59,21 @@ export const PROP_MARKETS_BY_SPORT: Record<string, readonly string[]> = {
     "pitcher_outs",
     "pitcher_earned_runs",
     "batter_hits",
+    // Hits ALLOWED — the pitcher's line, not the batter's. It settles from the
+    // pitching group under its own stat key for the reason spelled out in
+    // stats-provider's STATS_BY_GROUP: baseball reports "H" in both groups
+    // meaning opposite things, and a pitcher graded on his batting hits would
+    // read 0 in every AL game.
+    "pitcher_hits_allowed",
   ],
   NBA: ["player_points", "player_rebounds", "player_assists", "player_threes"],
-  WNBA: ["player_points", "player_rebounds", "player_assists"],
+  WNBA: [
+    "player_points",
+    "player_rebounds",
+    "player_assists",
+    "player_threes",
+    "player_points_rebounds_assists",
+  ],
   NCAAB: ["player_points"],
   NFL: [
     "player_pass_yds",
@@ -130,10 +142,14 @@ export const PROP_MARKET_LABEL: Record<string, string> = {
   pitcher_outs: "Outs",
   pitcher_earned_runs: "Earned Runs",
   batter_hits: "Hits",
+  // Distinct from "Hits" on purpose — these are two different markets on two
+  // different stat lines, and PROP_LABEL_TO_KEY requires unique labels.
+  pitcher_hits_allowed: "Hits Allowed",
   player_points: "Points",
   player_rebounds: "Rebounds",
   player_assists: "Assists",
   player_threes: "3-Pointers",
+  player_points_rebounds_assists: "Pts+Reb+Ast",
   player_pass_yds: "Passing Yds",
   player_rush_yds: "Rushing Yds",
   player_receptions: "Receptions",
