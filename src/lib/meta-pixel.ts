@@ -38,6 +38,33 @@ export function trackPageView(): void {
   window.fbq?.("track", "PageView");
 }
 
+/**
+ * A click through to an external storefront (Whop / Winible).
+ *
+ * Deliberately NOT deduped, unlike registration: a visitor comparing three offers
+ * sends three genuine intent signals, and collapsing them would hide exactly the
+ * interest the ads are meant to optimise for.
+ *
+ * No `value` / `currency`. Many packages are external offers whose price SCL does
+ * not hold — `priceLabel` is nullable and frequently reads "See provider for
+ * current price" — so a value would be absent or invented for a large share of
+ * clicks. A partially-populated value field optimises worse than none at all.
+ */
+export function trackPackageClick(pkg: {
+  id: string;
+  title: string;
+  provider?: string | null;
+}): void {
+  if (typeof window === "undefined") return;
+
+  window.fbq?.("track", "InitiateCheckout", {
+    content_type: "product",
+    content_ids: [pkg.id],
+    content_name: pkg.title,
+    ...(pkg.provider ? { provider: pkg.provider } : {}),
+  });
+}
+
 export function trackCompleteRegistration(method: string): void {
   if (typeof window === "undefined") return;
   if (claimOnce(REGISTRATION_FIRED_KEY)) return;
