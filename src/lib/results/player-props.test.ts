@@ -417,6 +417,11 @@ test("ESPN summary JSON maps to stat lines, keeping pitching and batting apart",
   const mapped = mapSummaryToPlayerBox(summary);
   assert.ok(mapped);
   const wacha = mapped.players.find((p) => p.name === "Michael Wacha");
+  // The pitcher SURRENDERED six hits. Landing that on `hits` would settle a
+  // "Hits" prop — the batting market — against the pitching line. Asserted
+  // BEFORE the deepEqual below, which narrows `stats` to its literal shape and
+  // would make this a type error rather than a check.
+  assert.equal(wacha?.stats.hits, undefined);
   assert.deepEqual(wacha?.stats, {
     outs: 17,
     strikeouts: 1,
@@ -424,9 +429,6 @@ test("ESPN summary JSON maps to stat lines, keeping pitching and batting apart",
     hitsAllowed: 6,
   });
   assert.equal(wacha?.played, true);
-  // The pitcher SURRENDERED six hits. Landing that on `hits` would settle a
-  // "Hits" prop — the batting market — against the pitching line.
-  assert.equal(wacha?.stats.hits, undefined);
 
   // "H" on the batting line is hits; it must not become a pitching stat.
   const witt = mapped.players.find((p) => p.name === "Bobby Witt Jr.");
