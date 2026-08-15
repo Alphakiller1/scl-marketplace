@@ -1,7 +1,7 @@
 export type StrategicCompetition = {
   id: string;
   label: string;
-  sclSport: "MLB" | "WNBA" | "NFL" | "SOCCER" | "TENNIS";
+  sclSport: "MLB" | "WNBA" | "NFL" | "SOCCER" | "TENNIS" | "MMA";
   providerKey?: string;
   catalogMatch?: RegExp;
   league?: string;
@@ -16,6 +16,25 @@ export type RefreshSlot =
 
 const BASIC = ["h2h", "spreads", "totals"] as const;
 
+/**
+ * Longest gap between scheduled refresh runs during the hours games start.
+ *
+ * A `before-first` slot is due only inside the window `[firstKickoff - lead,
+ * firstKickoff)`. That window has length `lead`, so if the cron runs less often
+ * than `lead` the window can fall entirely BETWEEN two runs and the competition
+ * never refreshes that day — silently, since nothing reports a slot that was
+ * never due.
+ *
+ * At the old every-15-minutes cadence a 60-minute lead was hit four times over
+ * and this could not happen. At five runs a day it is the default outcome
+ * unless the lead is at least the gap, which is why every `before-first` slot
+ * below uses this constant rather than a hand-picked number.
+ *
+ * Keep it >= the largest daytime gap in `.github/workflows/odds-refresh.yml`.
+ * `strategic-odds-cadence.test.ts` reads that file and fails if they drift.
+ */
+export const REFRESH_MAX_GAP_MINUTES = 240;
+
 /** Owner-approved leagues and cost profiles. Props remain lazy per event. */
 export const STRATEGIC_ODDS_COMPETITIONS: readonly StrategicCompetition[] = [
   {
@@ -25,7 +44,11 @@ export const STRATEGIC_ODDS_COMPETITIONS: readonly StrategicCompetition[] = [
     providerKey: "baseball_mlb",
     markets: BASIC,
     slots: [
-      { kind: "before-first", id: "pre-first", leadMinutes: 120 },
+      {
+        kind: "before-first",
+        id: "pre-first",
+        leadMinutes: REFRESH_MAX_GAP_MINUTES,
+      },
       { kind: "fixed-et", id: "2200", hour: 22 },
     ],
   },
@@ -37,7 +60,34 @@ export const STRATEGIC_ODDS_COMPETITIONS: readonly StrategicCompetition[] = [
     markets: BASIC,
     slots: [
       { kind: "fixed-et", id: "0800", hour: 8 },
-      { kind: "before-first", id: "pre-first", leadMinutes: 120 },
+      {
+        kind: "before-first",
+        id: "pre-first",
+        leadMinutes: REFRESH_MAX_GAP_MINUTES,
+      },
+    ],
+  },
+  // One provider key covers every promotion (UFC, PFL, Bellator), so unlike
+  // soccer and tennis there is no per-event key to resolve.
+  //
+  // A card is not a slate, and that changes the cadence: thirteen fights run
+  // back-to-back over about six hours from one `commence_time` each, so the
+  // `daily` slot posts the whole card in the morning and `before-first` tops it
+  // up ahead of the opener. Later fights keep their pre-game prices because the
+  // refresh drops anything already under way.
+  {
+    id: "mma",
+    label: "MMA / UFC",
+    sclSport: "MMA",
+    providerKey: "mma_mixed_martial_arts",
+    markets: BASIC,
+    slots: [
+      { kind: "daily", id: "daily" },
+      {
+        kind: "before-first",
+        id: "pre-first",
+        leadMinutes: REFRESH_MAX_GAP_MINUTES,
+      },
     ],
   },
   {
@@ -47,7 +97,13 @@ export const STRATEGIC_ODDS_COMPETITIONS: readonly StrategicCompetition[] = [
     providerKey: "soccer_concacaf_leagues_cup",
     league: "LEAGUES_CUP",
     markets: BASIC,
-    slots: [{ kind: "before-first", id: "pre-first", leadMinutes: 60 }],
+    slots: [
+      {
+        kind: "before-first",
+        id: "pre-first",
+        leadMinutes: REFRESH_MAX_GAP_MINUTES,
+      },
+    ],
   },
   {
     id: "liga-mx",
@@ -56,7 +112,13 @@ export const STRATEGIC_ODDS_COMPETITIONS: readonly StrategicCompetition[] = [
     providerKey: "soccer_mexico_ligamx",
     league: "LIGA_MX",
     markets: BASIC,
-    slots: [{ kind: "before-first", id: "pre-first", leadMinutes: 60 }],
+    slots: [
+      {
+        kind: "before-first",
+        id: "pre-first",
+        leadMinutes: REFRESH_MAX_GAP_MINUTES,
+      },
+    ],
   },
   {
     id: "mls",
@@ -65,7 +127,13 @@ export const STRATEGIC_ODDS_COMPETITIONS: readonly StrategicCompetition[] = [
     providerKey: "soccer_usa_mls",
     league: "MLS",
     markets: BASIC,
-    slots: [{ kind: "before-first", id: "pre-first", leadMinutes: 60 }],
+    slots: [
+      {
+        kind: "before-first",
+        id: "pre-first",
+        leadMinutes: REFRESH_MAX_GAP_MINUTES,
+      },
+    ],
   },
   // The on-demand soccer board discovers these from the catalog, but that path
   // ranks ~40 in-season competitions and keeps only SOCCER_LEAGUE_LIMIT of them,
@@ -79,7 +147,13 @@ export const STRATEGIC_ODDS_COMPETITIONS: readonly StrategicCompetition[] = [
     providerKey: "soccer_spain_la_liga",
     league: "LA_LIGA",
     markets: BASIC,
-    slots: [{ kind: "before-first", id: "pre-first", leadMinutes: 60 }],
+    slots: [
+      {
+        kind: "before-first",
+        id: "pre-first",
+        leadMinutes: REFRESH_MAX_GAP_MINUTES,
+      },
+    ],
   },
   {
     id: "primeira-liga",
@@ -88,7 +162,13 @@ export const STRATEGIC_ODDS_COMPETITIONS: readonly StrategicCompetition[] = [
     providerKey: "soccer_portugal_primeira_liga",
     league: "PRIMEIRA_LIGA",
     markets: BASIC,
-    slots: [{ kind: "before-first", id: "pre-first", leadMinutes: 60 }],
+    slots: [
+      {
+        kind: "before-first",
+        id: "pre-first",
+        leadMinutes: REFRESH_MAX_GAP_MINUTES,
+      },
+    ],
   },
   // The Europa and Europa Conference League qualifiers were requested, but The
   // Odds API does not carry them: `soccer_uefa_europa_league` and
@@ -105,7 +185,13 @@ export const STRATEGIC_ODDS_COMPETITIONS: readonly StrategicCompetition[] = [
     providerKey: "soccer_uefa_champs_league_qualification",
     league: "UCL_QUALIFICATION",
     markets: BASIC,
-    slots: [{ kind: "before-first", id: "pre-first", leadMinutes: 60 }],
+    slots: [
+      {
+        kind: "before-first",
+        id: "pre-first",
+        leadMinutes: REFRESH_MAX_GAP_MINUTES,
+      },
+    ],
   },
   {
     id: "nfl-preseason",
@@ -116,7 +202,11 @@ export const STRATEGIC_ODDS_COMPETITIONS: readonly StrategicCompetition[] = [
     markets: BASIC,
     slots: [
       { kind: "daily", id: "daily" },
-      { kind: "before-first", id: "pre-first", leadMinutes: 180 },
+      {
+        kind: "before-first",
+        id: "pre-first",
+        leadMinutes: REFRESH_MAX_GAP_MINUTES,
+      },
     ],
   },
   // Qualifying is NOT a separate competition on The Odds API — it is filed
@@ -131,7 +221,13 @@ export const STRATEGIC_ODDS_COMPETITIONS: readonly StrategicCompetition[] = [
     providerKey: "tennis_atp_cincinnati_open",
     league: "ATP_CINCINNATI_OPEN",
     markets: BASIC,
-    slots: [{ kind: "before-first", id: "pre-first", leadMinutes: 60 }],
+    slots: [
+      {
+        kind: "before-first",
+        id: "pre-first",
+        leadMinutes: REFRESH_MAX_GAP_MINUTES,
+      },
+    ],
   },
   {
     id: "wta-cincinnati",
@@ -140,7 +236,13 @@ export const STRATEGIC_ODDS_COMPETITIONS: readonly StrategicCompetition[] = [
     providerKey: "tennis_wta_cincinnati_open",
     league: "WTA_CINCINNATI_OPEN",
     markets: BASIC,
-    slots: [{ kind: "before-first", id: "pre-first", leadMinutes: 60 }],
+    slots: [
+      {
+        kind: "before-first",
+        id: "pre-first",
+        leadMinutes: REFRESH_MAX_GAP_MINUTES,
+      },
+    ],
   },
   {
     id: "atp-montreal",
@@ -149,7 +251,13 @@ export const STRATEGIC_ODDS_COMPETITIONS: readonly StrategicCompetition[] = [
     providerKey: "tennis_atp_canadian_open",
     league: "ATP_MONTREAL",
     markets: BASIC,
-    slots: [{ kind: "before-first", id: "pre-first", leadMinutes: 60 }],
+    slots: [
+      {
+        kind: "before-first",
+        id: "pre-first",
+        leadMinutes: REFRESH_MAX_GAP_MINUTES,
+      },
+    ],
   },
   {
     id: "wta-toronto",
@@ -158,7 +266,13 @@ export const STRATEGIC_ODDS_COMPETITIONS: readonly StrategicCompetition[] = [
     providerKey: "tennis_wta_canadian_open",
     league: "WTA_TORONTO",
     markets: BASIC,
-    slots: [{ kind: "before-first", id: "pre-first", leadMinutes: 60 }],
+    slots: [
+      {
+        kind: "before-first",
+        id: "pre-first",
+        leadMinutes: REFRESH_MAX_GAP_MINUTES,
+      },
+    ],
   },
 ] as const;
 

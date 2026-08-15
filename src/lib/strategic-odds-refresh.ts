@@ -208,7 +208,15 @@ export async function runStrategicOddsRefresh(
           competition.league,
         ),
       )
-      .filter((event) => event.selections.length > 0);
+      .filter((event) => event.selections.length > 0)
+      // Never write a contest that has already started. The provider keeps
+      // returning a fixture while it is in progress, and the bulk odds call has
+      // no pre-game filter, so an in-progress event was landing on the board as
+      // a selectable line. It matters most on a card rather than a slate: a UFC
+      // event runs thirteen fights over six hours, so by the main event most of
+      // the card has begun, and a live line priced mid-fight is not something a
+      // capper can honestly log pre-game.
+      .filter((event) => Date.parse(event.commenceTime) > now.getTime());
     if (!events.length) {
       result.retained.push(competition.id);
       if (missingProviderIds.length) {
