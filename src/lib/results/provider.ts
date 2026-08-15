@@ -12,7 +12,10 @@ import { espnHistoricalResultsProvider } from "@/lib/results/espn-scores";
 import { mlbOfficialResultsProvider } from "@/lib/results/mlb-official";
 import { sportsPuffResultsProvider } from "@/lib/results/sportspuff-scores";
 import { wnbaOfficialResultsProvider } from "@/lib/results/wnba-official";
-import { fetchWithOddsKeyRollover } from "@/lib/odds-key-rollover";
+import {
+  fetchWithOddsKeyRollover,
+  isProviderRefusal,
+} from "@/lib/odds-key-rollover";
 import { RESULTS_LOOKBACK_DAYS } from "@/lib/results/lookback";
 import {
   mergeSettledGames,
@@ -152,9 +155,30 @@ export function oddsApiResultsProvider(): ResultsProvider {
           `?daysFrom=${RESULTS_LOOKBACK_DAYS}&apiKey=${key}`,
         { cache: "no-store" },
       );
-      if (!res) return [];
+      // No response at all means rollover exhausted the key list without one
+      // being accepted.
+      if (!res) {
+        throw new ResultsProviderUnavailable(
+          `No Odds API key could fetch ${sclSport} scores — every configured ` +
+            `key was refused. Grading cannot proceed.`,
+        );
+      }
       logOddsUsage(res, `scores ${sclSport}`, "results");
       if (!res.ok) {
+        // An account-level refusal will hit every remaining sport identically,
+        // and returning [] for each one is what made a spent key read as
+        // "nothing finished today" — plays sat ungraded for days with no
+        // failure anywhere. Throw instead: the cron records it on GradeJobRun
+        // and the run shows FAILED in /admin/grading.
+        if (isProviderRefusal(res.status)) {
+          throw new ResultsProviderUnavailable(
+            `The Odds API refused every configured key (HTTP ${res.status}) ` +
+              `fetching ${sclSport} scores. Quota is spent or the keys are ` +
+              `invalid — no play can be graded until this is resolved.`,
+          );
+        }
+        // Anything else belongs to this sport alone (a 404 for a league that is
+        // out of season, a transient 5xx). Skip it; grade the rest of the slate.
         console.error(
           `[results] scores fetch ${sclSport} failed: HTTP ${res.status}`,
         );
@@ -166,6 +190,9 @@ export function oddsApiResultsProvider(): ResultsProvider {
         sclSport === "SOCCER" ? "SOCCER" : undefined,
       );
     } catch (err) {
+      // A refused account is deliberate control flow, not a fetch failure —
+      // swallowing it here would restore the exact silence this guards against.
+      if (err instanceof ResultsProviderUnavailable) throw err;
       console.error(`[results] scores fetch ${sclSport} error:`, err);
       return [];
     }
@@ -212,6 +239,46 @@ type OddsApiScore = {
   scores?: { name: string; score: string }[];
 };
 
+/**
+ * Run both halves without letting one refused provider take the other down.
+ *
+ * The Odds API half throws `ResultsProviderUnavailable` when the account is
+ * refused, but the ESPN and official-league backstops do not use that key and
+ * can still settle plays. A plain `Promise.all` would reject the pair on the
+ * first throw and strand results the backstops were ready to supply — trading
+ * a silent failure for a total one. So a single refusal is logged loudly and
+ * the surviving side is used; only losing BOTH sides is fatal.
+ */
+async function settleBothSides(
+  primary: ResultsProvider,
+  secondary: ResultsProvider,
+  run: (provider: ResultsProvider) => Promise<SettledGame[]>,
+): Promise<{ a: SettledGame[]; b: SettledGame[] }> {
+  const [ra, rb] = await Promise.allSettled([run(primary), run(secondary)]);
+
+  for (const [result, provider] of [
+    [ra, primary],
+    [rb, secondary],
+  ] as const) {
+    if (result.status === "rejected") {
+      console.error(
+        `[results] provider "${provider.name}" is UNAVAILABLE — its results ` +
+          `are missing from this grading run:`,
+        result.reason,
+      );
+    }
+  }
+
+  if (ra.status === "rejected" && rb.status === "rejected") {
+    throw ra.reason;
+  }
+
+  return {
+    a: ra.status === "fulfilled" ? ra.value : [],
+    b: rb.status === "fulfilled" ? rb.value : [],
+  };
+}
+
 /** Merge primary + secondary settled games; prefer primary eventId on collision. */
 export function compositeResultsProvider(
   primary: ResultsProvider,
@@ -220,17 +287,15 @@ export function compositeResultsProvider(
   return {
     name: `${primary.name}+${secondary.name}`,
     async fetchSettled() {
-      const [a, b] = await Promise.all([
-        primary.fetchSettled(),
-        secondary.fetchSettled(),
-      ]);
+      const { a, b } = await settleBothSides(primary, secondary, (p) =>
+        p.fetchSettled(),
+      );
       return mergeSettledGames(a, b);
     },
     async fetchSettledForSports(sports: string[], scope?: ResultsQueryScope) {
-      const [a, b] = await Promise.all([
-        primary.fetchSettledForSports(sports, scope),
-        secondary.fetchSettledForSports(sports, scope),
-      ]);
+      const { a, b } = await settleBothSides(primary, secondary, (p) =>
+        p.fetchSettledForSports(sports, scope),
+      );
       const merged = mergeSettledGames(a, b);
       console.info("[results] provider batch", {
         sports,

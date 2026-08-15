@@ -22,6 +22,7 @@ export const ODDS_BOARD_SPORTS = [
   { key: "CFL", label: "CFL" },
   { key: "SOCCER", label: "Soccer" },
   { key: "TENNIS", label: "Tennis" },
+  { key: "MMA", label: "MMA / UFC" },
 ] as const;
 
 export type OddsBoardSportKey = (typeof ODDS_BOARD_SPORTS)[number]["key"];
