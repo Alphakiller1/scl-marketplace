@@ -295,6 +295,79 @@ test("market labels map to the stat the board writes", () => {
   assert.equal(statKeyForMarket("Strikeouts"), "strikeouts");
   assert.equal(statKeyForMarket("Total"), null);
   assert.equal(statKeyForMarket(null), null);
+  // Two different markets on two different stat lines.
+  assert.equal(statKeyForMarket("Hits"), "hits");
+  assert.equal(statKeyForMarket("Hits Allowed"), "hitsAllowed");
+});
+
+test("hits allowed settles off the pitching line, never the batting one", () => {
+  const box = {
+    players: [
+      {
+        name: "Michael Wacha",
+        team: "Kansas City Royals",
+        played: true,
+        // A pitcher who surrendered 6 hits and, batting, got none.
+        stats: { hitsAllowed: 6, hits: 0, outs: 17 },
+      },
+    ],
+  };
+  assert.equal(
+    resolvePlayerProp(
+      {
+        market: "Hits Allowed",
+        selection: "Michael Wacha Over 5.5",
+        side: "Over",
+        line: 5.5,
+      },
+      box,
+    ),
+    "WIN",
+  );
+  // The same athlete's batting hits are a different market and lose here.
+  assert.equal(
+    resolvePlayerProp(
+      {
+        market: "Hits",
+        selection: "Michael Wacha Over 5.5",
+        side: "Over",
+        line: 5.5,
+      },
+      box,
+    ),
+    "LOSS",
+  );
+});
+
+test("Pts+Reb+Ast sums its components, and defers when one is missing", () => {
+  const line = {
+    name: "Sabrina Ionescu",
+    team: "New York Liberty",
+    played: true,
+    stats: { points: 20, rebounds: 5, assists: 6 },
+  };
+  const play = {
+    market: "Pts+Reb+Ast",
+    selection: "Sabrina Ionescu Over 30.5",
+    side: "Over",
+    line: 30.5,
+  };
+  assert.equal(resolvePlayerProp(play, { players: [line] }), "WIN");
+  assert.equal(
+    resolvePlayerProp(
+      { ...play, selection: "Sabrina Ionescu Under 30.5", side: "Under" },
+      { players: [line] },
+    ),
+    "LOSS",
+  );
+  // A missing component must defer, not settle on a partial sum — 20 + 6 would
+  // read as UNDER and write a wrong result confidently.
+  assert.equal(
+    resolvePlayerProp(play, {
+      players: [{ ...line, stats: { points: 20, assists: 6 } }],
+    }),
+    null,
+  );
 });
 
 test("innings pitched convert to outs in thirds", () => {
@@ -344,12 +417,23 @@ test("ESPN summary JSON maps to stat lines, keeping pitching and batting apart",
   const mapped = mapSummaryToPlayerBox(summary);
   assert.ok(mapped);
   const wacha = mapped.players.find((p) => p.name === "Michael Wacha");
-  assert.deepEqual(wacha?.stats, { outs: 17, strikeouts: 1, earnedRuns: 3 });
+  // The pitcher SURRENDERED six hits. Landing that on `hits` would settle a
+  // "Hits" prop — the batting market — against the pitching line. Asserted
+  // BEFORE the deepEqual below, which narrows `stats` to its literal shape and
+  // would make this a type error rather than a check.
+  assert.equal(wacha?.stats.hits, undefined);
+  assert.deepEqual(wacha?.stats, {
+    outs: 17,
+    strikeouts: 1,
+    earnedRuns: 3,
+    hitsAllowed: 6,
+  });
   assert.equal(wacha?.played, true);
 
   // "H" on the batting line is hits; it must not become a pitching stat.
   const witt = mapped.players.find((p) => p.name === "Bobby Witt Jr.");
   assert.equal(witt?.stats.hits, 2);
+  assert.equal(witt?.stats.hitsAllowed, undefined);
 
   assert.equal(
     mapped.players.find((p) => p.name === "Bench Arm")?.played,

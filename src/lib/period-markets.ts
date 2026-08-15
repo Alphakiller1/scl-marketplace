@@ -11,8 +11,18 @@
  * Pure — no network, no server-only, unit-testable.
  */
 
-/** Innings segments SCL offers. Baseball only; the Odds API has no F-N elsewhere. */
-export const PERIOD_INNINGS = [3, 5, 7] as const;
+/**
+ * Innings segments SCL offers. Baseball only; the Odds API has no F-N elsewhere.
+ *
+ * The first inning is its own segment, not a degenerate F-N: books price a
+ * first-inning moneyline and total (and the alternate run-line ladder) as a
+ * headline market — "will they score in the 1st" is one of the most-posted
+ * baseball bets — and it settles from the same line-scores as F3/F5/F7, off the
+ * first entry rather than a sum. The featured `spreads_1st_1_innings` is not
+ * offered by US books; its alternate ladder is, and both are requested, so the
+ * absent one simply returns nothing and is never billed.
+ */
+export const PERIOD_INNINGS = [1, 3, 5, 7] as const;
 export type PeriodInnings = (typeof PERIOD_INNINGS)[number];
 
 export type PeriodMarketKind = "moneyline" | "spread" | "total";
@@ -71,6 +81,10 @@ export function periodMarketLabel(
   innings: PeriodInnings,
   kind: PeriodMarketKind,
 ): string {
+  // "1st 1 Innings Moneyline" is what the general form produces for a single
+  // inning, and it would be the STORED label — the string grading parses and the
+  // public record displays. Singular is spelled out instead.
+  if (innings === 1) return `1st Inning ${KIND_LABEL[kind]}`;
   return `1st ${innings} Innings ${KIND_LABEL[kind]}`;
 }
 
@@ -81,6 +95,9 @@ export function periodMarketShortLabel(
 ): string {
   const k =
     kind === "moneyline" ? "ML" : kind === "spread" ? "Spread" : "Total";
+  // Not "F1" — that reads as Formula 1 on a multi-sport board, and the whole
+  // point of the short form is to be unambiguous at a glance.
+  if (innings === 1) return `1st Inn ${k}`;
   return `F${innings} ${k}`;
 }
 
@@ -118,6 +135,7 @@ export function segmentShortLabel(market: string): string {
       : parsed.kind === "spread"
         ? "Spread"
         : "Total";
+  if (parsed.innings === 1) return `1st Inn ${kind}`;
   if (parsed.innings > 0) return `F${parsed.innings} ${kind}`;
   const half = /\b(2nd|second)\s*half\b|\bh2\b/i.test(market) ? 2 : 1;
   return `H${half} ${kind}`;
@@ -198,7 +216,12 @@ export function parsePeriodMarket(
       ? 3
       : /first[\s-]?seven|\bf7\b/.test(m)
         ? 7
-        : Number(m.match(/(?:1st|first)[\s-]?(\d+)\s*innings?/)?.[1] ?? NaN);
+        : // "1st Inning" carries no count, so the numeric form below cannot see
+          // it. The negative lookahead is what keeps this off "1st 5 Innings":
+          // there the word after "1st " is a digit, not "inning".
+          /(?:1st|first)[\s-]?inning(?!s)/.test(m)
+          ? 1
+          : Number(m.match(/(?:1st|first)[\s-]?(\d+)\s*innings?/)?.[1] ?? NaN);
   if (
     half == null &&
     (!Number.isFinite(innings) || innings < 1 || innings > 9)

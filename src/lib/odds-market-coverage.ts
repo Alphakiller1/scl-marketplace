@@ -1,7 +1,26 @@
 import type { OddsEvent, OddsSelection } from "@/lib/odds-board";
 import { parsePeriodMarket } from "@/lib/period-markets";
-import { PROP_MARKET_LABEL, PROP_MARKETS_BY_SPORT } from "@/lib/odds-verify";
-import { isTeamTotalMarket } from "@/lib/team-total-markets";
+import {
+  expandedBoardMarkets,
+  PROP_MARKET_LABEL,
+  PROP_MARKETS_BY_SPORT,
+} from "@/lib/odds-verify";
+import {
+  isTeamTotalMarket,
+  TEAM_TOTAL_MARKET_KEYS,
+} from "@/lib/team-total-markets";
+
+/**
+ * Does this sport's expanded board actually ask for team totals?
+ *
+ * Derived from the request list rather than a second hardcoded sport set, so a
+ * sport that gains or loses team totals cannot end up with a coverage rule that
+ * disagrees with what is fetched.
+ */
+function requestsTeamTotals(sport: string): boolean {
+  const markets = expandedBoardMarkets(sport);
+  return TEAM_TOTAL_MARKET_KEYS.some((key) => markets.includes(key));
+}
 
 const PROP_LABELS = new Set(
   Object.values(PROP_MARKET_LABEL).map((label) => label.toLowerCase()),
@@ -77,6 +96,14 @@ export function summarizeEventMarketCoverage(
   if (alternateTotals === 0) missing.push("alternate totals");
   if ((PROP_MARKETS_BY_SPORT[sport]?.length ?? 0) > 0 && props === 0) {
     missing.push("player props");
+  }
+  // Counted since this report was written, but never checked — so a game whose
+  // snapshot came back with no team totals was reported fullyCovered and the
+  // warmer never returned to fill them. Every other expanded market has a rule
+  // here; team totals were the one gap, which made them the one market that
+  // could stay permanently thin no matter how often the refresh ran.
+  if (requestsTeamTotals(sport) && teamTotals === 0) {
+    missing.push("team totals");
   }
   if (sport === "MLB") {
     if (f3 === 0) missing.push("F3");

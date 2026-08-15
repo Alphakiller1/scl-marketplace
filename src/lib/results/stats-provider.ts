@@ -92,6 +92,8 @@ type MlbBoxPlayer = {
       strikeOuts?: number;
       outs?: number;
       earnedRuns?: number;
+      /** Hits surrendered. Same field name as batting's, opposite meaning. */
+      hits?: number;
     };
   };
 };
@@ -121,6 +123,11 @@ export function mapMlbOfficialPlayerBox(data: unknown): PlayerBoxScore | null {
       if (typeof pitching?.outs === "number") stats.outs = pitching.outs;
       if (typeof pitching?.earnedRuns === "number") {
         stats.earnedRuns = pitching.earnedRuns;
+      }
+      // Kept under a separate key from batting's `hits` above — a two-way player
+      // has both, and collapsing them would settle one market on the other.
+      if (typeof pitching?.hits === "number") {
+        stats.hitsAllowed = pitching.hits;
       }
       rows.push({
         name,
@@ -160,7 +167,7 @@ export async function fetchMlbOfficialPlayerBoxScore(
  * from the pitching group. Keys here are the ones `player-props.ts` looks up.
  */
 const STATS_BY_GROUP: Record<string, Record<string, string>> = {
-  pitching: { K: "strikeouts", ER: "earnedRuns" },
+  pitching: { K: "strikeouts", ER: "earnedRuns", H: "hitsAllowed" },
   batting: { H: "hits", HR: "homeRuns", RBI: "rbis" },
   // Basketball/football/hockey report one group; ESPN names it per sport.
   default: {

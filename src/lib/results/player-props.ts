@@ -79,7 +79,49 @@ const MARKET_STAT_KEY: Record<string, string> = {
   outs: "outs",
   "earned runs": "earnedRuns",
   hits: "hits",
+  // NOT "hits": that key is the BATTING line. A pitcher's hits allowed comes
+  // from the pitching group under its own key — see STATS_BY_GROUP.
+  "hits allowed": "hitsAllowed",
+  "pts+reb+ast": "pointsReboundsAssists",
 };
+
+/**
+ * Stat keys no feed reports directly — settled by summing components.
+ *
+ * A combined prop has no column of its own in a box score; it is the sum of
+ * three that do. Summing here rather than in the mappers keeps the derivation in
+ * one place and out of every provider.
+ */
+const DERIVED_STATS: Record<string, readonly string[]> = {
+  pointsReboundsAssists: ["points", "rebounds", "assists"],
+};
+
+/**
+ * The athlete's number for a stat key, or null to defer.
+ *
+ * A derived stat requires EVERY component: a missing rebounds column would
+ * otherwise settle a Pts+Reb+Ast play against points and assists alone, which
+ * is a wrong result written confidently rather than an honest deferral.
+ */
+function statValue(
+  stats: Record<string, number>,
+  statKey: string,
+): number | null {
+  const components = DERIVED_STATS[statKey];
+  if (!components) {
+    const direct = stats[statKey];
+    return typeof direct === "number" && Number.isFinite(direct)
+      ? direct
+      : null;
+  }
+  let sum = 0;
+  for (const component of components) {
+    const value = stats[component];
+    if (typeof value !== "number" || !Number.isFinite(value)) return null;
+    sum += value;
+  }
+  return sum;
+}
 
 export function statKeyForMarket(market: string | null): string | null {
   if (!market) return null;
@@ -195,8 +237,8 @@ export function resolvePlayerProp(
   if (found === "AMBIGUOUS" || !found) return null;
   if (!found.played) return "VOID";
 
-  const actual = found.stats[statKey];
-  if (typeof actual !== "number" || !Number.isFinite(actual)) return null;
+  const actual = statValue(found.stats, statKey);
+  if (actual == null) return null;
 
   return overUnderOutcome(actual, line, side);
 }
