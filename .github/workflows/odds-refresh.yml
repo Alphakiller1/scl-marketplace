@@ -20,6 +20,27 @@ jobs:
         run: |
           test -n "$CRON_SECRET"
           URL="${CRON_ODDS_URL:-https://scl-marketplace.vercel.app/api/cron/odds-refresh}"
-          code=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -o /tmp/odds.json -w "%{http_code}" -H "Authorization: $CRON_SECRET" "$URL")
+          # NO --retry here. This endpoint is metered and side-effecting: it
+          # spends roughly 31 Odds API credits per event it warms, so a blanket
+          # `--retry 3 --retry-all-errors` turned every scheduled run into four
+          # paid refreshes. It retried on incomplete coverage — a state a retry
+          # cannot fix, because books still will not have priced those markets a
+          # minute later. Only the credits changed.
+          #
+          # `--max-time` is generous because a real refresh is slow (the route
+          # allows 300s); it is a stuck-connection guard, not a retry budget.
+          code=$(curl -sS --max-time 300 -o /tmp/odds.json -w "%{http_code}" -H "Authorization: $CRON_SECRET" "$URL")
           cat /tmp/odds.json
+          echo
+
+          # The request must have been serviced...
           test "$code" = "200"
+
+          # ...and the board it produced must be complete. Incomplete coverage
+          # fails the job so it stays visible in Actions, but costs one refresh
+          # rather than four.
+          ok=$(jq -r '.ok' /tmp/odds.json)
+          if [ "$ok" != "true" ]; then
+            echo "::error::Odds refresh completed with incomplete coverage (ok=$ok). See expandedFailures above."
+            exit 1
+          fi
