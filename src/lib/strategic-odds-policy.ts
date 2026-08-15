@@ -1,7 +1,7 @@
 export type StrategicCompetition = {
   id: string;
   label: string;
-  sclSport: "MLB" | "WNBA" | "NFL" | "SOCCER" | "TENNIS";
+  sclSport: "MLB" | "WNBA" | "NFL" | "SOCCER" | "TENNIS" | "MMA";
   providerKey?: string;
   catalogMatch?: RegExp;
   league?: string;
@@ -60,6 +60,29 @@ export const STRATEGIC_ODDS_COMPETITIONS: readonly StrategicCompetition[] = [
     markets: BASIC,
     slots: [
       { kind: "fixed-et", id: "0800", hour: 8 },
+      {
+        kind: "before-first",
+        id: "pre-first",
+        leadMinutes: REFRESH_MAX_GAP_MINUTES,
+      },
+    ],
+  },
+  // One provider key covers every promotion (UFC, PFL, Bellator), so unlike
+  // soccer and tennis there is no per-event key to resolve.
+  //
+  // A card is not a slate, and that changes the cadence: thirteen fights run
+  // back-to-back over about six hours from one `commence_time` each, so the
+  // `daily` slot posts the whole card in the morning and `before-first` tops it
+  // up ahead of the opener. Later fights keep their pre-game prices because the
+  // refresh drops anything already under way.
+  {
+    id: "mma",
+    label: "MMA / UFC",
+    sclSport: "MMA",
+    providerKey: "mma_mixed_martial_arts",
+    markets: BASIC,
+    slots: [
+      { kind: "daily", id: "daily" },
       {
         kind: "before-first",
         id: "pre-first",
