@@ -34,6 +34,21 @@ export async function GET(req: NextRequest) {
     }));
   const ok =
     result.verificationFailures.length === 0 && expandedFailures.length === 0;
+
+  // Always 200 once the refresh has actually run. `ok` describes the QUALITY of
+  // the resulting board; the status code describes whether the request was
+  // serviced, and those are different questions.
+  //
+  // This returned 503 on incomplete coverage, which is a normal state — books
+  // have not priced every market on every fixture at any given minute. The
+  // caller (.github/workflows/odds-refresh.yml) ran curl with
+  // `--retry 3 --retry-all-errors`, so each 503 bought three more full refreshes
+  // at roughly 31 credits per event: one scheduled run cost 4x what it should.
+  // The retry could never help either, since a re-run finds books still haven't
+  // priced those markets and returns 503 again — it only ever spent credits.
+  //
+  // Incomplete coverage is reported in the body, and the workflow fails its job
+  // on `ok: false` without re-requesting.
   return NextResponse.json(
     {
       ok,
@@ -47,6 +62,6 @@ export async function GET(req: NextRequest) {
       expandedFailures,
       boardStatus,
     },
-    { status: ok ? 200 : 503 },
+    { status: 200 },
   );
 }
