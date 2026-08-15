@@ -73,6 +73,11 @@ const SCL_TO_ODDS_API: Record<string, string> = {
   NHL: "icehockey_nhl",
   WNBA: "basketball_wnba",
   CFL: "americanfootball_cfl",
+  // One key covers every promotion (UFC, PFL, Bellator), so there is no
+  // per-event key to resolve the way soccer and tennis need. Fighters have no
+  // `teams.ts` rows, which is fine — `resolveKnownTeam` returns null for
+  // unknown names and soccer/tennis have run that way since launch.
+  MMA: "mma_mixed_martial_arts",
 };
 
 /**

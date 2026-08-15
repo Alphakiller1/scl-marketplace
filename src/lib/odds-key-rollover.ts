@@ -15,8 +15,27 @@ export type OddsKeyFetchResult = {
   rolledOver: boolean;
 };
 
+/**
+ * Statuses that mean the ACCOUNT was refused rather than the request being
+ * wrong — no other key-independent reading of them exists.
+ *
+ * Note The Odds API answers an exhausted quota with 401, not 429, so a spent
+ * key and an invalid one are indistinguishable by status alone. Both mean the
+ * same thing to a caller: this key cannot fetch anything.
+ */
+export const PROVIDER_REFUSED_STATUSES = [401, 402, 403, 429] as const;
+
+/**
+ * True when the provider refused the account. Callers past rollover use this to
+ * tell "every key was turned down" (fatal — nothing will fetch) apart from a
+ * per-request failure like a 404 on an out-of-season sport (skippable).
+ */
+export function isProviderRefusal(status: number): boolean {
+  return (PROVIDER_REFUSED_STATUSES as readonly number[]).includes(status);
+}
+
 function shouldRollOver(response: Response): boolean {
-  return [401, 402, 403, 429].includes(response.status);
+  return isProviderRefusal(response.status);
 }
 
 /** Try the current primary first and use rollover only after quota/auth failure. */
