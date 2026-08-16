@@ -115,8 +115,30 @@ export async function getGradingHealthReport(
   };
 }
 
-/** Boolean helper used by public Ticket copy. */
+/**
+ * Boolean helper used by public Ticket copy.
+ *
+ * Soft-fails, unlike {@link getGradingHealthReport}, which keeps throwing so
+ * the admin diagnostics page and the grading cron surface a real outage.
+ *
+ * The public ledger reads this one. `withTransientDatabaseRetry` rethrows once
+ * the retries are spent, and `/picks` has no error boundary above it, so an
+ * unreachable database took the whole page down — including the "Couldn't load
+ * public picks" state the page already renders for exactly this situation. Its
+ * two sibling reads (`getLeaderboardResult`, `getPublicRecentPickRows`) both
+ * return `failed: true` instead of throwing; this one probe did not, so it
+ * crashed the render before the degraded branch could be reached.
+ *
+ * Unknown health resolves to NOT healthy on purpose. The flag decides between
+ * "GRADES AUTOMATICALLY" and "GRADING DELAYED" on a public receipt, and the
+ * first is a promise — one we have no basis to make when the probe just failed.
+ */
 export async function getGradingHealth(): Promise<boolean> {
-  const report = await getGradingHealthReport();
-  return report.healthy;
+  try {
+    const report = await getGradingHealthReport();
+    return report.healthy;
+  } catch (error) {
+    console.error("[getGradingHealth] database unavailable:", error);
+    return false;
+  }
 }
