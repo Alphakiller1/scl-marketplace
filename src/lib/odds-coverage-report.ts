@@ -72,13 +72,29 @@ export async function warmMissingOddsCoverage(report: OddsCoverageReport) {
   let populated = 0;
   let skippedEmpty = 0;
   let consecutiveEmpty = 0;
-  let stoppedReason: "provider_empty" | "credits_exhausted" | null = null;
+  let stoppedReason:
+    | "provider_empty"
+    | "credits_exhausted"
+    | "credit_reserve"
+    | null = null;
 
   for (const game of missing) {
     const board = await loadEventBoard(game.sport, game.eventId, {
       forceRefresh: true,
     });
     attempted++;
+
+    // The breaker fired: remaining credits are down to the reserve the plan
+    // holds back for pick verification. Stop on the FIRST such answer rather
+    // than letting it look like three empty fixtures and burning the
+    // consecutive-empty budget to reach the same conclusion.
+    if (
+      board.source === "circuit_break_empty" ||
+      board.source === "stale_circuit_break"
+    ) {
+      stoppedReason = "credit_reserve";
+      break;
+    }
 
     if (board.selections.length === 0) {
       skippedEmpty++;
