@@ -51,19 +51,30 @@ jobs:
           cache: npm
       - run: npm ci
 
-      - name: Check DATABASE_URL
+      - run: npx prisma generate
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+
+      # BEFORE spending a single credit. The first run of this workflow fetched
+      # the whole expanded MLB slate, then failed to write it because the
+      # DATABASE_URL secret points at a different Supabase project on an
+      # IPv6-only host the runner cannot reach. 151 credits bought nothing.
+      # A connectivity probe is free; the fetch is not, so it goes first.
+      - name: Verify the database is writable
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
         run: |
           if [ -z "$DATABASE_URL" ]; then
             echo "::error::DATABASE_URL secret is not set — cannot write the board."
             exit 1
           fi
-
-      - run: npx prisma generate
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          echo "select 1;" | npx prisma db execute --stdin --url "$DATABASE_URL" || {
+            host=$(printf '%s' "$DATABASE_URL" | sed -E 's#.*@([^:/?]+).*#\1#')
+            echo "::error::Cannot reach the database at ${host}. The board was NOT fetched, so no credits were spent. Point the DATABASE_URL secret at the production pooler host."
+            exit 1
+          }
 
       - name: Populate
         env:
