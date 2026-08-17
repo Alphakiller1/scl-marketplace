@@ -9,7 +9,7 @@ import { prisma } from "@/lib/prisma";
 import {
   buildPerformanceTrend,
   DEFAULT_LEADERBOARD_LIMIT,
-  leaderboardWindowStart,
+  leaderboardWindowBounds,
   partitionLeaderboard,
   type LeaderboardFilters,
 } from "@/lib/leaderboard";
@@ -49,7 +49,15 @@ async function fetchRankableProfiles(
   clvReady: boolean,
   capperIds?: string[],
 ) {
-  const windowStart = leaderboardWindowStart(filters.window);
+  const { start: windowStart, end: windowEnd } = leaderboardWindowBounds(
+    filters.window,
+  );
+  const positionWindow =
+    filters.window === "1d" && windowStart && windowEnd
+      ? { gradedAt: { gte: windowStart, lt: windowEnd } }
+      : windowStart
+        ? { createdAt: { gte: windowStart } }
+        : undefined;
   const activityCutoff = publicCapperActivityCutoff();
   const excludeTest = await prismaExcludeTestHandlesLive();
 
@@ -106,7 +114,7 @@ async function fetchRankableProfiles(
           parlayId: null,
           units: { gte: UNIT_MIN },
           ...(filters.sport !== "ALL" ? { sport: filters.sport } : undefined),
-          ...(windowStart ? { createdAt: { gte: windowStart } } : undefined),
+          ...positionWindow,
         },
         select: {
           outcome: true,
@@ -155,7 +163,7 @@ async function fetchRankableProfiles(
       // sport filter when any leg is that sport.
       parlays: {
         where: {
-          ...(windowStart ? { createdAt: { gte: windowStart } } : undefined),
+          ...positionWindow,
           units: { gte: UNIT_MIN },
           ...(filters.sport !== "ALL"
             ? { legs: { some: { sport: filters.sport } } }

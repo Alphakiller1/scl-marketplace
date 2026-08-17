@@ -7,6 +7,7 @@ import {
   isBuildingARecord,
   isLeaderboardEligible,
   leaderboardHref,
+  leaderboardWindowBounds,
   leaderboardWindowStart,
   parseLeaderboardFilters,
   partitionLeaderboard,
@@ -165,6 +166,44 @@ test("year window begins at the UTC calendar-year boundary", () => {
     )?.toISOString(),
     "2026-01-01T00:00:00.000Z",
   );
+});
+
+test("1D is yesterday's completed Eastern calendar day", () => {
+  const summer = leaderboardWindowBounds(
+    "1d",
+    new Date("2026-08-17T16:00:00Z"),
+  );
+  assert.equal(summer.start?.toISOString(), "2026-08-16T04:00:00.000Z");
+  assert.equal(summer.end?.toISOString(), "2026-08-17T04:00:00.000Z");
+
+  const winter = leaderboardWindowBounds(
+    "1d",
+    new Date("2026-01-17T16:00:00Z"),
+  );
+  assert.equal(winter.start?.toISOString(), "2026-01-16T05:00:00.000Z");
+  assert.equal(winter.end?.toISOString(), "2026-01-17T05:00:00.000Z");
+
+  // The completed day remains a calendar day across the spring DST change,
+  // even though that particular Eastern day contains only 23 hours.
+  const springForward = leaderboardWindowBounds(
+    "1d",
+    new Date("2026-03-09T04:30:00Z"),
+  );
+  assert.equal(
+    springForward.start?.toISOString(),
+    "2026-03-08T05:00:00.000Z",
+  );
+  assert.equal(
+    springForward.end?.toISOString(),
+    "2026-03-09T04:00:00.000Z",
+  );
+});
+
+test("longer leaderboard scopes remain rolling windows without an upper bound", () => {
+  const now = new Date("2026-08-17T16:00:00Z");
+  const range = leaderboardWindowBounds("7d", now);
+  assert.equal(range.start?.toISOString(), "2026-08-10T16:00:00.000Z");
+  assert.equal(range.end, null);
 });
 
 test("performance trend is cumulative and excludes unsettled plays", () => {
