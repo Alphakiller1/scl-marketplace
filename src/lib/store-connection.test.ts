@@ -6,6 +6,7 @@ import {
   packageCtaLabel,
   pendingStatusForProvider,
   providerLabel,
+  selectInitialStoreConnection,
   storeStatusLabel,
   storeStatusTone,
 } from "@/lib/store-connection";
@@ -43,6 +44,33 @@ describe("store-connection helpers", () => {
     assert.equal(storeStatusLabel("LIVE"), "Storefront Live");
     assert.equal(storeStatusLabel("NEEDS_ACTION"), "Needs Attention");
     assert.equal(storeStatusLabel("DISABLED"), "Suspended");
+  });
+
+  it("resumes unfinished Whop setup before a reviewed Winible connection", () => {
+    const selected = selectInitialStoreConnection([
+      { id: "winible", status: "LINKS_RECEIVED" as const },
+      { id: "whop", status: "INSTRUCTIONS_VIEWED" as const },
+    ]);
+
+    assert.equal(selected?.id, "whop");
+  });
+
+  it("resumes a not-started connection before a live connection", () => {
+    const selected = selectInitialStoreConnection([
+      { id: "live", status: "LIVE" as const },
+      { id: "new", status: "NOT_STARTED" as const },
+    ]);
+
+    assert.equal(selected?.id, "new");
+  });
+
+  it("keeps the existing reviewed connection priority when setup is complete", () => {
+    const selected = selectInitialStoreConnection([
+      { id: "reviewed", status: "PACKAGES_IMPORTED" as const },
+      { id: "disabled", status: "DISABLED" as const },
+    ]);
+
+    assert.equal(selected?.id, "reviewed");
   });
 
   it("adapts purchase CTA by platform", () => {

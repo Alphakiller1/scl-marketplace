@@ -141,6 +141,31 @@ export function isPendingStoreStatus(status: StoreConnectionStatus): boolean {
   );
 }
 
+export function isResumableStoreStatus(status: StoreConnectionStatus): boolean {
+  return status === "NOT_STARTED" || status === "INSTRUCTIONS_VIEWED";
+}
+
+/**
+ * Pick the connection the capper should see when the storefront wizard loads.
+ *
+ * An unfinished connection must win over a reviewed/live connection on the
+ * other platform. Otherwise the reviewed connection forces the wizard into
+ * its status view while the unfinished provider still counts as "connected",
+ * leaving no route back to its setup or OAuth button.
+ */
+export function selectInitialStoreConnection<
+  T extends { status: StoreConnectionStatus },
+>(connections: readonly T[]): T | null {
+  return (
+    connections.find((connection) =>
+      isResumableStoreStatus(connection.status),
+    ) ??
+    connections.find((connection) => connection.status !== "DISABLED") ??
+    connections.find((connection) => connection.status === "DISABLED") ??
+    null
+  );
+}
+
 /**
  * Static reminder steps for admins. Prefer `adminStorefrontReadiness` for the
  * live computed checklist on store-setup detail.

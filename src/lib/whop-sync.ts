@@ -11,6 +11,10 @@ import {
   whopAppId,
 } from "@/lib/whop-config";
 import { refreshWhopAccessToken } from "@/lib/whop-oauth";
+import {
+  isWhopProductSyncable,
+  whopProductSyncAction,
+} from "@/lib/whop-product-sync";
 import { makeTrackingSlug } from "@/lib/store-connection";
 import { resolveStorefrontPackageReadiness } from "@/lib/storefront-review";
 
@@ -26,12 +30,6 @@ export type WhopSyncResult =
 function productDescription(product: WhopProductListItem): string | null {
   const headline = product.headline?.trim();
   return headline || null;
-}
-
-function isSyncableProduct(product: WhopProductListItem): boolean {
-  return (
-    product.visibility === "visible" || product.visibility === "quick_link"
-  );
 }
 
 export async function syncWhopStorefront(input: {
@@ -149,32 +147,78 @@ export async function syncWhopStorefront(input: {
     return { ok: false, error: message };
   }
 
-  const syncable = products.filter(isSyncableProduct);
+  const syncable = products.filter(isWhopProductSyncable);
   if (!syncable.length) {
-    return {
-      ok: false,
-      error: "No visible Whop products found for this capper's business.",
-    };
+    const hiddenProductIds = products.map((product) => product.id);
+    const mappedHiddenCount = hiddenProductIds.length
+      ? await prisma.package.count({
+          where: {
+            storeConnectionId: connection.id,
+            externalProductId: { in: hiddenProductIds },
+          },
+        })
+      : 0;
+    if (!mappedHiddenCount) {
+      return {
+        ok: false,
+        error: "No visible Whop products found for this capper's business.",
+      };
+    }
   }
 
   let imported = 0;
   let updated = 0;
-  const skipped = products.length - syncable.length;
+  let skipped = 0;
 
   await prisma.$transaction(async (tx) => {
-    for (const [index, product] of syncable.entries()) {
-      const checkoutUrl = buildWhopProductCheckoutUrl({
-        companyRoute: connection.whopCompanyRoute!,
-        productRoute: product.route,
-        affiliateUsername,
-      });
-
+    for (const [index, product] of products.entries()) {
       const existing = await tx.package.findFirst({
         where: {
           storeConnectionId: connection.id,
           externalProductId: product.id,
         },
-        select: { id: true, trackingUrls: { select: { id: true }, take: 1 } },
+        select: {
+          id: true,
+          isActive: true,
+          title: true,
+          trackingUrls: { select: { id: true }, take: 1 },
+        },
+      });
+
+      const syncAction = whopProductSyncAction(product, Boolean(existing));
+      if (syncAction !== "upsert") {
+        if (syncAction === "skip" || !existing) {
+          skipped += 1;
+          continue;
+        }
+
+        await tx.package.update({
+          where: { id: existing.id },
+          data: {
+            title: product.title,
+            description: productDescription(product),
+            isActive: false,
+          },
+        });
+        if (existing.isActive) {
+          await tx.packageAuditEvent.create({
+            data: {
+              packageId: existing.id,
+              capperId: connection.capperId,
+              actorId: input.actorId,
+              action: "DEACTIVATED",
+              summary: `Hidden on Whop: "${product.title || existing.title}"`,
+            },
+          });
+        }
+        updated += 1;
+        continue;
+      }
+
+      const checkoutUrl = buildWhopProductCheckoutUrl({
+        companyRoute: connection.whopCompanyRoute!,
+        productRoute: product.route,
+        affiliateUsername,
       });
 
       if (existing) {
