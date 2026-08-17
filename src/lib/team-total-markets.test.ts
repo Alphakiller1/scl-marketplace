@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  isPinnedTeamTotalLine,
   isTeamTotalMarket,
   outcomeDescriptionFor,
   parseTeamTotalSelection,
+  PINNED_TEAM_TOTAL_LINES,
   TEAM_TOTAL_LABEL,
   TEAM_TOTAL_MARKET_KEYS,
   teamTotalSelectionText,
@@ -80,6 +82,28 @@ describe("TEAM_TOTAL_MARKET_KEYS", () => {
       [...TEAM_TOTAL_MARKET_KEYS],
       ["team_totals", "alternate_team_totals"],
     );
+  });
+});
+
+describe("isPinnedTeamTotalLine", () => {
+  it("pins 2.5, the rung the owner requires on every board", () => {
+    assert.deepEqual([...PINNED_TEAM_TOTAL_LINES], [2.5]);
+    assert.equal(isPinnedTeamTotalLine(TEAM_TOTAL_LABEL, 2.5), true);
+    assert.equal(isPinnedTeamTotalLine("team total", 2.5), true);
+  });
+
+  it("leaves the rest of the ladder unpinned", () => {
+    assert.equal(isPinnedTeamTotalLine(TEAM_TOTAL_LABEL, 1.5), false);
+    assert.equal(isPinnedTeamTotalLine(TEAM_TOTAL_LABEL, 3.5), false);
+    assert.equal(isPinnedTeamTotalLine(TEAM_TOTAL_LABEL, undefined), false);
+  });
+
+  // Same hazard the label match guards: a 2.5 game total or period total is a
+  // different bet, and pinning it would reorder a ladder nobody asked about.
+  it("ignores 2.5 on the game total and on a period total", () => {
+    assert.equal(isPinnedTeamTotalLine("Total", 2.5), false);
+    assert.equal(isPinnedTeamTotalLine("1st 5 Innings Total", 2.5), false);
+    assert.equal(isPinnedTeamTotalLine("Spread", 2.5), false);
   });
 });
 

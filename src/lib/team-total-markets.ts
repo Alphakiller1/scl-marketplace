@@ -35,6 +35,31 @@ export function isTeamTotalMarket(market: string): boolean {
   return market.trim().toLowerCase() === TEAM_TOTAL_LABEL.toLowerCase();
 }
 
+/**
+ * Rungs the board always shows when the feed prices them (OWNER decision).
+ *
+ * 2.5 is the team total cappers ask for by name, and it was the one rung the
+ * collapsed board could never show. Every team-total rung arrives
+ * `featured: false` — the feed flags only full-game lines — so the ladder has
+ * no main line to sort around and falls back to plain ascending order. 0.5 and
+ * 1.5 for both clubs fill all eight collapsed slots, which puts 2.5 first in
+ * the hidden tail: fetched and billed on every event, reachable only behind
+ * "Show all".
+ *
+ * Pinned by line value rather than by sport, so the rung appears wherever a
+ * book prices it and nothing extra appears where none does.
+ */
+export const PINNED_TEAM_TOTAL_LINES: readonly number[] = [2.5];
+
+/** Is this a rung the collapsed board must keep visible? Both sides pin. */
+export function isPinnedTeamTotalLine(
+  market: string,
+  line: number | undefined,
+): boolean {
+  if (!isTeamTotalMarket(market)) return false;
+  return typeof line === "number" && PINNED_TEAM_TOTAL_LINES.includes(line);
+}
+
 export type TeamTotalSide = "Over" | "Under";
 
 /** Canonical selection text, e.g. `New York Yankees Over 4.5`. */

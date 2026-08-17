@@ -12,6 +12,7 @@ import { SkeletonCard } from "@/components/scl/states";
 import { TeamMark } from "@/components/scl/team-mark";
 import { cn } from "@/lib/utils";
 import { formatOdds } from "@/lib/format";
+import { splitAltLadder } from "@/lib/alt-ladder";
 import { bookShort } from "@/lib/books";
 import { selectionForActiveBook } from "@/lib/game-picker";
 import { allGameLineLabels, isGameLineMarket } from "@/lib/market-kind";
@@ -71,8 +72,6 @@ type EventDetailData =
  * is enough to surface it.
  */
 const MARKET_ORDER = allGameLineLabels();
-// Alternate spread/total ladders are long — show the closest-to-main lines, expand for the rest.
-const ALT_LINE_CAP = 8;
 
 const PROP_PILL_CLASS =
   "scl-display h-8 rounded-full border px-2.5 text-sm leading-none font-semibold tracking-[0.04em] transition-colors";
@@ -621,25 +620,18 @@ export function EventDetail({
     </p>
   );
 
-  // Alt ladders sorted by proximity to the main line, capped until expanded per market.
+  // Pinned rungs first, then proximity to the main line; capped until expanded
+  // per market. See `alt-ladder.ts` for why team totals need the pin.
   const altSections = altGroups.map(([market, opts]) => {
-    const ref = shown.find(
+    const mainLine = shown.find(
       (s) => s.market === market && s.featured && typeof s.line === "number",
     )?.line;
-    const refAbs = typeof ref === "number" ? Math.abs(ref) : null;
-    const sorted = [...opts].sort((a, b) => {
-      const la = Math.abs(a.line ?? 0);
-      const lb = Math.abs(b.line ?? 0);
-      if (refAbs !== null) return Math.abs(la - refAbs) - Math.abs(lb - refAbs);
-      return la - lb;
-    });
     const expanded = Boolean(altExpanded[market]);
-    return {
-      market,
-      visible: expanded ? sorted : sorted.slice(0, ALT_LINE_CAP),
-      total: sorted.length,
+    const { visible, total, hidden } = splitAltLadder(market, opts, {
+      mainLine,
       expanded,
-    };
+    });
+    return { market, visible, total, hidden, expanded };
   });
 
   // ── Sportsbook market tabs ────────────────────────────────────────────────
@@ -709,7 +701,7 @@ export function EventDetail({
             <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
               {alt.visible.map((s, i) => renderChip(s, `alt-${market}-${i}`))}
             </div>
-            {alt.total > ALT_LINE_CAP ? (
+            {alt.hidden > 0 || alt.expanded ? (
               <button
                 type="button"
                 onClick={() =>
