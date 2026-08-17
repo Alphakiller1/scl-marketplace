@@ -1,0 +1,54 @@
+name: Verify live Whop sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      capper_email:
+        description: Existing SCL capper email
+        required: true
+        type: string
+      company_id:
+        description: Installed Whop business ID (biz_...)
+        required: true
+        type: string
+      product_id:
+        description: Dedicated free SCL sync-test product ID (prod_...)
+        required: true
+        type: string
+
+concurrency:
+  group: verify-live-whop-sync
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    environment: Production
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.OWNER_DATABASE_URL || secrets.DATABASE_URL }}
+      WHOP_APP_API_KEY: ${{ secrets.WHOP_APP_API_KEY }}
+      WHOP_AFFILIATE_USERNAME: ${{ secrets.WHOP_AFFILIATE_USERNAME }}
+      SCL_LIVE_WHOP_E2E: YES
+      SCL_CAPPER_EMAIL: ${{ inputs.capper_email }}
+      WHOP_COMPANY_ID: ${{ inputs.company_id }}
+      WHOP_PRODUCT_ID: ${{ inputs.product_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Validate protected production inputs
+        run: |
+          [ -n "$DATABASE_URL" ] || { echo "DATABASE_URL is missing"; exit 1; }
+          [ -n "$WHOP_APP_API_KEY" ] || { echo "WHOP_APP_API_KEY is missing"; exit 1; }
+          [[ "$WHOP_COMPANY_ID" == biz_* ]] || { echo "Invalid Whop company ID"; exit 1; }
+          [[ "$WHOP_PRODUCT_ID" == prod_* ]] || { echo "Invalid Whop product ID"; exit 1; }
+
+      - name: Run reversible production sync verification
+        run: npx tsx scripts/verify-live-whop-sync.ts

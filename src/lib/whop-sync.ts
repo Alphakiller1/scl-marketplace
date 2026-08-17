@@ -9,6 +9,7 @@ import {
   whopAffiliateUsername,
   whopAppApiKey,
   whopAppId,
+  whopStorefrontApiKey,
 } from "@/lib/whop-config";
 import { refreshWhopAccessToken } from "@/lib/whop-oauth";
 import {
@@ -69,11 +70,11 @@ export async function syncWhopStorefront(input: {
   if (connection.provider !== "WHOP") {
     return { ok: false, error: "This sync only applies to Whop storefronts." };
   }
-  if (!connection.whopAccessToken || !connection.whopCompanyId) {
+  if (!connection.whopCompanyId) {
     return {
       ok: false,
       error:
-        "Capper has not connected Whop yet. They must install the SCL app from Dashboard → Storefront.",
+        "Capper has not connected a Whop business yet. They must install the SCL app from Dashboard → Storefront.",
     };
   }
   if (!connection.whopCompanyRoute) {
@@ -84,8 +85,16 @@ export async function syncWhopStorefront(input: {
     };
   }
 
-  let accessToken = connection.whopAccessToken;
+  let accessToken = whopStorefrontApiKey(connection.whopAccessToken);
+  if (!accessToken) {
+    return {
+      ok: false,
+      error:
+        "Whop is not configured. Set WHOP_APP_API_KEY or reconnect the capper's Whop business.",
+    };
+  }
   const tokenExpired =
+    !whopAppApiKey() &&
     connection.whopTokenExpiresAt != null &&
     connection.whopTokenExpiresAt.getTime() <= Date.now() + 60_000;
   if (tokenExpired) {
@@ -442,16 +451,16 @@ export async function pushPackageToWhop(
   ) {
     return { ok: true, pushed: false };
   }
-  if (!connection.whopAccessToken || !connection.whopCompanyId) {
+  const accessToken = whopStorefrontApiKey(connection.whopAccessToken);
+  if (!accessToken || !connection.whopCompanyId) {
     return { ok: true, pushed: false };
   }
 
-  // Reuse the stored token. Refresh stays syncWhopStorefront's job — a push is
-  // a side effect of an edit that has already been saved, so an expired token
-  // should report a clear failure, not silently mutate credentials from a code
-  // path nobody is watching.
+  // Prefer the stable app-server key. OAuth remains a compatibility fallback;
+  // refresh stays syncWhopStorefront's job because a push is a side effect of
+  // an edit that has already been saved.
   const result = await updateWhopProduct({
-    accessToken: connection.whopAccessToken,
+    accessToken,
     productId: pkg.externalProductId,
     update: {
       title: pkg.title,

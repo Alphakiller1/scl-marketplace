@@ -78,6 +78,26 @@ export async function listWhopCompanies(
   return res.data ?? [];
 }
 
+export async function retrieveWhopCompany(
+  accessToken: string,
+  companyId: string,
+): Promise<WhopCompanyListItem> {
+  return whopFetch<WhopCompanyListItem>(
+    `/companies/${encodeURIComponent(companyId)}`,
+    accessToken,
+  );
+}
+
+export async function retrieveWhopProduct(
+  accessToken: string,
+  productId: string,
+): Promise<WhopProductListItem> {
+  return whopFetch<WhopProductListItem>(
+    `/products/${encodeURIComponent(productId)}`,
+    accessToken,
+  );
+}
+
 export async function listWhopProducts(input: {
   accessToken: string;
   companyId: string;

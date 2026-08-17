@@ -4,6 +4,7 @@ import { afterEach, describe, it } from "node:test";
 import {
   SCL_WHOP_AFFILIATE_USERNAME,
   SCL_WHOP_APP_ID,
+  whopStorefrontApiKey,
   whopAffiliateUsername,
   whopAppId,
   whopIntegrationStatus,
@@ -69,5 +70,19 @@ describe("whop-config defaults", () => {
     assert.equal(status.affiliateUsername, true);
     assert.equal(status.oauth, true);
     assert.equal(status.storefrontSync, true);
+  });
+
+  it("prefers the installed-app server key for storefront operations", () => {
+    process.env.WHOP_APP_API_KEY = "apik_app";
+
+    assert.equal(whopStorefrontApiKey("oauth_user"), "apik_app");
+  });
+
+  it("keeps OAuth credentials as a backwards-compatible fallback", () => {
+    delete process.env.WHOP_APP_API_KEY;
+    delete process.env.WHOP_CLIENT_SECRET;
+
+    assert.equal(whopStorefrontApiKey("oauth_user"), "oauth_user");
+    assert.equal(whopStorefrontApiKey(null), null);
   });
 });
