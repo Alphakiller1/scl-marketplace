@@ -148,6 +148,25 @@ export function leaderboardWindowBounds(
   return { start: leaderboardWindowStart(window, now), end: null };
 }
 
+/**
+ * Date predicate used for leaderboard positions. A 1D leaderboard is a
+ * completed-results view, so settlement time is authoritative. Longer
+ * windows keep their existing rolling, pick-entry-time semantics.
+ */
+export function leaderboardPositionDateFilter(
+  window: LeaderboardWindow,
+  now = new Date(),
+):
+  | { gradedAt: { gte: Date; lt: Date } }
+  | { createdAt: { gte: Date } }
+  | undefined {
+  const { start, end } = leaderboardWindowBounds(window, now);
+  if (window === "1d" && start && end) {
+    return { gradedAt: { gte: start, lt: end } };
+  }
+  return start ? { createdAt: { gte: start } } : undefined;
+}
+
 export function buildPerformanceTrend(
   plays: { outcome: Outcome; profitUnits: number | null }[],
   maxPoints = 12,

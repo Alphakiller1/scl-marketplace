@@ -9,7 +9,7 @@ import { prisma } from "@/lib/prisma";
 import {
   buildPerformanceTrend,
   DEFAULT_LEADERBOARD_LIMIT,
-  leaderboardWindowBounds,
+  leaderboardPositionDateFilter,
   partitionLeaderboard,
   type LeaderboardFilters,
 } from "@/lib/leaderboard";
@@ -49,15 +49,7 @@ async function fetchRankableProfiles(
   clvReady: boolean,
   capperIds?: string[],
 ) {
-  const { start: windowStart, end: windowEnd } = leaderboardWindowBounds(
-    filters.window,
-  );
-  const positionWindow =
-    filters.window === "1d" && windowStart && windowEnd
-      ? { gradedAt: { gte: windowStart, lt: windowEnd } }
-      : windowStart
-        ? { createdAt: { gte: windowStart } }
-        : undefined;
+  const positionWindow = leaderboardPositionDateFilter(filters.window);
   const activityCutoff = publicCapperActivityCutoff();
   const excludeTest = await prismaExcludeTestHandlesLive();
 

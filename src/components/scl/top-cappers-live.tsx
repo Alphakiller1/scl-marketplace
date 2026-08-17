@@ -3,6 +3,10 @@ import { ArrowRight, Trophy, Users } from "lucide-react";
 
 import { RankBoardTable } from "@/components/scl/rank-board-table";
 import { EmptyState } from "@/components/scl/states";
+import {
+  LEADERBOARD_SCOPE_WINDOWS,
+  type LeaderboardWindow,
+} from "@/lib/leaderboard";
 import type { CapperSummary } from "@/lib/mock";
 import { cn } from "@/lib/utils";
 
@@ -11,14 +15,12 @@ import { cn } from "@/lib/utils";
  * Home Top Cappers itself is net units (not ROI) — chips must
  * preserve that sort story when exiting to /leaderboard.
  */
-const WINDOW_CHIPS = [
-  { id: "1d", label: "1D", href: "/leaderboard?window=1d&sort=units" },
-  { id: "7d", label: "7D", href: "/leaderboard?window=7d&sort=units" },
-  { id: "14d", label: "14D", href: "/leaderboard?window=14d&sort=units" },
-  { id: "30d", label: "30D", href: "/leaderboard?window=30d&sort=units" },
-  { id: "90d", label: "90D", href: "/leaderboard?window=90d&sort=units" },
-  { id: "all", label: "ALL", href: "/leaderboard?window=all&sort=units" },
-] as const;
+const WINDOW_CHIPS = LEADERBOARD_SCOPE_WINDOWS.map((window) => ({
+  id: window.key,
+  label: window.key === "all" ? "ALL" : window.label,
+  longLabel: window.longLabel,
+  href: `/leaderboard?window=${window.key}&sort=units`,
+}));
 
 /**
  * Top Cappers — Rank-schema dense table via shared RankBoardTable.
@@ -33,7 +35,7 @@ export function TopCappersLive({
 }: {
   cappers: CapperSummary[];
   failed?: boolean;
-  activeWindow?: (typeof WINDOW_CHIPS)[number]["id"];
+  activeWindow?: Exclude<LeaderboardWindow, "year">;
   className?: string;
 }) {
   return (
@@ -71,7 +73,7 @@ export function TopCappersLive({
                     : "border-border text-muted-foreground hover:text-foreground border bg-transparent",
                 )}
                 aria-current={active ? "page" : undefined}
-                title={`Open ${chip.label} Leaderboard (Net Units Sort)`}
+                title={`Open ${chip.longLabel} Leaderboard (Net Units Sort)`}
               >
                 {chip.label}
               </Link>
