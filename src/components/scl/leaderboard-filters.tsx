@@ -119,7 +119,7 @@ function ScopeForm({
               name="window"
               value={window.key}
               defaultChecked={filters.window === window.key}
-              aria-label={window.longLabel}
+              aria-label={`${window.label}, ${window.longLabel}`}
               className="sr-only"
             />
             {window.label}
