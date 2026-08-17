@@ -1,24 +1,38 @@
 name: Strategic odds refresh
 
 on:
-  schedule:
-    # Five runs a day, not ninety-six. This endpoint is metered: a single run
-    # can warm the whole slate at ~31 Odds API credits per event, so cadence is
-    # the largest lever on the bill and every extra run buys almost nothing —
-    # the per-competition slots in `strategic-odds-policy.ts` fire at most once
-    # or twice a day regardless of how often the cron knocks.
-    #
-    # Times are UTC; the comments are ET, which is what the slots reason in.
-    # The DAYTIME gaps are all four hours, and that number is load-bearing:
-    # `REFRESH_MAX_GAP_MINUTES` must stay >= the largest gap during which games
-    # start, or a `before-first` window can fall entirely between two runs and
-    # that competition simply never refreshes that day. See the invariant test
-    # in `strategic-odds-cadence.test.ts`, which reads this file.
-    - cron: "0 12 * * *" # 08:00 ET — morning slate, WNBA 08:00 fixed slot
-    - cron: "0 16 * * *" # 12:00 ET — before MLB/soccer day games
-    - cron: "0 20 * * *" # 16:00 ET — before evening WNBA/MLS/NFL preseason
-    - cron: "0 0 * * *" # 20:00 ET — mid-evening top-up
-    - cron: "0 3 * * *" # 23:00 ET — MLB 22:00 fixed slot, next-day lines
+  # PAUSED (owner request): the `schedule:` key is removed, not emptied — an
+  # empty mapping is invalid YAML and GitHub rejects the workflow. Runs happen
+  # by hand via workflow_dispatch until the credit budget is settled.
+  #
+  # schedule:
+  # Five runs a day, not ninety-six. This endpoint is metered: a single run
+  # can warm the whole slate at ~31 Odds API credits per event, so cadence is
+  # the largest lever on the bill and every extra run buys almost nothing —
+  # the per-competition slots in `strategic-odds-policy.ts` fire at most once
+  # or twice a day regardless of how often the cron knocks.
+  #
+  # Times are UTC; the comments are ET, which is what the slots reason in.
+  # The DAYTIME gaps are all four hours, and that number is load-bearing:
+  # `REFRESH_MAX_GAP_MINUTES` must stay >= the largest gap during which games
+  # start, or a `before-first` window can fall entirely between two runs and
+  # that competition simply never refreshes that day. See the invariant test
+  # in `strategic-odds-cadence.test.ts`, which reads this file.
+  # PAUSED (owner request) — running odds by hand via workflow_dispatch while
+  # the credit budget is being brought under control. Restore by uncommenting.
+  #
+  # Do NOT restore a subset of these. The five runs are the MINIMUM that
+  # satisfies the before-first invariant at a 240-minute lead: dropping to
+  # two was tried and `strategic-odds-cadence.test.ts` fails with "a kickoff
+  # at 14:00 UTC has no run in its 240-minute window", meaning MLB day games
+  # would never refresh. Cadence is not the credit lever — what each run
+  # WARMS is (expanded MLB is 34 credits per event).
+  #
+  # - cron: "0 12 * * *" # 08:00 ET — morning slate, WNBA 08:00 fixed slot
+  # - cron: "0 16 * * *" # 12:00 ET — before MLB/soccer day games
+  # - cron: "0 20 * * *" # 16:00 ET — before evening WNBA/MLS/NFL preseason
+  # - cron: "0 0 * * *" # 20:00 ET — mid-evening top-up
+  # - cron: "0 3 * * *" # 23:00 ET — MLB 22:00 fixed slot, next-day lines
   workflow_dispatch:
 
 concurrency:
