@@ -22,6 +22,7 @@ export type WhopProductListItem = {
   title: string;
   headline?: string | null;
   visibility?: string | null;
+  company?: WhopCompanyListItem | null;
 };
 
 type WhopListResponse<T> = {
