@@ -29,6 +29,16 @@ export { RESULTS_LOOKBACK_DAYS };
 /** League context needed when one SCL sport fans out across provider leagues. */
 export type ResultsQueryScope = {
   soccerLeagues?: readonly string[];
+  /**
+   * Tennis tour keys (ATP_CINCINNATI_OPEN, …) carried by the pending plays.
+   *
+   * Tennis has no single sport key — one per tournament, same as soccer — so
+   * without the tour tags there is nothing to ask the scores endpoint for.
+   * Omitting this is why every tennis pick ever logged went ungraded: the
+   * grader fell through to `toOddsApiSport("TENNIS")`, which is undefined, and
+   * silently requested nothing.
+   */
+  tennisTours?: readonly string[];
 };
 
 /**
@@ -185,10 +195,12 @@ export function oddsApiResultsProvider(): ResultsProvider {
         return [];
       }
       const events = (await res.json()) as OddsApiScore[];
-      return mapOddsApiScores(
-        events,
-        sclSport === "SOCCER" ? "SOCCER" : undefined,
-      );
+      // Fall back to the SCL sport we asked for. Per-tournament keys
+      // (soccer_epl, tennis_atp_cincinnati_open) have no reverse mapping, so a
+      // named fallback is the only way their events survive the filter.
+      // `toSclSport` still wins where it resolves, so single-key sports are
+      // unaffected.
+      return mapOddsApiScores(events, sclSport);
     } catch (err) {
       // A refused account is deliberate control flow, not a fetch failure —
       // swallowing it here would restore the exact silence this guards against.
@@ -212,11 +224,18 @@ export function oddsApiResultsProvider(): ResultsProvider {
       const soccerLeagues = [
         ...new Set(scope?.soccerLeagues?.filter(Boolean) ?? []),
       ];
+      const tennisTours = [
+        ...new Set(scope?.tennisTours?.filter(Boolean) ?? []),
+      ];
       const requests = distinct.flatMap((sport) => {
         if (sport === "SOCCER") {
           return soccerLeagues.map((league) =>
             fetchSportScores("SOCCER", league),
           );
+        }
+        // Same shape as soccer, and for the same reason: one key per event.
+        if (sport === "TENNIS") {
+          return tennisTours.map((tour) => fetchSportScores("TENNIS", tour));
         }
         return toOddsApiSport(sport) ? [fetchSportScores(sport)] : [];
       });

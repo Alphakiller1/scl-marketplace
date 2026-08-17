@@ -1,49 +1,69 @@
 /**
  * Manual odds population — surface boards for every sport, plus expanded
- * per-event markets for MLB and WNBA.
+ * per-event markets (alternate lines, team totals, innings segments, props)
+ * for MLB and WNBA.
  *
- * Written for a hand-run refresh on a fixed credit budget, which is why it
- * reports `x-requests-remaining` after every call and stops at BUDGET_FLOOR
- * rather than fetching the whole slate. Expanded MLB is 34 credits PER EVENT
- * and WNBA is 24, so a full slate costs more than a 500-credit key holds.
+ * Runs on a fixed credit budget: it reports `x-requests-remaining` after every
+ * call and stops at BUDGET_FLOOR rather than fetching a slate it cannot afford.
+ * Expanded MLB is 34 credits PER EVENT and WNBA 24, measured — a full 11-game
+ * MLB slate is 374 credits, more than a 500-credit key holds.
  *
- * Snapshots are built with the app's own pure normalizers, so the payload
- * shape matches what `odds-board-cache` / `odds-event-board-cache` write. The
- * output is JSON on disk; the rows are inserted separately.
+ * Snapshots are built with the app's own pure normalizers and written under the
+ * same keys `odds-board-cache` / `odds-event-board-cache` use, so the app reads
+ * them as its own. With WRITE_DB=1 it upserts straight into
+ * `scl.OddsCacheSnapshot`; otherwise it only writes JSON for inspection.
  *
- *   ODDS_KEY=<key> npx tsx scripts/populate-odds-today.ts
+ * Intended to run from `.github/workflows/populate-odds.yml`, where the runner
+ * holds the production DATABASE_URL and can reach Supabase over IPv6.
  *
- * BUDGET_FLOOR=<n>  stop spending once remaining drops to this (default 250,
- *                   which reserves half a 500-credit key for a second run).
+ *   ODDS_KEY=<key> WRITE_DB=1 npx tsx scripts/populate-odds-today.ts
+ *
+ * BUDGET_FLOOR=<n>   stop spending once remaining hits this (default 0)
+ * EXPANDED=<n>       max events to expand per sport (default 99)
+ * SPORTS=MLB,WNBA…   restrict the surface pass (default all)
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { normalizeEventBoard, normalizeUpcomingEvent } from "@/lib/odds-board";
+import {
+  dedupeOddsEvents,
+  normalizeEventBoard,
+  normalizeUpcomingEvent,
+  sortByKickoff,
+  type OddsEvent,
+} from "@/lib/odds-board";
 import { expandedBoardMarkets } from "@/lib/odds-verify";
 import { selectSoccerLeagues, SOCCER_LEAGUE_LIMIT } from "@/lib/soccer-leagues";
 import { selectTennisTours, TENNIS_TOUR_LIMIT } from "@/lib/tennis-tours";
 
 const KEY = process.env.ODDS_KEY?.trim();
 if (!KEY) throw new Error("ODDS_KEY is required");
-const BUDGET_FLOOR = Number(process.env.BUDGET_FLOOR ?? 250);
+const BUDGET_FLOOR = Number(process.env.BUDGET_FLOOR ?? 0);
+const EXPANDED_LIMIT = Number(process.env.EXPANDED ?? 99);
+const WRITE_DB = process.env.WRITE_DB === "1";
+const ONLY = (process.env.SPORTS ?? "")
+  .split(",")
+  .map((s) => s.trim().toUpperCase())
+  .filter(Boolean);
 const OUT = join(process.cwd(), "tmp", "odds-populate");
 const REGIONS = "us";
 const SURFACE_MARKETS = "h2h,spreads,totals";
 
-/** Retention mirrors ODDS_BOARD_RETENTION_SECONDS / ODDS_EVENT_RETENTION_SECONDS. */
+/** Mirrors ODDS_BOARD_RETENTION_SECONDS / ODDS_EVENT_RETENTION_SECONDS. */
 const RETENTION_SECONDS = 30 * 24 * 60 * 60;
+/** Board caps applied by the live fetch path, matched here so the shapes agree. */
+const BOARD_CAP = 60;
+const SOCCER_BOARD_CAP = 80;
 
 let remaining = Number.POSITIVE_INFINITY;
 let used = 0;
 
+function wanted(sport: string): boolean {
+  return ONLY.length === 0 || ONLY.includes(sport.toUpperCase());
+}
+
 async function api(path: string): Promise<unknown | null> {
-  if (remaining <= BUDGET_FLOOR) {
-    console.log(
-      `  [budget] stopping — remaining ${remaining} <= ${BUDGET_FLOOR}`,
-    );
-    return null;
-  }
+  if (remaining <= BUDGET_FLOOR) return null;
   const sep = path.includes("?") ? "&" : "?";
   const res = await fetch(
     `https://api.the-odds-api.com${path}${sep}apiKey=${KEY}`,
@@ -59,44 +79,10 @@ async function api(path: string): Promise<unknown | null> {
   return res.json();
 }
 
-type Snapshot = { key: string; payload: unknown };
+type Snapshot = { key: string; payload: Record<string, unknown> };
 const snapshots: Snapshot[] = [];
 
-function pushBoard(sclSport: string, events: unknown[]) {
-  snapshots.push({
-    key: `board:v1:${sclSport.toUpperCase()}`,
-    payload: {
-      version: 1,
-      sport: sclSport.toUpperCase(),
-      events,
-      savedAt: Date.now(),
-    },
-  });
-}
-
-function pushEventBoard(
-  sclSport: string,
-  eventId: string,
-  selections: unknown[],
-) {
-  snapshots.push({
-    key: `event-board:v1:${sclSport.toUpperCase()}:${eventId}`,
-    payload: {
-      version: 1,
-      sport: sclSport.toUpperCase(),
-      eventId,
-      selections,
-      savedAt: Date.now(),
-    },
-  });
-}
-
-/** Surface board for one Odds API sport key, normalized to SCL events. */
-async function surfaceBoard(
-  sclSport: string,
-  apiSport: string,
-  league?: string,
-) {
+async function surface(sclSport: string, apiSport: string, league?: string) {
   const rows = (await api(
     `/v4/sports/${apiSport}/odds/?regions=${REGIONS}&markets=${SURFACE_MARKETS}&oddsFormat=american`,
   )) as Parameters<typeof normalizeUpcomingEvent>[1][] | null;
@@ -108,6 +94,20 @@ async function surfaceBoard(
     `  ${apiSport.padEnd(38)} events=${String(events.length).padStart(3)} remaining=${remaining}`,
   );
   return events;
+}
+
+function pushBoard(sclSport: string, events: OddsEvent[], cap: number) {
+  const ordered = sortByKickoff(dedupeOddsEvents(events)).slice(0, cap);
+  snapshots.push({
+    key: `board:v1:${sclSport.toUpperCase()}`,
+    payload: {
+      version: 1,
+      sport: sclSport.toUpperCase(),
+      events: ordered,
+      savedAt: Date.now(),
+    },
+  });
+  return ordered;
 }
 
 async function main() {
@@ -122,77 +122,129 @@ async function main() {
       }[]
     | null;
   if (!catalog) throw new Error("catalog fetch failed");
-  console.log(`catalog ok — remaining ${remaining}\n`);
+  console.log(`catalog ok — remaining ${remaining}\n\nSURFACE BOARDS`);
 
-  // ── surface boards ─────────────────────────────────────────────────────────
-  console.log("SURFACE BOARDS");
-  const mlb = await surfaceBoard("MLB", "baseball_mlb");
-  pushBoard("MLB", mlb);
+  let mlb: OddsEvent[] = [];
+  let wnba: OddsEvent[] = [];
 
-  const wnba = await surfaceBoard("WNBA", "basketball_wnba");
-  pushBoard("WNBA", wnba);
-
-  // NFL regular + preseason share one SCL board; preseason carries its own tag
-  // so a pick logged there resolves back to the preseason key at verification.
-  const nflReg = await surfaceBoard("NFL", "americanfootball_nfl");
-  const nflPre = await surfaceBoard(
-    "NFL",
-    "americanfootball_nfl_preseason",
-    "AMERICANFOOTBALL_NFL_PRESEASON",
-  );
-  pushBoard("NFL", [...nflReg, ...nflPre]);
-
-  const tours = selectTennisTours(catalog, TENNIS_TOUR_LIMIT);
-  const tennis: unknown[] = [];
-  for (const t of tours) {
-    tennis.push(...(await surfaceBoard("TENNIS", t.oddsApiKey, t.key)));
+  if (wanted("MLB")) {
+    mlb = pushBoard("MLB", await surface("MLB", "baseball_mlb"), BOARD_CAP);
   }
-  pushBoard("TENNIS", tennis);
-
-  const leagues = selectSoccerLeagues(catalog, SOCCER_LEAGUE_LIMIT);
-  const soccer: unknown[] = [];
-  for (const l of leagues) {
-    soccer.push(...(await surfaceBoard("SOCCER", l.oddsApiKey, l.key)));
+  if (wanted("WNBA")) {
+    wnba = pushBoard(
+      "WNBA",
+      await surface("WNBA", "basketball_wnba"),
+      BOARD_CAP,
+    );
   }
-  pushBoard("SOCCER", soccer);
+  if (wanted("NFL")) {
+    // Preseason carries its own league tag so a pick logged there resolves back
+    // to the preseason sport key at verification time.
+    pushBoard(
+      "NFL",
+      [
+        ...(await surface("NFL", "americanfootball_nfl")),
+        ...(await surface(
+          "NFL",
+          "americanfootball_nfl_preseason",
+          "AMERICANFOOTBALL_NFL_PRESEASON",
+        )),
+      ],
+      BOARD_CAP,
+    );
+  }
+  if (wanted("TENNIS")) {
+    const events: OddsEvent[] = [];
+    for (const tour of selectTennisTours(catalog, TENNIS_TOUR_LIMIT)) {
+      events.push(...(await surface("TENNIS", tour.oddsApiKey, tour.key)));
+    }
+    pushBoard("TENNIS", events, BOARD_CAP);
+  }
+  if (wanted("SOCCER")) {
+    const events: OddsEvent[] = [];
+    for (const league of selectSoccerLeagues(catalog, SOCCER_LEAGUE_LIMIT)) {
+      events.push(...(await surface("SOCCER", league.oddsApiKey, league.key)));
+    }
+    pushBoard("SOCCER", events, SOCCER_BOARD_CAP);
+  }
 
-  // ── expanded per-event markets (MLB + WNBA) ────────────────────────────────
-  console.log("\nEXPANDED PER-EVENT (MLB, WNBA)");
+  // ── expanded per-event markets ─────────────────────────────────────────────
+  console.log("\nEXPANDED PER-EVENT (alt lines, team totals, segments, props)");
   for (const [sclSport, apiSport, events] of [
     ["MLB", "baseball_mlb", mlb],
     ["WNBA", "basketball_wnba", wnba],
   ] as const) {
+    if (!events.length) continue;
     const markets = expandedBoardMarkets(sclSport);
     console.log(
-      `  ${sclSport}: ${markets.length} markets/event, ${events.length} events => ${markets.length * events.length} credits for the full slate`,
+      `  ${sclSport}: ${markets.length} markets/event x ${events.length} events = ${markets.length * events.length} credits for the full slate`,
     );
-    for (const ev of events) {
-      if (remaining <= BUDGET_FLOOR) break;
+    let done = 0;
+    for (const event of events) {
+      if (done >= EXPANDED_LIMIT || remaining <= BUDGET_FLOOR) break;
       const raw = await api(
-        `/v4/sports/${apiSport}/events/${ev.id}/odds/?regions=${REGIONS}&markets=${markets.join(",")}&oddsFormat=american`,
+        `/v4/sports/${apiSport}/events/${event.id}/odds/?regions=${REGIONS}&markets=${markets.join(",")}&oddsFormat=american`,
       );
       if (!raw) break;
       const selections = normalizeEventBoard(
         raw as Parameters<typeof normalizeEventBoard>[0],
       );
-      pushEventBoard(sclSport, ev.id, selections);
+      if (!selections.length) continue;
+      snapshots.push({
+        key: `event-board:v1:${sclSport}:${event.id}`,
+        payload: {
+          version: 1,
+          sport: sclSport,
+          eventId: event.id,
+          selections,
+          savedAt: Date.now(),
+        },
+      });
+      done++;
       console.log(
-        `    ${ev.away} @ ${ev.home}`.padEnd(52) +
-          `sel=${String(selections.length).padStart(4)} remaining=${remaining}`,
+        `    ${`${event.away} @ ${event.home}`.padEnd(48)}sel=${String(selections.length).padStart(4)} remaining=${remaining}`,
       );
     }
   }
 
-  const savedAt = Date.now();
-  const expiresAt = savedAt + RETENTION_SECONDS * 1000;
   writeFileSync(
     join(OUT, "snapshots.json"),
-    JSON.stringify({ savedAt, expiresAt, snapshots }, null, 2),
+    JSON.stringify({ snapshots }, null, 2),
   );
   console.log(
-    `\nwrote ${snapshots.length} snapshots -> ${join(OUT, "snapshots.json")}`,
+    `\n${snapshots.length} snapshots built | credits used ${used} | remaining ${remaining}`,
   );
-  console.log(`credits used this run: ${used} | remaining: ${remaining}`);
+
+  if (!WRITE_DB) {
+    console.log("WRITE_DB not set — nothing written to the database.");
+    return;
+  }
+
+  // Imported lazily so a dry run needs no database at all.
+  const { PrismaClient } = await import("@prisma/client");
+  const prisma = new PrismaClient();
+  try {
+    for (const snapshot of snapshots) {
+      const savedAt = new Date(snapshot.payload.savedAt as number);
+      const expiresAt = new Date(
+        (snapshot.payload.savedAt as number) + RETENTION_SECONDS * 1_000,
+      );
+      await prisma.oddsCacheSnapshot.upsert({
+        where: { key: snapshot.key },
+        create: {
+          key: snapshot.key,
+          payload: snapshot.payload as never,
+          savedAt,
+          expiresAt,
+        },
+        update: { payload: snapshot.payload as never, savedAt, expiresAt },
+      });
+      console.log(`  wrote ${snapshot.key}`);
+    }
+    console.log(`\ndatabase: ${snapshots.length} snapshots upserted`);
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
 main().catch((err) => {

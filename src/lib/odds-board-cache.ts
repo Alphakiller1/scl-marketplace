@@ -14,6 +14,7 @@ import {
   writeDurableOddsSnapshot,
 } from "@/lib/odds-durable-cache";
 import { archiveOddsEventIdentities } from "@/lib/odds-event-identity-cache";
+import { freshestSnapshot } from "@/lib/odds-snapshot-freshness";
 
 /**
  * Board prices are discovery data. Every submitted line is fetched again and
@@ -89,17 +90,27 @@ export function parseOddsBoardSnapshot(
 
 async function readSnapshot(sport: string): Promise<OddsBoardSnapshot | null> {
   const key = cacheKey(sport);
+  let runtime: OddsBoardSnapshot | null = null;
   try {
-    const value = await getCache({ namespace: "scl-odds" }).get(key);
-    const snapshot = parseOddsBoardSnapshot(value, sport);
-    if (snapshot) return snapshot;
+    runtime = parseOddsBoardSnapshot(
+      await getCache({ namespace: "scl-odds" }).get(key),
+      sport,
+    );
   } catch (error) {
     console.warn("[odds-board-cache] read failed", {
       sport,
       reason: error instanceof Error ? error.message : String(error),
     });
   }
-  return parseOddsBoardSnapshot(await readDurableOddsSnapshot(key), sport);
+  // Both layers, then the newer one — see `freshestSnapshot`. Returning the
+  // runtime value on a bare parse let a stale regional entry mask a newer
+  // database snapshot, which is unrecoverable from outside the app: nothing
+  // invalidates the `odds-board` tag and the entries hold a 30-day TTL.
+  const durable = parseOddsBoardSnapshot(
+    await readDurableOddsSnapshot(key),
+    sport,
+  );
+  return freshestSnapshot(runtime, durable);
 }
 
 /** Read the shared board without spending provider credits. Used by health probes. */

@@ -83,6 +83,8 @@ export default async function PicksPage({
         <EmptyState
           className="mt-6"
           icon={ReceiptText}
+          // Replaces the ledger directly under the page h1 — h3 skips a level.
+          headingLevel="h2"
           title="Couldn't load public picks"
           description="Recent tracked submissions are temporarily unavailable. Please try again shortly."
         />

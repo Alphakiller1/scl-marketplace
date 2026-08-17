@@ -1,0 +1,98 @@
+name: Populate odds (manual)
+
+# Hand-run odds population while the scheduled refresh is paused.
+#
+# The production Odds API key is spent, so this takes a key as a dispatch input
+# and writes the boards straight to the production database. It runs here rather
+# than locally for one reason: the Supabase direct host is IPv6-only and the
+# runner can reach it, using the DATABASE_URL secret this repo already holds.
+#
+# The key is masked before anything else runs, so it cannot reach the log.
+
+on:
+  workflow_dispatch:
+    inputs:
+      odds_key:
+        description: "Odds API key (used for this run only, never stored)"
+        required: true
+        type: string
+      sports:
+        description: "Comma-separated SCL sports, or blank for all"
+        required: false
+        default: ""
+        type: string
+      expanded:
+        description: "Max events to expand per sport (alt lines, team totals, props)"
+        required: false
+        default: "99"
+        type: string
+      budget_floor:
+        description: "Stop spending once remaining credits hit this"
+        required: false
+        default: "0"
+        type: string
+
+concurrency:
+  group: populate-odds
+  cancel-in-progress: false
+
+jobs:
+  populate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Mask the key
+        run: echo "::add-mask::${{ inputs.odds_key }}"
+
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+
+      # BEFORE spending a single credit. The first run of this workflow fetched
+      # the whole expanded MLB slate, then failed to write it because the
+      # DATABASE_URL secret points at a different Supabase project on an
+      # IPv6-only host the runner cannot reach. 151 credits bought nothing.
+      # A connectivity probe is free; the fetch is not, so it goes first.
+      - name: Verify the database is writable
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL secret is not set — cannot write the board."
+            exit 1
+          fi
+          echo "select 1;" | npx prisma db execute --stdin --url "$DATABASE_URL" || {
+            host=$(printf '%s' "$DATABASE_URL" | sed -E 's#.*@([^:/?]+).*#\1#')
+            echo "::error::Cannot reach the database at ${host}. The board was NOT fetched, so no credits were spent. Point the DATABASE_URL secret at the production pooler host."
+            exit 1
+          }
+
+      - name: Populate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          ODDS_KEY: ${{ inputs.odds_key }}
+          SPORTS: ${{ inputs.sports }}
+          EXPANDED: ${{ inputs.expanded }}
+          BUDGET_FLOOR: ${{ inputs.budget_floor }}
+          WRITE_DB: "1"
+        run: npx tsx scripts/populate-odds-today.ts | tee /tmp/populate.log
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Odds population"
+            echo '```'
+            tail -40 /tmp/populate.log || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

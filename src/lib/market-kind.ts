@@ -25,6 +25,14 @@ import { isTeamTotalMarket, TEAM_TOTAL_LABEL } from "@/lib/team-total-markets";
 /** Full-game markets, in the order a sportsbook lists them. */
 export const CORE_GAME_MARKETS = ["Moneyline", "Spread", "Total"] as const;
 
+/**
+ * The straight "who won" market. Exact label match, like the team-total test:
+ * "1st 5 Innings Moneyline" is a different bet and must not pass as this one.
+ */
+export function isMoneylineMarket(market: string): boolean {
+  return market.trim().toLowerCase() === "moneyline";
+}
+
 export function isGameLineMarket(market: string): boolean {
   const m = market.trim();
   return (
