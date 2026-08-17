@@ -252,3 +252,72 @@ test("the game total is unaffected by team-total handling", () => {
   // 3 + 2 = 5 combined.
   assert.equal(resolveOutcome(gameTotal, [TT_GAME]), "WIN");
 });
+
+// ── tennis ───────────────────────────────────────────────────────────────────
+// Tennis reached the grader for the first time when the scores fetch learned to
+// request per-tournament keys. The feed gives two numbers per match; only their
+// ORDER is safe to read, because whether they count sets or games is not stated.
+const TENNIS_MATCH: SettledGame = {
+  sport: "TENNIS",
+  home: "Iga Swiatek",
+  away: "Emiliana Arango",
+  homeScore: 2,
+  awayScore: 0,
+  completed: true,
+  eventId: "tennis-evt",
+};
+
+function tennisPlay(market: string, selection: string): GradablePlay {
+  return {
+    id: `tennis-${market}`,
+    sport: "TENNIS",
+    market,
+    selection,
+    oddsAmerican: -200,
+    units: 1,
+    eventId: "tennis-evt",
+  };
+}
+
+test("a tennis moneyline grades from the winner", () => {
+  assert.equal(
+    resolveOutcome(tennisPlay("Moneyline", "Iga Swiatek"), [TENNIS_MATCH]),
+    "WIN",
+  );
+  assert.equal(
+    resolveOutcome(tennisPlay("Moneyline", "Emiliana Arango"), [TENNIS_MATCH]),
+    "LOSS",
+  );
+});
+
+// The whole reason for the guard: -7.5 is a GAMES handicap. Against a 2-0 set
+// score it reads as a 2-game margin and books a confident LOSS on a bet that
+// cleared by nine. Deferring leaves it PENDING for a human instead.
+test("a tennis games spread defers rather than settling against set scores", () => {
+  assert.equal(
+    resolveOutcome(tennisPlay("Spread", "Iga Swiatek -7.5"), [TENNIS_MATCH]),
+    null,
+  );
+});
+
+test("a tennis total defers for the same reason", () => {
+  assert.equal(
+    resolveOutcome(tennisPlay("Total", "Over 20.5"), [TENNIS_MATCH]),
+    null,
+  );
+});
+
+// The guard is scoped to tennis — it must not touch the sports that grade today.
+test("the tennis guard does not affect other sports' spreads", () => {
+  const mlbSpread: GradablePlay = {
+    id: "mlb-spread",
+    sport: "MLB",
+    market: "Spread",
+    // Nationals won 3-2, so -1.5 does not cover: a real LOSS, not a defer.
+    selection: "Washington Nationals -1.5",
+    eventId: "tt-evt",
+    oddsAmerican: -110,
+    units: 1,
+  };
+  assert.equal(resolveOutcome(mlbSpread, [TT_GAME]), "LOSS");
+});
