@@ -7,6 +7,7 @@ import {
   isBuildingARecord,
   isLeaderboardEligible,
   leaderboardHref,
+  leaderboardPositionDateFilter,
   leaderboardWindowBounds,
   leaderboardWindowStart,
   parseLeaderboardFilters,
@@ -198,6 +199,25 @@ test("longer leaderboard scopes remain rolling windows without an upper bound", 
   const range = leaderboardWindowBounds("7d", now);
   assert.equal(range.start?.toISOString(), "2026-08-10T16:00:00.000Z");
   assert.equal(range.end, null);
+});
+
+test("1D filters leaderboard positions by yesterday's grading time", () => {
+  const now = new Date("2026-08-17T16:00:00Z");
+  const filter = leaderboardPositionDateFilter("1d", now);
+  assert.deepEqual(filter, {
+    gradedAt: {
+      gte: new Date("2026-08-16T04:00:00.000Z"),
+      lt: new Date("2026-08-17T04:00:00.000Z"),
+    },
+  });
+});
+
+test("longer and all-time leaderboard position filters keep their existing semantics", () => {
+  const now = new Date("2026-08-17T16:00:00Z");
+  assert.deepEqual(leaderboardPositionDateFilter("7d", now), {
+    createdAt: { gte: new Date("2026-08-10T16:00:00.000Z") },
+  });
+  assert.equal(leaderboardPositionDateFilter("all", now), undefined);
 });
 
 test("performance trend is cumulative and excludes unsettled plays", () => {

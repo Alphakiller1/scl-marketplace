@@ -36,8 +36,8 @@ export function LeaderboardFilters({
       : (SPORTS.find((sport) => sport.key === filters.sport)?.label ??
         filters.sport);
   const windowLabel =
-    LEADERBOARD_SCOPE_WINDOWS.find((w) => w.key === filters.window)?.label ??
-    filters.window;
+    LEADERBOARD_SCOPE_WINDOWS.find((w) => w.key === filters.window)
+      ?.longLabel ?? filters.window;
 
   return (
     <div className="mt-3 space-y-2">
@@ -107,6 +107,7 @@ function ScopeForm({
         {LEADERBOARD_SCOPE_WINDOWS.map((window) => (
           <label
             key={window.key}
+            title={window.longLabel}
             className={cn(
               "inline-flex min-h-10 cursor-pointer items-center rounded-full border px-3 text-xs leading-none font-semibold tabular-nums transition-colors lg:h-8 lg:min-h-0",
               "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] hover:text-[color:var(--scl-text)]",
@@ -118,6 +119,7 @@ function ScopeForm({
               name="window"
               value={window.key}
               defaultChecked={filters.window === window.key}
+              aria-label={window.longLabel}
               className="sr-only"
             />
             {window.label}
