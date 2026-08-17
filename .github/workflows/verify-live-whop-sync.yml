@@ -26,7 +26,10 @@ jobs:
     environment: Production
     timeout-minutes: 10
     env:
-      DATABASE_URL: ${{ secrets.OWNER_DATABASE_URL || secrets.DATABASE_URL }}
+      # GitHub-hosted runners cannot reach Supabase's IPv6-only direct host.
+      # Prefer the transaction-pooler secret; keep the owner direct URL as a
+      # local/self-hosted fallback.
+      DATABASE_URL: ${{ secrets.DATABASE_URL || secrets.OWNER_DATABASE_URL }}
       WHOP_APP_API_KEY: ${{ secrets.WHOP_APP_API_KEY }}
       WHOP_AFFILIATE_USERNAME: ${{ secrets.WHOP_AFFILIATE_USERNAME }}
       SCL_LIVE_WHOP_E2E: YES
