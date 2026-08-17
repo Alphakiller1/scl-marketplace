@@ -48,7 +48,11 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
   assert.match(route, /revalidateTag\("leaderboard", \{ expire: 0 \}\)/);
   assert.match(route, /revalidatePath\("\/cappers\/\[handle\]", "page"\)/);
   assert.match(health, /pendingPastExpectedFinal/);
-  assert.match(workflow, /7,22,37,52 \* \* \* \*/);
+  // Cut from every 15 minutes to every 3 hours (owner request) — each run hits
+  // the metered scores endpoints, so cadence here is a real bill. Still pinned
+  // so the cadence cannot drift silently, and still a SCHEDULE: the grader must
+  // never be fully paused, or settled plays sit PENDING on a public record.
+  assert.match(workflow, /- cron: "7 \*\/3 \* \* \*"/);
   assert.match(workflow, /--retry 3/);
   assert.match(workflow, /overduePending/);
 
