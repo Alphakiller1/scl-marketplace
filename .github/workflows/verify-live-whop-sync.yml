@@ -25,69 +25,29 @@ jobs:
     runs-on: ubuntu-latest
     environment: Production
     timeout-minutes: 10
-    env:
-      WHOP_APP_API_KEY: ${{ secrets.WHOP_APP_API_KEY }}
-      WHOP_AFFILIATE_USERNAME: ${{ secrets.WHOP_AFFILIATE_USERNAME }}
-      SCL_LIVE_WHOP_E2E: YES
-      SCL_CAPPER_EMAIL: ${{ inputs.capper_email }}
-      WHOP_COMPANY_ID: ${{ inputs.company_id }}
-      WHOP_PRODUCT_ID: ${{ inputs.product_id }}
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - run: npm ci
-
-      - name: Load the production database pooler from Vercel
+      - name: Run reversible verification inside Vercel
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          CAPPER_EMAIL: ${{ inputs.capper_email }}
+          COMPANY_ID: ${{ inputs.company_id }}
+          PRODUCT_ID: ${{ inputs.product_id }}
         run: |
-          [ -n "$VERCEL_TOKEN" ] || { echo "VERCEL_TOKEN is missing"; exit 1; }
-          [ -n "$VERCEL_ORG_ID" ] || { echo "VERCEL_ORG_ID is missing"; exit 1; }
-          [ -n "$VERCEL_PROJECT_ID" ] || { echo "VERCEL_PROJECT_ID is missing"; exit 1; }
-          npm install -g vercel@latest
-          mkdir -p .vercel
-          printf '{"orgId":"%s","projectId":"%s"}' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
-          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
-          FILE=.vercel/.env.production.local node <<'NODE'
-          const fs = require("fs");
-          const text = fs.readFileSync(process.env.FILE, "utf8");
-          const values = {};
-          for (const line of text.split(/\n/)) {
-            const match = line.match(/^([A-Z0-9_]+)=(.*)$/);
-            if (!match) continue;
-            let value = match[2].trim();
-            if (
-              (value.startsWith('"') && value.endsWith('"')) ||
-              (value.startsWith("'") && value.endsWith("'"))
-            ) {
-              value = value.slice(1, -1);
-            }
-            values[match[1]] = value;
-          }
-          const pooled = values.POSTGRES_PRISMA_URL || values.POSTGRES_URL;
-          if (!pooled) throw new Error("Vercel production has no pooled Postgres URL.");
-          fs.appendFileSync(process.env.GITHUB_ENV, `POSTGRES_PRISMA_URL=${pooled}\n`);
-          if (values.POSTGRES_URL_NON_POOLING) {
-            fs.appendFileSync(
-              process.env.GITHUB_ENV,
-              `POSTGRES_URL_NON_POOLING=${values.POSTGRES_URL_NON_POOLING}\n`,
-            );
-          }
-          NODE
-
-      - name: Validate protected production inputs
-        run: |
-          [ -n "$POSTGRES_PRISMA_URL" ] || { echo "POSTGRES_PRISMA_URL is missing"; exit 1; }
-          [ -n "$WHOP_APP_API_KEY" ] || { echo "WHOP_APP_API_KEY is missing"; exit 1; }
-          [[ "$WHOP_COMPANY_ID" == biz_* ]] || { echo "Invalid Whop company ID"; exit 1; }
-          [[ "$WHOP_PRODUCT_ID" == prod_* ]] || { echo "Invalid Whop product ID"; exit 1; }
-
-      - name: Run reversible production sync verification
-        run: npx tsx scripts/verify-live-whop-sync.ts
+          set -euo pipefail
+          [ -n "$CRON_SECRET" ] || { echo "CRON_SECRET is missing"; exit 1; }
+          [[ "$COMPANY_ID" == biz_* ]] || { echo "Invalid Whop company ID"; exit 1; }
+          [[ "$PRODUCT_ID" == prod_* ]] || { echo "Invalid Whop product ID"; exit 1; }
+          jq -n \
+            --arg capperEmail "$CAPPER_EMAIL" \
+            --arg companyId "$COMPANY_ID" \
+            --arg productId "$PRODUCT_ID" \
+            '{capperEmail:$capperEmail,companyId:$companyId,productId:$productId}' \
+            > /tmp/whop-e2e.json
+          HTTP=$(curl -sS --max-time 300 -o /tmp/whop-e2e-result.json -w "%{http_code}" \
+            -X POST "https://www.sportscappersleaderboard.com/api/admin/verify-whop-sync" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json" \
+            --data-binary @/tmp/whop-e2e.json)
+          cat /tmp/whop-e2e-result.json
+          echo
+          [ "$HTTP" = "200" ] || { echo "Verification endpoint returned HTTP $HTTP"; exit 1; }
