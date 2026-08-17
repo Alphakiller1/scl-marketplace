@@ -90,11 +90,11 @@ export async function syncWhopStorefront(input: {
     return {
       ok: false,
       error:
-        "Whop is not configured. Set WHOP_API_KEY or reconnect the capper's Whop business.",
+        "Whop is not configured. Set WHOP_APP_API_KEY or reconnect the capper's Whop business.",
     };
   }
   const tokenExpired =
-    !whopStorefrontApiKey(null) &&
+    !whopAppApiKey() &&
     connection.whopTokenExpiresAt != null &&
     connection.whopTokenExpiresAt.getTime() <= Date.now() + 60_000;
   if (tokenExpired) {

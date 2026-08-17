@@ -70,20 +70,17 @@ describe("whop-config defaults", () => {
     assert.equal(status.affiliateUsername, true);
     assert.equal(status.oauth, true);
     assert.equal(status.storefrontSync, true);
+
+    delete process.env.WHOP_APP_API_KEY;
+    delete process.env.WHOP_CLIENT_SECRET;
+    assert.equal(whopIntegrationStatus().storefrontSync, false);
   });
 
-  it("prefers Whop's current server-key env name for storefront operations", () => {
-    process.env.WHOP_API_KEY = "apik_server";
-    process.env.WHOP_APP_API_KEY = "apik_legacy_app";
+  it("prefers the installed-app server key for storefront operations", () => {
+    process.env.WHOP_API_KEY = "apik_account";
+    process.env.WHOP_APP_API_KEY = "apik_app";
 
-    assert.equal(whopStorefrontApiKey("oauth_user"), "apik_server");
-  });
-
-  it("accepts the legacy app-key env name for storefront operations", () => {
-    delete process.env.WHOP_API_KEY;
-    process.env.WHOP_APP_API_KEY = "apik_legacy_app";
-
-    assert.equal(whopStorefrontApiKey("oauth_user"), "apik_legacy_app");
+    assert.equal(whopStorefrontApiKey("oauth_user"), "apik_app");
   });
 
   it("keeps OAuth credentials as a backwards-compatible fallback", () => {

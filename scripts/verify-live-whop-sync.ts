@@ -25,7 +25,7 @@ export async function runLiveWhopSyncVerification(input: {
   const companyId = input.companyId.trim();
   const productId = input.productId.trim();
   const apiKey = whopStorefrontApiKey(null);
-  assert(apiKey, "WHOP_API_KEY or WHOP_APP_API_KEY is required.");
+  assert(apiKey, "WHOP_APP_API_KEY is required.");
 
   const [originalProduct, user, admin] = await Promise.all([
     retrieveWhopProduct(apiKey, productId),
