@@ -1,11 +1,7 @@
 import assert from "node:assert/strict";
 
 import { prisma } from "@/lib/prisma";
-import {
-  retrieveWhopCompany,
-  retrieveWhopProduct,
-  updateWhopProduct,
-} from "@/lib/whop-api";
+import { retrieveWhopProduct, updateWhopProduct } from "@/lib/whop-api";
 import { whopAppApiKey } from "@/lib/whop-config";
 import { pushPackageToWhop, syncWhopStorefront } from "@/lib/whop-sync";
 
@@ -31,8 +27,7 @@ export async function runLiveWhopSyncVerification(input: {
   const apiKey = whopAppApiKey();
   assert(apiKey, "WHOP_APP_API_KEY is required.");
 
-  const [company, originalProduct, user, admin] = await Promise.all([
-    retrieveWhopCompany(apiKey, companyId),
+  const [originalProduct, user, admin] = await Promise.all([
     retrieveWhopProduct(apiKey, productId),
     prisma.user.findFirst({
       where: { email: { equals: capperEmail, mode: "insensitive" } },
@@ -50,6 +45,11 @@ export async function runLiveWhopSyncVerification(input: {
   assert(user?.capperProfile, `No capper profile found for ${capperEmail}.`);
   const capper = user.capperProfile;
   assert(admin, "An active SCL admin is required for audit attribution.");
+  const company = originalProduct.company;
+  assert(
+    company,
+    "Whop did not return the product's owning business. Confirm product-read permission on the SCL app.",
+  );
   assert.equal(company.id, companyId);
   assert(company.route, "Whop company route is missing.");
   assert.equal(originalProduct.id, productId);
