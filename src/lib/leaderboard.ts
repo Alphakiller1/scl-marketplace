@@ -1,12 +1,13 @@
 import type { Outcome } from "@prisma/client";
 
 import { LEADERBOARD_SORTS, SPORT_KEYS } from "@/lib/constants";
+import { etDayBounds } from "@/lib/et-day";
 import type { CapperSummary } from "@/lib/mock";
 import { hasSignal } from "@/lib/sample";
 
 /** Compact Rank-mode time scopes (year kept for URL back-compat only). */
 export const LEADERBOARD_WINDOWS = [
-  { key: "1d", label: "1D", longLabel: "Past 24 Hours" },
+  { key: "1d", label: "1D", longLabel: "Yesterday's Results" },
   { key: "7d", label: "7D", longLabel: "Past 7 Days" },
   { key: "14d", label: "14D", longLabel: "Past 14 Days" },
   { key: "30d", label: "30D", longLabel: "Past 30 Days" },
@@ -129,6 +130,22 @@ export function leaderboardWindowStart(
 
   const days = Number(window.replace("d", ""));
   return new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+}
+
+/**
+ * Database bounds for a leaderboard scope. The 1D board is the last completed
+ * Eastern calendar day and is bounded on both sides; longer scopes remain
+ * rolling windows that extend through the current instant.
+ */
+export function leaderboardWindowBounds(
+  window: LeaderboardWindow,
+  now = new Date(),
+): { start: Date | null; end: Date | null } {
+  if (window === "1d") {
+    const { start, end } = etDayBounds(-1, now);
+    return { start, end };
+  }
+  return { start: leaderboardWindowStart(window, now), end: null };
 }
 
 export function buildPerformanceTrend(

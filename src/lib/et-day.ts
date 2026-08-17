@@ -32,13 +32,17 @@ function startOfEtYmd(ymd: string): Date {
  * Inclusive start / exclusive end for an ET calendar day.
  * `dayOffset` 0 = today ET, -1 = yesterday ET.
  */
-export function etDayBounds(dayOffset = 0): { start: Date; end: Date } {
-  const anchor = new Date(Date.now() + dayOffset * 86_400_000);
-  const ymd = etYmd(anchor);
+export function etDayBounds(
+  dayOffset = 0,
+  now = new Date(),
+): { start: Date; end: Date } {
+  const [anchorY, anchorM, anchorD] = etYmd(now).split("-").map(Number);
+  const ymd = new Date(Date.UTC(anchorY, anchorM - 1, anchorD + dayOffset))
+    .toISOString()
+    .slice(0, 10);
   const start = startOfEtYmd(ymd);
   const [y, m, d] = ymd.split("-").map(Number);
-  const next = new Date(Date.UTC(y, m - 1, d + 1));
-  const endYmd = etYmd(next);
+  const endYmd = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
   const end = startOfEtYmd(endYmd);
   return { start, end };
 }
