@@ -122,7 +122,7 @@ async function fetchRankableProfiles(
         orderBy: { createdAt: "asc" },
       },
       // Results carried over from the previous SCL platform. Only the
-      // PRE_IMPORT scope is fetched: it is the legacy season total with the
+      // PRE_IMPORT scope is fetched: it is the legacy calendar-year total with the
       // imported plays already subtracted, so adding it to the computed stats
       // can never double-count the ~90 days that exist in both.
       legacyRecords: {

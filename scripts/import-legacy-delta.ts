@@ -168,12 +168,12 @@ async function main() {
   }
 
   // LegacyRecord aggregates are scope-keyed upserts, so refresh them after this
-  // with db:import-legacy-records — PRE_IMPORT is "season total minus imported
+  // with db:import-legacy-records — PRE_IMPORT is "calendar-year total minus imported
   // plays" and every play added here shifts it.
   if (commit && (totalInsert || totalSettle)) {
     console.log(
       "\n⚠ Now re-run `npm run db:import-legacy-records` — PRE_IMPORT subtracts\n" +
-        "  imported plays from season totals, so it is now stale.",
+        "  imported plays from calendar-year totals, so it is now stale.",
     );
   }
 }

@@ -109,9 +109,11 @@ current-year.php; `stats_current` is the current **season** and drives
 current-season.php.
 
 **`PRE_IMPORT` is the only scope that affects standings.** It is the legacy
-season total _minus_ the plays imported as real `Play` rows, so adding it to
-computed stats reproduces the legacy season total without counting the ~90 days
-present in both. Verified across all 84 cappers at extraction time.
+calendar-year total _minus_ the plays imported as real `Play` rows, so adding it
+to computed stats reproduces the legacy year-to-date total without counting the
+~90 days present in both. The calendar year is intentional: an all-sports
+headline cannot coherently add "current season" figures when NFL, NBA, MLB, and
+the other sports all have different season boundaries.
 
 Where it applies:
 

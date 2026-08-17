@@ -697,9 +697,9 @@ model GradeJobRun {
 /// pick-level evidence behind them, so they are stored separately from `Play`
 /// and always surfaced with explicit legacy provenance.
 enum LegacyRecordScope {
-  /// The leaderboard baseline: the capper's legacy season total MINUS the plays
+  /// The leaderboard baseline: the capper's legacy calendar-year total MINUS the plays
   /// that were imported as real `Play` rows. Adding this to computed stats
-  /// reproduces the legacy season total exactly, with no window double-counting.
+  /// reproduces the legacy year-to-date total exactly, with no window double-counting.
   PRE_IMPORT
   CURRENT_SEASON
   CURRENT_YEAR
