@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 
 import { prisma } from "@/lib/prisma";
 import { retrieveWhopProduct, updateWhopProduct } from "@/lib/whop-api";
-import { whopAppApiKey } from "@/lib/whop-config";
+import { whopStorefrontApiKey } from "@/lib/whop-config";
 import { pushPackageToWhop, syncWhopStorefront } from "@/lib/whop-sync";
 
 function required(name: string): string {
@@ -24,8 +24,8 @@ export async function runLiveWhopSyncVerification(input: {
   const capperEmail = input.capperEmail.trim().toLowerCase();
   const companyId = input.companyId.trim();
   const productId = input.productId.trim();
-  const apiKey = whopAppApiKey();
-  assert(apiKey, "WHOP_APP_API_KEY is required.");
+  const apiKey = whopStorefrontApiKey(null);
+  assert(apiKey, "WHOP_API_KEY or WHOP_APP_API_KEY is required.");
 
   const [originalProduct, user, admin] = await Promise.all([
     retrieveWhopProduct(apiKey, productId),
