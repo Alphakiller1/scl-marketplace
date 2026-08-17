@@ -122,7 +122,7 @@ export type CapperLegacyRecords = {
  * dashboard and a different one on their public profile — 518 graded against
  * 1,946 for the capper who reported it. Same numbers, same source, both places.
  *
- * PRE_IMPORT only, and that matters: it is the legacy season total with the
+ * PRE_IMPORT only, and that matters: it is the legacy calendar-year total with the
  * individually imported plays already subtracted. The other scopes on the same
  * table (LAST_30D, CURRENT_SEASON, YEAR_2025 and the rest) overlap each other
  * and the imported plays, so summing across scopes double-counts. One capper

@@ -172,6 +172,7 @@ STAT_SPORTS = {
     "BOXING": "BOXING", "TENNIS": "TENNIS", "GOLF": "PGA",
 }
 ALL_SPORTS = "ALL"  # sentinel for the combined total (matches LeaderboardFilters)
+STANDINGS_BASELINE_SCOPE = "CURRENT_YEAR"
 
 # Legacy stores local event time with no zone. Every row in the export falls in
 # 2026-04-18..2026-07-29, entirely inside US Eastern daylight time (UTC-4), so a
@@ -407,6 +408,28 @@ def totals_from_plays(plays: list[dict], sport: str | None = None) -> dict | Non
         "unitsRisked": round(sum(p["units"] for p in sel), 2),
         "unitsNet": round(sum(p.get("profitUnits", 0.0) for p in sel), 2),
     }
+
+
+def pre_import_entries(
+    scoped: dict[str, dict], acct: str, plays: list[dict], warn: Counter
+) -> list[dict]:
+    """Build the non-overlapping calendar-year residual used by standings."""
+    current_year = scoped.get(STANDINGS_BASELINE_SCOPE, {}).get(acct)
+    if not current_year:
+        return []
+
+    entries = []
+    for prefix, sport in [("TOT", ALL_SPORTS), *STAT_SPORTS.items()]:
+        total = stat_cell(current_year, prefix, warn)
+        if not total:
+            continue
+        imported = totals_from_plays(
+            plays, None if sport == ALL_SPORTS else sport
+        )
+        residual = sub_cell(total, imported)
+        if residual:
+            entries.append({"scope": "PRE_IMPORT", "sport": sport, **residual})
+    return entries
 
 
 def event_iso(rdate: str, ltime) -> str | None:
@@ -848,23 +871,13 @@ def main() -> int:
                     if cell:
                         entries.append({"scope": scope, "sport": sport, **cell})
 
-            # PRE_IMPORT: the season total minus what we imported as real plays.
-            # This is the only scope the leaderboard adds, so the overlap between
-            # legacy totals and imported picks can never be counted twice.
-            season = scoped.get("CURRENT_SEASON", {}).get(acct)
-            if season:
-                for prefix, sport in [("TOT", ALL_SPORTS), *STAT_SPORTS.items()]:
-                    total = stat_cell(season, prefix, warn)
-                    if not total:
-                        continue
-                    imported = totals_from_plays(
-                        mine, None if sport == ALL_SPORTS else sport
-                    )
-                    residual = sub_cell(total, imported)
-                    if residual:
-                        entries.append(
-                            {"scope": "PRE_IMPORT", "sport": sport, **residual}
-                        )
+            # PRE_IMPORT: the calendar-year total minus what we imported as real
+            # plays. Cross-sport standings need one coherent time boundary.
+            # CURRENT_SEASON cannot provide that: NFL, NBA, MLB, and the other
+            # sports all start their seasons on different dates, so summing those
+            # rows made an all-sports capper's headline depend on an arbitrary mix
+            # of prior and current-year results.
+            entries.extend(pre_import_entries(scoped, acct, mine, warn))
 
             if entries:
                 records_out.append({

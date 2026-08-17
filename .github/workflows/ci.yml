@@ -33,6 +33,9 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
+      - name: Legacy baseline regression
+        run: python3 -m unittest scripts/extract_legacy_mysql_test.py
+
       - name: Prettier check
         run: npm run format:check
 
