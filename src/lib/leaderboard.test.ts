@@ -189,14 +189,8 @@ test("1D is yesterday's completed Eastern calendar day", () => {
     "1d",
     new Date("2026-03-09T04:30:00Z"),
   );
-  assert.equal(
-    springForward.start?.toISOString(),
-    "2026-03-08T05:00:00.000Z",
-  );
-  assert.equal(
-    springForward.end?.toISOString(),
-    "2026-03-09T04:00:00.000Z",
-  );
+  assert.equal(springForward.start?.toISOString(), "2026-03-08T05:00:00.000Z");
+  assert.equal(springForward.end?.toISOString(), "2026-03-09T04:00:00.000Z");
 });
 
 test("longer leaderboard scopes remain rolling windows without an upper bound", () => {

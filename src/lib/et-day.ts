@@ -37,16 +37,12 @@ export function etDayBounds(
   now = new Date(),
 ): { start: Date; end: Date } {
   const [anchorY, anchorM, anchorD] = etYmd(now).split("-").map(Number);
-  const ymd = new Date(
-    Date.UTC(anchorY, anchorM - 1, anchorD + dayOffset),
-  )
+  const ymd = new Date(Date.UTC(anchorY, anchorM - 1, anchorD + dayOffset))
     .toISOString()
     .slice(0, 10);
   const start = startOfEtYmd(ymd);
   const [y, m, d] = ymd.split("-").map(Number);
-  const endYmd = new Date(Date.UTC(y, m - 1, d + 1))
-    .toISOString()
-    .slice(0, 10);
+  const endYmd = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
   const end = startOfEtYmd(endYmd);
   return { start, end };
 }
