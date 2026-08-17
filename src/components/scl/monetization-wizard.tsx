@@ -20,6 +20,7 @@ import {
   WINIBLE_INVITE_VALUES,
   isPendingStoreStatus,
   providerLabel,
+  selectInitialStoreConnection,
 } from "@/lib/store-connection";
 import { cn } from "@/lib/utils";
 
@@ -104,16 +105,7 @@ export function MonetizationWizard({
   activeThreadId?: string | null;
   capperUsername?: string | null;
 }) {
-  const initialActive =
-    connections.find(
-      (c) =>
-        c.status !== "DISABLED" &&
-        c.status !== "NOT_STARTED" &&
-        c.status !== "INSTRUCTIONS_VIEWED",
-    ) ||
-    connections.find((c) => c.status === "DISABLED") ||
-    connections.find((c) => c.status === "INSTRUCTIONS_VIEWED") ||
-    null;
+  const initialActive = selectInitialStoreConnection(connections);
 
   const [allConnections, setAllConnections] = useState<Conn[]>(connections);
 
@@ -480,9 +472,11 @@ export function MonetizationWizard({
                     2. Install the SCL app on Whop (optional but recommended)
                   </p>
                   <p className="text-muted-foreground mt-1">
-                    When available, install the &quot;Sports Cappers
-                    Leaderboard&quot; app on your Whop business so SCL can
-                    verify your storefront faster. It is read-only.
+                    Install the &quot;SCL Marketplace&quot; app on your Whop
+                    business so SCL can import product details and reflect
+                    approved SCL edits back to Whop. Hiding a mapped product on
+                    Whop also takes its SCL offer down. Prices remain controlled
+                    in Whop.
                   </p>
                   <Button
                     variant="outline"

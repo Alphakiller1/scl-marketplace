@@ -11,6 +11,7 @@ test("capper storefront setup exposes both supported platform connections", () =
   assert.match(source, /SUPPORTED_PROVIDERS = \["WINIBLE", "WHOP"\]/);
   assert.match(source, /Connect Another Platform/);
   assert.match(source, /allConnections\.map/);
+  assert.match(source, /selectInitialStoreConnection\(connections\)/);
 });
 
 test("capper storefront setup tailors platform guidance to the selected option", () => {
@@ -117,6 +118,11 @@ test("Whop setup instructions focus on the capper workflow", () => {
   assert.match(normalized, /Install the SCL app on Whop/);
   assert.match(normalized, /3\. Use package-specific affiliate links/);
   assert.match(normalized, /4\. Select recurring commissions/);
+  assert.match(
+    normalized,
+    /Hiding a mapped product on Whop also takes its SCL offer down/,
+  );
+  assert.doesNotMatch(normalized, /It is read-only/);
 });
 
 test("capper-facing storefront copy describes the manual SCL review workflow", () => {

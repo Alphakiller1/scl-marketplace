@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 
-/** Whop OAuth scopes for read-only storefront sync on a capper's business. */
+/** Identity scopes used alongside the app's Whop product permissions. */
 export const WHOP_OAUTH_SCOPES = "openid profile email";
 
 const WHOP_AUTHORIZE_URL = "https://api.whop.com/oauth/authorize";
