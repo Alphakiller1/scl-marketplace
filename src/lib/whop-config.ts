@@ -35,15 +35,20 @@ export function whopAppApiKey(): string | null {
 /**
  * Server credential for a company that installed the SCL Whop app.
  *
- * Whop App API keys are deliberately company-portable: the same server key may
- * act on every company that granted the app's declared permissions. Prefer it
- * over a user OAuth token so product sync survives user-session expiry. The
- * OAuth token remains a backwards-compatible fallback for older connections.
+ * Whop's current server API examples call this credential `WHOP_API_KEY`.
+ * Earlier SCL setup guides called the equivalent app credential
+ * `WHOP_APP_API_KEY`, so accept both names while preferring the current one.
+ * A stored OAuth token remains a backwards-compatible final fallback.
  */
 export function whopStorefrontApiKey(
   connectionAccessToken?: string | null,
 ): string | null {
-  return whopAppApiKey() || connectionAccessToken?.trim() || null;
+  return (
+    whopAccountApiKey() ||
+    whopAppApiKey() ||
+    connectionAccessToken?.trim() ||
+    null
+  );
 }
 
 export function whopWebhookSecret(): string | null {
@@ -75,7 +80,7 @@ export type WhopIntegrationStatus = {
 };
 
 export function whopStorefrontSyncConfigured(): boolean {
-  return whopOAuthConfigured() && Boolean(whopAffiliateUsername());
+  return Boolean(whopStorefrontApiKey(null) && whopAffiliateUsername());
 }
 
 export function whopIntegrationStatus(): WhopIntegrationStatus {
