@@ -1,3 +1,4 @@
+import { isMoneylineMarket } from "@/lib/market-kind";
 import { PROP_MARKET_LABEL } from "@/lib/odds-verify";
 import { isPeriodMarket } from "@/lib/period-markets";
 import { resolveKnownTeam } from "@/lib/teams";
@@ -432,6 +433,24 @@ export function resolveOutcome(
   const selection = norm(play.selection);
   const game = findGame(play, games);
   if (!game) return null;
+
+  // ---- tennis: moneyline only ----
+  //
+  // The scores feed reports a tennis match as two numbers, and a moneyline
+  // needs only their order — whoever is higher won, whether the provider
+  // counted sets or games. Every other tennis market needs to know WHICH, and
+  // getting it wrong is not a near miss: "Swiatek -7.5" is a games handicap,
+  // and settling it against a 2-0 set score reads as a 2-point margin and
+  // books a confident LOSS on a bet that cleared by nine games.
+  //
+  // So the rest defer (null keeps the play PENDING) until the unit is
+  // confirmed, rather than being graded on an assumption.
+  if (
+    play.sport.trim().toUpperCase() === "TENNIS" &&
+    !isMoneylineMarket(play.market)
+  ) {
+    return null;
+  }
 
   // ---- team totals (one club's runs) ----
   //

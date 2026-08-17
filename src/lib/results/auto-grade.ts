@@ -81,15 +81,17 @@ type FixtureCache = Map<string, Promise<RecoveredFixture | null>>;
 function resultsQueryScopeFor(
   plays: readonly { sport: string; league?: string | null }[],
 ): ResultsQueryScope {
+  const tagsFor = (sport: string) => [
+    ...new Set(
+      plays
+        .filter((play) => play.sport === sport)
+        .map((play) => play.league?.trim())
+        .filter((league): league is string => Boolean(league)),
+    ),
+  ];
   return {
-    soccerLeagues: [
-      ...new Set(
-        plays
-          .filter((play) => play.sport === "SOCCER")
-          .map((play) => play.league?.trim())
-          .filter((league): league is string => Boolean(league)),
-      ),
-    ],
+    soccerLeagues: tagsFor("SOCCER"),
+    tennisTours: tagsFor("TENNIS"),
   };
 }
 
