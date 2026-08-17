@@ -20,16 +20,14 @@ async function mustUpdateWhop(input: Parameters<typeof updateWhopProduct>[0]) {
   if (!result.ok) throw new Error(result.error);
 }
 
-async function main() {
-  assert.equal(
-    required("SCL_LIVE_WHOP_E2E"),
-    "YES",
-    "Set SCL_LIVE_WHOP_E2E=YES to acknowledge the reversible production test.",
-  );
-
-  const capperEmail = required("SCL_CAPPER_EMAIL").toLowerCase();
-  const companyId = required("WHOP_COMPANY_ID");
-  const productId = required("WHOP_PRODUCT_ID");
+export async function runLiveWhopSyncVerification(input: {
+  capperEmail: string;
+  companyId: string;
+  productId: string;
+}) {
+  const capperEmail = input.capperEmail.trim().toLowerCase();
+  const companyId = input.companyId.trim();
+  const productId = input.productId.trim();
   const apiKey = whopAppApiKey();
   assert(apiKey, "WHOP_APP_API_KEY is required.");
 
@@ -264,24 +262,29 @@ async function main() {
     });
   }
 
-  console.log(
-    JSON.stringify({
-      ok: true,
-      companyId,
-      productId,
-      whopToScl: true,
-      whopHideToSclDeactivate: true,
-      sclToWhop: true,
-      restored: true,
-    }),
-  );
+  return {
+    ok: true,
+    companyId,
+    productId,
+    whopToScl: true,
+    whopHideToSclDeactivate: true,
+    sclToWhop: true,
+    restored: true,
+  };
 }
 
-main()
-  .catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
+if (process.env.SCL_LIVE_WHOP_E2E === "YES") {
+  runLiveWhopSyncVerification({
+    capperEmail: required("SCL_CAPPER_EMAIL"),
+    companyId: required("WHOP_COMPANY_ID"),
+    productId: required("WHOP_PRODUCT_ID"),
   })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+    .then((result) => console.log(JSON.stringify(result)))
+    .catch((error) => {
+      console.error(error);
+      process.exitCode = 1;
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}
