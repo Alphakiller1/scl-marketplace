@@ -96,6 +96,8 @@ export function Leaderboard({
     return (
       <EmptyState
         icon={Trophy}
+        // Replaces the board directly under the page h1 — h3 here skips a level.
+        headingLevel="h2"
         title={
           failed
             ? "Couldn't load the leaderboard"

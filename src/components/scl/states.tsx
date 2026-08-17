@@ -8,12 +8,22 @@ export function EmptyState({
   description,
   action,
   className,
+  headingLevel: Heading = "h3",
 }: {
   icon?: React.ComponentType<{ className?: string }>;
   title: string;
   description?: string;
   action?: React.ReactNode;
   className?: string;
+  /**
+   * Heading element for the title. Defaults to `h3`, which is right when the
+   * state sits inside a section that already has its own heading.
+   *
+   * It is wrong at the top of a route: a 404 whose only heading is an `h3` has
+   * no `h1` at all, and a degraded page that jumps `h1` -> `h3` skips a level.
+   * Both are why this is a prop rather than a constant.
+   */
+  headingLevel?: "h1" | "h2" | "h3";
 }) {
   return (
     <div
@@ -27,9 +37,9 @@ export function EmptyState({
           <Icon className="size-6" aria-hidden />
         </span>
       ) : null}
-      <h3 className="scl-display text-base font-semibold tracking-wide uppercase">
+      <Heading className="scl-display text-base font-semibold tracking-wide uppercase">
         {title}
-      </h3>
+      </Heading>
       {description ? (
         <p className="text-muted-foreground mt-1.5 max-w-sm text-sm leading-relaxed">
           {description}
