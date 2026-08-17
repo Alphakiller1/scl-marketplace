@@ -32,6 +32,20 @@ export function whopAppApiKey(): string | null {
   );
 }
 
+/**
+ * Server credential for a company that installed the SCL Whop app.
+ *
+ * Whop App API keys are deliberately company-portable: the same server key may
+ * act on every company that granted the app's declared permissions. Prefer it
+ * over a user OAuth token so product sync survives user-session expiry. The
+ * OAuth token remains a backwards-compatible fallback for older connections.
+ */
+export function whopStorefrontApiKey(
+  connectionAccessToken?: string | null,
+): string | null {
+  return whopAppApiKey() || connectionAccessToken?.trim() || null;
+}
+
 export function whopWebhookSecret(): string | null {
   return process.env.WHOP_WEBHOOK_SECRET?.trim() || null;
 }
