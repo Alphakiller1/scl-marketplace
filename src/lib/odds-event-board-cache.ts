@@ -13,6 +13,7 @@ import {
   readDurableOddsSnapshot,
   writeDurableOddsSnapshot,
 } from "@/lib/odds-durable-cache";
+import { freshestSnapshot } from "@/lib/odds-snapshot-freshness";
 import {
   mergeEventBoardSelections,
   parseEventBoardSnapshot,
@@ -53,10 +54,13 @@ async function readSnapshot(
   eventId: string,
 ): Promise<EventBoardSnapshot | null> {
   const key = cacheKey(sport, eventId);
+  let runtime: EventBoardSnapshot | null = null;
   try {
-    const value = await getCache({ namespace: "scl-odds" }).get(key);
-    const snapshot = parseEventBoardSnapshot(value, sport, eventId);
-    if (snapshot) return snapshot;
+    runtime = parseEventBoardSnapshot(
+      await getCache({ namespace: "scl-odds" }).get(key),
+      sport,
+      eventId,
+    );
   } catch (error) {
     console.warn("[odds-event-cache] read failed", {
       sport,
@@ -64,11 +68,13 @@ async function readSnapshot(
       reason: error instanceof Error ? error.message : String(error),
     });
   }
-  return parseEventBoardSnapshot(
+  // Newer of the two layers — same reasoning as the shared board.
+  const durable = parseEventBoardSnapshot(
     await readDurableOddsSnapshot(key),
     sport,
     eventId,
   );
+  return freshestSnapshot(runtime, durable);
 }
 
 async function writeSnapshot(
