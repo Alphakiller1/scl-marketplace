@@ -326,13 +326,16 @@ export function GamePicker({
         submission does not call the odds provider or re-price the line. The
         stale-slate warning itself is still honest and still earns its place, so
         only the claim the product no longer honours is gone.
+
+        Copy is locked to the owner-facing wording. The documented call times
+        by sport live in `docs/ODDS_API_SCHEDULE.md`.
       */}
       {slate?.stale && events.length > 0 ? (
         <p
           className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs text-[color:var(--scl-text)]"
           role="status"
         >
-          Showing the last available slate — prices may have moved.
+          Showing odds from the last API call. Prices may have moved.
         </p>
       ) : null}
 

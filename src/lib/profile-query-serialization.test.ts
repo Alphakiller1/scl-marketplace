@@ -41,5 +41,5 @@ test("profile metadata does not start a second full profile hydration", () => {
 test("profile cache does not reuse pre-serialization partial payloads", () => {
   const capperSource = source("src/lib/queries/capper.ts");
 
-  assert.match(capperSource, /\["public-capper-by-handle-v2"\]/);
+  assert.match(capperSource, /\["public-capper-by-handle-v3"\]/);
 });

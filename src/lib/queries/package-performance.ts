@@ -9,6 +9,7 @@ import {
 } from "@/lib/profile-chart-window";
 import { prisma } from "@/lib/prisma";
 import { hasQaNoteMarker, isValidPublicStake } from "@/lib/public-eligibility";
+import { stakeFromStored } from "@/lib/extreme-stake";
 
 export type PackagePerformanceProfile = {
   chartSeries: ProfileChartSeries;
@@ -66,22 +67,26 @@ export async function getPackagePerformanceEvidence(
 
     for (const pkg of packages) {
       const plays = pkg.playLinks
-        .map(({ play }) => ({
-          ...play,
-          units: Number(play.units),
-          profitUnits:
-            play.profitUnits == null ? null : Number(play.profitUnits),
-        }))
+        .map(({ play }) => {
+          const stake = stakeFromStored(play.units, play.profitUnits);
+          return {
+            ...play,
+            units: stake.units,
+            profitUnits: stake.profitUnits,
+          };
+        })
         .filter(
           (play) =>
             isValidPublicStake(play.units) && !hasQaNoteMarker(play.notes),
         );
-      const parlays = pkg.parlayLinks.map(({ parlay }) => ({
-        ...parlay,
-        units: Number(parlay.units),
-        profitUnits:
-          parlay.profitUnits == null ? null : Number(parlay.profitUnits),
-      }));
+      const parlays = pkg.parlayLinks.map(({ parlay }) => {
+        const stake = stakeFromStored(parlay.units, parlay.profitUnits);
+        return {
+          ...parlay,
+          units: stake.units,
+          profitUnits: stake.profitUnits,
+        };
+      });
       evidence[pkg.id] = summarizePackagePositions([...plays, ...parlays]);
 
       const sports = [...new Set(plays.map((play) => play.sport))].sort();

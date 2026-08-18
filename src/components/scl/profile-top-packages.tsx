@@ -39,10 +39,6 @@ export function ProfileTopPackages({
           >
             Top Purchase Packages
           </h2>
-          <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
-            Offers this capper currently sells. Performance is not broken out
-            per package — the record above covers every pick.
-          </p>
         </div>
         <Link
           href="#storefront"

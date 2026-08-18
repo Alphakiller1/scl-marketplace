@@ -1,4 +1,4 @@
-import { BarChart3, ClipboardList, MailWarning } from "lucide-react";
+import { ClipboardList, MailWarning } from "lucide-react";
 
 import { getCurrentUser } from "@/lib/session";
 import {
@@ -8,6 +8,7 @@ import {
   mergeRecordEntries,
 } from "@/lib/queries/plays";
 import { computeCapperStats, computeStatsBySport } from "@/lib/stats";
+import { mergeCareerSportRecords } from "@/lib/legacy-sport-records";
 import { buildPerformanceTrend } from "@/lib/leaderboard";
 import { NewPickButton } from "@/components/scl/new-pick-button";
 import { Card } from "@/components/ui/card";
@@ -15,7 +16,6 @@ import { EmptyState } from "@/components/scl/states";
 import { SectionHeader } from "@/components/scl/section";
 import { LegacySportBreakdown } from "@/components/scl/legacy-sport-breakdown";
 import { ParlayListItem, PlayListItem } from "@/components/scl/play-list-item";
-import { PerformanceBySport } from "@/components/scl/performance-by-sport";
 import { PerformanceScoreboard } from "@/components/scl/performance-scoreboard";
 
 export const metadata = { title: "Dashboard" };
@@ -33,14 +33,46 @@ export default async function DashboardPage() {
   // The carried-over legacy total is part of the capper's record on every
   // public surface, so it is part of it here too. Without it the dashboard
   // reported a different career than the profile it links to.
-  const stats = computeCapperStats(plays, legacy.baseline);
-  const bySport = computeStatsBySport(plays);
-  // Stats stay on straight plays; the recent feed also surfaces parlays as positions.
-  const recent = mergeRecordEntries(plays, parlays).slice(0, 6);
-  const performanceTrend = buildPerformanceTrend(
-    [...plays].reverse().map((play) => ({
+  const stats = computeCapperStats(
+    [
+      ...plays.map((play) => ({
+        outcome: play.outcome,
+        units: play.units,
+        profitUnits: play.profitUnits,
+      })),
+      ...parlays.map((parlay) => ({
+        outcome: parlay.outcome,
+        units: parlay.units,
+        profitUnits: parlay.profitUnits,
+      })),
+    ],
+    legacy.baseline,
+  );
+  const sclBySport = computeStatsBySport([
+    ...plays.map((play) => ({
+      sport: play.sport,
       outcome: play.outcome,
+      units: play.units,
       profitUnits: play.profitUnits,
+    })),
+    ...parlays.map((parlay) => ({
+      sport: parlay.legs[0]?.sport ?? "MULTI",
+      outcome: parlay.outcome,
+      units: parlay.units,
+      profitUnits: parlay.profitUnits,
+    })),
+  ]);
+  const bySport = mergeCareerSportRecords({
+    legacyBySport: legacy.bySport,
+    allBaseline: legacy.baseline,
+    sclBySport,
+  });
+  const positions = mergeRecordEntries(plays, parlays);
+  const recent = positions.slice(0, 6);
+  const performanceTrend = buildPerformanceTrend(
+    [...positions].reverse().map((position) => ({
+      outcome: position.outcome,
+      profitUnits: position.profitUnits,
     })),
   );
 
@@ -89,35 +121,11 @@ export default async function DashboardPage() {
 
       {bySport.length ? (
         <section
-          className="scl-reveal space-y-4"
-          style={{ animationDelay: "80ms" }}
-        >
-          <SectionHeader
-            icon={BarChart3}
-            title="By Sport"
-            subtitle={
-              legacy.bySport.length
-                ? "Your settled record and return in each sport, from picks logged on SCL"
-                : "Your settled record and return in each sport"
-            }
-          />
-          <PerformanceBySport items={bySport} />
-        </section>
-      ) : null}
-
-      {/*
-        The same carried-over breakdown the public profile shows. By Sport above
-        counts SCL-logged plays only, so without this the two tables were the
-        headline mismatch in miniature: the totals include the legacy record,
-        the per-sport rows did not.
-      */}
-      {legacy.bySport.length ? (
-        <section
           className="scl-reveal"
-          style={{ animationDelay: "110ms" }}
-          aria-label="Legacy record by sport"
+          style={{ animationDelay: "80ms" }}
+          aria-label="Record by sport"
         >
-          <LegacySportBreakdown records={legacy.bySport} />
+          <LegacySportBreakdown records={bySport} surface="dashboard" />
         </section>
       ) : null}
 
