@@ -1,4 +1,4 @@
-import { BadgeCheck, ShieldCheck } from "lucide-react";
+import { BadgeCheck, Scale, ShieldCheck } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -7,36 +7,51 @@ import { cn } from "@/lib/utils";
  */
 export function VerificationLegend({ className }: { className?: string }) {
   return (
-    <p
+    <div
+      role="list"
       className={cn(
-        "text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs",
+        "text-muted-foreground grid gap-2 text-xs sm:gap-2.5 sm:text-sm",
         className,
       )}
     >
-      <span className="inline-flex items-center gap-1.5">
+      <div role="listitem" className="flex items-start gap-2">
         <ShieldCheck
-          className="size-3.5 text-[color:var(--scl-pink)]"
+          className="mt-0.5 size-3.5 shrink-0 text-[color:var(--scl-pink)]"
           aria-hidden
         />
         <span>
           <span className="text-foreground font-medium">Odds Verification</span>
-          {" — "}odds synchronized across multiple sportsbooks so bettors can
-          shop lines and trust their authenticity
+          {" — "}SCL captures sportsbook odds and uses that market data as a
+          consistent reference when evaluating submitted picks.
         </span>
-      </span>
-      <span className="inline-flex items-center gap-1.5">
+      </div>
+      <div role="listitem" className="flex items-start gap-2">
         <BadgeCheck
-          className="size-3.5 text-[color:var(--scl-blue)]"
+          className="mt-0.5 size-3.5 shrink-0 text-[color:var(--scl-blue)]"
           aria-hidden
         />
         <span>
           <span className="text-foreground font-medium">
             Record Verification
           </span>
-          {" — "}pick results automatically graded by Sports Cappers
-          Leaderboard, independently from the capper
+          {" — "}Pick results are automatically graded by Sports Cappers
+          Leaderboard, independently of the capper.
         </span>
-      </span>
-    </p>
+      </div>
+      <div role="listitem" className="flex items-start gap-2">
+        <Scale
+          className="mt-0.5 size-3.5 shrink-0 text-[color:var(--scl-blue)]"
+          aria-hidden
+        />
+        <span>
+          <span className="text-foreground font-medium">
+            Consistent Standards
+          </span>
+          {" — "}The same underlying odds data and grading methodology are
+          applied across cappers, giving bettors a consistent way to compare
+          performance.
+        </span>
+      </div>
+    </div>
   );
 }

@@ -1,21 +1,19 @@
-name: Populate odds (manual)
+name: Populate odds
 
-# Hand-run odds population while the scheduled refresh is paused.
+# One explicit full warm plus two daily surface-price refreshes. Expanded MLB
+# and WNBA event boards are durable last-good snapshots and are not erased by
+# later provider failures or by the two surface-only scheduled runs.
 #
-# The production Odds API key is spent, so this takes a key as a dispatch input
-# and writes the boards straight to the production database. It runs here rather
-# than locally for one reason: the Supabase direct host is IPv6-only and the
-# runner can reach it, using the DATABASE_URL secret this repo already holds.
-#
-# The key is masked before anything else runs, so it cannot reach the log.
+# The protected Production environment supplies the Odds API key. Boards are
+# written straight to the production database because the GitHub runner can
+# reach the Supabase host that is unavailable from some local IPv4 networks.
 
 on:
+  schedule:
+    - cron: "0 12 * * *" # 08:00 ET (during daylight time)
+    - cron: "0 0 * * *" # 20:00 ET (during daylight time)
   workflow_dispatch:
     inputs:
-      odds_key:
-        description: "Odds API key (used for this run only, never stored)"
-        required: true
-        type: string
       sports:
         description: "Comma-separated SCL sports, or blank for all"
         required: false
@@ -29,7 +27,12 @@ on:
       budget_floor:
         description: "Stop spending once remaining credits hit this"
         required: false
-        default: "0"
+        default: "120"
+        type: string
+      expanded_days:
+        description: "ET slate days for expanded MLB/WNBA: today,tomorrow"
+        required: false
+        default: "tomorrow"
         type: string
 
 concurrency:
@@ -39,10 +42,13 @@ concurrency:
 jobs:
   populate:
     runs-on: ubuntu-latest
+    environment: Production
     timeout-minutes: 30
     steps:
-      - name: Mask the key
-        run: echo "::add-mask::${{ inputs.odds_key }}"
+      - name: Validate protected odds key
+        env:
+          ODDS_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: test -n "$ODDS_KEY"
 
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -80,10 +86,11 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
-          ODDS_KEY: ${{ inputs.odds_key }}
+          ODDS_KEY: ${{ secrets.ODDS_API_KEY }}
           SPORTS: ${{ inputs.sports }}
-          EXPANDED: ${{ inputs.expanded }}
-          BUDGET_FLOOR: ${{ inputs.budget_floor }}
+          EXPANDED: ${{ github.event_name == 'schedule' && '0' || inputs.expanded }}
+          EXPANDED_DAYS: ${{ inputs.expanded_days || 'tomorrow' }}
+          BUDGET_FLOOR: ${{ github.event_name == 'schedule' && '100' || inputs.budget_floor }}
           WRITE_DB: "1"
         run: npx tsx scripts/populate-odds-today.ts | tee /tmp/populate.log
 

@@ -20,6 +20,7 @@
  *
  * BUDGET_FLOOR=<n>   stop spending once remaining hits this (default 0)
  * EXPANDED=<n>       max events to expand per sport (default 99)
+ * EXPANDED_DAYS=<csv> ET slate days to expand: today,tomorrow (default tomorrow)
  * SPORTS=MLB,WNBA…   restrict the surface pass (default all)
  */
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -35,11 +36,19 @@ import {
 import { expandedBoardMarkets } from "@/lib/odds-verify";
 import { selectSoccerLeagues, SOCCER_LEAGUE_LIMIT } from "@/lib/soccer-leagues";
 import { selectTennisTours, TENNIS_TOUR_LIMIT } from "@/lib/tennis-tours";
+import {
+  mergeLastGoodBoardEvents,
+  parseExpandedSlateDays,
+  selectExpandedSlateEvents,
+} from "@/lib/manual-odds-population";
 
 const KEY = process.env.ODDS_KEY?.trim();
 if (!KEY) throw new Error("ODDS_KEY is required");
 const BUDGET_FLOOR = Number(process.env.BUDGET_FLOOR ?? 0);
 const EXPANDED_LIMIT = Number(process.env.EXPANDED ?? 99);
+const EXPANDED_DAYS = parseExpandedSlateDays(
+  process.env.EXPANDED_DAYS ?? "tomorrow",
+);
 const WRITE_DB = process.env.WRITE_DB === "1";
 const ONLY = (process.env.SPORTS ?? "")
   .split(",")
@@ -86,10 +95,14 @@ async function surface(sclSport: string, apiSport: string, league?: string) {
   const rows = (await api(
     `/v4/sports/${apiSport}/odds/?regions=${REGIONS}&markets=${SURFACE_MARKETS}&oddsFormat=american`,
   )) as Parameters<typeof normalizeUpcomingEvent>[1][] | null;
-  if (!Array.isArray(rows)) return [];
-  const events = rows.map((row) =>
-    normalizeUpcomingEvent(sclSport, row, undefined, league),
-  );
+  if (!Array.isArray(rows)) return null;
+  const events = rows
+    .map((row) => normalizeUpcomingEvent(sclSport, row, undefined, league))
+    .filter(
+      (event) =>
+        Date.parse(event.commenceTime) > Date.now() &&
+        event.selections.length > 0,
+    );
   console.log(
     `  ${apiSport.padEnd(38)} events=${String(events.length).padStart(3)} remaining=${remaining}`,
   );
@@ -98,6 +111,10 @@ async function surface(sclSport: string, apiSport: string, league?: string) {
 
 function pushBoard(sclSport: string, events: OddsEvent[], cap: number) {
   const ordered = sortByKickoff(dedupeOddsEvents(events)).slice(0, cap);
+  if (ordered.length === 0) {
+    console.log(`  ${sclSport}: no fresh events — retaining last-good board`);
+    return [];
+  }
   snapshots.push({
     key: `board:v1:${sclSport.toUpperCase()}`,
     payload: {
@@ -128,42 +145,41 @@ async function main() {
   let wnba: OddsEvent[] = [];
 
   if (wanted("MLB")) {
-    mlb = pushBoard("MLB", await surface("MLB", "baseball_mlb"), BOARD_CAP);
+    const events = await surface("MLB", "baseball_mlb");
+    if (events) mlb = pushBoard("MLB", events, BOARD_CAP);
   }
   if (wanted("WNBA")) {
-    wnba = pushBoard(
-      "WNBA",
-      await surface("WNBA", "basketball_wnba"),
-      BOARD_CAP,
-    );
+    const events = await surface("WNBA", "basketball_wnba");
+    if (events) wnba = pushBoard("WNBA", events, BOARD_CAP);
   }
   if (wanted("NFL")) {
     // Preseason carries its own league tag so a pick logged there resolves back
     // to the preseason sport key at verification time.
-    pushBoard(
+    const regular = await surface("NFL", "americanfootball_nfl");
+    const preseason = await surface(
       "NFL",
-      [
-        ...(await surface("NFL", "americanfootball_nfl")),
-        ...(await surface(
-          "NFL",
-          "americanfootball_nfl_preseason",
-          "AMERICANFOOTBALL_NFL_PRESEASON",
-        )),
-      ],
-      BOARD_CAP,
+      "americanfootball_nfl_preseason",
+      "AMERICANFOOTBALL_NFL_PRESEASON",
     );
+    if (regular || preseason) {
+      pushBoard("NFL", [...(regular ?? []), ...(preseason ?? [])], BOARD_CAP);
+    }
   }
   if (wanted("TENNIS")) {
     const events: OddsEvent[] = [];
     for (const tour of selectTennisTours(catalog, TENNIS_TOUR_LIMIT)) {
-      events.push(...(await surface("TENNIS", tour.oddsApiKey, tour.key)));
+      events.push(
+        ...((await surface("TENNIS", tour.oddsApiKey, tour.key)) ?? []),
+      );
     }
     pushBoard("TENNIS", events, BOARD_CAP);
   }
   if (wanted("SOCCER")) {
     const events: OddsEvent[] = [];
     for (const league of selectSoccerLeagues(catalog, SOCCER_LEAGUE_LIMIT)) {
-      events.push(...(await surface("SOCCER", league.oddsApiKey, league.key)));
+      events.push(
+        ...((await surface("SOCCER", league.oddsApiKey, league.key)) ?? []),
+      );
     }
     pushBoard("SOCCER", events, SOCCER_BOARD_CAP);
   }
@@ -174,13 +190,14 @@ async function main() {
     ["MLB", "baseball_mlb", mlb],
     ["WNBA", "basketball_wnba", wnba],
   ] as const) {
-    if (!events.length) continue;
+    const expandedEvents = selectExpandedSlateEvents(events, EXPANDED_DAYS);
+    if (!expandedEvents.length) continue;
     const markets = expandedBoardMarkets(sclSport);
     console.log(
-      `  ${sclSport}: ${markets.length} markets/event x ${events.length} events = ${markets.length * events.length} credits for the full slate`,
+      `  ${sclSport}: ${markets.length} markets/event x ${expandedEvents.length} ${EXPANDED_DAYS.join("+")} events = ${markets.length * expandedEvents.length} credits for the expanded slate`,
     );
     let done = 0;
-    for (const event of events) {
+    for (const event of expandedEvents) {
       if (done >= EXPANDED_LIMIT || remaining <= BUDGET_FLOOR) break;
       const raw = await api(
         `/v4/sports/${apiSport}/events/${event.id}/odds/?regions=${REGIONS}&markets=${markets.join(",")}&oddsFormat=american`,
@@ -225,6 +242,23 @@ async function main() {
   const prisma = new PrismaClient();
   try {
     for (const snapshot of snapshots) {
+      if (snapshot.key.startsWith("board:v1:")) {
+        const prior = await prisma.oddsCacheSnapshot.findUnique({
+          where: { key: snapshot.key },
+          select: { payload: true },
+        });
+        const priorEvents =
+          prior?.payload &&
+          typeof prior.payload === "object" &&
+          "events" in prior.payload &&
+          Array.isArray(prior.payload.events)
+            ? (prior.payload.events as unknown as OddsEvent[])
+            : [];
+        snapshot.payload.events = mergeLastGoodBoardEvents(
+          snapshot.payload.events as unknown as OddsEvent[],
+          priorEvents,
+        );
+      }
       const savedAt = new Date(snapshot.payload.savedAt as number);
       const expiresAt = new Date(
         (snapshot.payload.savedAt as number) + RETENTION_SECONDS * 1_000,
