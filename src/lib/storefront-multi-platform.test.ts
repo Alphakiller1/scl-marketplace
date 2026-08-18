@@ -149,3 +149,14 @@ test("Whop OAuth callback route exists for app install", () => {
     ),
   );
 });
+
+test("existing Whop storefronts can install or repair their app connection", () => {
+  const source = fs.readFileSync(
+    path.join(process.cwd(), "src/components/scl/store-status-panel.tsx"),
+    "utf8",
+  );
+
+  assert.match(source, /provider === "WHOP" && status !== "DISABLED"/);
+  assert.match(source, /href="\/api\/whop\/connect"/);
+  assert.match(source, /Install or reconnect SCL app/);
+});

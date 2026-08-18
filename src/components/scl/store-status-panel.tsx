@@ -1,7 +1,9 @@
 import type { StoreConnectionStatus, StoreProvider } from "@prisma/client";
+import { ExternalLink } from "lucide-react";
 
 import { ProviderBadge } from "@/components/scl/provider-badge";
 import { StoreStatusChip } from "@/components/scl/store-status-chip";
+import { Button } from "@/components/ui/button";
 import { isPendingStoreStatus, providerLabel } from "@/lib/store-connection";
 import { cn } from "@/lib/utils";
 
@@ -117,6 +119,17 @@ export function StoreStatusPanel({
       <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-relaxed">
         {copy.body}
       </p>
+      {provider === "WHOP" && status !== "DISABLED" ? (
+        <Button
+          variant="outline"
+          className="mt-3 min-h-10"
+          render={<a href="/api/whop/connect" rel="noreferrer" />}
+          nativeButton={false}
+        >
+          Install or reconnect SCL app
+          <ExternalLink className="size-4" />
+        </Button>
+      ) : null}
       <ol className="mt-4 space-y-2.5">
         {steps.map((step) => (
           <li key={step.label} className="flex gap-2.5 text-sm">
