@@ -18,6 +18,9 @@ test("population reads the odds key only from the protected environment", () => 
 });
 
 test("population resolves the IPv4 Supabase pooler before fetching odds", () => {
+  assert.match(workflow, /vercel env pull \/tmp\/scl-production\.env/);
+  assert.match(workflow, /env\.POSTGRES_PRISMA_URL/);
+  assert.match(workflow, /SCL_VERCEL_DATABASE_URL/);
   assert.match(workflow, /pooler\.supabase\.com/);
   assert.match(workflow, /for \(const tenant of \[0, 1\]\)/);
   assert.match(workflow, /for \(const port of \[5432, 6543\]\)/);
