@@ -73,21 +73,31 @@ jobs:
             exit 1
           fi
 
-          npm install -g vercel@latest >/tmp/vercel-install.log 2>&1
-          mkdir -p .vercel
-          printf '{"orgId":"%s","projectId":"%s"}' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
-          vercel env pull /tmp/scl-production.env --environment=production --yes --token="$VERCEL_TOKEN" >/tmp/vercel-env-pull.log 2>&1
+          curl --fail --silent --show-error --get \
+            --header "Authorization: Bearer $VERCEL_TOKEN" \
+            --data-urlencode "decrypt=true" \
+            --data-urlencode "source=vercel-cli:pull" \
+            --data-urlencode "teamId=$VERCEL_ORG_ID" \
+            "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env" \
+            --output /tmp/scl-production-env.json
           node -e '
             const { readFileSync, writeFileSync } = require("node:fs");
-            const { parse } = require("dotenv");
-            const env = parse(readFileSync("/tmp/scl-production.env"));
-            const raw = env.DATABASE_URL || env.POSTGRES_PRISMA_URL || env.POSTGRES_URL;
-            if (!raw) process.exit(2);
+            const body = JSON.parse(readFileSync("/tmp/scl-production-env.json", "utf8"));
+            const rows = Array.isArray(body.envs) ? body.envs : [];
+            const production = rows.filter((row) =>
+              Array.isArray(row.target) && row.target.includes("production"),
+            );
+            const preferred = ["DATABASE_URL", "POSTGRES_PRISMA_URL", "POSTGRES_URL"];
+            const row = preferred
+              .map((key) => production.find((candidate) => candidate.key === key))
+              .find(Boolean);
+            const raw = typeof row?.value === "string" ? row.value.trim() : "";
+            if (!raw || raw === "[SENSITIVE]") process.exit(2);
             const url = new URL(raw);
             if (!url.searchParams.has("schema")) url.searchParams.set("schema", "scl");
             writeFileSync("/tmp/scl-production-db", url.toString(), { mode: 0o600 });
           ' || {
-            rm -f /tmp/scl-production.env
+            rm -f /tmp/scl-production-env.json
             echo "::error::Vercel Production has no usable database connection. No odds credits were spent."
             exit 1
           }
@@ -99,7 +109,7 @@ jobs:
             echo "$writable_url"
             echo "SCL_VERCEL_DATABASE_URL"
           } >> "$GITHUB_ENV"
-          rm -f /tmp/scl-production.env /tmp/scl-production-db
+          rm -f /tmp/scl-production-env.json /tmp/scl-production-db
 
       # Resolve the production pooler before spending a single odds credit. The
       # Supabase direct host is IPv6-only; GitHub-hosted runners need the IPv4
