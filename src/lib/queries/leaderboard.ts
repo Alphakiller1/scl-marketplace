@@ -14,6 +14,7 @@ import {
   type LeaderboardFilters,
 } from "@/lib/leaderboard";
 import { UNIT_MIN } from "@/lib/constants";
+import { stakeFromStored } from "@/lib/extreme-stake";
 import { hasQaNoteMarker } from "@/lib/public-eligibility";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 import { computeCapperStats, type StatsBaseline } from "@/lib/stats";
@@ -293,20 +294,26 @@ function summarize(
   // Straight plays + parlays are the capper's positions of record (legs are already
   // excluded from plays). Merge them, oldest → newest, for all aggregations.
   const positions = [
-    ...plays.map((pl) => ({
-      outcome: pl.outcome,
-      units: Number(pl.units),
-      profitUnits: pl.profitUnits == null ? null : Number(pl.profitUnits),
-      createdAt: pl.createdAt,
-      gradedAt: pl.gradedAt,
-    })),
-    ...p.parlays.map((pa) => ({
-      outcome: pa.outcome,
-      units: Number(pa.units),
-      profitUnits: pa.profitUnits == null ? null : Number(pa.profitUnits),
-      createdAt: pa.createdAt,
-      gradedAt: pa.gradedAt,
-    })),
+    ...plays.map((pl) => {
+      const stake = stakeFromStored(pl.units, pl.profitUnits);
+      return {
+        outcome: pl.outcome,
+        units: stake.units,
+        profitUnits: stake.profitUnits,
+        createdAt: pl.createdAt,
+        gradedAt: pl.gradedAt,
+      };
+    }),
+    ...p.parlays.map((pa) => {
+      const stake = stakeFromStored(pa.units, pa.profitUnits);
+      return {
+        outcome: pa.outcome,
+        units: stake.units,
+        profitUnits: stake.profitUnits,
+        createdAt: pa.createdAt,
+        gradedAt: pa.gradedAt,
+      };
+    }),
   ].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
   const legacyBaseline = baselineFor(p, applyBaseline);

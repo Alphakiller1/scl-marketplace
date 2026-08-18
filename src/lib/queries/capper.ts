@@ -6,7 +6,9 @@ import { cachedQuery } from "@/lib/cached-query";
 import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
 import { UNIT_MIN } from "@/lib/constants";
 import { withTransientDatabaseRetry } from "@/lib/database-retry";
+import { stakeFromStored } from "@/lib/extreme-stake";
 import {
+  mergeCareerSportRecords,
   sortLegacySportRecords,
   type LegacySportRecordView,
 } from "@/lib/legacy-sport-records";
@@ -25,6 +27,8 @@ import {
   hasClvColumns,
   hasNotesPublicColumn,
 } from "@/lib/results/schema-features";
+import { LEGACY_RECORD_ALL_SPORTS } from "@/lib/schemas/legacy-records.schema";
+import { computeStatsBySport } from "@/lib/stats";
 
 export type PublicCapper = {
   capper: CapperSummary;
@@ -35,7 +39,7 @@ export type PublicCapper = {
   chartSeries?: ProfileChartSeries;
   chartSeriesBySport: Record<string, ProfileChartSeries>;
   historyNextCursor: string | null;
-  /** Per-sport PRE_IMPORT legacy totals, sorted for profile display. */
+  /** Career by sport: PRE_IMPORT per sport + SCL-logged positions. */
   legacyBySport: LegacySportRecordView[];
 };
 
@@ -117,6 +121,7 @@ export async function getPublicProfileHistoryPage(
         .filter((row) => !hasQaNoteMarker(row.notes))
         .map((row) => {
           const embargo = publicPickEmbargoState(row);
+          const stake = stakeFromStored(row.units, row.profitUnits);
           return {
             id: row.id,
             sport: row.sport,
@@ -124,10 +129,9 @@ export async function getPublicProfileHistoryPage(
             market: row.market,
             selection: embargo.isEmbargoed ? "Pick hidden" : row.selection,
             oddsAmerican: embargo.isEmbargoed ? 0 : row.oddsAmerican,
-            units: Number(row.units),
+            units: stake.units,
             outcome: row.outcome,
-            profitUnits:
-              row.profitUnits == null ? null : Number(row.profitUnits),
+            profitUnits: stake.profitUnits,
             createdAt: row.createdAt,
             verificationTier: row.verificationTier,
             side: embargo.isEmbargoed ? null : row.side,
@@ -224,6 +228,7 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
   let chartSeriesBySport: Record<string, ProfileChartSeries> = {};
   let historyNextCursor: string | null = null;
   let legacyBySport: LegacySportRecordView[] = [];
+  let sclBySport: ReturnType<typeof computeStatsBySport> = [];
 
   async function settle<T>(label: string, operation: () => Promise<T>) {
     try {
@@ -256,6 +261,7 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
       select: {
         createdAt: true,
         outcome: true,
+        units: true,
         profitUnits: true,
         sport: true,
         notes: true,
@@ -272,6 +278,7 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
       select: {
         createdAt: true,
         outcome: true,
+        units: true,
         profitUnits: true,
         // Parlay has no sport column — attribute to the first leg for
         // sport-filtered charts; All-window ignores sport.
@@ -329,18 +336,26 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
     const [straightRows, parlayRows] = chartResult.value;
     const straightChart = straightRows
       .filter((row) => !hasQaNoteMarker(row.notes))
-      .map((row) => ({
+      .map((row) => {
+        const stake = stakeFromStored(row.units, row.profitUnits);
+        return {
+          createdAt: row.createdAt,
+          outcome: row.outcome,
+          profitUnits: stake.profitUnits,
+          units: stake.units,
+          sport: row.sport,
+        };
+      });
+    const parlayChart = parlayRows.map((row) => {
+      const stake = stakeFromStored(row.units, row.profitUnits);
+      return {
         createdAt: row.createdAt,
         outcome: row.outcome,
-        profitUnits: row.profitUnits == null ? null : Number(row.profitUnits),
-        sport: row.sport,
-      }));
-    const parlayChart = parlayRows.map((row) => ({
-      createdAt: row.createdAt,
-      outcome: row.outcome,
-      profitUnits: row.profitUnits == null ? null : Number(row.profitUnits),
-      sport: row.legs[0]?.sport ?? "MULTI",
-    }));
+        profitUnits: stake.profitUnits,
+        units: stake.units,
+        sport: row.legs[0]?.sport ?? "MULTI",
+      };
+    });
     const chartRows = [...straightChart, ...parlayChart].sort(
       (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
     );
@@ -364,6 +379,7 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
         ),
       ]),
     );
+    sclBySport = computeStatsBySport(chartRows);
   } else {
     console.error(
       "[getPublicCapperByHandle] chart unavailable:",
@@ -387,23 +403,39 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
     );
   }
 
-  if (legacyResult.status === "fulfilled") {
-    legacyBySport = sortLegacySportRecords(
-      legacyResult.value.map((row) => ({
-        sport: row.sport,
-        wins: row.wins,
-        losses: row.losses,
-        pushes: row.pushes,
-        unitsRisked: Number(row.unitsRisked),
-        unitsNet: Number(row.unitsNet),
-      })),
-    );
-  } else {
+  const legacyRows =
+    legacyResult.status === "fulfilled"
+      ? legacyResult.value.map((row) => ({
+          sport: row.sport,
+          wins: row.wins,
+          losses: row.losses,
+          pushes: row.pushes,
+          unitsRisked: Number(row.unitsRisked),
+          unitsNet: Number(row.unitsNet),
+        }))
+      : [];
+  if (legacyResult.status === "rejected") {
     console.error(
       "[getPublicCapperByHandle] legacy sport records unavailable:",
       legacyResult.reason,
     );
   }
+  const combined = legacyRows.find(
+    (row) => row.sport === LEGACY_RECORD_ALL_SPORTS,
+  );
+  legacyBySport = mergeCareerSportRecords({
+    legacyBySport: sortLegacySportRecords(legacyRows),
+    allBaseline: combined
+      ? {
+          wins: combined.wins,
+          losses: combined.losses,
+          pushes: combined.pushes,
+          stakedUnits: combined.unitsRisked,
+          units: combined.unitsNet,
+        }
+      : null,
+    sclBySport,
+  });
 
   return {
     capper,
@@ -439,7 +471,7 @@ const getCachedPublicCapperByHandle = cachedQuery(
   async (handle: string) => loadPublicCapperByHandle(handle),
   // v2 intentionally abandons partial profile payloads cached before metadata
   // stopped launching a competing full hydration on cold requests.
-  ["public-capper-by-handle-v2"],
+  ["public-capper-by-handle-v3"],
   { revalidate: 60, tags: ["leaderboard"] },
 );
 

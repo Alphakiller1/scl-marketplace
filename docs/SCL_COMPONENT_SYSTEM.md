@@ -73,9 +73,10 @@ Numbers are the product. These render performance consistently everywhere.
 - `PickCard` (`pick-card.tsx`) — today's-pick card (event, selection, odds, stake, capper, status).
 - `SectionHeader` (`section.tsx`) — titled section with optional "view all".
 - `CapperProfileHeader` — cover-led public identity, trust, specialties, socials, and profile actions.
-- `LegacySportBreakdown` — per-sport PRE_IMPORT legacy totals on public profiles (sortable by
-  units/ROI/win%/sample; desktop table + mobile cards; Early samples amber-capped; explicit
-  “totals only, no per-pick record” provenance).
+- `LegacySportBreakdown` — career record by sport on public profiles and the
+  capper dashboard (PRE_IMPORT totals plus SCL-logged positions, sortable by
+  units/ROI/win%/sample; desktop table + mobile cards; sport name next to the
+  mark; Early samples amber-capped). The sample is built to match Evidence Brief.
 - `CapperStorefront` — public storefront identity, third-party commerce disclosure, and honest
   pre-package empty state.
 - `PerformanceSummary` — record, win rate, units, ROI, streak, and recent form.

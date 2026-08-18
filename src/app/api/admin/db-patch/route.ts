@@ -1,6 +1,10 @@
 import { revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 
+import {
+  EXTREME_STAKE_UNITS,
+  normalizeExtremeStake,
+} from "@/lib/extreme-stake";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -19,8 +23,9 @@ export const maxDuration = 60;
  *
  * It also repairs the legacy-record invariant discovered in production: a
  * push-only aggregate cannot carry nonzero net units. The accompanying CHECK
- * constraint makes that repair permanent. Every statement is idempotent, so
- * this endpoint is safe to re-run.
+ * constraint makes that repair permanent. Sentinel stakes (≥100u, e.g. the
+ * Primos 999u ticket) are collapsed to the 5u prediction max. Every statement
+ * is idempotent, so this endpoint is safe to re-run.
  */
 const STATEMENTS: string[] = [
   `ALTER TABLE scl."StoreConnection" ADD COLUMN IF NOT EXISTS "affiliateAcceptedAt" TIMESTAMP(3)`,
@@ -205,6 +210,51 @@ export async function POST(req: NextRequest) {
     constraintPresent: legacyConstraint[0]?.present === true,
   };
 
+  const extremePlays = await prisma.play.findMany({
+    where: { units: { gte: EXTREME_STAKE_UNITS } },
+    select: { id: true, units: true, profitUnits: true },
+  });
+  const extremeParlays = await prisma.parlay.findMany({
+    where: { units: { gte: EXTREME_STAKE_UNITS } },
+    select: { id: true, units: true, profitUnits: true },
+  });
+  let playsRepaired = 0;
+  for (const play of extremePlays) {
+    const next = normalizeExtremeStake({
+      units: Number(play.units),
+      profitUnits: play.profitUnits == null ? null : Number(play.profitUnits),
+    });
+    await prisma.play.update({
+      where: { id: play.id },
+      data: { units: next.units, profitUnits: next.profitUnits },
+    });
+    playsRepaired += 1;
+  }
+  let parlaysRepaired = 0;
+  for (const parlay of extremeParlays) {
+    const next = normalizeExtremeStake({
+      units: Number(parlay.units),
+      profitUnits:
+        parlay.profitUnits == null ? null : Number(parlay.profitUnits),
+    });
+    await prisma.parlay.update({
+      where: { id: parlay.id },
+      data: { units: next.units, profitUnits: next.profitUnits },
+    });
+    parlaysRepaired += 1;
+  }
+  const remainingExtreme = await prisma.play.count({
+    where: { units: { gte: EXTREME_STAKE_UNITS } },
+  });
+  const remainingExtremeParlays = await prisma.parlay.count({
+    where: { units: { gte: EXTREME_STAKE_UNITS } },
+  });
+  const extremeStakeRepair = {
+    playsRepaired,
+    parlaysRepaired,
+    remainingInvalidRows: remainingExtreme + remainingExtremeParlays,
+  };
+
   const ok =
     failed.length === 0 &&
     storeConnectionColumns.length === 5 &&
@@ -213,7 +263,8 @@ export async function POST(req: NextRequest) {
     blockedMigrations.length === 0 &&
     storefrontMessagesTable &&
     legacyRecordInvariant.remainingInvalidRows === 0 &&
-    legacyRecordInvariant.constraintPresent;
+    legacyRecordInvariant.constraintPresent &&
+    extremeStakeRepair.remainingInvalidRows === 0;
 
   // This route repairs data with raw SQL, so Prisma/Next do not know that the
   // cached public leaderboard and capper profiles are stale. Invalidate even
@@ -237,6 +288,10 @@ export async function POST(req: NextRequest) {
       storefrontMessagesTable,
       legacyRecordInvariant: {
         ...legacyRecordInvariant,
+        cacheInvalidated,
+      },
+      extremeStakeRepair: {
+        ...extremeStakeRepair,
         cacheInvalidated,
       },
     },

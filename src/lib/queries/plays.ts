@@ -8,6 +8,7 @@ import {
   sortLegacySportRecords,
   type LegacySportRecordView,
 } from "@/lib/legacy-sport-records";
+import { stakeFromStored } from "@/lib/extreme-stake";
 import { LEGACY_RECORD_ALL_SPORTS } from "@/lib/schemas/legacy-records.schema";
 import type { StatsBaseline } from "@/lib/stats";
 import type { CapperSummary, TodayPick } from "@/lib/mock";
@@ -220,39 +221,43 @@ export async function getCapperPlays(
     },
   });
 
-  return plays.map((p) => ({
-    id: p.id,
-    sport: p.sport,
-    league: p.league,
-    market: p.market,
-    selection: p.selection,
-    oddsAmerican: p.oddsAmerican,
-    units: Number(p.units),
-    outcome: p.outcome,
-    profitUnits: p.profitUnits == null ? null : Number(p.profitUnits),
-    createdAt: p.createdAt,
-    verificationTier: p.verificationTier,
-    side: p.side,
-    eventStartsAt: p.eventStartsAt,
-    eventLabel: p.eventLabel,
-    homeTeam: p.homeTeam,
-    awayTeam: p.awayTeam,
-    book: p.book,
-    notes: p.notes,
-    notesPublic:
-      "notesPublic" in p
-        ? ((p as { notesPublic?: boolean }).notesPublic ?? true)
-        : true,
-    closingOddsAmerican:
-      "closingOddsAmerican" in p &&
-      (p as { closingOddsAmerican?: number | null }).closingOddsAmerican != null
-        ? Number((p as { closingOddsAmerican: number }).closingOddsAmerican)
-        : null,
-    clvPts:
-      "clvPts" in p && (p as { clvPts?: unknown }).clvPts != null
-        ? Number((p as { clvPts: unknown }).clvPts)
-        : null,
-  }));
+  return plays.map((p) => {
+    const stake = stakeFromStored(p.units, p.profitUnits);
+    return {
+      id: p.id,
+      sport: p.sport,
+      league: p.league,
+      market: p.market,
+      selection: p.selection,
+      oddsAmerican: p.oddsAmerican,
+      units: stake.units,
+      outcome: p.outcome,
+      profitUnits: stake.profitUnits,
+      createdAt: p.createdAt,
+      verificationTier: p.verificationTier,
+      side: p.side,
+      eventStartsAt: p.eventStartsAt,
+      eventLabel: p.eventLabel,
+      homeTeam: p.homeTeam,
+      awayTeam: p.awayTeam,
+      book: p.book,
+      notes: p.notes,
+      notesPublic:
+        "notesPublic" in p
+          ? ((p as { notesPublic?: boolean }).notesPublic ?? true)
+          : true,
+      closingOddsAmerican:
+        "closingOddsAmerican" in p &&
+        (p as { closingOddsAmerican?: number | null }).closingOddsAmerican !=
+          null
+          ? Number((p as { closingOddsAmerican: number }).closingOddsAmerican)
+          : null,
+      clvPts:
+        "clvPts" in p && (p as { clvPts?: unknown }).clvPts != null
+          ? Number((p as { clvPts: unknown }).clvPts)
+          : null,
+    };
+  });
 }
 
 /** Earliest leg start (or null) — the parlay's lifecycle anchors to its first game. */
@@ -297,29 +302,32 @@ export async function getCapperParlays(
     },
   });
 
-  return parlays.map((p) => ({
-    id: p.id,
-    combinedOddsAmerican: p.combinedOddsAmerican,
-    units: Number(p.units),
-    outcome: p.outcome,
-    profitUnits: p.profitUnits == null ? null : Number(p.profitUnits),
-    createdAt: p.createdAt,
-    verificationTier:
-      p.legs.length > 0 &&
-      p.legs.every((l) => isVerifiedTier(l.verificationTier))
-        ? "VERIFIED"
-        : "SELF_REPORTED",
-    eventStartsAt: earliestStart(p.legs),
-    legs: p.legs.map((l) => ({
-      id: l.id,
-      sport: l.sport,
-      market: l.market,
-      selection: l.selection,
-      oddsAmerican: l.oddsAmerican,
-      side: l.side,
-      book: l.book,
-    })),
-  }));
+  return parlays.map((p) => {
+    const stake = stakeFromStored(p.units, p.profitUnits);
+    return {
+      id: p.id,
+      combinedOddsAmerican: p.combinedOddsAmerican,
+      units: stake.units,
+      outcome: p.outcome,
+      profitUnits: stake.profitUnits,
+      createdAt: p.createdAt,
+      verificationTier:
+        p.legs.length > 0 &&
+        p.legs.every((l) => isVerifiedTier(l.verificationTier))
+          ? "VERIFIED"
+          : "SELF_REPORTED",
+      eventStartsAt: earliestStart(p.legs),
+      legs: p.legs.map((l) => ({
+        id: l.id,
+        sport: l.sport,
+        market: l.market,
+        selection: l.selection,
+        oddsAmerican: l.oddsAmerican,
+        side: l.side,
+        book: l.book,
+      })),
+    };
+  });
 }
 
 /**

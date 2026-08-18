@@ -1,5 +1,12 @@
 import { SPORTS, type SportKey } from "@/lib/constants";
 import { LEGACY_RECORD_ALL_SPORTS } from "@/lib/schemas/legacy-records.schema";
+import type { SportStats, StatsBaseline } from "@/lib/stats";
+
+/** Unattributed PRE_IMPORT remainder when ALL ≠ sum of per-sport rows. */
+export const CAREER_SPORT_OTHER = "OTHER";
+
+/** Parlay with no first-leg sport. */
+export const CAREER_SPORT_MULTI = "MULTI";
 
 /**
  * Per-sport carried-over aggregate from the previous SCL platform.
@@ -27,12 +34,14 @@ export type LegacySportRecordRow = {
   unitsNet: number;
 };
 
-const SPORT_LABEL = new Map<string, string>(
-  SPORTS.map((s) => [s.key, s.label]),
-);
+const SPORT_LABEL = new Map<string, string>([
+  ...SPORTS.map((s): [string, string] => [s.key, s.label]),
+  [CAREER_SPORT_OTHER, "Other"],
+  [CAREER_SPORT_MULTI, "Multi-sport"],
+]);
 
-function sportLabel(sport: string): string {
-  return SPORT_LABEL.get(sport as SportKey) ?? sport;
+export function sportLabel(sport: string): string {
+  return SPORT_LABEL.get(sport as SportKey) ?? SPORT_LABEL.get(sport) ?? sport;
 }
 
 /** Derive public view metrics from a stored LegacyRecord row. */
@@ -84,4 +93,102 @@ export function sortLegacySportRecords(
       if (b.settled !== a.settled) return b.settled - a.settled;
       return a.label.localeCompare(b.label);
     });
+}
+
+type SportTotals = {
+  wins: number;
+  losses: number;
+  pushes: number;
+  unitsRisked: number;
+  unitsNet: number;
+};
+
+function emptyTotals(): SportTotals {
+  return { wins: 0, losses: 0, pushes: 0, unitsRisked: 0, unitsNet: 0 };
+}
+
+function addTotals(into: SportTotals, delta: SportTotals): void {
+  into.wins += delta.wins;
+  into.losses += delta.losses;
+  into.pushes += delta.pushes;
+  into.unitsRisked += delta.unitsRisked;
+  into.unitsNet += delta.unitsNet;
+}
+
+function viewToTotals(row: LegacySportRecordView): SportTotals {
+  return {
+    wins: row.wins,
+    losses: row.losses,
+    pushes: row.pushes,
+    unitsRisked: row.unitsRisked,
+    unitsNet: row.units,
+  };
+}
+
+function sclToTotals(row: SportStats): SportTotals {
+  return {
+    wins: row.wins,
+    losses: row.losses,
+    pushes: row.pushes,
+    unitsRisked: row.stakedUnits,
+    unitsNet: row.units,
+  };
+}
+
+function sumViews(rows: LegacySportRecordView[]): SportTotals {
+  return rows.reduce((acc, row) => {
+    addTotals(acc, viewToTotals(row));
+    return acc;
+  }, emptyTotals());
+}
+
+/**
+ * One career-by-sport table: PRE_IMPORT per sport + SCL-logged positions
+ * (imported 90-day receipts and anything logged on this site).
+ *
+ * Evidence Brief uses the ALL PRE_IMPORT baseline plus those same positions.
+ * Customers do not care which era a pick came from, so this table is built to
+ * sum to that headline sample. When ALL is larger than the per-sport legacy
+ * rows, the unattributed remainder lands in Other — it is not "new-site" volume.
+ */
+export function mergeCareerSportRecords({
+  legacyBySport,
+  allBaseline,
+  sclBySport,
+}: {
+  legacyBySport: LegacySportRecordView[];
+  allBaseline: StatsBaseline | null;
+  sclBySport: SportStats[];
+}): LegacySportRecordView[] {
+  const bySport = new Map<string, SportTotals>();
+
+  const add = (sport: string, delta: SportTotals) => {
+    const current = bySport.get(sport) ?? emptyTotals();
+    addTotals(current, delta);
+    bySport.set(sport, current);
+  };
+
+  for (const row of legacyBySport) add(row.sport, viewToTotals(row));
+  for (const row of sclBySport) add(row.sport, sclToTotals(row));
+
+  if (allBaseline) {
+    const attributed = sumViews(legacyBySport);
+    const residual: SportTotals = {
+      wins: allBaseline.wins - attributed.wins,
+      losses: allBaseline.losses - attributed.losses,
+      pushes: allBaseline.pushes - attributed.pushes,
+      unitsRisked: allBaseline.stakedUnits - attributed.unitsRisked,
+      unitsNet: allBaseline.units - attributed.unitsNet,
+    };
+    if (residual.wins + residual.losses + residual.pushes > 0) {
+      add(CAREER_SPORT_OTHER, residual);
+    }
+  }
+
+  return sortLegacySportRecords(
+    [...bySport.entries()].map(([sport, totals]) => ({
+      sport,
+      ...totals,
+    })),
+  );
 }

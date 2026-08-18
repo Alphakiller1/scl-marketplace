@@ -5,6 +5,7 @@ import type { Outcome } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { etDayBounds } from "@/lib/et-day";
 import { UNIT_MIN } from "@/lib/constants";
+import { stakeFromStored } from "@/lib/extreme-stake";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 
 const GRADED: Outcome[] = ["WIN", "LOSS", "PUSH"];
@@ -70,14 +71,14 @@ async function queryGradedResults(whereGradedAt: {
     if (p.outcome !== "WIN" && p.outcome !== "LOSS" && p.outcome !== "PUSH") {
       return [];
     }
-    const profitRaw = p.profitUnits;
+    const stake = stakeFromStored(p.units, p.profitUnits);
     return [
       {
         id: p.id,
         handle,
         selection: p.selection,
-        units: Number(p.units),
-        profitUnits: profitRaw == null ? null : Number(profitRaw),
+        units: stake.units,
+        profitUnits: stake.profitUnits,
         outcome: p.outcome,
       },
     ];

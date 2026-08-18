@@ -11,6 +11,7 @@ import {
   type LeagueActionItem,
 } from "@/lib/league-action";
 import { UNIT_MIN } from "@/lib/constants";
+import { stakeFromStored } from "@/lib/extreme-stake";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 
 const DEFAULT_WINDOW_DAYS = 14;
@@ -105,18 +106,21 @@ async function loadLeagueActionReport({
       }),
     ]);
 
-    const playRows = plays.map((p) => ({
-      sport: p.sport,
-      league: p.league,
-      capperId: p.capperId,
-      market: p.market,
-      parlayId: p.parlayId,
-      outcome: p.outcome,
-      units: Number(p.units),
-      profitUnits: p.profitUnits == null ? null : Number(p.profitUnits),
-      createdAt: p.createdAt,
-      eventStartsAt: p.eventStartsAt,
-    }));
+    const playRows = plays.map((p) => {
+      const stake = stakeFromStored(p.units, p.profitUnits);
+      return {
+        sport: p.sport,
+        league: p.league,
+        capperId: p.capperId,
+        market: p.market,
+        parlayId: p.parlayId,
+        outcome: p.outcome,
+        units: stake.units,
+        profitUnits: stake.profitUnits,
+        createdAt: p.createdAt,
+        eventStartsAt: p.eventStartsAt,
+      };
+    });
 
     const parlayRows = parlays.map((p) => {
       const starts = p.legs
@@ -126,11 +130,12 @@ async function loadLeagueActionReport({
         starts.length > 0
           ? starts.reduce((a, b) => (a.getTime() <= b.getTime() ? a : b))
           : null;
+      const stake = stakeFromStored(p.units, p.profitUnits);
       return {
         capperId: p.capperId,
         outcome: p.outcome,
-        units: Number(p.units),
-        profitUnits: p.profitUnits == null ? null : Number(p.profitUnits),
+        units: stake.units,
+        profitUnits: stake.profitUnits,
         createdAt: p.createdAt,
         eventStartsAt: earliest,
       };

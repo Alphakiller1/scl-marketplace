@@ -2,6 +2,7 @@ import { deriveLifecycle } from "@/lib/lifecycle";
 import type { CapperSummary, TodayPick } from "@/lib/mock";
 import { matchupLabel, pickContextLabel } from "@/lib/pick-identity";
 import { isValidPublicStake } from "@/lib/public-eligibility";
+import { stakeFromStored } from "@/lib/extreme-stake";
 import { publicPickEmbargoState } from "@/lib/public-pick-embargo";
 import type { VerificationTier } from "@/lib/verification";
 
@@ -53,7 +54,8 @@ export function joinPlaysToPublicPicks(
   return plays.flatMap((play) => {
     const capper = capperById.get(play.capperId);
     if (!capper) return [];
-    if (!isValidPublicStake(Number(play.units))) return [];
+    const stake = stakeFromStored(play.units, play.profitUnits);
+    if (!isValidPublicStake(stake.units)) return [];
     const embargo = publicPickEmbargoState(play, now);
     return [
       {
@@ -79,7 +81,7 @@ export function joinPlaysToPublicPicks(
           }),
         selection: embargo.isEmbargoed ? "Pick hidden" : play.selection,
         oddsAmerican: embargo.isEmbargoed ? 0 : play.oddsAmerican,
-        units: Number(play.units),
+        units: stake.units,
         status: deriveLifecycle({
           outcome: play.outcome,
           eventStartsAt: play.eventStartsAt,
@@ -89,7 +91,7 @@ export function joinPlaysToPublicPicks(
         verificationTier: play.verificationTier,
         side: embargo.isEmbargoed ? null : play.side,
         market: play.market,
-        profitUnits: play.profitUnits == null ? null : Number(play.profitUnits),
+        profitUnits: stake.profitUnits,
         book: embargo.isEmbargoed ? null : (play.book ?? null),
         eventStartsAt: play.eventStartsAt,
         closingOddsAmerican: embargo.isEmbargoed

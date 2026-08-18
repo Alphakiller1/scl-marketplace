@@ -2,9 +2,10 @@ import "server-only";
 
 import type { Outcome } from "@prisma/client";
 
-import { prisma } from "@/lib/prisma";
 import { UNIT_MIN } from "@/lib/constants";
 import { etDayBounds } from "@/lib/et-day";
+import { stakeFromStored } from "@/lib/extreme-stake";
+import { prisma } from "@/lib/prisma";
 import { hasQaNoteMarker } from "@/lib/public-eligibility";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 import type { PlayView } from "@/lib/queries/plays";
@@ -60,6 +61,7 @@ export async function getTodaysGradedMoves(
         },
       },
       select: {
+        units: true,
         profitUnits: true,
         capper: {
           select: {
@@ -77,7 +79,8 @@ export async function getTodaysGradedMoves(
       const handle = p.capper.user.username;
       if (!handle) continue;
       const prev = byHandle.get(handle) ?? { unitsDelta: 0, gradedCount: 0 };
-      prev.unitsDelta += Number(p.profitUnits ?? 0);
+      const stake = stakeFromStored(p.units, p.profitUnits);
+      prev.unitsDelta += stake.profitUnits ?? 0;
       prev.gradedCount += 1;
       byHandle.set(handle, prev);
     }
@@ -118,9 +121,10 @@ export async function getTodaysGradedMoves(
       let profit = 0;
       let settled = 0;
       for (const pl of profile.plays) {
+        const stake = stakeFromStored(pl.units, pl.profitUnits);
         settled += 1;
-        staked += Number(pl.units);
-        profit += Number(pl.profitUnits ?? 0);
+        staked += stake.units;
+        profit += stake.profitUnits ?? 0;
       }
       statsByHandle.set(handle, {
         settledPicks: settled,
@@ -211,6 +215,7 @@ export async function getFeaturedGradedPlay(): Promise<{
     );
     if (!row?.capper.user.username) return { play: null, failed: false };
 
+    const stake = stakeFromStored(row.units, row.profitUnits);
     const play: FeaturedGradedPlay = {
       id: row.id,
       sport: row.sport,
@@ -218,9 +223,9 @@ export async function getFeaturedGradedPlay(): Promise<{
       market: row.market,
       selection: row.selection,
       oddsAmerican: row.oddsAmerican,
-      units: Number(row.units),
+      units: stake.units,
       outcome: row.outcome,
-      profitUnits: row.profitUnits == null ? null : Number(row.profitUnits),
+      profitUnits: stake.profitUnits,
       createdAt: row.createdAt,
       verificationTier: row.verificationTier as VerificationTier,
       side: row.side,

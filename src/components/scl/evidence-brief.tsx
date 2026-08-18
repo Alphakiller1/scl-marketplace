@@ -35,6 +35,7 @@ import { EmptyState } from "@/components/scl/states";
 import { loadPublicProfileHistory } from "@/app/actions/public-profile-history";
 import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
 import { asDate, formatOdds, formatUnits } from "@/lib/format";
+import { SPORTS } from "@/lib/constants";
 import type { LegacySportRecordView } from "@/lib/legacy-sport-records";
 import type { CapperSummary } from "@/lib/mock";
 import type {
@@ -326,7 +327,8 @@ export function EvidenceBrief({
                     <option value="ALL">All sports</option>
                     {availableSports.map((sport) => (
                       <option key={sport} value={sport}>
-                        {sport}
+                        {SPORTS.find((entry) => entry.key === sport)?.label ??
+                          sport}
                       </option>
                     ))}
                   </select>

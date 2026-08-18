@@ -3,6 +3,7 @@ import "server-only";
 import { cachedQuery } from "@/lib/cached-query";
 import { prisma } from "@/lib/prisma";
 import { UNIT_MIN } from "@/lib/constants";
+import { stakeFromStored } from "@/lib/extreme-stake";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 import { hasClvColumns } from "@/lib/results/schema-features";
 import { computeCapperStats } from "@/lib/stats";
@@ -169,20 +170,23 @@ async function loadDiscoverLanes(): Promise<{
 
       const playRows: DiscoverPlayRow[] = filterDiscoverPublicPlays(
         p.plays,
-      ).map((pl) => ({
-        outcome: pl.outcome,
-        units: Number(pl.units),
-        profitUnits: pl.profitUnits == null ? null : Number(pl.profitUnits),
-        sport: pl.sport,
-        market: pl.market,
-        createdAt: pl.createdAt,
-        gradedAt: pl.gradedAt,
-        verificationTier: pl.verificationTier as VerificationTier,
-        clvPts:
-          clvReady && "clvPts" in pl && pl.clvPts != null
-            ? Number(pl.clvPts)
-            : null,
-      }));
+      ).map((pl) => {
+        const stake = stakeFromStored(pl.units, pl.profitUnits);
+        return {
+          outcome: pl.outcome,
+          units: stake.units,
+          profitUnits: stake.profitUnits,
+          sport: pl.sport,
+          market: pl.market,
+          createdAt: pl.createdAt,
+          gradedAt: pl.gradedAt,
+          verificationTier: pl.verificationTier as VerificationTier,
+          clvPts:
+            clvReady && "clvPts" in pl && pl.clvPts != null
+              ? Number(pl.clvPts)
+              : null,
+        };
+      });
 
       // Headline all-time stats include parlays (positions of record), matching
       // the leaderboard. Specialty / verified-month / CLV use straight plays.
@@ -194,13 +198,16 @@ async function loadDiscoverLanes(): Promise<{
           createdAt: pl.createdAt,
           gradedAt: pl.gradedAt,
         })),
-        ...p.parlays.map((pa) => ({
-          outcome: pa.outcome,
-          units: Number(pa.units),
-          profitUnits: pa.profitUnits == null ? null : Number(pa.profitUnits),
-          createdAt: pa.createdAt,
-          gradedAt: pa.gradedAt,
-        })),
+        ...p.parlays.map((pa) => {
+          const stake = stakeFromStored(pa.units, pa.profitUnits);
+          return {
+            outcome: pa.outcome,
+            units: stake.units,
+            profitUnits: stake.profitUnits,
+            createdAt: pa.createdAt,
+            gradedAt: pa.gradedAt,
+          };
+        }),
       ].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
       const legacyRecord = p.legacyRecords[0];

@@ -46,15 +46,18 @@ function compareLegacyRows(
 }
 
 /**
- * Per-sport carried-over totals from the previous SCL platform.
- * Client-sortable. Totals only — no per-pick evidence.
+ * Career record broken down by sport: PRE_IMPORT totals plus SCL-logged
+ * positions, so the table sample matches Evidence Brief / the dashboard
+ * scoreboard. Client-sortable. Early samples stay amber.
  */
 export function LegacySportBreakdown({
   records,
   className,
+  surface = "profile",
 }: {
   records: LegacySportRecordView[];
   className?: string;
+  surface?: "profile" | "dashboard";
 }) {
   const [sort, setSort] = useState<SortKey>("units");
 
@@ -68,11 +71,13 @@ export function LegacySportBreakdown({
   const totalSettled = records.reduce((sum, row) => sum + row.settled, 0);
   const sortLabel =
     SORT_OPTIONS.find((option) => option.value === sort)?.label ?? "Units";
+  const matchLabel =
+    surface === "dashboard" ? "scoreboard" : "Evidence Brief sample";
 
   return (
     <section
       data-profile-legacy-sports
-      aria-label="Legacy record by sport"
+      aria-label="Record by sport"
       className={cn("border-border min-w-0 border-b pb-5", className)}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -82,14 +87,14 @@ export function LegacySportBreakdown({
               <History className="size-3" aria-hidden />
             </span>
             <h2 className="scl-display text-base font-bold tracking-[0.04em]">
-              Legacy by sport
+              By sport
             </h2>
           </div>
           <p className="text-muted-foreground mt-1 max-w-2xl text-xs leading-relaxed">
-            Settled results carried over from the previous SCL platform — totals
-            only, no per-pick record. Sorted by {sortLabel.toLowerCase()}. These
-            figures are already folded into the Evidence Brief above. Early
-            samples (under 10) stay amber — small books are not elite signals.
+            Settled record in each sport — including results carried over from
+            the previous SCL platform — so this table matches the {matchLabel}.
+            Sorted by {sortLabel.toLowerCase()}. Early samples (under 10) stay
+            amber — small books are not elite signals.
           </p>
         </div>
         <div className="flex flex-col items-stretch gap-2 sm:items-end">
@@ -128,8 +133,7 @@ export function LegacySportBreakdown({
       <div className="border-border mt-4 hidden min-w-0 overflow-x-auto rounded-xl border md:block">
         <table className="w-full min-w-[36rem] table-fixed border-collapse">
           <caption className="sr-only">
-            Legacy carried-over record broken down by sport, sorted by{" "}
-            {sortLabel.toLowerCase()}
+            Sorted by {sortLabel.toLowerCase()}
           </caption>
           <colgroup>
             <col className="w-[22%]" />
@@ -190,7 +194,7 @@ function LegacySportDesktopRow({ row }: { row: LegacySportRecordView }) {
     <tr className="border-border border-b last:border-b-0">
       <td className="min-w-0 px-3 py-3 align-middle">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <SportTag sport={row.sport} />
+          <SportTag sport={row.sport} forceLabel />
           {early ? (
             <span className="scl-eyebrow text-[color:var(--scl-perf-mid-text)]">
               {maturityLabel(row.settled)}
@@ -256,7 +260,7 @@ function LegacySportMobileCard({ row }: { row: LegacySportRecordView }) {
     <article className="min-w-0">
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <SportTag sport={row.sport} />
+          <SportTag sport={row.sport} forceLabel />
           {early ? (
             <span className="scl-eyebrow text-[color:var(--scl-perf-mid-text)]">
               {maturityLabel(row.settled)}
