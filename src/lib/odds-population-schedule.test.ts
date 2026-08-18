@@ -16,3 +16,13 @@ test("population reads the odds key only from the protected environment", () => 
   assert.match(workflow, /ODDS_KEY: \$\{\{ secrets\.ODDS_API_KEY \}\}/);
   assert.doesNotMatch(workflow, /inputs\.odds_key/);
 });
+
+test("population resolves the IPv4 Supabase pooler before fetching odds", () => {
+  assert.match(workflow, /aws-0-us-west-2\.pooler\.supabase\.com/);
+  assert.match(workflow, /No odds credits were spent/);
+  assert.match(workflow, /DATABASE_URL<<SCL_DATABASE_URL/);
+  assert.doesNotMatch(
+    workflow,
+    /Populate\n\s+env:\n\s+DATABASE_URL: \$\{\{ secrets\.DATABASE_URL \}\}/,
+  );
+});

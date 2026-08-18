@@ -62,29 +62,48 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
 
-      # BEFORE spending a single credit. The first run of this workflow fetched
-      # the whole expanded MLB slate, then failed to write it because the
-      # DATABASE_URL secret points at a different Supabase project on an
-      # IPv6-only host the runner cannot reach. 151 credits bought nothing.
-      # A connectivity probe is free; the fetch is not, so it goes first.
-      - name: Verify the database is writable
+      # Resolve the production pooler before spending a single odds credit. The
+      # Supabase direct host is IPv6-only; GitHub-hosted runners need the IPv4
+      # transaction pooler. The password never leaves the protected secret.
+      - name: Resolve and verify the writable database
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DIRECT_URL: ${{ secrets.DIRECT_URL }}
         run: |
           if [ -z "$DATABASE_URL" ]; then
             echo "::error::DATABASE_URL secret is not set — cannot write the board."
             exit 1
           fi
-          echo "select 1;" | npx prisma db execute --stdin --url "$DATABASE_URL" || {
-            host=$(printf '%s' "$DATABASE_URL" | sed -E 's#.*@([^:/?]+).*#\1#')
-            echo "::error::Cannot reach the database at ${host}. The board was NOT fetched, so no credits were spent. Point the DATABASE_URL secret at the production pooler host."
-            exit 1
-          }
+
+          writable_url="$DATABASE_URL"
+          if ! echo "select 1;" | npx prisma db execute --stdin --url "$writable_url" >/tmp/db-probe.log 2>&1; then
+            writable_url=$(node -e '
+              const url = new URL(process.env.DATABASE_URL);
+              const match = /^db\.([a-z0-9]+)\.supabase\.co$/i.exec(url.hostname);
+              if (!match) process.exit(2);
+              url.hostname = "aws-0-us-west-2.pooler.supabase.com";
+              url.port = "6543";
+              url.username = `postgres.${match[1]}`;
+              url.searchParams.set("pgbouncer", "true");
+              process.stdout.write(url.toString());
+            ') || {
+              echo "::error::DATABASE_URL is unreachable and is not a recognized Supabase direct URL. No odds credits were spent."
+              exit 1
+            }
+            echo "::add-mask::$writable_url"
+            echo "select 1;" | npx prisma db execute --stdin --url "$writable_url" >/tmp/db-pooler-probe.log 2>&1 || {
+              echo "::error::The production Supabase pooler is unreachable. No odds credits were spent."
+              exit 1
+            }
+          fi
+
+          {
+            echo "DATABASE_URL<<SCL_DATABASE_URL"
+            echo "$writable_url"
+            echo "SCL_DATABASE_URL"
+          } >> "$GITHUB_ENV"
 
       - name: Populate
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
           ODDS_KEY: ${{ secrets.ODDS_API_KEY }}
           SPORTS: ${{ inputs.sports }}
