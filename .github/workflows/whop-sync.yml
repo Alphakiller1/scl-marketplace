@@ -2,9 +2,9 @@ name: Reconcile Whop storefronts
 
 on:
   schedule:
-    # GitHub schedules can run every five minutes. Offset from the busiest
-    # minute boundary to reduce queue delay.
-    - cron: "3-58/5 * * * *"
+    # Keep the expression deliberately simple; GitHub may queue a run, while
+    # storefront views provide the immediate demand-driven refresh path.
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 concurrency:

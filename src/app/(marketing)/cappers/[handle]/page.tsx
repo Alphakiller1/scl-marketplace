@@ -13,6 +13,7 @@ import { getCapperAccolades } from "@/lib/queries/capper-accolades";
 import { getPublicCapperByHandle } from "@/lib/queries/capper";
 import { getPackagePerformanceEvidence } from "@/lib/queries/package-performance";
 import { getLivePackagesForCapper } from "@/lib/queries/store";
+import { refreshWhopStorefrontIfStale } from "@/lib/whop-sync";
 
 type ProfileParams = { params: Promise<{ handle: string }> };
 
@@ -41,6 +42,7 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
     historyNextCursor,
     legacyBySport,
   } = data;
+  await refreshWhopStorefrontIfStale({ capperId: capper.id });
   // Keep one profile's heavier reads sequential so it does not consume the
   // entire shared Fluid Compute pool while other public requests are active.
   const packages = await getLivePackagesForCapper(capper.id);

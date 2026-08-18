@@ -28,6 +28,8 @@ export type WhopSyncResult =
     }
   | { ok: false; error: string };
 
+export const WHOP_STOREFRONT_FRESHNESS_MS = 60_000;
+
 function productDescription(product: WhopProductListItem): string | null {
   const headline = product.headline?.trim();
   return headline || null;
@@ -366,6 +368,79 @@ export async function syncWhopStorefront(input: {
   });
 
   return { ok: true, imported, updated, skipped };
+}
+
+/**
+ * Keep a Whop-backed storefront fresh when it is actually viewed.
+ *
+ * Whop does not currently emit product create/update webhooks. The scheduled
+ * reconciliation remains the background fallback; this lease-protected check
+ * makes the owner dashboard and public storefront self-refreshing even when a
+ * scheduler is delayed. It never throws into a page render.
+ */
+export async function refreshWhopStorefrontIfStale(input: {
+  capperId: string;
+  maxAgeMs?: number;
+}): Promise<{ refreshed: boolean; result?: WhopSyncResult }> {
+  const maxAgeMs = Math.max(
+    10_000,
+    input.maxAgeMs ?? WHOP_STOREFRONT_FRESHNESS_MS,
+  );
+  const cutoff = new Date(Date.now() - maxAgeMs);
+  const connection = await prisma.storeConnection.findFirst({
+    where: {
+      capperId: input.capperId,
+      provider: "WHOP",
+      status: { not: "DISABLED" },
+      whopCompanyId: { not: null },
+      whopCompanyRoute: { not: null },
+    },
+    select: { id: true },
+  });
+  if (!connection) return { refreshed: false };
+
+  // Claim a short freshness lease so simultaneous profile requests do not all
+  // call Whop. syncWhopStorefront writes the successful import timestamp too.
+  const lease = await prisma.storeConnection.updateMany({
+    where: {
+      id: connection.id,
+      OR: [{ lastImportedAt: null }, { lastImportedAt: { lt: cutoff } }],
+    },
+    data: { lastImportedAt: new Date() },
+  });
+  if (lease.count !== 1) return { refreshed: false };
+
+  try {
+    const actor = await prisma.user.findFirst({
+      where: { role: "ADMIN", accountStatus: "ACTIVE" },
+      select: { id: true },
+      orderBy: { createdAt: "asc" },
+    });
+    if (!actor) {
+      return {
+        refreshed: true,
+        result: { ok: false, error: "No active admin actor is available." },
+      };
+    }
+
+    const result = await syncWhopStorefront({
+      storeConnectionId: connection.id,
+      actorId: actor.id,
+    });
+    if (!result.ok) {
+      console.warn(
+        `[whop-sync] on-demand refresh failed for ${connection.id}: ${result.error}`,
+      );
+    }
+    return { refreshed: true, result };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unexpected sync failure";
+    console.error(
+      `[whop-sync] on-demand refresh failed for ${connection.id}: ${message}`,
+    );
+    return { refreshed: true, result: { ok: false, error: message } };
+  }
 }
 
 /** Resolve company from OAuth token and persist credentials on the connection. */

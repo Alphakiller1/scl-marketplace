@@ -13,6 +13,7 @@ import {
   listConnectionsForCapper,
 } from "@/lib/queries/store";
 import { getStorefrontMessagesForCapper } from "@/lib/queries/storefront-messages";
+import { refreshWhopStorefrontIfStale } from "@/lib/whop-sync";
 
 export const metadata = { title: "Storefront" };
 
@@ -26,6 +27,9 @@ export default async function MonetizationPage({ searchParams }: Search) {
   if (!user) return null;
 
   const capperId = await getCapperProfileIdForUser(user.id);
+  if (capperId) {
+    await refreshWhopStorefrontIfStale({ capperId });
+  }
   const capperAccount = capperId
     ? await prisma.user.findUnique({
         where: { id: user.id },
