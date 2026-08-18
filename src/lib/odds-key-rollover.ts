@@ -35,7 +35,11 @@ export function isProviderRefusal(status: number): boolean {
 }
 
 function shouldRollOver(response: Response): boolean {
-  return isProviderRefusal(response.status);
+  // 429 is also the provider's short-lived concurrency/rate response. Moving
+  // the process-wide preferred index on that status poisoned every later call:
+  // one soccer/tennis burst moved a healthy 488-credit key onto an exhausted
+  // fallback. Keep the current key and let callers serve last-good data.
+  return response.status !== 429 && isProviderRefusal(response.status);
 }
 
 /** Try the current primary first and use rollover only after quota/auth failure. */

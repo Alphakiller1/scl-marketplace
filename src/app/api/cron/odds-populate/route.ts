@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { fetchUpcomingOdds, getLastOddsApiRemaining } from "@/lib/odds-api";
-import { updateOddsBoardSegment } from "@/lib/odds-board-cache";
+import {
+  loadCachedOddsBoard,
+  updateOddsBoardSegment,
+} from "@/lib/odds-board-cache";
 import { loadEventBoard } from "@/lib/odds-event-board-cache";
 import {
   parseExpandedSlateDays,
@@ -45,6 +48,7 @@ async function populate(req: NextRequest) {
   const expandedDays = parseExpandedSlateDays(
     req.nextUrl.searchParams.get("expandedDays") ?? "tomorrow",
   );
+  const refreshSurface = req.nextUrl.searchParams.get("surface") !== "0";
   const surface: Record<
     string,
     { events: number; source: string; stale: boolean }
@@ -59,6 +63,16 @@ async function populate(req: NextRequest) {
   >();
 
   for (const sport of sports) {
+    if (!refreshSurface) {
+      const board = await loadCachedOddsBoard(sport);
+      boardEvents.set(sport, board.events);
+      surface[sport] = {
+        events: board.events.length,
+        source: board.source,
+        stale: board.stale,
+      };
+      continue;
+    }
     let fresh = [] as Awaited<ReturnType<typeof fetchUpcomingOdds>>;
     try {
       fresh = await fetchUpcomingOdds(sport);
@@ -104,6 +118,7 @@ async function populate(req: NextRequest) {
     ok: mlbReady && wnbaReady,
     sports,
     expandedDays,
+    refreshSurface,
     surface,
     expanded,
     requestsRemaining: getLastOddsApiRemaining(),

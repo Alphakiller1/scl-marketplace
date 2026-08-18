@@ -25,6 +25,11 @@ on:
         required: false
         default: "tomorrow"
         type: string
+      surface:
+        description: "Refresh surface boards before expanding"
+        required: false
+        default: true
+        type: boolean
 
 concurrency:
   group: populate-odds
@@ -42,6 +47,7 @@ jobs:
           SPORTS: ${{ inputs.sports || 'MLB,WNBA,NFL,TENNIS,SOCCER' }}
           EXPANDED: ${{ github.event_name == 'schedule' && '0' || inputs.expanded }}
           EXPANDED_DAYS: ${{ inputs.expanded_days || 'tomorrow' }}
+          SURFACE: ${{ github.event_name == 'schedule' && '1' || (inputs.surface && '1' || '0') }}
         run: |
           if [ -z "$CRON_SECRET" ]; then
             echo "::error::CRON_SECRET is not configured. No odds credits were spent."
@@ -52,7 +58,7 @@ jobs:
           curl --fail --silent --show-error \
             --header "Authorization: Bearer $CRON_SECRET" \
             --request POST \
-            "https://sportscappersleaderboard.com/api/cron/odds-populate?sports=${encoded_sports}&expanded=${EXPANDED}&expandedDays=${encoded_days}" \
+            "https://sportscappersleaderboard.com/api/cron/odds-populate?sports=${encoded_sports}&expanded=${EXPANDED}&expandedDays=${encoded_days}&surface=${SURFACE}" \
             --output /tmp/populate.json
           jq . /tmp/populate.json
           jq -e '.ok == true and .surface.MLB.events > 0 and .surface.WNBA.events > 0' /tmp/populate.json >/dev/null

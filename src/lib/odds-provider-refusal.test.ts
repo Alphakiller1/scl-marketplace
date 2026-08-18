@@ -103,3 +103,26 @@ test("a healthy key short-circuits rollover and never reaches the fallback", asy
   assert.equal(result.rolledOver, false);
   assert.equal(isProviderRefusal(result.response!.status), false);
 });
+
+test("a transient 429 keeps the healthy key preferred and does not burn a fallback", async () => {
+  process.env.ODDS_API_KEY = "rate-limited";
+  process.env.ODDS_API_KEY_FALLBACK = "fallback";
+  delete process.env.ODDS_API_KEY_2;
+  delete process.env.ODDS_API_KEYS;
+  delete process.env.ODD_API_KEY;
+  resetOddsKeyPreferenceForTests();
+
+  const tried: string[] = [];
+  const result = await fetchWithOddsKeyRollover(
+    (key) => {
+      tried.push(key);
+      return `https://example.test/?apiKey=${key}`;
+    },
+    undefined,
+    async () => new Response("", { status: 429 }),
+  );
+
+  assert.deepEqual(tried, ["rate-limited"]);
+  assert.equal(result.response?.status, 429);
+  assert.equal(result.rolledOver, false);
+});

@@ -24,6 +24,7 @@ test("production route warms surfaces, expands MLB and WNBA, and retains fallbac
   assert.match(route, /process\.env\.CRON_SECRET/);
   assert.match(route, /fetchUpcomingOdds/);
   assert.match(route, /updateOddsBoardSegment/);
+  assert.match(route, /loadCachedOddsBoard/);
   assert.match(route, /new Set\(\["MLB", "WNBA"\]\)/);
   assert.match(route, /loadEventBoard/);
   assert.match(route, /forceRefresh: true/);
