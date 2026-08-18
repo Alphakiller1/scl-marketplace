@@ -1,0 +1,53 @@
+name: Reconcile Whop storefronts
+
+on:
+  schedule:
+    # GitHub schedules can run every five minutes. Offset from the busiest
+    # minute boundary to reduce queue delay.
+    - cron: "3-58/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: whop-storefront-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check secrets
+        id: cfg
+        run: |
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "CRON_SECRET not set — skipping Whop reconciliation." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Reconcile connected Whop storefronts
+        if: steps.cfg.outputs.ready == 'true'
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          WHOP_SYNC_URL: ${{ secrets.WHOP_SYNC_URL }}
+        run: |
+          URL="${WHOP_SYNC_URL:-https://www.sportscappersleaderboard.com/api/cron/whop-sync}"
+          code=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors \
+            -o /tmp/whop-sync.json -w "%{http_code}" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Accept: application/json" \
+            "$URL")
+          echo "HTTP $code from $URL"
+          cat /tmp/whop-sync.json || true
+          echo "### Whop reconciliation: HTTP $code" >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/whop-sync.json >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          test "$code" = "200"
+          node -e '
+            const result = require("/tmp/whop-sync.json");
+            if (!result.ok) {
+              console.error(`${result.failed || 0} Whop storefront syncs failed`);
+              process.exit(1);
+            }
+          '

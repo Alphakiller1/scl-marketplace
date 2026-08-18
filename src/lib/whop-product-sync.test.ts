@@ -50,7 +50,7 @@ describe("Whop product sync decisions", () => {
     assert.match(normalized, /syncAction !== "upsert"/);
     assert.match(
       normalized,
-      /data: \{ title: product\.title, description: productDescription\(product\), isActive: false/,
+      /data: \{ title: product\.title, description: nextDescription, isActive: false/,
     );
     assert.match(normalized, /action: "DEACTIVATED"/);
   });

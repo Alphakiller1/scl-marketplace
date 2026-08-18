@@ -190,7 +190,11 @@ export async function syncWhopStorefront(input: {
           id: true,
           isActive: true,
           title: true,
-          trackingUrls: { select: { id: true }, take: 1 },
+          description: true,
+          checkoutUrl: true,
+          affiliateProvider: true,
+          sortOrder: true,
+          trackingUrls: { select: { id: true, targetUrl: true }, take: 1 },
         },
       });
 
@@ -201,11 +205,18 @@ export async function syncWhopStorefront(input: {
           continue;
         }
 
+        const nextDescription = productDescription(product);
+        const packageChanged =
+          existing.title !== product.title ||
+          existing.description !== nextDescription ||
+          existing.isActive;
+        if (!packageChanged) continue;
+
         await tx.package.update({
           where: { id: existing.id },
           data: {
             title: product.title,
-            description: productDescription(product),
+            description: nextDescription,
             isActive: false,
           },
         });
@@ -231,21 +242,43 @@ export async function syncWhopStorefront(input: {
       });
 
       if (existing) {
-        await tx.package.update({
-          where: { id: existing.id },
-          data: {
-            title: product.title,
-            description: productDescription(product),
-            checkoutUrl,
-            affiliateProvider: "WHOP",
-            sortOrder: index,
-          },
-        });
+        const nextDescription = productDescription(product);
         const tracking = existing.trackingUrls[0];
+        const packageChanged =
+          existing.title !== product.title ||
+          existing.description !== nextDescription ||
+          existing.checkoutUrl !== checkoutUrl ||
+          existing.affiliateProvider !== "WHOP" ||
+          existing.sortOrder !== index;
+        const trackingChanged = tracking?.targetUrl !== checkoutUrl;
+        if (!packageChanged && !trackingChanged) continue;
+
+        if (packageChanged) {
+          await tx.package.update({
+            where: { id: existing.id },
+            data: {
+              title: product.title,
+              description: nextDescription,
+              checkoutUrl,
+              affiliateProvider: "WHOP",
+              sortOrder: index,
+            },
+          });
+        }
         if (tracking) {
-          await tx.trackingUrl.update({
-            where: { id: tracking.id },
-            data: { targetUrl: checkoutUrl },
+          if (trackingChanged) {
+            await tx.trackingUrl.update({
+              where: { id: tracking.id },
+              data: { targetUrl: checkoutUrl },
+            });
+          }
+        } else {
+          await tx.trackingUrl.create({
+            data: {
+              packageId: existing.id,
+              slug: makeTrackingSlug(product.route),
+              targetUrl: checkoutUrl,
+            },
           });
         }
         updated += 1;
@@ -317,17 +350,19 @@ export async function syncWhopStorefront(input: {
       },
     });
 
-    await tx.storefrontReviewEvent.create({
-      data: {
-        storeConnectionId: connection.id,
-        action: "PACKAGE_SYNC",
-        previousStatus: connection.status,
-        newStatus: readiness.status,
-        reviewedById: input.actorId,
-        reason: `Whop sync: ${imported} imported, ${updated} updated, ${skipped} skipped.`,
-        adminNotes: connection.adminNotes,
-      },
-    });
+    if (imported > 0 || updated > 0 || readiness.status !== connection.status) {
+      await tx.storefrontReviewEvent.create({
+        data: {
+          storeConnectionId: connection.id,
+          action: "PACKAGE_SYNC",
+          previousStatus: connection.status,
+          newStatus: readiness.status,
+          reviewedById: input.actorId,
+          reason: `Whop sync: ${imported} imported, ${updated} updated, ${skipped} skipped.`,
+          adminNotes: connection.adminNotes,
+        },
+      });
+    }
   });
 
   return { ok: true, imported, updated, skipped };
