@@ -18,7 +18,9 @@ test("population reads the odds key only from the protected environment", () => 
 });
 
 test("population resolves the IPv4 Supabase pooler before fetching odds", () => {
-  assert.match(workflow, /aws-0-us-west-2\.pooler\.supabase\.com/);
+  assert.match(workflow, /pooler\.supabase\.com/);
+  assert.match(workflow, /for \(const tenant of \[0, 1\]\)/);
+  assert.match(workflow, /for \(const port of \[5432, 6543\]\)/);
   assert.match(workflow, /No odds credits were spent/);
   assert.match(workflow, /DATABASE_URL<<SCL_DATABASE_URL/);
   assert.doesNotMatch(
