@@ -24,16 +24,12 @@ export function HomeVerificationRail({ className }: { className?: string }) {
           </h2>
         </div>
         <p className="text-muted-foreground mt-1.5 text-xs leading-snug sm:mt-2 sm:text-sm sm:leading-relaxed">
-          SCL verifies both the market available when a pick is submitted and
-          the result recorded after the event concludes.
+          SCL uses standardized sportsbook market data to help verify picks and
+          results.
         </p>
       </div>
 
       <VerificationLegend />
-
-      <p className="text-muted-foreground text-xs leading-snug sm:text-sm sm:leading-relaxed">
-        Transparency and trust, all in one verified record.
-      </p>
     </aside>
   );
 }

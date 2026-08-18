@@ -1,23 +1,34 @@
 import type { Metadata } from "next";
-import { BadgeCheck, Clock3, LineChart, ShieldCheck } from "lucide-react";
+import {
+  BadgeCheck,
+  Clock3,
+  LineChart,
+  Scale,
+  ShieldCheck,
+} from "lucide-react";
 
 import { SCL_BRAND_NAME } from "@/lib/brand";
 
 export const metadata: Metadata = {
   title: "How Verification Works",
-  description: `How ${SCL_BRAND_NAME} authenticates submitted odds and independently grades pick results.`,
+  description: `How ${SCL_BRAND_NAME} uses standardized sportsbook market data and independent grading to verify records consistently.`,
 };
 
 const stages = [
   {
     icon: ShieldCheck,
     title: "Odds Verification",
-    body: "SCL synchronizes odds from multiple sportsbooks so cappers can shop available lines and bettors can trust that submitted odds were authentic.",
+    body: "SCL captures sportsbook odds and uses that market data as a consistent reference when evaluating submitted picks.",
   },
   {
     icon: BadgeCheck,
     title: "Record Verification",
-    body: `Pick results are automatically graded by ${SCL_BRAND_NAME}, independently from the capper who submitted the pick.`,
+    body: `Pick results are automatically graded by ${SCL_BRAND_NAME}, independently of the capper.`,
+  },
+  {
+    icon: Scale,
+    title: "Consistent Standards",
+    body: "The same underlying odds data and grading methodology are applied across cappers, giving bettors a consistent way to compare performance.",
   },
 ] as const;
 
@@ -32,13 +43,13 @@ export default function VerificationPage() {
           How Verification Works
         </h1>
         <p className="text-muted-foreground mt-4 text-base leading-relaxed sm:text-lg">
-          Every current SCL record is built around two checks: authentic odds at
-          submission and independent grading after the event concludes.
+          SCL uses standardized sportsbook market data to help verify picks and
+          results.
         </p>
       </header>
 
       <section
-        className="mt-10 grid gap-4 md:grid-cols-2"
+        className="mt-10 grid gap-4 md:grid-cols-3"
         aria-label="Verification stages"
       >
         {stages.map(({ icon: Icon, title, body }) => (
