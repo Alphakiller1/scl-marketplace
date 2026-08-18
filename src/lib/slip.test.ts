@@ -40,6 +40,26 @@ test("pickKey treats exact repeats as identical", () => {
   assert.equal(pickKey(a), pickKey(b));
 });
 
+test("pickKey distinguishes the source book at the same price", () => {
+  const draftKings = leg({
+    market: "Spread",
+    side: "Lakers",
+    line: -3.5,
+    oddsAmerican: -110,
+    book: "draftkings",
+  });
+  const fanDuel = leg({
+    market: "Spread",
+    side: "Lakers",
+    line: -3.5,
+    oddsAmerican: -110,
+    book: "fanduel",
+  });
+
+  assert.notEqual(pickKey(draftKings), pickKey(fanDuel));
+  assert.equal(findConflict([draftKings], fanDuel)?.kind, "spread");
+});
+
 test("exact duplicate detection", () => {
   const existing = [
     leg({ market: "Moneyline", side: "Lakers", oddsAmerican: -140 }),
