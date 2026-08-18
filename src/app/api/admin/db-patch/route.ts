@@ -1,3 +1,4 @@
+import { revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
@@ -213,6 +214,18 @@ export async function POST(req: NextRequest) {
     storefrontMessagesTable &&
     legacyRecordInvariant.remainingInvalidRows === 0 &&
     legacyRecordInvariant.constraintPresent;
+
+  // This route repairs data with raw SQL, so Prisma/Next do not know that the
+  // cached public leaderboard and capper profiles are stale. Invalidate even
+  // on an idempotent re-run: a previous repair may have completed before this
+  // cache hook was deployed, leaving an otherwise-valid database hidden behind
+  // a persistent data-cache entry.
+  let cacheInvalidated = false;
+  if (ok) {
+    revalidateTag("leaderboard", { expire: 0 });
+    cacheInvalidated = true;
+  }
+
   return NextResponse.json(
     {
       ok,
@@ -222,7 +235,10 @@ export async function POST(req: NextRequest) {
       userEmailIndexes,
       blockedMigrations,
       storefrontMessagesTable,
-      legacyRecordInvariant,
+      legacyRecordInvariant: {
+        ...legacyRecordInvariant,
+        cacheInvalidated,
+      },
     },
     { status: ok ? 200 : 500 },
   );

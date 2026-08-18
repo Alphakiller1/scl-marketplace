@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
@@ -93,4 +94,14 @@ test("push-only legacy rows cannot publish profit, loss, or nonzero ROI", () => 
   assert.equal(view.winPct, null);
   assert.equal(view.units, 0);
   assert.equal(view.roi, 0);
+});
+
+test("successful legacy data repair invalidates public record caches", () => {
+  const route = readFileSync("src/app/api/admin/db-patch/route.ts", "utf8");
+
+  assert.match(
+    route,
+    /if \(ok\) \{\s*revalidateTag\("leaderboard", \{ expire: 0 \}\)/,
+  );
+  assert.match(route, /legacyRecordInvariant: \{[\s\S]*cacheInvalidated/);
 });
