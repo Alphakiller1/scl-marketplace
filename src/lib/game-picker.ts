@@ -3,8 +3,12 @@
  * No React / network — unit-testable.
  */
 
-import { BOOK_KEYS, isBookKey } from "@/lib/books";
-import { getOddsForBook, type OddsSelection } from "@/lib/odds-board";
+import { isPickBoardBook, PICK_BOARD_BOOKS } from "@/lib/books";
+import {
+  getOddsForBook,
+  preferredThenAll,
+  type OddsSelection,
+} from "@/lib/odds-board";
 import { filterBySlateDay, nearTermEvents, type SlateDay } from "@/lib/slate";
 
 /** A feed must never leave the pick-entry board spinning indefinitely. */
@@ -125,20 +129,46 @@ export function categoryCounts(
 /**
  * Resolve the displayed American price for a board selection under an active book.
  * Honest null when that book has no line (UI renders "—"; never substitutes).
- * When no active book, keep the selection's best-attributed price.
+ * When no active book, Best is the most bettor-favorable price among
+ * {@link PICK_BOARD_BOOKS} only — extra US books on the payload are ignored.
  */
 export function selectionForActiveBook(
   selection: OddsSelection,
   activeBook: string | null | undefined,
 ): { oddsAmerican: number | null; book?: string; oddsCapturedAt?: string } {
   if (!activeBook) {
-    return {
-      oddsAmerican: selection.oddsAmerican,
-      book: selection.book,
-      ...(selection.oddsCapturedAt
-        ? { oddsCapturedAt: selection.oddsCapturedAt }
-        : {}),
-    };
+    const byBook = new Map(
+      Object.entries(selection.bookPrices ?? {}).filter(
+        (entry): entry is [string, number] => typeof entry[1] === "number",
+      ),
+    );
+    const lastUpdateByBook = selection.bookCapturedAt
+      ? new Map(
+          Object.entries(selection.bookCapturedAt).filter(
+            ([, value]) => typeof value === "string",
+          ),
+        )
+      : undefined;
+    const best = preferredThenAll(byBook, PICK_BOARD_BOOKS, lastUpdateByBook, {
+      fallbackToAll: false,
+    });
+    if (best) {
+      return {
+        oddsAmerican: best.price,
+        book: best.book,
+        ...(best.capturedAt ? { oddsCapturedAt: best.capturedAt } : {}),
+      };
+    }
+    if (selection.book && isPickBoardBook(selection.book)) {
+      return {
+        oddsAmerican: selection.oddsAmerican,
+        book: selection.book,
+        ...(selection.oddsCapturedAt
+          ? { oddsCapturedAt: selection.oddsCapturedAt }
+          : {}),
+      };
+    }
+    return { oddsAmerican: null };
   }
   const price = getOddsForBook(selection, activeBook);
   if (price === null) {
@@ -157,42 +187,11 @@ export function selectionForActiveBook(
 /**
  * Sportsbooks to offer in the pick-entry rail.
  *
- * `CapperProfile.books` is a preference, never a permission: it narrows the
- * rail for a capper who has told us where they bet, and is empty for everyone
- * who hasn't — 115 of 134 cappers at the time of writing. Gating the rail on it
- * therefore hid the sportsbook switcher from almost every capper, so an empty
- * (or entirely unrecognised) list falls back to the full supported set.
+ * The rail is the owner-fixed five (MGM, Caesars, DraftKings, FanDuel,
+ * Fanatics) plus a Best tab computed from that same set. Profile books do not
+ * hide tabs — almost every capper has an empty list, and extra US books are
+ * out of the pick-form product.
  */
-export function railBooks(
-  profileBooks?: readonly string[] | null,
-  /** Books that actually carry a price somewhere on the loaded board. */
-  availableBooks?: readonly string[] | null,
-): string[] {
-  const available = new Set((availableBooks ?? []).filter(isBookKey));
-  const known = (profileBooks ?? []).filter(isBookKey);
-  // A capper's stated books still only appear when the board can price them —
-  // offering a book with no line on this slate makes every chip read "—" and go
-  // dead, which is indistinguishable from the button not working.
-  const preferred = available.size
-    ? known.filter((b) => available.has(b))
-    : known;
-  if (preferred.length) return preferred;
-  if (available.size) return BOOK_KEYS.filter((b) => available.has(b));
-  return [...BOOK_KEYS];
-}
-
-/** Every supported book with at least one price across the loaded slate. */
-export function booksOnBoard(
-  events: readonly { selections: readonly OddsSelection[] }[],
-): string[] {
-  const seen = new Set<string>();
-  for (const event of events) {
-    for (const selection of event.selections) {
-      for (const key of Object.keys(selection.bookPrices ?? {})) {
-        if (isBookKey(key)) seen.add(key);
-      }
-      if (selection.book && isBookKey(selection.book)) seen.add(selection.book);
-    }
-  }
-  return BOOK_KEYS.filter((b) => seen.has(b));
+export function railBooks(): string[] {
+  return [...PICK_BOARD_BOOKS];
 }

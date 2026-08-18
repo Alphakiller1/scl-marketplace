@@ -63,7 +63,7 @@ function isGameMarket(market: string): market is GameMarket {
 }
 
 /**
- * Stable identity for an exact board line (event, market, player, side, point, price).
+ * Stable identity for an exact board line (event, market, player, side, point, price, book).
  * Used for selected-chip sync and exact-duplicate detection.
  */
 export function pickKey(p: {
@@ -73,6 +73,7 @@ export function pickKey(p: {
   line?: number;
   oddsAmerican: number;
   player?: string;
+  book?: string;
 }): string {
   return [
     p.eventId,
@@ -81,6 +82,7 @@ export function pickKey(p: {
     p.side,
     p.line ?? "",
     p.oddsAmerican,
+    p.book ?? "",
   ].join("|");
 }
 

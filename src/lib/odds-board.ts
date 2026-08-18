@@ -3,7 +3,7 @@
  * No network / no server-only — unit-testable. Fetch lives in odds-api.ts.
  */
 
-import { isBookKey } from "@/lib/books";
+import { isBookKey, PICK_BOARD_BOOKS } from "@/lib/books";
 import {
   PERIOD_MARKET_LABEL,
   parsePeriodMarket,
@@ -65,9 +65,25 @@ export type OddsEvent = {
 };
 
 export type OddsBoardOpts = {
-  /** CapperProfile.books — empty/omitted prefers all books on the payload. */
+  /**
+   * Optional book filter. Empty/omitted uses {@link PICK_BOARD_BOOKS} (Best of
+   * the five pick-form books) and does not fall back to other US books.
+   * A non-empty list still prefers those keys, then the rest of the payload.
+   */
   books?: readonly string[];
 };
+
+/** Pick-form default: Best among the five books, no Bovada/ESPN BET fallback. */
+export function resolveBoardBooks(books?: readonly string[]): {
+  preferred: readonly string[];
+  fallbackToAll: boolean;
+} {
+  const known = (books ?? []).filter(isBookKey);
+  if (known.length > 0) {
+    return { preferred: known, fallbackToAll: true };
+  }
+  return { preferred: PICK_BOARD_BOOKS, fallbackToAll: false };
+}
 
 export type BoardSelectionClaim = {
   market: string;
@@ -116,11 +132,12 @@ export function getOddsForBook(
   return typeof p === "number" ? p : null;
 }
 
-/** Prefer selected books' prices; if none, fall back to the full set (never empty a row). */
+/** Prefer selected books' prices; if none, optionally fall back to the full set. */
 export function preferredThenAll(
   byBook: Map<string, number>,
   preferred: readonly string[] | undefined,
   lastUpdateByBook?: Map<string, string>,
+  opts?: { fallbackToAll?: boolean },
 ): {
   price: number;
   book: string;
@@ -128,14 +145,27 @@ export function preferredThenAll(
   bookCapturedAt?: Record<string, string>;
   capturedAt?: string;
 } | null {
-  const bookPrices = Object.fromEntries(byBook);
+  const preferredKeys = (preferred ?? []).filter(isBookKey);
+  const preferredSet = new Set<string>(preferredKeys);
+  const fallbackToAll = opts?.fallbackToAll !== false;
+  const scopedEntries =
+    preferredKeys.length > 0
+      ? preferredKeys.flatMap((book) => {
+          const price = byBook.get(book);
+          return typeof price === "number" ? [[book, price] as const] : [];
+        })
+      : [...byBook.entries()];
+  const bookPrices = Object.fromEntries(fallbackToAll ? byBook : scopedEntries);
   const bookCapturedAt =
     lastUpdateByBook && lastUpdateByBook.size > 0
-      ? Object.fromEntries(lastUpdateByBook)
+      ? Object.fromEntries(
+          fallbackToAll
+            ? lastUpdateByBook
+            : [...lastUpdateByBook].filter(([book]) => preferredSet.has(book)),
+        )
       : undefined;
   if (byBook.size === 0) return null;
 
-  const preferredKeys = (preferred ?? []).filter(isBookKey);
   let entries: { book: string; price: number }[] = [];
   if (preferredKeys.length > 0) {
     for (const k of preferredKeys) {
@@ -143,7 +173,7 @@ export function preferredThenAll(
       if (typeof price === "number") entries.push({ book: k, price });
     }
   }
-  if (entries.length === 0) {
+  if (entries.length === 0 && fallbackToAll) {
     entries = [...byBook.entries()].map(([book, price]) => ({ book, price }));
   }
   if (entries.length === 0) return null;
@@ -302,15 +332,15 @@ function marketRank(market: string): number {
 
 /**
  * Flatten a per-event odds payload into board selections with per-book attribution.
- * Displayed price = best among preferred books; falls back to remaining books when none
- * of the preferred set has a line. Pure.
+ * Displayed price = best among the pick-form five unless `opts.books` is set.
+ * Pure.
  */
 export function normalizeEventBoard(
   event: RawEventOdds,
   opts?: OddsBoardOpts,
 ): OddsSelection[] {
   const groups = new Map<string, BoardGroup>();
-  const preferred = opts?.books;
+  const { preferred, fallbackToAll } = resolveBoardBooks(opts?.books);
 
   const add = (
     key: string,
@@ -438,7 +468,9 @@ export function normalizeEventBoard(
 
   const selections: OddsSelection[] = [];
   for (const g of groups.values()) {
-    const best = preferredThenAll(g.byBook, preferred, g.lastUpdateByBook);
+    const best = preferredThenAll(g.byBook, preferred, g.lastUpdateByBook, {
+      fallbackToAll,
+    });
     if (!best) continue;
     const book = best.book || undefined;
     const oddsCapturedAt = best.capturedAt;
@@ -585,6 +617,7 @@ export function normalizeUpcomingEvent(
   preferredBooks?: readonly string[],
   league?: string,
 ): OddsEvent {
+  const { preferred, fallbackToAll } = resolveBoardBooks(preferredBooks);
   const groups = new Map<
     string,
     {
@@ -662,7 +695,9 @@ export function normalizeUpcomingEvent(
 
   const selections: OddsSelection[] = [];
   for (const g of groups.values()) {
-    const best = preferredThenAll(g.byBook, preferredBooks, g.lastUpdateByBook);
+    const best = preferredThenAll(g.byBook, preferred, g.lastUpdateByBook, {
+      fallbackToAll,
+    });
     if (!best) continue;
     const book = best.book || undefined;
     const oddsCapturedAt = best.capturedAt;

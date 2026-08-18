@@ -10,6 +10,7 @@ import {
   preferredThenAll,
   type OddsEvent,
 } from "@/lib/odds-board";
+import { PICK_BOARD_BOOKS } from "@/lib/books";
 import type { RawEventOdds } from "@/lib/odds-verify";
 
 const EVENT: RawEventOdds = {
@@ -92,13 +93,38 @@ test("normalizeEventBoard prefers capper books then falls back to remaining", ()
   assert.equal(spreadMgm!.oddsAmerican, -105);
   assert.equal(spreadMgm!.book, "fanduel");
 
-  // Empty books = all-books best (today's regions=us behavior).
+  // Empty books = Best among the pick-form five (FanDuel beats DraftKings here).
   const empty = normalizeEventBoard(EVENT, { books: [] });
   assert.equal(
     empty.find((s) => s.market === "Spread" && s.side === "Lakers")
       ?.oddsAmerican,
     -105,
   );
+});
+
+test("normalizeEventBoard Best ignores books outside the pick-form five", () => {
+  const withBovada: RawEventOdds = {
+    ...EVENT,
+    bookmakers: [
+      ...(EVENT.bookmakers ?? []),
+      {
+        key: "bovada",
+        markets: [
+          {
+            key: "spreads",
+            outcomes: [{ name: "Lakers", price: 120, point: -3.5 }],
+          },
+        ],
+      },
+    ],
+  };
+  const spread = normalizeEventBoard(withBovada).find(
+    (s) => s.market === "Spread" && s.side === "Lakers",
+  );
+  assert.equal(spread?.oddsAmerican, -105);
+  assert.equal(spread?.book, "fanduel");
+  assert.equal(spread?.bookPrices?.bovada, undefined);
+  assert.equal(spread?.bookPrices?.fanduel, -105);
 });
 
 test("getOddsForBook on selection is honest null (no silent substitute)", () => {
@@ -163,6 +189,24 @@ test("preferredThenAll falls back when preferred books miss the market", () => {
   const miss = preferredThenAll(byBook, ["betmgm"]);
   assert.equal(miss?.price, -105);
   assert.equal(miss?.book, "fanduel");
+});
+
+test("preferredThenAll can refuse to leave the pick-form five", () => {
+  const byBook = new Map([
+    ["bovada", 150],
+    ["draftkings", -110],
+  ]);
+  const best = preferredThenAll(byBook, PICK_BOARD_BOOKS, undefined, {
+    fallbackToAll: false,
+  });
+  assert.equal(best?.price, -110);
+  assert.equal(best?.book, "draftkings");
+  assert.equal(best?.bookPrices?.bovada, undefined);
+
+  const none = preferredThenAll(byBook, ["betmgm"], undefined, {
+    fallbackToAll: false,
+  });
+  assert.equal(none, null);
 });
 
 test("isExtremeAmericanOdds flags longshots and heavy favorites only", () => {

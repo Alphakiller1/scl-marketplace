@@ -8,7 +8,9 @@ import {
   bookmakersQueryParam,
   formatOddsCaptureSourceLine,
   isBookKey,
+  isPickBoardBook,
   oddsSourceBoardLabel,
+  PICK_BOARD_BOOKS,
 } from "@/lib/books";
 
 describe("books", () => {
@@ -18,6 +20,15 @@ describe("books", () => {
     assert.ok(BOOK_KEYS.includes("williamhill_us"));
     assert.equal(isBookKey("draftkings"), true);
     assert.equal(isBookKey("unknownbook"), false);
+  });
+
+  it("names the five pick-form books in owner order", () => {
+    assert.deepEqual(
+      [...PICK_BOARD_BOOKS],
+      ["betmgm", "williamhill_us", "draftkings", "fanduel", "fanatics"],
+    );
+    assert.equal(isPickBoardBook("betmgm"), true);
+    assert.equal(isPickBoardBook("bovada"), false);
   });
 
   it("maps labels and shorts", () => {
