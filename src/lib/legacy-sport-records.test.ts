@@ -78,3 +78,19 @@ test("sortLegacySportRecords omits zero-settled noise rows", () => {
   ]);
   assert.equal(sorted.length, 0);
 });
+
+test("push-only legacy rows cannot publish profit, loss, or nonzero ROI", () => {
+  const view = toLegacySportRecordView({
+    sport: "NCAAB",
+    wins: 0,
+    losses: 0,
+    pushes: 2,
+    unitsRisked: 489.29,
+    unitsNet: 134.43,
+  });
+
+  assert.equal(view.settled, 2);
+  assert.equal(view.winPct, null);
+  assert.equal(view.units, 0);
+  assert.equal(view.roi, 0);
+});

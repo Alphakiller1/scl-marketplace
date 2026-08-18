@@ -77,7 +77,10 @@ export function computeCapperStats(
     losses += baseline.losses;
     pushes += baseline.pushes;
     staked += baseline.stakedUnits;
-    profit += baseline.units;
+    // Push-only baselines cannot produce profit or loss. This read-time guard
+    // protects every public aggregate while old imported rows are repaired and
+    // prevents an internally contradictory baseline from reaching standings.
+    profit += baseline.wins + baseline.losses > 0 ? baseline.units : 0;
   }
 
   const decided = wins + losses;

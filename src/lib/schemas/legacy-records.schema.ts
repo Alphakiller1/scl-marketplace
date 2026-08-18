@@ -45,6 +45,14 @@ export const legacyRecordEntrySchema = z
           "Settled records must carry the units risked so ROI is computable.",
       });
     }
+    if (r.wins + r.losses === 0 && Math.abs(r.unitsNet) > 0.000001) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["unitsNet"],
+        message:
+          "A push-only record must have zero net units because every stake was returned.",
+      });
+    }
   });
 
 export const legacyRecordCapperSchema = z

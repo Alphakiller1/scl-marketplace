@@ -42,6 +42,11 @@ export function toLegacySportRecordView(
   const settled = row.wins + row.losses + row.pushes;
   const decided = row.wins + row.losses;
   const unitsRisked = row.unitsRisked;
+  // A push returns the stake and cannot create profit or loss. Historical
+  // residual imports can contain push-only rows whose unit totals were
+  // subtracted from a different source window; never publish that impossible
+  // remainder even if an old row predates the database constraint.
+  const units = decided > 0 ? row.unitsNet : 0;
   return {
     sport: row.sport,
     label: sportLabel(row.sport),
@@ -50,9 +55,9 @@ export function toLegacySportRecordView(
     pushes: row.pushes,
     settled,
     unitsRisked,
-    units: row.unitsNet,
+    units,
     winPct: decided > 0 ? (row.wins / decided) * 100 : null,
-    roi: unitsRisked > 0 ? (row.unitsNet / unitsRisked) * 100 : null,
+    roi: unitsRisked > 0 ? (units / unitsRisked) * 100 : null,
   };
 }
 

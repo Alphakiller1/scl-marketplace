@@ -366,14 +366,22 @@ def stat_cell(row: dict, prefix: str, warn: Counter | None = None) -> dict | Non
             ] += 1
         return None
 
+    units_net = round(num(row.get(f"{prefix}_ue")) or 0.0, 2)
+    if w + l == 0 and units_net != 0:
+        if warn is not None:
+            warn["push-only slice with nonzero net units — normalized to 0"] += 1
+        units_net = 0.0
+
     return {
         "wins": w, "losses": l, "pushes": p,
         "unitsRisked": risk,
-        "unitsNet": round(num(row.get(f"{prefix}_ue")) or 0.0, 2),
+        "unitsNet": units_net,
     }
 
 
-def sub_cell(total: dict, imported: dict | None) -> dict | None:
+def sub_cell(
+    total: dict, imported: dict | None, warn: Counter | None = None
+) -> dict | None:
     """total - imported, clamped at zero. The residual is the pre-import history
     we hold no picks for; clamping guards the handful of cappers where recovered
     `past_plays` rows push the imported side slightly past the legacy window."""
@@ -388,6 +396,10 @@ def sub_cell(total: dict, imported: dict | None) -> dict | None:
     }
     if out["wins"] + out["losses"] + out["pushes"] == 0:
         return None
+    if out["wins"] + out["losses"] == 0 and out["unitsNet"] != 0:
+        if warn is not None:
+            warn["push-only residual with nonzero net units — normalized to 0"] += 1
+        out["unitsNet"] = 0.0
     # Same rule as `stat_cell`: a residual the app can't compute ROI from is
     # not worth storing, and must never reach the leaderboard baseline.
     if out["unitsRisked"] <= 0:
@@ -426,7 +438,7 @@ def pre_import_entries(
         imported = totals_from_plays(
             plays, None if sport == ALL_SPORTS else sport
         )
-        residual = sub_cell(total, imported)
+        residual = sub_cell(total, imported, warn)
         if residual:
             entries.append({"scope": "PRE_IMPORT", "sport": sport, **residual})
     return entries
