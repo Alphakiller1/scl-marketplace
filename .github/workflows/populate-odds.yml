@@ -76,24 +76,45 @@ jobs:
 
           writable_url="$DATABASE_URL"
           if ! echo "select 1;" | npx prisma db execute --stdin --url "$writable_url" >/tmp/db-probe.log 2>&1; then
-            writable_url=$(node -e '
+            node -e '
+              const { writeFileSync } = require("node:fs");
               const url = new URL(process.env.DATABASE_URL);
               const match = /^db\.([a-z0-9]+)\.supabase\.co$/i.exec(url.hostname);
               if (!match) process.exit(2);
-              url.hostname = "aws-0-us-west-2.pooler.supabase.com";
-              url.port = "6543";
-              url.username = `postgres.${match[1]}`;
-              url.searchParams.set("pgbouncer", "true");
-              process.stdout.write(url.toString());
-            ') || {
+              const candidates = [];
+              for (const region of ["us-west-2", "us-west-1", "us-east-1", "us-east-2"]) {
+                for (const tenant of [0, 1]) {
+                  for (const port of [5432, 6543]) {
+                    const candidate = new URL(url);
+                    candidate.hostname = `aws-${tenant}-${region}.pooler.supabase.com`;
+                    candidate.port = String(port);
+                    candidate.username = `postgres.${match[1]}`;
+                    candidate.searchParams.set("pgbouncer", "true");
+                    candidates.push(candidate.toString());
+                  }
+                }
+              }
+              writeFileSync("/tmp/scl-db-candidates", candidates.join("\n"), { mode: 0o600 });
+            ' || true
+            if [ ! -s /tmp/scl-db-candidates ]; then
               echo "::error::DATABASE_URL is unreachable and is not a recognized Supabase direct URL. No odds credits were spent."
               exit 1
-            }
-            echo "::add-mask::$writable_url"
-            echo "select 1;" | npx prisma db execute --stdin --url "$writable_url" >/tmp/db-pooler-probe.log 2>&1 || {
+            fi
+
+            writable_url=""
+            while IFS= read -r candidate; do
+              echo "::add-mask::$candidate"
+              if echo "select 1;" | timeout 12s npx prisma db execute --stdin --url "$candidate" >/tmp/db-pooler-probe.log 2>&1; then
+                writable_url="$candidate"
+                break
+              fi
+            done < /tmp/scl-db-candidates
+            rm -f /tmp/scl-db-candidates
+
+            if [ -z "$writable_url" ]; then
               echo "::error::The production Supabase pooler is unreachable. No odds credits were spent."
               exit 1
-            }
+            fi
           fi
 
           {
