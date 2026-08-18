@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const workflow = readFileSync(".github/workflows/populate-odds.yml", "utf8");
+const route = readFileSync("src/app/api/cron/odds-populate/route.ts", "utf8");
 
 test("population performs exactly two scheduled surface refreshes per day", () => {
   const cronLines = workflow.match(/^\s*- cron:/gm) ?? [];
@@ -11,24 +12,19 @@ test("population performs exactly two scheduled surface refreshes per day", () =
   assert.match(workflow, /cancel-in-progress: false/);
 });
 
-test("population reads the odds key only from the protected environment", () => {
-  assert.match(workflow, /environment: Production/);
-  assert.match(workflow, /ODDS_KEY: \$\{\{ secrets\.ODDS_API_KEY \}\}/);
-  assert.doesNotMatch(workflow, /inputs\.odds_key/);
+test("population calls only the signed production route", () => {
+  assert.match(workflow, /secrets\.CRON_SECRET/);
+  assert.match(workflow, /Authorization: Bearer \$CRON_SECRET/);
+  assert.match(workflow, /api\/cron\/odds-populate/);
+  assert.doesNotMatch(workflow, /secrets\.DATABASE_URL/);
+  assert.doesNotMatch(workflow, /secrets\.ODDS_API_KEY/);
 });
 
-test("population resolves the IPv4 Supabase pooler before fetching odds", () => {
-  assert.match(workflow, /api\.vercel\.com\/v10\/projects/);
-  assert.match(workflow, /decrypt=true/);
-  assert.match(workflow, /"POSTGRES_PRISMA_URL"/);
-  assert.match(workflow, /SCL_VERCEL_DATABASE_URL/);
-  assert.match(workflow, /pooler\.supabase\.com/);
-  assert.match(workflow, /for \(const tenant of \[0, 1\]\)/);
-  assert.match(workflow, /for \(const port of \[5432, 6543\]\)/);
-  assert.match(workflow, /No odds credits were spent/);
-  assert.match(workflow, /DATABASE_URL<<SCL_DATABASE_URL/);
-  assert.doesNotMatch(
-    workflow,
-    /Populate\n\s+env:\n\s+DATABASE_URL: \$\{\{ secrets\.DATABASE_URL \}\}/,
-  );
+test("production route warms surfaces, expands MLB and WNBA, and retains fallback", () => {
+  assert.match(route, /process\.env\.CRON_SECRET/);
+  assert.match(route, /fetchUpcomingOdds/);
+  assert.match(route, /updateOddsBoardSegment/);
+  assert.match(route, /new Set\(\["MLB", "WNBA"\]\)/);
+  assert.match(route, /loadEventBoard/);
+  assert.match(route, /forceRefresh: true/);
 });
