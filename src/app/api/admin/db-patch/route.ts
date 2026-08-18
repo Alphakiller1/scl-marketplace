@@ -16,7 +16,10 @@ export const maxDuration = 60;
  * IPv6-only), so we apply the DDL from Vercel — which reaches it fine — behind
  * the same CRON_SECRET the seed + grade crons use.
  *
- * Every statement is IF NOT EXISTS, so this is safe to re-run.
+ * It also repairs the legacy-record invariant discovered in production: a
+ * push-only aggregate cannot carry nonzero net units. The accompanying CHECK
+ * constraint makes that repair permanent. Every statement is idempotent, so
+ * this endpoint is safe to re-run.
  */
 const STATEMENTS: string[] = [
   `ALTER TABLE scl."StoreConnection" ADD COLUMN IF NOT EXISTS "affiliateAcceptedAt" TIMESTAMP(3)`,
@@ -88,6 +91,22 @@ const STATEMENTS: string[] = [
   `ALTER TYPE scl."LegacyRecordScope" ADD VALUE IF NOT EXISTS 'SEASON_2024'`,
   `ALTER TYPE scl."LegacyRecordScope" ADD VALUE IF NOT EXISTS 'POSTSEASON'`,
 
+  // --- legacy record decision/unit invariant -------------------------------
+  `UPDATE scl."LegacyRecord"
+     SET "unitsNet" = 0
+     WHERE ("wins" + "losses") = 0 AND "unitsNet" <> 0`,
+  `DO $$ BEGIN
+     IF NOT EXISTS (
+       SELECT 1 FROM pg_constraint
+       WHERE conname = 'LegacyRecord_zero_decision_units_check'
+         AND conrelid = 'scl."LegacyRecord"'::regclass
+     ) THEN
+       ALTER TABLE scl."LegacyRecord"
+         ADD CONSTRAINT "LegacyRecord_zero_decision_units_check"
+         CHECK (("wins" + "losses") > 0 OR "unitsNet" = 0);
+     END IF;
+   END $$`,
+
   // --- unblock the migration chain ------------------------------------------
   // A migration row with no `finished_at` and no `rolled_back_at` is Prisma's
   // "failed" state: `migrate deploy` refuses to apply ANY later migration while
@@ -102,17 +121,24 @@ const STATEMENTS: string[] = [
 
 function authorize(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET?.trim();
-  if (secret) {
-    return req.headers.get("authorization") === `Bearer ${secret}`;
-  }
-  if (req.headers.get("x-vercel-cron") === "1") return true;
-  return false;
+  return Boolean(
+    secret && req.headers.get("authorization") === `Bearer ${secret}`,
+  );
 }
 
 export async function POST(req: NextRequest) {
   if (!authorize(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const legacyBefore = await prisma.$queryRawUnsafe<
+    { rows: number; profiles: number }[]
+  >(
+    `SELECT COUNT(*)::int AS rows,
+            COUNT(DISTINCT "capperId")::int AS profiles
+       FROM scl."LegacyRecord"
+      WHERE ("wins" + "losses") = 0 AND "unitsNet" <> 0`,
+  );
 
   const applied: string[] = [];
   const failed: { statement: string; error: string }[] = [];
@@ -159,13 +185,34 @@ export async function POST(req: NextRequest) {
   );
   const storefrontMessagesTable = tables[0]?.present === true;
 
+  const legacyAfter = await prisma.$queryRawUnsafe<{ rows: number }[]>(
+    `SELECT COUNT(*)::int AS rows
+       FROM scl."LegacyRecord"
+      WHERE ("wins" + "losses") = 0 AND "unitsNet" <> 0`,
+  );
+  const legacyConstraint = await prisma.$queryRawUnsafe<{ present: boolean }[]>(
+    `SELECT EXISTS (
+       SELECT 1 FROM pg_constraint
+       WHERE conname = 'LegacyRecord_zero_decision_units_check'
+         AND conrelid = 'scl."LegacyRecord"'::regclass
+     ) AS present`,
+  );
+  const legacyRecordInvariant = {
+    rowsRepaired: legacyBefore[0]?.rows ?? 0,
+    profilesAffected: legacyBefore[0]?.profiles ?? 0,
+    remainingInvalidRows: legacyAfter[0]?.rows ?? -1,
+    constraintPresent: legacyConstraint[0]?.present === true,
+  };
+
   const ok =
     failed.length === 0 &&
     storeConnectionColumns.length === 5 &&
     userEmailIndexes.includes("User_email_username_key") &&
     !userEmailIndexes.includes("User_email_key") &&
     blockedMigrations.length === 0 &&
-    storefrontMessagesTable;
+    storefrontMessagesTable &&
+    legacyRecordInvariant.remainingInvalidRows === 0 &&
+    legacyRecordInvariant.constraintPresent;
   return NextResponse.json(
     {
       ok,
@@ -175,6 +222,7 @@ export async function POST(req: NextRequest) {
       userEmailIndexes,
       blockedMigrations,
       storefrontMessagesTable,
+      legacyRecordInvariant,
     },
     { status: ok ? 200 : 500 },
   );

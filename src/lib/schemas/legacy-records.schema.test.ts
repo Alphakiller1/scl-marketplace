@@ -84,3 +84,21 @@ test("allows a negative net while requiring non-negative risk", () => {
     false,
   );
 });
+
+test("rejects nonzero units for a push-only record", () => {
+  const parsed = legacyRecordsImportSchema.safeParse([
+    capper({
+      records: [
+        entry({
+          wins: 0,
+          losses: 0,
+          pushes: 2,
+          unitsRisked: 489.29,
+          unitsNet: 134.43,
+        }),
+      ],
+    }),
+  ]);
+
+  assert.equal(parsed.success, false);
+});

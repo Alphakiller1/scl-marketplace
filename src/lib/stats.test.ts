@@ -88,3 +88,17 @@ test("a legacy baseline never adds pending — carried-over results are settled"
   assert.equal(stats.pending, 1);
   assert.equal(stats.settled, 10);
 });
+
+test("a push-only legacy baseline cannot add impossible net units", () => {
+  const stats = computeCapperStats([], {
+    wins: 0,
+    losses: 0,
+    pushes: 2,
+    stakedUnits: 489.29,
+    units: 134.43,
+  });
+
+  assert.equal(stats.settled, 2);
+  assert.equal(stats.units, 0);
+  assert.equal(stats.roi, 0);
+});
