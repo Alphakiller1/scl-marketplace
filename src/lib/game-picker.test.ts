@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { BOOK_KEYS } from "@/lib/books";
+import { PICK_BOARD_BOOKS } from "@/lib/books";
 import {
   categoryCounts,
   eventMatchesSearch,
@@ -186,20 +186,10 @@ test("started games are never selectable on the board", () => {
   assert.equal(categoryCounts([started], now).all, 0);
 });
 
-test("every capper gets the full book rail, configured or not", () => {
-  // 115 of 134 cappers have never set books; gating the rail on the profile
-  // hid the sportsbook switcher from almost all of them.
-  assert.deepEqual(railBooks([]), [...BOOK_KEYS]);
-  assert.deepEqual(railBooks(undefined), [...BOOK_KEYS]);
-  assert.deepEqual(railBooks(null), [...BOOK_KEYS]);
-  // An all-garbage list is the same as none, not an empty rail.
-  assert.deepEqual(railBooks(["not-a-book", "nope"]), [...BOOK_KEYS]);
-});
-
-test("a configured book list narrows the rail to it", () => {
-  assert.deepEqual(railBooks(["fanduel", "betmgm"]), ["fanduel", "betmgm"]);
-  // Unknown keys are dropped, known ones kept.
-  assert.deepEqual(railBooks(["fanduel", "not-a-book"]), ["fanduel"]);
+test("the pick-form rail is the owner five, not every supported book", () => {
+  assert.deepEqual(railBooks(), [...PICK_BOARD_BOOKS]);
+  assert.ok(!railBooks().includes("bovada"));
+  assert.ok(!railBooks().includes("espnbet"));
 });
 
 test("best-available shows a price where a single book has none", () => {
@@ -216,4 +206,20 @@ test("best-available shows a price where a single book has none", () => {
   assert.equal(selectionForActiveBook(selection, "betmgm").oddsAmerican, null);
   // Best-available: a real number, which is why it is the default.
   assert.equal(selectionForActiveBook(selection, null).oddsAmerican, -120);
+  assert.equal(selectionForActiveBook(selection, null).book, "fanduel");
+});
+
+test("best-available ignores books outside the pick-form five", () => {
+  const selection: OddsSelection = {
+    label: "Reds ML",
+    market: "Moneyline",
+    selection: "Reds",
+    side: "Reds",
+    oddsAmerican: 150,
+    book: "bovada",
+    bookPrices: { bovada: 150, draftkings: -110, fanduel: -105 },
+  };
+  const best = selectionForActiveBook(selection, null);
+  assert.equal(best.oddsAmerican, -105);
+  assert.equal(best.book, "fanduel");
 });

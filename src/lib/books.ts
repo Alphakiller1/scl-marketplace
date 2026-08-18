@@ -21,6 +21,27 @@ export type BookKey = (typeof SUPPORTED_BOOKS)[number]["key"];
 
 export const BOOK_KEYS = SUPPORTED_BOOKS.map((b) => b.key) as BookKey[];
 
+/**
+ * Pick-form source books. One `regions=us` fetch already includes these;
+ * Best and the book tabs read only this set so extra US books never surface.
+ * Order matches the owner rail: MGM, Caesars, DraftKings, FanDuel, Fanatics.
+ */
+export const PICK_BOARD_BOOKS = [
+  "betmgm",
+  "williamhill_us",
+  "draftkings",
+  "fanduel",
+  "fanatics",
+] as const satisfies readonly BookKey[];
+
+export type PickBoardBook = (typeof PICK_BOARD_BOOKS)[number];
+
+const PICK_BOARD_BOOK_SET = new Set<string>(PICK_BOARD_BOOKS);
+
+export function isPickBoardBook(value: string): value is PickBoardBook {
+  return PICK_BOARD_BOOK_SET.has(value);
+}
+
 const BY_KEY = new Map(SUPPORTED_BOOKS.map((b) => [b.key, b]));
 
 export function isBookKey(value: string): value is BookKey {

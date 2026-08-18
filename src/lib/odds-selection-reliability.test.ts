@@ -199,14 +199,15 @@ test("board provider refresh is measured in hours, not per pick", () => {
   assert.match(source, /export const BOARD_TTL = 4 \* 60 \* 60/);
 });
 
-test("today's pick board exposes only best-available pricing", () => {
+test("today's pick board exposes Best plus the five owner books", () => {
   const source = fs.readFileSync(
     path.join(root, "src/components/scl/game-picker.tsx"),
     "utf8",
   );
-  assert.match(source, /Best available · all books/);
-  assert.doesNotMatch(source, /function BookRail/);
-  assert.doesNotMatch(source, /setBookChoice/);
+  assert.match(source, /function BookRail/);
+  assert.match(source, /setBookChoice/);
+  assert.match(source, /Best is the most favorable price among MGM/);
+  assert.doesNotMatch(source, /Best available · all books/);
   assert.doesNotMatch(source, /lockedBook/);
   assert.doesNotMatch(source, /Parlay locked/);
 });

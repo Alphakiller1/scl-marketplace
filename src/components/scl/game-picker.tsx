@@ -5,17 +5,20 @@ import { ChevronDown, LayoutGrid, Lock, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { Card } from "@/components/ui/card";
+import { BookMark } from "@/components/scl/book-mark";
 import { DayToggle } from "@/components/scl/day-toggle";
 import { EventDetail, type OddsPick } from "@/components/scl/odds-assist";
 import { LeagueMark } from "@/components/scl/league-mark";
 import { SkeletonCard } from "@/components/scl/states";
 import { TeamMark } from "@/components/scl/team-mark";
+import { bookLabel, bookShort } from "@/lib/books";
 import {
   categoryCounts,
   filterGamePickerEvents,
   ODDS_BOARD_REQUEST_TIMEOUT_MS,
   preGameEvents,
   ODDS_BOARD_SPORTS,
+  railBooks,
 } from "@/lib/game-picker";
 import { loadOddsSlate } from "@/lib/odds-slate-client";
 import {
@@ -47,9 +50,9 @@ const SLATE_BACKGROUND_REFRESH_MS = 60_000;
 
 /**
  * Shared game browser for straight + parlay (M4 PR-3).
- * Multi-sport slate · day toggle · search · category pills with counts · best price ·
+ * Multi-sport slate · day toggle · search · category pills · Best + five-book rail ·
  * TeamMark rows · Request coverage · expands existing EventDetail.
- * Entry-page wiring lands in PR-4 — this ships the component + tests only.
+ * Book tabs filter the cached US payload — they do not call The Odds API.
  */
 export function GamePicker({
   onPick,
@@ -75,6 +78,8 @@ export function GamePicker({
   const [openId, setOpenId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Record<string, EventDetailData>>({});
   const [coverageSent, setCoverageSent] = useState(false);
+  /** null = Best among the five pick-form books. */
+  const [bookChoice, setBookChoice] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -240,14 +245,7 @@ export function GamePicker({
         </span>
       </div>
 
-      <div className="space-y-1.5">
-        <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
-          Source Price
-        </p>
-        <p className="scl-data inline-flex min-h-8 items-center rounded-full border border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] px-3 text-[10px] font-semibold tracking-[0.08em] text-[color:var(--scl-blue-ink)] uppercase">
-          Best available · all books
-        </p>
-      </div>
+      <BookRail activeBook={bookChoice} onChange={setBookChoice} />
 
       <DayToggle
         day={day}
@@ -377,6 +375,7 @@ export function GamePicker({
                       detail={detail[e.id]}
                       onPick={onPick}
                       selectedKeys={selectedKeys}
+                      activeBook={bookChoice}
                     />
                   ) : null}
                 </li>
@@ -416,6 +415,68 @@ export function GamePicker({
           : "Request coverage — tell us what's missing"}
       </button>
     </Card>
+  );
+}
+
+function BookRail({
+  activeBook,
+  onChange,
+}: {
+  activeBook: string | null;
+  onChange: (book: string | null) => void;
+}) {
+  const books = railBooks();
+  return (
+    <div className="space-y-1.5">
+      <p className="scl-eyebrow text-[color:var(--scl-muted-data)]">
+        Source Price
+      </p>
+      <div
+        className="flex flex-wrap gap-2"
+        role="group"
+        aria-label="Odds source books"
+      >
+        <button
+          type="button"
+          onClick={() => onChange(null)}
+          aria-pressed={activeBook === null}
+          aria-label="Best price among MGM, Caesars, DraftKings, FanDuel, and Fanatics"
+          className={cn(
+            "scl-display flex h-11 min-w-11 shrink-0 items-center justify-center rounded-[22px] border px-3.5 text-[13px] font-semibold tracking-[0.05em] uppercase",
+            activeBook === null
+              ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
+              : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",
+          )}
+        >
+          Best
+        </button>
+        {books.map((book) => {
+          const active = activeBook === book;
+          return (
+            <button
+              key={book}
+              type="button"
+              onClick={() => onChange(book)}
+              aria-pressed={active}
+              aria-label={bookLabel(book)}
+              className={cn(
+                "scl-display flex h-11 min-w-11 shrink-0 items-center gap-1.5 rounded-[22px] border px-3 text-[13px] font-semibold tracking-[0.05em]",
+                active
+                  ? "border-[color:var(--scl-blue)] bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
+                  : "border-[color:var(--scl-line)] bg-[color:var(--scl-ink-800)] text-[color:var(--scl-muted-data)]",
+              )}
+            >
+              <BookMark bookKey={book} size={16} />
+              {bookShort(book)}
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-muted-foreground text-[0.7rem] leading-snug">
+        Best is the most favorable price among MGM, Caesars, DraftKings,
+        FanDuel, and Fanatics. Switching books does not call the odds feed.
+      </p>
+    </div>
   );
 }
 
