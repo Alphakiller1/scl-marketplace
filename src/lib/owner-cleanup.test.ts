@@ -9,14 +9,33 @@ function source(relativePath: string) {
 test("By sport is a single career table, not a legacy/SCL split", () => {
   const dashboard = source("src/app/(capper)/dashboard/page.tsx");
   const breakdown = source("src/components/scl/legacy-sport-breakdown.tsx");
+  const badges = source("src/components/scl/badges.tsx");
   const capper = source("src/lib/queries/capper.ts");
+  const leaderboard = source("src/lib/queries/leaderboard.ts");
 
   assert.match(dashboard, /mergeCareerSportRecords/);
   assert.doesNotMatch(dashboard, /PerformanceBySport/);
   assert.match(breakdown, /By sport/);
   assert.doesNotMatch(breakdown, /Legacy by sport/);
   assert.match(breakdown, /forceLabel/);
+  assert.match(badges, /sportLabel\(sport\)/);
   assert.match(capper, /mergeCareerSportRecords/);
+  assert.match(capper, /sclBySportByCapperId\[capper\.id\]/);
+  assert.doesNotMatch(capper, /computeStatsBySport\(chartRows\)/);
+  assert.match(leaderboard, /sclBySportByCapperId: Object\.fromEntries/);
+});
+
+test("dashboard trend uses the same straight and parlay positions as its stats", () => {
+  const dashboard = source("src/app/(capper)/dashboard/page.tsx");
+
+  assert.match(
+    dashboard,
+    /const positions = mergeRecordEntries\(plays, parlays\)/,
+  );
+  assert.match(
+    dashboard,
+    /buildPerformanceTrend\(\s*\[\.\.\.positions\]\.reverse\(\)/,
+  );
 });
 
 test("Top Purchase Packages has no subtext under the heading", () => {

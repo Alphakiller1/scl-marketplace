@@ -28,7 +28,6 @@ import {
   hasNotesPublicColumn,
 } from "@/lib/results/schema-features";
 import { LEGACY_RECORD_ALL_SPORTS } from "@/lib/schemas/legacy-records.schema";
-import { computeStatsBySport } from "@/lib/stats";
 
 export type PublicCapper = {
   capper: CapperSummary;
@@ -204,8 +203,11 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
   );
   if (!profile?.user.username) return null;
 
-  const { cappers, failed: evidenceFailed } =
-    await getPublicCapperEvidenceByIds([profile.id]);
+  const {
+    cappers,
+    failed: evidenceFailed,
+    sclBySportByCapperId = {},
+  } = await getPublicCapperEvidenceByIds([profile.id]);
   const capper = cappers[0];
   if (!capper) {
     // A temporary database failure is not evidence that a public capper does
@@ -219,6 +221,7 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
     }
     return null;
   }
+  const sclBySport = sclBySportByCapperId[capper.id] ?? [];
 
   let plays: PlayView[] = [];
   let playsError = false;
@@ -228,7 +231,6 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
   let chartSeriesBySport: Record<string, ProfileChartSeries> = {};
   let historyNextCursor: string | null = null;
   let legacyBySport: LegacySportRecordView[] = [];
-  let sclBySport: ReturnType<typeof computeStatsBySport> = [];
 
   async function settle<T>(label: string, operation: () => Promise<T>) {
     try {
@@ -379,7 +381,6 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
         ),
       ]),
     );
-    sclBySport = computeStatsBySport(chartRows);
   } else {
     console.error(
       "[getPublicCapperByHandle] chart unavailable:",

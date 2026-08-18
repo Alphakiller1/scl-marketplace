@@ -67,13 +67,12 @@ export default async function DashboardPage() {
     allBaseline: legacy.baseline,
     sclBySport,
   });
-  // Stats stay on straight plays + the ALL baseline; the recent feed also
-  // surfaces parlays as positions.
-  const recent = mergeRecordEntries(plays, parlays).slice(0, 6);
+  const positions = mergeRecordEntries(plays, parlays);
+  const recent = positions.slice(0, 6);
   const performanceTrend = buildPerformanceTrend(
-    [...plays].reverse().map((play) => ({
-      outcome: play.outcome,
-      profitUnits: play.profitUnits,
+    [...positions].reverse().map((position) => ({
+      outcome: position.outcome,
+      profitUnits: position.profitUnits,
     })),
   );
 

@@ -17,7 +17,12 @@ import { UNIT_MIN } from "@/lib/constants";
 import { stakeFromStored } from "@/lib/extreme-stake";
 import { hasQaNoteMarker } from "@/lib/public-eligibility";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
-import { computeCapperStats, type StatsBaseline } from "@/lib/stats";
+import {
+  computeCapperStats,
+  computeStatsBySport,
+  type SportStats,
+  type StatsBaseline,
+} from "@/lib/stats";
 import { computeVerifiedShare } from "@/lib/verification";
 import type { CapperSummary, FormResult } from "@/lib/mock";
 import { resolveStorefrontIdentity } from "@/lib/storefront";
@@ -168,6 +173,11 @@ async function fetchRankableProfiles(
           profitUnits: true,
           createdAt: true,
           gradedAt: true,
+          legs: {
+            select: { sport: true },
+            take: 1,
+            orderBy: { id: "asc" },
+          },
         },
         orderBy: { createdAt: "asc" },
       },
@@ -444,7 +454,11 @@ export async function getLeaderboard(
  */
 export async function getPublicCapperEvidenceByIds(
   requestedIds: string[],
-): Promise<{ cappers: CapperSummary[]; failed: boolean }> {
+): Promise<{
+  cappers: CapperSummary[];
+  failed: boolean;
+  sclBySportByCapperId?: Record<string, SportStats[]>;
+}> {
   const capperIds = [...new Set(requestedIds.filter(Boolean))];
   if (capperIds.length === 0) return { cappers: [], failed: false };
 
@@ -461,6 +475,33 @@ export async function getPublicCapperEvidenceByIds(
       cappers: profiles
         .map((p) => summarize(p, true))
         .filter((capper): capper is CapperSummary => capper !== null),
+      sclBySportByCapperId: Object.fromEntries(
+        profiles.map((profile) => [
+          profile.id,
+          computeStatsBySport([
+            ...profile.plays
+              .filter((play) => !hasQaNoteMarker(play.notes))
+              .map((play) => {
+                const stake = stakeFromStored(play.units, play.profitUnits);
+                return {
+                  sport: play.sport,
+                  outcome: play.outcome,
+                  units: stake.units,
+                  profitUnits: stake.profitUnits,
+                };
+              }),
+            ...profile.parlays.map((parlay) => {
+              const stake = stakeFromStored(parlay.units, parlay.profitUnits);
+              return {
+                sport: parlay.legs[0]?.sport ?? "MULTI",
+                outcome: parlay.outcome,
+                units: stake.units,
+                profitUnits: stake.profitUnits,
+              };
+            }),
+          ]),
+        ]),
+      ),
       failed: false,
     };
   } catch (error) {

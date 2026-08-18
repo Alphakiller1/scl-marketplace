@@ -2,7 +2,7 @@ import { BadgeCheck, History, Trophy } from "lucide-react";
 
 import { LeagueMark } from "@/components/scl/league-mark";
 import { cn } from "@/lib/utils";
-import { SPORTS } from "@/lib/constants";
+import { sportLabel } from "@/lib/legacy-sport-records";
 import { getLeagueIdentity, leagueMarkInitials } from "@/lib/leagues";
 import type { PickStatus } from "@/lib/mock";
 import {
@@ -129,10 +129,6 @@ export function LegacyBadge({
   );
 }
 
-const SPORT_LABEL = new Map<string, string>(
-  SPORTS.map((s) => [s.key, s.label]),
-);
-
 export function SportTag({
   sport,
   className,
@@ -149,7 +145,7 @@ export function SportTag({
   /** Show the text beside its mark even when both use the same acronym. */
   forceLabel?: boolean;
 }) {
-  const label = SPORT_LABEL.get(sport) ?? sport;
+  const label = sportLabel(sport);
   const league = getLeagueIdentity(sport);
   const initials = leagueMarkInitials(league);
   // Avoid "MLB" mark + "MLB" text (or monogram SVG + same acronym).
