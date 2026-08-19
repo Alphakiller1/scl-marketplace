@@ -32,6 +32,8 @@ test("manual temp-key population sends the key to the signed route and never sto
     /::add-mask::\$\{\{ github\.event\.client_payload\.odds_key \|\| github\.event\.inputs\.odds_key \}\}/,
   );
   assert.match(workflow, /x-scl-odds-key: \$ODDS_KEY/);
+  assert.match(workflow, /skipPopulated=\$\{SKIP_POPULATED\}/);
+  assert.match(workflow, /client_payload\.skipPopulated \|\| '1'/);
   assert.doesNotMatch(workflow, /secrets\.DATABASE_URL/);
   assert.doesNotMatch(workflow, /WRITE_DB/);
 });
@@ -44,6 +46,10 @@ test("production route accepts a one-shot key after auth, expands WNBA then MLB,
   assert.match(route, /updateOddsBoardSegment/);
   assert.match(route, /loadCachedOddsBoard/);
   assert.match(route, /EXPANDED_SPORT_ORDER = \["WNBA", "MLB"\]/);
+  assert.match(route, /loadCachedEventBoard/);
+  assert.match(route, /summarizeEventMarketCoverage/);
+  assert.match(route, /coverage\.fullyCovered/);
+  assert.match(route, /skipPopulated/);
   assert.match(route, /loadEventBoard/);
   assert.match(route, /forceRefresh: true/);
 });

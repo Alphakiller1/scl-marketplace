@@ -7,7 +7,11 @@ import {
   loadCachedOddsBoard,
   updateOddsBoardSegment,
 } from "@/lib/odds-board-cache";
-import { loadEventBoard } from "@/lib/odds-event-board-cache";
+import {
+  loadCachedEventBoard,
+  loadEventBoard,
+} from "@/lib/odds-event-board-cache";
+import { summarizeEventMarketCoverage } from "@/lib/odds-market-coverage";
 import {
   parseExpandedSlateDays,
   selectExpandedSlateEvents,
@@ -58,13 +62,23 @@ async function populate(req: NextRequest) {
     req.nextUrl.searchParams.get("expandedDays") ?? "tomorrow",
   );
   const refreshSurface = req.nextUrl.searchParams.get("surface") !== "0";
+  // Default on: a top-up key should fill missing expanded boards, not rebill
+  // the ones already cached. Pass skipPopulated=0 to force a full re-fetch.
+  const skipPopulated = req.nextUrl.searchParams.get("skipPopulated") !== "0";
   const surface: Record<
     string,
     { events: number; source: string; stale: boolean }
   > = {};
   const expanded: Record<
     string,
-    { events: number; populated: number; selections: number; stale: number }
+    {
+      events: number;
+      populated: number;
+      skipped: number;
+      fetched: number;
+      selections: number;
+      stale: number;
+    }
   > = {};
   const boardEvents = new Map<
     string,
@@ -109,9 +123,28 @@ async function populate(req: NextRequest) {
         expandedDays,
       ).slice(0, expandedLimit);
       let populated = 0;
+      let skipped = 0;
+      let fetched = 0;
       let selections = 0;
       let stale = 0;
       for (const event of events) {
+        if (skipPopulated) {
+          const cached = await loadCachedEventBoard(sport, event.id);
+          const coverage = summarizeEventMarketCoverage(
+            event,
+            cached.selections,
+            cached.source,
+            cached.stale,
+          );
+          if (coverage.fullyCovered) {
+            skipped += 1;
+            populated += 1;
+            selections += cached.selections.length;
+            if (cached.stale) stale += 1;
+            continue;
+          }
+        }
+        fetched += 1;
         const board = await loadEventBoard(sport, event.id, {
           forceRefresh: true,
         });
@@ -119,7 +152,14 @@ async function populate(req: NextRequest) {
         selections += board.selections.length;
         if (board.stale) stale += 1;
       }
-      expanded[sport] = { events: events.length, populated, selections, stale };
+      expanded[sport] = {
+        events: events.length,
+        populated,
+        skipped,
+        fetched,
+        selections,
+        stale,
+      };
     }
   }
 
@@ -130,6 +170,7 @@ async function populate(req: NextRequest) {
     sports,
     expandedDays,
     refreshSurface,
+    skipPopulated,
     surface,
     expanded,
     requestsRemaining: getLastOddsApiRemaining(),
