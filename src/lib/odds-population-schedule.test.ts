@@ -32,6 +32,8 @@ test("manual temp-key population writes via DATABASE_URL and never stores the ke
     /::add-mask::\$\{\{ github\.event\.client_payload\.odds_key \|\| github\.event\.inputs\.odds_key \}\}/,
   );
   assert.match(workflow, /secrets\.DATABASE_URL/);
+  assert.match(workflow, /decrypt=true/);
+  assert.match(workflow, /secrets\.VERCEL_TOKEN/);
   assert.match(workflow, /WRITE_DB: "1"/);
   assert.match(workflow, /npx tsx scripts\/populate-odds-today\.ts/);
 });
