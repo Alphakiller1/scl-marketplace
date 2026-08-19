@@ -23,7 +23,7 @@ test("scheduled population calls the signed production route, never a stored Odd
   );
 });
 
-test("manual temp-key population writes via DATABASE_URL and never stores the key", () => {
+test("manual temp-key population sends the key to the signed route and never stores it", () => {
   assert.match(workflow, /repository_dispatch:/);
   assert.match(workflow, /types: \[populate-odds\]/);
   assert.match(workflow, /inputs\.odds_key/);
@@ -31,17 +31,15 @@ test("manual temp-key population writes via DATABASE_URL and never stores the ke
     workflow,
     /::add-mask::\$\{\{ github\.event\.client_payload\.odds_key \|\| github\.event\.inputs\.odds_key \}\}/,
   );
-  assert.match(workflow, /secrets\.DATABASE_URL/);
-  assert.match(workflow, /secrets\.OWNER_DATABASE_URL/);
-  assert.match(workflow, /vercel pull/);
-  assert.match(workflow, /secrets\.VERCEL_TOKEN/);
-  assert.match(workflow, /pooler\.supabase\.com/);
-  assert.match(workflow, /WRITE_DB: "1"/);
-  assert.match(workflow, /npx tsx scripts\/populate-odds-today\.ts/);
+  assert.match(workflow, /x-scl-odds-key: \$ODDS_KEY/);
+  assert.doesNotMatch(workflow, /secrets\.DATABASE_URL/);
+  assert.doesNotMatch(workflow, /WRITE_DB/);
 });
 
-test("production route warms surfaces, expands WNBA then MLB, and retains fallback", () => {
+test("production route accepts a one-shot key after auth, expands WNBA then MLB, and retains fallback", () => {
   assert.match(route, /process\.env\.CRON_SECRET/);
+  assert.match(route, /x-scl-odds-key/);
+  assert.match(route, /pinOddsApiKey/);
   assert.match(route, /fetchUpcomingOdds/);
   assert.match(route, /updateOddsBoardSegment/);
   assert.match(route, /loadCachedOddsBoard/);
