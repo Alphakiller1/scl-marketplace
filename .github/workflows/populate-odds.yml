@@ -84,30 +84,31 @@ jobs:
           writable_url=""
 
           if [ -n "${VERCEL_TOKEN:-}" ] && [ -n "${VERCEL_ORG_ID:-}" ] && [ -n "${VERCEL_PROJECT_ID:-}" ]; then
-            curl --fail --silent --show-error --get \
+            if curl --fail --silent --show-error --get \
               --header "Authorization: Bearer $VERCEL_TOKEN" \
               --data-urlencode "decrypt=true" \
               --data-urlencode "source=vercel-cli:pull" \
               --data-urlencode "teamId=$VERCEL_ORG_ID" \
               "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env" \
-              --output /tmp/scl-production-env.json
-            node -e '
-              const { readFileSync, writeFileSync } = require("node:fs");
-              const body = JSON.parse(readFileSync("/tmp/scl-production-env.json", "utf8"));
-              const rows = Array.isArray(body.envs) ? body.envs : [];
-              const production = rows.filter((row) =>
-                Array.isArray(row.target) && row.target.includes("production"),
-              );
-              const preferred = ["DATABASE_URL", "POSTGRES_PRISMA_URL", "POSTGRES_URL"];
-              const row = preferred
-                .map((key) => production.find((candidate) => candidate.key === key))
-                .find(Boolean);
-              const raw = typeof row?.value === "string" ? row.value.trim() : "";
-              if (!raw || raw === "[SENSITIVE]") process.exit(2);
-              const url = new URL(raw);
-              if (!url.searchParams.has("schema")) url.searchParams.set("schema", "scl");
-              writeFileSync("/tmp/scl-production-db", url.toString(), { mode: 0o600 });
-            ' && writable_url=$(cat /tmp/scl-production-db) || true
+              --output /tmp/scl-production-env.json; then
+              node -e '
+                const { readFileSync, writeFileSync } = require("node:fs");
+                const body = JSON.parse(readFileSync("/tmp/scl-production-env.json", "utf8"));
+                const rows = Array.isArray(body.envs) ? body.envs : [];
+                const production = rows.filter((row) =>
+                  Array.isArray(row.target) && row.target.includes("production"),
+                );
+                const preferred = ["DATABASE_URL", "POSTGRES_PRISMA_URL", "POSTGRES_URL"];
+                const row = preferred
+                  .map((key) => production.find((candidate) => candidate.key === key))
+                  .find(Boolean);
+                const raw = typeof row?.value === "string" ? row.value.trim() : "";
+                if (!raw || raw === "[SENSITIVE]") process.exit(2);
+                const url = new URL(raw);
+                if (!url.searchParams.has("schema")) url.searchParams.set("schema", "scl");
+                writeFileSync("/tmp/scl-production-db", url.toString(), { mode: 0o600 });
+              ' && writable_url=$(cat /tmp/scl-production-db) || true
+            fi
             rm -f /tmp/scl-production-env.json /tmp/scl-production-db
           fi
 
