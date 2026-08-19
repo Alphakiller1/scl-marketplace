@@ -131,9 +131,15 @@ async function soccerLeaguesForBoard(
   const horizon = now + SOCCER_FIXTURE_WINDOW_HOURS * 3_600_000;
   const windows = new Map<string, LeagueFixtureWindow>();
   for (const league of candidates) {
-    const rows = (await freeApi(`/v4/sports/${league.oddsApiKey}/events`)) as
-      | { commence_time?: string }[]
-      | null;
+    let rows: { commence_time?: string }[] | null;
+    try {
+      rows = (await freeApi(`/v4/sports/${league.oddsApiKey}/events`)) as
+        | { commence_time?: string }[]
+        | null;
+    } catch {
+      console.log(`  ! soccer fixture probe failed for ${league.key}`);
+      continue;
+    }
     if (!Array.isArray(rows)) continue;
     let upcoming = 0;
     let first: number | null = null;

@@ -1,10 +1,9 @@
 name: Populate odds
 
 # Two daily scheduled runs refresh surface prices through the signed production
-# route (the keys already on Vercel). One-shot populate uses a temporary Odds
-# API key from workflow_dispatch or repository_dispatch (populate-odds) — used
-# for that job only, never stored as an env var — and writes boards with the
-# Production DATABASE_URL, the same flow as #514.
+# route (the keys already on Vercel). One-shot populate uses the temporary
+# ODDS_POPULATE_KEY secret from the Production environment and writes boards
+# with the Production DATABASE_URL, the same flow as #514.
 
 on:
   schedule:
@@ -14,10 +13,11 @@ on:
     types: [populate-odds]
   workflow_dispatch:
     inputs:
-      odds_key:
-        description: "Temporary Odds API key for this run only. Leave blank to use production keys."
+      temporary_key:
+        description: "Use the temporary ODDS_POPULATE_KEY Production secret"
         required: false
-        type: string
+        default: false
+        type: boolean
       sports:
         description: "Comma-separated SCL sports, or blank for all"
         required: false
@@ -50,14 +50,11 @@ concurrency:
 
 jobs:
   populate-temp-key:
-    if: github.event_name == 'repository_dispatch' || (github.event_name == 'workflow_dispatch' && inputs.odds_key != '')
+    if: github.event_name == 'repository_dispatch' || (github.event_name == 'workflow_dispatch' && inputs.temporary_key)
     runs-on: ubuntu-latest
     environment: Production
     timeout-minutes: 30
     steps:
-      - name: Mask the key
-        run: echo "::add-mask::${{ github.event.client_payload.odds_key || github.event.inputs.odds_key }}"
-
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
@@ -88,7 +85,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
-          ODDS_KEY: ${{ github.event.client_payload.odds_key || github.event.inputs.odds_key }}
+          ODDS_KEY: ${{ secrets.ODDS_POPULATE_KEY }}
           SPORTS: ${{ github.event.client_payload.sports || github.event.inputs.sports || 'MLB,WNBA,NFL,TENNIS,SOCCER' }}
           EXPANDED: ${{ github.event.client_payload.expanded || github.event.inputs.expanded || '99' }}
           EXPANDED_DAYS: ${{ github.event.client_payload.expanded_days || github.event.inputs.expanded_days || 'today' }}
@@ -107,7 +104,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   populate:
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.odds_key == '')
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && !inputs.temporary_key)
     runs-on: ubuntu-latest
     environment: Production
     timeout-minutes: 10
