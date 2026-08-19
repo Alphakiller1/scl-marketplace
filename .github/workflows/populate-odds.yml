@@ -1,29 +1,42 @@
 name: Populate odds
 
-# The manual warm expands tomorrow's MLB/WNBA event boards. Exactly two daily
-# scheduled runs refresh surface prices only; expanded event boards remain in
-# the 30-day last-good cache if either scheduled refresh or the provider fails.
+# Two daily scheduled runs refresh surface prices through the signed production
+# route (the keys already on Vercel). One-shot populate uses a temporary Odds
+# API key from workflow_dispatch or repository_dispatch (populate-odds) — used
+# for that job only, never stored as an env var — and writes boards with the
+# Production DATABASE_URL, the same flow as #514.
 
 on:
   schedule:
     - cron: "0 12 * * *" # 08:00 ET (during daylight time)
     - cron: "0 0 * * *" # 20:00 ET (during daylight time)
+  repository_dispatch:
+    types: [populate-odds]
   workflow_dispatch:
     inputs:
+      odds_key:
+        description: "Temporary Odds API key for this run only. Leave blank to use production keys."
+        required: false
+        type: string
       sports:
         description: "Comma-separated SCL sports, or blank for all"
         required: false
         default: "MLB,WNBA,NFL,TENNIS,SOCCER"
         type: string
       expanded:
-        description: "Max tomorrow events to expand per MLB/WNBA sport"
+        description: "Max events to expand per MLB/WNBA sport"
         required: false
         default: "99"
         type: string
       expanded_days:
         description: "ET slate days for expanded MLB/WNBA: today,tomorrow"
         required: false
-        default: "tomorrow"
+        default: "today"
+        type: string
+      budget_floor:
+        description: "Stop spending once remaining credits hit this (temp-key runs)"
+        required: false
+        default: "20"
         type: string
       surface:
         description: "Refresh surface boards before expanding"
@@ -36,7 +49,65 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  populate-temp-key:
+    if: github.event_name == 'repository_dispatch' || (github.event_name == 'workflow_dispatch' && inputs.odds_key != '')
+    runs-on: ubuntu-latest
+    environment: Production
+    timeout-minutes: 30
+    steps:
+      - name: Mask the key
+        run: echo "::add-mask::${{ github.event.client_payload.odds_key || github.event.inputs.odds_key }}"
+
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+
+      - name: Verify the database is writable
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL secret is not set — cannot write the board."
+            exit 1
+          fi
+          echo "select 1;" | npx prisma db execute --stdin --url "$DATABASE_URL" || {
+            echo "::error::Cannot reach the production database. The board was NOT fetched, so no credits were spent."
+            exit 1
+          }
+
+      - name: Populate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          ODDS_KEY: ${{ github.event.client_payload.odds_key || github.event.inputs.odds_key }}
+          SPORTS: ${{ github.event.client_payload.sports || github.event.inputs.sports || 'MLB,WNBA,NFL,TENNIS,SOCCER' }}
+          EXPANDED: ${{ github.event.client_payload.expanded || github.event.inputs.expanded || '99' }}
+          EXPANDED_DAYS: ${{ github.event.client_payload.expanded_days || github.event.inputs.expanded_days || 'today' }}
+          BUDGET_FLOOR: ${{ github.event.client_payload.budget_floor || github.event.inputs.budget_floor || '20' }}
+          WRITE_DB: "1"
+        run: npx tsx scripts/populate-odds-today.ts | tee /tmp/populate.log
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Odds population (temporary key)"
+            echo '```'
+            tail -80 /tmp/populate.log || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   populate:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.odds_key == '')
     runs-on: ubuntu-latest
     environment: Production
     timeout-minutes: 10

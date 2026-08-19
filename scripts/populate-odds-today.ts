@@ -34,7 +34,14 @@ import {
   type OddsEvent,
 } from "@/lib/odds-board";
 import { expandedBoardMarkets } from "@/lib/odds-verify";
-import { selectSoccerLeagues, SOCCER_LEAGUE_LIMIT } from "@/lib/soccer-leagues";
+import {
+  selectLeaguesWithFixtures,
+  selectSoccerLeagues,
+  SOCCER_LEAGUE_LIMIT,
+  type LeagueFixtureWindow,
+  type OddsApiSportRow,
+  type SoccerLeague,
+} from "@/lib/soccer-leagues";
 import { selectTennisTours, TENNIS_TOUR_LIMIT } from "@/lib/tennis-tours";
 import {
   mergeLastGoodBoardEvents,
@@ -42,8 +49,9 @@ import {
   selectExpandedSlateEvents,
 } from "@/lib/manual-odds-population";
 
-const KEY = process.env.ODDS_KEY?.trim();
-if (!KEY) throw new Error("ODDS_KEY is required");
+const KEY =
+  process.env.ODDS_KEY?.trim() || process.env.ODDS_API_KEY?.trim() || "";
+if (!KEY) throw new Error("ODDS_KEY or ODDS_API_KEY is required");
 const BUDGET_FLOOR = Number(process.env.BUDGET_FLOOR ?? 0);
 const EXPANDED_LIMIT = Number(process.env.EXPANDED ?? 99);
 const EXPANDED_DAYS = parseExpandedSlateDays(
@@ -63,6 +71,9 @@ const RETENTION_SECONDS = 30 * 24 * 60 * 60;
 /** Board caps applied by the live fetch path, matched here so the shapes agree. */
 const BOARD_CAP = 60;
 const SOCCER_BOARD_CAP = 80;
+/** Free `/events` ranking window — matches `fetchUpcomingOdds` soccer selection. */
+const SOCCER_CANDIDATE_LIMIT = 60;
+const SOCCER_FIXTURE_WINDOW_HOURS = 72;
 
 let remaining = Number.POSITIVE_INFINITY;
 let used = 0;
@@ -86,6 +97,64 @@ async function api(path: string): Promise<unknown | null> {
     return null;
   }
   return res.json();
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Unbilled Odds API reads (`/sports`, `/events`). Retries 429s. */
+async function freeApi(path: string): Promise<unknown | null> {
+  const sep = path.includes("?") ? "&" : "?";
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const res = await fetch(
+      `https://api.the-odds-api.com${path}${sep}apiKey=${KEY}`,
+    );
+    if (res.status === 429) {
+      await sleep(400 * 2 ** attempt);
+      continue;
+    }
+    if (!res.ok) {
+      console.log(`  ! HTTP ${res.status} ${path.slice(0, 70)}`);
+      return null;
+    }
+    return res.json();
+  }
+  return null;
+}
+
+async function soccerLeaguesForBoard(
+  catalog: OddsApiSportRow[],
+): Promise<SoccerLeague[]> {
+  const candidates = selectSoccerLeagues(catalog, SOCCER_CANDIDATE_LIMIT);
+  const now = Date.now();
+  const horizon = now + SOCCER_FIXTURE_WINDOW_HOURS * 3_600_000;
+  const windows = new Map<string, LeagueFixtureWindow>();
+  for (const league of candidates) {
+    const rows = (await freeApi(`/v4/sports/${league.oddsApiKey}/events`)) as
+      | { commence_time?: string }[]
+      | null;
+    if (!Array.isArray(rows)) continue;
+    let upcoming = 0;
+    let first: number | null = null;
+    for (const row of rows) {
+      const ms = Date.parse(row.commence_time ?? "");
+      if (!Number.isFinite(ms) || ms < now) continue;
+      if (ms <= horizon) upcoming += 1;
+      if (first == null || ms < first) first = ms;
+    }
+    windows.set(league.oddsApiKey, { upcoming, firstKickoffMs: first });
+  }
+  const selected = selectLeaguesWithFixtures(
+    candidates,
+    windows,
+    SOCCER_LEAGUE_LIMIT,
+    now,
+  );
+  console.log(
+    `  soccer slate: ${selected.map((league) => league.key).join(", ")} (from ${candidates.length} in season)`,
+  );
+  return selected;
 }
 
 type Snapshot = { key: string; payload: Record<string, unknown> };
@@ -176,7 +245,7 @@ async function main() {
   }
   if (wanted("SOCCER")) {
     const events: OddsEvent[] = [];
-    for (const league of selectSoccerLeagues(catalog, SOCCER_LEAGUE_LIMIT)) {
+    for (const league of await soccerLeaguesForBoard(catalog)) {
       events.push(
         ...((await surface("SOCCER", league.oddsApiKey, league.key)) ?? []),
       );
@@ -187,8 +256,11 @@ async function main() {
   // ── expanded per-event markets ─────────────────────────────────────────────
   console.log("\nEXPANDED PER-EVENT (alt lines, team totals, segments, props)");
   for (const [sclSport, apiSport, events] of [
-    ["MLB", "baseball_mlb", mlb],
+    // WNBA first: two or three games, ~24 credits each. A 500-credit key
+    // cannot finish a 15-game MLB expanded slate (~31/event) AND WNBA if MLB
+    // goes first.
     ["WNBA", "basketball_wnba", wnba],
+    ["MLB", "baseball_mlb", mlb],
   ] as const) {
     const expandedEvents = selectExpandedSlateEvents(events, EXPANDED_DAYS);
     if (!expandedEvents.length) continue;
