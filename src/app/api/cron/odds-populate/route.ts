@@ -14,7 +14,8 @@ import {
 export const maxDuration = 300;
 
 const DEFAULT_SPORTS = ["MLB", "WNBA", "NFL", "TENNIS", "SOCCER"];
-const EXPANDED_SPORTS = new Set(["MLB", "WNBA"]);
+/** WNBA first: a 500-credit key cannot finish a full MLB expanded slate AND WNBA. */
+const EXPANDED_SPORT_ORDER = ["WNBA", "MLB"] as const;
 
 function authorized(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET?.trim();
@@ -92,7 +93,9 @@ async function populate(req: NextRequest) {
   }
 
   if (expandedLimit > 0) {
-    for (const sport of sports.filter((value) => EXPANDED_SPORTS.has(value))) {
+    for (const sport of EXPANDED_SPORT_ORDER.filter((value) =>
+      sports.includes(value),
+    )) {
       const events = selectExpandedSlateEvents(
         boardEvents.get(sport) ?? [],
         expandedDays,
