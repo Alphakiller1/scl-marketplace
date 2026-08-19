@@ -80,3 +80,7 @@ export async function fetchWithOddsKeyRollover(
 export function resetOddsKeyPreferenceForTests(): void {
   preferredIndex = 0;
 }
+
+export function resetOddsKeyPreference(): void {
+  preferredIndex = 0;
+}

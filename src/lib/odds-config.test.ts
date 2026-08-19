@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { oddsApiKeys } from "./odds-config";
+import { oddsApiKeys, pinOddsApiKey } from "./odds-config";
 
 test("existing Odds API key remains first and fallback is deduplicated", () => {
   assert.deepEqual(
@@ -40,4 +40,14 @@ test("ODDS_API_KEYS adds capacity without a deploy", () => {
   // Empty entries and stray commas never become a request with a blank key.
   assert.deepEqual(oddsApiKeys({ ODDS_API_KEYS: " , ,, " }), []);
   assert.deepEqual(oddsApiKeys({}), []);
+});
+
+test("pinOddsApiKey collapses rollover to a single one-shot key", () => {
+  const env: Record<string, string | undefined> = {
+    ODDS_API_KEY: "spent",
+    ODDS_API_KEY_FALLBACK: "also-spent",
+    ODDS_API_KEYS: "third",
+  };
+  pinOddsApiKey("temp-key", env);
+  assert.deepEqual(oddsApiKeys(env), ["temp-key"]);
 });

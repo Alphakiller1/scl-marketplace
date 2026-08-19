@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { fetchUpcomingOdds, getLastOddsApiRemaining } from "@/lib/odds-api";
+import { pinOddsApiKey } from "@/lib/odds-config";
+import { resetOddsKeyPreference } from "@/lib/odds-key-rollover";
 import {
   loadCachedOddsBoard,
   updateOddsBoardSegment,
@@ -37,6 +39,12 @@ function requestedSports(req: NextRequest): string[] {
 async function populate(req: NextRequest) {
   if (!authorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const override = req.headers.get("x-scl-odds-key")?.trim();
+  if (override) {
+    pinOddsApiKey(override);
+    resetOddsKeyPreference();
   }
 
   const sports = requestedSports(req);

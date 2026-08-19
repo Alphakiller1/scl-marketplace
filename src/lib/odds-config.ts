@@ -8,6 +8,22 @@ export function oddsApiKey(
 }
 
 /**
+ * Pin a one-shot key for this process. Used by the signed populate cron so a
+ * temporary owner key can write boards without being stored on Vercel.
+ */
+export function pinOddsApiKey(
+  key: string,
+  env: OddsEnvironment = process.env,
+): void {
+  const trimmed = key.trim();
+  env.ODDS_API_KEY = trimmed;
+  env.ODDS_API_KEYS = trimmed;
+  delete env.ODD_API_KEY;
+  delete env.ODDS_API_KEY_FALLBACK;
+  delete env.ODDS_API_KEY_2;
+}
+
+/**
  * Ordered provider keys. The existing key always burns down first; rollover is
  * used only after the provider rejects/exhausts it. Duplicate values collapse.
  *

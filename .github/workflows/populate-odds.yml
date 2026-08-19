@@ -1,10 +1,9 @@
 name: Populate odds
 
 # Two daily scheduled runs refresh surface prices through the signed production
-# route (the keys already on Vercel). One-shot populate uses a temporary Odds
-# API key from workflow_dispatch or repository_dispatch (populate-odds) — used
-# for that job only, never stored as an env var — and writes boards with the
-# Production DATABASE_URL, the same flow as #514.
+# route (the keys already on Vercel). One-shot populate sends a temporary Odds
+# API key to that same route — used for that job only, never stored — so Vercel
+# writes scl.OddsCacheSnapshot with the database it already holds.
 
 on:
   schedule:
@@ -53,153 +52,46 @@ jobs:
     if: github.event_name == 'repository_dispatch' || (github.event_name == 'workflow_dispatch' && inputs.odds_key != '')
     runs-on: ubuntu-latest
     environment: Production
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - name: Mask the key
         run: echo "::add-mask::${{ github.event.client_payload.odds_key || github.event.inputs.odds_key }}"
 
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-
-      - run: npx prisma generate
+      - name: Populate through the signed production route
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DIRECT_URL: ${{ secrets.DIRECT_URL }}
-
-      # GitHub's DATABASE_URL secret points at db.*.supabase.co:5432 (IPv6-only).
-      # Probe every known production URL, then the IPv4 pooler, before spending
-      # any Odds API credits. Vercel's decrypt API 403s for this token; CLI pull
-      # and OWNER_DATABASE_URL are the working paths.
-      - name: Load the writable production database
-        env:
-          OWNER_DATABASE_URL: ${{ secrets.OWNER_DATABASE_URL }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          POSTGRES_PRISMA_URL: ${{ secrets.POSTGRES_PRISMA_URL }}
-          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: |
-          probe() {
-            local url="$1"
-            [ -n "$url" ] || return 1
-            echo "::add-mask::$url"
-            echo "select 1;" | timeout 12s npx prisma db execute --stdin --url "$url" >/tmp/db-probe.log 2>&1
-          }
-
-          pooler_candidates() {
-            node -e '
-              const { writeFileSync } = require("node:fs");
-              const url = new URL(process.argv[1]);
-              const match = /^db\.([a-z0-9]+)\.supabase\.co$/i.exec(url.hostname);
-              if (!match) process.exit(2);
-              const candidates = [];
-              for (const region of ["us-west-2", "us-west-1", "us-east-1", "us-east-2"]) {
-                for (const tenant of [0, 1]) {
-                  for (const port of [5432, 6543]) {
-                    const candidate = new URL(url);
-                    candidate.hostname = `aws-${tenant}-${region}.pooler.supabase.com`;
-                    candidate.port = String(port);
-                    candidate.username = `postgres.${match[1]}`;
-                    candidate.searchParams.set("pgbouncer", "true");
-                    if (!candidate.searchParams.has("schema")) candidate.searchParams.set("schema", "scl");
-                    candidates.push(candidate.toString());
-                  }
-                }
-              }
-              writeFileSync("/tmp/scl-db-candidates", candidates.join("\n"), { mode: 0o600 });
-            ' "$1" 2>/dev/null || true
-          }
-
-          writable_url=""
-          for candidate in "$OWNER_DATABASE_URL" "$POSTGRES_PRISMA_URL" "$POSTGRES_URL" "$DATABASE_URL"; do
-            if probe "$candidate"; then
-              writable_url="$candidate"
-              break
-            fi
-          done
-
-          pulled=""
-          if [ -z "$writable_url" ] && [ -n "${VERCEL_TOKEN:-}" ] && [ -n "${VERCEL_ORG_ID:-}" ] && [ -n "${VERCEL_PROJECT_ID:-}" ]; then
-            npm install -g vercel@latest >/tmp/vercel-install.log 2>&1 || true
-            mkdir -p .vercel
-            printf '{"orgId":"%s","projectId":"%s"}' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
-            vercel pull --yes --environment=production --token="$VERCEL_TOKEN" >/tmp/vercel-pull.log 2>&1 || true
-            FILE=""
-            for f in .vercel/.env.production.local .env.production.local .env; do
-              [ -f "$f" ] && FILE="$f" && break
-            done
-            if [ -n "$FILE" ]; then
-              pulled=$(node -e '
-                const fs = require("fs");
-                const text = fs.readFileSync(process.argv[1], "utf8");
-                for (const line of text.split(/\n/)) {
-                  const m = line.match(/^(DATABASE_URL|POSTGRES_PRISMA_URL|POSTGRES_URL)=(.*)$/);
-                  if (!m) continue;
-                  let v = m[2].trim();
-                  if ((v.startsWith("\"") && v.endsWith("\"")) || (v.startsWith("'\''") && v.endsWith("'\''"))) v = v.slice(1, -1);
-                  if (v && v !== "[SENSITIVE]") {
-                    process.stdout.write(v);
-                    process.exit(0);
-                  }
-                }
-                process.exit(2);
-              ' "$FILE" || true)
-              if probe "$pulled"; then
-                writable_url="$pulled"
-              fi
-            fi
-          fi
-
-          if [ -z "$writable_url" ]; then
-            for source in "$pulled" "$OWNER_DATABASE_URL" "$POSTGRES_PRISMA_URL" "$POSTGRES_URL" "$DATABASE_URL"; do
-              [ -n "$source" ] || continue
-              pooler_candidates "$source"
-              [ -s /tmp/scl-db-candidates ] || continue
-              while IFS= read -r candidate; do
-                if probe "$candidate"; then
-                  writable_url="$candidate"
-                  break
-                fi
-              done < /tmp/scl-db-candidates
-              rm -f /tmp/scl-db-candidates
-              [ -n "$writable_url" ] && break
-            done
-          fi
-
-          if [ -z "$writable_url" ]; then
-            echo "::error::The production database is unreachable. No odds credits were spent."
-            exit 1
-          fi
-
-          {
-            echo "DATABASE_URL<<SCL_DATABASE_URL"
-            echo "$writable_url"
-            echo "SCL_DATABASE_URL"
-          } >> "$GITHUB_ENV"
-
-      - name: Populate
-        env:
-          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
           ODDS_KEY: ${{ github.event.client_payload.odds_key || github.event.inputs.odds_key }}
           SPORTS: ${{ github.event.client_payload.sports || github.event.inputs.sports || 'MLB,WNBA,NFL,TENNIS,SOCCER' }}
           EXPANDED: ${{ github.event.client_payload.expanded || github.event.inputs.expanded || '99' }}
           EXPANDED_DAYS: ${{ github.event.client_payload.expanded_days || github.event.inputs.expanded_days || 'today' }}
-          BUDGET_FLOOR: ${{ github.event.client_payload.budget_floor || github.event.inputs.budget_floor || '20' }}
-          WRITE_DB: "1"
-        run: npx tsx scripts/populate-odds-today.ts | tee /tmp/populate.log
+          SURFACE: ${{ github.event.client_payload.surface || '1' }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET is not configured. No odds credits were spent."
+            exit 1
+          fi
+          if [ -z "$ODDS_KEY" ]; then
+            echo "::error::Temporary Odds API key is missing. No odds credits were spent."
+            exit 1
+          fi
+          encoded_sports=$(jq -rn --arg value "$SPORTS" '$value|@uri')
+          encoded_days=$(jq -rn --arg value "$EXPANDED_DAYS" '$value|@uri')
+          curl --fail --silent --show-error \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            --header "x-scl-odds-key: $ODDS_KEY" \
+            --request POST \
+            "https://sportscappersleaderboard.com/api/cron/odds-populate?sports=${encoded_sports}&expanded=${EXPANDED}&expandedDays=${encoded_days}&surface=${SURFACE}" \
+            --output /tmp/populate.json
+          jq . /tmp/populate.json
+          jq -e '.ok == true and .surface.MLB.events > 0 and .surface.WNBA.events > 0' /tmp/populate.json >/dev/null
 
       - name: Summary
         if: always()
         run: |
           {
             echo "### Odds population (temporary key)"
-            echo '```'
-            tail -80 /tmp/populate.log || true
+            echo '```json'
+            jq . /tmp/populate.json 2>/dev/null || echo '{"ok":false,"reason":"request did not complete"}'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
