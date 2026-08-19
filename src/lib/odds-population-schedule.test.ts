@@ -39,7 +39,7 @@ test("manual temp-key population sends the key to the signed route and never sto
 test("production route accepts a one-shot key after auth, expands WNBA then MLB, and retains fallback", () => {
   assert.match(route, /process\.env\.CRON_SECRET/);
   assert.match(route, /x-scl-odds-key/);
-  assert.match(route, /pinOddsApiKey/);
+  assert.match(route, /withOddsApiKey/);
   assert.match(route, /fetchUpcomingOdds/);
   assert.match(route, /updateOddsBoardSegment/);
   assert.match(route, /loadCachedOddsBoard/);

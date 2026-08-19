@@ -1,26 +1,46 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+
 export type OddsEnvironment = Record<string, string | undefined>;
 
+export type OddsRequestContext = {
+  apiKey: string;
+  lastOddsApiRemaining: number | null;
+  lastOddsApiCapacity: number | null;
+  preferredKeyIndex: number;
+};
+
+const oddsRequestContext = new AsyncLocalStorage<OddsRequestContext>();
+
+export function getOddsRequestContext(): OddsRequestContext | undefined {
+  return oddsRequestContext.getStore();
+}
+
 /** Accept the canonical key and the historical production misspelling. */
-export function oddsApiKey(
-  env: OddsEnvironment = process.env,
-): string | undefined {
-  return env.ODDS_API_KEY?.trim() || env.ODD_API_KEY?.trim() || undefined;
+export function oddsApiKey(env?: OddsEnvironment): string | undefined {
+  const requestKey = env === undefined ? getOddsRequestContext()?.apiKey : null;
+  const source = env ?? process.env;
+  return (
+    requestKey ||
+    source.ODDS_API_KEY?.trim() ||
+    source.ODD_API_KEY?.trim() ||
+    undefined
+  );
 }
 
 /**
- * Pin a one-shot key for this process. Used by the signed populate cron so a
- * temporary owner key can write boards without being stored on Vercel.
+ * Scope a one-shot key to one signed populate request without changing the
+ * process environment shared by concurrent and future requests.
  */
-export function pinOddsApiKey(
-  key: string,
-  env: OddsEnvironment = process.env,
-): void {
-  const trimmed = key.trim();
-  env.ODDS_API_KEY = trimmed;
-  env.ODDS_API_KEYS = trimmed;
-  delete env.ODD_API_KEY;
-  delete env.ODDS_API_KEY_FALLBACK;
-  delete env.ODDS_API_KEY_2;
+export function withOddsApiKey<T>(key: string, callback: () => T): T {
+  return oddsRequestContext.run(
+    {
+      apiKey: key.trim(),
+      lastOddsApiRemaining: null,
+      lastOddsApiCapacity: null,
+      preferredKeyIndex: 0,
+    },
+    callback,
+  );
 }
 
 /**
@@ -39,16 +59,20 @@ export function pinOddsApiKey(
  * the environment during an outage and never used, because the only names
  * being read were the two already exhausted.
  */
-export function oddsApiKeys(env: OddsEnvironment = process.env): string[] {
-  const listed = (env.ODDS_API_KEYS ?? "")
+export function oddsApiKeys(env?: OddsEnvironment): string[] {
+  const requestKey = env === undefined ? getOddsRequestContext()?.apiKey : null;
+  if (requestKey) return [requestKey];
+
+  const source = env ?? process.env;
+  const listed = (source.ODDS_API_KEYS ?? "")
     .split(",")
     .map((key) => key.trim())
     .filter(Boolean);
 
   return [
-    oddsApiKey(env),
-    env.ODDS_API_KEY_FALLBACK?.trim(),
-    env.ODDS_API_KEY_2?.trim(),
+    oddsApiKey(source),
+    source.ODDS_API_KEY_FALLBACK?.trim(),
+    source.ODDS_API_KEY_2?.trim(),
     ...listed,
   ].filter(
     (key, index, keys): key is string =>

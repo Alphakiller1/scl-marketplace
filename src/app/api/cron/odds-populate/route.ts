@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { fetchUpcomingOdds, getLastOddsApiRemaining } from "@/lib/odds-api";
-import { pinOddsApiKey } from "@/lib/odds-config";
-import { resetOddsKeyPreference } from "@/lib/odds-key-rollover";
+import { withOddsApiKey } from "@/lib/odds-config";
 import {
   loadCachedOddsBoard,
   updateOddsBoardSegment,
@@ -43,10 +42,13 @@ async function populate(req: NextRequest) {
 
   const override = req.headers.get("x-scl-odds-key")?.trim();
   if (override) {
-    pinOddsApiKey(override);
-    resetOddsKeyPreference();
+    return withOddsApiKey(override, () => populateAuthorized(req));
   }
 
+  return populateAuthorized(req);
+}
+
+async function populateAuthorized(req: NextRequest) {
   const sports = requestedSports(req);
   const requestedExpanded = Number(
     req.nextUrl.searchParams.get("expanded") ?? 0,

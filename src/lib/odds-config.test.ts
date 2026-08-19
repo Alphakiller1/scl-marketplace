@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { oddsApiKeys, pinOddsApiKey } from "./odds-config";
+import { oddsApiKeys, withOddsApiKey } from "./odds-config";
 
 test("existing Odds API key remains first and fallback is deduplicated", () => {
   assert.deepEqual(
@@ -42,12 +42,21 @@ test("ODDS_API_KEYS adds capacity without a deploy", () => {
   assert.deepEqual(oddsApiKeys({}), []);
 });
 
-test("pinOddsApiKey collapses rollover to a single one-shot key", () => {
+test("withOddsApiKey scopes a one-shot key without changing shared keys", async () => {
   const env: Record<string, string | undefined> = {
     ODDS_API_KEY: "spent",
     ODDS_API_KEY_FALLBACK: "also-spent",
     ODDS_API_KEYS: "third",
   };
-  pinOddsApiKey("temp-key", env);
-  assert.deepEqual(oddsApiKeys(env), ["temp-key"]);
+  const sharedKeys = oddsApiKeys();
+  const request = withOddsApiKey(" temp-key ", async () => {
+    assert.deepEqual(oddsApiKeys(), ["temp-key"]);
+    assert.deepEqual(oddsApiKeys(env), ["spent", "also-spent", "third"]);
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(oddsApiKeys(), ["temp-key"]);
+  });
+
+  assert.deepEqual(oddsApiKeys(), sharedKeys);
+  await request;
+  assert.deepEqual(oddsApiKeys(), sharedKeys);
 });

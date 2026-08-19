@@ -5,9 +5,19 @@
 // down. Nothing here is a secret in its own right: the keys come from
 // non-NEXT_PUBLIC env vars, which are undefined in a browser bundle, and the
 // modules that actually serve odds (`odds-api`) keep their own `server-only`.
-import { oddsApiKeys } from "@/lib/odds-config";
+import { getOddsRequestContext, oddsApiKeys } from "@/lib/odds-config";
 
 let preferredIndex = 0;
+
+function getPreferredIndex(): number {
+  return getOddsRequestContext()?.preferredKeyIndex ?? preferredIndex;
+}
+
+function setPreferredIndex(index: number): void {
+  const requestContext = getOddsRequestContext();
+  if (requestContext) requestContext.preferredKeyIndex = index;
+  else preferredIndex = index;
+}
 
 export type OddsKeyFetchResult = {
   response: Response | null;
@@ -53,21 +63,21 @@ export async function fetchWithOddsKeyRollover(
     return { response: null, keyIndex: null, rolledOver: false };
   }
 
-  const start = Math.min(preferredIndex, keys.length - 1);
+  const start = Math.min(getPreferredIndex(), keys.length - 1);
   for (let index = start; index < keys.length; index++) {
     const response = await fetchImpl(buildUrl(keys[index]!), init);
     const remaining = Number(response.headers.get("x-requests-remaining"));
     // A successful final response is still usable. Consume it, then move the
     // next request to the fallback instead of paying twice for the same data.
     if (response.ok && Number.isFinite(remaining) && remaining <= 0) {
-      preferredIndex = Math.min(index + 1, keys.length - 1);
+      setPreferredIndex(Math.min(index + 1, keys.length - 1));
       return { response, keyIndex: index, rolledOver: index > 0 };
     }
     if (!shouldRollOver(response) || index === keys.length - 1) {
-      preferredIndex = index;
+      setPreferredIndex(index);
       return { response, keyIndex: index, rolledOver: index > 0 };
     }
-    preferredIndex = index + 1;
+    setPreferredIndex(index + 1);
     console.warn("[odds] provider key rollover activated", {
       exhaustedKeyIndex: index,
       status: response.status,
@@ -82,5 +92,5 @@ export function resetOddsKeyPreferenceForTests(): void {
 }
 
 export function resetOddsKeyPreference(): void {
-  preferredIndex = 0;
+  setPreferredIndex(0);
 }

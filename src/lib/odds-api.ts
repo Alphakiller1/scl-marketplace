@@ -3,7 +3,7 @@ import "server-only";
 import { afterResponse } from "@/lib/after-response";
 import { bookmakersQueryParam, isBookKey } from "@/lib/books";
 import { shouldCircuitBreak } from "@/lib/odds-budget";
-import { oddsApiKey } from "@/lib/odds-config";
+import { getOddsRequestContext, oddsApiKey } from "@/lib/odds-config";
 import { fetchWithOddsKeyRollover } from "@/lib/odds-key-rollover";
 import {
   SOCCER_LEAGUES,
@@ -161,7 +161,10 @@ let lastOddsApiCapacity: number | null = null;
 
 /** Last `x-requests-remaining` observed from an Odds API response. */
 export function getLastOddsApiRemaining(): number | null {
-  return lastOddsApiRemaining;
+  const requestContext = getOddsRequestContext();
+  return requestContext
+    ? requestContext.lastOddsApiRemaining
+    : lastOddsApiRemaining;
 }
 
 /**
@@ -172,7 +175,10 @@ export function getLastOddsApiRemaining(): number | null {
  * circuit-breaker reserve scales from this — see `circuitBreakThreshold`.
  */
 export function getLastOddsApiCapacity(): number | null {
-  return lastOddsApiCapacity;
+  const requestContext = getOddsRequestContext();
+  return requestContext
+    ? requestContext.lastOddsApiCapacity
+    : lastOddsApiCapacity;
 }
 
 /** Log Odds API credit usage from a response so burn is observable vs. the plan cap. */
@@ -182,19 +188,24 @@ export function logOddsUsage(
   purpose: OddsUsagePurpose = "board",
   sport?: string,
 ): void {
+  const requestContext = getOddsRequestContext();
   const remainingHeader = res.headers.get("x-requests-remaining");
   const last = res.headers.get("x-requests-last");
   const usedHeader = res.headers.get("x-requests-used");
   if (remainingHeader !== null) {
     const parsed = Number(remainingHeader);
-    if (!Number.isNaN(parsed)) lastOddsApiRemaining = parsed;
+    if (!Number.isNaN(parsed)) {
+      if (requestContext) requestContext.lastOddsApiRemaining = parsed;
+      else lastOddsApiRemaining = parsed;
+    }
   }
   // remaining + used is the plan cap, which nothing else reports.
   if (remainingHeader !== null && usedHeader !== null) {
     const rem = Number(remainingHeader);
     const used = Number(usedHeader);
     if (!Number.isNaN(rem) && !Number.isNaN(used) && rem + used > 0) {
-      lastOddsApiCapacity = rem + used;
+      if (requestContext) requestContext.lastOddsApiCapacity = rem + used;
+      else lastOddsApiCapacity = rem + used;
     }
   }
   const cost = last != null ? Number(last) : 0;
@@ -334,9 +345,10 @@ export async function fetchSoccerBoard(
 ): Promise<OddsEvent[]> {
   if (!oddsApiKey()) return [];
 
-  if (shouldCircuitBreak(lastOddsApiRemaining, lastOddsApiCapacity)) {
+  const remaining = getLastOddsApiRemaining();
+  if (shouldCircuitBreak(remaining, getLastOddsApiCapacity())) {
     console.warn(
-      `[odds] circuit-breaker active (remaining=${lastOddsApiRemaining}) — skipping soccer board`,
+      `[odds] circuit-breaker active (remaining=${remaining}) — skipping soccer board`,
     );
     return [];
   }
@@ -548,9 +560,10 @@ export async function fetchUpcomingOdds(
   const apiSport = toOddsApiSport(sclSport);
   if (!oddsApiKey() || !apiSport) return [];
 
-  if (shouldCircuitBreak(lastOddsApiRemaining, lastOddsApiCapacity)) {
+  const remaining = getLastOddsApiRemaining();
+  if (shouldCircuitBreak(remaining, getLastOddsApiCapacity())) {
     console.warn(
-      `[odds] circuit-breaker active (remaining=${lastOddsApiRemaining}) — skipping uncached board fetch for ${sclSport}`,
+      `[odds] circuit-breaker active (remaining=${remaining}) — skipping uncached board fetch for ${sclSport}`,
     );
     return [];
   }
