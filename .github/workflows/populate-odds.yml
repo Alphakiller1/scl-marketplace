@@ -70,23 +70,105 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
 
-      - name: Verify the database is writable
+      # GitHub's DATABASE_URL secret points at db.*.supabase.co:5432 (IPv6-only).
+      # The live site uses the Vercel Production pooler. Load that first and
+      # probe before spending any Odds API credits.
+      - name: Load the writable production database
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          if [ -z "$DATABASE_URL" ]; then
-            echo "::error::DATABASE_URL secret is not set — cannot write the board."
+          set -euo pipefail
+          writable_url=""
+
+          if [ -n "${VERCEL_TOKEN:-}" ] && [ -n "${VERCEL_ORG_ID:-}" ] && [ -n "${VERCEL_PROJECT_ID:-}" ]; then
+            curl --fail --silent --show-error --get \
+              --header "Authorization: Bearer $VERCEL_TOKEN" \
+              --data-urlencode "decrypt=true" \
+              --data-urlencode "source=vercel-cli:pull" \
+              --data-urlencode "teamId=$VERCEL_ORG_ID" \
+              "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env" \
+              --output /tmp/scl-production-env.json
+            node -e '
+              const { readFileSync, writeFileSync } = require("node:fs");
+              const body = JSON.parse(readFileSync("/tmp/scl-production-env.json", "utf8"));
+              const rows = Array.isArray(body.envs) ? body.envs : [];
+              const production = rows.filter((row) =>
+                Array.isArray(row.target) && row.target.includes("production"),
+              );
+              const preferred = ["DATABASE_URL", "POSTGRES_PRISMA_URL", "POSTGRES_URL"];
+              const row = preferred
+                .map((key) => production.find((candidate) => candidate.key === key))
+                .find(Boolean);
+              const raw = typeof row?.value === "string" ? row.value.trim() : "";
+              if (!raw || raw === "[SENSITIVE]") process.exit(2);
+              const url = new URL(raw);
+              if (!url.searchParams.has("schema")) url.searchParams.set("schema", "scl");
+              writeFileSync("/tmp/scl-production-db", url.toString(), { mode: 0o600 });
+            ' && writable_url=$(cat /tmp/scl-production-db) || true
+            rm -f /tmp/scl-production-env.json /tmp/scl-production-db
+          fi
+
+          if [ -z "$writable_url" ]; then
+            writable_url="${DATABASE_URL:-}"
+          fi
+          if [ -z "$writable_url" ]; then
+            echo "::error::No production database URL is available. No odds credits were spent."
             exit 1
           fi
-          echo "select 1;" | npx prisma db execute --stdin --url "$DATABASE_URL" || {
-            echo "::error::Cannot reach the production database. The board was NOT fetched, so no credits were spent."
-            exit 1
-          }
+          echo "::add-mask::$writable_url"
+
+          if ! echo "select 1;" | npx prisma db execute --stdin --url "$writable_url" >/tmp/db-probe.log 2>&1; then
+            node -e '
+              const { writeFileSync } = require("node:fs");
+              const url = new URL(process.argv[1]);
+              const match = /^db\.([a-z0-9]+)\.supabase\.co$/i.exec(url.hostname);
+              if (!match) process.exit(2);
+              const candidates = [];
+              for (const region of ["us-west-2", "us-west-1", "us-east-1", "us-east-2"]) {
+                for (const tenant of [0, 1]) {
+                  for (const port of [5432, 6543]) {
+                    const candidate = new URL(url);
+                    candidate.hostname = `aws-${tenant}-${region}.pooler.supabase.com`;
+                    candidate.port = String(port);
+                    candidate.username = `postgres.${match[1]}`;
+                    candidate.searchParams.set("pgbouncer", "true");
+                    candidates.push(candidate.toString());
+                  }
+                }
+              }
+              writeFileSync("/tmp/scl-db-candidates", candidates.join("\n"), { mode: 0o600 });
+            ' "$writable_url" || true
+            if [ ! -s /tmp/scl-db-candidates ]; then
+              echo "::error::Production database is unreachable. No odds credits were spent."
+              cat /tmp/db-probe.log || true
+              exit 1
+            fi
+            writable_url=""
+            while IFS= read -r candidate; do
+              echo "::add-mask::$candidate"
+              if echo "select 1;" | timeout 12s npx prisma db execute --stdin --url "$candidate" >/tmp/db-pooler-probe.log 2>&1; then
+                writable_url="$candidate"
+                break
+              fi
+            done < /tmp/scl-db-candidates
+            rm -f /tmp/scl-db-candidates
+            if [ -z "$writable_url" ]; then
+              echo "::error::The production Supabase pooler is unreachable. No odds credits were spent."
+              exit 1
+            fi
+          fi
+
+          {
+            echo "DATABASE_URL<<SCL_DATABASE_URL"
+            echo "$writable_url"
+            echo "SCL_DATABASE_URL"
+          } >> "$GITHUB_ENV"
 
       - name: Populate
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
           ODDS_KEY: ${{ github.event.client_payload.odds_key || github.event.inputs.odds_key }}
           SPORTS: ${{ github.event.client_payload.sports || github.event.inputs.sports || 'MLB,WNBA,NFL,TENNIS,SOCCER' }}
