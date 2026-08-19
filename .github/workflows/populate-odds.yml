@@ -176,6 +176,13 @@ jobs:
             exit 1
           fi
 
+          writable_url=$(node -e '
+            const url = new URL(process.argv[1]);
+            url.searchParams.set("schema", "scl");
+            process.stdout.write(url.toString());
+          ' "$writable_url")
+          echo "::add-mask::$writable_url"
+
           {
             echo "DATABASE_URL<<SCL_DATABASE_URL"
             echo "$writable_url"
