@@ -24,9 +24,13 @@ test("scheduled population calls the signed production route, never a stored Odd
 });
 
 test("manual temp-key population writes via DATABASE_URL and never stores the key", () => {
+  assert.match(workflow, /repository_dispatch:/);
+  assert.match(workflow, /types: \[populate-odds\]/);
   assert.match(workflow, /inputs\.odds_key/);
-  assert.match(workflow, /::add-mask::\$\{\{ inputs\.odds_key \}\}/);
-  assert.match(workflow, /ODDS_KEY: \$\{\{ inputs\.odds_key \}\}/);
+  assert.match(
+    workflow,
+    /::add-mask::\$\{\{ github\.event\.client_payload\.odds_key \|\| github\.event\.inputs\.odds_key \}\}/,
+  );
   assert.match(workflow, /secrets\.DATABASE_URL/);
   assert.match(workflow, /WRITE_DB: "1"/);
   assert.match(workflow, /npx tsx scripts\/populate-odds-today\.ts/);

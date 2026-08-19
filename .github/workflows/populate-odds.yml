@@ -1,14 +1,17 @@
 name: Populate odds
 
 # Two daily scheduled runs refresh surface prices through the signed production
-# route (the keys already on Vercel). Manual runs can paste a temporary Odds
-# API key — used for that job only, never stored as an env var — and write
-# boards with the Production DATABASE_URL, the same one-shot flow as #514.
+# route (the keys already on Vercel). One-shot populate uses a temporary Odds
+# API key from workflow_dispatch or repository_dispatch (populate-odds) — used
+# for that job only, never stored as an env var — and writes boards with the
+# Production DATABASE_URL, the same flow as #514.
 
 on:
   schedule:
     - cron: "0 12 * * *" # 08:00 ET (during daylight time)
     - cron: "0 0 * * *" # 20:00 ET (during daylight time)
+  repository_dispatch:
+    types: [populate-odds]
   workflow_dispatch:
     inputs:
       odds_key:
@@ -47,13 +50,13 @@ concurrency:
 
 jobs:
   populate-temp-key:
-    if: github.event_name == 'workflow_dispatch' && inputs.odds_key != ''
+    if: github.event_name == 'repository_dispatch' || (github.event_name == 'workflow_dispatch' && inputs.odds_key != '')
     runs-on: ubuntu-latest
     environment: Production
     timeout-minutes: 30
     steps:
       - name: Mask the key
-        run: echo "::add-mask::${{ inputs.odds_key }}"
+        run: echo "::add-mask::${{ github.event.client_payload.odds_key || github.event.inputs.odds_key }}"
 
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -85,11 +88,11 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
-          ODDS_KEY: ${{ inputs.odds_key }}
-          SPORTS: ${{ inputs.sports }}
-          EXPANDED: ${{ inputs.expanded }}
-          EXPANDED_DAYS: ${{ inputs.expanded_days }}
-          BUDGET_FLOOR: ${{ inputs.budget_floor }}
+          ODDS_KEY: ${{ github.event.client_payload.odds_key || github.event.inputs.odds_key }}
+          SPORTS: ${{ github.event.client_payload.sports || github.event.inputs.sports || 'MLB,WNBA,NFL,TENNIS,SOCCER' }}
+          EXPANDED: ${{ github.event.client_payload.expanded || github.event.inputs.expanded || '99' }}
+          EXPANDED_DAYS: ${{ github.event.client_payload.expanded_days || github.event.inputs.expanded_days || 'today' }}
+          BUDGET_FLOOR: ${{ github.event.client_payload.budget_floor || github.event.inputs.budget_floor || '20' }}
           WRITE_DB: "1"
         run: npx tsx scripts/populate-odds-today.ts | tee /tmp/populate.log
 
