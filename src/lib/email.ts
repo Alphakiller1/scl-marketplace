@@ -264,8 +264,7 @@ export async function sendNewSignupNotificationEmail(input: {
             </a>
           </p>
           <p style="color:#666;font-size:13px">
-            Their public profile goes live once they verify their email and post:
-            <a href="${profileUrl}">${profileUrl}</a>
+            Profile: <a href="${profileUrl}">${profileUrl}</a>
           </p>
         </div>
       `,
