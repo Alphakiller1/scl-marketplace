@@ -209,6 +209,7 @@ test("1D scopes straight picks to yesterday's slate, not settlement time", () =>
   const now = new Date("2026-08-19T16:00:00Z"); // Wednesday afternoon UTC
   const filter = leaderboardPlayDateFilter("1d", now);
   assert.deepEqual(filter, {
+    outcome: { in: ["WIN", "LOSS", "PUSH"] },
     OR: [
       {
         eventStartsAt: {
@@ -268,6 +269,7 @@ test("1D scopes parlays to the last bound leg's slate day", () => {
   const now = new Date("2026-08-19T16:00:00Z");
   const filter = leaderboardParlayDateFilter("1d", now);
   assert.deepEqual(filter, {
+    outcome: { in: ["WIN", "LOSS", "PUSH"] },
     OR: [
       {
         AND: [

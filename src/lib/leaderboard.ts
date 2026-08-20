@@ -193,6 +193,7 @@ export function isInLeaderboardWindow(
 
 export type LeaderboardPlayDateFilter =
   | {
+      outcome: { in: Outcome[] };
       OR: [
         { eventStartsAt: { gte: Date; lt: Date } },
         { eventStartsAt: null; createdAt: { gte: Date; lt: Date } },
@@ -202,6 +203,7 @@ export type LeaderboardPlayDateFilter =
 
 export type LeaderboardParlayDateFilter =
   | {
+      outcome: { in: Outcome[] };
       OR: [
         {
           AND: [
@@ -232,6 +234,7 @@ export function leaderboardPlayDateFilter(
   const { start, end } = leaderboardWindowBounds(window, now);
   if (window === "1d" && start && end) {
     return {
+      outcome: { in: ["WIN", "LOSS", "PUSH"] },
       OR: [
         { eventStartsAt: { gte: start, lt: end } },
         { eventStartsAt: null, createdAt: { gte: start, lt: end } },
@@ -253,6 +256,7 @@ export function leaderboardParlayDateFilter(
   const { start, end } = leaderboardWindowBounds(window, now);
   if (window === "1d" && start && end) {
     return {
+      outcome: { in: ["WIN", "LOSS", "PUSH"] },
       OR: [
         {
           AND: [
