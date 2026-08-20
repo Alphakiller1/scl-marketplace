@@ -226,6 +226,8 @@ test("both grading loops resolve through the same function", () => {
     "Straight plays and parlay legs must each resolve through " +
       "resolvePendingPlay, so neither can drift from the other.",
   );
+  assert.match(src, /MAX_GRADE_ROUNDS/);
+  assert.match(src, /GRADE_BATCH_SIZE/);
   assert.equal(
     count(/resolveOutcome\(boundPlay, games\)/g),
     1,
