@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { fetchUpcomingOdds, getLastOddsApiRemaining } from "@/lib/odds-api";
+import { MIN_CIRCUIT_BREAK_RESERVE } from "@/lib/odds-budget";
 import { pinOddsApiKey } from "@/lib/odds-config";
 import { resetOddsKeyPreference } from "@/lib/odds-key-rollover";
 import {
@@ -13,15 +14,17 @@ import {
 } from "@/lib/odds-event-board-cache";
 import { summarizeEventMarketCoverage } from "@/lib/odds-market-coverage";
 import {
+  expandedEventCreditCost,
+  laterExpandedCreditReserve,
   parseExpandedSlateDays,
+  parseExpandedSportOrder,
   selectExpandedSlateEvents,
+  shouldHoldCreditsForLater,
 } from "@/lib/manual-odds-population";
 
 export const maxDuration = 300;
 
 const DEFAULT_SPORTS = ["MLB", "WNBA", "NFL", "TENNIS", "SOCCER"];
-/** WNBA first: a 500-credit key cannot finish a full MLB expanded slate AND WNBA. */
-const EXPANDED_SPORT_ORDER = ["WNBA", "MLB"] as const;
 
 function authorized(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET?.trim();
@@ -38,6 +41,51 @@ function requestedSports(req: NextRequest): string[] {
     .map((sport) => sport.trim().toUpperCase())
     .filter((sport) => DEFAULT_SPORTS.includes(sport));
   return requested.length > 0 ? [...new Set(requested)] : DEFAULT_SPORTS;
+}
+
+type SurfaceRow = { events: number; source: string; stale: boolean };
+type ExpandedRow = {
+  events: number;
+  populated: number;
+  skipped: number;
+  fetched: number;
+  held: number;
+  selections: number;
+  stale: number;
+};
+
+async function loadSurface(
+  sport: string,
+  refreshSurface: boolean,
+  boardEvents: Map<string, Awaited<ReturnType<typeof fetchUpcomingOdds>>>,
+  surface: Record<string, SurfaceRow>,
+): Promise<void> {
+  if (!refreshSurface) {
+    const board = await loadCachedOddsBoard(sport);
+    boardEvents.set(sport, board.events);
+    surface[sport] = {
+      events: board.events.length,
+      source: board.source,
+      stale: board.stale,
+    };
+    return;
+  }
+  let fresh = [] as Awaited<ReturnType<typeof fetchUpcomingOdds>>;
+  try {
+    fresh = await fetchUpcomingOdds(sport);
+  } catch (error) {
+    console.warn("[odds-populate] surface provider failure", {
+      sport,
+      reason: error instanceof Error ? error.message : String(error),
+    });
+  }
+  const board = await updateOddsBoardSegment(sport, undefined, fresh);
+  boardEvents.set(sport, board.events);
+  surface[sport] = {
+    events: board.events.length,
+    source: board.source,
+    stale: board.stale,
+  };
 }
 
 async function populate(req: NextRequest) {
@@ -65,66 +113,45 @@ async function populate(req: NextRequest) {
   // Default on: a top-up key should fill missing expanded boards, not rebill
   // the ones already cached. Pass skipPopulated=0 to force a full re-fetch.
   const skipPopulated = req.nextUrl.searchParams.get("skipPopulated") !== "0";
-  const surface: Record<
-    string,
-    { events: number; source: string; stale: boolean }
-  > = {};
-  const expanded: Record<
-    string,
-    {
-      events: number;
-      populated: number;
-      skipped: number;
-      fetched: number;
-      selections: number;
-      stale: number;
-    }
-  > = {};
+  const expandedOrder = parseExpandedSportOrder(
+    req.nextUrl.searchParams.get("expandedOrder"),
+    sports,
+  );
+  const restSports = sports.filter((sport) => !expandedOrder.includes(sport));
+  const surface: Record<string, SurfaceRow> = {};
+  const expanded: Record<string, ExpandedRow> = {};
   const boardEvents = new Map<
     string,
     Awaited<ReturnType<typeof fetchUpcomingOdds>>
   >();
 
-  for (const sport of sports) {
-    if (!refreshSurface) {
-      const board = await loadCachedOddsBoard(sport);
-      boardEvents.set(sport, board.events);
-      surface[sport] = {
-        events: board.events.length,
-        source: board.source,
-        stale: board.stale,
-      };
-      continue;
-    }
-    let fresh = [] as Awaited<ReturnType<typeof fetchUpcomingOdds>>;
-    try {
-      fresh = await fetchUpcomingOdds(sport);
-    } catch (error) {
-      console.warn("[odds-populate] surface provider failure", {
-        sport,
-        reason: error instanceof Error ? error.message : String(error),
-      });
-    }
-    const board = await updateOddsBoardSegment(sport, undefined, fresh);
-    boardEvents.set(sport, board.events);
-    surface[sport] = {
-      events: board.events.length,
-      source: board.source,
-      stale: board.stale,
-    };
+  // Surface MLB/WNBA first so today's event ids exist, then expand in owner
+  // order, then spend leftover credits on NFL/tennis/soccer featured boards.
+  for (const sport of expandedOrder) {
+    await loadSurface(sport, refreshSurface, boardEvents, surface);
   }
 
   if (expandedLimit > 0) {
-    for (const sport of EXPANDED_SPORT_ORDER.filter((value) =>
-      sports.includes(value),
-    )) {
-      const events = selectExpandedSlateEvents(
+    const slates = expandedOrder.map((sport) => ({
+      sport,
+      events: selectExpandedSlateEvents(
         boardEvents.get(sport) ?? [],
         expandedDays,
-      ).slice(0, expandedLimit);
+      ).slice(0, expandedLimit),
+    }));
+    for (let index = 0; index < slates.length; index += 1) {
+      const { sport, events } = slates[index]!;
+      const laterCredits = laterExpandedCreditReserve(
+        slates.slice(index + 1).map((row) => ({
+          sport: row.sport,
+          events: row.events.length,
+        })),
+      );
+      const nextCost = expandedEventCreditCost(sport);
       let populated = 0;
       let skipped = 0;
       let fetched = 0;
+      let held = 0;
       let selections = 0;
       let stale = 0;
       for (const event of events) {
@@ -144,6 +171,17 @@ async function populate(req: NextRequest) {
             continue;
           }
         }
+        if (
+          shouldHoldCreditsForLater(
+            getLastOddsApiRemaining(),
+            nextCost,
+            laterCredits,
+            MIN_CIRCUIT_BREAK_RESERVE,
+          )
+        ) {
+          held += 1;
+          continue;
+        }
         fetched += 1;
         const board = await loadEventBoard(sport, event.id, {
           forceRefresh: true,
@@ -157,10 +195,15 @@ async function populate(req: NextRequest) {
         populated,
         skipped,
         fetched,
+        held,
         selections,
         stale,
       };
     }
+  }
+
+  for (const sport of restSports) {
+    await loadSurface(sport, refreshSurface, boardEvents, surface);
   }
 
   const mlbReady = !sports.includes("MLB") || (surface.MLB?.events ?? 0) > 0;
@@ -169,6 +212,7 @@ async function populate(req: NextRequest) {
     ok: mlbReady && wnbaReady,
     sports,
     expandedDays,
+    expandedOrder,
     refreshSurface,
     skipPopulated,
     surface,

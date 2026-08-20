@@ -1,4 +1,8 @@
 import type { OddsEvent } from "@/lib/odds-board";
+import { expandedBoardMarkets } from "@/lib/odds-verify";
+
+/** Owner priority: expanded MLB, then WNBA, then remaining sports' surface boards. */
+export const DEFAULT_EXPANDED_SPORT_ORDER = ["MLB", "WNBA"] as const;
 
 export type ExpandedSlateDay = "today" | "tomorrow";
 
@@ -65,4 +69,58 @@ export function mergeLastGoodBoardEvents(
         event.selections.length > 0,
     ),
   ].sort((a, b) => Date.parse(a.commenceTime) - Date.parse(b.commenceTime));
+}
+
+/** Markets × one region — the billed cost of one expanded event board. */
+export function expandedEventCreditCost(sport: string): number {
+  return expandedBoardMarkets(sport).length;
+}
+
+/**
+ * Parse `expandedOrder=MLB,WNBA`. Unknown sports are dropped; requested
+ * expanded sports missing from the list are appended in default order.
+ */
+export function parseExpandedSportOrder(
+  value: string | null | undefined,
+  requestedSports: readonly string[],
+): string[] {
+  const wanted = new Set(
+    requestedSports
+      .map((sport) => sport.trim().toUpperCase())
+      .filter((sport) =>
+        (DEFAULT_EXPANDED_SPORT_ORDER as readonly string[]).includes(sport),
+      ),
+  );
+  const listed = (value ?? "")
+    .split(",")
+    .map((sport) => sport.trim().toUpperCase())
+    .filter((sport) => wanted.has(sport));
+  const ordered = [...new Set(listed)];
+  for (const sport of DEFAULT_EXPANDED_SPORT_ORDER) {
+    if (wanted.has(sport) && !ordered.includes(sport)) ordered.push(sport);
+  }
+  return ordered;
+}
+
+export function laterExpandedCreditReserve(
+  later: readonly { sport: string; events: number }[],
+): number {
+  return later.reduce(
+    (sum, row) => sum + row.events * expandedEventCreditCost(row.sport),
+    0,
+  );
+}
+
+/**
+ * Stop the current expanded sport so later expanded boards (and the circuit
+ * reserve) still fit. `remaining == null` means no provider response yet.
+ */
+export function shouldHoldCreditsForLater(
+  remaining: number | null,
+  nextCost: number,
+  laterCredits: number,
+  reserve: number,
+): boolean {
+  if (remaining == null || laterCredits <= 0) return false;
+  return remaining - nextCost < laterCredits + reserve;
 }

@@ -33,19 +33,22 @@ test("manual temp-key population sends the key to the signed route and never sto
   );
   assert.match(workflow, /x-scl-odds-key: \$ODDS_KEY/);
   assert.match(workflow, /skipPopulated=\$\{SKIP_POPULATED\}/);
+  assert.match(workflow, /expandedOrder=\$\{encoded_order\}/);
   assert.match(workflow, /client_payload\.skipPopulated \|\| '1'/);
+  assert.match(workflow, /client_payload\.expandedOrder \|\| 'MLB,WNBA'/);
   assert.doesNotMatch(workflow, /secrets\.DATABASE_URL/);
   assert.doesNotMatch(workflow, /WRITE_DB/);
 });
 
-test("production route accepts a one-shot key after auth, expands WNBA then MLB, and retains fallback", () => {
+test("production route accepts a one-shot key after auth, expands MLB then WNBA, and retains fallback", () => {
   assert.match(route, /process\.env\.CRON_SECRET/);
   assert.match(route, /x-scl-odds-key/);
   assert.match(route, /pinOddsApiKey/);
   assert.match(route, /fetchUpcomingOdds/);
   assert.match(route, /updateOddsBoardSegment/);
   assert.match(route, /loadCachedOddsBoard/);
-  assert.match(route, /EXPANDED_SPORT_ORDER = \["WNBA", "MLB"\]/);
+  assert.match(route, /parseExpandedSportOrder/);
+  assert.match(route, /shouldHoldCreditsForLater/);
   assert.match(route, /loadCachedEventBoard/);
   assert.match(route, /summarizeEventMarketCoverage/);
   assert.match(route, /coverage\.fullyCovered/);
