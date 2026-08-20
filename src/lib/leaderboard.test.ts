@@ -5,12 +5,16 @@ import {
   buildPerformanceTrend,
   hasLeaderboardSample,
   isBuildingARecord,
+  isInLeaderboardWindow,
   isLeaderboardEligible,
   leaderboardHref,
-  leaderboardPositionDateFilter,
+  leaderboardParlayDateFilter,
+  leaderboardPlayDateFilter,
+  leaderboardSlateInstant,
   leaderboardWindowBounds,
   leaderboardWindowStart,
   parseLeaderboardFilters,
+  parlayLeaderboardSlateInstant,
   partitionLeaderboard,
   sortLeaderboard,
   summarizeLeaderboard,
@@ -169,7 +173,7 @@ test("year window begins at the UTC calendar-year boundary", () => {
   );
 });
 
-test("1D is yesterday's completed Eastern calendar day", () => {
+test("1D is yesterday's completed Eastern slate day", () => {
   const summer = leaderboardWindowBounds(
     "1d",
     new Date("2026-08-17T16:00:00Z"),
@@ -201,23 +205,150 @@ test("longer leaderboard scopes remain rolling windows without an upper bound", 
   assert.equal(range.end, null);
 });
 
-test("1D filters leaderboard positions by yesterday's grading time", () => {
-  const now = new Date("2026-08-17T16:00:00Z");
-  const filter = leaderboardPositionDateFilter("1d", now);
+test("1D scopes straight picks to yesterday's slate, not settlement time", () => {
+  const now = new Date("2026-08-19T16:00:00Z"); // Wednesday afternoon UTC
+  const filter = leaderboardPlayDateFilter("1d", now);
   assert.deepEqual(filter, {
-    gradedAt: {
-      gte: new Date("2026-08-16T04:00:00.000Z"),
-      lt: new Date("2026-08-17T04:00:00.000Z"),
-    },
+    outcome: { in: ["WIN", "LOSS", "PUSH"] },
+    OR: [
+      {
+        eventStartsAt: {
+          gte: new Date("2026-08-18T04:00:00.000Z"),
+          lt: new Date("2026-08-19T04:00:00.000Z"),
+        },
+      },
+      {
+        eventStartsAt: null,
+        createdAt: {
+          gte: new Date("2026-08-18T04:00:00.000Z"),
+          lt: new Date("2026-08-19T04:00:00.000Z"),
+        },
+      },
+    ],
   });
+
+  // Tuesday 10pm ET game that grades Wednesday 1:30am ET still belongs to 1D.
+  const lateWestCoast = {
+    eventStartsAt: new Date("2026-08-19T02:00:00.000Z"),
+    createdAt: new Date("2026-08-18T18:00:00.000Z"),
+    gradedAt: new Date("2026-08-19T05:30:00.000Z"),
+  };
+  assert.equal(
+    isInLeaderboardWindow(leaderboardSlateInstant(lateWestCoast), "1d", now),
+    true,
+  );
+
+  // Settlement-time filtering would have dropped that game (graded after 4:00Z).
+  assert.equal(
+    lateWestCoast.gradedAt < new Date("2026-08-19T04:00:00.000Z"),
+    false,
+  );
+
+  // A Monday night game that happens to be graded Tuesday is not yesterday.
+  const delayedGrade = {
+    eventStartsAt: new Date("2026-08-18T02:00:00.000Z"),
+    createdAt: new Date("2026-08-17T18:00:00.000Z"),
+  };
+  assert.equal(
+    isInLeaderboardWindow(leaderboardSlateInstant(delayedGrade), "1d", now),
+    false,
+  );
+
+  // Unbound legacy picks still use log time on yesterday's Eastern day.
+  const unbound = {
+    eventStartsAt: null,
+    createdAt: new Date("2026-08-18T20:00:00.000Z"),
+  };
+  assert.equal(
+    isInLeaderboardWindow(leaderboardSlateInstant(unbound), "1d", now),
+    true,
+  );
+});
+
+test("1D scopes parlays to the last bound leg's slate day", () => {
+  const now = new Date("2026-08-19T16:00:00Z");
+  const filter = leaderboardParlayDateFilter("1d", now);
+  assert.deepEqual(filter, {
+    outcome: { in: ["WIN", "LOSS", "PUSH"] },
+    OR: [
+      {
+        AND: [
+          {
+            legs: {
+              some: {
+                eventStartsAt: {
+                  gte: new Date("2026-08-18T04:00:00.000Z"),
+                  lt: new Date("2026-08-19T04:00:00.000Z"),
+                },
+              },
+            },
+          },
+          {
+            legs: {
+              none: {
+                eventStartsAt: { gte: new Date("2026-08-19T04:00:00.000Z") },
+              },
+            },
+          },
+        ],
+      },
+      {
+        AND: [
+          { legs: { none: { eventStartsAt: { not: null } } } },
+          {
+            createdAt: {
+              gte: new Date("2026-08-18T04:00:00.000Z"),
+              lt: new Date("2026-08-19T04:00:00.000Z"),
+            },
+          },
+        ],
+      },
+    ],
+  });
+
+  const yesterdayThenToday = {
+    createdAt: new Date("2026-08-18T16:00:00.000Z"),
+    legs: [
+      { eventStartsAt: new Date("2026-08-18T23:00:00.000Z") },
+      { eventStartsAt: new Date("2026-08-19T17:00:00.000Z") },
+    ],
+  };
+  assert.equal(
+    isInLeaderboardWindow(
+      parlayLeaderboardSlateInstant(yesterdayThenToday),
+      "1d",
+      now,
+    ),
+    false,
+  );
+
+  const sameSlateParlay = {
+    createdAt: new Date("2026-08-18T16:00:00.000Z"),
+    legs: [
+      { eventStartsAt: new Date("2026-08-18T17:00:00.000Z") },
+      { eventStartsAt: new Date("2026-08-19T02:00:00.000Z") },
+    ],
+  };
+  assert.equal(
+    isInLeaderboardWindow(
+      parlayLeaderboardSlateInstant(sameSlateParlay),
+      "1d",
+      now,
+    ),
+    true,
+  );
 });
 
 test("longer and all-time leaderboard position filters keep their existing semantics", () => {
   const now = new Date("2026-08-17T16:00:00Z");
-  assert.deepEqual(leaderboardPositionDateFilter("7d", now), {
+  assert.deepEqual(leaderboardPlayDateFilter("7d", now), {
     createdAt: { gte: new Date("2026-08-10T16:00:00.000Z") },
   });
-  assert.equal(leaderboardPositionDateFilter("all", now), undefined);
+  assert.deepEqual(leaderboardParlayDateFilter("7d", now), {
+    createdAt: { gte: new Date("2026-08-10T16:00:00.000Z") },
+  });
+  assert.equal(leaderboardPlayDateFilter("all", now), undefined);
+  assert.equal(leaderboardParlayDateFilter("all", now), undefined);
 });
 
 test("performance trend is cumulative and excludes unsettled plays", () => {

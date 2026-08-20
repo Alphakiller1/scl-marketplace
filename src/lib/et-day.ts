@@ -20,9 +20,11 @@ function startOfEtYmd(ymd: string): Date {
           timeZone: ET,
           hour: "numeric",
           hour12: false,
+          hourCycle: "h23",
         }).format(candidate),
       );
-      if (hour === 0) return candidate;
+      // Some ICU builds emit "24" for midnight even with hour12: false.
+      if (hour === 0 || hour === 24) return candidate;
     }
   }
   return new Date(base + 5 * 3_600_000);
