@@ -232,6 +232,8 @@ test("both grading loops resolve through the same function", () => {
     "resolveOutcome grades against the FULL-GAME score; reaching it from a " +
       "second place is how a prop or period market gets a wrong result.",
   );
+  assert.doesNotMatch(src, /ensureClosingAndClv/);
+  assert.match(src, /clvPtsForGrade/);
   assert.equal(
     count(/eventLabel: true/g),
     2,

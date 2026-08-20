@@ -3,13 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getGradingHealthReport } from "@/lib/grading-health";
-import {
-  getCachedOddsCoverageReport,
-  warmMissingOddsCoverage,
-} from "@/lib/odds-coverage-report";
 import { autoGradePending } from "@/lib/results/auto-grade";
-import { snapshotClosingOdds } from "@/lib/results/closing-snapshot";
-import { getResultsProvider } from "@/lib/results/provider";
+import { getGradingResultsProvider } from "@/lib/results/provider";
 import {
   listAgedOutPendingPlays,
   listOverduePendingPlays,
@@ -22,7 +17,7 @@ function authorizeCron(req: NextRequest): boolean {
   const auth = req.headers.get("authorization");
 
   if (secret) {
-    return auth === secret;
+    return auth === secret || auth === `Bearer ${secret}`;
   }
 
   // CRON_SECRET unset — allow local dev with no secret via x-vercel-cron header
@@ -77,7 +72,7 @@ async function runGrade(req: NextRequest) {
     });
   }
 
-  const provider = process.env.RESULTS_PROVIDER || "default";
+  const provider = process.env.RESULTS_PROVIDER || "grading-backstops";
   const job = await prisma.gradeJobRun.create({
     data: {
       provider,
@@ -91,32 +86,9 @@ async function runGrade(req: NextRequest) {
     data: { startedAt: new Date() },
   });
 
-  let clvSnapshots = 0;
-  let clvBackfilled = 0;
   try {
-    const clv = await snapshotClosingOdds();
-    clvSnapshots = clv.snapshots;
-    clvBackfilled = clv.backfilled;
-  } catch (err) {
-    console.error("[cron/grade] CLV snapshot skipped:", err);
-  }
-
-  try {
-    const result = await autoGradePending(getResultsProvider());
+    const result = await autoGradePending(getGradingResultsProvider());
     const health = await getGradingHealthReport();
-    let oddsCoverage = await getCachedOddsCoverageReport().catch((error) => {
-      console.error("[cron/grade] odds coverage audit failed:", error);
-      return null;
-    });
-    const oddsWarmupRequested =
-      req.nextUrl.searchParams.get("warmOdds") === "1";
-    const oddsWarmup =
-      oddsWarmupRequested && oddsCoverage
-        ? await warmMissingOddsCoverage(oddsCoverage)
-        : null;
-    if (oddsWarmup) {
-      oddsCoverage = await getCachedOddsCoverageReport();
-    }
 
     const stuckPlays =
       (result.skippedByReason?.aged_out ?? 0) > 0
@@ -140,28 +112,12 @@ async function runGrade(req: NextRequest) {
           ? null
           : `${overduePending.length} plays remain pending past expected final time`,
         meta: {
-          clvSnapshots,
-          clvBackfilled,
           health,
-          oddsCoverage: oddsCoverage
-            ? {
-                totalGames: oddsCoverage.totalGames,
-                gamesWithExpandedBoard: oddsCoverage.gamesWithExpandedBoard,
-                gamesFullyCovered: oddsCoverage.gamesFullyCovered,
-                cacheComplete: oddsCoverage.cacheComplete,
-                marketComplete: oddsCoverage.marketComplete,
-              }
-            : null,
           overduePending: overduePending.length,
         },
       },
     });
 
-    // The public profile query is a cross-request cache tagged `leaderboard`.
-    // Path-only invalidation left a freshly graded play visibly "Awaiting" for
-    // up to a minute even though the database and leaderboard had updated.
-    // Expire the shared data tag and the dynamic profile route together so the
-    // first reader after this job sees the committed result.
     revalidateTag("leaderboard", { expire: 0 });
     revalidatePath("/admin/grading");
     revalidatePath("/admin/plays");
@@ -187,11 +143,7 @@ async function runGrade(req: NextRequest) {
         ok: gradeOk,
         runId: job.id,
         ...result,
-        clvSnapshots,
-        clvBackfilled,
         health,
-        oddsCoverage,
-        oddsWarmup,
         overduePending,
         stuckPlays,
       },

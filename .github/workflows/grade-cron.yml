@@ -18,12 +18,6 @@ on:
     # Avoid GitHub's heavily delayed quarter-hour queue boundaries.
     - cron: "7 */3 * * *"
   workflow_dispatch:
-    inputs:
-      warm_odds:
-        description: "Fill missing per-game props and alternate markets"
-        required: false
-        default: false
-        type: boolean
 
 concurrency:
   group: grade-cron
@@ -50,9 +44,6 @@ jobs:
           CRON_GRADE_URL: ${{ secrets.CRON_GRADE_URL }}
         run: |
           URL="${CRON_GRADE_URL:-https://scl-marketplace.vercel.app/api/cron/grade}"
-          if [ "${{ inputs.warm_odds || false }}" = "true" ]; then
-            URL="${URL}?warmOdds=1"
-          fi
           code=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -o /tmp/grade.json -w "%{http_code}" \
             -H "Authorization: $CRON_SECRET" \
             -H "Accept: application/json" \

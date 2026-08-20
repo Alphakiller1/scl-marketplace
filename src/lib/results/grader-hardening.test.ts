@@ -47,6 +47,9 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
   assert.match(route, /status: gradeOk \? "SUCCESS" : "FAILED"/);
   assert.match(route, /revalidateTag\("leaderboard", \{ expire: 0 \}\)/);
   assert.match(route, /revalidatePath\("\/cappers\/\[handle\]", "page"\)/);
+  assert.match(route, /getGradingResultsProvider/);
+  assert.doesNotMatch(route, /snapshotClosingOdds/);
+  assert.doesNotMatch(route, /odds-coverage-report/);
   assert.match(health, /pendingPastExpectedFinal/);
   // Cut from every 15 minutes to every 3 hours (owner request) — each run hits
   // the metered scores endpoints, so cadence here is a real bill. Still pinned
@@ -60,7 +63,8 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
     path.join(root, "src/lib/results/auto-grade.ts"),
     "utf8",
   );
-  assert.match(grader, /One immutable provider snapshot per job/);
+  assert.match(grader, /clvPtsForGrade/);
+  assert.doesNotMatch(grader, /ensureClosingAndClv/);
   assert.match(grader, /loadOddsEventIdentity/);
   assert.match(grader, /recoverFixtureFromIdentity/);
   assert.match(grader, /recoverFixtureFromSelections/);

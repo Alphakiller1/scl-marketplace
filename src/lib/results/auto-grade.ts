@@ -12,7 +12,7 @@ import {
   recoverFixtureFromSelections,
   type RecoveredFixture,
 } from "@/lib/results/cached-fixture";
-import { ensureClosingAndClv } from "@/lib/results/closing-snapshot";
+import { clvPtsForGrade } from "@/lib/results/closing-snapshot";
 import { parsePeriodMarket } from "@/lib/period-markets";
 import {
   isDeferredProp,
@@ -543,20 +543,9 @@ async function gradeStraightPlays(
       play.oddsAmerican,
       play.units,
     );
-    const clv = clvReady
-      ? await ensureClosingAndClv({
-          id: play.id,
-          sport: play.sport,
-          eventId: play.eventId,
-          book: play.book,
-          market: play.market,
-          side: play.side,
-          line: play.line,
-          league: play.league,
-          oddsAmerican: play.oddsAmerican,
-          closingOddsAmerican: play.closingOddsAmerican,
-        })
-      : { closingOddsAmerican: null, clvPts: null };
+    const clvPts = clvReady
+      ? clvPtsForGrade(play.oddsAmerican, play.closingOddsAmerican)
+      : null;
     await prisma.$transaction([
       prisma.play.update({
         where: { id: play.id },
@@ -565,14 +554,7 @@ async function gradeStraightPlays(
           profitUnits,
           gradedAt: new Date(),
           ...(resolved.fixture ?? {}),
-          ...(clv.clvPts != null ? { clvPts: clv.clvPts } : {}),
-          ...(clv.closingOddsAmerican != null &&
-          play.closingOddsAmerican == null
-            ? {
-                closingOddsAmerican: clv.closingOddsAmerican,
-                closingCapturedAt: new Date(),
-              }
-            : {}),
+          ...(clvPts != null ? { clvPts } : {}),
         },
         select: { id: true },
       }),
@@ -770,7 +752,8 @@ async function gradePendingParlays(): Promise<number> {
 
 /**
  * Grade confidently-resolvable pending plays and parlays from settled results.
- * Call {@link snapshotClosingOdds} before this when invoked from cron.
+ * Uses backstop score feeds only — no Odds API pricing calls. CLV capture runs
+ * on `/api/cron/odds-refresh`.
  */
 export async function autoGradePending(
   provider: ResultsProvider,
