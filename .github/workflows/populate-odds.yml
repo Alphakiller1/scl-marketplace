@@ -66,6 +66,7 @@ jobs:
           EXPANDED_DAYS: ${{ github.event.client_payload.expanded_days || github.event.inputs.expanded_days || 'today' }}
           SURFACE: ${{ github.event.client_payload.surface || '1' }}
           SKIP_POPULATED: ${{ github.event.client_payload.skipPopulated || '1' }}
+          EXPANDED_ORDER: ${{ github.event.client_payload.expandedOrder || 'MLB,WNBA' }}
         run: |
           if [ -z "$CRON_SECRET" ]; then
             echo "::error::CRON_SECRET is not configured. No odds credits were spent."
@@ -77,11 +78,12 @@ jobs:
           fi
           encoded_sports=$(jq -rn --arg value "$SPORTS" '$value|@uri')
           encoded_days=$(jq -rn --arg value "$EXPANDED_DAYS" '$value|@uri')
+          encoded_order=$(jq -rn --arg value "$EXPANDED_ORDER" '$value|@uri')
           curl --fail --silent --show-error \
             --header "Authorization: Bearer $CRON_SECRET" \
             --header "x-scl-odds-key: $ODDS_KEY" \
             --request POST \
-            "https://sportscappersleaderboard.com/api/cron/odds-populate?sports=${encoded_sports}&expanded=${EXPANDED}&expandedDays=${encoded_days}&surface=${SURFACE}&skipPopulated=${SKIP_POPULATED}" \
+            "https://sportscappersleaderboard.com/api/cron/odds-populate?sports=${encoded_sports}&expanded=${EXPANDED}&expandedDays=${encoded_days}&surface=${SURFACE}&skipPopulated=${SKIP_POPULATED}&expandedOrder=${encoded_order}" \
             --output /tmp/populate.json
           jq . /tmp/populate.json
           jq -e '.ok == true and .surface.MLB.events > 0 and .surface.WNBA.events > 0' /tmp/populate.json >/dev/null

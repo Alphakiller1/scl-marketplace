@@ -3,9 +3,13 @@ import test from "node:test";
 
 import type { OddsEvent } from "@/lib/odds-board";
 import {
+  expandedEventCreditCost,
+  laterExpandedCreditReserve,
   mergeLastGoodBoardEvents,
   parseExpandedSlateDays,
+  parseExpandedSportOrder,
   selectExpandedSlateEvents,
+  shouldHoldCreditsForLater,
 } from "@/lib/manual-odds-population";
 
 const NOW = new Date("2026-08-18T06:00:00.000Z");
@@ -66,4 +70,32 @@ test("a partial refresh retains future last-good fixtures", () => {
     merged.find((row) => row.id === "fresh")?.commenceTime,
     fresh[0]?.commenceTime,
   );
+});
+
+test("expanded order defaults to MLB then WNBA and ignores other sports", () => {
+  assert.deepEqual(
+    parseExpandedSportOrder(null, ["NFL", "WNBA", "MLB", "SOCCER"]),
+    ["MLB", "WNBA"],
+  );
+  assert.deepEqual(parseExpandedSportOrder("WNBA,MLB", ["MLB", "WNBA"]), [
+    "WNBA",
+    "MLB",
+  ]);
+  assert.deepEqual(parseExpandedSportOrder("MLB", ["MLB", "WNBA"]), [
+    "MLB",
+    "WNBA",
+  ]);
+});
+
+test("a short key holds MLB credits so today's WNBA expanded board still fits", () => {
+  const wnbaCost = expandedEventCreditCost("WNBA");
+  const mlbCost = expandedEventCreditCost("MLB");
+  assert.ok(mlbCost > 0);
+  assert.ok(wnbaCost > 0);
+  const later = laterExpandedCreditReserve([{ sport: "WNBA", events: 2 }]);
+  assert.equal(later, wnbaCost * 2);
+  assert.equal(shouldHoldCreditsForLater(100, mlbCost, later, 25), true);
+  assert.equal(shouldHoldCreditsForLater(400, mlbCost, later, 25), false);
+  assert.equal(shouldHoldCreditsForLater(null, mlbCost, later, 25), false);
+  assert.equal(shouldHoldCreditsForLater(40, mlbCost, 0, 25), false);
 });
