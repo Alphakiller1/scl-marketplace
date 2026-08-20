@@ -7,12 +7,17 @@ import {
   getCachedOddsCoverageReport,
   warmMissingOddsCoverage,
 } from "@/lib/odds-coverage-report";
+import {
+  backfillClvPts,
+  snapshotClosingOdds,
+} from "@/lib/results/closing-snapshot";
 
 export const maxDuration = 300;
 
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET?.trim();
-  if (!secret || req.headers.get("authorization") !== secret) {
+  const auth = req.headers.get("authorization");
+  if (!secret || (auth !== secret && auth !== `Bearer ${secret}`)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const result = await runStrategicOddsRefresh();
@@ -23,6 +28,20 @@ export async function GET(req: NextRequest) {
   const oddsCoverage = oddsWarmup
     ? await getCachedOddsCoverageReport()
     : coverageBefore;
+  let clvSnapshots = 0;
+  let clvBackfilled = 0;
+  try {
+    const clv = await snapshotClosingOdds();
+    clvSnapshots = clv.snapshots;
+    clvBackfilled = clv.backfilled;
+  } catch (error) {
+    console.error("[cron/odds-refresh] CLV snapshot skipped:", error);
+    try {
+      clvBackfilled = await backfillClvPts();
+    } catch (backfillError) {
+      console.error("[cron/odds-refresh] CLV backfill skipped:", backfillError);
+    }
+  }
   const boardStatus = await getStrategicOddsBoardStatus();
   const expandedFailures = oddsCoverage.games
     .filter((game) => !game.fullyCovered)
@@ -54,6 +73,8 @@ export async function GET(req: NextRequest) {
       ok,
       ...result,
       oddsWarmup,
+      clvSnapshots,
+      clvBackfilled,
       oddsCoverage: {
         totalGames: oddsCoverage.totalGames,
         gamesFullyCovered: oddsCoverage.gamesFullyCovered,

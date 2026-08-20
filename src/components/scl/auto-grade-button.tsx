@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { runAutoGradeAction } from "@/lib/actions/auto-grade.action";
 
-/** Admin control: run the auto-grader over pending plays (demo results until a key is set). */
+/** Admin backup: force an immediate auto-grade pass (cron runs every 30 minutes). */
 export function AutoGradeButton() {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -45,7 +45,7 @@ export function AutoGradeButton() {
       className="shrink-0"
     >
       <Wand2 className="size-4" />
-      {pending ? "Grading…" : "Run auto-grade"}
+      {pending ? "Grading…" : "Run now"}
     </Button>
   );
 }

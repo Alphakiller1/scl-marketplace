@@ -12,7 +12,7 @@ import {
   recoverFixtureFromSelections,
   type RecoveredFixture,
 } from "@/lib/results/cached-fixture";
-import { ensureClosingAndClv } from "@/lib/results/closing-snapshot";
+import { clvPtsForGrade } from "@/lib/results/closing-snapshot";
 import { parsePeriodMarket } from "@/lib/period-markets";
 import {
   isDeferredProp,
@@ -58,6 +58,13 @@ import {
   findSettledGame,
   type SkipReasonCounts,
 } from "@/lib/results/skip-reason";
+
+/** Max straight plays + parlay legs processed per grader round. */
+const GRADE_BATCH_SIZE = 1_000;
+/** Max parlay tickets settled per grader round. */
+const PARLAY_BATCH_SIZE = 500;
+/** Drain large backlogs within one cron invocation. */
+const MAX_GRADE_ROUNDS = 15;
 
 export type AutoGradeResult = {
   graded: number;
@@ -490,7 +497,8 @@ async function gradeStraightPlays(
         league: true,
         ...(clvReady ? { closingOddsAmerican: true } : {}),
       },
-      take: 500,
+      orderBy: [{ eventStartsAt: "asc" }, { createdAt: "asc" }],
+      take: GRADE_BATCH_SIZE,
     })
   )
     .map((p) => ({
@@ -543,20 +551,9 @@ async function gradeStraightPlays(
       play.oddsAmerican,
       play.units,
     );
-    const clv = clvReady
-      ? await ensureClosingAndClv({
-          id: play.id,
-          sport: play.sport,
-          eventId: play.eventId,
-          book: play.book,
-          market: play.market,
-          side: play.side,
-          line: play.line,
-          league: play.league,
-          oddsAmerican: play.oddsAmerican,
-          closingOddsAmerican: play.closingOddsAmerican,
-        })
-      : { closingOddsAmerican: null, clvPts: null };
+    const clvPts = clvReady
+      ? clvPtsForGrade(play.oddsAmerican, play.closingOddsAmerican)
+      : null;
     await prisma.$transaction([
       prisma.play.update({
         where: { id: play.id },
@@ -565,14 +562,7 @@ async function gradeStraightPlays(
           profitUnits,
           gradedAt: new Date(),
           ...(resolved.fixture ?? {}),
-          ...(clv.clvPts != null ? { clvPts: clv.clvPts } : {}),
-          ...(clv.closingOddsAmerican != null &&
-          play.closingOddsAmerican == null
-            ? {
-                closingOddsAmerican: clv.closingOddsAmerican,
-                closingCapturedAt: new Date(),
-              }
-            : {}),
+          ...(clvPts != null ? { clvPts } : {}),
         },
         select: { id: true },
       }),
@@ -623,7 +613,8 @@ async function gradeParlayLegs(
         line: true,
         league: true,
       },
-      take: 500,
+      orderBy: [{ eventStartsAt: "asc" }, { createdAt: "asc" }],
+      take: GRADE_BATCH_SIZE,
     })
   )
     .map((p) => ({
@@ -722,7 +713,7 @@ async function gradePendingParlays(): Promise<number> {
         select: { outcome: true, oddsAmerican: true },
       },
     },
-    take: 200,
+    take: PARLAY_BATCH_SIZE,
   });
 
   let graded = 0;
@@ -770,7 +761,8 @@ async function gradePendingParlays(): Promise<number> {
 
 /**
  * Grade confidently-resolvable pending plays and parlays from settled results.
- * Call {@link snapshotClosingOdds} before this when invoked from cron.
+ * Uses backstop score feeds only — no Odds API pricing calls. CLV capture runs
+ * on `/api/cron/odds-refresh`.
  */
 export async function autoGradePending(
   provider: ResultsProvider,
@@ -779,7 +771,49 @@ export async function autoGradePending(
   const boxCache: PlayerBoxCache = new Map();
   const fixtureCache: FixtureCache = new Map();
 
-  // One immutable provider snapshot per job. The old straight/leg passes each
+  let graded = 0;
+  let parlaysGraded = 0;
+  let skippedByReason = emptySkipCounts();
+
+  for (let round = 0; round < MAX_GRADE_ROUNDS; round++) {
+    const roundResult = await autoGradePendingRound(
+      provider,
+      now,
+      boxCache,
+      fixtureCache,
+    );
+    graded += roundResult.graded;
+    parlaysGraded += roundResult.parlaysGraded;
+    skippedByReason = roundResult.skippedByReason;
+
+    const roundTotal = roundResult.graded + roundResult.parlaysGraded;
+    if (roundTotal === 0) break;
+
+    console.info("[auto-grade] round complete", {
+      round: round + 1,
+      graded: roundResult.graded,
+      parlaysGraded: roundResult.parlaysGraded,
+      skippedByReason: roundResult.skippedByReason,
+    });
+  }
+
+  const skipped = Object.values(skippedByReason).reduce((a, b) => a + b, 0);
+  return {
+    graded,
+    skipped,
+    skippedByReason,
+    parlaysGraded,
+    provider: provider.name,
+  };
+}
+
+async function autoGradePendingRound(
+  provider: ResultsProvider,
+  now: Date,
+  boxCache: PlayerBoxCache,
+  fixtureCache: FixtureCache,
+): Promise<AutoGradeResult> {
+  // One immutable provider snapshot per round. The old straight/leg passes each
   // fetched independently, so an exhausted key could expose different games to
   // two plays bound to the same event during the very same grader invocation.
   const targets = await prisma.play.findMany({
@@ -788,7 +822,7 @@ export async function autoGradePending(
       OR: [{ eventStartsAt: null }, { eventStartsAt: { lte: now } }],
     },
     select: { sport: true, league: true },
-    take: 1_000,
+    take: GRADE_BATCH_SIZE * 2,
   });
   const sports = [...new Set(targets.map((play) => play.sport))];
   const games = sports.length

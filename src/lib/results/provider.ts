@@ -330,10 +330,12 @@ export function compositeResultsProvider(
 }
 
 /**
- * Odds API (≤3d) + ESPN scoreboard history (≤14d) so aged-out plays can still
- * settle without paid Odds API historical credits.
+ * ESPN + official league feeds — never call The Odds API.
+ *
+ * Grading must stay up when the odds board burns quota on pricing fetches.
+ * Closing-line capture and CLV backfill run on `/api/cron/odds-refresh` instead.
  */
-export function getResultsProvider(): ResultsProvider {
+export function getGradingResultsProvider(): ResultsProvider {
   const espn = espnHistoricalResultsProvider();
   const officialPlanC = compositeResultsProvider(
     mlbOfficialResultsProvider(),
@@ -343,7 +345,18 @@ export function getResultsProvider(): ResultsProvider {
     officialPlanC,
     sportsPuffResultsProvider(),
   );
-  const independentBackstops = compositeResultsProvider(espn, planC);
+  return compositeResultsProvider(espn, planC);
+}
+
+/**
+ * Odds API (≤3d) + ESPN scoreboard history (≤14d) so aged-out plays can still
+ * settle without paid Odds API historical credits.
+ *
+ * Prefer {@link getGradingResultsProvider} for auto-grade — this composite still
+ * hits the metered scores endpoint and shares the odds-board key pool.
+ */
+export function getResultsProvider(): ResultsProvider {
+  const independentBackstops = getGradingResultsProvider();
   try {
     if (oddsApiKey()) {
       return compositeResultsProvider(
