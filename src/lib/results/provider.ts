@@ -330,9 +330,40 @@ export function compositeResultsProvider(
 }
 
 /**
- * ESPN + official league feeds — never call The Odds API.
+ * Sports with no reliable free scoreboard. Grading uses the Odds API **scores**
+ * endpoint only — never pricing / expanded boards (those run on odds-refresh).
+ */
+const ODDS_SCORES_ONLY_SPORTS = ["MMA", "TENNIS"] as const;
+
+/** Restrict a results provider to a fixed sport allowlist. */
+function scoresProviderForSports(
+  inner: ResultsProvider,
+  sports: readonly string[],
+): ResultsProvider {
+  const allowed = new Set(sports.map((sport) => sport.toUpperCase()));
+  return {
+    name: `${inner.name}:${[...allowed].join("+")}`,
+    async fetchSettled() {
+      return inner.fetchSettledForSports([...allowed]);
+    },
+    async fetchSettledForSports(
+      requested: string[],
+      scope?: ResultsQueryScope,
+    ) {
+      const filtered = requested.filter((sport) =>
+        allowed.has(sport.toUpperCase()),
+      );
+      if (filtered.length === 0) return [];
+      return inner.fetchSettledForSports(filtered, scope);
+    },
+  };
+}
+
+/**
+ * ESPN + official league feeds for mainstream sports, plus Odds API scores for
+ * MMA/TENNIS where no free backstop exists.
  *
- * Grading must stay up when the odds board burns quota on pricing fetches.
+ * Grading must stay up when the odds board burns quota on **pricing** fetches.
  * Closing-line capture and CLV backfill run on `/api/cron/odds-refresh` instead.
  */
 export function getGradingResultsProvider(): ResultsProvider {
@@ -345,7 +376,21 @@ export function getGradingResultsProvider(): ResultsProvider {
     officialPlanC,
     sportsPuffResultsProvider(),
   );
-  return compositeResultsProvider(espn, planC);
+  const backstops = compositeResultsProvider(espn, planC);
+  try {
+    if (oddsApiKey()) {
+      return compositeResultsProvider(
+        backstops,
+        scoresProviderForSports(
+          oddsApiResultsProvider(),
+          ODDS_SCORES_ONLY_SPORTS,
+        ),
+      );
+    }
+  } catch {
+    /* fall through */
+  }
+  return backstops;
 }
 
 /**
