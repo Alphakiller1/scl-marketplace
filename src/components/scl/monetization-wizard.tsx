@@ -469,9 +469,9 @@ export function MonetizationWizard({
                   </p>
                   <p className="text-muted-foreground mt-1">
                     Open the Sports Cappers Leaderboard page on Whop and add us
-                    as an affiliate using{" "}
-                    <strong>{SCL_AFFILIATE_EMAIL}</strong>. You do not need to
-                    search — this button goes straight to SCL.
+                    as an affiliate using <strong>{SCL_AFFILIATE_EMAIL}</strong>
+                    . You do not need to search — this button goes straight to
+                    SCL.
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <Button
