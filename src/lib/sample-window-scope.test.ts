@@ -100,3 +100,17 @@ test("the lifetime sample ignores the window and includes carried results", () =
     /lifetimeGradedPositions\?\.get\(p\.id\) \?\? stats\.settled\) \+ carriedResults/,
   );
 });
+
+test("1D ranks from the slate-day helpers, not settlement timestamps", () => {
+  const fetch = leaderboardQuery.slice(
+    leaderboardQuery.indexOf("async function fetchRankableProfiles"),
+    leaderboardQuery.indexOf("type ProfileRow"),
+  );
+  assert.match(fetch, /leaderboardPlayDateFilter/);
+  assert.match(fetch, /leaderboardParlayDateFilter/);
+  assert.doesNotMatch(
+    fetch,
+    /gradedAt:\s*\{\s*gte/,
+    "1D must not bucket positions by gradedAt",
+  );
+});

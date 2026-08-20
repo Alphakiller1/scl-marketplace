@@ -134,8 +134,8 @@ export function leaderboardWindowStart(
 
 /**
  * Database bounds for a leaderboard scope. The 1D board is the last completed
- * Eastern calendar day and is bounded on both sides; longer scopes remain
- * rolling windows that extend through the current instant.
+ * Eastern slate day (the calendar day the game belonged to) and is bounded on
+ * both sides; longer scopes remain rolling windows through the current instant.
  */
 export function leaderboardWindowBounds(
   window: LeaderboardWindow,
@@ -149,20 +149,125 @@ export function leaderboardWindowBounds(
 }
 
 /**
- * Date predicate used for leaderboard positions. A 1D leaderboard is a
- * completed-results view, so settlement time is authoritative. Longer
- * windows keep their existing rolling, pick-entry-time semantics.
+ * Instant that places a straight pick on a time-scoped board.
+ * Event start is the slate day so a late West Coast game that grades after
+ * midnight ET still counts on the day it was played. Unbound picks (legacy /
+ * free-text) fall back to when they were logged.
  */
-export function leaderboardPositionDateFilter(
+export function leaderboardSlateInstant(position: {
+  eventStartsAt?: Date | null;
+  createdAt: Date;
+}): Date {
+  return position.eventStartsAt ?? position.createdAt;
+}
+
+/**
+ * Instant that places a parlay on a time-scoped board. The last bound leg
+ * decides the results day — that is when the ticket can settle. Unbound
+ * parlays fall back to log time.
+ */
+export function parlayLeaderboardSlateInstant(parlay: {
+  createdAt: Date;
+  legs: { eventStartsAt?: Date | null }[];
+}): Date {
+  let latest: Date | null = null;
+  for (const leg of parlay.legs) {
+    if (!leg.eventStartsAt) continue;
+    if (!latest || leg.eventStartsAt.getTime() > latest.getTime()) {
+      latest = leg.eventStartsAt;
+    }
+  }
+  return latest ?? parlay.createdAt;
+}
+
+export function isInLeaderboardWindow(
+  instant: Date,
   window: LeaderboardWindow,
   now = new Date(),
-):
-  | { gradedAt: { gte: Date; lt: Date } }
-  | { createdAt: { gte: Date } }
-  | undefined {
+): boolean {
+  const { start, end } = leaderboardWindowBounds(window, now);
+  if (start && instant.getTime() < start.getTime()) return false;
+  if (end && instant.getTime() >= end.getTime()) return false;
+  return true;
+}
+
+export type LeaderboardPlayDateFilter =
+  | {
+      OR: [
+        { eventStartsAt: { gte: Date; lt: Date } },
+        { eventStartsAt: null; createdAt: { gte: Date; lt: Date } },
+      ];
+    }
+  | { createdAt: { gte: Date } };
+
+export type LeaderboardParlayDateFilter =
+  | {
+      OR: [
+        {
+          AND: [
+            { legs: { some: { eventStartsAt: { gte: Date; lt: Date } } } },
+            { legs: { none: { eventStartsAt: { gte: Date } } } },
+          ];
+        },
+        {
+          AND: [
+            { legs: { none: { eventStartsAt: { not: null } } } },
+            { createdAt: { gte: Date; lt: Date } },
+          ];
+        },
+      ];
+    }
+  | { createdAt: { gte: Date } };
+
+/**
+ * Date predicate for straight picks. 1D is yesterday's Eastern slate
+ * (event start, else log time) so the full previous day of games is included
+ * even when settlement lands after midnight ET. Longer windows stay rolling
+ * pick-entry-time scopes.
+ */
+export function leaderboardPlayDateFilter(
+  window: LeaderboardWindow,
+  now = new Date(),
+): LeaderboardPlayDateFilter | undefined {
   const { start, end } = leaderboardWindowBounds(window, now);
   if (window === "1d" && start && end) {
-    return { gradedAt: { gte: start, lt: end } };
+    return {
+      OR: [
+        { eventStartsAt: { gte: start, lt: end } },
+        { eventStartsAt: null, createdAt: { gte: start, lt: end } },
+      ],
+    };
+  }
+  return start ? { createdAt: { gte: start } } : undefined;
+}
+
+/**
+ * Date predicate for parlays. 1D uses the last bound leg's event start so a
+ * ticket belongs to the day its final game was played. Unbound parlays use
+ * log time. Longer windows stay rolling pick-entry-time scopes.
+ */
+export function leaderboardParlayDateFilter(
+  window: LeaderboardWindow,
+  now = new Date(),
+): LeaderboardParlayDateFilter | undefined {
+  const { start, end } = leaderboardWindowBounds(window, now);
+  if (window === "1d" && start && end) {
+    return {
+      OR: [
+        {
+          AND: [
+            { legs: { some: { eventStartsAt: { gte: start, lt: end } } } },
+            { legs: { none: { eventStartsAt: { gte: end } } } },
+          ],
+        },
+        {
+          AND: [
+            { legs: { none: { eventStartsAt: { not: null } } } },
+            { createdAt: { gte: start, lt: end } },
+          ],
+        },
+      ],
+    };
   }
   return start ? { createdAt: { gte: start } } : undefined;
 }

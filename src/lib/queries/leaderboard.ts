@@ -9,7 +9,8 @@ import { prisma } from "@/lib/prisma";
 import {
   buildPerformanceTrend,
   DEFAULT_LEADERBOARD_LIMIT,
-  leaderboardPositionDateFilter,
+  leaderboardParlayDateFilter,
+  leaderboardPlayDateFilter,
   partitionLeaderboard,
   type LeaderboardFilters,
 } from "@/lib/leaderboard";
@@ -55,7 +56,8 @@ async function fetchRankableProfiles(
   clvReady: boolean,
   capperIds?: string[],
 ) {
-  const positionWindow = leaderboardPositionDateFilter(filters.window);
+  const playWindow = leaderboardPlayDateFilter(filters.window);
+  const parlayWindow = leaderboardParlayDateFilter(filters.window);
   const activityCutoff = publicCapperActivityCutoff();
   const excludeTest = await prismaExcludeTestHandlesLive();
 
@@ -112,7 +114,7 @@ async function fetchRankableProfiles(
           parlayId: null,
           units: { gte: UNIT_MIN },
           ...(filters.sport !== "ALL" ? { sport: filters.sport } : undefined),
-          ...positionWindow,
+          ...playWindow,
         },
         select: {
           outcome: true,
@@ -161,7 +163,7 @@ async function fetchRankableProfiles(
       // sport filter when any leg is that sport.
       parlays: {
         where: {
-          ...positionWindow,
+          ...parlayWindow,
           units: { gte: UNIT_MIN },
           ...(filters.sport !== "ALL"
             ? { legs: { some: { sport: filters.sport } } }
@@ -197,9 +199,9 @@ const SETTLED_OUTCOMES: Outcome[] = ["WIN", "LOSS", "PUSH"];
  *
  * The main profile query filters plays to the selected window, so the count it
  * produces cannot answer "does this capper have a track record" — under a 1D
- * filter it reports how many picks graded yesterday. Two grouped counts are
- * cheap, run once per board rather than per capper, and keep the windowed
- * figures on the row exactly as they were.
+ * filter it reports how many picks were on yesterday's slate. Two grouped
+ * counts are cheap, run once per board rather than per capper, and keep the
+ * windowed figures on the row exactly as they were.
  *
  * Legacy carried results are added per capper in `summarize`, since those live
  * on the profile rows already fetched.
