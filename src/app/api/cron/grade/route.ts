@@ -22,7 +22,7 @@ function authorizeCron(req: NextRequest): boolean {
   const auth = req.headers.get("authorization");
 
   if (secret) {
-    return auth === secret;
+    return auth === secret || auth === `Bearer ${secret}`;
   }
 
   // CRON_SECRET unset — allow local dev with no secret via x-vercel-cron header

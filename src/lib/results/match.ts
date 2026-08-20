@@ -383,7 +383,7 @@ export function pickedSideForGame(
   game: SettledGame,
 ): boolean | null | undefined {
   const text = `${play.selection} ${play.side ?? ""}`;
-  if (/(draw|tie)/i.test(text)) return null;
+  if (/\b(draw|tie)\b/i.test(text)) return null;
   const home =
     mentions(play.selection, game.home, game.sport) ||
     mentions(play.side ?? "", game.home, game.sport);
@@ -518,14 +518,18 @@ export function resolveOutcome(
   // silently grades a bet the capper did not make. Defer instead.
   if (hasUnreadHandicap(play.selection)) return null;
 
-  const pickedHome =
-    mentions(play.selection, game.home, game.sport) ||
-    mentions(play.side ?? "", game.home, game.sport);
-  const pickedAway =
-    mentions(play.selection, game.away, game.sport) ||
-    mentions(play.side ?? "", game.away, game.sport);
-  if (pickedHome === pickedAway) return null;
-  if (game.homeScore === game.awayScore) return "PUSH";
+  const pickedSide = pickedSideForGame(play, game);
+  if (pickedSide === undefined) return null;
+
+  const isTie = game.homeScore === game.awayScore;
+  if (pickedSide === null) {
+    return isTie ? "WIN" : "LOSS";
+  }
+
+  if (isTie) {
+    return play.sport.trim().toUpperCase() === "SOCCER" ? "LOSS" : "PUSH";
+  }
+
   const homeWon = game.homeScore > game.awayScore;
-  return pickedHome === homeWon ? "WIN" : "LOSS";
+  return pickedSide === homeWon ? "WIN" : "LOSS";
 }
