@@ -4,9 +4,29 @@ import type {
   StoreProvider,
 } from "@prisma/client";
 
+import { SCL_WHOP_AFFILIATE_USERNAME } from "@/lib/whop-config";
+
 export const STORE_PROVIDERS = ["WINIBLE", "WHOP"] as const;
 
 export const SCL_AFFILIATE_EMAIL = "scleaderboard@gmail.com";
+
+export { SCL_WHOP_AFFILIATE_USERNAME };
+
+/**
+ * Public SCL Whop storefront. Manual onboarding opens this page directly —
+ * cappers should not have to search Discover or Refer Buyers.
+ */
+export const SCL_WHOP_AFFILIATE_PAGE_URL =
+  "https://whop.com/sports-cappers-leaderboard/";
+
+/** @deprecated Use SCL_WHOP_AFFILIATE_PAGE_URL */
+export const WHOP_AFFILIATES_HUB_URL = SCL_WHOP_AFFILIATE_PAGE_URL;
+
+/** Commission the capper must select when adding SCL on Whop. */
+export const SCL_WHOP_AFFILIATE_COMMISSION = {
+  percent: 35,
+  duration: "Recurring",
+} as const;
 
 /** SCL's Winible creator-onboarding referral; never use as a package checkout. */
 export const WINIBLE_CAPPER_REFERRAL_URL =
@@ -174,9 +194,9 @@ export function adminChecklist(provider: StoreProvider): string[] {
   if (provider === "WHOP") {
     return [
       "Capper added SCL as Whop affiliate + submitted confirmation",
-      "Capper installed SCL app on Whop (enables Sync from Whop)",
-      "Record affiliate commission % on this request",
-      "Sync or paste packages with attributed ?a= checkout links",
+      "Capper connected SCL on Whop (enables package sync)",
+      "Record 35% recurring affiliate commission on this request",
+      "Sync packages from Whop or paste attributed ?a= checkout links",
       "Set prices, activate packages, then Mark live",
     ];
   }

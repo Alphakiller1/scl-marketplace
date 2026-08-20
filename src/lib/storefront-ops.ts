@@ -99,7 +99,7 @@ export function adminStorefrontReadiness(input: {
         done: isPendingStoreStatus(input.status) || approved || live,
       },
       {
-        label: "Capper installed SCL app on Whop (for package sync)",
+        label: "Capper connected SCL on Whop (for package sync)",
         done: input.whopConnected,
       },
       {

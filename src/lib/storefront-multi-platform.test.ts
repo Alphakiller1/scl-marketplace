@@ -24,10 +24,7 @@ test("capper storefront setup tailors platform guidance to the selected option",
     source,
     /Complete the Winible affiliate invite, then submit — SCL accepts the relationship and manually publishes your package links\./,
   );
-  assert.match(
-    source,
-    /Add SCL as a Whop affiliate, install the SCL app when available/,
-  );
+  assert.match(source, /Add SCL as a Whop affiliate, connect SCL on Whop/);
   assert.match(
     source,
     /We’ll help you create a Winible storefront and connect it to SCL\./,
@@ -48,7 +45,9 @@ test("Whop connection copy explains the capper experience", () => {
     /checkout, subscriptions, and payments stay on \$\{label\}\./,
   );
   assert.match(source, /Continue to Connect Whop/);
-  assert.match(source, /Install SCL app on Whop/);
+  assert.match(source, /Connect SCL to Whop/);
+  assert.match(source, /SCL_WHOP_AFFILIATE_PAGE_URL/);
+  assert.match(source, /href="\/api\/whop\/connect"/);
   assert.match(
     source,
     /When SCL refers a subscriber to your storefront, we earn an affiliate commission/,
@@ -113,11 +112,22 @@ test("Whop setup instructions focus on the capper workflow", () => {
 
   assert.match(
     normalized,
-    /Add Sports Cappers Leaderboard as an affiliate in Whop\. After you submit, SCL verifies the relationship and manually publishes the approved package links/,
+    /Add Sports Cappers Leaderboard as an affiliate in Whop, then connect SCL to your storefront/,
   );
-  assert.match(normalized, /Install the SCL app on Whop/);
-  assert.match(normalized, /3\. Use package-specific affiliate links/);
-  assert.match(normalized, /4\. Select recurring commissions/);
+  assert.match(
+    normalized,
+    /Open the Sports Cappers Leaderboard page on Whop and add us as an affiliate/,
+  );
+  assert.doesNotMatch(normalized, /search for/);
+  assert.doesNotMatch(normalized, /Refer Buyers/);
+  assert.match(normalized, /2\. Connect SCL to your Whop/);
+  assert.doesNotMatch(normalized, /optional but recommended/);
+  assert.doesNotMatch(normalized, /3\. Use package-specific affiliate links/);
+  assert.doesNotMatch(normalized, /\bapp\b/i);
+  assert.match(
+    normalized,
+    /3\. Select \{SCL_WHOP_AFFILIATE_COMMISSION\.percent\}% recurring/,
+  );
   assert.match(
     normalized,
     /Hiding a mapped product on Whop also takes its SCL offer down/,
@@ -137,7 +147,7 @@ test("capper-facing storefront copy describes the manual SCL review workflow", (
   assert.doesNotMatch(page, /SCL imports links/);
 });
 
-test("Whop OAuth callback route exists for app install", () => {
+test("Whop OAuth callback route exists for storefront connection", () => {
   assert.ok(
     fs.existsSync(
       path.join(process.cwd(), "src/app/api/whop/callback/route.ts"),

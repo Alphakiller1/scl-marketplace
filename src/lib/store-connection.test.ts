@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  SCL_WHOP_AFFILIATE_COMMISSION,
+  SCL_WHOP_AFFILIATE_PAGE_URL,
+  WHOP_AFFILIATES_HUB_URL,
   formatPriceCents,
   packageCtaLabel,
   pendingStatusForProvider,
@@ -89,5 +92,15 @@ describe("store-connection helpers", () => {
     // Only a nonsense price has nothing to show.
     assert.equal(formatPriceCents(-1, "MONTH"), null);
     assert.equal(formatPriceCents(Number.NaN, "MONTH"), null);
+  });
+
+  it("sends Whop cappers to the public SCL Whop page, not a search hub", () => {
+    assert.equal(
+      SCL_WHOP_AFFILIATE_PAGE_URL,
+      "https://whop.com/sports-cappers-leaderboard/",
+    );
+    assert.equal(WHOP_AFFILIATES_HUB_URL, SCL_WHOP_AFFILIATE_PAGE_URL);
+    assert.equal(SCL_WHOP_AFFILIATE_COMMISSION.percent, 35);
+    assert.equal(SCL_WHOP_AFFILIATE_COMMISSION.duration, "Recurring");
   });
 });

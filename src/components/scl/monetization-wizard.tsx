@@ -16,6 +16,8 @@ import {
 } from "@/lib/actions/store.action";
 import {
   SCL_AFFILIATE_EMAIL,
+  SCL_WHOP_AFFILIATE_COMMISSION,
+  SCL_WHOP_AFFILIATE_PAGE_URL,
   WINIBLE_CAPPER_REFERRAL_URL,
   WINIBLE_INVITE_VALUES,
   isPendingStoreStatus,
@@ -43,7 +45,7 @@ const PLATFORM_SELECTION_COPY = [
   [
     "WHOP",
     "Whop",
-    "Already sell picks on Whop? Add SCL as an affiliate, install the SCL app when prompted, and submit — our team reviews and publishes your package links.",
+    "Already sell picks on Whop? Add SCL as an affiliate, connect SCL on Whop, then submit — our team reviews and publishes your approved packages.",
   ],
   [
     "NONE",
@@ -59,7 +61,7 @@ function platformSelectionGuidance(
     case "WINIBLE":
       return "Complete the Winible affiliate invite, then submit — SCL accepts the relationship and manually publishes your package links.";
     case "WHOP":
-      return "Add SCL as a Whop affiliate, install the SCL app when available, then submit — SCL reviews and manually publishes your package links.";
+      return "Add SCL as a Whop affiliate, connect SCL on Whop, then submit — SCL reviews and publishes your approved packages.";
     case "NONE":
       return "We’ll help you create a Winible storefront and connect it to SCL.";
     default:
@@ -157,7 +159,7 @@ export function MonetizationWizard({
 
   const ackCopy = useMemo(() => {
     if (provider === "WHOP") {
-      return `I understand that connecting my Whop store to SCL requires adding Sports Cappers Leaderboard (${SCL_AFFILIATE_EMAIL}) as an affiliate on Whop. I understand that Whop controls its own affiliate attribution and commission rules, and that SCL will use product-specific affiliate links from our Whop dashboard on my SCL profile and package pages.`;
+      return `I understand that connecting my Whop store to SCL requires adding Sports Cappers Leaderboard (${SCL_AFFILIATE_EMAIL}) as an affiliate at ${SCL_WHOP_AFFILIATE_COMMISSION.percent}% ${SCL_WHOP_AFFILIATE_COMMISSION.duration}, then connecting SCL on my Whop storefront. I understand that Whop controls checkout and commission payouts, and that SCL will publish approved packages on my SCL profile.`;
     }
     return `I confirm that I’ve completed the Winible affiliate setup and designated Sports Cappers Leaderboard as my affiliate partner in Winible. I understand SCL will use the affiliate links provided by Winible on my SCL profile and package pages. I understand that Winible controls its own affiliate attribution and commission rules.`;
   }, [provider]);
@@ -455,55 +457,87 @@ export function MonetizationWizard({
           {provider === "WHOP" ? (
             <div className="space-y-3 text-sm">
               <p className="border-border bg-surface-2 rounded-lg border p-3 leading-relaxed">
-                Add Sports Cappers Leaderboard as an affiliate in Whop. After
-                you submit, SCL verifies the relationship and manually publishes
-                the approved package links on your profile.
+                Add Sports Cappers Leaderboard as an affiliate in Whop, then
+                connect SCL to your storefront. After you submit, SCL verifies
+                the relationship and publishes the approved packages on your
+                profile.
               </p>
               <ol className="space-y-3">
                 <li className="border-border rounded-lg border p-3">
-                  <p className="font-semibold">1. Add SCL as an affiliate</p>
-                  <p className="text-muted-foreground mt-1">
-                    Add <strong>Sports Cappers Leaderboard</strong> using{" "}
-                    <strong>{SCL_AFFILIATE_EMAIL}</strong>.
+                  <p className="font-semibold">
+                    1. Add SCL as an affiliate on Whop
                   </p>
+                  <p className="text-muted-foreground mt-1">
+                    Open the Sports Cappers Leaderboard page on Whop and add us
+                    as an affiliate using{" "}
+                    <strong>{SCL_AFFILIATE_EMAIL}</strong>. You do not need to
+                    search — this button goes straight to SCL.
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      className="min-h-10"
+                      render={
+                        <a
+                          href={SCL_WHOP_AFFILIATE_PAGE_URL}
+                          target="_blank"
+                          rel="noreferrer"
+                        />
+                      }
+                      nativeButton={false}
+                    >
+                      Open Sports Cappers Leaderboard on Whop
+                      <ExternalLink className="size-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-10"
+                      onClick={copyAffiliateEmail}
+                    >
+                      {copiedAffiliateEmail
+                        ? "Copied"
+                        : "Copy SCL affiliate email"}
+                    </Button>
+                  </div>
                 </li>
                 <li className="border-border rounded-lg border p-3">
-                  <p className="font-semibold">
-                    2. Install the SCL app on Whop (optional but recommended)
-                  </p>
+                  <p className="font-semibold">2. Connect SCL to your Whop</p>
                   <p className="text-muted-foreground mt-1">
-                    Install the &quot;SCL Marketplace&quot; app on your Whop
-                    business so SCL can import product details and reflect
-                    approved SCL edits back to Whop. Hiding a mapped product on
-                    Whop also takes its SCL offer down. Prices remain controlled
-                    in Whop.
+                    Connect SCL to your Whop storefront so we can sync your
+                    packages and publish the approved ones on your SCL profile.
+                    Hiding a mapped product on Whop also takes its SCL offer
+                    down. Prices remain controlled in Whop.
                   </p>
                   <Button
                     variant="outline"
                     className="mt-2 min-h-10"
-                    render={<a href="/api/whop/connect" rel="noreferrer" />}
+                    render={
+                      <a
+                        href="/api/whop/connect"
+                        target="_blank"
+                        rel="noreferrer"
+                      />
+                    }
                     nativeButton={false}
                   >
-                    Install SCL app on Whop
+                    Connect SCL to Whop
                     <ExternalLink className="size-4" />
                   </Button>
                 </li>
                 <li className="border-border rounded-lg border p-3">
                   <p className="font-semibold">
-                    3. Use package-specific affiliate links
+                    3. Select {SCL_WHOP_AFFILIATE_COMMISSION.percent}% recurring
+                    commissions
                   </p>
                   <p className="text-muted-foreground mt-1">
-                    Use package-specific affiliate links whenever possible so
-                    SCL can correctly map each package to your storefront.
-                  </p>
-                </li>
-                <li className="border-border rounded-lg border p-3">
-                  <p className="font-semibold">
-                    4. Select recurring commissions
-                  </p>
-                  <p className="text-muted-foreground mt-1">
-                    Set the commission type to Recurring (not First Payment
-                    Only) before submitting your affiliate request.
+                    Set the commission to{" "}
+                    <strong>
+                      {SCL_WHOP_AFFILIATE_COMMISSION.percent}%{" "}
+                      {SCL_WHOP_AFFILIATE_COMMISSION.duration}
+                    </strong>{" "}
+                    (not First Payment Only) before submitting the affiliate
+                    request.
                   </p>
                 </li>
               </ol>
