@@ -233,8 +233,10 @@ test("both grading loops resolve through the same function", () => {
       "second place is how a prop or period market gets a wrong result.",
   );
   assert.match(src, /MAX_GRADE_ROUNDS/);
-  assert.doesNotMatch(src, /ensureClosingAndClv/);
-  assert.match(src, /clvPtsForGrade/);
+  assert.match(src, /ensureClosingAndClv/);
+  assert.match(src, /attemptedPlayIds/);
+  assert.match(src, /straightTargets\.map\(\(play\) => play\.id\)/);
+  assert.match(src, /legTargets\.map\(\(play\) => play\.id\)/);
   assert.equal(
     count(/eventLabel: true/g),
     2,

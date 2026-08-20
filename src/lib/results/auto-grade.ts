@@ -12,7 +12,7 @@ import {
   recoverFixtureFromSelections,
   type RecoveredFixture,
 } from "@/lib/results/cached-fixture";
-import { clvPtsForGrade } from "@/lib/results/closing-snapshot";
+import { ensureClosingAndClv } from "@/lib/results/closing-snapshot";
 import { parsePeriodMarket } from "@/lib/period-markets";
 import {
   isDeferredProp,
@@ -80,6 +80,10 @@ type GradeBatch = {
   graded: number;
   skipped: number;
   skippedByReason: SkipReasonCounts;
+};
+
+type GradeRoundResult = AutoGradeResult & {
+  targetIds: string[];
 };
 
 type PlayerBoxCache = Map<string, Promise<PlayerBoxScore | null>>;
@@ -470,12 +474,16 @@ async function gradeStraightPlays(
   boxCache: PlayerBoxCache,
   fixtureCache: FixtureCache,
   games: SettledGame[],
+  targetIds: string[],
 ): Promise<GradeBatch> {
   const clvReady = await hasClvColumns();
   const skippedByReason = emptySkipCounts();
+  if (targetIds.length === 0) {
+    return { graded: 0, skipped: 0, skippedByReason };
+  }
   const pending = (
     await prisma.play.findMany({
-      where: { outcome: "PENDING", parlayId: null },
+      where: { id: { in: targetIds }, outcome: "PENDING", parlayId: null },
       select: {
         id: true,
         sport: true,
@@ -497,24 +505,17 @@ async function gradeStraightPlays(
         league: true,
         ...(clvReady ? { closingOddsAmerican: true } : {}),
       },
-      orderBy: [{ eventStartsAt: "asc" }, { createdAt: "asc" }],
-      take: GRADE_BATCH_SIZE,
     })
-  )
-    .map((p) => ({
-      ...p,
-      units: Number(p.units),
-      line: p.line == null ? null : Number(p.line),
-      closingOddsAmerican:
-        "closingOddsAmerican" in p
-          ? ((p as { closingOddsAmerican?: number | null })
-              .closingOddsAmerican ?? null)
-          : null,
-    }))
-    .filter(
-      (p) =>
-        p.eventStartsAt == null || p.eventStartsAt.getTime() <= now.getTime(),
-    );
+  ).map((p) => ({
+    ...p,
+    units: Number(p.units),
+    line: p.line == null ? null : Number(p.line),
+    closingOddsAmerican:
+      "closingOddsAmerican" in p
+        ? ((p as { closingOddsAmerican?: number | null }).closingOddsAmerican ??
+          null)
+        : null,
+  }));
 
   if (pending.length === 0) {
     return { graded: 0, skipped: 0, skippedByReason };
@@ -551,9 +552,20 @@ async function gradeStraightPlays(
       play.oddsAmerican,
       play.units,
     );
-    const clvPts = clvReady
-      ? clvPtsForGrade(play.oddsAmerican, play.closingOddsAmerican)
-      : null;
+    const clv = clvReady
+      ? await ensureClosingAndClv({
+          id: play.id,
+          sport: play.sport,
+          eventId: play.eventId,
+          book: play.book,
+          market: play.market,
+          side: play.side,
+          line: play.line,
+          league: play.league,
+          oddsAmerican: play.oddsAmerican,
+          closingOddsAmerican: play.closingOddsAmerican,
+        })
+      : { closingOddsAmerican: null, clvPts: null };
     await prisma.$transaction([
       prisma.play.update({
         where: { id: play.id },
@@ -562,7 +574,14 @@ async function gradeStraightPlays(
           profitUnits,
           gradedAt: new Date(),
           ...(resolved.fixture ?? {}),
-          ...(clvPts != null ? { clvPts } : {}),
+          ...(clv.clvPts != null ? { clvPts: clv.clvPts } : {}),
+          ...(clv.closingOddsAmerican != null &&
+          play.closingOddsAmerican == null
+            ? {
+                closingOddsAmerican: clv.closingOddsAmerican,
+                closingCapturedAt: new Date(),
+              }
+            : {}),
         },
         select: { id: true },
       }),
@@ -592,11 +611,19 @@ async function gradeParlayLegs(
   boxCache: PlayerBoxCache,
   fixtureCache: FixtureCache,
   games: SettledGame[],
+  targetIds: string[],
 ): Promise<GradeBatch> {
   const skippedByReason = emptySkipCounts();
+  if (targetIds.length === 0) {
+    return { graded: 0, skipped: 0, skippedByReason };
+  }
   const pending = (
     await prisma.play.findMany({
-      where: { outcome: "PENDING", parlayId: { not: null } },
+      where: {
+        id: { in: targetIds },
+        outcome: "PENDING",
+        parlayId: { not: null },
+      },
       select: {
         id: true,
         sport: true,
@@ -613,19 +640,12 @@ async function gradeParlayLegs(
         line: true,
         league: true,
       },
-      orderBy: [{ eventStartsAt: "asc" }, { createdAt: "asc" }],
-      take: GRADE_BATCH_SIZE,
     })
-  )
-    .map((p) => ({
-      ...p,
-      units: Number(p.units),
-      line: p.line == null ? null : Number(p.line),
-    }))
-    .filter(
-      (p) =>
-        p.eventStartsAt == null || p.eventStartsAt.getTime() <= now.getTime(),
-    );
+  ).map((p) => ({
+    ...p,
+    units: Number(p.units),
+    line: p.line == null ? null : Number(p.line),
+  }));
 
   if (pending.length === 0) {
     return { graded: 0, skipped: 0, skippedByReason };
@@ -761,8 +781,8 @@ async function gradePendingParlays(): Promise<number> {
 
 /**
  * Grade confidently-resolvable pending plays and parlays from settled results.
- * Uses backstop score feeds only — no Odds API pricing calls. CLV capture runs
- * on `/api/cron/odds-refresh`.
+ * Uses settled score feeds and captures a last-chance closing line before a
+ * play leaves the pending queue.
  */
 export async function autoGradePending(
   provider: ResultsProvider,
@@ -774,6 +794,7 @@ export async function autoGradePending(
   let graded = 0;
   let parlaysGraded = 0;
   let skippedByReason = emptySkipCounts();
+  const attemptedPlayIds = new Set<string>();
 
   for (let round = 0; round < MAX_GRADE_ROUNDS; round++) {
     const roundResult = await autoGradePendingRound(
@@ -781,13 +802,15 @@ export async function autoGradePending(
       now,
       boxCache,
       fixtureCache,
+      attemptedPlayIds,
     );
     graded += roundResult.graded;
     parlaysGraded += roundResult.parlaysGraded;
-    skippedByReason = roundResult.skippedByReason;
-
-    const roundTotal = roundResult.graded + roundResult.parlaysGraded;
-    if (roundTotal === 0) break;
+    skippedByReason = mergeSkipCounts(
+      skippedByReason,
+      roundResult.skippedByReason,
+    );
+    roundResult.targetIds.forEach((id) => attemptedPlayIds.add(id));
 
     console.info("[auto-grade] round complete", {
       round: round + 1,
@@ -795,6 +818,10 @@ export async function autoGradePending(
       parlaysGraded: roundResult.parlaysGraded,
       skippedByReason: roundResult.skippedByReason,
     });
+
+    if (roundResult.targetIds.length === 0 && roundResult.parlaysGraded === 0) {
+      break;
+    }
   }
 
   const skipped = Object.values(skippedByReason).reduce((a, b) => a + b, 0);
@@ -812,18 +839,37 @@ async function autoGradePendingRound(
   now: Date,
   boxCache: PlayerBoxCache,
   fixtureCache: FixtureCache,
-): Promise<AutoGradeResult> {
+  attemptedPlayIds: ReadonlySet<string>,
+): Promise<GradeRoundResult> {
   // One immutable provider snapshot per round. The old straight/leg passes each
   // fetched independently, so an exhausted key could expose different games to
   // two plays bound to the same event during the very same grader invocation.
-  const targets = await prisma.play.findMany({
-    where: {
-      outcome: "PENDING",
-      OR: [{ eventStartsAt: null }, { eventStartsAt: { lte: now } }],
-    },
-    select: { sport: true, league: true },
-    take: GRADE_BATCH_SIZE * 2,
-  });
+  const excludedIds = [...attemptedPlayIds];
+  const [straightTargets, legTargets] = await Promise.all([
+    prisma.play.findMany({
+      where: {
+        outcome: "PENDING",
+        parlayId: null,
+        ...(excludedIds.length > 0 ? { id: { notIn: excludedIds } } : {}),
+        OR: [{ eventStartsAt: null }, { eventStartsAt: { lte: now } }],
+      },
+      select: { id: true, sport: true, league: true },
+      orderBy: [{ eventStartsAt: "asc" }, { createdAt: "asc" }],
+      take: GRADE_BATCH_SIZE,
+    }),
+    prisma.play.findMany({
+      where: {
+        outcome: "PENDING",
+        parlayId: { not: null },
+        ...(excludedIds.length > 0 ? { id: { notIn: excludedIds } } : {}),
+        OR: [{ eventStartsAt: null }, { eventStartsAt: { lte: now } }],
+      },
+      select: { id: true, sport: true, league: true },
+      orderBy: [{ eventStartsAt: "asc" }, { createdAt: "asc" }],
+      take: GRADE_BATCH_SIZE,
+    }),
+  ]);
+  const targets = [...straightTargets, ...legTargets];
   const sports = [...new Set(targets.map((play) => play.sport))];
   const games = sports.length
     ? await provider.fetchSettledForSports(
@@ -838,6 +884,7 @@ async function autoGradePendingRound(
     boxCache,
     fixtureCache,
     games,
+    straightTargets.map((play) => play.id),
   );
   const legs = await gradeParlayLegs(
     provider,
@@ -845,6 +892,7 @@ async function autoGradePendingRound(
     boxCache,
     fixtureCache,
     games,
+    legTargets.map((play) => play.id),
   );
   const parlaysGraded = await gradePendingParlays();
   const skippedByReason = mergeSkipCounts(
@@ -858,5 +906,6 @@ async function autoGradePendingRound(
     skippedByReason,
     parlaysGraded,
     provider: provider.name,
+    targetIds: targets.map((play) => play.id),
   };
 }

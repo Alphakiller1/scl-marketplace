@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { autoGradePending } from "@/lib/results/auto-grade";
 import {
-  getGradingResultsProvider,
+  getResultsProvider,
   ResultsProviderUnavailable,
 } from "@/lib/results/provider";
 import { requireAdmin } from "@/lib/session";
@@ -20,7 +20,7 @@ type AutoGradeActionResult =
 export async function runAutoGradeAction(): Promise<AutoGradeActionResult> {
   await requireAdmin();
   try {
-    const result = await autoGradePending(getGradingResultsProvider());
+    const result = await autoGradePending(getResultsProvider());
     revalidatePath("/admin/grading");
     revalidatePath("/dashboard");
     return { ok: true, ...result };

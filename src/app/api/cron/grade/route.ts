@@ -4,7 +4,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getGradingHealthReport } from "@/lib/grading-health";
 import { autoGradePending } from "@/lib/results/auto-grade";
-import { getGradingResultsProvider } from "@/lib/results/provider";
+import { getResultsProvider } from "@/lib/results/provider";
 import {
   listAgedOutPendingPlays,
   listOverduePendingPlays,
@@ -87,7 +87,7 @@ async function runGrade(req: NextRequest) {
   });
 
   try {
-    const result = await autoGradePending(getGradingResultsProvider());
+    const result = await autoGradePending(getResultsProvider());
     const health = await getGradingHealthReport();
 
     const stuckPlays =

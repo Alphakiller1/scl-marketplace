@@ -47,7 +47,7 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
   assert.match(route, /status: gradeOk \? "SUCCESS" : "FAILED"/);
   assert.match(route, /revalidateTag\("leaderboard", \{ expire: 0 \}\)/);
   assert.match(route, /revalidatePath\("\/cappers\/\[handle\]", "page"\)/);
-  assert.match(route, /getGradingResultsProvider/);
+  assert.match(route, /getResultsProvider/);
   assert.doesNotMatch(route, /snapshotClosingOdds/);
   assert.doesNotMatch(route, /odds-coverage-report/);
   assert.match(health, /pendingPastExpectedFinal/);
@@ -61,8 +61,7 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
     "utf8",
   );
   assert.match(grader, /MAX_GRADE_ROUNDS/);
-  assert.match(grader, /clvPtsForGrade/);
-  assert.doesNotMatch(grader, /ensureClosingAndClv/);
+  assert.match(grader, /ensureClosingAndClv/);
   assert.match(grader, /loadOddsEventIdentity/);
   assert.match(grader, /recoverFixtureFromIdentity/);
   assert.match(grader, /recoverFixtureFromSelections/);

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { profitUnitsEqual } from "@/lib/grading-correction";
 import { profitUnitsForOutcome } from "@/lib/odds";
 import { prisma } from "@/lib/prisma";
-import { clvPtsForGrade } from "@/lib/results/closing-snapshot";
+import { ensureClosingAndClv } from "@/lib/results/closing-snapshot";
 import { hasClvColumns } from "@/lib/results/schema-features";
 import {
   gradePlaySchema,
@@ -20,7 +20,7 @@ type GradeResult = { ok: true } | { ok: false; error: string };
  * Profit is derived from the play's odds + units; every change is written to the
  * append-only GradingAudit with a required reason. Parlay legs are graded via the
  * parlay flow, not here, so leg P/L never double-counts against the parent.
- * CLV is written only when a closing line was already captured by the odds cron.
+ * CLV uses the captured close or makes one last capture attempt before grading.
  */
 export async function gradePlayAction(
   input: GradePlayInput,
@@ -111,9 +111,20 @@ export async function gradePlayAction(
           .closingOddsAmerican ?? null)
       : null;
 
-  const clvPts = clvReady
-    ? clvPtsForGrade(play.oddsAmerican, existingClose)
-    : null;
+  const clv = clvReady
+    ? await ensureClosingAndClv({
+        id: play.id,
+        sport: play.sport,
+        eventId: play.eventId,
+        book: play.book,
+        market: play.market,
+        side: play.side,
+        line: play.line,
+        league: play.league,
+        oddsAmerican: play.oddsAmerican,
+        closingOddsAmerican: existingClose,
+      })
+    : { closingOddsAmerican: null, clvPts: null };
 
   const applied = await prisma.$transaction(async (tx) => {
     const fresh = await tx.play.findUnique({
@@ -136,7 +147,13 @@ export async function gradePlayAction(
         outcome,
         profitUnits,
         gradedAt: new Date(),
-        ...(clvPts != null ? { clvPts } : {}),
+        ...(clv.clvPts != null ? { clvPts: clv.clvPts } : {}),
+        ...(clv.closingOddsAmerican != null && existingClose == null
+          ? {
+              closingOddsAmerican: clv.closingOddsAmerican,
+              closingCapturedAt: new Date(),
+            }
+          : {}),
       },
       select: { id: true },
     });
