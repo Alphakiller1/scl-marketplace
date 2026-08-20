@@ -92,10 +92,25 @@ test("a short key holds MLB credits so today's WNBA expanded board still fits", 
   const mlbCost = expandedEventCreditCost("MLB");
   assert.ok(mlbCost > 0);
   assert.ok(wnbaCost > 0);
-  const later = laterExpandedCreditReserve([{ sport: "WNBA", events: 2 }]);
+  const later = laterExpandedCreditReserve([
+    { sport: "WNBA", billableEvents: 2 },
+  ]);
   assert.equal(later, wnbaCost * 2);
   assert.equal(shouldHoldCreditsForLater(100, mlbCost, later, 25), true);
   assert.equal(shouldHoldCreditsForLater(400, mlbCost, later, 25), false);
   assert.equal(shouldHoldCreditsForLater(null, mlbCost, later, 25), false);
   assert.equal(shouldHoldCreditsForLater(40, mlbCost, 0, 25), false);
+});
+
+test("later reserve excludes expanded boards already covered by cache", () => {
+  const wnbaCost = expandedEventCreditCost("WNBA");
+  const mlbCost = expandedEventCreditCost("MLB");
+  const later = laterExpandedCreditReserve([
+    { sport: "WNBA", billableEvents: 1 },
+  ]);
+  assert.equal(later, wnbaCost);
+  assert.equal(
+    shouldHoldCreditsForLater(mlbCost + wnbaCost + 25, mlbCost, later, 25),
+    false,
+  );
 });

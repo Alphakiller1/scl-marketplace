@@ -103,10 +103,10 @@ export function parseExpandedSportOrder(
 }
 
 export function laterExpandedCreditReserve(
-  later: readonly { sport: string; events: number }[],
+  later: readonly { sport: string; billableEvents: number }[],
 ): number {
   return later.reduce(
-    (sum, row) => sum + row.events * expandedEventCreditCost(row.sport),
+    (sum, row) => sum + row.billableEvents * expandedEventCreditCost(row.sport),
     0,
   );
 }

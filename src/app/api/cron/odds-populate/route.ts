@@ -11,6 +11,7 @@ import {
 import {
   loadCachedEventBoard,
   loadEventBoard,
+  type CachedEventBoard,
 } from "@/lib/odds-event-board-cache";
 import { summarizeEventMarketCoverage } from "@/lib/odds-market-coverage";
 import {
@@ -53,6 +54,14 @@ type ExpandedRow = {
   selections: number;
   stale: number;
 };
+type CachedExpandedEvent = {
+  board: CachedEventBoard;
+  fullyCovered: boolean;
+};
+
+function expandedEventKey(sport: string, eventId: string): string {
+  return `${sport}:${eventId}`;
+}
 
 async function loadSurface(
   sport: string,
@@ -139,12 +148,34 @@ async function populate(req: NextRequest) {
         expandedDays,
       ).slice(0, expandedLimit),
     }));
+    const cachedExpandedEvents = new Map<string, CachedExpandedEvent>();
+    if (skipPopulated) {
+      for (const { sport, events } of slates) {
+        for (const event of events) {
+          const board = await loadCachedEventBoard(sport, event.id);
+          const coverage = summarizeEventMarketCoverage(
+            event,
+            board.selections,
+            board.source,
+            board.stale,
+          );
+          cachedExpandedEvents.set(expandedEventKey(sport, event.id), {
+            board,
+            fullyCovered: coverage.fullyCovered,
+          });
+        }
+      }
+    }
     for (let index = 0; index < slates.length; index += 1) {
       const { sport, events } = slates[index]!;
       const laterCredits = laterExpandedCreditReserve(
         slates.slice(index + 1).map((row) => ({
           sport: row.sport,
-          events: row.events.length,
+          billableEvents: row.events.filter(
+            (event) =>
+              !cachedExpandedEvents.get(expandedEventKey(row.sport, event.id))
+                ?.fullyCovered,
+          ).length,
         })),
       );
       const nextCost = expandedEventCreditCost(sport);
@@ -155,21 +186,15 @@ async function populate(req: NextRequest) {
       let selections = 0;
       let stale = 0;
       for (const event of events) {
-        if (skipPopulated) {
-          const cached = await loadCachedEventBoard(sport, event.id);
-          const coverage = summarizeEventMarketCoverage(
-            event,
-            cached.selections,
-            cached.source,
-            cached.stale,
-          );
-          if (coverage.fullyCovered) {
-            skipped += 1;
-            populated += 1;
-            selections += cached.selections.length;
-            if (cached.stale) stale += 1;
-            continue;
-          }
+        const cached = cachedExpandedEvents.get(
+          expandedEventKey(sport, event.id),
+        );
+        if (cached?.fullyCovered) {
+          skipped += 1;
+          populated += 1;
+          selections += cached.board.selections.length;
+          if (cached.board.stale) stale += 1;
+          continue;
         }
         if (
           shouldHoldCreditsForLater(
