@@ -321,3 +321,42 @@ test("the tennis guard does not affect other sports' spreads", () => {
   };
   assert.equal(resolveOutcome(mlbSpread, [TT_GAME]), "LOSS");
 });
+
+test("draw/tie selections grade on soccer 3-way moneylines", () => {
+  const drawGame: SettledGame[] = [
+    {
+      sport: "SOCCER",
+      home: "Arsenal",
+      away: "Chelsea",
+      homeScore: 1,
+      awayScore: 1,
+      completed: true,
+      eventId: "soc-1",
+    },
+  ];
+  const drawPick: GradablePlay = {
+    id: "draw",
+    sport: "SOCCER",
+    market: "Moneyline",
+    selection: "Draw",
+    oddsAmerican: 240,
+    units: 1,
+    eventId: "soc-1",
+    homeTeam: "Arsenal",
+    awayTeam: "Chelsea",
+  };
+  const homePick: GradablePlay = {
+    id: "home",
+    sport: "SOCCER",
+    market: "Moneyline",
+    selection: "Arsenal",
+    oddsAmerican: -120,
+    units: 1,
+    eventId: "soc-1",
+    homeTeam: "Arsenal",
+    awayTeam: "Chelsea",
+  };
+
+  assert.equal(resolveOutcome(drawPick, drawGame), "WIN");
+  assert.equal(resolveOutcome(homePick, drawGame), "LOSS");
+});

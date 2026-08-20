@@ -51,11 +51,8 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
   assert.doesNotMatch(route, /snapshotClosingOdds/);
   assert.doesNotMatch(route, /odds-coverage-report/);
   assert.match(health, /pendingPastExpectedFinal/);
-  // Cut from every 15 minutes to every 3 hours (owner request) — each run hits
-  // the metered scores endpoints, so cadence here is a real bill. Still pinned
-  // so the cadence cannot drift silently, and still a SCHEDULE: the grader must
-  // never be fully paused, or settled plays sit PENDING on a public record.
-  assert.match(workflow, /- cron: "7 \*\/3 \* \* \*"/);
+  // Every 30 minutes — pinned so automatic grading cannot drift to a slower cadence.
+  assert.match(workflow, /- cron: "7,37 \* \* \* \*"/);
   assert.match(workflow, /--retry 3/);
   assert.match(workflow, /overduePending/);
 
@@ -63,6 +60,7 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
     path.join(root, "src/lib/results/auto-grade.ts"),
     "utf8",
   );
+  assert.match(grader, /MAX_GRADE_ROUNDS/);
   assert.match(grader, /clvPtsForGrade/);
   assert.doesNotMatch(grader, /ensureClosingAndClv/);
   assert.match(grader, /loadOddsEventIdentity/);

@@ -53,7 +53,7 @@ export default async function AdminGradingPage() {
           <SectionHeader
             icon={History}
             title="Pipeline diagnostics"
-            subtitle="Cron health, lookback cliff, and schema patch status"
+            subtitle="Grades run automatically every 30 minutes via GitHub Actions; use Run now only to force an immediate pass"
           />
           <AutoGradeButton />
         </div>

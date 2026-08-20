@@ -6,17 +6,9 @@ name: Grade pending picks
 
 on:
   schedule:
-    # Cut from every 15 minutes (96 runs a day) to every 3 hours on owner
-    # request to bring the provider bill down. Each run calls the scores
-    # endpoints, so cadence here is a real cost, not just noise.
-    #
-    # DELIBERATELY REDUCED RATHER THAN PAUSED. A full stop is one instruction
-    # away from the problem this repo exists to prevent: nothing grades, and
-    # settled plays sit PENDING on a public "verified record" until someone
-    # notices. Eight runs a day still settles a game within three hours of its
-    # final, which is well inside the sport-specific expected-final windows.
-    # Avoid GitHub's heavily delayed quarter-hour queue boundaries.
-    - cron: "7 */3 * * *"
+    # Every 30 minutes — automatic grading must not wait hours after final.
+    # Grading uses free backstop score feeds (not metered Odds API pricing).
+    - cron: "7,37 * * * *"
   workflow_dispatch:
 
 concurrency:
