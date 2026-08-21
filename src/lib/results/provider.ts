@@ -9,6 +9,7 @@ import {
   toSclSport,
 } from "@/lib/odds-api";
 import { espnHistoricalResultsProvider } from "@/lib/results/espn-scores";
+import { cflCaResultsProvider } from "@/lib/results/cfl-ca-scores";
 import { mlbOfficialResultsProvider } from "@/lib/results/mlb-official";
 import { sportsPuffResultsProvider } from "@/lib/results/sportspuff-scores";
 import { wnbaOfficialResultsProvider } from "@/lib/results/wnba-official";
@@ -333,11 +334,11 @@ export function compositeResultsProvider(
  * Sports whose free scoreboards cannot cover the whole board. Grading uses the
  * Odds API **scores** endpoint only — never pricing / expanded boards.
  *
- * ESPN now maps UFC cards (14d). Odds API still owns PFL/Bellator and the
- * event-id join for board-bound MMA within 3 days. Tennis has no ESPN path.
- * Dropping this layer (PR #550) left every UFC moneyline PENDING forever.
+ * ESPN maps UFC cards (14d) but not PFL/Bellator. Tennis has no ESPN path.
+ * ESPN's CFL calendar is stale; Odds API covers 3 days and CFL.ca covers the
+ * season. Dropping this layer (PR #550) left every UFC moneyline PENDING forever.
  */
-export const ODDS_SCORES_ONLY_SPORTS = ["MMA", "TENNIS"] as const;
+export const ODDS_SCORES_ONLY_SPORTS = ["MMA", "TENNIS", "CFL"] as const;
 
 /** Restrict a results provider to a fixed sport allowlist. */
 export function scoresProviderForSports(
@@ -373,12 +374,13 @@ function independentScoreBackstops(): ResultsProvider {
     officialPlanC,
     sportsPuffResultsProvider(),
   );
-  return compositeResultsProvider(espn, planC);
+  const withCfl = compositeResultsProvider(planC, cflCaResultsProvider());
+  return compositeResultsProvider(espn, withCfl);
 }
 
 /**
  * ESPN + official league feeds for mainstream sports, plus Odds API scores for
- * MMA/TENNIS where no free backstop exists.
+ * MMA/TENNIS/CFL where no working free backstop exists.
  *
  * Grading must stay up when the odds board burns quota on **pricing** fetches.
  * Closing-line capture and CLV backfill run on `/api/cron/odds-refresh` instead.

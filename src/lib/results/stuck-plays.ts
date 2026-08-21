@@ -3,6 +3,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { isAgedOut } from "@/lib/results/skip-reason";
 import { expectedFinalAt } from "@/lib/results/grading-window";
+import { isAutoGradeBlocked } from "@/lib/results/match";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 
 export type StuckPlayRow = {
@@ -105,6 +106,7 @@ export async function listOverduePendingPlays(
     .filter(
       (play) =>
         play.eventStartsAt != null &&
+        !isAutoGradeBlocked(play) &&
         expectedFinalAt(play.sport, play.eventStartsAt) <= now,
     )
     .slice(0, take)

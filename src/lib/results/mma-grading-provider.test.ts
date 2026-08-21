@@ -16,7 +16,10 @@ const match = read("src/lib/results/match.ts");
 const grader = read("src/lib/results/auto-grade.ts");
 
 test("production grader fetches Odds API scores for MMA/UFC", () => {
-  assert.match(provider, /ODDS_SCORES_ONLY_SPORTS = \["MMA", "TENNIS"\]/);
+  assert.match(
+    provider,
+    /ODDS_SCORES_ONLY_SPORTS = \["MMA", "TENNIS", "CFL"\]/,
+  );
   assert.match(provider, /oddsApiResultsProvider\(\)/);
   assert.match(
     provider,
@@ -47,4 +50,18 @@ test("ESPN scoreboard covers UFC cards for the 14-day cliff", () => {
   assert.match(mapper, /winner\?: boolean/);
   assert.match(mapper, /for \(const comp of competitions\)/);
   assert.match(match, /MMA_FIXTURE_WINDOW_MS = 12 \* 60 \* 60 \* 1000/);
+});
+
+test("CFL scores come from Odds API and the CFL.ca schedule backstop", () => {
+  assert.match(provider, /"CFL"/);
+  assert.match(provider, /cflCaResultsProvider\(\)/);
+  assert.match(espn, /CFL: \{ sport: "football", league: "cfl" \}/);
+});
+
+test("cron health does not treat never-gradable tennis markets as an outage", () => {
+  const health = read("src/lib/grading-health.ts");
+  const stuck = read("src/lib/results/stuck-plays.ts");
+  assert.match(health, /isAutoGradeBlocked/);
+  assert.match(stuck, /isAutoGradeBlocked/);
+  assert.match(match, /export function isAutoGradeBlocked/);
 });

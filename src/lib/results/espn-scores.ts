@@ -25,6 +25,8 @@ const ESPN_SPORT_PATH: Record<string, { sport: string; league: string }> = {
   MLB: { sport: "baseball", league: "mlb" },
   NHL: { sport: "hockey", league: "nhl" },
   WNBA: { sport: "basketball", league: "wnba" },
+  // ESPN's CFL calendar is stale (dated fetches empty). Cron scores CFL via
+  // Odds API; this path is kept so a live card still maps if ESPN ever updates.
   CFL: { sport: "football", league: "cfl" },
   MMA: { sport: "mma", league: "ufc" },
 };
