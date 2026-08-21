@@ -16,6 +16,9 @@ test("upload action upserts CapperProfile and respects the verification gate pol
     /accountStatus !== "ACTIVE" \|\| !account\.emailVerified/,
     "upload must not block all unverified accounts when the verify gate is off",
   );
+  assert.match(source, /revalidateTag\("leaderboard"/);
+  assert.match(source, /revalidatePath\("\/discover"\)/);
+  assert.match(source, /revalidatePath\("\/cappers\/\[handle\]"/);
 });
 
 test("profile media editor accepts HEIC in the file picker", () => {

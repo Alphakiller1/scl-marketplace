@@ -29,6 +29,7 @@ test("commerce writes bust leaderboard tag and profile ISR", () => {
 
   assert.match(helper, /revalidateTag\("leaderboard"/);
   assert.match(helper, /revalidatePath\("\/cappers\/\[handle\]"/);
+  assert.doesNotMatch(helper, /revalidatePath\("\/admin\/packages"\)/);
   assert.match(storeAction, /revalidateCommerceSurfaces/);
   assert.match(webhook, /revalidateCommerceSurfaces/);
   assert.match(cron, /revalidateCommerceSurfaces/);
