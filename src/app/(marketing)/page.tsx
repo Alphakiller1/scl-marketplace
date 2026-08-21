@@ -100,8 +100,6 @@ async function HomeHero() {
   const { cappers, failed } = await getLeaderboardResult({
     verifiedOnly: false,
     window: "90d",
-    sort: "roi",
-    direction: "desc",
   });
   const snapshot = sortLeaderboard(cappers, "roi")
     .slice(0, 10)

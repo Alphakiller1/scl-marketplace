@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { emailVerificationEnforced } from "@/lib/email-verification-policy";
@@ -118,6 +118,9 @@ export async function uploadProfileMediaAction(
   revalidatePath("/dashboard/profile");
   revalidatePath("/cappers");
   revalidatePath("/leaderboard");
+  revalidatePath("/discover");
+  revalidateTag("leaderboard", { expire: 0 });
+  revalidatePath("/cappers/[handle]", "page");
   if (profile.user.username) {
     revalidatePath(`/cappers/${profile.user.username}`);
   }

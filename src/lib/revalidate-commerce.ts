@@ -17,7 +17,6 @@ export function revalidateCommerceSurfaces(input?: {
 
   revalidatePath("/dashboard/monetization");
   revalidatePath("/admin/store-setup");
-  revalidatePath("/admin/packages");
   revalidatePath("/admin/cappers");
   revalidatePath("/packages");
   revalidatePath("/leaderboard");
