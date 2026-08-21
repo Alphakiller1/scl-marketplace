@@ -685,6 +685,7 @@ export async function getCapperPackagesForReview(capperId: string) {
       isActive: pkg.isActive,
       sortOrder: pkg.sortOrder,
       hasCheckoutUrl: Boolean(pkg.checkoutUrl),
+      checkoutUrl: pkg.checkoutUrl,
       // Falls back to the connection's provider: a carried-over offer records
       // the provider on the package itself and has no connection.
       provider: pkg.affiliateProvider ?? pkg.storeConnection?.provider ?? null,
