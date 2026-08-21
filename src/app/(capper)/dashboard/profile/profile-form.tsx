@@ -220,8 +220,12 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
                 </span>
                 <Input
                   id="username"
-                  autoComplete="username"
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  autoCorrect="off"
                   spellCheck={false}
+                  data-1p-ignore
+                  data-lpignore="true"
                   className="pl-7"
                   placeholder="your_username"
                   {...register("username")}
