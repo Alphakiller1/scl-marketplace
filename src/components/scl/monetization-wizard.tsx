@@ -18,6 +18,7 @@ import {
   SCL_AFFILIATE_EMAIL,
   SCL_WHOP_AFFILIATE_COMMISSION,
   SCL_WHOP_AFFILIATE_PAGE_URL,
+  SCL_WHOP_AFFILIATE_USERNAME,
   WHOP_CAPPER_REFERRAL_URL,
   WINIBLE_CAPPER_REFERRAL_URL,
   WINIBLE_INVITE_VALUES,
@@ -496,15 +497,63 @@ export function MonetizationWizard({
               <ol className="space-y-3">
                 <li className="border-border rounded-lg border p-3">
                   <p className="font-semibold">
-                    1. Add SCL as an affiliate on Whop
+                    1. Open Affiliates in your Whop dashboard
                   </p>
                   <p className="text-muted-foreground mt-1">
-                    Open the Sports Cappers Leaderboard page on Whop and add us
-                    as an affiliate using <strong>{SCL_AFFILIATE_EMAIL}</strong>
-                    . You do not need to search — this button goes straight to
-                    SCL.
+                    From your own Whop business dashboard, go to{" "}
+                    <strong>Marketing → Affiliates</strong>.
                   </p>
+                  <StepShot
+                    src="/whop-steps/1-affiliates-tab.png"
+                    alt="Whop dashboard side menu with Affiliates highlighted under Marketing"
+                  />
+                </li>
+                <li className="border-border rounded-lg border p-3">
+                  <p className="font-semibold">2. Set SCL as an affiliate</p>
+                  <p className="text-muted-foreground mt-1">
+                    On the Affiliates page, choose{" "}
+                    <strong>
+                      Set an affiliate commission for a specific user
+                    </strong>
+                    — not the per-product option above it.
+                  </p>
+                  <StepShot
+                    src="/whop-steps/2-specific-user.png"
+                    alt="Whop Affiliates page with the option to set an affiliate commission for a specific user highlighted"
+                  />
+                </li>
+                <li className="border-border rounded-lg border p-3">
+                  <p className="font-semibold">3. Set the SCL commission</p>
+                  <p className="text-muted-foreground mt-1">
+                    Enter <strong>{SCL_AFFILIATE_EMAIL}</strong> as the user,
+                    set the reward to{" "}
+                    <strong>{SCL_WHOP_AFFILIATE_COMMISSION.percent}%</strong>{" "}
+                    with <strong>Percent</strong> selected (not a flat amount),
+                    and choose{" "}
+                    <strong>
+                      {SCL_WHOP_AFFILIATE_COMMISSION.duration} payments
+                    </strong>{" "}
+                    (not First Payment Only). Leave{" "}
+                    <strong>Only allow referring to these products</strong>{" "}
+                    blank so SCL can promote all eligible packages — naming
+                    products there limits SCL to just those. Then click{" "}
+                    <strong>Invite</strong>.
+                  </p>
+                  <StepShot
+                    src="/whop-steps/3-invite-form.png"
+                    alt="Whop Invite affiliate form filled with SCL's email, a 35 percent reward, Recurring payments, and the product filter left blank"
+                  />
                   <div className="mt-2 flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-10"
+                      onClick={copyAffiliateEmail}
+                    >
+                      {copiedAffiliateEmail
+                        ? "Copied"
+                        : "Copy SCL affiliate email"}
+                    </Button>
                     <Button
                       variant="outline"
                       className="min-h-10"
@@ -520,20 +569,18 @@ export function MonetizationWizard({
                       Open Sports Cappers Leaderboard on Whop
                       <ExternalLink className="size-4" />
                     </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="min-h-10"
-                      onClick={copyAffiliateEmail}
-                    >
-                      {copiedAffiliateEmail
-                        ? "Copied"
-                        : "Copy SCL affiliate email"}
-                    </Button>
                   </div>
+                  <p className="text-muted-foreground mt-2 text-xs">
+                    Whop accepts an email, Whop username, or user ID. SCL&apos;s
+                    are <strong>{SCL_AFFILIATE_EMAIL}</strong> and{" "}
+                    <strong>{SCL_WHOP_AFFILIATE_USERNAME}</strong> — the
+                    username is not the same as the address of SCL&apos;s Whop
+                    storefront. Want to confirm it&apos;s us before granting a
+                    commission? Open SCL on Whop first.
+                  </p>
                 </li>
                 <li className="border-border rounded-lg border p-3">
-                  <p className="font-semibold">2. Connect SCL to your Whop</p>
+                  <p className="font-semibold">4. Connect SCL to your Whop</p>
                   <p className="text-muted-foreground mt-1">
                     Connect SCL to your Whop storefront so we can sync your
                     packages and publish the approved ones on your SCL profile.
@@ -555,21 +602,6 @@ export function MonetizationWizard({
                     Connect SCL to Whop
                     <ExternalLink className="size-4" />
                   </Button>
-                </li>
-                <li className="border-border rounded-lg border p-3">
-                  <p className="font-semibold">
-                    3. Select {SCL_WHOP_AFFILIATE_COMMISSION.percent}% recurring
-                    commissions
-                  </p>
-                  <p className="text-muted-foreground mt-1">
-                    Set the commission to{" "}
-                    <strong>
-                      {SCL_WHOP_AFFILIATE_COMMISSION.percent}%{" "}
-                      {SCL_WHOP_AFFILIATE_COMMISSION.duration}
-                    </strong>{" "}
-                    (not First Payment Only) before submitting the affiliate
-                    request.
-                  </p>
                 </li>
               </ol>
             </div>

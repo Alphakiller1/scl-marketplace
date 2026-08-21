@@ -49,6 +49,7 @@ export function providerLabel(provider: StoreProvider): string {
 
 export {
   isWhopCheckoutUrl,
+  isWhopCreatorReferralUrl,
   whopAffiliateParamIssues,
 } from "@/lib/whop-affiliate";
 export {
