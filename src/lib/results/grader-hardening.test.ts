@@ -46,6 +46,7 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
   assert.match(provider, /scoresProviderForSports/);
   assert.match(provider, /"MMA"/);
   assert.match(provider, /"TENNIS"/);
+  assert.match(provider, /"CFL"/);
   assert.match(route, /Recovered stale RUNNING grader lock/);
   assert.match(route, /listOverduePendingPlays/);
   assert.match(route, /status: gradeOk \? 200 : 503/);
@@ -56,6 +57,7 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
   assert.doesNotMatch(route, /snapshotClosingOdds/);
   assert.doesNotMatch(route, /odds-coverage-report/);
   assert.match(health, /pendingPastExpectedFinal/);
+  assert.match(health, /isAutoGradeBlocked/);
   // Every 30 minutes — pinned so automatic grading cannot drift to a slower cadence.
   assert.match(workflow, /- cron: "7,37 \* \* \* \*"/);
   assert.match(workflow, /types: \[grade-pending\]/);

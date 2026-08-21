@@ -333,11 +333,12 @@ export function compositeResultsProvider(
  * Sports whose free scoreboards cannot cover the whole board. Grading uses the
  * Odds API **scores** endpoint only — never pricing / expanded boards.
  *
- * ESPN now maps UFC cards (14d). Odds API still owns PFL/Bellator and the
- * event-id join for board-bound MMA within 3 days. Tennis has no ESPN path.
+ * ESPN maps UFC cards (14d) but not PFL/Bellator. Tennis has no ESPN path.
+ * ESPN's CFL scoreboard is a stale 2022 Grey Cup and dated fetches return
+ * nothing, so CFL moneylines/spreads also need Odds API scores.
  * Dropping this layer (PR #550) left every UFC moneyline PENDING forever.
  */
-export const ODDS_SCORES_ONLY_SPORTS = ["MMA", "TENNIS"] as const;
+export const ODDS_SCORES_ONLY_SPORTS = ["MMA", "TENNIS", "CFL"] as const;
 
 /** Restrict a results provider to a fixed sport allowlist. */
 export function scoresProviderForSports(
@@ -378,7 +379,7 @@ function independentScoreBackstops(): ResultsProvider {
 
 /**
  * ESPN + official league feeds for mainstream sports, plus Odds API scores for
- * MMA/TENNIS where no free backstop exists.
+ * MMA/TENNIS/CFL where no working free backstop exists.
  *
  * Grading must stay up when the odds board burns quota on **pricing** fetches.
  * Closing-line capture and CLV backfill run on `/api/cron/odds-refresh` instead.

@@ -9,6 +9,7 @@ import {
   RESULTS_LOOKBACK_DAYS,
 } from "@/lib/results/lookback";
 import { expectedFinalAt } from "@/lib/results/grading-window";
+import { isAutoGradeBlocked } from "@/lib/results/match";
 
 /** Pending past this lag → pipeline UNHEALTHY (Task A). */
 const UNHEALTHY_PENDING_HOURS = 24;
@@ -89,7 +90,7 @@ export async function getGradingHealthReport(
     () =>
       prisma.play.findMany({
         where: baseWhere,
-        select: { sport: true, eventStartsAt: true },
+        select: { sport: true, market: true, eventStartsAt: true },
         orderBy: { eventStartsAt: "asc" as const },
         take: 1_000,
       }),
@@ -98,6 +99,7 @@ export async function getGradingHealthReport(
   const pendingPastExpectedFinal = pendingCandidates.filter(
     (play) =>
       play.eventStartsAt != null &&
+      !isAutoGradeBlocked(play) &&
       expectedFinalAt(play.sport, play.eventStartsAt) <= now,
   ).length;
 

@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import {
   findGame,
+  isAutoGradeBlocked,
   isDeferredProp,
   resolveOutcome,
   type GradablePlay,
@@ -298,6 +299,15 @@ test("a tennis games spread defers rather than settling against set scores", () 
     resolveOutcome(tennisPlay("Spread", "Iga Swiatek -7.5"), [TENNIS_MATCH]),
     null,
   );
+  assert.equal(
+    isAutoGradeBlocked(tennisPlay("Spread", "Iga Swiatek -7.5")),
+    true,
+  );
+  assert.equal(
+    isAutoGradeBlocked(tennisPlay("Moneyline", "Iga Swiatek")),
+    false,
+  );
+  assert.equal(isAutoGradeBlocked({ sport: "CFL", market: "Spread" }), false);
 });
 
 test("a tennis total defers for the same reason", () => {
