@@ -18,12 +18,21 @@ export const authConfig = {
   providers: [],
   callbacks: {
     // Route protection lives in middleware.ts; keep this minimal/edge-safe.
-    jwt({ token, user }) {
+    jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id as string;
         token.role = user.role;
         token.accountStatus = user.accountStatus;
         token.emailVerified = user.emailVerified ?? null;
+      }
+      // Profile save calls `unstable_update({ user: { name } })`. Without this
+      // copy, the JWT keeps the handle from login and the dashboard/header
+      // look like the username never changed.
+      if (trigger === "update") {
+        const name = session?.user?.name;
+        if (typeof name === "string" && name.trim()) {
+          token.name = name.trim();
+        }
       }
       return token;
     },

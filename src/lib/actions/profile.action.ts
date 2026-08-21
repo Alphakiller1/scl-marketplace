@@ -3,6 +3,7 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath, revalidateTag } from "next/cache";
 
+import { unstable_update } from "@/auth";
 import { HANDLE_TAKEN_MESSAGE } from "@/lib/account-claim";
 import { emailVerificationEnforced } from "@/lib/email-verification-policy";
 import { prisma } from "@/lib/prisma";
@@ -59,21 +60,22 @@ export async function updateProfileAction(
   const previousUsername = current.username?.replace(/^@+/, "").toLowerCase();
   const usernameChanged = nextUsername !== previousUsername;
 
-  if (usernameChanged) {
-    if (isTestHandle(nextUsername)) {
-      return {
-        ok: false,
-        error: "That username is reserved. Choose a different handle.",
-      };
-    }
+  if (isTestHandle(nextUsername) && nextUsername !== previousUsername) {
+    return {
+      ok: false,
+      error: "That username is reserved. Choose a different handle.",
+    };
+  }
 
-    const taken = await prisma.user.findUnique({
-      where: { username: nextUsername },
-      select: { id: true },
-    });
-    if (taken && taken.id !== account.id) {
-      return { ok: false, error: HANDLE_TAKEN_MESSAGE };
-    }
+  const taken = await prisma.user.findFirst({
+    where: {
+      username: { equals: nextUsername, mode: "insensitive" },
+      NOT: { id: account.id },
+    },
+    select: { id: true },
+  });
+  if (taken) {
+    return { ok: false, error: HANDLE_TAKEN_MESSAGE };
   }
 
   const profileData = {
@@ -95,12 +97,13 @@ export async function updateProfileAction(
 
   try {
     await prisma.$transaction(async (tx) => {
-      if (usernameChanged) {
-        await tx.user.update({
-          where: { id: account.id },
-          data: { username: nextUsername },
-        });
-      }
+      // Always persist the canonical handle. Skipping when `usernameChanged`
+      // is false left mixed-case / @-prefixed rows untouched, so Save looked
+      // like a no-op even when the form showed a different value.
+      await tx.user.update({
+        where: { id: account.id },
+        data: { username: nextUsername },
+      });
 
       await tx.capperProfile.upsert({
         where: { userId: account.id },
@@ -134,5 +137,14 @@ export async function updateProfileAction(
     revalidatePath(`/cappers/${previousUsername}`);
   }
   revalidatePath(`/cappers/${nextUsername}`);
+
+  if (current.username !== nextUsername) {
+    try {
+      await unstable_update({ user: { name: nextUsername } });
+    } catch (error) {
+      console.error("[profile] session username update failed:", error);
+    }
+  }
+
   return { ok: true, usernameChanged, username: nextUsername };
 }
