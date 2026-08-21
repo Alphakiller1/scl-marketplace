@@ -36,6 +36,7 @@ export const getCurrentAccount = cache(async () => {
   const account = await prisma.user.findUnique({
     where: { id: user.id },
     select: {
+      username: true,
       role: true,
       accountStatus: true,
       emailVerified: true,
@@ -55,6 +56,15 @@ export const getCurrentAccount = cache(async () => {
 
   return {
     ...user,
+    // Same reasoning as the role below, applied to the handle. `name` is the
+    // username, stamped into the JWT at sign-in and only refreshed by an
+    // `unstable_update` call that no longer exists — Save stopped making it
+    // because writing the session cookie was failing the action after the
+    // handle had already changed. So a capper renamed themselves, saw it stick
+    // in profile settings, and still got "Welcome, <old handle>" on the
+    // dashboard until their next sign-in. Reading it here needs no cookie
+    // write and is correct in every tab, not just the one that saved.
+    name: account.username ?? user.name,
     // Authorize against the LIVE DB role, never the (possibly stale or
     // over-privileged) role baked into the JWT at login. A demotion takes
     // effect immediately — no re-login required — and a bad token can't grant admin.
