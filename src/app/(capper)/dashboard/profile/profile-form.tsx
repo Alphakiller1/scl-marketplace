@@ -219,11 +219,13 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
     } catch {
       if (usernameResult.usernameChanged) {
         toast.success(usernameSavedMessage(usernameResult.username));
-        toast.error("We couldn't save the rest of your profile. Try again.");
+        toast.error(
+          "Username saved, but the rest of the profile did not. Try again.",
+        );
         router.refresh();
         return true;
       }
-      toast.error("We couldn't save your profile. Try again.");
+      toast.error("We couldn't complete the save. Refresh and try again.");
       return false;
     }
   }

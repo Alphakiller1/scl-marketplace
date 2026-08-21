@@ -1,6 +1,5 @@
 "use server";
 
-import { Prisma } from "@prisma/client";
 import { revalidatePath, revalidateTag } from "next/cache";
 
 import { emailsShareInbox } from "@/lib/user-credentials";
@@ -16,6 +15,10 @@ import {
   type HandleOccupant,
   type HandleOccupantCounts,
 } from "@/lib/profile-username";
+import {
+  isUniqueHandleConflict,
+  userFacingProfileSaveError,
+} from "@/lib/profile-save-error";
 import { sclUsernameSchema } from "@/lib/schemas/auth.schema";
 import { profileSchema, type ProfileInput } from "@/lib/schemas/profile.schema";
 import { getCurrentAccount } from "@/lib/session";
@@ -41,34 +44,32 @@ const emptyOccupantCounts: HandleOccupantCounts = {
   storeConnections: 0,
 };
 
-function isUniqueHandleConflict(error: unknown): boolean {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.code === "P2002"
-  );
-}
-
 async function loadProfileEditor(): Promise<
   { ok: true; account: ProfileEditor } | { ok: false; error: string }
 > {
-  const account = await getCurrentAccount();
-  if (!account) return { ok: false, error: "You must be logged in." };
-  if (account.accountStatus !== "ACTIVE") {
-    return {
-      ok: false,
-      error: "Your account must be active before updating your profile.",
-    };
+  try {
+    const account = await getCurrentAccount();
+    if (!account) return { ok: false, error: "You must be logged in." };
+    if (account.accountStatus !== "ACTIVE") {
+      return {
+        ok: false,
+        error: "Your account must be active before updating your profile.",
+      };
+    }
+    if (emailVerificationEnforced() && !account.emailVerified) {
+      return {
+        ok: false,
+        error: "Verify your email before updating your profile.",
+      };
+    }
+    if (!account.legalAcceptance) {
+      return { ok: false, error: "Accept the current terms to continue." };
+    }
+    return { ok: true, account };
+  } catch (error) {
+    console.error("[profile] editor lookup failed:", error);
+    return { ok: false, error: userFacingProfileSaveError(error, "profile") };
   }
-  if (emailVerificationEnforced() && !account.emailVerified) {
-    return {
-      ok: false,
-      error: "Verify your email before updating your profile.",
-    };
-  }
-  if (!account.legalAcceptance) {
-    return { ok: false, error: "Accept the current terms to continue." };
-  }
-  return { ok: true, account };
 }
 
 async function loadOccupantCounts(
@@ -182,10 +183,32 @@ async function persistUsername(
   accountId: string,
   nextUsername: string,
 ): Promise<ProfileResult> {
-  const current = await prisma.user.findUnique({
-    where: { id: accountId },
-    select: { username: true, email: true },
-  });
+  try {
+    return await writeUsername(accountId, nextUsername);
+  } catch (error) {
+    if (isUniqueHandleConflict(error)) {
+      return { ok: false, error: HANDLE_TAKEN_MESSAGE };
+    }
+    console.error("[profile] username save failed:", error);
+    return {
+      ok: false,
+      error: userFacingProfileSaveError(error, "username"),
+    };
+  }
+}
+
+async function writeUsername(
+  accountId: string,
+  nextUsername: string,
+): Promise<ProfileResult> {
+  const current = await withTransientDatabaseRetry(
+    () =>
+      prisma.user.findUnique({
+        where: { id: accountId },
+        select: { username: true, email: true },
+      }),
+    { label: "profile current user lookup" },
+  );
   if (!current) return { ok: false, error: "Account not found." };
 
   const previousUsername = current.username?.replace(/^@+/, "").toLowerCase();
@@ -252,10 +275,10 @@ async function persistUsername(
     if (isUniqueHandleConflict(error)) {
       return { ok: false, error: HANDLE_TAKEN_MESSAGE };
     }
-    console.error("[profile] username save failed:", error);
+    console.error("[profile] username write failed:", error);
     return {
       ok: false,
-      error: "We couldn't save your username. Try again.",
+      error: userFacingProfileSaveError(error, "username"),
     };
   }
 
@@ -306,7 +329,7 @@ export async function updateUsernameAction(
     console.error("[profile] username action failed:", error);
     return {
       ok: false,
-      error: "We couldn't save your username. Try again.",
+      error: userFacingProfileSaveError(error, "username"),
     };
   }
 }
@@ -320,7 +343,7 @@ export async function updateProfileAction(
     console.error("[profile] save failed:", error);
     return {
       ok: false,
-      error: "We couldn't save your profile. Try again.",
+      error: userFacingProfileSaveError(error, "profile"),
     };
   }
 }

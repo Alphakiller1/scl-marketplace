@@ -108,12 +108,25 @@ test("username can be saved without the rest of the profile form", () => {
   const source = read("src/lib/actions/profile.action.ts");
 
   assert.match(source, /export async function updateUsernameAction/);
+  assert.match(source, /userFacingProfileSaveError/);
   assert.match(source, /scheduleProfileRevalidation/);
-  assert.match(source, /We couldn't save your username/);
   assert.match(source, /persistUsername\(/);
   const persistIndex = source.indexOf("async function persistUsername");
   const profileUpsertIndex = source.indexOf("capperProfile.upsert");
   assert.ok(persistIndex > 0 && persistIndex < profileUpsertIndex);
+});
+
+test("username Prisma failures are not hidden behind the generic profile toast", () => {
+  const action = read("src/lib/actions/profile.action.ts");
+  const form = read("src/app/(capper)/dashboard/profile/profile-form.tsx");
+
+  assert.match(action, /userFacingProfileSaveError\(error, "username"\)/);
+  assert.match(action, /userFacingProfileSaveError\(error, "profile"\)/);
+  assert.match(form, /We couldn't complete the save/);
+  assert.doesNotMatch(
+    form,
+    /toast\.error\("We couldn't save your profile\. Try again\."\)/,
+  );
 });
 
 test("profile page remounts the editor from the saved handle", () => {
