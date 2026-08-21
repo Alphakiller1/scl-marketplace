@@ -5,9 +5,16 @@ import { revalidatePath, revalidateTag } from "next/cache";
 
 import { unstable_update } from "@/auth";
 import { HANDLE_TAKEN_MESSAGE } from "@/lib/account-claim";
+import { afterResponse } from "@/lib/after-response";
+import { withTransientDatabaseRetry } from "@/lib/database-retry";
 import { emailVerificationEnforced } from "@/lib/email-verification-policy";
 import { prisma } from "@/lib/prisma";
 import { isTestHandle } from "@/lib/public-eligibility";
+import {
+  decideHandleCollision,
+  parkedReleasedHandle,
+  type HandleOccupant,
+} from "@/lib/profile-username";
 import { profileSchema, type ProfileInput } from "@/lib/schemas/profile.schema";
 import { getCurrentAccount } from "@/lib/session";
 
@@ -17,9 +24,100 @@ type ProfileResult =
 
 const nullify = (v?: string) => (v && v.trim() ? v.trim() : null);
 
+const handleOccupantSelect = {
+  id: true,
+  passwordHash: true,
+  accountStatus: true,
+  capperProfile: {
+    select: {
+      _count: {
+        select: {
+          plays: true,
+          parlays: true,
+          legacyRecords: true,
+          packages: true,
+          storeConnections: true,
+        },
+      },
+    },
+  },
+} as const;
+
+function isUniqueHandleConflict(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002"
+  );
+}
+
+async function findHandleOccupant(
+  username: string,
+  excludeUserId: string,
+): Promise<HandleOccupant | null> {
+  const whereExact = {
+    username,
+    NOT: { id: excludeUserId },
+  };
+  const whereInsensitive = {
+    username: { equals: username, mode: "insensitive" as const },
+    NOT: { id: excludeUserId },
+  };
+
+  try {
+    return await withTransientDatabaseRetry(
+      () =>
+        prisma.user.findFirst({
+          where: whereInsensitive,
+          select: handleOccupantSelect,
+        }),
+      { label: "profile handle occupant lookup" },
+    );
+  } catch (error) {
+    console.error("[profile] insensitive handle lookup failed:", error);
+    return withTransientDatabaseRetry(
+      () =>
+        prisma.user.findFirst({
+          where: whereExact,
+          select: handleOccupantSelect,
+        }),
+      { label: "profile handle occupant fallback lookup" },
+    );
+  }
+}
+
+function revalidateProfileSurfaces(
+  previousUsername: string | undefined,
+  nextUsername: string,
+) {
+  revalidatePath("/dashboard/profile");
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/picks");
+  revalidatePath("/cappers");
+  revalidatePath("/leaderboard");
+  revalidatePath("/discover");
+  revalidateTag("leaderboard", { expire: 0 });
+  revalidatePath("/cappers/[handle]", "page");
+  if (previousUsername) {
+    revalidatePath(`/cappers/${previousUsername}`);
+  }
+  revalidatePath(`/cappers/${nextUsername}`);
+}
+
 export async function updateProfileAction(
   input: ProfileInput,
 ): Promise<ProfileResult> {
+  try {
+    return await saveProfile(input);
+  } catch (error) {
+    console.error("[profile] save failed:", error);
+    return {
+      ok: false,
+      error: "We couldn't save your profile. Try again.",
+    };
+  }
+}
+
+async function saveProfile(input: ProfileInput): Promise<ProfileResult> {
   const account = await getCurrentAccount();
   if (!account) return { ok: false, error: "You must be logged in." };
   if (account.accountStatus !== "ACTIVE") {
@@ -67,15 +165,47 @@ export async function updateProfileAction(
     };
   }
 
-  const taken = await prisma.user.findFirst({
-    where: {
-      username: { equals: nextUsername, mode: "insensitive" },
-      NOT: { id: account.id },
-    },
-    select: { id: true },
-  });
-  if (taken) {
-    return { ok: false, error: HANDLE_TAKEN_MESSAGE };
+  let releaseOccupantId: string | null = null;
+  if (usernameChanged) {
+    const occupant = await findHandleOccupant(nextUsername, account.id);
+    const decision = decideHandleCollision(occupant);
+    if (decision.action === "reject") {
+      return { ok: false, error: decision.error };
+    }
+    if (decision.action === "release") {
+      releaseOccupantId = decision.occupantId;
+    }
+  }
+
+  // Identity write is its own transaction. A CapperProfile column/enum error
+  // must not roll back a handle change — that is what surfaced as
+  // "We couldn't save your profile" when @mtndegwn tried to become @mtndegen.
+  try {
+    await withTransientDatabaseRetry(
+      () =>
+        prisma.$transaction(async (tx) => {
+          if (releaseOccupantId) {
+            await tx.user.update({
+              where: { id: releaseOccupantId },
+              data: { username: parkedReleasedHandle(releaseOccupantId) },
+            });
+          }
+          await tx.user.update({
+            where: { id: account.id },
+            data: { username: nextUsername },
+          });
+        }),
+      { label: "profile username update" },
+    );
+  } catch (error) {
+    if (isUniqueHandleConflict(error)) {
+      return { ok: false, error: HANDLE_TAKEN_MESSAGE };
+    }
+    console.error("[profile] username save failed:", error);
+    return {
+      ok: false,
+      error: "We couldn't save your profile. Try again.",
+    };
   }
 
   const profileData = {
@@ -96,47 +226,32 @@ export async function updateProfileAction(
   };
 
   try {
-    await prisma.$transaction(async (tx) => {
-      // Always persist the canonical handle. Skipping when `usernameChanged`
-      // is false left mixed-case / @-prefixed rows untouched, so Save looked
-      // like a no-op even when the form showed a different value.
-      await tx.user.update({
-        where: { id: account.id },
-        data: { username: nextUsername },
-      });
-
-      await tx.capperProfile.upsert({
-        where: { userId: account.id },
-        create: { userId: account.id, ...profileData },
-        update: profileData,
-      });
-    });
+    await withTransientDatabaseRetry(
+      () =>
+        prisma.capperProfile.upsert({
+          where: { userId: account.id },
+          create: { userId: account.id, ...profileData },
+          update: profileData,
+        }),
+      { label: "profile fields upsert" },
+    );
   } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
-      return { ok: false, error: HANDLE_TAKEN_MESSAGE };
-    }
-    console.error("[profile] save failed:", error);
+    // Handle is already persisted. Tell them that so a refresh shows the new
+    // public URL instead of looking like Save did nothing.
+    console.error("[profile] profile fields save failed:", error);
+    afterResponse(async () => {
+      revalidateProfileSurfaces(previousUsername, nextUsername);
+    });
     return {
-      ok: false,
-      error: "We couldn't save your profile. Try again.",
+      ok: true,
+      usernameChanged,
+      username: nextUsername,
     };
   }
 
-  revalidatePath("/dashboard/profile");
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/picks");
-  revalidatePath("/cappers");
-  revalidatePath("/leaderboard");
-  revalidatePath("/discover");
-  revalidateTag("leaderboard", { expire: 0 });
-  revalidatePath("/cappers/[handle]", "page");
-  if (previousUsername) {
-    revalidatePath(`/cappers/${previousUsername}`);
-  }
-  revalidatePath(`/cappers/${nextUsername}`);
+  afterResponse(async () => {
+    revalidateProfileSurfaces(previousUsername, nextUsername);
+  });
 
   if (current.username !== nextUsername) {
     try {
