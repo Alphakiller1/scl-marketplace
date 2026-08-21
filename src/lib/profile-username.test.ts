@@ -6,6 +6,7 @@ import {
   UNCLAIMED_HANDLE_MESSAGE,
 } from "@/lib/account-claim";
 import {
+  SAME_INBOX_HANDLE_IN_USE,
   decideHandleCollision,
   handleOccupantHasPublicRecord,
   parkedReleasedHandle,
@@ -23,6 +24,7 @@ const emptyCounts: HandleOccupantCounts = {
 
 function occupant(overrides: {
   id?: string;
+  email?: string;
   passwordHash?: string | null;
   accountStatus?: HandleOccupant["accountStatus"];
   capperProfile?: HandleOccupant["capperProfile"];
@@ -34,6 +36,7 @@ function occupant(overrides: {
       : overrides.capperProfile;
   return {
     id: overrides.id ?? "occupant-id",
+    email: overrides.email ?? "other@example.com",
     passwordHash:
       overrides.passwordHash === undefined ? null : overrides.passwordHash,
     accountStatus: overrides.accountStatus ?? "ACTIVE",
@@ -45,7 +48,7 @@ test("a free handle is allowed", () => {
   assert.deepEqual(decideHandleCollision(null), { action: "allow" });
 });
 
-test("a claimed account keeps the handle", () => {
+test("a claimed stranger keeps the handle", () => {
   assert.deepEqual(decideHandleCollision(occupant({ passwordHash: "hash" })), {
     action: "reject",
     error: HANDLE_TAKEN_MESSAGE,
@@ -88,6 +91,33 @@ test("an empty unclaimed stub is released so a live capper can take the handle",
       occupant({ passwordHash: null, capperProfile: null }),
     ),
     { action: "release", occupantId: "occupant-id" },
+  );
+});
+
+test("an empty second signup on the same inbox is released even with a password", () => {
+  assert.deepEqual(
+    decideHandleCollision(
+      occupant({
+        email: "agency+mtndegen@example.com",
+        passwordHash: "hash",
+      }),
+      { currentEmail: "agency@example.com" },
+    ),
+    { action: "release", occupantId: "occupant-id" },
+  );
+});
+
+test("a same-inbox account that already has a record is not overwritten", () => {
+  assert.deepEqual(
+    decideHandleCollision(
+      occupant({
+        email: "agency@example.com",
+        passwordHash: "hash",
+        counts: { plays: 4 },
+      }),
+      { currentEmail: "agency@example.com" },
+    ),
+    { action: "reject", error: SAME_INBOX_HANDLE_IN_USE },
   );
 });
 

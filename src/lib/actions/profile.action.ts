@@ -3,8 +3,8 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath, revalidateTag } from "next/cache";
 
-import { unstable_update } from "@/auth";
-import { HANDLE_TAKEN_MESSAGE } from "@/lib/account-claim";
+import { emailsShareInbox } from "@/lib/user-credentials";
+import { HANDLE_TAKEN_MESSAGE, isUnclaimedAccount } from "@/lib/account-claim";
 import { afterResponse } from "@/lib/after-response";
 import { withTransientDatabaseRetry } from "@/lib/database-retry";
 import { emailVerificationEnforced } from "@/lib/email-verification-policy";
@@ -14,6 +14,7 @@ import {
   decideHandleCollision,
   parkedReleasedHandle,
   type HandleOccupant,
+  type HandleOccupantCounts,
 } from "@/lib/profile-username";
 import { profileSchema, type ProfileInput } from "@/lib/schemas/profile.schema";
 import { getCurrentAccount } from "@/lib/session";
@@ -24,24 +25,13 @@ type ProfileResult =
 
 const nullify = (v?: string) => (v && v.trim() ? v.trim() : null);
 
-const handleOccupantSelect = {
-  id: true,
-  passwordHash: true,
-  accountStatus: true,
-  capperProfile: {
-    select: {
-      _count: {
-        select: {
-          plays: true,
-          parlays: true,
-          legacyRecords: true,
-          packages: true,
-          storeConnections: true,
-        },
-      },
-    },
-  },
-} as const;
+const emptyOccupantCounts: HandleOccupantCounts = {
+  plays: 0,
+  parlays: 0,
+  legacyRecords: 0,
+  packages: 0,
+  storeConnections: 0,
+};
 
 function isUniqueHandleConflict(error: unknown): boolean {
   return (
@@ -50,38 +40,74 @@ function isUniqueHandleConflict(error: unknown): boolean {
   );
 }
 
+async function loadOccupantCounts(
+  userId: string,
+): Promise<HandleOccupantCounts | null> {
+  try {
+    const profile = await prisma.capperProfile.findUnique({
+      where: { userId },
+      select: {
+        _count: {
+          select: {
+            plays: true,
+            parlays: true,
+            legacyRecords: true,
+            packages: true,
+            storeConnections: true,
+          },
+        },
+      },
+    });
+    return profile?._count ?? emptyOccupantCounts;
+  } catch (error) {
+    console.error("[profile] occupant count lookup failed:", error);
+    return null;
+  }
+}
+
 async function findHandleOccupant(
   username: string,
   excludeUserId: string,
+  currentEmail?: string | null,
 ): Promise<HandleOccupant | null> {
-  const whereExact = {
-    username,
-    NOT: { id: excludeUserId },
-  };
-  const whereInsensitive = {
-    username: { equals: username, mode: "insensitive" as const },
-    NOT: { id: excludeUserId },
-  };
+  const select = {
+    id: true,
+    email: true,
+    passwordHash: true,
+    accountStatus: true,
+  } as const;
 
   try {
-    return await withTransientDatabaseRetry(
+    const row = await withTransientDatabaseRetry(
       () =>
         prisma.user.findFirst({
-          where: whereInsensitive,
-          select: handleOccupantSelect,
+          where: {
+            username: { equals: username, mode: "insensitive" },
+            NOT: { id: excludeUserId },
+          },
+          select,
         }),
       { label: "profile handle occupant lookup" },
     );
+    if (!row) return null;
+    const counts = await loadOccupantCounts(row.id);
+    const safeToAssumeEmpty =
+      counts !== null ||
+      isUnclaimedAccount(row) ||
+      emailsShareInbox(currentEmail, row.email);
+    return {
+      ...row,
+      capperProfile: {
+        _count: safeToAssumeEmpty
+          ? (counts ?? emptyOccupantCounts)
+          : { ...emptyOccupantCounts, plays: 1 },
+      },
+    };
   } catch (error) {
-    console.error("[profile] insensitive handle lookup failed:", error);
-    return withTransientDatabaseRetry(
-      () =>
-        prisma.user.findFirst({
-          where: whereExact,
-          select: handleOccupantSelect,
-        }),
-      { label: "profile handle occupant fallback lookup" },
-    );
+    console.error("[profile] handle occupant lookup failed:", error);
+    // Never block a rename on a lookup failure — uniqueness is enforced by
+    // the username write (P2002). That is what left @mtndegwn stuck.
+    return null;
   }
 }
 
@@ -150,7 +176,7 @@ async function saveProfile(input: ProfileInput): Promise<ProfileResult> {
 
   const current = await prisma.user.findUnique({
     where: { id: account.id },
-    select: { username: true },
+    select: { username: true, email: true },
   });
   if (!current) return { ok: false, error: "Account not found." };
 
@@ -167,8 +193,14 @@ async function saveProfile(input: ProfileInput): Promise<ProfileResult> {
 
   let releaseOccupantId: string | null = null;
   if (usernameChanged) {
-    const occupant = await findHandleOccupant(nextUsername, account.id);
-    const decision = decideHandleCollision(occupant);
+    const occupant = await findHandleOccupant(
+      nextUsername,
+      account.id,
+      current.email,
+    );
+    const decision = decideHandleCollision(occupant, {
+      currentEmail: current.email,
+    });
     if (decision.action === "reject") {
       return { ok: false, error: decision.error };
     }
@@ -204,7 +236,7 @@ async function saveProfile(input: ProfileInput): Promise<ProfileResult> {
     console.error("[profile] username save failed:", error);
     return {
       ok: false,
-      error: "We couldn't save your profile. Try again.",
+      error: "We couldn't save your username. Try again.",
     };
   }
 
@@ -252,14 +284,6 @@ async function saveProfile(input: ProfileInput): Promise<ProfileResult> {
   afterResponse(async () => {
     revalidateProfileSurfaces(previousUsername, nextUsername);
   });
-
-  if (current.username !== nextUsername) {
-    try {
-      await unstable_update({ user: { name: nextUsername } });
-    } catch (error) {
-      console.error("[profile] session username update failed:", error);
-    }
-  }
 
   return { ok: true, usernameChanged, username: nextUsername };
 }

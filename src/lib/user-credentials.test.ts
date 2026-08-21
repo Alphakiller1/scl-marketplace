@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildLegacyPlusAddressEmail } from "@/lib/user-credentials";
+import {
+  buildLegacyPlusAddressEmail,
+  emailsShareInbox,
+} from "@/lib/user-credentials";
 
 test("buildLegacyPlusAddressEmail maps a bare inbox to the legacy plus variant", () => {
   assert.equal(
@@ -28,4 +31,12 @@ test("buildLegacyPlusAddressEmail rejects malformed addresses", () => {
   assert.equal(buildLegacyPlusAddressEmail("not-an-email", "capper"), null);
   assert.equal(buildLegacyPlusAddressEmail("@example.com", "capper"), null);
   assert.equal(buildLegacyPlusAddressEmail("user@", "capper"), null);
+});
+
+test("emailsShareInbox treats plus-addressed legacy imports as the same inbox", () => {
+  assert.equal(
+    emailsShareInbox("Agency@Example.com", "agency+mtndegen@example.com"),
+    true,
+  );
+  assert.equal(emailsShareInbox("one@example.com", "two@example.com"), false);
 });

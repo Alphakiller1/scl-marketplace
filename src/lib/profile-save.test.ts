@@ -29,6 +29,8 @@ test("profile save writes User.username independently of CapperProfile upsert", 
     /if \(usernameChanged\) \{\s*await tx\.user\.update/,
   );
   assert.match(source, /decideHandleCollision/);
+  assert.match(source, /currentEmail: current\.email/);
+  assert.match(source, /handle occupant lookup failed/);
   assert.match(source, /parkedReleasedHandle/);
   assert.match(source, /afterResponse/);
   assert.match(source, /username: \{ equals: username, mode: "insensitive"/);
@@ -53,7 +55,7 @@ test("profile save writes User.username independently of CapperProfile upsert", 
   );
 });
 
-test("JWT copies an updated handle so the session matches the saved username", () => {
+test("JWT can copy an updated handle after Save, but Save must not call it", () => {
   const source = read("src/auth.config.ts");
   const auth = read("src/auth.ts");
   const action = read("src/lib/actions/profile.action.ts");
@@ -61,11 +63,11 @@ test("JWT copies an updated handle so the session matches the saved username", (
   assert.match(auth, /unstable_update/);
   assert.match(source, /trigger === "update"/);
   assert.match(source, /token\.name = name\.trim\(\)/);
-  assert.match(
+  assert.doesNotMatch(
     action,
-    /unstable_update\(\{ user: \{ name: nextUsername \} \}\)/,
+    /unstable_update/,
+    "session cookie writes were failing the Server Action after the handle already saved",
   );
-  assert.match(action, /session username update failed/);
 });
 
 test("a failed session or cache bust cannot fail a handle that already wrote", () => {
@@ -84,8 +86,9 @@ test("profile form username field is editable and not a login autofill target", 
   assert.match(source, /usernameChanged/);
   assert.match(source, /reset\(valuesToSave\)/);
   assert.match(source, /\{\.\.\.register\("username"\)\}/);
-  assert.match(source, /autoComplete="off"/);
-  assert.doesNotMatch(source, /autoComplete="username"/);
+  assert.match(source, /id="scl-public-handle"/);
+  assert.match(source, /data-form-type="other"/);
+  assert.doesNotMatch(source, /id="username"/);
   assert.doesNotMatch(source, /readOnly/);
   assert.doesNotMatch(source, /disabled=\{true\}/);
 });

@@ -207,10 +207,21 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
             />
 
             <Field
-              htmlFor="username"
+              htmlFor="scl-public-handle"
               label="SCL Username"
               error={errors.username?.message}
             >
+              {/* Decoy so password managers do not overwrite the public handle
+                  with the login username when Save runs. */}
+              <input
+                type="text"
+                name="username"
+                autoComplete="username"
+                tabIndex={-1}
+                aria-hidden
+                className="sr-only"
+                defaultValue=""
+              />
               <div className="relative">
                 <span
                   aria-hidden
@@ -219,13 +230,14 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
                   @
                 </span>
                 <Input
-                  id="username"
+                  id="scl-public-handle"
                   autoComplete="off"
                   autoCapitalize="none"
                   autoCorrect="off"
                   spellCheck={false}
                   data-1p-ignore
                   data-lpignore="true"
+                  data-form-type="other"
                   className="pl-7"
                   placeholder="your_username"
                   {...register("username")}
