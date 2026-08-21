@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { revalidateCommerceSurfaces } from "@/lib/revalidate-commerce";
 import { verifyWhopSignature } from "@/lib/whop-webhook";
 import { whopWebhookConfigured } from "@/lib/whop-config";
 import {
@@ -67,6 +68,17 @@ async function maybeSyncWhopProducts(event: WhopWebhookEnvelope) {
   console.info(
     `[webhooks/whop] synced ${companyId}: ${result.imported} imported, ${result.updated} updated`,
   );
+
+  const capper = await prisma.storeConnection.findUnique({
+    where: { id: connection.id },
+    select: {
+      capper: { select: { user: { select: { id: true, username: true } } } },
+    },
+  });
+  revalidateCommerceSurfaces({
+    username: capper?.capper.user.username,
+    capperUserId: capper?.capper.user.id,
+  });
 }
 
 /**

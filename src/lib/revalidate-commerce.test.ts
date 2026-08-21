@@ -5,6 +5,36 @@ import test from "node:test";
 
 const root = process.cwd();
 
+test("commerce writes bust leaderboard tag and profile ISR", () => {
+  const helper = fs.readFileSync(
+    path.join(root, "src/lib/revalidate-commerce.ts"),
+    "utf8",
+  );
+  const storeAction = fs.readFileSync(
+    path.join(root, "src/lib/actions/store.action.ts"),
+    "utf8",
+  );
+  const webhook = fs.readFileSync(
+    path.join(root, "src/app/api/webhooks/whop/route.ts"),
+    "utf8",
+  );
+  const cron = fs.readFileSync(
+    path.join(root, "src/app/api/cron/whop-sync/route.ts"),
+    "utf8",
+  );
+  const profileAction = fs.readFileSync(
+    path.join(root, "src/lib/actions/profile.action.ts"),
+    "utf8",
+  );
+
+  assert.match(helper, /revalidateTag\("leaderboard"/);
+  assert.match(helper, /revalidatePath\("\/cappers\/\[handle\]"/);
+  assert.match(storeAction, /revalidateCommerceSurfaces/);
+  assert.match(webhook, /revalidateCommerceSurfaces/);
+  assert.match(cron, /revalidateCommerceSurfaces/);
+  assert.match(profileAction, /revalidateTag\("leaderboard"/);
+});
+
 test("Whop storefronts have a signed scheduled reconciliation path", () => {
   const route = fs.readFileSync(
     path.join(root, "src/app/api/cron/whop-sync/route.ts"),
@@ -36,8 +66,8 @@ test("owner and public storefront views refresh stale Whop packages", () => {
   );
 
   assert.match(sync, /WHOP_STOREFRONT_FRESHNESS_MS = 60_000/);
-  assert.match(sync, /prisma\.storeConnection\.updateMany/);
-  assert.match(sync, /OR: \[\{ lastImportedAt: null \}/);
+  assert.match(sync, /lastImportedAt >= cutoff/);
+  assert.doesNotMatch(sync, /Claim a short freshness lease/);
   assert.match(ownerPage, /refreshWhopStorefrontIfStale\(\{ capperId \}\)/);
   assert.match(
     publicPage,

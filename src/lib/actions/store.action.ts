@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 
 import { afterResponse } from "@/lib/after-response";
@@ -36,6 +35,7 @@ import {
 } from "@/lib/storefront-review";
 import { pushPackageToWhop, syncWhopStorefront } from "@/lib/whop-sync";
 import { whopAffiliateUsername, whopOAuthConfigured } from "@/lib/whop-config";
+import { revalidateCommerceSurfaces } from "@/lib/revalidate-commerce";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -43,13 +43,7 @@ async function revalidateCommercePaths(
   username?: string | null,
   capperUserId?: string | null,
 ) {
-  revalidatePath("/dashboard/monetization");
-  revalidatePath("/admin/store-setup");
-  revalidatePath("/admin/packages");
-  revalidatePath("/admin/cappers");
-  revalidatePath("/packages");
-  if (capperUserId) revalidatePath(`/admin/cappers/${capperUserId}`);
-  if (username) revalidatePath(`/cappers/${username.replace(/^@/, "")}`);
+  revalidateCommerceSurfaces({ username, capperUserId });
 }
 
 /**
@@ -171,7 +165,7 @@ export async function markInstructionsViewedAction(input: {
     };
   }
 
-  revalidatePath("/dashboard/monetization");
+  revalidateCommerceSurfaces();
   return { ok: true };
 }
 
