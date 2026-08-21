@@ -1,6 +1,6 @@
 import { ClipboardList, MailWarning } from "lucide-react";
 
-import { getCurrentUser } from "@/lib/session";
+import { getCurrentAccount } from "@/lib/session";
 import {
   getCapperLegacyRecords,
   getCapperParlays,
@@ -21,7 +21,9 @@ import { PerformanceScoreboard } from "@/components/scl/performance-scoreboard";
 export const metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
-  const user = await getCurrentUser();
+  // Cached per request and already loaded by the layout's requireCapperAccess,
+  // so this costs nothing beyond a fresh handle for the greeting.
+  const user = await getCurrentAccount();
   const verified = Boolean(user?.emailVerified);
   const [plays, parlays, legacy] = user
     ? await Promise.all([

@@ -192,3 +192,18 @@ test("libvips ships with the functions that resize profile media", () => {
   );
   assert.match(config, /"\/api\/\*": \["\.\/node_modules\/@img\/\*\*\/\*"\]/);
 });
+
+test("the dashboard greeting follows a rename without a new sign-in", () => {
+  const session = read("src/lib/session.ts");
+  const dashboard = read("src/app/(capper)/dashboard/page.tsx");
+
+  // `name` is the handle, stamped into the JWT at sign-in. Nothing calls
+  // unstable_update any more, so the token cannot be the source of truth.
+  assert.match(session, /username: true,/);
+  assert.match(session, /name: account\.username \?\? user\.name/);
+
+  // The greeting reads the live account, not the raw session.
+  assert.match(dashboard, /getCurrentAccount/);
+  assert.doesNotMatch(dashboard, /getCurrentUser/);
+  assert.match(dashboard, /Welcome\{user\?\.name/);
+});
