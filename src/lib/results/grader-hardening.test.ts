@@ -41,6 +41,8 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
   assert.match(provider, /mlbOfficialResultsProvider/);
   assert.match(provider, /wnbaOfficialResultsProvider/);
   assert.match(provider, /sportsPuffResultsProvider/);
+  assert.match(provider, /ODDS_SCORES_ONLY_SPORTS/);
+  assert.match(provider, /scoresProviderForSports/);
   assert.match(route, /Recovered stale RUNNING grader lock/);
   assert.match(route, /listOverduePendingPlays/);
   assert.match(route, /status: gradeOk \? 200 : 503/);
