@@ -34,15 +34,23 @@ describe("whop affiliate URL validation", () => {
   it("flags wrong affiliate username when configured", () => {
     const issues = whopAffiliateParamIssues(
       "https://whop.com/x?a=wronguser",
-      "sportscappersleaderboard",
+      "scleaderboard",
     );
-    assert.match(issues[0] || "", /expects "sportscappersleaderboard"/);
+    assert.match(issues[0] || "", /expects "scleaderboard"/);
   });
 
-  it("passes a valid affiliate link", () => {
+  it("passes the canonical scl affiliate slug", () => {
     const issues = whopAffiliateParamIssues(
-      "https://whop.com/x?a=sportscappersleaderboard",
-      "sportscappersleaderboard",
+      "https://whop.com/x?a=scleaderboard",
+      "scleaderboard",
+    );
+    assert.deepEqual(issues, []);
+  });
+
+  it("accepts legacy SportsCappersLeaderboard slug in checkout urls", () => {
+    const issues = whopAffiliateParamIssues(
+      "https://whop.com/x?a=SportsCappersLeaderboard",
+      "scleaderboard",
     );
     assert.deepEqual(issues, []);
   });

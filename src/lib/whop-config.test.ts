@@ -4,6 +4,7 @@ import { afterEach, describe, it } from "node:test";
 import {
   SCL_WHOP_AFFILIATE_USERNAME,
   SCL_WHOP_APP_ID,
+  isSclWhopAffiliateUsername,
   whopStorefrontApiKey,
   whopAffiliateUsername,
   whopAppId,
@@ -37,6 +38,9 @@ describe("whop-config defaults", () => {
 
     assert.equal(whopAppId(), SCL_WHOP_APP_ID);
     assert.equal(whopAffiliateUsername(), SCL_WHOP_AFFILIATE_USERNAME);
+    assert.equal(SCL_WHOP_AFFILIATE_USERNAME, "scleaderboard");
+    assert.equal(isSclWhopAffiliateUsername("scleaderboard"), true);
+    assert.equal(isSclWhopAffiliateUsername("SportsCappersLeaderboard"), true);
   });
 
   it("prefers explicit env overrides over defaults", () => {
