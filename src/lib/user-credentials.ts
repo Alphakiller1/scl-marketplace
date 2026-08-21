@@ -35,6 +35,25 @@ export function buildLegacyPlusAddressEmail(
   return `${local}+${username.toLowerCase()}@${domain}`;
 }
 
+/** Strip plus-tags so `inbox+handle@brand` and `inbox@brand` are the same person. */
+export function canonicalInbox(email: string): string {
+  const trimmed = email.trim().toLowerCase();
+  const at = trimmed.lastIndexOf("@");
+  if (at <= 0) return trimmed;
+  const local = trimmed.slice(0, at);
+  const domain = trimmed.slice(at + 1);
+  const bareLocal = local.split("+")[0] ?? local;
+  return `${bareLocal}@${domain}`;
+}
+
+export function emailsShareInbox(
+  left?: string | null,
+  right?: string | null,
+): boolean {
+  if (!left || !right) return false;
+  return canonicalInbox(left) === canonicalInbox(right);
+}
+
 async function queryUserByEmailAndUsername(email: string, username: string) {
   return prisma.user.findFirst({
     where: {
