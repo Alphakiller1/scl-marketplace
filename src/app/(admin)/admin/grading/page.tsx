@@ -24,6 +24,7 @@ import {
 } from "@/lib/results/stuck-plays";
 
 export const metadata = { title: "Grading" };
+export const maxDuration = 300;
 
 const dateTime = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
@@ -53,7 +54,7 @@ export default async function AdminGradingPage() {
           <SectionHeader
             icon={History}
             title="Pipeline diagnostics"
-            subtitle="Grades run automatically every 30 minutes via GitHub Actions; use Run now only to force an immediate pass"
+            subtitle="Grades run automatically every 30 minutes; Grade completed force-settles ungraded plays whose events already have a final"
           />
           <AutoGradeButton />
         </div>

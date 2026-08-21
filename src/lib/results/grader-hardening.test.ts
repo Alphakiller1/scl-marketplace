@@ -67,6 +67,7 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
     "utf8",
   );
   assert.match(espn, /CFL: \{ sport: "football", league: "cfl" \}/);
+  assert.match(espn, /MMA: \{ sport: "mma", league: "ufc" \}/);
 
   const grader = fs.readFileSync(
     path.join(root, "src/lib/results/auto-grade.ts"),

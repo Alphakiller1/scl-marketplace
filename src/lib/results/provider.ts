@@ -330,11 +330,12 @@ export function compositeResultsProvider(
 }
 
 /**
- * Sports with no reliable free scoreboard. Grading uses the Odds API **scores**
- * endpoint only — never pricing / expanded boards (those run on odds-refresh).
+ * Sports whose free scoreboards cannot cover the whole board. Grading uses the
+ * Odds API **scores** endpoint only — never pricing / expanded boards.
  *
- * MMA/UFC and tennis tours have no ESPN or SportsPuff path. Dropping this layer
- * (PR #550) left every UFC moneyline PENDING forever.
+ * ESPN now maps UFC cards (14d). Odds API still owns PFL/Bellator and the
+ * event-id join for board-bound MMA within 3 days. Tennis has no ESPN path.
+ * Dropping this layer (PR #550) left every UFC moneyline PENDING forever.
  */
 export const ODDS_SCORES_ONLY_SPORTS = ["MMA", "TENNIS"] as const;
 
@@ -362,14 +363,7 @@ export function scoresProviderForSports(
   };
 }
 
-/**
- * ESPN + official league feeds for mainstream sports, plus Odds API scores for
- * MMA/TENNIS where no free backstop exists.
- *
- * Grading must stay up when the odds board burns quota on **pricing** fetches.
- * Closing-line capture and CLV backfill run on `/api/cron/odds-refresh` instead.
- */
-export function getGradingResultsProvider(): ResultsProvider {
+function independentScoreBackstops(): ResultsProvider {
   const espn = espnHistoricalResultsProvider();
   const officialPlanC = compositeResultsProvider(
     mlbOfficialResultsProvider(),
@@ -379,7 +373,18 @@ export function getGradingResultsProvider(): ResultsProvider {
     officialPlanC,
     sportsPuffResultsProvider(),
   );
-  const backstops = compositeResultsProvider(espn, planC);
+  return compositeResultsProvider(espn, planC);
+}
+
+/**
+ * ESPN + official league feeds for mainstream sports, plus Odds API scores for
+ * MMA/TENNIS where no free backstop exists.
+ *
+ * Grading must stay up when the odds board burns quota on **pricing** fetches.
+ * Closing-line capture and CLV backfill run on `/api/cron/odds-refresh` instead.
+ */
+export function getGradingResultsProvider(): ResultsProvider {
+  const backstops = independentScoreBackstops();
   try {
     if (oddsApiKey()) {
       return compositeResultsProvider(
@@ -397,24 +402,19 @@ export function getGradingResultsProvider(): ResultsProvider {
 }
 
 /**
- * Odds API (≤3d) + ESPN scoreboard history (≤14d) so aged-out plays can still
- * settle without paid Odds API historical credits.
- *
- * Auto-grade uses {@link getGradingResultsProvider}, which already includes
- * scores-only Odds API for MMA/TENNIS. This fuller composite is for tools that
- * need Odds scores for every sport, not just those without a free backstop.
+ * Full Odds API scores (every pending sport, ≤3d) + ESPN/official backstops
+ * (≤14d). Admin "Grade completed" uses this to force-settle completed events the
+ * credit-saving cron stack may have missed. Cron stays on
+ * {@link getGradingResultsProvider} so pricing-path credits are never spent.
  */
 export function getResultsProvider(): ResultsProvider {
-  const independentBackstops = getGradingResultsProvider();
+  const backstops = independentScoreBackstops();
   try {
     if (oddsApiKey()) {
-      return compositeResultsProvider(
-        oddsApiResultsProvider(),
-        independentBackstops,
-      );
+      return compositeResultsProvider(oddsApiResultsProvider(), backstops);
     }
   } catch {
     /* fall through */
   }
-  return independentBackstops;
+  return backstops;
 }

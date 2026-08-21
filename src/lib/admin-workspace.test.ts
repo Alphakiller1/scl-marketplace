@@ -14,6 +14,7 @@ test("admin grading diagnostics expose the manual auto-grade control", () => {
 
   assert.match(source, /import \{ AutoGradeButton \}/);
   assert.match(source, /<AutoGradeButton \/>/);
+  assert.match(source, /Grade completed force-settles ungraded plays/);
 });
 
 test("capper package management is directly visible and provider aware", () => {

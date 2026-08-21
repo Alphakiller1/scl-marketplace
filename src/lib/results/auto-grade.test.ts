@@ -235,6 +235,7 @@ test("both grading loops resolve through the same function", () => {
   assert.match(src, /MAX_GRADE_ROUNDS/);
   assert.doesNotMatch(src, /ensureClosingAndClv/);
   assert.match(src, /clvPtsForGrade/);
+  assert.match(src, /lookbackDays\?: number/);
   assert.equal(
     count(/eventLabel: true/g),
     2,

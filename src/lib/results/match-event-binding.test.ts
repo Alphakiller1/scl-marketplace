@@ -216,3 +216,34 @@ test("every requested market is unique — duplicates would waste credits", () =
     );
   }
 });
+
+test("a bound UFC fight matches ESPN hours after the card start", () => {
+  const found = findGame(
+    {
+      id: "mma-1",
+      sport: "MMA",
+      market: "Moneyline",
+      selection: "Islam Makhachev",
+      oddsAmerican: -180,
+      units: 1,
+      eventId: "4f7dfc2ff8abe952d4431bbbda20ef31",
+      eventLabel: "Ian Machado Garry @ Islam Makhachev",
+      homeTeam: "Islam Makhachev",
+      awayTeam: "Ian Machado Garry",
+      eventStartsAt: new Date("2026-08-16T02:05:00.000Z"),
+    },
+    [
+      {
+        sport: "MMA",
+        home: "Islam Makhachev",
+        away: "Ian Machado Garry",
+        homeScore: 1,
+        awayScore: 0,
+        completed: true,
+        eventId: "espn:401905000",
+        startsAt: new Date("2026-08-15T21:30:00.000Z"),
+      },
+    ],
+  );
+  assert.equal(found?.eventId, "espn:401905000");
+});

@@ -360,3 +360,45 @@ test("draw/tie selections grade on soccer 3-way moneylines", () => {
   assert.equal(resolveOutcome(drawPick, drawGame), "WIN");
   assert.equal(resolveOutcome(homePick, drawGame), "LOSS");
 });
+
+test("an MMA moneyline grades from the winner flag scores", () => {
+  const fight: SettledGame = {
+    sport: "MMA",
+    home: "Islam Makhachev",
+    away: "Ian Machado Garry",
+    homeScore: 1,
+    awayScore: 0,
+    completed: true,
+    eventId: "espn:401905000",
+  };
+  assert.equal(
+    resolveOutcome(
+      {
+        id: "mma-ml",
+        sport: "MMA",
+        market: "Moneyline",
+        selection: "Islam Makhachev",
+        oddsAmerican: -180,
+        units: 1,
+        eventId: "espn:401905000",
+      },
+      [fight],
+    ),
+    "WIN",
+  );
+  assert.equal(
+    resolveOutcome(
+      {
+        id: "mma-ml-dog",
+        sport: "MMA",
+        market: "Moneyline",
+        selection: "Ian Machado Garry",
+        oddsAmerican: 150,
+        units: 1,
+        eventId: "espn:401905000",
+      },
+      [fight],
+    ),
+    "LOSS",
+  );
+});
