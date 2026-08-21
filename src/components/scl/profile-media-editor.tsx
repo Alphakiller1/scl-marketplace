@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
 import { CapperBanner } from "@/components/scl/capper-banner";
 import { uploadProfileMediaAction } from "@/lib/actions/profile-media.action";
+import { normalizeProfileMediaFile } from "@/lib/profile-media-client";
 import type { ProfileMediaKind } from "@/lib/schemas/profile-media.schema";
 
 type ProfileMediaEditorProps = {
@@ -35,11 +36,12 @@ export function ProfileMediaEditor({
     if (!file) return;
     setUploading(kind);
 
-    const formData = new FormData();
-    formData.set("kind", kind);
-    formData.set("file", file);
-
     try {
+      const normalized = await normalizeProfileMediaFile(file);
+      const formData = new FormData();
+      formData.set("kind", kind);
+      formData.set("file", normalized);
+
       const result = await uploadProfileMediaAction(formData);
       if (!result.ok) {
         toast.error(result.error);

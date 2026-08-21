@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm, useWatch, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save, Store } from "lucide-react";
 import { toast } from "sonner";
@@ -82,6 +82,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
     register,
     handleSubmit,
     setValue,
+    reset,
     control,
     formState: { errors, isSubmitting },
   } = useForm<ProfileFormInput, unknown, ProfileInput>({
@@ -123,14 +124,34 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
     enabled: values.storefrontEnabled ?? true,
   });
 
+  function onInvalid(formErrors: FieldErrors<ProfileFormInput>) {
+    const first = Object.values(formErrors).find(
+      (issue) => issue && "message" in issue && issue.message,
+    );
+    toast.error(
+      typeof first?.message === "string"
+        ? first.message
+        : "Fix the highlighted fields and try again.",
+    );
+  }
+
   async function onSubmit(valuesToSave: ProfileInput) {
-    const result = await updateProfileAction(valuesToSave);
-    if (!result.ok) {
-      toast.error(result.error);
-      return;
+    try {
+      const result = await updateProfileAction(valuesToSave);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      reset(valuesToSave);
+      toast.success(
+        result.usernameChanged
+          ? `@${result.username} saved — your public profile URL updated.`
+          : "Public profile saved",
+      );
+      router.refresh();
+    } catch {
+      toast.error("We couldn't save your profile. Try again.");
     }
-    toast.success("Public profile saved");
-    router.refresh();
   }
 
   return (
@@ -157,7 +178,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <form
-          onSubmit={handleSubmit(onSubmit)}
+          onSubmit={handleSubmit(onSubmit, onInvalid)}
           className="min-w-0 space-y-5"
           noValidate
         >
@@ -207,7 +228,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
                 />
               </div>
               <p className="text-muted-foreground text-xs">
-                3–20 characters. Letters, numbers, and underscores only.
+                3–30 characters. Letters, numbers, and underscores only.
               </p>
             </Field>
 
