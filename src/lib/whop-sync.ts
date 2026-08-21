@@ -395,20 +395,13 @@ export async function refreshWhopStorefrontIfStale(input: {
       whopCompanyId: { not: null },
       whopCompanyRoute: { not: null },
     },
-    select: { id: true },
+    select: { id: true, lastImportedAt: true },
   });
   if (!connection) return { refreshed: false };
 
-  // Claim a short freshness lease so simultaneous profile requests do not all
-  // call Whop. syncWhopStorefront writes the successful import timestamp too.
-  const lease = await prisma.storeConnection.updateMany({
-    where: {
-      id: connection.id,
-      OR: [{ lastImportedAt: null }, { lastImportedAt: { lt: cutoff } }],
-    },
-    data: { lastImportedAt: new Date() },
-  });
-  if (lease.count !== 1) return { refreshed: false };
+  if (connection.lastImportedAt && connection.lastImportedAt >= cutoff) {
+    return { refreshed: false };
+  }
 
   try {
     const actor = await prisma.user.findFirst({

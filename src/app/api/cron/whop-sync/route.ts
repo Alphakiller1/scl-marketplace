@@ -1,7 +1,7 @@
-import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { revalidateCommerceSurfaces } from "@/lib/revalidate-commerce";
 import { syncWhopStorefront } from "@/lib/whop-sync";
 
 export const runtime = "nodejs";
@@ -17,16 +17,6 @@ function authorized(req: NextRequest): boolean {
     secret &&
     (authorization === secret || authorization === `Bearer ${secret}`),
   );
-}
-
-function revalidateStorefront(username: string | null, userId: string) {
-  revalidatePath("/dashboard/monetization");
-  revalidatePath("/admin/store-setup");
-  revalidatePath("/admin/packages");
-  revalidatePath("/admin/cappers");
-  revalidatePath(`/admin/cappers/${userId}`);
-  revalidatePath("/packages");
-  if (username) revalidatePath(`/cappers/${username.replace(/^@/, "")}`);
 }
 
 /**
@@ -102,10 +92,10 @@ export async function GET(req: NextRequest) {
             };
           }
           if (result.imported > 0 || result.updated > 0) {
-            revalidateStorefront(
-              connection.capper.user.username,
-              connection.capper.user.id,
-            );
+            revalidateCommerceSurfaces({
+              username: connection.capper.user.username,
+              capperUserId: connection.capper.user.id,
+            });
           }
           return {
             connectionId: connection.id,

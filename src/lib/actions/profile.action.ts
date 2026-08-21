@@ -1,7 +1,7 @@
 "use server";
 
 import { Prisma } from "@prisma/client";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 import { HANDLE_TAKEN_MESSAGE } from "@/lib/account-claim";
 import { prisma } from "@/lib/prisma";
@@ -112,6 +112,8 @@ export async function updateProfileAction(
   revalidatePath("/cappers");
   revalidatePath("/leaderboard");
   revalidatePath("/discover");
+  revalidateTag("leaderboard", { expire: 0 });
+  revalidatePath("/cappers/[handle]", "page");
   if (previousUsername) {
     revalidatePath(`/cappers/${previousUsername}`);
   }
