@@ -590,17 +590,10 @@ export function MonetizationWizard({
                   <Button
                     variant="outline"
                     className="mt-2 min-h-10"
-                    render={
-                      <a
-                        href="/api/whop/connect"
-                        target="_blank"
-                        rel="noreferrer"
-                      />
-                    }
+                    render={<a href="/api/whop/connect" />}
                     nativeButton={false}
                   >
                     Connect SCL to Whop
-                    <ExternalLink className="size-4" />
                   </Button>
                 </li>
               </ol>

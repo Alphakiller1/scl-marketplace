@@ -8,6 +8,7 @@ import {
   exchangeWhopAuthorizationCode,
   type WhopPkceState,
 } from "@/lib/whop-oauth";
+import { whopOAuthRedirectUri } from "@/lib/whop-oauth-redirect";
 import { listWhopCompanies } from "@/lib/whop-api";
 import { persistWhopOAuthCredentials } from "@/lib/whop-sync";
 import {
@@ -22,7 +23,7 @@ export const dynamic = "force-dynamic";
 const PKCE_COOKIE = "whop_oauth_pkce";
 
 function redirectUri() {
-  return `${siteUrl()}/api/whop/callback`;
+  return whopOAuthRedirectUri();
 }
 
 function monetizationUrl(query?: Record<string, string>) {
