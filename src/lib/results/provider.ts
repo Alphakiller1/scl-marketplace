@@ -9,6 +9,7 @@ import {
   toSclSport,
 } from "@/lib/odds-api";
 import { espnHistoricalResultsProvider } from "@/lib/results/espn-scores";
+import { cflCaResultsProvider } from "@/lib/results/cfl-ca-scores";
 import { mlbOfficialResultsProvider } from "@/lib/results/mlb-official";
 import { sportsPuffResultsProvider } from "@/lib/results/sportspuff-scores";
 import { wnbaOfficialResultsProvider } from "@/lib/results/wnba-official";
@@ -334,9 +335,8 @@ export function compositeResultsProvider(
  * Odds API **scores** endpoint only — never pricing / expanded boards.
  *
  * ESPN maps UFC cards (14d) but not PFL/Bellator. Tennis has no ESPN path.
- * ESPN's CFL scoreboard is a stale 2022 Grey Cup and dated fetches return
- * nothing, so CFL moneylines/spreads also need Odds API scores.
- * Dropping this layer (PR #550) left every UFC moneyline PENDING forever.
+ * ESPN's CFL calendar is stale; Odds API covers 3 days and CFL.ca covers the
+ * season. Dropping this layer (PR #550) left every UFC moneyline PENDING forever.
  */
 export const ODDS_SCORES_ONLY_SPORTS = ["MMA", "TENNIS", "CFL"] as const;
 
@@ -374,7 +374,8 @@ function independentScoreBackstops(): ResultsProvider {
     officialPlanC,
     sportsPuffResultsProvider(),
   );
-  return compositeResultsProvider(espn, planC);
+  const withCfl = compositeResultsProvider(planC, cflCaResultsProvider());
+  return compositeResultsProvider(espn, withCfl);
 }
 
 /**

@@ -52,8 +52,9 @@ test("ESPN scoreboard covers UFC cards for the 14-day cliff", () => {
   assert.match(match, /MMA_FIXTURE_WINDOW_MS = 12 \* 60 \* 60 \* 1000/);
 });
 
-test("CFL scores come from Odds API because ESPN's CFL calendar is dead", () => {
+test("CFL scores come from Odds API and the CFL.ca schedule backstop", () => {
   assert.match(provider, /"CFL"/);
+  assert.match(provider, /cflCaResultsProvider\(\)/);
   assert.match(espn, /CFL: \{ sport: "football", league: "cfl" \}/);
 });
 
