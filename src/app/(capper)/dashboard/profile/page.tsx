@@ -2,7 +2,7 @@ import Link from "next/link";
 import { KeyRound, UserCog } from "lucide-react";
 
 import { getCurrentUser } from "@/lib/session";
-import { getCapperProfileByUserId } from "@/lib/queries/profile";
+import { ensureCapperProfileByUserId } from "@/lib/queries/profile";
 import { SectionHeader } from "@/components/scl/section";
 import { Button } from "@/components/ui/button";
 import { ProfileForm } from "./profile-form";
@@ -13,7 +13,7 @@ export default async function ProfileSettingsPage() {
   // Layout already ran requireCapperAccess — reuse cached session user.
   const user = await getCurrentUser();
   if (!user) return null;
-  const profile = await getCapperProfileByUserId(user.id);
+  const profile = await ensureCapperProfileByUserId(user.id);
 
   return (
     <div className="space-y-6">
@@ -27,7 +27,7 @@ export default async function ProfileSettingsPage() {
         <ProfileForm profile={profile} />
       ) : (
         <div className="border-border bg-card text-muted-foreground rounded-xl border p-6 text-sm">
-          No capper profile found for this account.
+          Couldn&apos;t load your capper profile. Refresh and try again.
         </div>
       )}
 

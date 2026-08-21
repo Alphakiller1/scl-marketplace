@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import sharp from "sharp";
 
 import { prisma } from "@/lib/prisma";
 import { emailVerificationEnforced } from "@/lib/email-verification-policy";
@@ -16,6 +15,7 @@ import {
   profileMediaPublicUrl,
   uploadProfileMediaObject,
 } from "@/lib/supabase-storage";
+import { optimizeProfileMediaImage } from "@/lib/profile-media-process";
 
 type ProfileMediaResult =
   | { ok: true; kind: ProfileMediaKind; url: string }
@@ -67,22 +67,17 @@ export async function uploadProfileMediaAction(
   const { file, kind } = parsed.data;
   let optimizedImage: Buffer;
   try {
-    const image = sharp(Buffer.from(await file.arrayBuffer()), {
-      limitInputPixels: 40_000_000,
-    }).rotate();
-    optimizedImage =
-      kind === "avatar"
-        ? await image
-            .resize(512, 512, { fit: "cover", position: "attention" })
-            .webp({ quality: 84 })
-            .toBuffer()
-        : await image
-            .resize(1600, 600, { fit: "cover", position: "attention" })
-            .webp({ quality: 82 })
-            .toBuffer();
+    optimizedImage = await optimizeProfileMediaImage(
+      Buffer.from(await file.arrayBuffer()),
+      kind,
+    );
   } catch (error) {
     console.error("[profile-media] image processing failed:", error);
-    return { ok: false, error: "That file is not a valid image." };
+    return {
+      ok: false,
+      error:
+        "That photo couldn't be processed. Try exporting it as JPG from Photos, or pick a different image.",
+    };
   }
 
   const path = `${account.id}/${kind}.webp`;
