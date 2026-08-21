@@ -10,6 +10,7 @@ const EXPECTED_FINAL_HOURS: Record<string, number> = {
   NHL: 5,
   SOCCER: 4,
   TENNIS: 7,
+  MMA: 8,
 };
 
 export function expectedFinalHours(sport: string): number {

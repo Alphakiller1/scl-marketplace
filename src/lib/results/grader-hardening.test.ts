@@ -18,6 +18,7 @@ test("sport-specific final windows do not flag live games as stuck", () => {
     "2026-08-12T23:40:00.000Z",
   );
   assert.equal(expectedFinalHours("WNBA"), 5);
+  assert.equal(expectedFinalHours("MMA"), 8);
 });
 
 test("grader has independent Plan C, key rollover, stale-lock recovery and hard alerts", () => {
@@ -41,6 +42,10 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
   assert.match(provider, /mlbOfficialResultsProvider/);
   assert.match(provider, /wnbaOfficialResultsProvider/);
   assert.match(provider, /sportsPuffResultsProvider/);
+  assert.match(provider, /ODDS_SCORES_ONLY_SPORTS/);
+  assert.match(provider, /scoresProviderForSports/);
+  assert.match(provider, /"MMA"/);
+  assert.match(provider, /"TENNIS"/);
   assert.match(route, /Recovered stale RUNNING grader lock/);
   assert.match(route, /listOverduePendingPlays/);
   assert.match(route, /status: gradeOk \? 200 : 503/);
@@ -53,8 +58,15 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
   assert.match(health, /pendingPastExpectedFinal/);
   // Every 30 minutes — pinned so automatic grading cannot drift to a slower cadence.
   assert.match(workflow, /- cron: "7,37 \* \* \* \*"/);
+  assert.match(workflow, /types: \[grade-pending\]/);
   assert.match(workflow, /--retry 3/);
   assert.match(workflow, /overduePending/);
+
+  const espn = fs.readFileSync(
+    path.join(root, "src/lib/results/espn-scores.ts"),
+    "utf8",
+  );
+  assert.match(espn, /CFL: \{ sport: "football", league: "cfl" \}/);
 
   const grader = fs.readFileSync(
     path.join(root, "src/lib/results/auto-grade.ts"),

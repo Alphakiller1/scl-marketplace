@@ -7,8 +7,10 @@ name: Grade pending picks
 on:
   schedule:
     # Every 30 minutes — automatic grading must not wait hours after final.
-    # Grading uses free backstop score feeds (not metered Odds API pricing).
+    # Mainstream sports use free scoreboards; MMA/TENNIS use Odds API scores only.
     - cron: "7,37 * * * *"
+  repository_dispatch:
+    types: [grade-pending]
   workflow_dispatch:
 
 concurrency:
