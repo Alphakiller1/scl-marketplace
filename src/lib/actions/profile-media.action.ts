@@ -2,6 +2,7 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 
+import { afterResponse } from "@/lib/after-response";
 import { prisma } from "@/lib/prisma";
 import { emailVerificationEnforced } from "@/lib/email-verification-policy";
 import { getCurrentAccount } from "@/lib/session";
@@ -22,6 +23,20 @@ type ProfileMediaResult =
   | { ok: false; error: string };
 
 export async function uploadProfileMediaAction(
+  formData: FormData,
+): Promise<ProfileMediaResult> {
+  try {
+    return await saveProfileMedia(formData);
+  } catch (error) {
+    console.error("[profile-media] upload failed:", error);
+    return {
+      ok: false,
+      error: "We couldn't upload that image. Try a JPG, PNG, or HEIC.",
+    };
+  }
+}
+
+async function saveProfileMedia(
   formData: FormData,
 ): Promise<ProfileMediaResult> {
   const account = await getCurrentAccount();
@@ -115,15 +130,17 @@ export async function uploadProfileMediaAction(
     };
   }
 
-  revalidatePath("/dashboard/profile");
-  revalidatePath("/cappers");
-  revalidatePath("/leaderboard");
-  revalidatePath("/discover");
-  revalidateTag("leaderboard", { expire: 0 });
-  revalidatePath("/cappers/[handle]", "page");
-  if (profile.user.username) {
-    revalidatePath(`/cappers/${profile.user.username}`);
-  }
+  afterResponse(async () => {
+    revalidatePath("/dashboard/profile");
+    revalidatePath("/cappers");
+    revalidatePath("/leaderboard");
+    revalidatePath("/discover");
+    revalidateTag("leaderboard", { expire: 0 });
+    revalidatePath("/cappers/[handle]", "page");
+    if (profile.user.username) {
+      revalidatePath(`/cappers/${profile.user.username}`);
+    }
+  });
 
   return { ok: true, kind, url: versionedPublicUrl };
 }

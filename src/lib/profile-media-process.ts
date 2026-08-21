@@ -30,14 +30,25 @@ async function renderProfileMediaWebp(
   input: Buffer,
   kind: ProfileMediaKind,
 ): Promise<Buffer> {
-  const image = sharp(input, { limitInputPixels: 40_000_000 }).rotate();
-  return kind === "avatar"
-    ? image
-        .resize(512, 512, { fit: "cover", position: "attention" })
-        .webp({ quality: 84 })
-        .toBuffer()
-    : image
-        .resize(1600, 600, { fit: "cover", position: "attention" })
-        .webp({ quality: 82 })
-        .toBuffer();
+  const positions = ["attention", "centre"] as const;
+  let lastError: unknown;
+  for (const position of positions) {
+    try {
+      const image = sharp(input, { limitInputPixels: 40_000_000 }).rotate();
+      return kind === "avatar"
+        ? await image
+            .resize(512, 512, { fit: "cover", position })
+            .webp({ quality: 84 })
+            .toBuffer()
+        : await image
+            .resize(1600, 600, { fit: "cover", position })
+            .webp({ quality: 82 })
+            .toBuffer();
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Image processing failed.");
 }
