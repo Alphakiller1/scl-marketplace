@@ -211,7 +211,8 @@ async function writeUsername(
   );
   if (!current) return { ok: false, error: "Account not found." };
 
-  const previousUsername = current.username?.replace(/^@+/, "").toLowerCase();
+  const currentUsername = current.username?.replace(/^@+/, "") ?? null;
+  const previousUsername = currentUsername?.toLowerCase();
   const usernameChanged = nextUsername !== previousUsername;
 
   if (isTestHandle(nextUsername) && nextUsername !== previousUsername) {
@@ -273,7 +274,26 @@ async function writeUsername(
     );
   } catch (error) {
     if (isUniqueHandleConflict(error)) {
-      return { ok: false, error: HANDLE_TAKEN_MESSAGE };
+      // Asking for a handle somebody else holds is a real rejection.
+      if (usernameChanged) {
+        return { ok: false, error: HANDLE_TAKEN_MESSAGE };
+      }
+      // Otherwise the handle did not change and this write was only folding a
+      // stored spelling to canonical — which a second row already holds.
+      // @Parlaypluggy and @parlaypluggy are both live accounts, so every save
+      // by the capitalised one collided and answered "that handle is taken" to
+      // someone who had only edited their bio, with no way past it. Keep the
+      // spelling on record and report success; handle lookups fold case, so
+      // nothing downstream depends on the row being canonical.
+      console.warn(
+        `[profile] kept stored handle spelling user=${accountId}; canonical form is taken`,
+      );
+      return {
+        ok: true,
+        usernameChanged: false,
+        username: currentUsername ?? nextUsername,
+        previousUsername,
+      };
     }
     console.error("[profile] username write failed:", error);
     return {

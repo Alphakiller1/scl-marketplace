@@ -181,14 +181,21 @@ export async function getPublicProfileHistoryPage(
 const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
   handle: string,
 ): Promise<PublicCapper | null> {
-  const normalizedHandle = handle.replace(/^@+/, "").trim().toLowerCase();
+  const requestedHandle = handle.replace(/^@+/, "").trim();
+  const normalizedHandle = requestedHandle.toLowerCase();
   if (!normalizedHandle) return null;
 
   // Targeted lookup — never scan the full leaderboard for one profile.
   const profile = await withTransientDatabaseRetry(
     async () => {
       const excludeTest = await prismaExcludeTestHandlesLive();
-      return prisma.capperProfile.findFirst({
+      // Case-insensitive, so two rows can match: the roster carries handles
+      // that differ only in capitals (@Parlaypluggy and @parlaypluggy are both
+      // live accounts). `findFirst` picked one arbitrarily, which left the
+      // other capper's profile unreachable at its own URL. Order by the exact
+      // spelling first so each resolves to itself, and only fall back to a
+      // folded match when nothing matches exactly.
+      const matches = await prisma.capperProfile.findMany({
         where: {
           user: {
             username: { equals: normalizedHandle, mode: "insensitive" },
@@ -197,7 +204,16 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
           },
         },
         select: { id: true, user: { select: { username: true } } },
+        take: 5,
       });
+      return (
+        matches.find((match) => match.user.username === requestedHandle) ??
+        matches.find(
+          (match) => match.user.username?.toLowerCase() === normalizedHandle,
+        ) ??
+        matches[0] ??
+        null
+      );
     },
     { label: `public profile identity @${normalizedHandle}` },
   );
