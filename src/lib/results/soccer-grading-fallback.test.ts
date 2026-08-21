@@ -35,3 +35,16 @@ test("primary and ESPN fallbacks fan generic SOCCER out by league", () => {
   assert.match(provider, /fetchSportScores\("TENNIS", tour\)/);
   assert.match(espn, /fetchEspnScoreboardDay\("SOCCER", day, league\)/);
 });
+
+test("the live tennis board fans out by tournament instead of a missing TENNIS sport key", () => {
+  // Soccer already had this path. Tennis did not: populate and the pick form
+  // called fetchUpcomingOdds("TENNIS"), toOddsApiSport returned undefined, and
+  // Cincinnati (and every other tour) never received a paid odds call.
+  const oddsApi = fs.readFileSync(
+    path.join(root, "src/lib/odds-api.ts"),
+    "utf8",
+  );
+  assert.match(oddsApi, /if \(sclSport === "TENNIS"\) return fetchTennisBoard/);
+  assert.match(oddsApi, /selectTennisToursWithFixtures/);
+  assert.match(oddsApi, /normalizeUpcomingEvent\("TENNIS"/);
+});

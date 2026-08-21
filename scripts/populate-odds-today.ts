@@ -42,7 +42,12 @@ import {
   type OddsApiSportRow,
   type SoccerLeague,
 } from "@/lib/soccer-leagues";
-import { selectTennisTours, TENNIS_TOUR_LIMIT } from "@/lib/tennis-tours";
+import {
+  selectTennisTours,
+  TENNIS_CANDIDATE_LIMIT,
+  TENNIS_TOUR_LIMIT,
+  selectTennisToursWithFixtures,
+} from "@/lib/tennis-tours";
 import {
   mergeLastGoodBoardEvents,
   parseExpandedSlateDays,
@@ -236,7 +241,38 @@ async function main() {
   }
   if (wanted("TENNIS")) {
     const events: OddsEvent[] = [];
-    for (const tour of selectTennisTours(catalog, TENNIS_TOUR_LIMIT)) {
+    const candidates = selectTennisTours(catalog, TENNIS_CANDIDATE_LIMIT);
+    const now = Date.now();
+    const horizon = now + SOCCER_FIXTURE_WINDOW_HOURS * 3_600_000;
+    const windows = new Map<
+      string,
+      { upcoming: number; firstKickoffMs: number | null }
+    >();
+    for (const tour of candidates) {
+      const rows = (await freeApi(`/v4/sports/${tour.oddsApiKey}/events`)) as
+        | { commence_time?: string }[]
+        | null;
+      if (!Array.isArray(rows)) continue;
+      let upcoming = 0;
+      let first: number | null = null;
+      for (const row of rows) {
+        const ms = Date.parse(row.commence_time ?? "");
+        if (!Number.isFinite(ms) || ms < now) continue;
+        if (ms <= horizon) upcoming += 1;
+        if (first == null || ms < first) first = ms;
+      }
+      windows.set(tour.oddsApiKey, { upcoming, firstKickoffMs: first });
+    }
+    const tours = selectTennisToursWithFixtures(
+      candidates,
+      windows,
+      TENNIS_TOUR_LIMIT,
+      now,
+    );
+    console.log(
+      `  tennis slate: ${tours.map((tour) => tour.key).join(", ")} (from ${candidates.length} in season)`,
+    );
+    for (const tour of tours) {
       events.push(
         ...((await surface("TENNIS", tour.oddsApiKey, tour.key)) ?? []),
       );

@@ -27,19 +27,19 @@ runs the workflow by hand.
 
 ## By sport — scheduled surface refresh
 
-| SCL sport     | 08:00 ET | 20:00 ET | Notes                                                                                                          |
-| ------------- | -------- | -------- | -------------------------------------------------------------------------------------------------------------- |
-| MLB           | yes      | yes      | Default populate sport. Expanded event boards only on manual dispatch                                          |
-| WNBA          | yes      | yes      | Same as MLB                                                                                                    |
-| NFL           | yes      | yes      | Includes preseason when the provider is carrying it                                                            |
-| Tennis        | yes      | yes      | ATP/WTA keys the board already tracks                                                                          |
-| Soccer        | yes      | yes      | MLS / Liga MX / Leagues Cup / La Liga / Primeira Liga / UCL qualification as covered                           |
-| NBA           | —        | —        | No scheduled populate; board uses last cache + on-demand event fetch                                           |
-| NCAAF / NCAAB | —        | —        | Same                                                                                                           |
-| NHL           | —        | —        | Same                                                                                                           |
-| CFL / UFL     | —        | —        | Same                                                                                                           |
-| MMA / Boxing  | —        | —        | MMA has a strategic slot (daily + before first fight) that only runs when the paused refresh job is dispatched |
-| PGA / NASCAR  | —        | —        | Same                                                                                                           |
+| SCL sport     | 08:00 ET | 20:00 ET | Notes                                                                                                                                       |
+| ------------- | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| MLB           | yes      | yes      | Default populate sport. Expanded event boards only on manual dispatch                                                                       |
+| WNBA          | yes      | yes      | Same as MLB                                                                                                                                 |
+| NFL           | yes      | yes      | Includes preseason when the provider is carrying it                                                                                         |
+| Tennis        | yes      | yes      | In-season ATP/WTA tournaments from the Odds API catalog, ranked by fixtures so Cincinnati is not dropped when the US Open is already listed |
+| Soccer        | yes      | yes      | MLS / Liga MX / Leagues Cup / La Liga / Primeira Liga / UCL qualification as covered                                                        |
+| NBA           | —        | —        | No scheduled populate; board uses last cache + on-demand event fetch                                                                        |
+| NCAAF / NCAAB | —        | —        | Same                                                                                                                                        |
+| NHL           | —        | —        | Same                                                                                                                                        |
+| CFL / UFL     | —        | —        | Same                                                                                                                                        |
+| MMA / Boxing  | —        | —        | MMA has a strategic slot (daily + before first fight) that only runs when the paused refresh job is dispatched                              |
+| PGA / NASCAR  | —        | —        | Same                                                                                                                                        |
 
 Times above are Eastern. The GitHub cron strings are UTC (`0 12 * * *` and
 `0 0 * * *`) and therefore shift one hour relative to ET when daylight time

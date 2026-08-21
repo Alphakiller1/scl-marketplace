@@ -32,6 +32,15 @@ export type TennisTour = {
 export const TENNIS_TOUR_LIMIT = 4;
 
 /**
+ * In-season tournaments to consider before ranking by fixtures.
+ *
+ * The paid fetch is still {@link TENNIS_TOUR_LIMIT}. This is the free catalog
+ * pool — large enough that Cincinnati is not dropped just because the US Open
+ * flipped `active` a week early.
+ */
+export const TENNIS_CANDIDATE_LIMIT = 16;
+
+/**
  * Tours in priority order when more tournaments are in season than the budget
  * covers. ATP first, then WTA, then anything else the catalog names.
  */
@@ -90,6 +99,61 @@ export function selectTennisTours(
   });
 
   return tours.slice(0, Math.max(0, limit));
+}
+
+/** What the free `/events` probe learned about one tournament. */
+export type TennisFixtureWindow = {
+  upcoming: number;
+  firstKickoffMs: number | null;
+};
+
+/**
+ * Spend the paid tennis slots on tournaments that actually have matches.
+ *
+ * `active` on the catalog is weaker than "playing this week". During the
+ * Cincinnati → US Open overlap the US Open is already in-season, and a hard
+ * slice of four ATP-first keys can keep the listed slam and drop the Masters
+ * that is on court today. Same ranking soccer already uses: soonest day,
+ * then match volume, then ATP before WTA.
+ */
+export function selectTennisToursWithFixtures(
+  tours: readonly TennisTour[],
+  windowByApiKey: ReadonlyMap<string, TennisFixtureWindow>,
+  limit: number = TENNIS_TOUR_LIMIT,
+  now: number = Date.now(),
+): TennisTour[] {
+  const playing: TennisTour[] = [];
+  const idle: TennisTour[] = [];
+  for (const tour of tours) {
+    const win = windowByApiKey.get(tour.oddsApiKey);
+    if (win && win.upcoming > 0 && win.firstKickoffMs != null) {
+      playing.push(tour);
+    } else {
+      idle.push(tour);
+    }
+  }
+
+  const dayOf = (tour: TennisTour) =>
+    Math.floor(
+      (windowByApiKey.get(tour.oddsApiKey)!.firstKickoffMs! - now) / 86_400_000,
+    );
+  const tourRank = (a: TennisTour, b: TennisTour) => {
+    const byTour = priorityOf(a.oddsApiKey) - priorityOf(b.oddsApiKey);
+    return byTour !== 0 ? byTour : a.label.localeCompare(b.label);
+  };
+
+  playing.sort((a, b) => {
+    const dayDiff = dayOf(a) - dayOf(b);
+    if (dayDiff !== 0) return dayDiff;
+    const volDiff =
+      windowByApiKey.get(b.oddsApiKey)!.upcoming -
+      windowByApiKey.get(a.oddsApiKey)!.upcoming;
+    if (volDiff !== 0) return volDiff;
+    return tourRank(a, b);
+  });
+  idle.sort(tourRank);
+
+  return [...playing, ...idle].slice(0, Math.max(0, limit));
 }
 
 /**
