@@ -28,6 +28,7 @@ test("profile form surfaces validation failures instead of silent no-ops", () =>
 
   assert.match(source, /handleSubmit\(onSubmit, onInvalid\)/);
   assert.match(source, /usernameChanged/);
+  assert.match(source, /reset\(valuesToSave\)/);
 });
 
 test("profile page ensures a CapperProfile exists before rendering the editor", () => {
