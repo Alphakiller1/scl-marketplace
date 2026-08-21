@@ -8,8 +8,11 @@ export const PROFILE_MEDIA_LIMITS = {
   banner: 5 * 1024 * 1024,
 } as const;
 
+export type ProfileMediaKind = "avatar" | "banner";
+
 const allowedImageTypes = [
   "image/jpeg",
+  "image/jpg",
   "image/png",
   "image/webp",
   "image/heic",
@@ -27,12 +30,42 @@ const extensionToMime: Record<string, AllowedImageType> = {
   heif: "image/heif",
 };
 
+export function profileMediaSizeLimitMessage(kind: ProfileMediaKind): string {
+  return kind === "avatar"
+    ? "Avatar images must be under 5 MB."
+    : "Cover images must be under 5 MB.";
+}
+
+/**
+ * 5 MB is a ceiling, never a floor. Camera-roll thumbnails and compressed
+ * exports (tens of KB) must upload; only payloads above the cap are rejected.
+ */
+export function exceedsProfileMediaSizeLimit(
+  byteSize: number,
+  kind: ProfileMediaKind,
+): boolean {
+  if (!Number.isFinite(byteSize) || byteSize <= 0) return false;
+  return byteSize > PROFILE_MEDIA_LIMITS[kind];
+}
+
+function isUploadedImageFile(value: unknown): value is File {
+  if (typeof value !== "object" || value === null) return false;
+  const file = value as File;
+  return (
+    typeof file.size === "number" &&
+    typeof file.name === "string" &&
+    typeof file.arrayBuffer === "function"
+  );
+}
+
 /** Some mobile browsers send an empty or generic MIME type for valid images. */
 export function resolveProfileMediaMimeType(
   file: File,
 ): AllowedImageType | null {
-  if (allowedImageTypes.includes(file.type as AllowedImageType)) {
-    return file.type as AllowedImageType;
+  const declared = file.type.trim().toLowerCase();
+  if (declared === "image/jpg") return "image/jpeg";
+  if (allowedImageTypes.includes(declared as AllowedImageType)) {
+    return declared as AllowedImageType;
   }
 
   const extension = file.name.split(".").pop()?.toLowerCase();
@@ -41,7 +74,7 @@ export function resolveProfileMediaMimeType(
 }
 
 const uploadFileSchema = z.custom<File>(
-  (value) => typeof File !== "undefined" && value instanceof File,
+  isUploadedImageFile,
   "Choose an image to upload.",
 );
 
@@ -59,16 +92,11 @@ export const profileMediaSchema = z
       });
     }
 
-    if (file.size > PROFILE_MEDIA_LIMITS[kind]) {
+    if (exceedsProfileMediaSizeLimit(file.size, kind)) {
       ctx.addIssue({
         code: "custom",
         path: ["file"],
-        message:
-          kind === "avatar"
-            ? "Avatar images must be under 5 MB."
-            : "Cover images must be under 5 MB.",
+        message: profileMediaSizeLimitMessage(kind),
       });
     }
   });
-
-export type ProfileMediaKind = z.infer<typeof profileMediaSchema>["kind"];

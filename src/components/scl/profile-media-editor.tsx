@@ -9,7 +9,11 @@ import { CapperAvatar } from "@/components/scl/capper-avatar";
 import { CapperBanner } from "@/components/scl/capper-banner";
 import { uploadProfileMediaAction } from "@/lib/actions/profile-media.action";
 import { normalizeProfileMediaFile } from "@/lib/profile-media-client";
-import type { ProfileMediaKind } from "@/lib/schemas/profile-media.schema";
+import {
+  exceedsProfileMediaSizeLimit,
+  profileMediaSizeLimitMessage,
+  type ProfileMediaKind,
+} from "@/lib/schemas/profile-media.schema";
 
 type ProfileMediaEditorProps = {
   /** Seed for avatar initials — typically the @username without @. */
@@ -37,7 +41,17 @@ export function ProfileMediaEditor({
     setUploading(kind);
 
     try {
+      if (exceedsProfileMediaSizeLimit(file.size, kind)) {
+        toast.error(profileMediaSizeLimitMessage(kind));
+        return;
+      }
+
       const normalized = await normalizeProfileMediaFile(file);
+      if (exceedsProfileMediaSizeLimit(normalized.size, kind)) {
+        toast.error(profileMediaSizeLimitMessage(kind));
+        return;
+      }
+
       const formData = new FormData();
       formData.set("kind", kind);
       formData.set("file", normalized);
@@ -55,9 +69,7 @@ export function ProfileMediaEditor({
           : "Cover image updated",
       );
     } catch {
-      toast.error(
-        "We couldn't upload that image. Try a JPG, PNG, or HEIC under 5 MB.",
-      );
+      toast.error("We couldn't upload that image. Try a JPG, PNG, or HEIC.");
     } finally {
       setUploading(null);
     }
