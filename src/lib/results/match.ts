@@ -444,6 +444,22 @@ function gradeSpread(
   return adjusted > 0 ? "WIN" : "LOSS";
 }
 
+/**
+ * Markets the auto-grader will never settle from a two-number scoreboard.
+ *
+ * Tennis spreads/totals are the current case: the feed does not say whether
+ * the numbers are sets or games, so grading them would invent a result. These
+ * stays PENDING for a human and must not mark the whole pipeline UNHEALTHY.
+ */
+export function isAutoGradeBlocked(
+  play: Pick<GradablePlay, "sport" | "market">,
+): boolean {
+  return (
+    play.sport.trim().toUpperCase() === "TENNIS" &&
+    !isMoneylineMarket(play.market)
+  );
+}
+
 export function resolveOutcome(
   play: GradablePlay,
   games: SettledGame[],
@@ -466,10 +482,7 @@ export function resolveOutcome(
   //
   // So the rest defer (null keeps the play PENDING) until the unit is
   // confirmed, rather than being graded on an assumption.
-  if (
-    play.sport.trim().toUpperCase() === "TENNIS" &&
-    !isMoneylineMarket(play.market)
-  ) {
+  if (isAutoGradeBlocked(play)) {
     return null;
   }
 
