@@ -112,7 +112,7 @@ async function findHandleOccupant(
 }
 
 function revalidateProfileSurfaces(
-  previousUsername: string | undefined,
+  previousUsername: string | null | undefined,
   nextUsername: string,
 ) {
   revalidatePath("/dashboard/profile");
@@ -181,7 +181,8 @@ async function saveProfile(input: ProfileInput): Promise<ProfileResult> {
   if (!current) return { ok: false, error: "Account not found." };
 
   const nextUsername = d.username;
-  const previousUsername = current.username?.replace(/^@+/, "").toLowerCase();
+  const currentUsername = current.username?.replace(/^@+/, "") ?? null;
+  const previousUsername = currentUsername?.toLowerCase();
   const usernameChanged = nextUsername !== previousUsername;
 
   if (isTestHandle(nextUsername) && nextUsername !== previousUsername) {
@@ -209,6 +210,9 @@ async function saveProfile(input: ProfileInput): Promise<ProfileResult> {
     }
   }
 
+  // Set when the canonical fold was refused and the stored spelling stands.
+  let canonicalHandleRefused = false;
+
   // Identity write is its own transaction. A CapperProfile column/enum error
   // must not roll back a handle change — that is what surfaced as
   // "We couldn't save your profile" when @mtndegwn tried to become @mtndegen.
@@ -231,14 +235,32 @@ async function saveProfile(input: ProfileInput): Promise<ProfileResult> {
     );
   } catch (error) {
     if (isUniqueHandleConflict(error)) {
-      return { ok: false, error: HANDLE_TAKEN_MESSAGE };
+      // Asking for somebody else's handle is a real rejection.
+      if (usernameChanged) {
+        return { ok: false, error: HANDLE_TAKEN_MESSAGE };
+      }
+      // Otherwise the handle did not change and this write was only folding a
+      // stored spelling to canonical — which a second row already holds.
+      // @Parlaypluggy and @parlaypluggy are both live accounts, so every save
+      // by the capitalised one collided and answered "that handle is taken" to
+      // someone who had only edited their bio, with no way past it. Keep the
+      // spelling on record and let the rest of the save through; lookups are
+      // case-insensitive, so nothing downstream depends on the fold.
+      console.warn(
+        "[profile] kept stored handle spelling; canonical form is taken",
+      );
+      canonicalHandleRefused = true;
+    } else {
+      console.error("[profile] username save failed:", error);
+      return {
+        ok: false,
+        error: "We couldn't save your username. Try again.",
+      };
     }
-    console.error("[profile] username save failed:", error);
-    return {
-      ok: false,
-      error: "We couldn't save your username. Try again.",
-    };
   }
+
+  const savedUsername =
+    canonicalHandleRefused && currentUsername ? currentUsername : nextUsername;
 
   const profileData = {
     headline: nullify(d.headline),
@@ -272,18 +294,18 @@ async function saveProfile(input: ProfileInput): Promise<ProfileResult> {
     // public URL instead of looking like Save did nothing.
     console.error("[profile] profile fields save failed:", error);
     afterResponse(async () => {
-      revalidateProfileSurfaces(previousUsername, nextUsername);
+      revalidateProfileSurfaces(currentUsername, savedUsername);
     });
     return {
       ok: true,
       usernameChanged,
-      username: nextUsername,
+      username: savedUsername,
     };
   }
 
   afterResponse(async () => {
-    revalidateProfileSurfaces(previousUsername, nextUsername);
+    revalidateProfileSurfaces(currentUsername, savedUsername);
   });
 
-  return { ok: true, usernameChanged, username: nextUsername };
+  return { ok: true, usernameChanged, username: savedUsername };
 }

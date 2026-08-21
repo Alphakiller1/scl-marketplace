@@ -101,3 +101,58 @@ test("profile page remounts the editor from the saved handle", () => {
   assert.match(page, /key=\{profile\.user\.username \?\? "no-handle"\}/);
   assert.match(queries, /ensureCapperProfileByUserId/);
 });
+
+test("a taken canonical spelling cannot block a capper who kept their handle", () => {
+  const source = read("src/lib/actions/profile.action.ts");
+
+  // The write stays unconditional — skipping it is what made Save look like a
+  // no-op for mixed-case rows. The conflict is what gets classified.
+  assert.match(source, /data: \{ username: nextUsername \}/);
+  // A real rename onto somebody else's handle is still refused.
+  assert.match(
+    source,
+    /if \(usernameChanged\) \{\s*return \{ ok: false, error: HANDLE_TAKEN_MESSAGE \};/,
+  );
+  // A collision while only folding the stored spelling is survivable.
+  assert.match(source, /canonicalHandleRefused = true/);
+  assert.match(source, /const savedUsername =/);
+  // What the caller is told, and what gets revalidated, is what is on the row.
+  assert.match(source, /username: savedUsername/);
+  assert.match(
+    source,
+    /revalidateProfileSurfaces\(currentUsername, savedUsername\)/,
+  );
+});
+
+test("public profile lookup resolves handles that differ only by case", () => {
+  const source = read("src/lib/queries/capper.ts");
+
+  // findFirst returned an arbitrary row when two handles folded together, so
+  // one of the two live accounts was unreachable at its own URL.
+  assert.doesNotMatch(
+    source,
+    /capperProfile\.findFirst\(\{\s*where: \{\s*user: \{\s*username: \{ equals: normalizedHandle/,
+  );
+  assert.match(
+    source,
+    /const requestedHandle = handle\.replace\(\/\^@\+\/, ""\)\.trim\(\)/,
+  );
+  assert.match(
+    source,
+    /matches\.find\(\(match\) => match\.user\.username === requestedHandle\)/,
+  );
+});
+
+test("libvips ships with the functions that resize profile media", () => {
+  const config = read("next.config.ts");
+
+  // sharp is auto-externalised by Next, so its native binary is only present
+  // if tracing is told to include it. Without this every upload died with
+  // ERR_DLOPEN_FAILED and blamed the capper's photo.
+  assert.match(config, /outputFileTracingIncludes/);
+  assert.match(
+    config,
+    /"\/dashboard\/profile": \["\.\/node_modules\/@img\/\*\*\/\*"\]/,
+  );
+  assert.match(config, /"\/api\/\*": \["\.\/node_modules\/@img\/\*\*\/\*"\]/);
+});

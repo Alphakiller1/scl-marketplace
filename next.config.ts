@@ -32,6 +32,30 @@ function supabaseImagePatterns(): NonNullable<
 }
 
 const nextConfig: NextConfig = {
+  /**
+   * Ship libvips with the functions that resize profile media.
+   *
+   * `sharp` is already on Next's auto-external list, so it is loaded with a
+   * native `require` at runtime rather than bundled — but its platform binary
+   * lives in an *optional* dependency (`@img/sharp-libvips-linux-x64`), and
+   * file tracing was not following the external module into it. The function
+   * shipped with `sharp` present and `libvips-cpp.so` absent, so every avatar
+   * and cover upload died in `optimizeProfileMediaImage` with
+   * ERR_DLOPEN_FAILED and told the capper their photo was the problem:
+   *
+   *   Could not load the "sharp" module using the linux-x64 runtime
+   *   ERR_DLOPEN_FAILED: libvips-cpp.so.8.18.3: cannot open shared object file
+   *
+   * Keyed by route because tracing is per-function: the upload action is
+   * reached from the capper profile page, and `/api/*` covers any future
+   * route handler that resizes. Globbed across every `@img` platform package
+   * so a sharp upgrade that renames the binary cannot silently re-break it.
+   */
+  outputFileTracingIncludes: {
+    "/dashboard/profile": ["./node_modules/@img/**/*"],
+    "/api/*": ["./node_modules/@img/**/*"],
+  },
+
   // Profile media server actions accept up to 5 MB (cover) plus multipart
   // overhead — the default 1 MB Server Action limit rejects most phone photos.
   experimental: {
