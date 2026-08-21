@@ -1,6 +1,10 @@
 import Link from "next/link";
 
 import { ProviderBadge } from "@/components/scl/provider-badge";
+import {
+  packageUnpublishableMessage,
+  packageUnpublishableReason,
+} from "@/lib/public-packages";
 import { cn } from "@/lib/utils";
 
 type InventoryPackage = {
@@ -11,10 +15,13 @@ type InventoryPackage = {
   provider: string | null;
   storeConnectionId: string | null;
   unattached: boolean;
+  hasCheckoutUrl: boolean;
+  connectionStatus: string | null;
   trackingSlug: string | null;
   clicks: number;
   attributedPicks: number;
   publishable: boolean;
+  checkoutUrl?: string | null;
 };
 
 /**
@@ -37,9 +44,22 @@ export function AdminCapperPackageInventory({
   className?: string;
 }) {
   const live = packages.filter((p) => p.isActive).length;
-  const notPublishable = packages.filter(
-    (p) => p.isActive && !p.publishable,
-  ).length;
+  const blocked = packages.filter((p) => p.isActive && !p.publishable);
+  const blockedByReason = {
+    missing_checkout: 0,
+    missing_tracking: 0,
+    awaiting_mark_live: 0,
+  };
+  for (const pkg of blocked) {
+    const reason = packageUnpublishableReason({
+      isActive: pkg.isActive,
+      checkoutUrl: pkg.checkoutUrl ?? null,
+      hasTrackingUrl: Boolean(pkg.trackingSlug),
+      storeConnectionId: pkg.storeConnectionId,
+      storeConnectionStatus: pkg.connectionStatus,
+    });
+    if (reason) blockedByReason[reason] += 1;
+  }
 
   return (
     <section
@@ -61,15 +81,27 @@ export function AdminCapperPackageInventory({
         </p>
       ) : (
         <>
-          {notPublishable > 0 ? (
-            <p className="text-warn border-border border-b px-3 py-2 text-xs">
-              {notPublishable} active{" "}
-              {notPublishable === 1 ? "package is" : "packages are"} missing a
-              checkout link or tracking URL, so{" "}
-              {notPublishable === 1 ? "it does" : "they do"} not appear
-              publicly.
-            </p>
-          ) : null}
+          {(
+            [
+              "missing_checkout",
+              "missing_tracking",
+              "awaiting_mark_live",
+            ] as const
+          ).map((reason) =>
+            blockedByReason[reason] > 0 ? (
+              <p
+                key={reason}
+                className={cn(
+                  "border-border border-b px-3 py-2 text-xs leading-relaxed",
+                  reason === "awaiting_mark_live"
+                    ? "text-foreground bg-surface-2"
+                    : "text-warn",
+                )}
+              >
+                {packageUnpublishableMessage(reason, blockedByReason[reason])}
+              </p>
+            ) : null,
+          )}
           <ul className="divide-border divide-y">
             {packages.map((pkg) => (
               <li
@@ -119,8 +151,16 @@ export function AdminCapperPackageInventory({
                     {" · "}
                     {pkg.attributedPicks.toLocaleString()} attributed
                     {pkg.attributedPicks === 1 ? " pick" : " picks"}
+                    {pkg.hasCheckoutUrl
+                      ? " · checkout saved"
+                      : " · no checkout link"}
                     {pkg.trackingSlug ? null : " · no tracking URL"}
                   </p>
+                  {pkg.checkoutUrl ? (
+                    <p className="text-muted-foreground mt-1 text-xs break-all">
+                      {pkg.checkoutUrl}
+                    </p>
+                  ) : null}
                 </div>
                 {pkg.trackingSlug ? (
                   <Link

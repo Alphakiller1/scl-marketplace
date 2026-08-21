@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { isPackagePubliclyPublishable } from "@/lib/public-packages";
+import {
+  isPackagePubliclyPublishable,
+  packageUnpublishableReason,
+  packageUnpublishableMessage,
+} from "@/lib/public-packages";
 
 test("manual unattached packages publish when active with checkout + tracking", () => {
   assert.equal(
@@ -26,6 +30,23 @@ test("packages on a pending storefront do not publish until Mark live", () => {
       storeConnectionStatus: "PENDING_SCL_LINK_IMPORT",
     }),
     false,
+  );
+});
+
+test("packages awaiting Mark live are not mislabeled as missing links", () => {
+  assert.equal(
+    packageUnpublishableReason({
+      isActive: true,
+      checkoutUrl: "https://whop.com/checkout/plan_abc?a=scleaderboard",
+      hasTrackingUrl: true,
+      storeConnectionId: "conn_1",
+      storeConnectionStatus: "PACKAGES_IMPORTED",
+    }),
+    "awaiting_mark_live",
+  );
+  assert.match(
+    packageUnpublishableMessage("awaiting_mark_live"),
+    /already has a checkout link saved/i,
   );
 });
 

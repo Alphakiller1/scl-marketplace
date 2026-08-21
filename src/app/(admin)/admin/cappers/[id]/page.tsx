@@ -35,7 +35,10 @@ import {
 } from "@/lib/store-connection";
 import { getAdminCapperDetail } from "@/lib/queries/admin-cappers";
 import { getStorefrontMessages } from "@/lib/queries/storefront-messages";
-import { isPackagePubliclyPublishable } from "@/lib/public-packages";
+import {
+  packageUnpublishableMessage,
+  packageUnpublishableReason,
+} from "@/lib/public-packages";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Capper review" };
@@ -440,7 +443,7 @@ export default async function AdminCapperDetailPage({
                       (row) => row.id === pkg.storeConnectionId,
                     )
                   : null;
-                const publishable = isPackagePubliclyPublishable({
+                const unpublishableReason = packageUnpublishableReason({
                   isActive: pkg.isActive,
                   checkoutUrl: pkg.checkoutUrl,
                   hasTrackingUrl: pkg.trackingUrls.length > 0,
@@ -501,14 +504,9 @@ export default async function AdminCapperDetailPage({
                           package if it still shows missing.
                         </p>
                       )}
-                      {pkg.isActive && !publishable ? (
+                      {unpublishableReason ? (
                         <p className="text-warn mt-1.5 text-xs leading-relaxed">
-                          Active but not on the public profile yet
-                          {connection && connection.status !== "LIVE"
-                            ? " — storefront must be Mark live, or create manual packages without attaching them to a pending storefront."
-                            : !pkg.checkoutUrl || !trackingSlug
-                              ? " — add a checkout link and save again."
-                              : "."}
+                          {packageUnpublishableMessage(unpublishableReason)}
                         </p>
                       ) : null}
                     </div>
