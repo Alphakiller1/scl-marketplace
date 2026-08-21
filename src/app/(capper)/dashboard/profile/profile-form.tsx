@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm, useWatch, type FieldErrors } from "react-hook-form";
+import {
+  Controller,
+  useForm,
+  useWatch,
+  type FieldErrors,
+} from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save, Store } from "lucide-react";
 import { toast } from "sonner";
@@ -35,6 +40,10 @@ import {
   OFFERING_MODELS,
 } from "@/lib/schemas/profile.schema";
 import { updateProfileAction } from "@/lib/actions/profile.action";
+import {
+  PROFILE_USERNAME_API_PATH,
+  parseUsernameSavePayload,
+} from "@/lib/profile-username-api";
 import { formatHandle } from "@/lib/identity";
 import type { CapperProfileView } from "@/lib/queries/profile";
 
@@ -72,8 +81,21 @@ function StepHeading({
   );
 }
 
+function stripHandlePrefix(value: string) {
+  return value.replace(/^@+/, "").trim();
+}
+
+function usernameSavedMessage(username: string) {
+  return `@${username} saved — your public profile URL updated.`;
+}
+
 export function ProfileForm({ profile }: { profile: CapperProfileView }) {
   const router = useRouter();
+  const initialHandle = stripHandlePrefix(profile.user.username ?? "");
+  const handleInputRef = useRef<HTMLInputElement | null>(null);
+  const capturedHandleRef = useRef(initialHandle);
+  const handleSnapshotLockedRef = useRef(false);
+  const [handleUnlocked, setHandleUnlocked] = useState(false);
   const [media, setMedia] = useState({
     avatarUrl: profile.avatarUrl,
     bannerUrl: profile.bannerUrl,
@@ -88,7 +110,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
   } = useForm<ProfileFormInput, unknown, ProfileInput>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      username: (profile.user.username ?? "").replace(/^@+/, ""),
+      username: initialHandle,
       headline: profile.headline ?? "",
       bio: profile.bio ?? "",
       providerType: profile.providerType,
@@ -106,7 +128,16 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
   });
 
   const values = useWatch({ control });
-  const username = (values.username ?? "").replace(/^@+/, "").trim();
+  const username = stripHandlePrefix(values.username ?? "");
+
+  function captureHandle() {
+    if (handleSnapshotLockedRef.current) return;
+    const live = handleInputRef.current?.value;
+    if (typeof live === "string") {
+      capturedHandleRef.current = live;
+    }
+    handleSnapshotLockedRef.current = true;
+  }
   const handleLabel = formatHandle(username) ?? "";
   const completion = calculateProfileCompletion({
     ...values,
@@ -135,22 +166,90 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
     );
   }
 
-  async function onSubmit(valuesToSave: ProfileInput) {
+  async function persistCapturedUsername() {
+    // Do not re-read the live input here. Password managers overwrite it
+    // between pointerdown and submit; capturedHandleRef is the typed value.
+    // Fetch JSON instead of a Server Action — Origin/Host mismatches and
+    // Safari action POSTs were throwing a digest toasted as
+    // "We couldn't save your profile".
     try {
-      const result = await updateProfileAction(valuesToSave);
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
+      const response = await fetch(PROFILE_USERNAME_API_PATH, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ username: capturedHandleRef.current }),
+      });
+      const contentType = response.headers.get("content-type") ?? "";
+      if (!contentType.includes("application/json")) {
+        return {
+          ok: false as const,
+          error:
+            response.status === 401 || response.redirected
+              ? "Sign in again to change your username."
+              : "We couldn't save your username. Try again.",
+        };
       }
-      reset(valuesToSave);
+      return parseUsernameSavePayload(await response.json());
+    } catch {
+      return {
+        ok: false as const,
+        error: "We couldn't save your username. Try again.",
+      };
+    } finally {
+      handleSnapshotLockedRef.current = false;
+    }
+  }
+
+  async function saveUsernameThenProfile(valuesToSave?: ProfileInput) {
+    const usernameResult = await persistCapturedUsername();
+    if (!usernameResult.ok) {
+      toast.error(usernameResult.error);
+      return false;
+    }
+
+    if (!valuesToSave) {
+      if (usernameResult.usernameChanged) {
+        toast.success(usernameSavedMessage(usernameResult.username));
+        router.refresh();
+      }
+      return usernameResult.usernameChanged;
+    }
+
+    try {
+      const result = await updateProfileAction({
+        ...valuesToSave,
+        username: usernameResult.username,
+      });
+      if (!result.ok) {
+        if (usernameResult.usernameChanged) {
+          toast.success(usernameSavedMessage(usernameResult.username));
+        }
+        toast.error(result.error);
+        router.refresh();
+        return false;
+      }
+      reset({ ...valuesToSave, username: usernameResult.username });
       toast.success(
-        result.usernameChanged
-          ? `@${result.username} saved — your public profile URL updated.`
+        usernameResult.usernameChanged || result.usernameChanged
+          ? usernameSavedMessage(usernameResult.username)
           : "Public profile saved",
       );
       router.refresh();
+      return true;
     } catch {
-      toast.error("We couldn't save your profile. Try again.");
+      if (usernameResult.usernameChanged) {
+        toast.success(usernameSavedMessage(usernameResult.username));
+        toast.error(
+          "Username saved, but the rest of the profile did not. Try again.",
+        );
+        router.refresh();
+        return true;
+      }
+      toast.error("We couldn't complete the save. Refresh and try again.");
+      return false;
     }
   }
 
@@ -178,7 +277,19 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <form
-          onSubmit={handleSubmit(onSubmit, onInvalid)}
+          autoComplete="off"
+          onKeyDown={(event) => {
+            if (event.key === "Enter") captureHandle();
+          }}
+          onSubmit={(event) =>
+            handleSubmit(
+              (valuesToSave) => saveUsernameThenProfile(valuesToSave),
+              async (formErrors) => {
+                await saveUsernameThenProfile();
+                onInvalid(formErrors);
+              },
+            )(event)
+          }
           className="min-w-0 space-y-5"
           noValidate
         >
@@ -208,11 +319,13 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
 
             <Field
               htmlFor="scl-public-handle"
-              label="SCL Username"
+              label="Public handle"
               error={errors.username?.message}
             >
-              {/* Decoy so password managers do not overwrite the public handle
-                  with the login username when Save runs. */}
+              {/* The only `name="username"` field. Password managers treat a
+                  visible handle named username as a login field and overwrite
+                  it with the old @handle on Save — that is why mtndegwn never
+                  became mtndegen. */}
               <input
                 type="text"
                 name="username"
@@ -229,22 +342,50 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
                 >
                   @
                 </span>
-                <Input
-                  id="scl-public-handle"
-                  autoComplete="off"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  data-1p-ignore
-                  data-lpignore="true"
-                  data-form-type="other"
-                  className="pl-7"
-                  placeholder="your_username"
-                  {...register("username")}
+                <Controller
+                  name="username"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      ref={(element) => {
+                        field.ref(element);
+                        handleInputRef.current =
+                          element instanceof HTMLInputElement ? element : null;
+                      }}
+                      id="scl-public-handle"
+                      name="scl-public-handle"
+                      readOnly={!handleUnlocked}
+                      autoComplete="off"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      data-1p-ignore
+                      data-lpignore="true"
+                      data-form-type="other"
+                      className="pl-7"
+                      placeholder="your_username"
+                      onFocus={(event) => {
+                        setHandleUnlocked(true);
+                        event.currentTarget.removeAttribute("readOnly");
+                      }}
+                      onPointerDown={() => setHandleUnlocked(true)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") captureHandle();
+                      }}
+                      onChange={(event) => {
+                        field.onChange(event);
+                        if (!handleSnapshotLockedRef.current) {
+                          capturedHandleRef.current = event.target.value;
+                        }
+                      }}
+                    />
+                  )}
                 />
               </div>
               <p className="text-muted-foreground text-xs">
-                3–30 characters. Letters, numbers, and underscores only.
+                3–30 characters. Letters, numbers, and underscores only. This is
+                your public @handle, not your login.
               </p>
             </Field>
 
@@ -483,6 +624,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
               type="submit"
               disabled={isSubmitting}
               className="w-full gap-2 sm:w-auto"
+              onPointerDown={captureHandle}
             >
               <Save className="size-4" />
               {isSubmitting ? "Saving…" : "Save Public Profile"}

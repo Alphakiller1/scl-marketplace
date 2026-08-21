@@ -72,25 +72,64 @@ test("JWT can copy an updated handle after Save, but Save must not call it", () 
 
 test("a failed session or cache bust cannot fail a handle that already wrote", () => {
   const source = read("src/lib/actions/profile.action.ts");
+  assert.match(source, /scheduleProfileRevalidation/);
   assert.match(
     source,
-    /afterResponse\(async \(\) => \{\s*revalidateProfileSurfaces/,
+    /profile fields save failed[\s\S]*return usernameResult/,
   );
-  assert.match(source, /profile fields save failed[\s\S]*ok: true/);
 });
 
 test("profile form username field is editable and not a login autofill target", () => {
   const source = read("src/app/(capper)/dashboard/profile/profile-form.tsx");
 
-  assert.match(source, /handleSubmit\(onSubmit, onInvalid\)/);
+  assert.match(source, /saveUsernameThenProfile/);
+  assert.match(source, /PROFILE_USERNAME_API_PATH/);
   assert.match(source, /usernameChanged/);
-  assert.match(source, /reset\(valuesToSave\)/);
-  assert.match(source, /\{\.\.\.register\("username"\)\}/);
+  assert.match(source, /name="scl-public-handle"/);
   assert.match(source, /id="scl-public-handle"/);
   assert.match(source, /data-form-type="other"/);
+  assert.match(source, /onPointerDown=\{captureHandle\}/);
+  assert.match(source, /readOnly=\{!handleUnlocked\}/);
+  assert.doesNotMatch(
+    source,
+    /\{\.\.\.register\("username"\)\}/,
+    "register(username) sets name=username on the visible field and lets password managers clobber the new handle",
+  );
   assert.doesNotMatch(source, /id="username"/);
-  assert.doesNotMatch(source, /readOnly/);
   assert.doesNotMatch(source, /disabled=\{true\}/);
+
+  const visibleName = source.indexOf('name="scl-public-handle"');
+  const decoyInput = source.indexOf('type="text"');
+  const decoyName = source.indexOf('name="username"', decoyInput);
+  assert.ok(decoyName > 0 && visibleName > decoyName);
+});
+
+test("username can be saved without the rest of the profile form", () => {
+  const source = read("src/lib/actions/profile.action.ts");
+
+  assert.match(source, /export async function updateUsernameAction/);
+  assert.match(source, /userFacingProfileSaveError/);
+  assert.match(source, /scheduleProfileRevalidation/);
+  assert.match(source, /persistUsername\(/);
+  const persistIndex = source.indexOf("async function persistUsername");
+  const profileUpsertIndex = source.indexOf("capperProfile.upsert");
+  assert.ok(persistIndex > 0 && persistIndex < profileUpsertIndex);
+});
+
+test("username Prisma failures are not hidden behind the generic profile toast", () => {
+  const action = read("src/lib/actions/profile.action.ts");
+  const form = read("src/app/(capper)/dashboard/profile/profile-form.tsx");
+  const route = read("src/app/api/account/username/route.ts");
+
+  assert.match(action, /userFacingProfileSaveError\(error, "username"\)/);
+  assert.match(action, /userFacingProfileSaveError\(error, "profile"\)/);
+  assert.match(form, /We couldn't complete the save/);
+  assert.match(form, /fetch\(PROFILE_USERNAME_API_PATH/);
+  assert.match(route, /updateUsernameAction/);
+  assert.doesNotMatch(
+    form,
+    /toast\.error\("We couldn't save your profile\. Try again\."\)/,
+  );
 });
 
 test("profile page remounts the editor from the saved handle", () => {
@@ -105,23 +144,20 @@ test("profile page remounts the editor from the saved handle", () => {
 test("a taken canonical spelling cannot block a capper who kept their handle", () => {
   const source = read("src/lib/actions/profile.action.ts");
 
-  // The write stays unconditional — skipping it is what made Save look like a
-  // no-op for mixed-case rows. The conflict is what gets classified.
+  // The write stays unconditional — making it conditional is what previously
+  // left mixed-case rows untouched so Save looked like a no-op. What changed
+  // is that the conflict is now classified.
   assert.match(source, /data: \{ username: nextUsername \}/);
-  // A real rename onto somebody else's handle is still refused.
+  // Asking for a handle somebody else holds is still refused.
   assert.match(
     source,
     /if \(usernameChanged\) \{\s*return \{ ok: false, error: HANDLE_TAKEN_MESSAGE \};/,
   );
-  // A collision while only folding the stored spelling is survivable.
-  assert.match(source, /canonicalHandleRefused = true/);
-  assert.match(source, /const savedUsername =/);
-  // What the caller is told, and what gets revalidated, is what is on the row.
-  assert.match(source, /username: savedUsername/);
-  assert.match(
-    source,
-    /revalidateProfileSurfaces\(currentUsername, savedUsername\)/,
-  );
+  // Colliding while only folding your own spelling is survivable, and reports
+  // the spelling that is actually on the row.
+  assert.match(source, /kept stored handle spelling/);
+  assert.match(source, /const currentUsername = current\.username/);
+  assert.match(source, /username: currentUsername \?\? nextUsername/);
 });
 
 test("public profile lookup resolves handles that differ only by case", () => {

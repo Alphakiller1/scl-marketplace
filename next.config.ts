@@ -61,6 +61,14 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       bodySizeLimit: "6mb",
+      // www and apex both serve the app with no redirect. Server Actions
+      // reject a POST whose Origin does not match Host — that throw is the
+      // live "We couldn't save your profile" toast. Allow both public hosts.
+      allowedOrigins: [
+        "sportscappersleaderboard.com",
+        "www.sportscappersleaderboard.com",
+        "scl-marketplace.vercel.app",
+      ],
     },
   },
   images: {

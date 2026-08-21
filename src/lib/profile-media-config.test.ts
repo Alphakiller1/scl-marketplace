@@ -9,4 +9,6 @@ test("next.config raises the Server Action body limit for profile media", () => 
     "utf8",
   );
   assert.match(source, /bodySizeLimit:\s*["']6mb["']/);
+  assert.match(source, /www\.sportscappersleaderboard\.com/);
+  assert.match(source, /allowedOrigins/);
 });
