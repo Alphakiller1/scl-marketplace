@@ -9,8 +9,20 @@ import process from "node:process";
 import { PrismaClient } from "@prisma/client";
 
 import { emailVerificationEnforced } from "../src/lib/email-verification-policy";
-import { getCurrentPolicyBundle } from "../src/lib/queries/policies";
-import { probeProfileMediaStorage } from "../src/lib/supabase-storage";
+import {
+  buildPolicyBundleVersion,
+  CURRENT_POLICY_VERSION,
+} from "../src/lib/legal";
+import {
+  REQUIRED_ACCEPTANCE_POLICY_SLUGS,
+  type RequiredAcceptancePolicySlug,
+} from "../src/lib/policy-metadata";
+import {
+  supabaseProfileMediaBucket,
+  supabaseProjectUrl,
+  supabaseServiceRoleKey,
+  usesSupabasePlatformSecretKey,
+} from "../src/lib/supabase-config";
 
 try {
   process.loadEnvFile();
@@ -19,6 +31,59 @@ try {
 }
 
 const prisma = new PrismaClient();
+const DATE_VERSION = /^\d{4}-\d{2}-\d{2}$/;
+
+function currentPolicyVersion(
+  slug: RequiredAcceptancePolicySlug,
+  persisted: ReadonlyMap<string, string>,
+): string {
+  const version = persisted.get(slug);
+  return version &&
+    !(DATE_VERSION.test(version) && version < CURRENT_POLICY_VERSION)
+    ? version
+    : CURRENT_POLICY_VERSION;
+}
+
+async function getCurrentPolicyBundle() {
+  const documents = await prisma.policyDocument.findMany({
+    where: { slug: { in: [...REQUIRED_ACCEPTANCE_POLICY_SLUGS] } },
+    select: { slug: true, version: true },
+  });
+  const persisted = new Map(
+    documents.map(({ slug, version }) => [slug, version]),
+  );
+  const versions = {
+    termsVersion: currentPolicyVersion("TERMS", persisted),
+    privacyVersion: currentPolicyVersion("PRIVACY", persisted),
+    responsibleGamingVersion: currentPolicyVersion(
+      "RESPONSIBLE_GAMING",
+      persisted,
+    ),
+    refundVersion: currentPolicyVersion("REFUND", persisted),
+  };
+
+  return { id: buildPolicyBundleVersion(versions), ...versions };
+}
+
+async function probeProfileMediaStorage() {
+  const projectUrl = supabaseProjectUrl();
+  const serviceRoleKey = supabaseServiceRoleKey();
+  const bucket = supabaseProfileMediaBucket();
+  if (!projectUrl || !serviceRoleKey) {
+    return { configured: false, bucketReady: false, bucket };
+  }
+
+  const headers: Record<string, string> = { apikey: serviceRoleKey };
+  if (!usesSupabasePlatformSecretKey(serviceRoleKey)) {
+    headers.Authorization = `Bearer ${serviceRoleKey}`;
+  }
+  const response = await fetch(
+    `${projectUrl.replace(/\/+$/, "")}/storage/v1/bucket/${encodeURIComponent(bucket)}`,
+    { headers },
+  );
+
+  return { configured: true, bucketReady: response.ok, bucket };
+}
 
 async function main() {
   const raw = process.argv[2]?.trim();
@@ -32,7 +97,7 @@ async function main() {
   }
 
   const handle = raw.replace(/^@+/, "").toLowerCase();
-  const isEmail = raw.includes("@");
+  const isEmail = !raw.startsWith("@") && raw.includes("@");
 
   const policyBundle = await getCurrentPolicyBundle();
   const account = await prisma.user.findFirst({

@@ -17,9 +17,9 @@ test("resolveProfileMediaMimeType infers type from extension when MIME is empty"
   assert.equal(resolveProfileMediaMimeType(file), "image/png");
 });
 
-test("resolveProfileMediaMimeType accepts HEIC from extension when MIME is empty", () => {
+test("resolveProfileMediaMimeType rejects HEIC from extension", () => {
   const file = new File(["x"], "photo.heic", { type: "" });
-  assert.equal(resolveProfileMediaMimeType(file), "image/heic");
+  assert.equal(resolveProfileMediaMimeType(file), null);
 });
 
 test("resolveProfileMediaMimeType rejects unsupported extensions", () => {
@@ -27,14 +27,14 @@ test("resolveProfileMediaMimeType rejects unsupported extensions", () => {
   assert.equal(resolveProfileMediaMimeType(file), null);
 });
 
-test("profileMediaSchema accepts HEIC files under the avatar limit", () => {
+test("profileMediaSchema rejects HEIC files", () => {
   const file = new File(["x"], "photo.heic", { type: "image/heic" });
   Object.defineProperty(file, "size", {
     value: PROFILE_MEDIA_LIMITS.avatar - 1,
   });
 
   const parsed = profileMediaSchema.safeParse({ kind: "avatar", file });
-  assert.equal(parsed.success, true);
+  assert.equal(parsed.success, false);
 });
 
 test("profileMediaSchema accepts files with empty MIME when extension is valid", () => {

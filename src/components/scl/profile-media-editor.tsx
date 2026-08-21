@@ -54,7 +54,7 @@ export function ProfileMediaEditor({
       );
     } catch {
       toast.error(
-        "We couldn't upload that image. Try a JPG, PNG, or HEIC under 5 MB.",
+        "We couldn't upload that image. Try a JPG, PNG, or WebP under 5 MB.",
       );
     } finally {
       setUploading(null);
@@ -99,7 +99,7 @@ export function ProfileMediaEditor({
         <input
           ref={bannerInput}
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
+          accept="image/jpeg,image/png,image/webp"
           className="hidden"
           aria-label="Upload cover image"
           onChange={(event) => {
@@ -129,7 +129,7 @@ export function ProfileMediaEditor({
           <input
             ref={avatarInput}
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
+            accept="image/jpeg,image/png,image/webp"
             className="hidden"
             aria-label="Upload profile image"
             onChange={(event) => {

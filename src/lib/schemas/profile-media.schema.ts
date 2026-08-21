@@ -8,13 +8,7 @@ export const PROFILE_MEDIA_LIMITS = {
   banner: 5 * 1024 * 1024,
 } as const;
 
-const allowedImageTypes = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/heic",
-  "image/heif",
-] as const;
+const allowedImageTypes = ["image/jpeg", "image/png", "image/webp"] as const;
 
 type AllowedImageType = (typeof allowedImageTypes)[number];
 
@@ -23,8 +17,6 @@ const extensionToMime: Record<string, AllowedImageType> = {
   jpeg: "image/jpeg",
   png: "image/png",
   webp: "image/webp",
-  heic: "image/heic",
-  heif: "image/heif",
 };
 
 /** Some mobile browsers send an empty or generic MIME type for valid images. */
@@ -55,7 +47,7 @@ export const profileMediaSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["file"],
-        message: "Use a JPG, PNG, WebP, or HEIC photo.",
+        message: "Use a JPG, PNG, or WebP photo.",
       });
     }
 
