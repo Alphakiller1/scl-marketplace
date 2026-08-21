@@ -146,24 +146,46 @@ test("Whop setup instructions focus on the capper workflow", () => {
     normalized,
     /Add Sports Cappers Leaderboard as an affiliate in Whop, then connect SCL to your storefront/,
   );
+
+  // The owner-authored manual affiliate steps, in order, each with its shot.
+  assert.match(normalized, /1\. Open Affiliates in your Whop dashboard/);
+  assert.match(normalized, /Marketing → Affiliates/);
+  assert.match(normalized, /whop-steps\/1-affiliates-tab\.png/);
+
+  assert.match(normalized, /2\. Set SCL as an affiliate/);
+  assert.match(normalized, /Set an affiliate commission for a specific user/);
+  assert.match(normalized, /whop-steps\/2-specific-user\.png/);
+
+  assert.match(normalized, /3\. Set the SCL commission/);
+  // Leaving the product filter blank is the step cappers got wrong; naming
+  // products there silently narrows what SCL is allowed to promote.
+  assert.match(normalized, /Only allow referring to these products/);
+  assert.match(normalized, /not First Payment Only/);
+  // Whop’s reward field has a Percent/flat toggle; 35 flat is not 35%.
+  assert.match(normalized, /with <strong>Percent<\/strong> selected/);
+  // SCL’s affiliate username (scleaderboard) is NOT its storefront slug
+  // (sports-cappers-leaderboard). Naming it prevents inviting the wrong user.
+  assert.match(normalized, /SCL_WHOP_AFFILIATE_USERNAME/);
   assert.match(
     normalized,
-    /Open the Sports Cappers Leaderboard page on Whop and add us as an affiliate/,
+    /username is not the same as the address of SCL&apos;s Whop storefront/,
   );
-  assert.doesNotMatch(normalized, /search for/);
-  assert.doesNotMatch(normalized, /Refer Buyers/);
-  assert.match(normalized, /2\. Connect SCL to your Whop/);
-  assert.doesNotMatch(normalized, /optional but recommended/);
-  assert.doesNotMatch(normalized, /3\. Use package-specific affiliate links/);
-  assert.doesNotMatch(normalized, /\bapp\b/i);
-  assert.match(
-    normalized,
-    /3\. Select \{SCL_WHOP_AFFILIATE_COMMISSION\.percent\}% recurring/,
-  );
+  assert.match(normalized, /whop-steps\/3-invite-form\.png/);
+
+  // The synced connect step is unrelated to the manual affiliate invite and
+  // stays put — it just moves to the end of the list.
+  assert.match(normalized, /4\. Connect SCL to your Whop/);
   assert.match(
     normalized,
     /Hiding a mapped product on Whop also takes its SCL offer down/,
   );
+
+  // Old wrong turns that must not come back.
+  assert.doesNotMatch(normalized, /search for/);
+  assert.doesNotMatch(normalized, /Refer Buyers/);
+  assert.doesNotMatch(normalized, /optional but recommended/);
+  assert.doesNotMatch(normalized, /3\. Use package-specific affiliate links/);
+  assert.doesNotMatch(normalized, /\bapp\b/i);
   assert.doesNotMatch(normalized, /It is read-only/);
 });
 

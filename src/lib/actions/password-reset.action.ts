@@ -1,5 +1,7 @@
 "use server";
 
+import { after } from "next/server";
+
 import {
   passwordResetRequestSchema,
   resetPasswordSchema,
@@ -9,8 +11,11 @@ import {
 import {
   consumePasswordResetToken,
   createPasswordResetToken,
+  type ConsumedPasswordReset,
 } from "@/lib/password-reset-tokens";
-import { sendPasswordResetEmail } from "@/lib/email";
+import { sendPasswordResetEmail, sendWelcomeEmail } from "@/lib/email";
+import { appUrl } from "@/lib/app-url";
+import { signUnsubscribeToken } from "@/lib/broadcast";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getRequestIdentity } from "@/lib/request-identity";
 import { classifyLoginIdentifier } from "@/lib/schemas/auth.schema";
@@ -82,7 +87,7 @@ export async function resetPasswordAction(
     };
   }
 
-  let reset = false;
+  let reset: ConsumedPasswordReset | null = null;
   try {
     reset = await consumePasswordResetToken(
       parsed.data.token,
@@ -100,6 +105,25 @@ export async function resetPasswordAction(
       ok: false,
       error: "This reset link is invalid or has expired.",
     };
+  }
+
+  // A reset that also verified the email is somebody's first working day on
+  // SCL — a legacy capper claiming an imported profile, or an unverified signup
+  // recovering this way instead of through the verification link. They never
+  // pass through /verify, so without this they would be the only active cappers
+  // who never got a welcome. A routine reset for an already-verified account
+  // sets `activated: false` and sends nothing.
+  if (reset.activated && !reset.marketingOptOut) {
+    const secret = process.env.AUTH_SECRET ?? "";
+    const claimed = reset;
+    after(async () => {
+      await sendWelcomeEmail({
+        email: claimed.email,
+        unsubscribeUrl: secret
+          ? `${appUrl()}/unsubscribe?token=${signUnsubscribeToken(claimed.userId, secret)}`
+          : undefined,
+      });
+    });
   }
 
   return { ok: true };

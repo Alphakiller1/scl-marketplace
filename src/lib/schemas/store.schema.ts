@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import {
   isWhopCheckoutUrl,
+  isWhopCreatorReferralUrl,
   whopAffiliateParamIssues,
   winibleCheckoutUrlIssues,
 } from "@/lib/store-connection";
@@ -125,7 +126,12 @@ export const adminPackageSchema = z
       }
     }
     if (input.affiliateProvider === "WHOP") {
-      if (!isWhopCheckoutUrl(input.checkoutUrl)) {
+      // The creator referral gets its own message from whopAffiliateParamIssues
+      // below; the generic hint would only muddy it (it *is* a whop.com URL).
+      if (
+        !isWhopCheckoutUrl(input.checkoutUrl) &&
+        !isWhopCreatorReferralUrl(input.checkoutUrl)
+      ) {
         context.addIssue({
           code: "custom",
           path: ["checkoutUrl"],

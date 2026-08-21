@@ -45,10 +45,26 @@ export async function createPasswordResetToken(
   return token;
 }
 
+/**
+ * What a consumed reset link turned out to be.
+ *
+ * `activated` marks the case where this reset is also the account's first
+ * verification — a legacy capper claiming an imported profile from an
+ * admin-issued link, or an unverified signup recovering through reset instead
+ * of the verification mail. Either way the account starts working here, which
+ * is the moment the welcome email belongs.
+ */
+export type ConsumedPasswordReset = {
+  userId: string;
+  email: string;
+  activated: boolean;
+  marketingOptOut: boolean;
+};
+
 export async function consumePasswordResetToken(
   token: string,
   password: string,
-): Promise<boolean> {
+): Promise<ConsumedPasswordReset | null> {
   const record = await prisma.passwordResetToken.findUnique({
     where: { tokenHash: hashToken(token) },
     include: {
@@ -58,15 +74,16 @@ export async function consumePasswordResetToken(
           email: true,
           emailVerified: true,
           accountStatus: true,
+          marketingOptOut: true,
         },
       },
     },
   });
-  if (!record) return false;
+  if (!record) return null;
 
   if (record.expires < new Date()) {
     await prisma.passwordResetToken.delete({ where: { id: record.id } });
-    return false;
+    return null;
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
@@ -78,7 +95,7 @@ export async function consumePasswordResetToken(
         expires: { gt: new Date() },
       },
     });
-    if (consumed.count !== 1) return false;
+    if (consumed.count !== 1) return null;
 
     await transaction.user.update({
       where: { id: record.user.id },
@@ -93,6 +110,11 @@ export async function consumePasswordResetToken(
     await transaction.verificationToken.deleteMany({
       where: { identifier: record.user.email },
     });
-    return true;
+    return {
+      userId: record.user.id,
+      email: record.user.email,
+      activated: record.user.emailVerified === null,
+      marketingOptOut: record.user.marketingOptOut,
+    };
   });
 }

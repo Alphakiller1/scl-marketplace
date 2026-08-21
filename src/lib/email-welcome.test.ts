@@ -134,3 +134,23 @@ describe("welcome email delivery point", () => {
     assert.match(source, /if \(consumed\.count !== 1\) return null;/);
   });
 });
+
+describe("welcome email reaches cappers who activate via a reset link", () => {
+  const read = (relative: string) =>
+    fs.readFileSync(path.join(process.cwd(), relative), "utf8");
+
+  it("treats a reset that also verifies the email as an activation", () => {
+    const source = read("src/lib/password-reset-tokens.ts");
+    // Null before the update means this reset is the first verification —
+    // a legacy capper claiming an imported profile from an admin-issued link.
+    assert.match(source, /activated: record\.user\.emailVerified === null/);
+    assert.match(source, /marketingOptOut: record\.user\.marketingOptOut/);
+  });
+
+  it("sends the welcome on activation, not on a routine reset", () => {
+    const source = read("src/lib/actions/password-reset.action.ts");
+    assert.match(source, /sendWelcomeEmail/);
+    assert.match(source, /if \(reset\.activated && !reset\.marketingOptOut\)/);
+    assert.match(source, /after\(async \(\) => \{/);
+  });
+});
