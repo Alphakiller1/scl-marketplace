@@ -48,3 +48,24 @@ test("profileMediaSchema accepts files with empty MIME when extension is valid",
   const parsed = profileMediaSchema.safeParse({ kind: "avatar", file });
   assert.equal(parsed.success, true);
 });
+
+test("avatar limit allows typical phone camera photos before Sharp compression", () => {
+  assert.ok(
+    PROFILE_MEDIA_LIMITS.avatar >= 5 * 1024 * 1024,
+    "regression guard: avatars must accept up to 5 MB pre-processing",
+  );
+
+  const file = new File(["x"], "photo.jpg", { type: "image/jpeg" });
+  Object.defineProperty(file, "size", { value: 4.5 * 1024 * 1024 });
+  const parsed = profileMediaSchema.safeParse({ kind: "avatar", file });
+  assert.equal(parsed.success, true, "4.5 MB JPEG must pass avatar validation");
+});
+
+test("avatar limit still rejects files above the Server Action ceiling", () => {
+  const file = new File(["x"], "photo.jpg", { type: "image/jpeg" });
+  Object.defineProperty(file, "size", {
+    value: PROFILE_MEDIA_LIMITS.avatar + 1,
+  });
+  const parsed = profileMediaSchema.safeParse({ kind: "avatar", file });
+  assert.equal(parsed.success, false);
+});
