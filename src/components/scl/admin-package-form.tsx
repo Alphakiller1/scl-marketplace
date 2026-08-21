@@ -368,10 +368,11 @@ export function AdminPackageForm({
         ) : null}
       </div>
       <p className="text-muted-foreground text-xs leading-relaxed">
-        Activate prepares this package for publication. Packages attached to a
-        storefront connection stay private until an admin clicks{" "}
-        <strong>Mark live</strong> on the request. Unattached legacy packages
-        (no connection) can appear on the profile when active.
+        Activate prepares this package for publication. Manual packages created
+        here stay unattached from pending storefront workflows, so an active
+        offer with a Whop link can appear on the public profile immediately.
+        Packages created inside a storefront review stay tied to that connection
+        and need <strong>Mark live</strong> before they publish.
       </p>
     </form>
   );
