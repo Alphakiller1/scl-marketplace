@@ -40,6 +40,7 @@ test("HEIC uploads convert in the browser and fall back on the server", () => {
   );
 
   assert.match(client, /heic2any/);
+  assert.match(client, /fileLooksLikeHeic/);
   assert.match(processSrc, /heic-convert/);
   assert.match(processSrc, /isHeicBuffer/);
 });

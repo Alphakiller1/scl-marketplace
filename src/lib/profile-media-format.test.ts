@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import test from "node:test";
 
 import {
@@ -21,4 +23,13 @@ test("isHeicBuffer detects ISO-BMFF HEIC containers", () => {
   buffer.write("ftyp", 4);
   buffer.write("heic", 8);
   assert.equal(isHeicBuffer(buffer), true);
+});
+
+test("client conversion inspects the HEIC header when Safari omits the extension", () => {
+  const source = fs.readFileSync(
+    path.join(process.cwd(), "src/lib/profile-media-client.ts"),
+    "utf8",
+  );
+  assert.match(source, /fileLooksLikeHeic/);
+  assert.match(source, /ftyp/);
 });
