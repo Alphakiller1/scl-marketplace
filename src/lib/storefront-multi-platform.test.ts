@@ -3,6 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
+import { WHOP_CAPPER_REFERRAL_URL } from "@/lib/store-connection";
+
 test("capper storefront setup exposes both supported platform connections", () => {
   const source = fs.readFileSync(
     path.join(process.cwd(), "src/components/scl/monetization-wizard.tsx"),
@@ -27,7 +29,37 @@ test("capper storefront setup tailors platform guidance to the selected option",
   assert.match(source, /Add SCL as a Whop affiliate, connect SCL on Whop/);
   assert.match(
     source,
-    /We’ll help you create a Winible storefront and connect it to SCL\./,
+    /We’ll help you create a Winible or Whop storefront and connect it to SCL\./,
+  );
+});
+
+test("cappers without a platform get both Winible and Whop setup blocks", () => {
+  const source = fs.readFileSync(
+    path.join(process.cwd(), "src/components/scl/monetization-wizard.tsx"),
+    "utf8",
+  );
+  const normalized = source.replace(/\s+/g, " ");
+
+  assert.match(
+    normalized,
+    /Don’t have a platform yet to sell your picks\? We’ll help you get set up with Winible or Whop\./,
+  );
+  assert.match(normalized, /Get Set Up With Winible/);
+  assert.match(normalized, /Get Set Up With Whop/);
+  assert.match(normalized, /Create a Winible storefront/);
+  assert.match(normalized, /Create a Whop storefront/);
+  assert.match(normalized, /href=\{WINIBLE_CAPPER_REFERRAL_URL\}/);
+  assert.match(normalized, /href=\{WHOP_CAPPER_REFERRAL_URL\}/);
+  assert.match(
+    normalized,
+    /This opens SCL&apos;s Whop referral link\. It is not a customer package checkout link\./,
+  );
+});
+
+test("the Whop creator referral is SCL's affiliate network link", () => {
+  assert.equal(
+    WHOP_CAPPER_REFERRAL_URL,
+    "https://whop.com/network/?a=scleaderboard",
   );
 });
 

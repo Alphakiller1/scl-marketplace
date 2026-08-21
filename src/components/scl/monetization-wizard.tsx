@@ -18,6 +18,7 @@ import {
   SCL_AFFILIATE_EMAIL,
   SCL_WHOP_AFFILIATE_COMMISSION,
   SCL_WHOP_AFFILIATE_PAGE_URL,
+  WHOP_CAPPER_REFERRAL_URL,
   WINIBLE_CAPPER_REFERRAL_URL,
   WINIBLE_INVITE_VALUES,
   isPendingStoreStatus,
@@ -50,7 +51,7 @@ const PLATFORM_SELECTION_COPY = [
   [
     "NONE",
     "None yet",
-    "Don’t have a platform yet? We’ll help you get set up with Winible.",
+    "Don’t have a platform yet to sell your picks? We’ll help you get set up with Winible or Whop.",
   ],
 ] as const;
 
@@ -63,7 +64,7 @@ function platformSelectionGuidance(
     case "WHOP":
       return "Add SCL as a Whop affiliate, connect SCL on Whop, then submit — SCL reviews and publishes your approved packages.";
     case "NONE":
-      return "We’ll help you create a Winible storefront and connect it to SCL.";
+      return "We’ll help you create a Winible or Whop storefront and connect it to SCL.";
     default:
       return null;
   }
@@ -353,54 +354,84 @@ export function MonetizationWizard({
             })}
           </div>
           {provider === "NONE" ? (
-            <div className="border-border bg-surface-2 rounded-lg border p-4 text-sm">
-              <p className="font-semibold">Get Set Up With Winible</p>
-              <p className="text-muted-foreground mt-1 leading-relaxed">
-                Don’t have a platform yet? We’ll help you get set up with
-                Winible in just a few minutes so you can sell packages that
-                appear on SCL. Create your Winible storefront, then return here
-                and choose Winible to connect it.
-              </p>
-              <Button
-                variant="outline"
-                className="mt-3"
-                render={
-                  <a
-                    href={WINIBLE_CAPPER_REFERRAL_URL}
-                    target="_blank"
-                    rel="noreferrer"
-                  />
-                }
-                nativeButton={false}
-              >
-                Create a Winible storefront
-                <ExternalLink className="size-4" />
-              </Button>
-              <p className="text-muted-foreground mt-2 text-xs">
-                This opens SCL&apos;s Winible creator-onboarding referral. It is
-                not a customer package checkout link.
-              </p>
-              <div className="border-border bg-background mt-3 rounded-lg border p-3">
-                <p className="text-xs font-semibold tracking-wide uppercase">
-                  If the page will not open
+            <div className="space-y-3">
+              <div className="border-border bg-surface-2 rounded-lg border p-4 text-sm">
+                <p className="font-semibold">Get Set Up With Winible</p>
+                <p className="text-muted-foreground mt-1 leading-relaxed">
+                  Don’t have a platform yet? We’ll help you get set up with
+                  Winible in just a few minutes so you can sell packages that
+                  appear on SCL. Create your Winible storefront, then return
+                  here and choose Winible to connect it.
                 </p>
-                <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-                  Copy the referral URL below, then open it directly in your
-                  browser.
+                <Button
+                  variant="outline"
+                  className="mt-3"
+                  render={
+                    <a
+                      href={WINIBLE_CAPPER_REFERRAL_URL}
+                      target="_blank"
+                      rel="noreferrer"
+                    />
+                  }
+                  nativeButton={false}
+                >
+                  Create a Winible storefront
+                  <ExternalLink className="size-4" />
+                </Button>
+                <p className="text-muted-foreground mt-2 text-xs">
+                  This opens SCL&apos;s Winible creator-onboarding referral. It
+                  is not a customer package checkout link.
                 </p>
-                <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <code className="bg-surface-2 min-w-0 flex-1 overflow-x-auto rounded-md px-2 py-1 text-xs">
-                    {WINIBLE_CAPPER_REFERRAL_URL}
-                  </code>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="min-h-10"
-                    onClick={copyWinibleReferral}
-                  >
-                    {copiedReferral ? "Copied" : "Copy link"}
-                  </Button>
+                <div className="border-border bg-background mt-3 rounded-lg border p-3">
+                  <p className="text-xs font-semibold tracking-wide uppercase">
+                    If the page will not open
+                  </p>
+                  <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                    Copy the referral URL below, then open it directly in your
+                    browser.
+                  </p>
+                  <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <code className="bg-surface-2 min-w-0 flex-1 overflow-x-auto rounded-md px-2 py-1 text-xs">
+                      {WINIBLE_CAPPER_REFERRAL_URL}
+                    </code>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-10"
+                      onClick={copyWinibleReferral}
+                    >
+                      {copiedReferral ? "Copied" : "Copy link"}
+                    </Button>
+                  </div>
                 </div>
+              </div>
+              <div className="border-border bg-surface-2 rounded-lg border p-4 text-sm">
+                <p className="font-semibold">Get Set Up With Whop</p>
+                <p className="text-muted-foreground mt-1 leading-relaxed">
+                  Don’t have a platform yet to sell your picks? We’ll help you
+                  get set up with Whop so you can sell packages that appear on
+                  SCL. Create your Whop storefront, then return here and choose
+                  Whop to connect it.
+                </p>
+                <Button
+                  variant="outline"
+                  className="mt-3"
+                  render={
+                    <a
+                      href={WHOP_CAPPER_REFERRAL_URL}
+                      target="_blank"
+                      rel="noreferrer"
+                    />
+                  }
+                  nativeButton={false}
+                >
+                  Create a Whop storefront
+                  <ExternalLink className="size-4" />
+                </Button>
+                <p className="text-muted-foreground mt-2 text-xs">
+                  This opens SCL&apos;s Whop referral link. It is not a customer
+                  package checkout link.
+                </p>
               </div>
             </div>
           ) : null}
