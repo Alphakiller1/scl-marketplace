@@ -1,11 +1,20 @@
 import { z } from "zod";
 
 export const PROFILE_MEDIA_LIMITS = {
-  avatar: 2 * 1024 * 1024,
+  // Phone camera rolls routinely exceed 2 MB before Sharp compresses to WebP.
+  // The Server Action body cap is 6 MB (see next.config.ts); keep both kinds under
+  // that ceiling with room for multipart overhead.
+  avatar: 5 * 1024 * 1024,
   banner: 5 * 1024 * 1024,
 } as const;
 
-const allowedImageTypes = ["image/jpeg", "image/png", "image/webp"] as const;
+const allowedImageTypes = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+] as const;
 
 type AllowedImageType = (typeof allowedImageTypes)[number];
 
@@ -14,6 +23,8 @@ const extensionToMime: Record<string, AllowedImageType> = {
   jpeg: "image/jpeg",
   png: "image/png",
   webp: "image/webp",
+  heic: "image/heic",
+  heif: "image/heif",
 };
 
 /** Some mobile browsers send an empty or generic MIME type for valid images. */
@@ -44,7 +55,7 @@ export const profileMediaSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["file"],
-        message: "Use a JPG, PNG, or WebP image.",
+        message: "Use a JPG, PNG, WebP, or HEIC photo.",
       });
     }
 
@@ -54,7 +65,7 @@ export const profileMediaSchema = z
         path: ["file"],
         message:
           kind === "avatar"
-            ? "Avatar images must be under 2 MB."
+            ? "Avatar images must be under 5 MB."
             : "Cover images must be under 5 MB.",
       });
     }

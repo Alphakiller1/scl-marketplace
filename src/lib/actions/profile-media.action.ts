@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import sharp from "sharp";
 
 import { prisma } from "@/lib/prisma";
+import { emailVerificationEnforced } from "@/lib/email-verification-policy";
 import { getCurrentAccount } from "@/lib/session";
 import {
   profileMediaSchema,
@@ -25,7 +26,13 @@ export async function uploadProfileMediaAction(
 ): Promise<ProfileMediaResult> {
   const account = await getCurrentAccount();
   if (!account) return { ok: false, error: "You must be logged in." };
-  if (account.accountStatus !== "ACTIVE" || !account.emailVerified) {
+  if (account.accountStatus !== "ACTIVE") {
+    return {
+      ok: false,
+      error: "Your account must be active before uploading profile media.",
+    };
+  }
+  if (emailVerificationEnforced() && !account.emailVerified) {
     return {
       ok: false,
       error: "Verify your email before uploading profile media.",
@@ -89,14 +96,29 @@ export async function uploadProfileMediaAction(
 
   const versionedPublicUrl = `${profileMediaPublicUrl(storage, path)}?v=${Date.now()}`;
 
-  const profile = await prisma.capperProfile.update({
-    where: { userId: account.id },
-    data:
-      kind === "avatar"
-        ? { avatarUrl: versionedPublicUrl }
-        : { bannerUrl: versionedPublicUrl },
-    select: { user: { select: { username: true } } },
-  });
+  let profile: { user: { username: string | null } };
+  try {
+    profile = await prisma.capperProfile.upsert({
+      where: { userId: account.id },
+      create: {
+        userId: account.id,
+        ...(kind === "avatar"
+          ? { avatarUrl: versionedPublicUrl }
+          : { bannerUrl: versionedPublicUrl }),
+      },
+      update:
+        kind === "avatar"
+          ? { avatarUrl: versionedPublicUrl }
+          : { bannerUrl: versionedPublicUrl },
+      select: { user: { select: { username: true } } },
+    });
+  } catch (error) {
+    console.error("[profile-media] profile update failed:", error);
+    return {
+      ok: false,
+      error: "We couldn't save that image to your profile. Try again.",
+    };
+  }
 
   revalidatePath("/dashboard/profile");
   revalidatePath("/cappers");
