@@ -24,7 +24,10 @@ export default async function ProfileSettingsPage() {
       />
 
       {profile ? (
-        <ProfileForm profile={profile} />
+        <ProfileForm
+          key={profile.user.username ?? "no-handle"}
+          profile={profile}
+        />
       ) : (
         <div className="border-border bg-card text-muted-foreground rounded-xl border p-6 text-sm">
           Couldn&apos;t load your capper profile. Refresh and try again.
