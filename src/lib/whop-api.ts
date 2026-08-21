@@ -141,6 +141,93 @@ export function isWhopApiConfigured(accessToken: string | null | undefined) {
   return Boolean(accessToken?.trim());
 }
 
+export type WhopAppRecord = {
+  id: string;
+  redirect_uris?: string[] | null;
+};
+
+function unwrapWhopApp(
+  raw: WhopAppRecord | { data: WhopAppRecord },
+): WhopAppRecord {
+  if (
+    "data" in raw &&
+    raw.data &&
+    typeof raw.data === "object" &&
+    "id" in raw.data
+  ) {
+    return raw.data;
+  }
+  return raw as WhopAppRecord;
+}
+
+export async function retrieveWhopApp(
+  accessToken: string,
+  appId: string,
+): Promise<WhopAppRecord> {
+  const raw = await whopFetch<WhopAppRecord | { data: WhopAppRecord }>(
+    `/apps/${encodeURIComponent(appId)}`,
+    accessToken,
+  );
+  return unwrapWhopApp(raw);
+}
+
+/**
+ * Merge OAuth callback URLs onto the Whop app. Replacing the list wholesale
+ * would drop any extra URIs the owner already registered.
+ */
+export async function mergeWhopAppRedirectUris(input: {
+  accessToken: string;
+  appId: string;
+  redirectUris: string[];
+}): Promise<
+  | { ok: true; redirectUris: string[] }
+  | { ok: false; error: string; redirectUris?: string[] }
+> {
+  if (!isWhopApiConfigured(input.accessToken)) {
+    return { ok: false, error: "Whop is not configured." };
+  }
+  try {
+    const app = await retrieveWhopApp(input.accessToken, input.appId);
+    const current = app.redirect_uris ?? [];
+    const merged = Array.from(new Set([...current, ...input.redirectUris]));
+    if (
+      input.redirectUris.every((uri) => current.includes(uri)) &&
+      merged.length === current.length
+    ) {
+      return { ok: true, redirectUris: current };
+    }
+    const res = await fetch(
+      `${WHOP_API_BASE}/apps/${encodeURIComponent(input.appId)}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${input.accessToken}`,
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ redirect_uris: merged }),
+        cache: "no-store",
+      },
+    );
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      return {
+        ok: false,
+        error: `Whop rejected the redirect URI sync (HTTP ${res.status})${body ? `: ${body.slice(0, 180)}` : ""}`,
+        redirectUris: current,
+      };
+    }
+    return { ok: true, redirectUris: merged };
+  } catch (err) {
+    const message =
+      typeof err === "object" && err && "message" in err
+        ? String((err as { message: string }).message)
+        : "Could not reach Whop.";
+    console.error("[whop-api] mergeWhopAppRedirectUris failed:", err);
+    return { ok: false, error: message };
+  }
+}
+
 /**
  * Fields SCL is willing to push back to Whop.
  *

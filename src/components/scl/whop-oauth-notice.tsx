@@ -20,6 +20,8 @@ const MESSAGES: Record<string, string> = {
     "Whop connected but no business was returned. Reconnect SCL on Whop or contact support.",
   "not-configured":
     "Whop connection is temporarily unavailable. Complete the affiliate steps and submit — SCL will review manually.",
+  "oauth-misconfigured":
+    "Whop isn't accepting SCL's callback URL yet. Try Connect SCL to Whop again in a minute, or contact support if it keeps happening.",
   "start-setup": "Review the Whop setup steps before connecting SCL on Whop.",
   suspended:
     "This Whop storefront is suspended. Contact SCL before continuing.",

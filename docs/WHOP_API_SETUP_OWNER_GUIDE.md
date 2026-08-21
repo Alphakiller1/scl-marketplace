@@ -72,10 +72,16 @@ that is a Whop app they install in one click, instead of every capper mailing us
 3. After it's created, open the app and copy:
    - **App ID** (`app_…`)
    - **App API key** (`whop_…`) — again, shown once
-4. **Redirect / callback URL**, if the app settings ask for one, use:
+4. **Redirect / callback URL.** In the app’s **OAuth** section (not the website
+   URL field), add this exact string — Whop compares it character-for-character,
+   so `www`, a trailing slash, or the Vercel host will fail with
+   `redirect_uri is invalid`:
    `https://sportscappersleaderboard.com/api/whop/callback`
-   (We'll have that route live before you send anyone the install link — if it's not built
-   yet, save the app anyway and we'll fill this in.)
+   Also add the www twin if you use it:
+   `https://www.sportscappersleaderboard.com/api/whop/callback`
+   Connect now syncs these onto the app via the API before sending a capper to
+   Whop, so a missing allowlist entry should self-heal. If Connect still shows
+   raw JSON on `api.whop.com`, the App ID in Vercel does not match this app.
 5. **Permissions the app requests:** the same three reads as above. Keep it read-only. Cappers
    are far more likely to install something that can't touch their money.
 

@@ -5,6 +5,8 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { siteUrl } from "@/lib/site-url";
 import { buildWhopAuthorizeUrl, generatePkceState } from "@/lib/whop-oauth";
+import { ensureWhopOAuthRedirectRegistered } from "@/lib/whop-oauth-register";
+import { whopOAuthRedirectUri } from "@/lib/whop-oauth-redirect";
 import { whopAppId, whopOAuthConfigured } from "@/lib/whop-config";
 
 export const runtime = "nodejs";
@@ -14,7 +16,7 @@ const PKCE_COOKIE = "whop_oauth_pkce";
 const PKCE_MAX_AGE = 60 * 10;
 
 function redirectUri() {
-  return `${siteUrl()}/api/whop/callback`;
+  return whopOAuthRedirectUri();
 }
 
 function monetizationRedirect(code: string) {
@@ -65,6 +67,11 @@ export async function GET() {
   const appId = whopAppId();
   if (!appId) {
     return monetizationRedirect("not-configured");
+  }
+
+  const redirectSync = await ensureWhopOAuthRedirectRegistered();
+  if (redirectSync === "missing") {
+    return monetizationRedirect("oauth-misconfigured");
   }
 
   const pkce = generatePkceState(profile.id, connection.id);

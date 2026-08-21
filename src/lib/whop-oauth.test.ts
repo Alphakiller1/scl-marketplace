@@ -32,5 +32,9 @@ describe("whop oauth helpers", () => {
       pkceCodeChallenge(pkce.codeVerifier),
     );
     assert.equal(parsed.searchParams.get("code_challenge_method"), "S256");
+    assert.equal(
+      parsed.searchParams.get("redirect_uri"),
+      "https://sportscappersleaderboard.com/api/whop/callback",
+    );
   });
 });

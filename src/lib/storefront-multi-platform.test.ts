@@ -80,6 +80,16 @@ test("Whop connection copy explains the capper experience", () => {
   assert.match(source, /Connect SCL to Whop/);
   assert.match(source, /SCL_WHOP_AFFILIATE_PAGE_URL/);
   assert.match(source, /href="\/api\/whop\/connect"/);
+  assert.doesNotMatch(
+    source,
+    /href="\/api\/whop\/connect"[\s\S]{0,40}target="_blank"/,
+    "OAuth in a new tab is how iOS showed Whop's raw JSON error",
+  );
+  const notice = fs.readFileSync(
+    path.join(process.cwd(), "src/components/scl/whop-oauth-notice.tsx"),
+    "utf8",
+  );
+  assert.match(notice, /oauth-misconfigured/);
   assert.match(
     source,
     /When SCL refers a subscriber to your storefront, we earn an affiliate commission/,
@@ -212,6 +222,19 @@ test("Whop OAuth callback route exists for storefront connection", () => {
       path.join(process.cwd(), "src/app/api/whop/connect/route.ts"),
     ),
   );
+  const connect = fs.readFileSync(
+    path.join(process.cwd(), "src/app/api/whop/connect/route.ts"),
+    "utf8",
+  );
+  const callback = fs.readFileSync(
+    path.join(process.cwd(), "src/app/api/whop/callback/route.ts"),
+    "utf8",
+  );
+  assert.match(connect, /whopOAuthRedirectUri/);
+  assert.match(connect, /ensureWhopOAuthRedirectRegistered/);
+  assert.match(connect, /oauth-misconfigured/);
+  assert.match(callback, /whopOAuthRedirectUri/);
+  assert.doesNotMatch(connect, /\$\{siteUrl\(\)\} \/api\/whop\/callback/);
 });
 
 test("existing Whop storefronts can install or repair their app connection", () => {

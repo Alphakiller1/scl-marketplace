@@ -15,6 +15,7 @@ import {
 } from "@/lib/supabase-config";
 import { probeProfileMediaStorage } from "@/lib/supabase-storage";
 import { whopIntegrationStatus } from "@/lib/whop-config";
+import { whopOAuthRedirectUri } from "@/lib/whop-oauth-redirect";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -77,7 +78,10 @@ export async function GET() {
         verificationEnforced: emailVerificationEnforced(),
       },
       odds,
-      whop: whopIntegrationStatus(),
+      whop: {
+        ...whopIntegrationStatus(),
+        redirectUri: whopOAuthRedirectUri(),
+      },
       release,
       checkedAt: new Date().toISOString(),
     },
