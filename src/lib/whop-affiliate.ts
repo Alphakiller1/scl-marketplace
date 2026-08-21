@@ -1,3 +1,5 @@
+import { isSclWhopAffiliateUsername } from "@/lib/whop-config";
+
 /**
  * Whop checkout URL validation. A missing or HTML-escaped `?a=` silently kills
  * affiliate attribution — 118 of 122 legacy links had exactly that bug.
@@ -37,7 +39,7 @@ export function whopAffiliateParamIssues(
       issues.push(
         "Missing ?a= affiliate parameter — SCL earns no commission without it.",
       );
-    } else if (expectedUsername && affiliate !== expectedUsername) {
+    } else if (expectedUsername && !isSclWhopAffiliateUsername(affiliate)) {
       issues.push(
         `Affiliate username is "${affiliate}" but SCL expects "${expectedUsername}".`,
       );

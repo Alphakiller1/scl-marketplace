@@ -10,7 +10,25 @@
 export const SCL_WHOP_APP_ID = "app_I5rsiJlsDgRe5O";
 
 /** SCL affiliate slug on Whop checkout links (`?a=`). */
-export const SCL_WHOP_AFFILIATE_USERNAME = "SportsCappersLeaderboard";
+export const SCL_WHOP_AFFILIATE_USERNAME = "scleaderboard";
+
+/**
+ * Whop has surfaced the same SCL affiliate account under multiple slugs.
+ * Package validation accepts any of these so owners are not blocked when
+ * copying a checkout link from the Whop dashboard.
+ */
+export const SCL_WHOP_AFFILIATE_ALIASES = [
+  SCL_WHOP_AFFILIATE_USERNAME,
+  "SportsCappersLeaderboard",
+  "sportscappersleaderboard",
+] as const;
+
+export function isSclWhopAffiliateUsername(username: string): boolean {
+  const normalized = username.trim().toLowerCase();
+  return SCL_WHOP_AFFILIATE_ALIASES.some(
+    (alias) => alias.toLowerCase() === normalized,
+  );
+}
 
 export function whopAccountApiKey(): string | null {
   return process.env.WHOP_API_KEY?.trim() || null;
