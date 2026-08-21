@@ -72,25 +72,48 @@ test("JWT can copy an updated handle after Save, but Save must not call it", () 
 
 test("a failed session or cache bust cannot fail a handle that already wrote", () => {
   const source = read("src/lib/actions/profile.action.ts");
+  assert.match(source, /scheduleProfileRevalidation/);
   assert.match(
     source,
-    /afterResponse\(async \(\) => \{\s*revalidateProfileSurfaces/,
+    /profile fields save failed[\s\S]*return usernameResult/,
   );
-  assert.match(source, /profile fields save failed[\s\S]*ok: true/);
 });
 
 test("profile form username field is editable and not a login autofill target", () => {
   const source = read("src/app/(capper)/dashboard/profile/profile-form.tsx");
 
-  assert.match(source, /handleSubmit\(onSubmit, onInvalid\)/);
+  assert.match(source, /updateUsernameAction/);
+  assert.match(source, /saveUsernameThenProfile/);
   assert.match(source, /usernameChanged/);
-  assert.match(source, /reset\(valuesToSave\)/);
-  assert.match(source, /\{\.\.\.register\("username"\)\}/);
+  assert.match(source, /name="scl-public-handle"/);
   assert.match(source, /id="scl-public-handle"/);
   assert.match(source, /data-form-type="other"/);
+  assert.match(source, /onPointerDown=\{captureHandle\}/);
+  assert.match(source, /readOnly=\{!handleUnlocked\}/);
+  assert.doesNotMatch(
+    source,
+    /\{\.\.\.register\("username"\)\}/,
+    "register(username) sets name=username on the visible field and lets password managers clobber the new handle",
+  );
   assert.doesNotMatch(source, /id="username"/);
-  assert.doesNotMatch(source, /readOnly/);
   assert.doesNotMatch(source, /disabled=\{true\}/);
+
+  const visibleName = source.indexOf('name="scl-public-handle"');
+  const decoyInput = source.indexOf('type="text"');
+  const decoyName = source.indexOf('name="username"', decoyInput);
+  assert.ok(decoyName > 0 && visibleName > decoyName);
+});
+
+test("username can be saved without the rest of the profile form", () => {
+  const source = read("src/lib/actions/profile.action.ts");
+
+  assert.match(source, /export async function updateUsernameAction/);
+  assert.match(source, /scheduleProfileRevalidation/);
+  assert.match(source, /We couldn't save your username/);
+  assert.match(source, /persistUsername\(/);
+  const persistIndex = source.indexOf("async function persistUsername");
+  const profileUpsertIndex = source.indexOf("capperProfile.upsert");
+  assert.ok(persistIndex > 0 && persistIndex < profileUpsertIndex);
 });
 
 test("profile page remounts the editor from the saved handle", () => {

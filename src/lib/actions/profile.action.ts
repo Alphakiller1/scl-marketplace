@@ -16,12 +16,20 @@ import {
   type HandleOccupant,
   type HandleOccupantCounts,
 } from "@/lib/profile-username";
+import { sclUsernameSchema } from "@/lib/schemas/auth.schema";
 import { profileSchema, type ProfileInput } from "@/lib/schemas/profile.schema";
 import { getCurrentAccount } from "@/lib/session";
 
 type ProfileResult =
-  | { ok: true; usernameChanged: boolean; username: string }
+  | {
+      ok: true;
+      usernameChanged: boolean;
+      username: string;
+      previousUsername?: string;
+    }
   | { ok: false; error: string };
+
+type ProfileEditor = NonNullable<Awaited<ReturnType<typeof getCurrentAccount>>>;
 
 const nullify = (v?: string) => (v && v.trim() ? v.trim() : null);
 
@@ -38,6 +46,29 @@ function isUniqueHandleConflict(error: unknown): boolean {
     error instanceof Prisma.PrismaClientKnownRequestError &&
     error.code === "P2002"
   );
+}
+
+async function loadProfileEditor(): Promise<
+  { ok: true; account: ProfileEditor } | { ok: false; error: string }
+> {
+  const account = await getCurrentAccount();
+  if (!account) return { ok: false, error: "You must be logged in." };
+  if (account.accountStatus !== "ACTIVE") {
+    return {
+      ok: false,
+      error: "Your account must be active before updating your profile.",
+    };
+  }
+  if (emailVerificationEnforced() && !account.emailVerified) {
+    return {
+      ok: false,
+      error: "Verify your email before updating your profile.",
+    };
+  }
+  if (!account.legalAcceptance) {
+    return { ok: false, error: "Accept the current terms to continue." };
+  }
+  return { ok: true, account };
 }
 
 async function loadOccupantCounts(
@@ -129,58 +160,34 @@ function revalidateProfileSurfaces(
   revalidatePath(`/cappers/${nextUsername}`);
 }
 
-export async function updateProfileAction(
-  input: ProfileInput,
-): Promise<ProfileResult> {
+/**
+ * Bust caches before the client `router.refresh()` runs. `afterResponse` is a
+ * backup so a revalidate exception cannot fail a handle that already wrote.
+ */
+function scheduleProfileRevalidation(
+  previousUsername: string | undefined,
+  nextUsername: string,
+) {
   try {
-    return await saveProfile(input);
+    revalidateProfileSurfaces(previousUsername, nextUsername);
   } catch (error) {
-    console.error("[profile] save failed:", error);
-    return {
-      ok: false,
-      error: "We couldn't save your profile. Try again.",
-    };
+    console.error("[profile] revalidate failed:", error);
   }
+  afterResponse(async () => {
+    revalidateProfileSurfaces(previousUsername, nextUsername);
+  });
 }
 
-async function saveProfile(input: ProfileInput): Promise<ProfileResult> {
-  const account = await getCurrentAccount();
-  if (!account) return { ok: false, error: "You must be logged in." };
-  if (account.accountStatus !== "ACTIVE") {
-    return {
-      ok: false,
-      error: "Your account must be active before updating your profile.",
-    };
-  }
-  if (emailVerificationEnforced() && !account.emailVerified) {
-    return {
-      ok: false,
-      error: "Verify your email before updating your profile.",
-    };
-  }
-  if (!account.legalAcceptance) {
-    return { ok: false, error: "Accept the current terms to continue." };
-  }
-
-  const parsed = profileSchema.safeParse(input);
-  if (!parsed.success) {
-    const usernameIssue = parsed.error.issues.find((issue) =>
-      issue.path.includes("username"),
-    );
-    return {
-      ok: false,
-      error: usernameIssue?.message ?? "Please check the form and try again.",
-    };
-  }
-  const d = parsed.data;
-
+async function persistUsername(
+  accountId: string,
+  nextUsername: string,
+): Promise<ProfileResult> {
   const current = await prisma.user.findUnique({
-    where: { id: account.id },
+    where: { id: accountId },
     select: { username: true, email: true },
   });
   if (!current) return { ok: false, error: "Account not found." };
 
-  const nextUsername = d.username;
   const previousUsername = current.username?.replace(/^@+/, "").toLowerCase();
   const usernameChanged = nextUsername !== previousUsername;
 
@@ -195,7 +202,7 @@ async function saveProfile(input: ProfileInput): Promise<ProfileResult> {
   if (usernameChanged) {
     const occupant = await findHandleOccupant(
       nextUsername,
-      account.id,
+      accountId,
       current.email,
     );
     const decision = decideHandleCollision(occupant, {
@@ -217,13 +224,25 @@ async function saveProfile(input: ProfileInput): Promise<ProfileResult> {
       () =>
         prisma.$transaction(async (tx) => {
           if (releaseOccupantId) {
-            await tx.user.update({
-              where: { id: releaseOccupantId },
-              data: { username: parkedReleasedHandle(releaseOccupantId) },
-            });
+            let parked = false;
+            for (let attempt = 0; attempt < 5 && !parked; attempt += 1) {
+              try {
+                await tx.user.update({
+                  where: { id: releaseOccupantId },
+                  data: {
+                    username: parkedReleasedHandle(releaseOccupantId, attempt),
+                  },
+                });
+                parked = true;
+              } catch (error) {
+                if (!isUniqueHandleConflict(error) || attempt === 4) {
+                  throw error;
+                }
+              }
+            }
           }
           await tx.user.update({
-            where: { id: account.id },
+            where: { id: accountId },
             data: { username: nextUsername },
           });
         }),
@@ -239,6 +258,90 @@ async function saveProfile(input: ProfileInput): Promise<ProfileResult> {
       error: "We couldn't save your username. Try again.",
     };
   }
+
+  console.info(
+    `[profile] username write user=${accountId} ${previousUsername ?? "(none)"} -> ${nextUsername} changed=${usernameChanged}`,
+  );
+
+  return {
+    ok: true,
+    usernameChanged,
+    username: nextUsername,
+    previousUsername,
+  };
+}
+
+function parseUsernameInput(
+  username: string,
+): { ok: true; username: string } | { ok: false; error: string } {
+  const parsed = sclUsernameSchema.safeParse(username);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Enter a valid username.",
+    };
+  }
+  return { ok: true, username: parsed.data };
+}
+
+/**
+ * Persist only the public @handle. The rest of the profile form must not be
+ * able to block a rename — password managers and unrelated field errors were
+ * swallowing username changes on Save.
+ */
+export async function updateUsernameAction(
+  username: string,
+): Promise<ProfileResult> {
+  try {
+    const editor = await loadProfileEditor();
+    if (!editor.ok) return editor;
+    const parsed = parseUsernameInput(username);
+    if (!parsed.ok) return parsed;
+    const result = await persistUsername(editor.account.id, parsed.username);
+    if (result.ok) {
+      scheduleProfileRevalidation(result.previousUsername, result.username);
+    }
+    return result;
+  } catch (error) {
+    console.error("[profile] username action failed:", error);
+    return {
+      ok: false,
+      error: "We couldn't save your username. Try again.",
+    };
+  }
+}
+
+export async function updateProfileAction(
+  input: ProfileInput,
+): Promise<ProfileResult> {
+  try {
+    return await saveProfile(input);
+  } catch (error) {
+    console.error("[profile] save failed:", error);
+    return {
+      ok: false,
+      error: "We couldn't save your profile. Try again.",
+    };
+  }
+}
+
+async function saveProfile(input: ProfileInput): Promise<ProfileResult> {
+  const editor = await loadProfileEditor();
+  if (!editor.ok) return editor;
+
+  const parsed = profileSchema.safeParse(input);
+  if (!parsed.success) {
+    const usernameIssue = parsed.error.issues.find((issue) =>
+      issue.path.includes("username"),
+    );
+    return {
+      ok: false,
+      error: usernameIssue?.message ?? "Please check the form and try again.",
+    };
+  }
+  const d = parsed.data;
+  const usernameResult = await persistUsername(editor.account.id, d.username);
+  if (!usernameResult.ok) return usernameResult;
 
   const profileData = {
     headline: nullify(d.headline),
@@ -261,8 +364,8 @@ async function saveProfile(input: ProfileInput): Promise<ProfileResult> {
     await withTransientDatabaseRetry(
       () =>
         prisma.capperProfile.upsert({
-          where: { userId: account.id },
-          create: { userId: account.id, ...profileData },
+          where: { userId: editor.account.id },
+          create: { userId: editor.account.id, ...profileData },
           update: profileData,
         }),
       { label: "profile fields upsert" },
@@ -271,19 +374,17 @@ async function saveProfile(input: ProfileInput): Promise<ProfileResult> {
     // Handle is already persisted. Tell them that so a refresh shows the new
     // public URL instead of looking like Save did nothing.
     console.error("[profile] profile fields save failed:", error);
-    afterResponse(async () => {
-      revalidateProfileSurfaces(previousUsername, nextUsername);
-    });
-    return {
-      ok: true,
-      usernameChanged,
-      username: nextUsername,
-    };
+    scheduleProfileRevalidation(
+      usernameResult.previousUsername,
+      usernameResult.username,
+    );
+    return usernameResult;
   }
 
-  afterResponse(async () => {
-    revalidateProfileSurfaces(previousUsername, nextUsername);
-  });
+  scheduleProfileRevalidation(
+    usernameResult.previousUsername,
+    usernameResult.username,
+  );
 
-  return { ok: true, usernameChanged, username: nextUsername };
+  return usernameResult;
 }
