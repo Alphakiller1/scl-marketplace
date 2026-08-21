@@ -9,6 +9,7 @@ import {
   FileText,
   Gavel,
   Store,
+  Mail,
   Users,
 } from "lucide-react";
 
@@ -50,6 +51,13 @@ const ADMIN_TOOLS = [
     description:
       "Track Winible and Whop onboarding, review packages, manage links, and monitor clicks.",
     icon: Store,
+  },
+  {
+    href: "/admin/emails",
+    title: "Capper emails",
+    description:
+      "Edit the wording of the welcome, verification, reset, and claim emails. Links stay under SCL's control.",
+    icon: Mail,
   },
   {
     href: "/admin/policies",

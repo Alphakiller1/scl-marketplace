@@ -70,6 +70,8 @@ model User {
   storefrontReviewed StoreConnection[]         @relation("StoreConnectionReviewedBy")
   policyUpdates      PolicyDocument[]          @relation("PolicyUpdatedBy")
   policyRevisions    PolicyDocumentRevision[]  @relation("PolicyRevisionEditedBy")
+  emailTemplates     EmailTemplate[]           @relation("EmailTemplateUpdatedBy")
+  emailTemplateEdits EmailTemplateRevision[]   @relation("EmailTemplateRevisionEditedBy")
   packageAudits      PackageAuditEvent[]       @relation("PackageAuditActor")
   storefrontMessages StorefrontMessage[]       @relation("StorefrontMessageSender")
   broadcastsSent     AdminBroadcast[]          @relation("AdminBroadcastSender")
@@ -202,6 +204,43 @@ model PolicyDocumentRevision {
 
   document PolicyDocument @relation(fields: [slug], references: [slug], onDelete: Cascade)
   editedBy User?          @relation("PolicyRevisionEditedBy", fields: [editedById], references: [id], onDelete: SetNull)
+
+  @@index([slug, createdAt])
+  @@index([editedById])
+}
+
+/// Owner-editable copy for capper-facing email. Slug is a plain string keyed to
+/// the code registry in `src/lib/email-templates.ts` — adding a template needs a
+/// sender in code anyway, so an enum would only add a migration to that work.
+/// A missing row is not an error: the bundled default is the fallback.
+model EmailTemplate {
+  slug        String   @id
+  subject     String
+  body        String   @db.Text
+  actionLabel String
+  footnote    String   @db.Text
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  updatedBy User?                   @relation("EmailTemplateUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  revisions EmailTemplateRevision[]
+
+  @@index([updatedById])
+}
+
+model EmailTemplateRevision {
+  id          String   @id @default(cuid())
+  slug        String
+  subject     String
+  body        String   @db.Text
+  actionLabel String
+  footnote    String   @db.Text
+  editedById  String?
+  createdAt   DateTime @default(now())
+
+  template EmailTemplate @relation(fields: [slug], references: [slug], onDelete: Cascade)
+  editedBy User?         @relation("EmailTemplateRevisionEditedBy", fields: [editedById], references: [id], onDelete: SetNull)
 
   @@index([slug, createdAt])
   @@index([editedById])

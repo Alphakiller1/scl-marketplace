@@ -14,6 +14,7 @@ const ADMIN_NAV = [
   { href: "/admin/cappers", label: "Cappers" },
   { href: "/admin/store-setup", label: "Storefronts & Packages" },
   { href: "/admin/policies", label: "Policies" },
+  { href: "/admin/emails", label: "Capper Emails" },
   { href: "/admin/messages", label: "Email Cappers" },
 ];
 

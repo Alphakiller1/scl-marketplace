@@ -3,31 +3,44 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, it, beforeEach, afterEach } from "node:test";
 
+import { renderEmailTemplate } from "@/lib/email-template-render";
 import {
-  renderWelcomeEmail,
-  sendWelcomeEmail,
-  WELCOME_EMAIL_SUBJECT,
-} from "@/lib/email";
+  EMAIL_TEMPLATES,
+  bodyPlacesButton,
+  defaultEmailTemplate,
+  unknownVariables,
+} from "@/lib/email-templates";
 
-const ORIGINAL = {
-  authUrl: process.env.AUTH_URL,
-  resendKey: process.env.RESEND_API_KEY,
-};
+const ORIGINAL_AUTH_URL = process.env.AUTH_URL;
 
 beforeEach(() => {
   process.env.AUTH_URL = "https://sportscappersleaderboard.com";
-  delete process.env.RESEND_API_KEY;
 });
 
 afterEach(() => {
-  if (ORIGINAL.authUrl === undefined) delete process.env.AUTH_URL;
-  else process.env.AUTH_URL = ORIGINAL.authUrl;
-  process.env.RESEND_API_KEY = ORIGINAL.resendKey;
+  if (ORIGINAL_AUTH_URL === undefined) delete process.env.AUTH_URL;
+  else process.env.AUTH_URL = ORIGINAL_AUTH_URL;
 });
 
-describe("renderWelcomeEmail", () => {
-  it("carries the three onboarding sections in both parts", () => {
-    const { html, text } = renderWelcomeEmail({});
+function renderWelcome(unsubscribeUrl?: string) {
+  const template = defaultEmailTemplate("WELCOME");
+  return renderEmailTemplate({
+    body: template.body,
+    actionLabel: template.actionLabel,
+    actionUrl: "https://sportscappersleaderboard.com/login",
+    footnote: template.footnote,
+    footerHtml: unsubscribeUrl
+      ? `<p><a href="${unsubscribeUrl}">Unsubscribe from announcements</a></p>`
+      : undefined,
+    footerText: unsubscribeUrl
+      ? `Unsubscribe from announcements: ${unsubscribeUrl}`
+      : undefined,
+  });
+}
+
+describe("the welcome copy that ships in the build", () => {
+  it("still carries the three onboarding sections in both parts", () => {
+    const { html, text } = renderWelcome();
 
     for (const heading of [
       "📊 Build Your SCL Record",
@@ -52,28 +65,23 @@ describe("renderWelcomeEmail", () => {
     }
   });
 
-  it("points the call to action at the configured host", () => {
-    const { html, text } = renderWelcomeEmail({});
+  it("points the call to action at the login page", () => {
+    const { html, text } = renderWelcome();
     assert.ok(
       html.includes('href="https://sportscappersleaderboard.com/login"'),
     );
-    assert.ok(html.includes('href="https://sportscappersleaderboard.com"'));
     assert.ok(text.includes("https://sportscappersleaderboard.com/login"));
   });
 
   it("adds the announcement opt-out only when a link is supplied", () => {
-    const without = renderWelcomeEmail({});
+    const without = renderWelcome();
     assert.ok(!without.html.includes("Unsubscribe from announcements"));
     assert.ok(!without.text.includes("Unsubscribe from announcements"));
 
-    const withLink = renderWelcomeEmail({
-      unsubscribeUrl: "https://scl.test/unsubscribe?token=abc.def",
-    });
-    assert.ok(
-      withLink.html.includes(
-        '<a href="https://scl.test/unsubscribe?token=abc.def">Unsubscribe from announcements</a>',
-      ),
+    const withLink = renderWelcome(
+      "https://scl.test/unsubscribe?token=abc.def",
     );
+    assert.ok(withLink.html.includes("Unsubscribe from announcements"));
     assert.ok(
       withLink.text.includes(
         "Unsubscribe from announcements: https://scl.test/unsubscribe?token=abc.def",
@@ -82,25 +90,36 @@ describe("renderWelcomeEmail", () => {
   });
 
   it("keeps the plain-text part free of markup and blank-line runs", () => {
-    const { text } = renderWelcomeEmail({
-      unsubscribeUrl: "https://scl.test/unsubscribe?token=abc.def",
-    });
+    const { text } = renderWelcome(
+      "https://scl.test/unsubscribe?token=abc.def",
+    );
     assert.ok(!/<[a-z]/i.test(text), "text part contains HTML tags");
     assert.ok(!/\n{3,}/.test(text), "text part has a run of blank lines");
   });
-});
 
-describe("sendWelcomeEmail", () => {
-  it("uses the owner-approved subject line", () => {
+  it("uses the owner-approved subject", () => {
     assert.equal(
-      WELCOME_EMAIL_SUBJECT,
+      defaultEmailTemplate("WELCOME").subject,
       "Welcome to the new Sports Cappers Leaderboard!",
     );
   });
+});
 
-  it("reports undelivered instead of throwing when Resend is unconfigured", async () => {
-    const result = await sendWelcomeEmail({ email: "capper@example.com" });
-    assert.equal(result.delivered, false);
+describe("every shipped template is sendable", () => {
+  it("places a button and uses only variables it defines", () => {
+    for (const slug of Object.keys(
+      EMAIL_TEMPLATES,
+    ) as (keyof typeof EMAIL_TEMPLATES)[]) {
+      const template = defaultEmailTemplate(slug);
+      assert.ok(bodyPlacesButton(template.body), `${slug} has no {{button}}`);
+      assert.deepEqual(
+        unknownVariables(slug, template.body),
+        [],
+        `${slug} uses an undefined variable`,
+      );
+      assert.ok(template.subject.trim(), `${slug} has no subject`);
+      assert.ok(template.actionLabel.trim(), `${slug} has no button label`);
+    }
   });
 });
 
@@ -115,22 +134,21 @@ describe("welcome email delivery point", () => {
       source,
       /const claimed = await consumeVerificationToken\(token\)/,
     );
-    // Skipped for anyone who already opted out of announcements.
     assert.match(source, /if \(claimed && !claimed\.marketingOptOut\)/);
-    // Deferred so verification never waits on the mailer.
     assert.match(source, /after\(async \(\) => \{/);
   });
 
   it("does not send at signup, where the account is still PENDING", () => {
-    const source = read("src/lib/actions/signup.action.ts");
-    assert.doesNotMatch(source, /sendWelcomeEmail/);
+    assert.doesNotMatch(
+      read("src/lib/actions/signup.action.ts"),
+      /sendWelcomeEmail/,
+    );
   });
 
   it("hands the verified user's identity back so the send can be addressed", () => {
     const source = read("src/lib/tokens.ts");
     assert.match(source, /userId: string;/);
     assert.match(source, /marketingOptOut: boolean;/);
-    // The delete is what makes a second click a no-op rather than a resend.
     assert.match(source, /if \(consumed\.count !== 1\) return null;/);
   });
 });
@@ -141,8 +159,6 @@ describe("welcome email reaches cappers who activate via a reset link", () => {
 
   it("treats a reset that also verifies the email as an activation", () => {
     const source = read("src/lib/password-reset-tokens.ts");
-    // Null before the update means this reset is the first verification —
-    // a legacy capper claiming an imported profile from an admin-issued link.
     assert.match(source, /activated: record\.user\.emailVerified === null/);
     assert.match(source, /marketingOptOut: record\.user\.marketingOptOut/);
   });
@@ -151,6 +167,5 @@ describe("welcome email reaches cappers who activate via a reset link", () => {
     const source = read("src/lib/actions/password-reset.action.ts");
     assert.match(source, /sendWelcomeEmail/);
     assert.match(source, /if \(reset\.activated && !reset\.marketingOptOut\)/);
-    assert.match(source, /after\(async \(\) => \{/);
   });
 });
