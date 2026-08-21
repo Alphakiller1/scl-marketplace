@@ -1,6 +1,9 @@
 import { Resend } from "resend";
 import type { StoreProvider } from "@prisma/client";
 
+import { escapeHtml } from "@/lib/email-escape";
+import { renderEmailTemplate } from "@/lib/email-template-render";
+import type { EmailTemplateSlug } from "@/lib/email-templates";
 import { PASSWORD_POLICY_SUMMARY } from "@/lib/password-policy";
 import { providerLabel, SCL_AFFILIATE_EMAIL } from "@/lib/store-connection";
 
@@ -21,15 +24,6 @@ function supportReplyTo(): string | undefined {
   return process.env.SUPPORT_EMAIL_TO?.trim() || undefined;
 }
 
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
 function appUrl() {
   const base =
     process.env.AUTH_URL ??
@@ -42,55 +36,87 @@ function appUrl() {
 }
 
 /**
- * Send a verification email. If RESEND_API_KEY isn't set (dev), log the link
- * instead of sending so the flow is testable without an email provider.
+ * Send one of the owner-editable capper emails.
+ *
+ * Every capper-facing sender funnels through here so there is exactly one place
+ * that loads the copy, renders it, and reports delivery. The link is passed in
+ * rather than written by the template, which is what makes the copy safe to
+ * edit: no wording change can misdirect a verification button.
  */
+async function sendTemplatedEmail(input: {
+  slug: EmailTemplateSlug;
+  to: string;
+  actionUrl: string;
+  variables?: Record<string, string | null | undefined>;
+  footerHtml?: string;
+  footerText?: string;
+  /** Prefixes the dev log line when no mailer is configured. */
+  devLabel: string;
+}): Promise<{ delivered: boolean; link: string }> {
+  // Deferred so importing this module does not pull in `server-only`.
+  const { getEmailTemplate } = await import("@/lib/queries/email-templates");
+  const template = await getEmailTemplate(input.slug);
+  const { html, text } = renderEmailTemplate({
+    body: template.body,
+    actionLabel: template.actionLabel,
+    actionUrl: input.actionUrl,
+    footnote: template.footnote,
+    variables: input.variables,
+    footerHtml: input.footerHtml,
+    footerText: input.footerText,
+  });
+
+  if (!resend) {
+    console.info(
+      `[email:dev] ${input.devLabel} for ${input.to}: ${input.actionUrl}`,
+    );
+    return { delivered: false, link: input.actionUrl };
+  }
+
+  // Never throw: a provider failure (an unverified sender domain, say) must not
+  // break the signup, reset, or verification it is attached to.
+  try {
+    const { error } = await resend.emails.send({
+      from,
+      to: input.to,
+      replyTo: supportReplyTo(),
+      subject: template.subject,
+      html,
+      text,
+    });
+    if (error) {
+      console.error(
+        `[email] ${input.devLabel} failed for ${input.to}: ${error.message}`,
+      );
+      return { delivered: false, link: input.actionUrl };
+    }
+    return { delivered: true, link: input.actionUrl };
+  } catch (err) {
+    console.error(`[email] ${input.devLabel} threw for ${input.to}:`, err);
+    return { delivered: false, link: input.actionUrl };
+  }
+}
+
+/** `{{account}}` reads as a line, not a bare handle, and vanishes when unknown. */
+function accountVariable(username?: string | null) {
+  return { "{{account}}": username ? `Account: @${username}` : "" };
+}
+
 export async function sendVerificationEmail(
   email: string,
   token: string,
   username?: string,
 ) {
-  const link = `${appUrl()}/verify?token=${token}`;
-  const handleLine = username
-    ? `<p style="color:#666;font-size:14px">Account: <strong>@${escapeHtml(username)}</strong></p>`
-    : "";
-
-  if (!resend) {
-    console.info(
-      `[email:dev] verification link for ${email}${username ? ` (@${username})` : ""}: ${link}`,
-    );
-    return { delivered: false as const, link };
-  }
-
-  // Never throw: a delivery failure (e.g. an unverified sender domain) must not break signup.
-  // We report delivered:false and hand the link back so the caller can fall back gracefully.
-  try {
-    const { error } = await resend.emails.send({
-      from,
-      to: email,
-      replyTo: supportReplyTo(),
-      subject: "Verify your SCL account",
-      html: `
-      <div style="font-family:system-ui,sans-serif;max-width:480px;margin:auto">
-        <h2>Verify your email</h2>
-        ${handleLine}
-        <p>Confirm your email to start logging plays and building your record on SCL.</p>
-        <p><a href="${link}" style="display:inline-block;background:#5b4bdb;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Verify email</a></p>
-        <p style="color:#666;font-size:13px">This link expires in 24 hours. If you didn't sign up, ignore this email.</p>
-      </div>
-    `,
-    });
-    if (error) {
-      console.error(
-        `[email] verification send failed for ${email}: ${error.message}`,
-      );
-      return { delivered: false as const, link };
-    }
-    return { delivered: true as const, link };
-  } catch (err) {
-    console.error(`[email] verification send threw for ${email}:`, err);
-    return { delivered: false as const, link };
-  }
+  const result = await sendTemplatedEmail({
+    slug: "VERIFICATION",
+    to: email,
+    actionUrl: `${appUrl()}/verify?token=${token}`,
+    variables: accountVariable(username),
+    devLabel: "verification link",
+  });
+  return result.delivered
+    ? { delivered: true as const, link: result.link }
+    : { delivered: false as const, link: result.link };
 }
 
 export async function sendPasswordResetEmail(
@@ -98,44 +124,16 @@ export async function sendPasswordResetEmail(
   token: string,
   username?: string,
 ) {
-  const link = `${appUrl()}/reset-password?token=${token}`;
-  const handleLine = username
-    ? `<p style="color:#666;font-size:14px">Account: <strong>@${escapeHtml(username)}</strong></p>`
-    : "";
-
-  if (!resend) {
-    console.info(
-      `[email:dev] password reset link for ${email}${username ? ` (@${username})` : ""}: ${link}`,
-    );
-    return { delivered: false as const, link };
-  }
-
-  // Never throw on a provider error (e.g. unverified sender) — return delivery status + link.
-  try {
-    const { error } = await resend.emails.send({
-      from,
-      to: email,
-      replyTo: supportReplyTo(),
-      subject: "Reset your SCL password",
-      html: `
-      <div style="font-family:system-ui,sans-serif;max-width:480px;margin:auto">
-        <h2>Reset your password</h2>
-        ${handleLine}
-        <p>Use the secure link below to choose a new password for your SCL account.</p>
-        <p><a href="${link}" style="display:inline-block;background:#5b4bdb;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Reset password</a></p>
-        <p style="color:#666;font-size:13px">This link expires in one hour and works once. If you didn't request it, ignore this email.</p>
-      </div>
-    `,
-    });
-    if (error) {
-      console.error(`[email] reset send failed for ${email}: ${error.message}`);
-      return { delivered: false as const, link };
-    }
-    return { delivered: true as const, link };
-  } catch (err) {
-    console.error(`[email] reset send threw for ${email}:`, err);
-    return { delivered: false as const, link };
-  }
+  const result = await sendTemplatedEmail({
+    slug: "PASSWORD_RESET",
+    to: email,
+    actionUrl: `${appUrl()}/reset-password?token=${token}`,
+    variables: accountVariable(username),
+    devLabel: "password reset link",
+  });
+  return result.delivered
+    ? { delivered: true as const, link: result.link }
+    : { delivered: false as const, link: result.link };
 }
 
 /**
@@ -145,37 +143,15 @@ export async function sendPasswordResetEmail(
  * exact confusion that keeps an imported capper locked out.
  */
 export async function sendAccountClaimEmail(email: string, token: string) {
-  const link = `${appUrl()}/reset-password?token=${token}`;
-
-  if (!resend) {
-    console.info(`[email:dev] account claim link for ${email}: ${link}`);
-    return { delivered: false as const, link };
-  }
-
-  try {
-    const { error } = await resend.emails.send({
-      from,
-      to: email,
-      replyTo: supportReplyTo(),
-      subject: "Set your SCL password",
-      html: `
-      <div style="font-family:system-ui,sans-serif;max-width:480px;margin:auto">
-        <h2>Claim your SCL account</h2>
-        <p>Your capper profile and record were carried over to SCL. Set a password with the secure link below to sign in, review the current policies, and keep posting.</p>
-        <p><a href="${link}" style="display:inline-block;background:#5b4bdb;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Set password</a></p>
-        <p style="color:#666;font-size:13px">This link expires in one hour and works once. If you didn't expect it, ignore this email.</p>
-      </div>
-    `,
-    });
-    if (error) {
-      console.error(`[email] claim send failed for ${email}: ${error.message}`);
-      return { delivered: false as const, link };
-    }
-    return { delivered: true as const, link };
-  } catch (err) {
-    console.error(`[email] claim send threw for ${email}:`, err);
-    return { delivered: false as const, link };
-  }
+  const result = await sendTemplatedEmail({
+    slug: "ACCOUNT_CLAIM",
+    to: email,
+    actionUrl: `${appUrl()}/reset-password?token=${token}`,
+    devLabel: "account claim link",
+  });
+  return result.delivered
+    ? { delivered: true as const, link: result.link }
+    : { delivered: false as const, link: result.link };
 }
 
 /**
@@ -184,161 +160,16 @@ export async function sendAccountClaimEmail(email: string, token: string) {
  * keeps working until they change it, so the copy must not read as an outage.
  */
 export async function sendPasswordUpdateRequiredEmail(email: string) {
-  const link = `${appUrl()}/dashboard/security`;
-
-  if (!resend) {
-    console.info(`[email:dev] password update notice for ${email}: ${link}`);
-    return { delivered: false as const, link };
-  }
-
-  try {
-    const { error } = await resend.emails.send({
-      from,
-      to: email,
-      replyTo: supportReplyTo(),
-      subject: "Update your SCL password",
-      html: `
-      <div style="font-family:system-ui,sans-serif;max-width:480px;margin:auto">
-        <h2>Time to update your password</h2>
-        <p>You signed in with the password from your previous SCL account. It's shorter than our current requirement of <strong>${escapeHtml(PASSWORD_POLICY_SUMMARY)}</strong>, so please choose a new one.</p>
-        <p>You can keep signing in with your existing password in the meantime — nothing is locked.</p>
-        <p><a href="${link}" style="display:inline-block;background:#5b4bdb;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Update password</a></p>
-        <p style="color:#666;font-size:13px">If you didn't just sign in to SCL, change your password immediately.</p>
-      </div>
-    `,
-    });
-    if (error) {
-      console.error(
-        `[email] password notice failed for ${email}: ${error.message}`,
-      );
-      return { delivered: false as const, link };
-    }
-    return { delivered: true as const, link };
-  } catch (err) {
-    console.error(`[email] password notice threw for ${email}:`, err);
-    return { delivered: false as const, link };
-  }
-}
-
-/**
- * The onboarding note every new capper gets: what SCL rewards (a tracked
- * record), what that record unlocks (packages on their profile), and where to
- * start.
- *
- * Split into a pure renderer so the copy can be asserted without a mailer, and
- * so the plain-text part is built from the same source as the HTML rather than
- * drifting from it. Both parts matter here: this is the most promotional mail
- * SCL sends automatically, and an HTML-only body scores worse with the filters
- * that decide whether a welcome lands in the inbox or the promotions bin.
- */
-const WELCOME_SECTIONS = [
-  {
-    heading: "📊 Build Your SCL Record",
-    paragraphs: [
-      "The cappers who stand out on SCL are the ones who consistently input their plays and build a track record.",
-      "Track your plays daily and build a verified 60-day, 90-day, and season-long performance history that potential customers can see — including your record, win rate, ROI, units, and sample size.",
-    ],
-  },
-  {
-    heading: "🛒 Build Your SCL Store",
-    paragraphs: [
-      "Cappers who consistently build their SCL record can showcase their Winible or Whop packages through their SCL profile.",
-      "That means people can discover your record on SCL and then find your packages.",
-      "Track your plays → Build your record → Get discovered → Sell your packages.",
-    ],
-  },
-  {
-    heading: "📣 We’re Driving Traffic to SCL",
-    paragraphs: [
-      "We’re actively marketing SCL to bettors through paid advertising and other promotional efforts to drive traffic and exposure to the platform.",
-      "The stronger and more complete your SCL profile and track record, the more you have to showcase when bettors discover SCL.",
-    ],
-  },
-] as const;
-
-export const WELCOME_EMAIL_SUBJECT =
-  "Welcome to the new Sports Cappers Leaderboard!";
-
-export function renderWelcomeEmail(input: { unsubscribeUrl?: string }): {
-  html: string;
-  text: string;
-} {
-  const siteUrl = appUrl();
-  const loginUrl = `${siteUrl}/login`;
-
-  const sectionsHtml = WELCOME_SECTIONS.map(
-    (section) => `
-      <h3 style="font-size:16px;margin:28px 0 8px">${section.heading}</h3>
-      ${section.paragraphs
-        .map((line) => `<p style="line-height:1.6;margin:0 0 12px">${line}</p>`)
-        .join("")}
-    `,
-  ).join("");
-
-  // Matches the announcement footer: this is onboarding, but it is also the
-  // pitch, so it honours the same opt-out rather than claiming to be purely
-  // operational mail.
-  const unsubscribeHtml = input.unsubscribeUrl
-    ? `<hr style="border:none;border-top:1px solid #eee;margin:28px 0" />
-       <p style="color:#666;font-size:12px">
-         You are receiving this because you have an SCL capper account.
-         <a href="${input.unsubscribeUrl}">Unsubscribe from announcements</a> —
-         account and security emails will still reach you.
-       </p>`
-    : "";
-
-  const html = `
-    <div style="font-family:system-ui,sans-serif;max-width:560px;margin:auto;color:#111">
-      <h2 style="margin:0 0 12px">Welcome to the new Sports Cappers Leaderboard!</h2>
-      <p style="line-height:1.6;margin:0 0 12px">
-        The new SCL platform is officially live, and we’re excited to have you on the roster.
-      </p>
-      ${sectionsHtml}
-      <p style="margin:28px 0 12px">
-        <a href="${loginUrl}" style="display:inline-block;background:#5b4bdb;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">
-          👉 Log in and start tracking your plays
-        </a>
-      </p>
-      <p style="color:#666;font-size:13px;margin:0 0 20px">
-        <a href="${siteUrl}">${siteUrl}</a>
-      </p>
-      <p style="line-height:1.6;margin:0 0 12px">
-        The more consistently you track your plays, the more valuable your SCL profile becomes.
-      </p>
-      <p style="line-height:1.6;margin:0 0 12px">
-        Welcome to the new SCL. Let’s see where you land on the leaderboard.
-      </p>
-      <p style="line-height:1.6;margin:0">— Sports Cappers Leaderboard</p>
-      ${unsubscribeHtml}
-    </div>
-  `;
-
-  const text = [
-    "Welcome to the new Sports Cappers Leaderboard!",
-    "",
-    "The new SCL platform is officially live, and we’re excited to have you on the roster.",
-    ...WELCOME_SECTIONS.flatMap((section) => [
-      "",
-      section.heading,
-      "",
-      ...section.paragraphs.flatMap((line) => [line, ""]),
-    ]),
-    "👉 Log in and start tracking your plays:",
-    loginUrl,
-    "",
-    "The more consistently you track your plays, the more valuable your SCL profile becomes.",
-    "",
-    "Welcome to the new SCL. Let’s see where you land on the leaderboard.",
-    "",
-    "— Sports Cappers Leaderboard",
-    ...(input.unsubscribeUrl
-      ? ["", `Unsubscribe from announcements: ${input.unsubscribeUrl}`]
-      : []),
-  ]
-    .join("\n")
-    .replace(/\n{3,}/g, "\n\n");
-
-  return { html, text };
+  const result = await sendTemplatedEmail({
+    slug: "PASSWORD_UPDATE_REQUIRED",
+    to: email,
+    actionUrl: `${appUrl()}/dashboard/security`,
+    variables: { "{{password_policy}}": PASSWORD_POLICY_SUMMARY },
+    devLabel: "password update notice",
+  });
+  return result.delivered
+    ? { delivered: true as const, link: result.link }
+    : { delivered: false as const, link: result.link };
 }
 
 /**
@@ -349,33 +180,81 @@ export async function sendWelcomeEmail(input: {
   email: string;
   unsubscribeUrl?: string;
 }) {
-  const { html, text } = renderWelcomeEmail({
-    unsubscribeUrl: input.unsubscribeUrl,
+  // Matches the announcement footer: this is onboarding, but it is also the
+  // pitch, so it honours the same opt-out rather than claiming to be purely
+  // operational mail.
+  const footerHtml = input.unsubscribeUrl
+    ? `<hr style="border:none;border-top:1px solid #eee;margin:28px 0" />
+       <p style="color:#666;font-size:12px">
+         You are receiving this because you have an SCL capper account.
+         <a href="${escapeHtml(input.unsubscribeUrl)}">Unsubscribe from announcements</a> —
+         account and security emails will still reach you.
+       </p>`
+    : undefined;
+
+  const result = await sendTemplatedEmail({
+    slug: "WELCOME",
+    to: input.email,
+    actionUrl: `${appUrl()}/login`,
+    footerHtml,
+    footerText: input.unsubscribeUrl
+      ? `Unsubscribe from announcements: ${input.unsubscribeUrl}`
+      : undefined,
+    devLabel: "welcome email",
+  });
+  return { delivered: result.delivered as boolean };
+}
+
+/**
+ * Send a draft to the admin editing it, so the wording can be read in a real
+ * inbox before it goes to anybody else. Marked in the subject so it is never
+ * mistaken for the real thing, and pointed at the site root because a preview
+ * has no token to offer.
+ */
+export async function sendTemplatePreviewEmail(input: {
+  to: string;
+  slug: EmailTemplateSlug;
+  template: {
+    subject: string;
+    body: string;
+    actionLabel: string;
+    footnote: string;
+  };
+}) {
+  const { html, text } = renderEmailTemplate({
+    body: input.template.body,
+    actionLabel: input.template.actionLabel,
+    actionUrl: appUrl(),
+    footnote: input.template.footnote,
+    // Preview values stand in for what a real send would substitute, so the
+    // admin sees the shape of the line rather than a raw token.
+    variables: {
+      "{{account}}": "Account: @your-handle",
+      "{{password_policy}}": PASSWORD_POLICY_SUMMARY,
+    },
   });
 
   if (!resend) {
-    console.info(`[email:dev] welcome email for ${input.email}`);
+    console.info(`[email:dev] template preview ${input.slug} for ${input.to}`);
     return { delivered: false as const };
   }
 
   try {
     const { error } = await resend.emails.send({
       from,
-      to: input.email,
+      to: input.to,
       replyTo: supportReplyTo(),
-      subject: WELCOME_EMAIL_SUBJECT,
+      subject: `[Preview] ${input.template.subject}`,
       html,
       text,
     });
     if (error) {
-      console.error(
-        `[email] welcome email failed for ${input.email}: ${error.message}`,
-      );
+      console.error(`[email] template preview failed: ${error.message}`);
       return { delivered: false as const };
     }
     return { delivered: true as const };
-  } catch (error) {
-    console.error(`[email] welcome email threw for ${input.email}:`, error);
+  } catch (err) {
+    console.error("[email] template preview threw:", err);
     return { delivered: false as const };
   }
 }
