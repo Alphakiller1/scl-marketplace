@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  TENNIS_CANDIDATE_LIMIT,
   TENNIS_TOUR_LIMIT,
   selectTennisTours,
+  selectTennisToursWithFixtures,
   tennisTourByKey,
   tennisTourKey,
 } from "@/lib/tennis-tours";
@@ -82,4 +84,69 @@ test("rejects a tag that is not a league key", () => {
   assert.equal(tennisTourByKey(""), undefined);
   assert.equal(tennisTourByKey("  "), undefined);
   assert.equal(tennisTourByKey("ATP Cincinnati"), undefined);
+});
+
+test("fixture ranking keeps Cincinnati when the US Open is already listed", () => {
+  const now = Date.parse("2026-08-21T16:00:00Z");
+  const catalog = [
+    {
+      key: "tennis_atp_us_open",
+      group: "Tennis",
+      title: "ATP US Open",
+      active: true,
+    },
+    {
+      key: "tennis_wta_us_open",
+      group: "Tennis",
+      title: "WTA US Open",
+      active: true,
+    },
+    {
+      key: "tennis_atp_cincinnati_open",
+      group: "Tennis",
+      title: "ATP Cincinnati Open",
+      active: true,
+    },
+    {
+      key: "tennis_wta_cincinnati_open",
+      group: "Tennis",
+      title: "WTA Cincinnati Open",
+      active: true,
+    },
+    {
+      key: "tennis_atp_winston_salem",
+      group: "Tennis",
+      title: "ATP Winston-Salem",
+      active: true,
+    },
+  ];
+  const candidates = selectTennisTours(catalog, TENNIS_CANDIDATE_LIMIT);
+  const windows = new Map([
+    [
+      "tennis_atp_cincinnati_open",
+      { upcoming: 8, firstKickoffMs: Date.parse("2026-08-21T19:00:00Z") },
+    ],
+    [
+      "tennis_wta_cincinnati_open",
+      { upcoming: 6, firstKickoffMs: Date.parse("2026-08-21T17:00:00Z") },
+    ],
+    [
+      "tennis_atp_winston_salem",
+      { upcoming: 4, firstKickoffMs: Date.parse("2026-08-21T18:00:00Z") },
+    ],
+    ["tennis_atp_us_open", { upcoming: 0, firstKickoffMs: null }],
+    ["tennis_wta_us_open", { upcoming: 0, firstKickoffMs: null }],
+  ]);
+  const tours = selectTennisToursWithFixtures(
+    candidates,
+    windows,
+    TENNIS_TOUR_LIMIT,
+    now,
+  );
+  assert.ok(
+    tours.some((tour) => tour.oddsApiKey === "tennis_atp_cincinnati_open"),
+    "ATP Cincinnati must keep a paid slot while it still has matches",
+  );
+  assert.equal(tours[0]!.oddsApiKey, "tennis_atp_cincinnati_open");
+  assert.ok(tours.length <= TENNIS_TOUR_LIMIT);
 });

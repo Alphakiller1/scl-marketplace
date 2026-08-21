@@ -15,7 +15,15 @@ import {
   type OddsApiSportRow,
   type SoccerLeague,
 } from "@/lib/soccer-leagues";
-import { tennisTourByKey } from "@/lib/tennis-tours";
+import {
+  TENNIS_CANDIDATE_LIMIT,
+  TENNIS_TOUR_LIMIT,
+  selectTennisTours,
+  selectTennisToursWithFixtures,
+  tennisTourByKey,
+  type TennisFixtureWindow,
+  type TennisTour,
+} from "@/lib/tennis-tours";
 import { prisma } from "@/lib/prisma";
 import {
   dedupeOddsEvents,
@@ -288,8 +296,36 @@ export function buildOddsBoardMeta(
 }
 
 const SOCCER_FETCH_PARALLEL = 3;
+const TENNIS_FETCH_PARALLEL = 3;
 /** Board cache window (seconds) — see the note at the fetch site. */
 export const BOARD_TTL = 4 * 60 * 60;
+
+/**
+ * Odds API `/v4/sports` catalog — zero credits, cached an hour.
+ *
+ * Soccer and tennis both have one key per competition, so this is the only
+ * source of truth for "what is in season right now". Failures return null so
+ * callers can fall back rather than empty the board.
+ */
+async function fetchOddsSportsCatalog(): Promise<OddsApiSportRow[] | null> {
+  if (!oddsApiKey()) return null;
+  try {
+    const { response: res } = await fetchWithOddsKeyRollover(
+      (key) => `https://api.the-odds-api.com/v4/sports/?apiKey=${key}`,
+      { next: { revalidate: 3600, tags: ["odds-sports-catalog"] } },
+    );
+    // Deliberately not logged as usage: the catalog endpoint is not billed.
+    if (!res?.ok) {
+      console.warn(`[odds] sports catalog: HTTP ${res?.status ?? "none"}`);
+      return null;
+    }
+    const rows = (await res.json()) as OddsApiSportRow[];
+    return Array.isArray(rows) ? rows : null;
+  } catch (err) {
+    console.warn("[odds] sports catalog fetch failed", err);
+    return null;
+  }
+}
 
 /**
  * Which soccer competitions are in season right now, from the Odds API catalog.
@@ -303,29 +339,14 @@ export const BOARD_TTL = 4 * 60 * 60;
 export async function fetchInSeasonSoccerLeagues(): Promise<
   SoccerLeague[] | null
 > {
-  if (!oddsApiKey()) return null;
-  try {
-    const { response: res } = await fetchWithOddsKeyRollover(
-      (key) => `https://api.the-odds-api.com/v4/sports/?apiKey=${key}`,
-      { next: { revalidate: 3600, tags: ["odds-sports-catalog"] } },
-    );
-    // Deliberately not logged as usage: the catalog endpoint is not billed.
-    if (!res?.ok) {
-      console.warn(`[odds] sports catalog: HTTP ${res?.status ?? "none"}`);
-      return null;
-    }
-    const rows = (await res.json()) as OddsApiSportRow[];
-    if (!Array.isArray(rows)) return null;
-    // Every in-season competition, not the top ten. This is the CANDIDATE pool
-    // that `selectPlayingSoccerLeagues` ranks by actual fixtures — cutting to
-    // ten here on prestige order is what buried the competitions playing today
-    // beneath five European leagues that had not started their season.
-    const leagues = selectSoccerLeagues(rows, SOCCER_CANDIDATE_LIMIT);
-    return leagues.length ? leagues : null;
-  } catch (err) {
-    console.warn("[odds] sports catalog fetch failed", err);
-    return null;
-  }
+  const rows = await fetchOddsSportsCatalog();
+  if (!rows) return null;
+  // Every in-season competition, not the top ten. This is the CANDIDATE pool
+  // that `selectPlayingSoccerLeagues` ranks by actual fixtures — cutting to
+  // ten here on prestige order is what buried the competitions playing today
+  // beneath five European leagues that had not started their season.
+  const leagues = selectSoccerLeagues(rows, SOCCER_CANDIDATE_LIMIT);
+  return leagues.length ? leagues : null;
 }
 
 /** Soccer board — fans out across SOCCER_LEAGUES with capped parallelism. */
@@ -413,6 +434,78 @@ export async function fetchSoccerBoard(
   }
 }
 
+/** Tennis board — fans out across in-season tournaments with capped parallelism. */
+export async function fetchTennisBoard(
+  opts?: OddsBoardOpts,
+): Promise<OddsEvent[]> {
+  if (!oddsApiKey()) return [];
+
+  if (shouldCircuitBreak(lastOddsApiRemaining, lastOddsApiCapacity)) {
+    console.warn(
+      `[odds] circuit-breaker active (remaining=${lastOddsApiRemaining}) — skipping tennis board`,
+    );
+    return [];
+  }
+
+  const preferred = opts?.books;
+  const fetchTour = async (tour: TennisTour) => {
+    const attempt = async (books: readonly string[] | undefined) => {
+      const { response: res } = await fetchWithOddsKeyRollover(
+        (key) =>
+          `https://api.the-odds-api.com/v4/sports/${tour.oddsApiKey}/odds/` +
+          `?apiKey=${key}&${oddsScopeQuery(books)}&markets=h2h,spreads,totals&oddsFormat=american`,
+        { next: { revalidate: BOARD_TTL } },
+      );
+      if (!res) return [] as OddsEvent[];
+      logOddsUsage(res, `tennis ${tour.key}`, "board", "TENNIS");
+      if (!res.ok) {
+        console.warn(`[odds] tennis ${tour.key}: HTTP ${res.status}`);
+        return [] as OddsEvent[];
+      }
+      const events = (await res.json()) as Parameters<
+        typeof normalizeUpcomingEvent
+      >[1][];
+      return events
+        .map((e) => normalizeUpcomingEvent("TENNIS", e, preferred, tour.key))
+        .filter((e) => e.selections.length > 0);
+    };
+
+    const board = await attempt(preferred);
+    if (board.length > 0) return board;
+    if (bookmakersQueryParam(preferred ?? [])) {
+      return await attempt(undefined);
+    }
+    return board;
+  };
+
+  const catalog = await fetchOddsSportsCatalog();
+  if (!catalog) {
+    console.warn("[odds] tennis: catalog unavailable — skipping board fetch");
+    return [];
+  }
+  const candidates = selectTennisTours(catalog, TENNIS_CANDIDATE_LIMIT);
+  const tours = await selectPlayingTennisTours(candidates);
+
+  const all: OddsEvent[] = [];
+  try {
+    for (let i = 0; i < tours.length; i += TENNIS_FETCH_PARALLEL) {
+      const batch = tours.slice(i, i + TENNIS_FETCH_PARALLEL);
+      const chunk = await Promise.all(batch.map((tour) => fetchTour(tour)));
+      all.push(...chunk.flat());
+    }
+    if (all.length === 0) {
+      console.info(
+        `[odds] tennis: 0 events across ${tours.length} tournaments` +
+          ` (${tours.map((tour) => tour.key).join(", ")})`,
+      );
+    }
+    return sortByKickoff(dedupeOddsEvents(all)).slice(0, 60);
+  } catch (err) {
+    console.warn("[odds] tennis board fetch failed", err);
+    return [];
+  }
+}
+
 /**
  * How many in-season competitions to consider before ranking by fixtures.
  *
@@ -492,6 +585,66 @@ async function selectPlayingSoccerLeagues(
 }
 
 /**
+ * Narrow in-season tennis tournaments to the ones actually playing soon.
+ *
+ * Same free `/events` probe as soccer. Without it a hard ATP-first slice of
+ * four can keep the listed US Open and drop Cincinnati while the Masters is
+ * still on court.
+ */
+async function selectPlayingTennisTours(
+  candidates: readonly TennisTour[],
+): Promise<TennisTour[]> {
+  if (candidates.length <= TENNIS_TOUR_LIMIT) return [...candidates];
+
+  const now = Date.now();
+  const horizon = now + SOCCER_FIXTURE_WINDOW_HOURS * 3_600_000;
+  const windows = new Map<string, TennisFixtureWindow>();
+
+  const probe = async (tour: TennisTour) => {
+    try {
+      const { response: res } = await fetchWithOddsKeyRollover(
+        (key) =>
+          `https://api.the-odds-api.com/v4/sports/${tour.oddsApiKey}/events/` +
+          `?apiKey=${key}`,
+        { next: { revalidate: 3600 } },
+      );
+      if (!res?.ok) return;
+      const rows = (await res.json()) as Array<{ commence_time?: string }>;
+      if (!Array.isArray(rows)) return;
+      let upcoming = 0;
+      let first: number | null = null;
+      for (const row of rows) {
+        const ms = Date.parse(row.commence_time ?? "");
+        if (!Number.isFinite(ms) || ms < now) continue;
+        if (ms <= horizon) upcoming += 1;
+        if (first == null || ms < first) first = ms;
+      }
+      windows.set(tour.oddsApiKey, { upcoming, firstKickoffMs: first });
+    } catch {
+      // Leave it unranked; ATP-first order remains the fallback.
+    }
+  };
+
+  for (let i = 0; i < candidates.length; i += SOCCER_PROBE_PARALLEL) {
+    await Promise.all(
+      candidates.slice(i, i + SOCCER_PROBE_PARALLEL).map(probe),
+    );
+  }
+
+  const selected = selectTennisToursWithFixtures(
+    candidates,
+    windows,
+    TENNIS_TOUR_LIMIT,
+    now,
+  );
+  console.info(
+    `[odds] tennis slate: ${selected.map((tour) => tour.key).join(", ")}` +
+      ` (from ${candidates.length} in season)`,
+  );
+  return selected;
+}
+
+/**
  * Boards for a sport's extra Odds API keys — today, preseason.
  *
  * Each event is tagged with the key it came from so a pick logged against it
@@ -544,6 +697,7 @@ export async function fetchUpcomingOdds(
   opts?: OddsBoardOpts,
 ): Promise<OddsEvent[]> {
   if (sclSport === "SOCCER") return fetchSoccerBoard(opts);
+  if (sclSport === "TENNIS") return fetchTennisBoard(opts);
 
   const apiSport = toOddsApiSport(sclSport);
   if (!oddsApiKey() || !apiSport) return [];
