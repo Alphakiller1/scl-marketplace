@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import sharp from "sharp";
 
 import { prisma } from "@/lib/prisma";
+import { emailVerificationEnforced } from "@/lib/email-verification-policy";
 import { getCurrentAccount } from "@/lib/session";
 import {
   profileMediaSchema,
@@ -15,6 +15,7 @@ import {
   profileMediaPublicUrl,
   uploadProfileMediaObject,
 } from "@/lib/supabase-storage";
+import { optimizeProfileMediaImage } from "@/lib/profile-media-process";
 
 type ProfileMediaResult =
   | { ok: true; kind: ProfileMediaKind; url: string }
@@ -25,7 +26,13 @@ export async function uploadProfileMediaAction(
 ): Promise<ProfileMediaResult> {
   const account = await getCurrentAccount();
   if (!account) return { ok: false, error: "You must be logged in." };
-  if (account.accountStatus !== "ACTIVE" || !account.emailVerified) {
+  if (account.accountStatus !== "ACTIVE") {
+    return {
+      ok: false,
+      error: "Your account must be active before uploading profile media.",
+    };
+  }
+  if (emailVerificationEnforced() && !account.emailVerified) {
     return {
       ok: false,
       error: "Verify your email before uploading profile media.",
@@ -60,22 +67,17 @@ export async function uploadProfileMediaAction(
   const { file, kind } = parsed.data;
   let optimizedImage: Buffer;
   try {
-    const image = sharp(Buffer.from(await file.arrayBuffer()), {
-      limitInputPixels: 40_000_000,
-    }).rotate();
-    optimizedImage =
-      kind === "avatar"
-        ? await image
-            .resize(512, 512, { fit: "cover", position: "attention" })
-            .webp({ quality: 84 })
-            .toBuffer()
-        : await image
-            .resize(1600, 600, { fit: "cover", position: "attention" })
-            .webp({ quality: 82 })
-            .toBuffer();
+    optimizedImage = await optimizeProfileMediaImage(
+      Buffer.from(await file.arrayBuffer()),
+      kind,
+    );
   } catch (error) {
     console.error("[profile-media] image processing failed:", error);
-    return { ok: false, error: "That file is not a valid image." };
+    return {
+      ok: false,
+      error:
+        "That photo couldn't be processed. Try exporting it as JPG from Photos, or pick a different image.",
+    };
   }
 
   const path = `${account.id}/${kind}.webp`;
@@ -89,14 +91,29 @@ export async function uploadProfileMediaAction(
 
   const versionedPublicUrl = `${profileMediaPublicUrl(storage, path)}?v=${Date.now()}`;
 
-  const profile = await prisma.capperProfile.update({
-    where: { userId: account.id },
-    data:
-      kind === "avatar"
-        ? { avatarUrl: versionedPublicUrl }
-        : { bannerUrl: versionedPublicUrl },
-    select: { user: { select: { username: true } } },
-  });
+  let profile: { user: { username: string | null } };
+  try {
+    profile = await prisma.capperProfile.upsert({
+      where: { userId: account.id },
+      create: {
+        userId: account.id,
+        ...(kind === "avatar"
+          ? { avatarUrl: versionedPublicUrl }
+          : { bannerUrl: versionedPublicUrl }),
+      },
+      update:
+        kind === "avatar"
+          ? { avatarUrl: versionedPublicUrl }
+          : { bannerUrl: versionedPublicUrl },
+      select: { user: { select: { username: true } } },
+    });
+  } catch (error) {
+    console.error("[profile-media] profile update failed:", error);
+    return {
+      ok: false,
+      error: "We couldn't save that image to your profile. Try again.",
+    };
+  }
 
   revalidatePath("/dashboard/profile");
   revalidatePath("/cappers");

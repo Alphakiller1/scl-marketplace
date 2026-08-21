@@ -35,6 +35,10 @@ import {
 } from "@/lib/store-connection";
 import { getAdminCapperDetail } from "@/lib/queries/admin-cappers";
 import { getStorefrontMessages } from "@/lib/queries/storefront-messages";
+import {
+  packageUnpublishableMessage,
+  packageUnpublishableReason,
+} from "@/lib/public-packages";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Capper review" };
@@ -433,6 +437,19 @@ export default async function AdminCapperDetailPage({
                   (total, url) => total + url._count.clicks,
                   0,
                 );
+                const trackingSlug = pkg.trackingUrls[0]?.slug ?? null;
+                const connection = pkg.storeConnectionId
+                  ? profile.storeConnections.find(
+                      (row) => row.id === pkg.storeConnectionId,
+                    )
+                  : null;
+                const unpublishableReason = packageUnpublishableReason({
+                  isActive: pkg.isActive,
+                  checkoutUrl: pkg.checkoutUrl,
+                  hasTrackingUrl: pkg.trackingUrls.length > 0,
+                  storeConnectionId: pkg.storeConnectionId,
+                  storeConnectionStatus: connection?.status ?? null,
+                });
                 return (
                   <article
                     key={pkg.id}
@@ -453,6 +470,45 @@ export default async function AdminCapperDetailPage({
                         Display order {pkg.sortOrder} · Updated{" "}
                         {dateTime.format(pkg.updatedAt)}
                       </p>
+                      {pkg.checkoutUrl ? (
+                        <p className="text-muted-foreground mt-1.5 text-xs break-all">
+                          Whop checkout:{" "}
+                          <a
+                            href={pkg.checkoutUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="scl-link font-medium"
+                          >
+                            {pkg.checkoutUrl}
+                          </a>
+                        </p>
+                      ) : (
+                        <p className="text-warn mt-1.5 text-xs">
+                          Missing Whop checkout link — edit package to add one.
+                        </p>
+                      )}
+                      {trackingSlug ? (
+                        <p className="text-muted-foreground mt-1 text-xs">
+                          SCL tracking:{" "}
+                          <Link
+                            href={`/go/${trackingSlug}`}
+                            prefetch={false}
+                            className="scl-link font-medium"
+                          >
+                            /go/{trackingSlug}
+                          </Link>
+                        </p>
+                      ) : (
+                        <p className="text-warn mt-1 text-xs">
+                          SCL tracking URL generates on save — re-open this
+                          package if it still shows missing.
+                        </p>
+                      )}
+                      {unpublishableReason ? (
+                        <p className="text-warn mt-1.5 text-xs leading-relaxed">
+                          {packageUnpublishableMessage(unpublishableReason)}
+                        </p>
+                      ) : null}
                     </div>
                     <div>
                       {pkg.affiliateProvider ? (
@@ -618,6 +674,7 @@ export default async function AdminCapperDetailPage({
                     checkoutUrl: selectedPackage.checkoutUrl,
                     priceCents: selectedPackage.priceCents,
                     billingPeriod: selectedPackage.billingPeriod,
+                    billingIntervalCount: selectedPackage.billingIntervalCount,
                     sortOrder: selectedPackage.sortOrder,
                     isActive: selectedPackage.isActive,
                     trackingSlug: selectedPackage.trackingUrls[0]?.slug ?? null,

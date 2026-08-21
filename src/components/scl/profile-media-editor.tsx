@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
 import { CapperBanner } from "@/components/scl/capper-banner";
 import { uploadProfileMediaAction } from "@/lib/actions/profile-media.action";
+import { normalizeProfileMediaFile } from "@/lib/profile-media-client";
 import type { ProfileMediaKind } from "@/lib/schemas/profile-media.schema";
 
 type ProfileMediaEditorProps = {
@@ -35,11 +36,12 @@ export function ProfileMediaEditor({
     if (!file) return;
     setUploading(kind);
 
-    const formData = new FormData();
-    formData.set("kind", kind);
-    formData.set("file", file);
-
     try {
+      const normalized = await normalizeProfileMediaFile(file);
+      const formData = new FormData();
+      formData.set("kind", kind);
+      formData.set("file", normalized);
+
       const result = await uploadProfileMediaAction(formData);
       if (!result.ok) {
         toast.error(result.error);
@@ -53,7 +55,9 @@ export function ProfileMediaEditor({
           : "Cover image updated",
       );
     } catch {
-      toast.error("We couldn't upload that image. Try a smaller JPG or PNG.");
+      toast.error(
+        "We couldn't upload that image. Try a JPG, PNG, or HEIC under 5 MB.",
+      );
     } finally {
       setUploading(null);
     }
@@ -97,7 +101,7 @@ export function ProfileMediaEditor({
         <input
           ref={bannerInput}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
           className="hidden"
           aria-label="Upload cover image"
           onChange={(event) => {
@@ -127,7 +131,7 @@ export function ProfileMediaEditor({
           <input
             ref={avatarInput}
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
             className="hidden"
             aria-label="Upload profile image"
             onChange={(event) => {

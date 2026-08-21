@@ -69,7 +69,7 @@ whatever you store in `VERCEL_ORG_ID`.
 | `WHOP_APP_API_KEY`        | **Whop OAuth** | App API key — required for capper install flow              |
 | `NEXT_PUBLIC_WHOP_APP_ID` | Optional       | Defaults to `app_I5rsiJlsDgRe5O` in code                    |
 | `WHOP_APP_ID`             | Optional       | Alias for app id (server-only)                              |
-| `WHOP_AFFILIATE_USERNAME` | Optional       | Defaults to `SportsCappersLeaderboard` in code              |
+| `WHOP_AFFILIATE_USERNAME` | Optional       | Defaults to `scleaderboard` in code                         |
 
 Only add Whop secrets you want synced; empty secrets are skipped.
 

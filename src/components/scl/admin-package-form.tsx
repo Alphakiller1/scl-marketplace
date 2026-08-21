@@ -242,32 +242,6 @@ export function AdminPackageForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="desc">Package description</Label>
-        <textarea
-          id="desc"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={3}
-          className={cn(
-            "border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 min-h-24 w-full rounded-lg border bg-transparent px-3 py-2 text-base outline-none focus-visible:ring-3",
-          )}
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="promo">Free trial / introductory offer</Label>
-        <Input
-          id="promo"
-          value={promoOffer}
-          onChange={(e) => setPromoOffer(e.target.value)}
-          placeholder="e.g. 7-day free trial · first month 50% off"
-        />
-        <p className="text-muted-foreground text-xs">
-          Optional. Shown on the standardized package card when set.
-        </p>
-      </div>
-
-      <div className="space-y-1.5">
         <Label htmlFor="dest">
           {selectedProvider === "WINIBLE"
             ? "Winible storefront/package link"
@@ -310,6 +284,32 @@ export function AdminPackageForm({
             className="tabular-nums"
           />
         </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="desc">Package description</Label>
+        <textarea
+          id="desc"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={3}
+          className={cn(
+            "border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 min-h-24 w-full rounded-lg border bg-transparent px-3 py-2 text-base outline-none focus-visible:ring-3",
+          )}
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="promo">Free trial / introductory offer</Label>
+        <Input
+          id="promo"
+          value={promoOffer}
+          onChange={(e) => setPromoOffer(e.target.value)}
+          placeholder="e.g. 7-day free trial · first month 50% off"
+        />
+        <p className="text-muted-foreground text-xs">
+          Optional. Shown on the standardized package card when set.
+        </p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -368,10 +368,11 @@ export function AdminPackageForm({
         ) : null}
       </div>
       <p className="text-muted-foreground text-xs leading-relaxed">
-        Activate prepares this package for publication. Packages attached to a
-        storefront connection stay private until an admin clicks{" "}
-        <strong>Mark live</strong> on the request. Unattached legacy packages
-        (no connection) can appear on the profile when active.
+        Activate prepares this package for publication. Manual packages created
+        here stay unattached from pending storefront workflows, so an active
+        offer with a Whop link can appear on the public profile immediately.
+        Packages created inside a storefront review stay tied to that connection
+        and need <strong>Mark live</strong> before they publish.
       </p>
     </form>
   );

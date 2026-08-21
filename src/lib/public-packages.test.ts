@@ -1,58 +1,59 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
-  activePublicPackageWhere,
-  PLACEHOLDER_CHECKOUT_HOSTS,
-  publicPackagePublicationWhere,
+  isPackagePubliclyPublishable,
+  packageUnpublishableReason,
+  packageUnpublishableMessage,
 } from "@/lib/public-packages";
 
-test("public package predicate gates offer, storefront, tracking, and account", () => {
-  const publication = { isTest: false };
-  const where = publicPackagePublicationWhere(publication);
-
-  assert.equal(where.isActive, true);
-  assert.deepEqual(where.checkoutUrl, { not: null });
-  assert.deepEqual(where.trackingUrls, { some: {} });
-  assert.deepEqual(where.OR, activePublicPackageWhere.OR);
-
-  const user = where.capper as {
-    user: { AND: unknown[] };
-  };
-  assert.deepEqual(user.user.AND[0], {
-    username: { not: null },
-    accountStatus: "ACTIVE",
-  });
-  assert.deepEqual(user.user.AND[1], publication);
+test("manual unattached packages publish when active with checkout + tracking", () => {
+  assert.equal(
+    isPackagePubliclyPublishable({
+      isActive: true,
+      checkoutUrl: "https://whop.com/checkout/plan_abc?a=scleaderboard",
+      hasTrackingUrl: true,
+      storeConnectionId: null,
+    }),
+    true,
+  );
 });
 
-test("a placeholder checkout host is never sellable", () => {
-  // One `example.com` offer was live on the public marketplace. A placeholder
-  // checkout is worse than a missing package: it takes a real click and lands
-  // on nothing, so it is excluded at the predicate rather than by remembering
-  // to clean up after every seeder and importer.
-  const exclusions = activePublicPackageWhere.AND;
-  assert.equal(exclusions.length, PLACEHOLDER_CHECKOUT_HOSTS.length);
+test("packages on a pending storefront do not publish until Mark live", () => {
+  assert.equal(
+    isPackagePubliclyPublishable({
+      isActive: true,
+      checkoutUrl: "https://whop.com/checkout/plan_abc?a=scleaderboard",
+      hasTrackingUrl: true,
+      storeConnectionId: "conn_1",
+      storeConnectionStatus: "PENDING_SCL_LINK_IMPORT",
+    }),
+    false,
+  );
+});
 
-  for (const host of PLACEHOLDER_CHECKOUT_HOSTS) {
-    assert.ok(
-      exclusions.some(
-        (clause) =>
-          typeof clause.checkoutUrl === "object" &&
-          clause.checkoutUrl !== null &&
-          "not" in clause.checkoutUrl &&
-          typeof clause.checkoutUrl.not === "object" &&
-          clause.checkoutUrl.not !== null &&
-          "contains" in clause.checkoutUrl.not &&
-          clause.checkoutUrl.not.contains === host,
-      ),
-      `expected ${host} to be excluded`,
-    );
-  }
+test("packages awaiting Mark live are not mislabeled as missing links", () => {
+  assert.equal(
+    packageUnpublishableReason({
+      isActive: true,
+      checkoutUrl: "https://whop.com/checkout/plan_abc?a=scleaderboard",
+      hasTrackingUrl: true,
+      storeConnectionId: "conn_1",
+      storeConnectionStatus: "PACKAGES_IMPORTED",
+    }),
+    "awaiting_mark_live",
+  );
+  assert.match(
+    packageUnpublishableMessage("awaiting_mark_live"),
+    /already has a checkout link saved/i,
+  );
+});
 
-  // The exclusion has to survive the public predicate too, not just the base.
-  assert.deepEqual(
-    publicPackagePublicationWhere({ isTest: false }).AND,
-    exclusions,
+test("store action keeps manual packages unattached when no connection is sent", () => {
+  const source = readFileSync("src/lib/actions/store.action.ts", "utf8");
+  assert.doesNotMatch(
+    source,
+    /capperId_provider:[\s\S]*storeConnectionId = conn\?\.id/,
   );
 });

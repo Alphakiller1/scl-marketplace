@@ -46,6 +46,15 @@ export async function getCapperProfileByUserId(userId: string) {
   });
 }
 
+/** Some legacy accounts have a User row but no CapperProfile — create on demand. */
+export async function ensureCapperProfileByUserId(userId: string) {
+  const existing = await getCapperProfileByUserId(userId);
+  if (existing) return existing;
+
+  await prisma.capperProfile.create({ data: { userId } });
+  return getCapperProfileByUserId(userId);
+}
+
 export type CapperProfileView = NonNullable<
   Awaited<ReturnType<typeof getCapperProfileByUserId>>
 >;

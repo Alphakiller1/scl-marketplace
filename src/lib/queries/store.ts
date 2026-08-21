@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 import {
   activePublicPackageWhere,
+  isPackagePubliclyPublishable,
   publicPackagePublicationWhere,
 } from "@/lib/public-packages";
 import { formatPriceCents } from "@/lib/store-connection";
@@ -684,6 +685,7 @@ export async function getCapperPackagesForReview(capperId: string) {
       isActive: pkg.isActive,
       sortOrder: pkg.sortOrder,
       hasCheckoutUrl: Boolean(pkg.checkoutUrl),
+      checkoutUrl: pkg.checkoutUrl,
       // Falls back to the connection's provider: a carried-over offer records
       // the provider on the package itself and has no connection.
       provider: pkg.affiliateProvider ?? pkg.storeConnection?.provider ?? null,
@@ -699,12 +701,13 @@ export async function getCapperPackagesForReview(capperId: string) {
        * Truly public on the profile: active + checkout + tracking, and either
        * unattached (legacy) or the storefront connection is LIVE.
        */
-      publishable:
-        pkg.isActive &&
-        Boolean(pkg.checkoutUrl) &&
-        pkg.trackingUrls.length > 0 &&
-        (pkg.storeConnectionId === null ||
-          pkg.storeConnection?.status === "LIVE"),
+      publishable: isPackagePubliclyPublishable({
+        isActive: pkg.isActive,
+        checkoutUrl: pkg.checkoutUrl,
+        hasTrackingUrl: pkg.trackingUrls.length > 0,
+        storeConnectionId: pkg.storeConnectionId,
+        storeConnectionStatus: pkg.storeConnection?.status ?? null,
+      }),
     }));
   } catch (error) {
     console.error("[getCapperPackagesForReview] database unavailable:", error);
