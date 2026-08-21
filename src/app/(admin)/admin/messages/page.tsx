@@ -1,10 +1,12 @@
+import { Send } from "lucide-react";
+
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/card";
 import { SectionHeader } from "@/components/scl/section";
 import { BroadcastComposer } from "@/components/scl/broadcast-composer";
 import { requireAdmin } from "@/lib/session";
 
-export const metadata = { title: "Email cappers" };
+export const metadata = { title: "Mass email" };
 
 export default async function AdminMessagesPage() {
   await requireAdmin();
@@ -43,8 +45,11 @@ export default async function AdminMessagesPage() {
   return (
     <div className="space-y-6">
       <SectionHeader
-        title="Email cappers"
-        subtitle="Message one capper, or the roster. Announcements carry an unsubscribe link; account and security email always sends."
+        icon={Send}
+        title="Mass Email"
+        subtitle="Send an announcement to the active roster, or switch the audience to message one capper. Mass emails include an unsubscribe link."
+        href="/admin/emails"
+        hrefLabel="Edit automated emails"
       />
 
       <BroadcastComposer

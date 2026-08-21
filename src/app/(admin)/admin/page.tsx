@@ -8,8 +8,9 @@ import {
   Clock3,
   FileText,
   Gavel,
-  Store,
   Mail,
+  Send,
+  Store,
   Users,
 } from "lucide-react";
 
@@ -54,10 +55,17 @@ const ADMIN_TOOLS = [
   },
   {
     href: "/admin/emails",
-    title: "Capper emails",
+    title: "Automated email copy",
     description:
       "Edit the wording of the welcome, verification, reset, and claim emails. Links stay under SCL's control.",
     icon: Mail,
+  },
+  {
+    href: "/admin/messages",
+    title: "Mass email",
+    description:
+      "Send an announcement to the active capper roster in private batches of up to 100, with recipient preview and delivery reporting.",
+    icon: Send,
   },
   {
     href: "/admin/policies",
@@ -113,9 +121,9 @@ const OWNER_CAPABILITIES = [
   },
   {
     capability: "Bulk capper email",
-    status: "planned",
+    status: "live",
     detail:
-      "Intentionally gated until a verified broadcast sender, audience consent rules, unsubscribe handling, and delivery reporting are approved.",
+      "Send privately to the active roster in provider-safe batches after reviewing the recipient count. Opt-outs, unsubscribe links, and delivery reporting are enforced.",
   },
   {
     capability: "Customer accounts and customer email",

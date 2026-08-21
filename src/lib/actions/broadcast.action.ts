@@ -7,6 +7,7 @@ import { requireAdmin } from "@/lib/session";
 import { afterResponse } from "@/lib/after-response";
 import { appUrl } from "@/lib/app-url";
 import { renderBroadcastHtml, sendBroadcastBatch } from "@/lib/email";
+import { mailerConfigured } from "@/lib/email-verification-policy";
 import {
   BROADCAST_MAX_RECIPIENTS,
   chunkRecipients,
@@ -39,6 +40,9 @@ export async function previewBroadcastAudienceAction(input: {
   userId?: string;
 }): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
   await requireAdmin();
+  if (input.audience === "SINGLE_CAPPER" && !input.userId) {
+    return { ok: false, error: "Choose which capper to message." };
+  }
   try {
     const recipients = await loadRecipients(input.audience, input.userId);
     return { ok: true, count: recipients.length };
@@ -87,6 +91,14 @@ export async function sendBroadcastAction(
   const { audience, userId, subject, body, confirmRecipientCount } =
     parsed.data;
 
+  if (!mailerConfigured()) {
+    return {
+      ok: false,
+      error:
+        "Email delivery is not configured. Check Resend before sending this message.",
+    };
+  }
+
   const recipients = await loadRecipients(audience, userId);
   if (recipients.length === 0) {
     return { ok: false, error: "That audience has nobody in it." };
@@ -102,7 +114,6 @@ export async function sendBroadcastAction(
   // stop and show the new number rather than mailing more people than they saw.
   if (
     audience !== "SINGLE_CAPPER" &&
-    confirmRecipientCount !== undefined &&
     confirmRecipientCount !== recipients.length
   ) {
     return {
