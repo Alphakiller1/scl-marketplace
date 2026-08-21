@@ -76,6 +76,14 @@ export type AutoGradeResult = {
   provider: string;
 };
 
+export type AutoGradeOptions = {
+  /**
+   * Admin override: classify misses against the ESPN 14-day window so completed
+   * events past the Odds API 3-day cliff still attempt to settle.
+   */
+  lookbackDays?: number;
+};
+
 type GradeBatch = {
   graded: number;
   skipped: number;
@@ -418,6 +426,7 @@ async function resolvePendingPlay(
   now: Date,
   boxCache: PlayerBoxCache,
   fixtureCache: FixtureCache,
+  lookbackDays?: number,
 ): Promise<{
   outcome: Outcome | null;
   reason: keyof SkipReasonCounts;
@@ -446,7 +455,7 @@ async function resolvePendingPlay(
       outcome: null,
       reason: gameFound
         ? "props_deferred"
-        : classifySkipReason({ play: boundPlay, gameFound, now }),
+        : classifySkipReason({ play: boundPlay, gameFound, now, lookbackDays }),
       fixture,
     };
   }
@@ -459,6 +468,7 @@ async function resolvePendingPlay(
       play: boundPlay,
       gameFound: findSettledGame(boundPlay, games) != null,
       now,
+      lookbackDays,
     }),
     fixture,
   };
@@ -470,6 +480,7 @@ async function gradeStraightPlays(
   boxCache: PlayerBoxCache,
   fixtureCache: FixtureCache,
   games: SettledGame[],
+  lookbackDays?: number,
 ): Promise<GradeBatch> {
   const clvReady = await hasClvColumns();
   const skippedByReason = emptySkipCounts();
@@ -529,6 +540,7 @@ async function gradeStraightPlays(
       now,
       boxCache,
       fixtureCache,
+      lookbackDays,
     );
     if (!resolved.outcome) {
       if (
@@ -592,6 +604,7 @@ async function gradeParlayLegs(
   boxCache: PlayerBoxCache,
   fixtureCache: FixtureCache,
   games: SettledGame[],
+  lookbackDays?: number,
 ): Promise<GradeBatch> {
   const skippedByReason = emptySkipCounts();
   const pending = (
@@ -640,6 +653,7 @@ async function gradeParlayLegs(
       now,
       boxCache,
       fixtureCache,
+      lookbackDays,
     );
     if (!resolved.outcome) {
       if (
@@ -761,11 +775,13 @@ async function gradePendingParlays(): Promise<number> {
 
 /**
  * Grade confidently-resolvable pending plays and parlays from settled results.
- * Uses backstop score feeds only — no Odds API pricing calls. CLV capture runs
- * on `/api/cron/odds-refresh`.
+ * Cron passes the credit-saving provider (no Odds API pricing). Admin Grade
+ * completed passes the full scores stack plus a 14-day lookback so finished
+ * events past the 3-day Odds API cliff still settle.
  */
 export async function autoGradePending(
   provider: ResultsProvider,
+  options: AutoGradeOptions = {},
 ): Promise<AutoGradeResult> {
   const now = new Date();
   const boxCache: PlayerBoxCache = new Map();
@@ -781,6 +797,7 @@ export async function autoGradePending(
       now,
       boxCache,
       fixtureCache,
+      options.lookbackDays,
     );
     graded += roundResult.graded;
     parlaysGraded += roundResult.parlaysGraded;
@@ -812,6 +829,7 @@ async function autoGradePendingRound(
   now: Date,
   boxCache: PlayerBoxCache,
   fixtureCache: FixtureCache,
+  lookbackDays?: number,
 ): Promise<AutoGradeResult> {
   // One immutable provider snapshot per round. The old straight/leg passes each
   // fetched independently, so an exhausted key could expose different games to
@@ -838,6 +856,7 @@ async function autoGradePendingRound(
     boxCache,
     fixtureCache,
     games,
+    lookbackDays,
   );
   const legs = await gradeParlayLegs(
     provider,
@@ -845,6 +864,7 @@ async function autoGradePendingRound(
     boxCache,
     fixtureCache,
     games,
+    lookbackDays,
   );
   const parlaysGraded = await gradePendingParlays();
   const skippedByReason = mergeSkipCounts(

@@ -220,6 +220,25 @@ const SAME_FIXTURE_WINDOW_MS = 4 * 60 * 60 * 1000;
 const BOUND_CROSS_PROVIDER_WINDOW_MS = 90 * 60 * 1000;
 
 /**
+ * A UFC card runs much longer than a baseball game, and ESPN often stamps every
+ * prelim with the card start. 90 minutes / 4 hours left those fights unmatched
+ * against Odds API commence times on the same night.
+ */
+const MMA_FIXTURE_WINDOW_MS = 12 * 60 * 60 * 1000;
+
+function fixtureWindowMs(sport: string): number {
+  return sport.trim().toUpperCase() === "MMA"
+    ? MMA_FIXTURE_WINDOW_MS
+    : SAME_FIXTURE_WINDOW_MS;
+}
+
+function boundWindowMs(sport: string): number {
+  return sport.trim().toUpperCase() === "MMA"
+    ? MMA_FIXTURE_WINDOW_MS
+    : BOUND_CROSS_PROVIDER_WINDOW_MS;
+}
+
+/**
  * Restrict candidates to games plausibly on the same date as the play.
  *
  * Only applies when both sides carry a timestamp. If either is unknown we
@@ -233,10 +252,11 @@ function sameFixtureWindow(
   if (!when) return games;
   const anyDated = games.some((g) => g.startsAt);
   if (!anyDated) return games;
+  const windowMs = fixtureWindowMs(play.sport);
   return games.filter(
     (g) =>
       !g.startsAt ||
-      Math.abs(g.startsAt.getTime() - when.getTime()) <= SAME_FIXTURE_WINDOW_MS,
+      Math.abs(g.startsAt.getTime() - when.getTime()) <= windowMs,
   );
 }
 
@@ -245,11 +265,12 @@ function sameBoundFixtureWindow(
   games: SettledGame[],
 ): SettledGame[] {
   if (!play.eventStartsAt) return [];
+  const windowMs = boundWindowMs(play.sport);
   return games.filter(
     (game) =>
       game.startsAt != null &&
       Math.abs(game.startsAt.getTime() - play.eventStartsAt!.getTime()) <=
-        BOUND_CROSS_PROVIDER_WINDOW_MS,
+        windowMs,
   );
 }
 

@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { runAutoGradeAction } from "@/lib/actions/auto-grade.action";
 
-/** Admin backup: force an immediate auto-grade pass (cron runs every 30 minutes). */
+/** Admin backup: force-settle completed events the cron stack may have missed. */
 export function AutoGradeButton() {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -26,11 +26,11 @@ export function AutoGradeButton() {
       toast.info(
         result.skipped === 0
           ? "No pending plays to grade."
-          : `Nothing auto-gradable yet — ${result.skipped} left for manual review.`,
+          : `No completed event could be settled — ${result.skipped} still need a final or a market we don't auto-grade.`,
       );
     } else {
       toast.success(
-        `Auto-graded ${result.graded} · ${result.skipped} left for manual review.`,
+        `Force-graded ${result.graded} completed event${result.graded === 1 ? "" : "s"} · ${result.skipped} still pending.`,
       );
     }
     router.refresh();
@@ -45,7 +45,7 @@ export function AutoGradeButton() {
       className="shrink-0"
     >
       <Wand2 className="size-4" />
-      {pending ? "Grading…" : "Run now"}
+      {pending ? "Grading…" : "Grade completed"}
     </Button>
   );
 }

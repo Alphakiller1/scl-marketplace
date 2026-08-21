@@ -25,6 +25,8 @@ const ESPN_SPORT_PATH: Record<string, { sport: string; league: string }> = {
   MLB: { sport: "baseball", league: "mlb" },
   NHL: { sport: "hockey", league: "nhl" },
   WNBA: { sport: "basketball", league: "wnba" },
+  CFL: { sport: "football", league: "cfl" },
+  MMA: { sport: "mma", league: "ufc" },
 };
 
 async function fetchEspnScoreboardDay(
