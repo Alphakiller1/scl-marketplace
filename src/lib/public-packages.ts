@@ -29,6 +29,22 @@ export const activePublicPackageWhere = {
   ],
 } satisfies Prisma.PackageWhereInput;
 
+/** Whether an offer can appear on the public profile / marketplace today. */
+export function isPackagePubliclyPublishable(input: {
+  isActive: boolean;
+  checkoutUrl: string | null;
+  hasTrackingUrl: boolean;
+  storeConnectionId: string | null;
+  storeConnectionStatus?: string | null;
+}): boolean {
+  return (
+    input.isActive &&
+    Boolean(input.checkoutUrl?.trim()) &&
+    input.hasTrackingUrl &&
+    (input.storeConnectionId === null || input.storeConnectionStatus === "LIVE")
+  );
+}
+
 /**
  * One fail-closed public package predicate. A stale /go slug must not outlive
  * the account, offer, storefront, or publication eligibility behind it.

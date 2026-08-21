@@ -483,7 +483,7 @@ export async function adminSavePackageAction(
     };
   }
 
-  let storeConnectionId =
+  const storeConnectionId =
     d.storeConnectionId ?? existingPackage?.storeConnectionId ?? null;
   if (storeConnectionId) {
     const suppliedConnection = await prisma.storeConnection.findUnique({
@@ -500,17 +500,6 @@ export async function adminSavePackageAction(
         error: "Store connection does not match this capper and provider.",
       };
     }
-  } else if (!existingPackage) {
-    const conn = await prisma.storeConnection.findUnique({
-      where: {
-        capperId_provider: {
-          capperId: d.capperId,
-          provider: d.affiliateProvider,
-        },
-      },
-      select: { id: true },
-    });
-    storeConnectionId = conn?.id ?? null;
   }
 
   const packageId = await prisma.$transaction(async (tx) => {
