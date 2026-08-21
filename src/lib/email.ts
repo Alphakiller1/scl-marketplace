@@ -221,6 +221,166 @@ export async function sendPasswordUpdateRequiredEmail(email: string) {
 }
 
 /**
+ * The onboarding note every new capper gets: what SCL rewards (a tracked
+ * record), what that record unlocks (packages on their profile), and where to
+ * start.
+ *
+ * Split into a pure renderer so the copy can be asserted without a mailer, and
+ * so the plain-text part is built from the same source as the HTML rather than
+ * drifting from it. Both parts matter here: this is the most promotional mail
+ * SCL sends automatically, and an HTML-only body scores worse with the filters
+ * that decide whether a welcome lands in the inbox or the promotions bin.
+ */
+const WELCOME_SECTIONS = [
+  {
+    heading: "📊 Build Your SCL Record",
+    paragraphs: [
+      "The cappers who stand out on SCL are the ones who consistently input their plays and build a track record.",
+      "Track your plays daily and build a verified 60-day, 90-day, and season-long performance history that potential customers can see — including your record, win rate, ROI, units, and sample size.",
+    ],
+  },
+  {
+    heading: "🛒 Build Your SCL Store",
+    paragraphs: [
+      "Cappers who consistently build their SCL record can showcase their Winible or Whop packages through their SCL profile.",
+      "That means people can discover your record on SCL and then find your packages.",
+      "Track your plays → Build your record → Get discovered → Sell your packages.",
+    ],
+  },
+  {
+    heading: "📣 We’re Driving Traffic to SCL",
+    paragraphs: [
+      "We’re actively marketing SCL to bettors through paid advertising and other promotional efforts to drive traffic and exposure to the platform.",
+      "The stronger and more complete your SCL profile and track record, the more you have to showcase when bettors discover SCL.",
+    ],
+  },
+] as const;
+
+export const WELCOME_EMAIL_SUBJECT =
+  "Welcome to the new Sports Cappers Leaderboard!";
+
+export function renderWelcomeEmail(input: { unsubscribeUrl?: string }): {
+  html: string;
+  text: string;
+} {
+  const siteUrl = appUrl();
+  const loginUrl = `${siteUrl}/login`;
+
+  const sectionsHtml = WELCOME_SECTIONS.map(
+    (section) => `
+      <h3 style="font-size:16px;margin:28px 0 8px">${section.heading}</h3>
+      ${section.paragraphs
+        .map((line) => `<p style="line-height:1.6;margin:0 0 12px">${line}</p>`)
+        .join("")}
+    `,
+  ).join("");
+
+  // Matches the announcement footer: this is onboarding, but it is also the
+  // pitch, so it honours the same opt-out rather than claiming to be purely
+  // operational mail.
+  const unsubscribeHtml = input.unsubscribeUrl
+    ? `<hr style="border:none;border-top:1px solid #eee;margin:28px 0" />
+       <p style="color:#666;font-size:12px">
+         You are receiving this because you have an SCL capper account.
+         <a href="${input.unsubscribeUrl}">Unsubscribe from announcements</a> —
+         account and security emails will still reach you.
+       </p>`
+    : "";
+
+  const html = `
+    <div style="font-family:system-ui,sans-serif;max-width:560px;margin:auto;color:#111">
+      <h2 style="margin:0 0 12px">Welcome to the new Sports Cappers Leaderboard!</h2>
+      <p style="line-height:1.6;margin:0 0 12px">
+        The new SCL platform is officially live, and we’re excited to have you on the roster.
+      </p>
+      ${sectionsHtml}
+      <p style="margin:28px 0 12px">
+        <a href="${loginUrl}" style="display:inline-block;background:#5b4bdb;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">
+          👉 Log in and start tracking your plays
+        </a>
+      </p>
+      <p style="color:#666;font-size:13px;margin:0 0 20px">
+        <a href="${siteUrl}">${siteUrl}</a>
+      </p>
+      <p style="line-height:1.6;margin:0 0 12px">
+        The more consistently you track your plays, the more valuable your SCL profile becomes.
+      </p>
+      <p style="line-height:1.6;margin:0 0 12px">
+        Welcome to the new SCL. Let’s see where you land on the leaderboard.
+      </p>
+      <p style="line-height:1.6;margin:0">— Sports Cappers Leaderboard</p>
+      ${unsubscribeHtml}
+    </div>
+  `;
+
+  const text = [
+    "Welcome to the new Sports Cappers Leaderboard!",
+    "",
+    "The new SCL platform is officially live, and we’re excited to have you on the roster.",
+    ...WELCOME_SECTIONS.flatMap((section) => [
+      "",
+      section.heading,
+      "",
+      ...section.paragraphs.flatMap((line) => [line, ""]),
+    ]),
+    "👉 Log in and start tracking your plays:",
+    loginUrl,
+    "",
+    "The more consistently you track your plays, the more valuable your SCL profile becomes.",
+    "",
+    "Welcome to the new SCL. Let’s see where you land on the leaderboard.",
+    "",
+    "— Sports Cappers Leaderboard",
+    ...(input.unsubscribeUrl
+      ? ["", `Unsubscribe from announcements: ${input.unsubscribeUrl}`]
+      : []),
+  ]
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n");
+
+  return { html, text };
+}
+
+/**
+ * Welcome a new capper. Best-effort — never throws, so a delivery failure can
+ * never undo an account that has already been created.
+ */
+export async function sendWelcomeEmail(input: {
+  email: string;
+  unsubscribeUrl?: string;
+}) {
+  const { html, text } = renderWelcomeEmail({
+    unsubscribeUrl: input.unsubscribeUrl,
+  });
+
+  if (!resend) {
+    console.info(`[email:dev] welcome email for ${input.email}`);
+    return { delivered: false as const };
+  }
+
+  try {
+    const { error } = await resend.emails.send({
+      from,
+      to: input.email,
+      replyTo: supportReplyTo(),
+      subject: WELCOME_EMAIL_SUBJECT,
+      html,
+      text,
+    });
+    if (error) {
+      console.error(
+        `[email] welcome email failed for ${input.email}: ${error.message}`,
+      );
+      return { delivered: false as const };
+    }
+    return { delivered: true as const };
+  } catch (error) {
+    console.error(`[email] welcome email threw for ${input.email}:`, error);
+    return { delivered: false as const };
+  }
+}
+
+/**
  * Alert SCL owners that somebody signed up.
  *
  * Signup previously mailed only the new capper, so the roster grew with nobody

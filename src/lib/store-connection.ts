@@ -32,6 +32,10 @@ export const SCL_WHOP_AFFILIATE_COMMISSION = {
 export const WINIBLE_CAPPER_REFERRAL_URL =
   "https://winible.com/refer/usergif4lfuf?utm_source=1332059342148489371&utm_medium=winible_referral";
 
+/** SCL's Whop creator-onboarding referral; never use as a package checkout. */
+export const WHOP_CAPPER_REFERRAL_URL =
+  "https://whop.com/network/?a=scleaderboard";
+
 export const WINIBLE_INVITE_VALUES = {
   email: SCL_AFFILIATE_EMAIL,
   rewardType: "Recurring payments",

@@ -10,6 +10,7 @@ import { createVerificationToken } from "@/lib/tokens";
 import {
   sendNewSignupNotificationEmail,
   sendVerificationEmail,
+  sendWelcomeEmail,
 } from "@/lib/email";
 import { CONSENT_TEXT_VERSION } from "@/lib/legal";
 import { getCurrentPolicyBundle } from "@/lib/queries/policies";
@@ -18,6 +19,8 @@ import { getRequestIdentity } from "@/lib/request-identity";
 import { evaluateAccountClaim, handleTakenMessage } from "@/lib/account-claim";
 import { ensureAuthEmailSchema } from "@/lib/ensure-auth-email-schema";
 import { emailVerificationEnforced } from "@/lib/email-verification-policy";
+import { signUnsubscribeToken } from "@/lib/broadcast";
+import { appUrl } from "@/lib/app-url";
 
 type SignupResult =
   | { ok: true; emailDelivered: boolean; verifyUrl?: string }
@@ -96,6 +99,7 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
       passwordHash: true,
       emailVerified: true,
       accountStatus: true,
+      marketingOptOut: true,
     },
   });
 
@@ -201,12 +205,33 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
   // promise unowned, and a serverless instance is frozen the moment its response is returned,
   // so the send was routinely killed mid-flight: owners got nothing, and no error was raised
   // anywhere because the call never got far enough to fail.
+  //
+  // The capper hears from SCL too. Same `after()` treatment and the same
+  // reason: a welcome is not worth making anyone wait on, but a bare `void`
+  // would be killed when the serverless instance freezes on response.
+  //
+  // A reclaimed record can already carry an announcements opt-out from the
+  // previous platform roster; a fresh row never can. Honouring it here keeps
+  // the unsubscribe link in this very email from being contradicted by the next
+  // signup on the same account.
+  const optedOutOfAnnouncements = byUsername?.marketingOptOut ?? false;
+  const unsubscribeSecret = process.env.AUTH_SECRET ?? "";
+  const signupUserId = userId;
+
   after(async () => {
     await sendNewSignupNotificationEmail({
       username,
       email: lowerEmail,
       signedUpAt: new Date(),
     });
+    if (!optedOutOfAnnouncements) {
+      await sendWelcomeEmail({
+        email: lowerEmail,
+        unsubscribeUrl: unsubscribeSecret
+          ? `${appUrl()}/unsubscribe?token=${signUnsubscribeToken(signupUserId, unsubscribeSecret)}`
+          : undefined,
+      });
+    }
   });
 
   return { ok: true, emailDelivered, verifyUrl };
