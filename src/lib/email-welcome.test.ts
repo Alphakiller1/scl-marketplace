@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { describe, it, beforeEach, afterEach } from "node:test";
 
 import {
@@ -99,5 +101,36 @@ describe("sendWelcomeEmail", () => {
   it("reports undelivered instead of throwing when Resend is unconfigured", async () => {
     const result = await sendWelcomeEmail({ email: "capper@example.com" });
     assert.equal(result.delivered, false);
+  });
+});
+
+describe("welcome email delivery point", () => {
+  const read = (relative: string) =>
+    fs.readFileSync(path.join(process.cwd(), relative), "utf8");
+
+  it("sends from the verify page, once the account actually works", () => {
+    const source = read("src/app/(auth)/verify/page.tsx");
+    assert.match(source, /sendWelcomeEmail/);
+    assert.match(
+      source,
+      /const claimed = await consumeVerificationToken\(token\)/,
+    );
+    // Skipped for anyone who already opted out of announcements.
+    assert.match(source, /if \(claimed && !claimed\.marketingOptOut\)/);
+    // Deferred so verification never waits on the mailer.
+    assert.match(source, /after\(async \(\) => \{/);
+  });
+
+  it("does not send at signup, where the account is still PENDING", () => {
+    const source = read("src/lib/actions/signup.action.ts");
+    assert.doesNotMatch(source, /sendWelcomeEmail/);
+  });
+
+  it("hands the verified user's identity back so the send can be addressed", () => {
+    const source = read("src/lib/tokens.ts");
+    assert.match(source, /userId: string;/);
+    assert.match(source, /marketingOptOut: boolean;/);
+    // The delete is what makes a second click a no-op rather than a resend.
+    assert.match(source, /if \(consumed\.count !== 1\) return null;/);
   });
 });

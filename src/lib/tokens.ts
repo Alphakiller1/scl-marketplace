@@ -46,9 +46,20 @@ export async function createVerificationToken(
  * Consume a verification token: if valid + unexpired, mark the user verified.
  * Returns the verified email, or null if invalid/expired.
  */
-export async function consumeVerificationToken(
-  token: string,
-): Promise<string | null> {
+/**
+ * Consume a verification link, returning who it belonged to.
+ *
+ * The token row is deleted inside the transaction and the caller only gets a
+ * result when this call is the one that deleted it, so a second click on the
+ * same link returns null. Callers can therefore treat a non-null result as
+ * "this account just became verified, exactly once" and fire one-time work
+ * (the welcome email) from it without needing their own guard.
+ */
+export async function consumeVerificationToken(token: string): Promise<{
+  userId: string;
+  email: string;
+  marketingOptOut: boolean;
+} | null> {
   const tokenHash = hashToken(token);
   const record = await prisma.verificationToken.findUnique({
     where: { token: tokenHash },
@@ -68,7 +79,12 @@ export async function consumeVerificationToken(
 
     const user = await transaction.user.findUnique({
       where: { id: record.identifier },
-      select: { id: true, email: true, accountStatus: true },
+      select: {
+        id: true,
+        email: true,
+        accountStatus: true,
+        marketingOptOut: true,
+      },
     });
     if (!user) return null;
 
@@ -81,6 +97,10 @@ export async function consumeVerificationToken(
           : {}),
       },
     });
-    return user.email;
+    return {
+      userId: user.id,
+      email: user.email,
+      marketingOptOut: user.marketingOptOut,
+    };
   });
 }
