@@ -39,10 +39,11 @@ import {
   DAILY_VOLUMES,
   OFFERING_MODELS,
 } from "@/lib/schemas/profile.schema";
+import { updateProfileAction } from "@/lib/actions/profile.action";
 import {
-  updateProfileAction,
-  updateUsernameAction,
-} from "@/lib/actions/profile.action";
+  PROFILE_USERNAME_API_PATH,
+  parseUsernameSavePayload,
+} from "@/lib/profile-username-api";
 import { formatHandle } from "@/lib/identity";
 import type { CapperProfileView } from "@/lib/queries/profile";
 
@@ -168,8 +169,30 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
   async function persistCapturedUsername() {
     // Do not re-read the live input here. Password managers overwrite it
     // between pointerdown and submit; capturedHandleRef is the typed value.
+    // Fetch JSON instead of a Server Action — Origin/Host mismatches and
+    // Safari action POSTs were throwing a digest toasted as
+    // "We couldn't save your profile".
     try {
-      return await updateUsernameAction(capturedHandleRef.current);
+      const response = await fetch(PROFILE_USERNAME_API_PATH, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ username: capturedHandleRef.current }),
+      });
+      const contentType = response.headers.get("content-type") ?? "";
+      if (!contentType.includes("application/json")) {
+        return {
+          ok: false as const,
+          error:
+            response.status === 401 || response.redirected
+              ? "Sign in again to change your username."
+              : "We couldn't save your username. Try again.",
+        };
+      }
+      return parseUsernameSavePayload(await response.json());
     } catch {
       return {
         ok: false as const,
@@ -346,6 +369,7 @@ export function ProfileForm({ profile }: { profile: CapperProfileView }) {
                         setHandleUnlocked(true);
                         event.currentTarget.removeAttribute("readOnly");
                       }}
+                      onPointerDown={() => setHandleUnlocked(true)}
                       onKeyDown={(event) => {
                         if (event.key === "Enter") captureHandle();
                       }}

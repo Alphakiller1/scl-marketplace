@@ -82,8 +82,8 @@ test("a failed session or cache bust cannot fail a handle that already wrote", (
 test("profile form username field is editable and not a login autofill target", () => {
   const source = read("src/app/(capper)/dashboard/profile/profile-form.tsx");
 
-  assert.match(source, /updateUsernameAction/);
   assert.match(source, /saveUsernameThenProfile/);
+  assert.match(source, /PROFILE_USERNAME_API_PATH/);
   assert.match(source, /usernameChanged/);
   assert.match(source, /name="scl-public-handle"/);
   assert.match(source, /id="scl-public-handle"/);
@@ -119,10 +119,13 @@ test("username can be saved without the rest of the profile form", () => {
 test("username Prisma failures are not hidden behind the generic profile toast", () => {
   const action = read("src/lib/actions/profile.action.ts");
   const form = read("src/app/(capper)/dashboard/profile/profile-form.tsx");
+  const route = read("src/app/api/account/username/route.ts");
 
   assert.match(action, /userFacingProfileSaveError\(error, "username"\)/);
   assert.match(action, /userFacingProfileSaveError\(error, "profile"\)/);
   assert.match(form, /We couldn't complete the save/);
+  assert.match(form, /fetch\(PROFILE_USERNAME_API_PATH/);
+  assert.match(route, /updateUsernameAction/);
   assert.doesNotMatch(
     form,
     /toast\.error\("We couldn't save your profile\. Try again\."\)/,
