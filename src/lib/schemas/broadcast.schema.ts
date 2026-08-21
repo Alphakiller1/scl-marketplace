@@ -22,15 +22,22 @@ export const broadcastSchema = z
       .min(10, "Write a message.")
       .max(10_000, "Keep the message under 10,000 characters."),
     /**
-     * Typed confirmation for a roster-wide send. A mass mail cannot be recalled,
-     * so the destructive-action pattern applies: the count is shown, and the
-     * admin retypes it.
+     * Recipient-count confirmation for a roster-wide send. A mass mail cannot
+     * be recalled, so the count is previewed and sent back to the server.
      */
     confirmRecipientCount: z.number().int().nonnegative().optional(),
   })
   .refine((v) => v.audience !== "SINGLE_CAPPER" || Boolean(v.userId), {
     message: "Choose which capper to message.",
     path: ["userId"],
-  });
+  })
+  .refine(
+    (v) =>
+      v.audience === "SINGLE_CAPPER" || v.confirmRecipientCount !== undefined,
+    {
+      message: "Check the recipient count before sending a mass email.",
+      path: ["confirmRecipientCount"],
+    },
+  );
 
 export type BroadcastInput = z.infer<typeof broadcastSchema>;

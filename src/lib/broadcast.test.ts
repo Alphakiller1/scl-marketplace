@@ -9,6 +9,7 @@ import {
   verifyUnsubscribeToken,
   type BroadcastCandidate,
 } from "@/lib/broadcast";
+import { broadcastSchema } from "@/lib/schemas/broadcast.schema";
 
 function candidate(over: Partial<BroadcastCandidate> = {}): BroadcastCandidate {
   return {
@@ -128,6 +129,45 @@ describe("chunkRecipients", () => {
 
   it("keeps a short list in one batch", () => {
     assert.equal(chunkRecipients([1, 2, 3]).length, 1);
+  });
+});
+
+describe("broadcastSchema", () => {
+  const message = {
+    subject: "Roster update",
+    body: "Here is this week's update for SCL cappers.",
+  };
+
+  it("requires a previewed recipient count for a mass email", () => {
+    const result = broadcastSchema.safeParse({
+      audience: "ALL_CAPPERS",
+      ...message,
+    });
+
+    assert.equal(result.success, false);
+    if (!result.success) {
+      assert.match(result.error.issues[0]?.message ?? "", /recipient count/i);
+    }
+  });
+
+  it("accepts a mass email after its recipient count is confirmed", () => {
+    const result = broadcastSchema.safeParse({
+      audience: "ALL_CAPPERS",
+      confirmRecipientCount: 100,
+      ...message,
+    });
+
+    assert.equal(result.success, true);
+  });
+
+  it("does not require a recipient count for one capper", () => {
+    const result = broadcastSchema.safeParse({
+      audience: "SINGLE_CAPPER",
+      userId: "capper-1",
+      ...message,
+    });
+
+    assert.equal(result.success, true);
   });
 });
 

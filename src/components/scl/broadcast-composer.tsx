@@ -39,7 +39,7 @@ export function BroadcastComposer({
 }: {
   cappers: { id: string; label: string }[];
 }) {
-  const [audience, setAudience] = useState<Audience>("SINGLE_CAPPER");
+  const [audience, setAudience] = useState<Audience>("ALL_CAPPERS");
   const [userId, setUserId] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -57,6 +57,8 @@ export function BroadcastComposer({
         return;
       }
       setCount(result.count);
+    } catch {
+      toast.error("Couldn't check the recipient count. Try again.");
     } finally {
       setBusy(false);
     }
@@ -80,10 +82,16 @@ export function BroadcastComposer({
         setCount(null);
         return;
       }
-      toast.success(`Sending to ${result.recipientCount}.`);
+      toast.success(
+        isMass
+          ? `Mass email queued for ${result.recipientCount} recipient${result.recipientCount === 1 ? "" : "s"}.`
+          : "Email queued for delivery.",
+      );
       setSubject("");
       setBody("");
       setCount(null);
+    } catch {
+      toast.error("Couldn't queue the email. Try again.");
     } finally {
       setBusy(false);
     }
@@ -166,7 +174,9 @@ export function BroadcastComposer({
         />
         <p className="text-muted-foreground text-xs">
           Plain text. Blank lines become paragraphs.
-          {isMass ? " An unsubscribe link is added automatically." : ""}
+          {isMass
+            ? " An unsubscribe link is added automatically. Each address is sent privately in Resend batches of up to 100."
+            : ""}
         </p>
       </div>
 
@@ -195,7 +205,7 @@ export function BroadcastComposer({
         </Button>
 
         {isMass && count !== null ? (
-          <p className="text-muted-foreground text-xs">
+          <p className="text-muted-foreground text-xs" aria-live="polite">
             {count} recipient{count === 1 ? "" : "s"} after opt-outs and
             unreachable addresses.
           </p>

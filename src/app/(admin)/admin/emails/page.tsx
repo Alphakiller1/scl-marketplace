@@ -1,7 +1,9 @@
-import { Mail } from "lucide-react";
+import Link from "next/link";
+import { Mail, Send } from "lucide-react";
 
 import { AdminEmailTemplateEditor } from "@/components/scl/admin-email-template-editor";
 import { SectionHeader } from "@/components/scl/section";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EMAIL_TEMPLATES, isEmailTemplateSlug } from "@/lib/email-templates";
 import {
@@ -34,6 +36,23 @@ export default async function AdminEmailsPage({
         title="Capper Emails"
         subtitle="Edit the wording of the emails cappers receive. Links and buttons are supplied by SCL, so copy changes cannot break them."
       />
+
+      <Card className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h2 className="font-semibold">Send an announcement</h2>
+          <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+            Email the active capper roster privately in Resend batches of up to
+            100, with opt-outs and unreachable addresses removed.
+          </p>
+        </div>
+        <Button
+          className="min-h-10 shrink-0"
+          render={<Link href="/admin/messages" />}
+        >
+          <Send className="size-4" aria-hidden />
+          Send mass email
+        </Button>
+      </Card>
 
       <Card className="p-4 sm:p-5">
         <AdminEmailTemplateEditor
