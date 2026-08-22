@@ -1,4 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build"
+  "buildCommand": "npm run build",
+  "crons": [
+    {
+      "path": "/api/cron/odds-populate?sports=MLB,WNBA,TENNIS,SOCCER,NFL&expanded=0&surface=1",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/odds-populate?sports=MLB,WNBA,TENNIS,SOCCER,NFL&expanded=0&surface=1",
+      "schedule": "0 0 * * *"
+    }
+  ]
 }

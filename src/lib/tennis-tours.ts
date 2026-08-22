@@ -40,6 +40,13 @@ export const TENNIS_TOUR_LIMIT = 4;
  */
 export const TENNIS_CANDIDATE_LIMIT = 16;
 
+/** Paid markets on a tennis surface fetch (h2h + spreads + totals). */
+export const TENNIS_SURFACE_MARKETS = 3;
+
+/** Credits one tennis board refresh spends at most. */
+export const TENNIS_SURFACE_CREDIT_COST =
+  TENNIS_TOUR_LIMIT * TENNIS_SURFACE_MARKETS;
+
 /**
  * Tours in priority order when more tournaments are in season than the budget
  * covers. ATP first, then WTA, then anything else the catalog names.

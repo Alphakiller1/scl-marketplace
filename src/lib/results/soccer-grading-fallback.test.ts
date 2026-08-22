@@ -47,4 +47,10 @@ test("the live tennis board fans out by tournament instead of a missing TENNIS s
   assert.match(oddsApi, /if \(sclSport === "TENNIS"\) return fetchTennisBoard/);
   assert.match(oddsApi, /selectTennisToursWithFixtures/);
   assert.match(oddsApi, /normalizeUpcomingEvent\("TENNIS"/);
+  assert.match(oddsApi, /shouldCircuitBreakTennisSurface/);
+  const boardCache = fs.readFileSync(
+    path.join(root, "src/lib/odds-board-cache.ts"),
+    "utf8",
+  );
+  assert.match(boardCache, /shouldCircuitBreakTennisSurface/);
 });

@@ -24,7 +24,7 @@ import {
 
 export const maxDuration = 300;
 
-const DEFAULT_SPORTS = ["MLB", "WNBA", "NFL", "TENNIS", "SOCCER"];
+const DEFAULT_SPORTS = ["MLB", "WNBA", "TENNIS", "SOCCER", "NFL"];
 
 function authorized(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET?.trim();
@@ -125,8 +125,10 @@ async function populate(req: NextRequest) {
     Awaited<ReturnType<typeof fetchUpcomingOdds>>
   >();
 
-  // Surface MLB/WNBA first so today's event ids exist, then expand in owner
-  // order, then spend leftover credits on NFL/tennis/soccer featured boards.
+  // Surface MLB/WNBA first so today's event ids exist, then tennis/soccer
+  // (cheap, in-season this week), then leftover credits on the NFL board.
+  // Tennis after NFL is how Cincinnati lost the last populate: NFL spent the
+  // key down to 29 credits and the 1,000-credit breaker skipped the Masters.
   for (const sport of expandedOrder) {
     await loadSurface(sport, refreshSurface, boardEvents, surface);
   }

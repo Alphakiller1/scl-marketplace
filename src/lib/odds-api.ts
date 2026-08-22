@@ -2,7 +2,10 @@ import "server-only";
 
 import { afterResponse } from "@/lib/after-response";
 import { bookmakersQueryParam, isBookKey } from "@/lib/books";
-import { shouldCircuitBreak } from "@/lib/odds-budget";
+import {
+  shouldCircuitBreak,
+  shouldCircuitBreakTennisSurface,
+} from "@/lib/odds-budget";
 import { oddsApiKey } from "@/lib/odds-config";
 import { fetchWithOddsKeyRollover } from "@/lib/odds-key-rollover";
 import {
@@ -17,6 +20,7 @@ import {
 } from "@/lib/soccer-leagues";
 import {
   TENNIS_CANDIDATE_LIMIT,
+  TENNIS_SURFACE_CREDIT_COST,
   TENNIS_TOUR_LIMIT,
   selectTennisTours,
   selectTennisToursWithFixtures,
@@ -440,9 +444,9 @@ export async function fetchTennisBoard(
 ): Promise<OddsEvent[]> {
   if (!oddsApiKey()) return [];
 
-  if (shouldCircuitBreak(lastOddsApiRemaining, lastOddsApiCapacity)) {
+  if (shouldCircuitBreakTennisSurface(lastOddsApiRemaining)) {
     console.warn(
-      `[odds] circuit-breaker active (remaining=${lastOddsApiRemaining}) — skipping tennis board`,
+      `[odds] tennis surface skipped (remaining=${lastOddsApiRemaining} < ${TENNIS_SURFACE_CREDIT_COST} credits)`,
     );
     return [];
   }

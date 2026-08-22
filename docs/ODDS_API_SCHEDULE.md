@@ -12,14 +12,14 @@ successful provider call for that sport. The form says so:
 
 Two jobs exist. Only the **populate** job is on a clock.
 
-| Job               | Workflow                              | Cadence (America/New_York)                                                            | What it warms                                                                                                                                   |
-| ----------------- | ------------------------------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Surface populate  | `.github/workflows/populate-odds.yml` | **08:00 ET** and **20:00 ET** daily                                                   | Game lists + basic prices (`h2h` / spreads / totals) for the default sports below                                                               |
-| Strategic refresh | `.github/workflows/odds-refresh.yml`  | **Paused** — `workflow_dispatch` only (owner request while credits are under control) | Expanded per-event boards (~31 credits/event). Restoring the clock requires all five UTC times in that file; a two-run day misses MLB day games |
+| Job               | Workflow                                                       | Cadence (America/New_York)                                                            | What it warms                                                                                                                                                                                                                                                       |
+| ----------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Surface populate  | `.github/workflows/populate-odds.yml` plus `vercel.json` crons | **08:00 ET** and **20:00 ET** daily                                                   | Game lists + basic prices (`h2h` / spreads / totals) for the default sports below. Tennis is fetched before NFL so a cheap Masters board is not skipped after NFL burns the key. GitHub’s scheduled workflow can miss a tick; Vercel hits the same route as backup. |
+| Strategic refresh | `.github/workflows/odds-refresh.yml`                           | **Paused** — `workflow_dispatch` only (owner request while credits are under control) | Expanded per-event boards (~31 credits/event). Restoring the clock requires all five UTC times in that file; a two-run day misses MLB day games                                                                                                                     |
 
 Scheduled populate calls:
 
-`POST /api/cron/odds-populate?sports=MLB,WNBA,NFL,TENNIS,SOCCER&expanded=0&surface=1`
+`POST /api/cron/odds-populate?sports=MLB,WNBA,TENNIS,SOCCER,NFL&expanded=0&surface=1`
 
 `expanded=0` on the clock: tomorrow’s MLB/WNBA event boards are **not** rebuilt
 on the schedule. They stay on the last-good cache (up to 30 days) unless someone

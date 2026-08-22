@@ -7,7 +7,9 @@ import {
   REMAINING_CIRCUIT_BREAK,
   circuitBreakThreshold,
   shouldCircuitBreak,
+  shouldCircuitBreakTennisSurface,
 } from "@/lib/odds-budget";
+import { TENNIS_SURFACE_CREDIT_COST } from "@/lib/tennis-tours";
 
 test("the reserve scales to the plan the key is actually on", () => {
   // The bug this exists for: a 500-credit key starts BELOW the flat 1,000
@@ -42,4 +44,20 @@ test("shouldCircuitBreak trips below 5% remaining", () => {
 
 test("circuit threshold aligns with monthly cap", () => {
   assert.equal(REMAINING_CIRCUIT_BREAK, MONTHLY_CAP * 0.05);
+});
+
+test("tennis surface still fetches when the expanded-MLB reserve would skip it", () => {
+  // 29 remaining is what the 12:49 ET populate left after NFL. The 1,000-credit
+  // breaker treats that as empty; 12 credits is enough to price Cincinnati.
+  assert.equal(shouldCircuitBreak(29, MONTHLY_CAP), true);
+  assert.equal(shouldCircuitBreakTennisSurface(29), false);
+  assert.equal(
+    shouldCircuitBreakTennisSurface(TENNIS_SURFACE_CREDIT_COST),
+    false,
+  );
+  assert.equal(
+    shouldCircuitBreakTennisSurface(TENNIS_SURFACE_CREDIT_COST - 1),
+    true,
+  );
+  assert.equal(shouldCircuitBreakTennisSurface(null), false);
 });

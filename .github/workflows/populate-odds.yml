@@ -20,7 +20,7 @@ on:
       sports:
         description: "Comma-separated SCL sports, or blank for all"
         required: false
-        default: "MLB,WNBA,NFL,TENNIS,SOCCER"
+        default: "MLB,WNBA,TENNIS,SOCCER,NFL"
         type: string
       expanded:
         description: "Max events to expand per MLB/WNBA sport"
@@ -61,7 +61,7 @@ jobs:
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           ODDS_KEY: ${{ github.event.client_payload.odds_key || github.event.inputs.odds_key }}
-          SPORTS: ${{ github.event.client_payload.sports || github.event.inputs.sports || 'MLB,WNBA,NFL,TENNIS,SOCCER' }}
+          SPORTS: ${{ github.event.client_payload.sports || github.event.inputs.sports || 'MLB,WNBA,TENNIS,SOCCER,NFL' }}
           EXPANDED: ${{ github.event.client_payload.expanded || github.event.inputs.expanded || '99' }}
           EXPANDED_DAYS: ${{ github.event.client_payload.expanded_days || github.event.inputs.expanded_days || 'today' }}
           SURFACE: ${{ github.event.client_payload.surface || '1' }}
@@ -107,7 +107,7 @@ jobs:
       - name: Populate through the signed production route
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          SPORTS: ${{ inputs.sports || 'MLB,WNBA,NFL,TENNIS,SOCCER' }}
+          SPORTS: ${{ inputs.sports || 'MLB,WNBA,TENNIS,SOCCER,NFL' }}
           EXPANDED: ${{ github.event_name == 'schedule' && '0' || inputs.expanded }}
           EXPANDED_DAYS: ${{ inputs.expanded_days || 'tomorrow' }}
           SURFACE: ${{ github.event_name == 'schedule' && '1' || (inputs.surface && '1' || '0') }}
