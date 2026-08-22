@@ -346,12 +346,11 @@ function LeaderboardTableRow({
   capper: CapperSummary;
   rank: number;
 }) {
-  // `graded` is the window's sample and keeps gating ROI and Units: those
-  // figures are computed from the window, so how far to trust them is a
-  // question about the window. `career` is the capper's whole record and drives
-  // the maturity meter and the Early flag, which are claims about the capper —
-  // under a 1D filter the two were the same number, so a capper with 1,218
-  // graded picks read "Early" because three of them settled yesterday.
+  // `graded` is the window's sample and colors ROI / Units / Win% from those
+  // figures. `career` is the capper's whole record and drives the maturity
+  // meter and the Early flag, which are claims about the capper — under a 1D
+  // filter the two were the same number, so a capper with 1,218 graded picks
+  // read "Early" because three of them settled yesterday.
   const graded = capper.settledPicks ?? 0;
   const career = capper.lifetimeGraded ?? graded;
   const provisional = isProvisional(career);
@@ -360,6 +359,7 @@ function LeaderboardTableRow({
   ).slice(0, 3);
   const roiScale = perfScale("roi", capper.roi, { gradedCount: graded });
   const unitsScale = perfScale("units", capper.units, { gradedCount: graded });
+  const winScale = perfScale("winPct", capper.winPct, { gradedCount: graded });
   return (
     <tr className="hover:bg-surface-2/80 group min-h-[4.5rem]">
       <td className="px-1.5 py-2 align-middle">
@@ -409,7 +409,13 @@ function LeaderboardTableRow({
         </StatValue>
       </td>
       <td className="px-1.5 py-2 text-right align-middle">
-        <span className="scl-data text-sm font-semibold tabular-nums">
+        <span
+          className={cn(
+            "scl-data text-sm font-semibold tabular-nums",
+            perfToneClass(winScale.tone),
+          )}
+          aria-label={winScale.ariaLabel}
+        >
           {capper.winPct.toFixed(1)}%
         </span>
       </td>
@@ -488,6 +494,7 @@ export function LeaderboardMobileCard({
   const career = capper.lifetimeGraded ?? graded;
   const roiScale = perfScale("roi", capper.roi, { gradedCount: graded });
   const unitsScale = perfScale("units", capper.units, { gradedCount: graded });
+  const winScale = perfScale("winPct", capper.winPct, { gradedCount: graded });
   if (compact) {
     return (
       <CompactCapperRow
@@ -536,7 +543,11 @@ export function LeaderboardMobileCard({
           value={formatUnits(capper.units)}
           className={perfToneClass(unitsScale.tone)}
         />
-        <MobileStat label="Win%" value={`${capper.winPct.toFixed(1)}%`} />
+        <MobileStat
+          label="Win%"
+          value={`${capper.winPct.toFixed(1)}%`}
+          className={perfToneClass(winScale.tone)}
+        />
       </div>
       <div className="bg-surface-2 flex min-h-10 items-center justify-between gap-3 rounded-lg px-3 py-2">
         <SampleMaturityMeter graded={career} compact className="min-w-[4rem]" />

@@ -45,17 +45,19 @@ describe("perfScale ROI boundaries", () => {
     assert.equal(perfScale("roi", -8, { gradedCount: 20 }).band, "weak");
   });
 
-  it("early sample caps at amber — never red or green", () => {
-    const soft = perfScale("roi", -5, { gradedCount: 3 });
-    assert.equal(soft.band, "soft");
-    assert.equal(soft.tone, "amber");
-    const weak = perfScale("roi", -20, { gradedCount: 5 });
-    assert.equal(weak.tone, "amber");
-    assert.notEqual(weak.tone, "neg");
-    const strong = perfScale("roi", 40, { gradedCount: 2 });
-    assert.equal(strong.band, "strong");
-    assert.equal(strong.tone, "amber");
-    assert.notEqual(strong.tone, "pos");
+  it("each metric is toned from its own value, even on an early sample", () => {
+    const roi = perfScale("roi", 12, { gradedCount: 3 });
+    const units = perfScale("units", 0.4, { gradedCount: 3 });
+    assert.equal(roi.band, "strong");
+    assert.equal(roi.tone, "pos");
+    assert.equal(units.band, "neutral");
+    assert.equal(units.tone, "muted");
+    assert.match(roi.ariaLabel, /early sample/);
+
+    const mixedUnits = perfScale("units", -6, { gradedCount: 5 });
+    assert.equal(mixedUnits.tone, "neg");
+    assert.notEqual(mixedUnits.tone, "amber");
+    assert.notEqual(roi.tone, mixedUnits.tone);
   });
 
   it("mature sample may be red or green", () => {

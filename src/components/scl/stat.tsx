@@ -120,7 +120,7 @@ export function RoiStat({
   truncateValue,
 }: {
   roi: number;
-  /** Graded sample size — provisional caps soft/weak at amber, never red. */
+  /** Graded sample size — used in the accessible label, not to recolor the figure. */
   gradedCount?: number | null;
   variant?: "block" | "pill";
   className?: string;

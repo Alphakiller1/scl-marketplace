@@ -48,7 +48,7 @@ function compareLegacyRows(
 /**
  * Career record broken down by sport: PRE_IMPORT totals plus SCL-logged
  * positions, so the table sample matches Evidence Brief / the dashboard
- * scoreboard. Client-sortable. Early samples stay amber.
+ * scoreboard. Client-sortable. Numbers color by their own sign.
  */
 export function LegacySportBreakdown({
   records,
@@ -93,8 +93,9 @@ export function LegacySportBreakdown({
           <p className="text-muted-foreground mt-1 max-w-2xl text-xs leading-relaxed">
             Settled record in each sport — including results carried over from
             the previous SCL platform — so this table matches the {matchLabel}.
-            Sorted by {sortLabel.toLowerCase()}. Early samples (under 10) stay
-            amber — small books are not elite signals.
+            Sorted by {sortLabel.toLowerCase()}. Each figure is colored from its
+            own value — a winning ROI stays green even when units are flat.
+            Sample size lives on the Early meter, not on every number.
           </p>
         </div>
         <div className="flex flex-col items-stretch gap-2 sm:items-end">

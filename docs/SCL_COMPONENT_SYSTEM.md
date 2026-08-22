@@ -76,7 +76,7 @@ Numbers are the product. These render performance consistently everywhere.
 - `LegacySportBreakdown` — career record by sport on public profiles and the
   capper dashboard (PRE_IMPORT totals plus SCL-logged positions, sortable by
   units/ROI/win%/sample; desktop table + mobile cards; sport name next to the
-  mark; Early samples amber-capped). The sample is built to match Evidence Brief.
+  mark). The sample is built to match Evidence Brief.
 - `CapperStorefront` — public storefront identity, third-party commerce disclosure, and honest
   pre-package empty state.
 - `PerformanceSummary` — record, win rate, units, ROI, streak, and recent form.
