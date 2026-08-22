@@ -8,7 +8,10 @@ import {
   getLastOddsApiRemaining,
 } from "@/lib/odds-api";
 import type { OddsEvent } from "@/lib/odds-board";
-import { shouldCircuitBreak } from "@/lib/odds-budget";
+import {
+  shouldCircuitBreak,
+  shouldCircuitBreakTennisSurface,
+} from "@/lib/odds-budget";
 import {
   readDurableOddsSnapshot,
   writeDurableOddsSnapshot,
@@ -281,7 +284,11 @@ export async function loadOddsBoard(sport: string): Promise<LoadedOddsBoard> {
     };
   }
 
-  if (shouldCircuitBreak(getLastOddsApiRemaining(), getLastOddsApiCapacity())) {
+  if (
+    normalized === "TENNIS"
+      ? shouldCircuitBreakTennisSurface(getLastOddsApiRemaining())
+      : shouldCircuitBreak(getLastOddsApiRemaining(), getLastOddsApiCapacity())
+  ) {
     if (cached?.events.length) {
       return {
         events: cached.events,

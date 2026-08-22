@@ -3,6 +3,8 @@
  * Cap: 20,000 credits · soft warn 70% · hard alert 90% · circuit-break 95%.
  */
 
+import { TENNIS_SURFACE_CREDIT_COST } from "@/lib/tennis-tours";
+
 export const MONTHLY_CAP = 20_000;
 
 /** Credits remaining when 70% of the monthly cap is consumed. */
@@ -65,6 +67,18 @@ export function shouldCircuitBreak(
   capacity: number | null = null,
 ): boolean {
   return remaining != null && remaining < circuitBreakThreshold(capacity);
+}
+
+/**
+ * Tennis surface is 12 credits. The 1,000-credit expanded-MLB reserve was
+ * skipping Cincinnati (and every other tour) once NFL had burned the key down
+ * to a few dozen remaining — enough to price the Masters, not enough to pass
+ * a breaker built for 31-credit event boards.
+ */
+export function shouldCircuitBreakTennisSurface(
+  remaining: number | null,
+): boolean {
+  return remaining != null && remaining < TENNIS_SURFACE_CREDIT_COST;
 }
 
 export function isWarnLevel(remaining: number | null): boolean {

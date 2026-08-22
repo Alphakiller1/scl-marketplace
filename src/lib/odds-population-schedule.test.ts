@@ -4,6 +4,7 @@ import test from "node:test";
 
 const workflow = readFileSync(".github/workflows/populate-odds.yml", "utf8");
 const route = readFileSync("src/app/api/cron/odds-populate/route.ts", "utf8");
+const vercel = readFileSync("vercel.json", "utf8");
 
 test("population performs exactly two scheduled surface refreshes per day", () => {
   const cronLines = workflow.match(/^\s*- cron:/gm) ?? [];
@@ -55,4 +56,15 @@ test("production route accepts a one-shot key after auth, expands MLB then WNBA,
   assert.match(route, /skipPopulated/);
   assert.match(route, /loadEventBoard/);
   assert.match(route, /forceRefresh: true/);
+  assert.match(
+    route,
+    /DEFAULT_SPORTS = \["MLB", "WNBA", "TENNIS", "SOCCER", "NFL"\]/,
+  );
+});
+
+test("Vercel cron is a backup when GitHub misses the 20:00 ET populate", () => {
+  assert.match(vercel, /\/api\/cron\/odds-populate/);
+  assert.match(vercel, /0 12 \* \* \*/);
+  assert.match(vercel, /0 0 \* \* \*/);
+  assert.match(vercel, /TENNIS,SOCCER,NFL/);
 });
