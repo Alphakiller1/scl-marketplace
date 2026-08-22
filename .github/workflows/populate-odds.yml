@@ -23,7 +23,7 @@ on:
         default: "MLB,WNBA,TENNIS,SOCCER,NFL"
         type: string
       expanded:
-        description: "Max events to expand per MLB/WNBA sport"
+        description: "Max events to expand per MLB/WNBA/Tennis sport"
         required: false
         default: "99"
         type: string
@@ -66,7 +66,7 @@ jobs:
           EXPANDED_DAYS: ${{ github.event.client_payload.expanded_days || github.event.inputs.expanded_days || 'today' }}
           SURFACE: ${{ github.event.client_payload.surface || '1' }}
           SKIP_POPULATED: ${{ github.event.client_payload.skipPopulated || '1' }}
-          EXPANDED_ORDER: ${{ github.event.client_payload.expandedOrder || 'MLB,WNBA' }}
+          EXPANDED_ORDER: ${{ github.event.client_payload.expandedOrder || 'MLB,WNBA,TENNIS' }}
         run: |
           if [ -z "$CRON_SECRET" ]; then
             echo "::error::CRON_SECRET is not configured. No odds credits were spent."

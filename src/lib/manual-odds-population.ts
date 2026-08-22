@@ -1,8 +1,8 @@
 import type { OddsEvent } from "@/lib/odds-board";
 import { expandedBoardMarkets } from "@/lib/odds-verify";
 
-/** Owner priority: expanded MLB, then WNBA, then remaining sports' surface boards. */
-export const DEFAULT_EXPANDED_SPORT_ORDER = ["MLB", "WNBA"] as const;
+/** Owner priority for sports with per-event expanded boards. */
+export const DEFAULT_EXPANDED_SPORT_ORDER = ["MLB", "WNBA", "TENNIS"] as const;
 
 export type ExpandedSlateDay = "today" | "tomorrow";
 
@@ -77,7 +77,7 @@ export function expandedEventCreditCost(sport: string): number {
 }
 
 /**
- * Parse `expandedOrder=MLB,WNBA`. Unknown sports are dropped; requested
+ * Parse `expandedOrder=MLB,WNBA,TENNIS`. Unknown sports are dropped; requested
  * expanded sports missing from the list are appended in default order.
  */
 export function parseExpandedSportOrder(

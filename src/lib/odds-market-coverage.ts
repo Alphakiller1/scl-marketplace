@@ -32,6 +32,7 @@ const HALF_SPORTS = new Set(["CFL", "NFL", "NCAAF", "NBA", "NCAAB", "WNBA"]);
 export type EventMarketCoverage = {
   eventId: string;
   sport: string;
+  league?: string;
   matchup: string;
   commenceTime: string;
   source: string;
@@ -134,6 +135,7 @@ export function summarizeEventMarketCoverage(
   return {
     eventId: event.id,
     sport,
+    ...(event.league ? { league: event.league } : {}),
     matchup: `${event.away} @ ${event.home}`,
     commenceTime: event.commenceTime,
     source,

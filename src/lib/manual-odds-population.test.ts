@@ -72,7 +72,7 @@ test("a partial refresh retains future last-good fixtures", () => {
   );
 });
 
-test("expanded order defaults to MLB then WNBA and ignores other sports", () => {
+test("expanded order includes tennis and ignores sports without event markets", () => {
   assert.deepEqual(
     parseExpandedSportOrder(null, ["NFL", "WNBA", "MLB", "SOCCER"]),
     ["MLB", "WNBA"],
@@ -84,6 +84,11 @@ test("expanded order defaults to MLB then WNBA and ignores other sports", () => 
   assert.deepEqual(parseExpandedSportOrder("MLB", ["MLB", "WNBA"]), [
     "MLB",
     "WNBA",
+  ]);
+  assert.deepEqual(parseExpandedSportOrder(null, ["TENNIS"]), ["TENNIS"]);
+  assert.deepEqual(parseExpandedSportOrder("TENNIS,MLB", ["MLB", "TENNIS"]), [
+    "TENNIS",
+    "MLB",
   ]);
 });
 

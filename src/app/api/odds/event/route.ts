@@ -20,9 +20,10 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const sport = params.get("sport") ?? "";
   const eventId = params.get("eventId") ?? "";
+  const league = params.get("league");
   const board =
     sport && eventId
-      ? await loadEventBoard(sport, eventId)
+      ? await loadEventBoard(sport, eventId, { league })
       : {
           selections: [],
           source: "provider_empty" as const,

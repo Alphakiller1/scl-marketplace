@@ -21,7 +21,12 @@ export async function getCachedOddsCoverageReport() {
   );
   const events = nearTermEvents(
     preGameEvents(boards.flatMap((board) => board.events)),
-  ).filter((event) => event.sport === "MLB" || event.sport === "WNBA");
+  ).filter(
+    (event) =>
+      event.sport === "MLB" ||
+      event.sport === "WNBA" ||
+      event.sport === "TENNIS",
+  );
   const games = await Promise.all(
     events.map(async (event) => {
       const board = await loadCachedEventBoard(event.sport, event.id);
@@ -81,6 +86,7 @@ export async function warmMissingOddsCoverage(report: OddsCoverageReport) {
   for (const game of missing) {
     const board = await loadEventBoard(game.sport, game.eventId, {
       forceRefresh: true,
+      league: game.league,
     });
     attempted++;
 

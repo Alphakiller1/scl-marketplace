@@ -182,6 +182,13 @@ test("expandedBoardMarkets omits already-loaded featured lines", () => {
   assert.ok(mlb.includes("pitcher_strikeouts_alternate"));
 });
 
+test("expanded tennis boards request full-match spread and total ladders", () => {
+  assert.deepEqual(expandedBoardMarkets("TENNIS"), [
+    "alternate_spreads",
+    "alternate_totals",
+  ]);
+});
+
 test("expanded MLB and WNBA boards request the complete owner-required matrix", () => {
   const mlb = expandedBoardMarkets("MLB");
   for (const market of [

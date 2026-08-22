@@ -228,12 +228,17 @@ export function OddsAssist({
     };
   }, [sport, cache]);
 
+  const openLeague = openId
+    ? cache[sport]?.events.find((event) => event.id === openId)?.league
+    : undefined;
+
   // Lazy-load the expanded board (alternate lines + props) for whichever event is open.
   useEffect(() => {
     if (!openId || openId in detail) return;
     let cancelled = false;
     fetch(
-      `/api/odds/event?sport=${encodeURIComponent(sport)}&eventId=${encodeURIComponent(openId)}`,
+      `/api/odds/event?sport=${encodeURIComponent(sport)}&eventId=${encodeURIComponent(openId)}` +
+        (openLeague ? `&league=${encodeURIComponent(openLeague)}` : ""),
     )
       .then((r) => r.json())
       .then((d) => {
@@ -255,7 +260,7 @@ export function OddsAssist({
     return () => {
       cancelled = true;
     };
-  }, [openId, sport, detail]);
+  }, [openId, sport, openLeague, detail]);
 
   if (!sport) return null;
   const boardSport = renderSport || sport;

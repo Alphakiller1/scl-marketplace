@@ -57,6 +57,12 @@ The MLB event bundle includes pitcher earned runs plus batter hits, total
 bases, home runs, RBIs, runs scored, and hits+runs+RBIs. Opening a matchup
 loads these when covered books have posted them.
 
+Tennis surface calls request the featured game spread and total. Opening a
+matchup (or running manual expanded population for Tennis) additionally fetches
+the full-match alternate spread and total ladders from the per-event endpoint.
+Set-specific markets remain excluded until SCL has a trustworthy set-score
+grading source.
+
 ## If we turn strategic refresh back on
 
 Do **not** restore a subset of the five times. The minimum that still hits
