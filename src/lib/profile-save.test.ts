@@ -169,10 +169,7 @@ test("public profile lookup resolves handles that differ only by case", () => {
     source,
     /capperProfile\.findFirst\(\{\s*where: \{\s*user: \{\s*username: \{ equals: normalizedHandle/,
   );
-  assert.match(
-    source,
-    /const requestedHandle = handle\.replace\(\/\^@\+\/, ""\)\.trim\(\)/,
-  );
+  assert.match(source, /resolveLegacyHandleAlias/);
   assert.match(
     source,
     /matches\.find\(\(match\) => match\.user\.username === requestedHandle\)/,

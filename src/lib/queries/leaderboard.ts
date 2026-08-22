@@ -33,6 +33,12 @@ import {
 } from "@/lib/capper-activity";
 import { hasClvColumns } from "@/lib/results/schema-features";
 import { activePublicPackageWhere } from "@/lib/public-packages";
+import {
+  allTimeLegacyRecordWhere,
+  carriedResultsFromLegacyRows,
+  lifetimeGradedSample,
+  statsBaselineFromLegacyRows,
+} from "@/lib/legacy-all-time";
 
 /**
  * Live leaderboard data — computed from real plays, never fabricated. Only
@@ -129,13 +135,12 @@ async function fetchRankableProfiles(
         },
         orderBy: { createdAt: "asc" },
       },
-      // Results carried over from the previous SCL platform. Only the
-      // PRE_IMPORT scope is fetched: it is the legacy calendar-year total with the
-      // imported plays already subtracted, so adding it to the computed stats
-      // can never double-count the ~90 days that exist in both.
+      // All-time carried totals: PRE_IMPORT (current year minus imported
+      // receipts) plus prior complete years. Trailing/season scopes overlap
+      // those rows and are left out on purpose.
       legacyRecords: {
         where: {
-          scope: "PRE_IMPORT",
+          ...allTimeLegacyRecordWhere,
           sport: filters.sport === "ALL" ? "ALL" : filters.sport,
         },
         select: {
@@ -145,7 +150,6 @@ async function fetchRankableProfiles(
           unitsRisked: true,
           unitsNet: true,
         },
-        take: 1,
       },
       packages: {
         where: activePublicPackageWhere,
@@ -280,15 +284,7 @@ function baselineFor(
   applyBaseline: boolean,
 ): StatsBaseline | null {
   if (!applyBaseline) return null;
-  const rec = p.legacyRecords[0];
-  if (!rec) return null;
-  return {
-    wins: rec.wins,
-    losses: rec.losses,
-    pushes: rec.pushes,
-    stakedUnits: Number(rec.unitsRisked),
-    units: Number(rec.unitsNet),
-  };
+  return statsBaselineFromLegacyRows(p.legacyRecords);
 }
 
 function summarize(
@@ -362,14 +358,15 @@ function summarize(
 
   // Carried-over results count toward the track record whatever window is
   // selected — they are a settled history, not something that happened this
-  // week. `legacyBaseline` is window-aware (all-time only), so read the row.
-  const carriedResults = p.legacyRecords[0]
-    ? p.legacyRecords[0].wins +
-      p.legacyRecords[0].losses +
-      p.legacyRecords[0].pushes
-    : 0;
-  const lifetimeGraded =
-    (lifetimeGradedPositions?.get(p.id) ?? stats.settled) + carriedResults;
+  // week. `legacyBaseline` is window-aware (all-time only), so sum every
+  // all-time year row rather than reading only PRE_IMPORT.
+  const carriedResults = carriedResultsFromLegacyRows(p.legacyRecords);
+  const lifetimeGraded = lifetimeGradedSample({
+    windowSettled: stats.settled,
+    carriedResults,
+    playLifetime: lifetimeGradedPositions?.get(p.id),
+    applyBaseline,
+  });
   const publicPackages = p.packages.filter((pkg) => pkg.trackingUrls[0]?.slug);
 
   const clvValues = plays

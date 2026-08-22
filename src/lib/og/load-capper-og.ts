@@ -1,22 +1,19 @@
 import "server-only";
 
-import { getLeaderboardResult } from "@/lib/queries/leaderboard";
+import { getPublicCapperByHandle } from "@/lib/queries/capper";
 import type { CapperOgPayload } from "@/lib/og/tokens";
 
 /**
- * Compact capper payload for OG cards — same leaderboard stats as the profile.
+ * Compact capper payload for OG cards — same all-time stats as the profile.
+ * Targeted handle lookup; never scan the activity-gated leaderboard (inactive
+ * legacy cappers would disappear from share cards).
  */
 export async function getCapperOgPayload(
   handle: string,
 ): Promise<CapperOgPayload | null> {
-  const bare = handle.trim().replace(/^@+/, "").toLowerCase();
-  if (!bare) return null;
-
-  const { cappers, unranked } = await getLeaderboardResult();
-  const capper =
-    cappers.find((c) => c.handle.toLowerCase() === bare) ??
-    unranked.find((c) => c.handle.toLowerCase() === bare);
-  if (!capper) return null;
+  const data = await getPublicCapperByHandle(handle);
+  if (!data) return null;
+  const { capper } = data;
 
   return {
     handle: capper.handle,

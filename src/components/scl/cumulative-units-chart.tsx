@@ -20,10 +20,13 @@ export type CumulativePoint = {
 export function CumulativeUnitsChart({
   points,
   gradedCount,
+  startsFromLegacyBalance = false,
   className,
 }: {
   points: CumulativePoint[];
   gradedCount: number;
+  /** All-window series that starts at the carried-over legacy net. */
+  startsFromLegacyBalance?: boolean;
   className?: string;
 }) {
   if (!hasSignal(gradedCount) || points.length < 2) {
@@ -51,7 +54,9 @@ export function CumulativeUnitsChart({
   const pad = Math.max(0.5, (max - min) * 0.08);
   const domain: [number, number] = [min - pad, max + pad];
   const last = points[points.length - 1]!.units;
-  const summary = `Cumulative units across ${gradedCount} graded plays. Ending balance ${last >= 0 ? "+" : ""}${last.toFixed(2)} units.`;
+  const summary = startsFromLegacyBalance
+    ? `Cumulative units from ${gradedCount} graded receipts, starting from the carried-over legacy balance. Ending balance ${last >= 0 ? "+" : ""}${last.toFixed(2)} units.`
+    : `Cumulative units across ${gradedCount} graded plays. Ending balance ${last >= 0 ? "+" : ""}${last.toFixed(2)} units.`;
   const plotHeight = CHART_HEIGHT - CHART_TOP - CHART_BOTTOM;
   const domainRange = domain[1] - domain[0];
   const xFor = (index: number) =>

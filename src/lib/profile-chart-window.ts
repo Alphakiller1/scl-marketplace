@@ -53,7 +53,7 @@ export function profileProfitUnitsForWindow(
 /**
  * Build bounded client payloads while retaining truthful counts and endpoints.
  *
- * `baselineUnits` is the all-time PRE_IMPORT legacy net — applied only to the
+ * `baselineUnits` is the all-time legacy net — applied only to the
  * All window so chart End matches Evidence Brief / leaderboard totals. Trailing
  * windows (3m/6m/12m) stay SCL-receipt-only; folding a frozen export into a
  * rolling window would invent form the source never had.

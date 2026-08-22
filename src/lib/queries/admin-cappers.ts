@@ -12,6 +12,11 @@ import {
 } from "@/lib/admin-cappers";
 import { prisma } from "@/lib/prisma";
 import { isUnclaimedAccount } from "@/lib/account-claim";
+import {
+  allTimeLegacyRecordWhere,
+  carriedResultsFromLegacyRows,
+  statsBaselineFromLegacyRows,
+} from "@/lib/legacy-all-time";
 
 const PENDING_STOREFRONT_STATUSES: StoreConnectionStatus[] = [
   "PENDING_SCL_ACCEPTANCE",
@@ -117,12 +122,11 @@ export async function getAdminCapperAccounts(filters: AdminCapperFilters) {
             },
           },
           // The carried-over record, so an imported capper doesn't read as
-          // "0 plays" in the index. PRE_IMPORT already excludes the plays
-          // counted above, so the two never overlap.
+          // "0 plays" in the index. All-time year rows already exclude the
+          // imported receipts, so the two never overlap.
           legacyRecords: {
-            where: { scope: "PRE_IMPORT", sport: "ALL" },
+            where: { ...allTimeLegacyRecordWhere, sport: "ALL" },
             select: { wins: true, losses: true, pushes: true, unitsNet: true },
-            take: 1,
           },
           storeConnections: {
             select: {
@@ -333,21 +337,27 @@ export async function getAdminCapperDetail(userId: string) {
     // Results carried over from the previous platform. Without this an admin
     // reviewing an imported capper sees "0 plays · 0U" for someone with a
     // four-figure record, which is the opposite of an informed decision.
-    // PRE_IMPORT already has the imported plays subtracted, so adding it to the
-    // counts above never double-counts the overlap.
-    prisma.legacyRecord.findFirst({
+    // All-time year rows already have the imported plays subtracted.
+    prisma.legacyRecord.findMany({
       where: {
         capperId: account.capperProfile.id,
-        scope: "PRE_IMPORT",
+        ...allTimeLegacyRecordWhere,
         sport: "ALL",
       },
       select: { wins: true, losses: true, pushes: true, unitsNet: true },
     }),
   ]);
 
-  const carriedSettled = carried
-    ? carried.wins + carried.losses + carried.pushes
-    : 0;
+  const carriedBaseline = statsBaselineFromLegacyRows(
+    carried.map((row) => ({
+      wins: row.wins,
+      losses: row.losses,
+      pushes: row.pushes,
+      unitsRisked: 0,
+      unitsNet: row.unitsNet,
+    })),
+  );
+  const carriedSettled = carriedResultsFromLegacyRows(carried);
 
   return {
     ...account,
@@ -355,14 +365,18 @@ export async function getAdminCapperDetail(userId: string) {
       straightCount: straightSummary._count._all,
       parlayCount: parlaySummary._count._all,
       carriedSettled,
-      carriedRecord: carried
-        ? { w: carried.wins, l: carried.losses, p: carried.pushes }
+      carriedRecord: carriedBaseline
+        ? {
+            w: carriedBaseline.wins,
+            l: carriedBaseline.losses,
+            p: carriedBaseline.pushes,
+          }
         : null,
-      carriedUnits: carried ? Number(carried.unitsNet) : 0,
+      carriedUnits: carriedBaseline?.units ?? 0,
       netUnits:
         Number(straightSummary._sum.profitUnits ?? 0) +
         Number(parlaySummary._sum.profitUnits ?? 0) +
-        (carried ? Number(carried.unitsNet) : 0),
+        (carriedBaseline?.units ?? 0),
       packageCount: account.capperProfile.packages.length,
       clickCount: account.capperProfile.packages.reduce(
         (total, pkg) =>

@@ -26,6 +26,10 @@ import {
   type DiscoverPlayRow,
 } from "@/lib/discover-lanes";
 import type { Outcome } from "@prisma/client";
+import {
+  allTimeLegacyRecordWhere,
+  statsBaselineFromLegacyRows,
+} from "@/lib/legacy-all-time";
 
 function topSport(sports: string[], fallback?: string): string {
   if (sports.length === 0) return fallback ?? "—";
@@ -114,12 +118,12 @@ async function loadDiscoverLanes(): Promise<{
         },
         // Carried-over totals from the previous SCL platform. Discover's base
         // summary is all-time (it feeds the "Proven Over Time" lane), so it
-        // takes the same PRE_IMPORT baseline the leaderboard does — otherwise
+        // takes the same all-time baseline the leaderboard does — otherwise
         // the same capper would show two different records across surfaces.
         // Lane-level windowed and specialty math stays play-only on purpose:
         // the legacy export carries totals, not per-pick or per-market detail.
         legacyRecords: {
-          where: { scope: "PRE_IMPORT", sport: "ALL" },
+          where: { ...allTimeLegacyRecordWhere, sport: "ALL" },
           select: {
             wins: true,
             losses: true,
@@ -127,7 +131,6 @@ async function loadDiscoverLanes(): Promise<{
             unitsRisked: true,
             unitsNet: true,
           },
-          take: 1,
         },
         plays: {
           where: {
@@ -210,16 +213,7 @@ async function loadDiscoverLanes(): Promise<{
         }),
       ].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
-      const legacyRecord = p.legacyRecords[0];
-      const legacyBaseline = legacyRecord
-        ? {
-            wins: legacyRecord.wins,
-            losses: legacyRecord.losses,
-            pushes: legacyRecord.pushes,
-            stakedUnits: Number(legacyRecord.unitsRisked),
-            units: Number(legacyRecord.unitsNet),
-          }
-        : null;
+      const legacyBaseline = statsBaselineFromLegacyRows(p.legacyRecords);
       const stats = computeCapperStats(
         positions.map((x) => ({
           outcome: x.outcome,

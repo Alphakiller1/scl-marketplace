@@ -94,11 +94,12 @@ test("the lifetime sample ignores the window and includes carried results", () =
   // career sample under every window — not only the all-time board.
   assert.match(
     leaderboardQuery,
-    /const carriedResults = p\.legacyRecords\[0\]/,
+    /const carriedResults = carriedResultsFromLegacyRows\(p\.legacyRecords\)/,
   );
+  assert.match(leaderboardQuery, /lifetimeGradedSample\(/);
   assert.match(
     leaderboardQuery,
-    /lifetimeGradedPositions\?\.get\(p\.id\) \?\? stats\.settled\) \+ carriedResults/,
+    /playLifetime: lifetimeGradedPositions\?\.get\(p\.id\)/,
   );
 });
 
