@@ -36,6 +36,7 @@ import { activePublicPackageWhere } from "@/lib/public-packages";
 import {
   allTimeLegacyRecordWhere,
   carriedResultsFromLegacyRows,
+  lifetimeGradedSample,
   statsBaselineFromLegacyRows,
 } from "@/lib/legacy-all-time";
 
@@ -360,8 +361,12 @@ function summarize(
   // week. `legacyBaseline` is window-aware (all-time only), so sum every
   // all-time year row rather than reading only PRE_IMPORT.
   const carriedResults = carriedResultsFromLegacyRows(p.legacyRecords);
-  const lifetimeGraded =
-    (lifetimeGradedPositions?.get(p.id) ?? stats.settled) + carriedResults;
+  const lifetimeGraded = lifetimeGradedSample({
+    windowSettled: stats.settled,
+    carriedResults,
+    playLifetime: lifetimeGradedPositions?.get(p.id),
+    applyBaseline,
+  });
   const publicPackages = p.packages.filter((pkg) => pkg.trackingUrls[0]?.slug);
 
   const clvValues = plays

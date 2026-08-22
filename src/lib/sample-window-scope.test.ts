@@ -96,9 +96,10 @@ test("the lifetime sample ignores the window and includes carried results", () =
     leaderboardQuery,
     /const carriedResults = carriedResultsFromLegacyRows\(p\.legacyRecords\)/,
   );
+  assert.match(leaderboardQuery, /lifetimeGradedSample\(/);
   assert.match(
     leaderboardQuery,
-    /lifetimeGradedPositions\?\.get\(p\.id\) \?\? stats\.settled\) \+ carriedResults/,
+    /playLifetime: lifetimeGradedPositions\?\.get\(p\.id\)/,
   );
 });
 

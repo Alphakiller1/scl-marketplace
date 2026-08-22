@@ -389,6 +389,22 @@ export function isBuildingARecord(
   return false;
 }
 
+/**
+ * Public profile standing. Evidence payloads set `rank: 0` because they are
+ * not a partitioned board — that must not be read as "Building a record" for
+ * a capper with 1,100 graded results.
+ */
+export function profileStandingKind(input: {
+  rank?: number | null;
+  settledPicks?: number | null;
+}): "ranked" | "building" | "established" {
+  if (typeof input.rank === "number" && input.rank > 0) return "ranked";
+  if (isBuildingARecord({ settledPicks: input.settledPicks ?? 0 })) {
+    return "building";
+  }
+  return "established";
+}
+
 /** @deprecated Prefer `isLeaderboardEligible` — kept for callers that still
  * gate on sample presence rather than ranked/unranked split. */
 export function hasLeaderboardSample(

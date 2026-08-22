@@ -2,7 +2,7 @@ import { SPORTS, type SportKey } from "@/lib/constants";
 import { LEGACY_RECORD_ALL_SPORTS } from "@/lib/schemas/legacy-records.schema";
 import type { SportStats, StatsBaseline } from "@/lib/stats";
 
-/** Unattributed PRE_IMPORT remainder when ALL ≠ sum of per-sport rows. */
+/** Unattributed all-time remainder when ALL ≠ sum of per-sport rows. */
 export const CAREER_SPORT_OTHER = "OTHER";
 
 /** Parlay with no first-leg sport. */

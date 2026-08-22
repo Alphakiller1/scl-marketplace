@@ -183,7 +183,7 @@ export function EvidenceBrief({
   chartSeries?: ProfileChartSeries;
   chartSeriesBySport?: Record<string, ProfileChartSeries>;
   packageInsights?: ProfilePackageInsight[];
-  /** Per-sport PRE_IMPORT legacy totals (full-record view only). */
+  /** Per-sport all-time legacy totals (full-record view only). */
   legacyBySport?: LegacySportRecordView[];
   historyNextCursor?: string | null;
   emptyName: string;
@@ -364,6 +364,11 @@ export function EvidenceBrief({
           <CumulativeUnitsChart
             points={cumulative.points}
             gradedCount={cumulative.gradedCount}
+            startsFromLegacyBalance={
+              !activePackage &&
+              chartWindow === "all" &&
+              (capper.legacyBaselineUnits ?? 0) !== 0
+            }
           />
           {!activePackage ? <ClvTrackerPanel summary={clvTracker} /> : null}
         </section>

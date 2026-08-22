@@ -5,6 +5,7 @@ import {
   buildPerformanceTrend,
   hasLeaderboardSample,
   isBuildingARecord,
+  profileStandingKind,
   isInLeaderboardWindow,
   isLeaderboardEligible,
   leaderboardHref,
@@ -423,6 +424,15 @@ test("isBuildingARecord agrees with the leaderboard partition gate", () => {
     isBuildingARecord({ settledPicks: 10, units: -0.25, roi: -2 }, 10),
     false,
   );
+});
+
+test("profileStandingKind does not treat an unpartitioned rank 0 as building", () => {
+  assert.equal(
+    profileStandingKind({ rank: 0, settledPicks: 1118 }),
+    "established",
+  );
+  assert.equal(profileStandingKind({ rank: 4, settledPicks: 1118 }), "ranked");
+  assert.equal(profileStandingKind({ rank: 0, settledPicks: 0 }), "building");
 });
 
 test("partitionLeaderboard ranks every sample-eligible capper and clears unranked places", () => {

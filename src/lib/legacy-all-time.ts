@@ -113,3 +113,29 @@ export function carriedResultsFromLegacyRows(
     0,
   );
 }
+
+/**
+ * Career sample used by maturity meters.
+ *
+ * All-time `computeCapperStats` already folds the carry into `settled`. Adding
+ * `carriedResults` again was the 1,118 → 1,668 inflation on public profiles
+ * (getPublicCapperEvidenceByIds never passed a play-lifetime map). Windowed
+ * boards pass the unwindowed play count so carry still counts toward career.
+ */
+export function lifetimeGradedSample({
+  windowSettled,
+  carriedResults,
+  playLifetime,
+  applyBaseline,
+}: {
+  windowSettled: number;
+  carriedResults: number;
+  playLifetime?: number;
+  applyBaseline: boolean;
+}): number {
+  if (playLifetime != null) {
+    return playLifetime + carriedResults;
+  }
+  if (applyBaseline) return windowSettled;
+  return windowSettled + carriedResults;
+}

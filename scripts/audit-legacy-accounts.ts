@@ -16,6 +16,10 @@ import process from "node:process";
 
 import { PrismaClient } from "@prisma/client";
 
+import {
+  allTimeLegacyRecordWhere,
+  statsBaselineFromLegacyRows,
+} from "../src/lib/legacy-all-time";
 import { findLoginCandidates } from "../src/lib/user-credentials";
 
 try {
@@ -55,9 +59,8 @@ async function main() {
           isLegacy: true,
           _count: { select: { plays: true, parlays: true, packages: true } },
           legacyRecords: {
-            where: { scope: "PRE_IMPORT", sport: "ALL" },
+            where: { ...allTimeLegacyRecordWhere, sport: "ALL" },
             select: { wins: true, losses: true, pushes: true, unitsNet: true },
-            take: 1,
           },
         },
       },
@@ -170,7 +173,15 @@ async function main() {
       continue;
     }
     const plays = profile._count.plays + profile._count.parlays;
-    const carried = profile.legacyRecords[0] ?? null;
+    const carried = statsBaselineFromLegacyRows(
+      profile.legacyRecords.map((row) => ({
+        wins: row.wins,
+        losses: row.losses,
+        pushes: row.pushes,
+        unitsRisked: 0,
+        unitsNet: row.unitsNet,
+      })),
+    );
     if (plays > 0) withPlays++;
     if (carried) withCarriedRecord++;
     if (profile._count.packages > 0) withPackages++;

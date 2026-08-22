@@ -46,7 +46,7 @@ function compareLegacyRows(
 }
 
 /**
- * Career record broken down by sport: PRE_IMPORT totals plus SCL-logged
+ * Career record broken down by sport: all-time legacy totals plus SCL-logged
  * positions, so the table sample matches Evidence Brief / the dashboard
  * scoreboard. Client-sortable. Numbers color by their own sign.
  */

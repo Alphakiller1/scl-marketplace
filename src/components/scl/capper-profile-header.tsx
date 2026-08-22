@@ -12,6 +12,7 @@ import { RankBadge, BUILDING_RECORD_LABEL } from "@/components/scl/rank-badge";
 import { ProfileActionGroup } from "@/components/scl/profile-action-group";
 import { formatLastPickDate } from "@/lib/capper-activity";
 import { identityDisplayLinesFromCapper } from "@/lib/identity";
+import { profileStandingKind } from "@/lib/leaderboard";
 import { isProvisional } from "@/lib/sample";
 
 /**
@@ -38,6 +39,10 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
     )
     .slice(0, 2);
   const hasCoverage = sports.length > 0 || specialties.length > 0;
+  const standing = profileStandingKind({
+    rank: capper.rank,
+    settledPicks: capper.settledPicks,
+  });
 
   return (
     <header className="border-border relative overflow-hidden border-b bg-[linear-gradient(165deg,color-mix(in_srgb,var(--scl-ink-800)_70%,var(--scl-ink-900))_0%,var(--scl-ink-900)_100%)]">
@@ -130,7 +135,7 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                     settledPicks={capper.settledPicks}
                     className="size-7 text-[0.7rem]"
                   />
-                  {capper.rank > 0 ? (
+                  {standing === "ranked" ? (
                     <span className="inline-flex items-center gap-1.5">
                       <span className="text-foreground font-semibold tabular-nums">
                         #{capper.rank}
@@ -143,8 +148,12 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                         <RankMovementIndicator delta={capper.rankDelta} />
                       ) : null}
                     </span>
-                  ) : (
+                  ) : standing === "building" ? (
                     <span>{BUILDING_RECORD_LABEL}</span>
+                  ) : (
+                    <span>
+                      {(capper.settledPicks ?? 0).toLocaleString()} graded
+                    </span>
                   )}
                 </span>
                 {lastPickLabel ? (

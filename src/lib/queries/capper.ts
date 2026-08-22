@@ -33,6 +33,7 @@ import {
   normalizeLegacyAggregateRow,
   statsBaselineFromLegacyRows,
 } from "@/lib/legacy-all-time";
+import { resolveLegacyHandleAlias } from "@/lib/legacy-handle-aliases";
 import { LEGACY_RECORD_ALL_SPORTS } from "@/lib/schemas/legacy-records.schema";
 
 export type PublicCapper = {
@@ -44,7 +45,7 @@ export type PublicCapper = {
   chartSeries?: ProfileChartSeries;
   chartSeriesBySport: Record<string, ProfileChartSeries>;
   historyNextCursor: string | null;
-  /** Career by sport: PRE_IMPORT per sport + SCL-logged positions. */
+  /** Career by sport: all-time legacy per sport + SCL-logged positions. */
   legacyBySport: LegacySportRecordView[];
 };
 
@@ -187,7 +188,9 @@ export async function getPublicProfileHistoryPage(
 const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
   handle: string,
 ): Promise<PublicCapper | null> {
-  const requestedHandle = handle.replace(/^@+/, "").trim();
+  const requestedHandle = resolveLegacyHandleAlias(
+    handle.replace(/^@+/, "").trim(),
+  );
   const normalizedHandle = requestedHandle.toLowerCase();
   if (!normalizedHandle) return null;
 
@@ -498,7 +501,7 @@ const getCachedPublicCapperByHandle = cachedQuery(
   async (handle: string) => loadPublicCapperByHandle(handle),
   // v2 intentionally abandons partial profile payloads cached before metadata
   // stopped launching a competing full hydration on cold requests.
-  ["public-capper-by-handle-v4"],
+  ["public-capper-by-handle-v5"],
   { revalidate: 60, tags: ["leaderboard"] },
 );
 
@@ -506,7 +509,7 @@ export const getPublicCapperByHandle = cache(
   async function getPublicCapperByHandle(
     handle: string,
   ): Promise<PublicCapper | null> {
-    const normalized = handle.replace(/^@+/, "").trim().toLowerCase();
+    const normalized = resolveLegacyHandleAlias(handle).toLowerCase();
     if (!normalized) return null;
     return getCachedPublicCapperByHandle(normalized);
   },

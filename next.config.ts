@@ -88,6 +88,16 @@ const nextConfig: NextConfig = {
         destination: "/discover",
         permanent: false,
       },
+      {
+        source: "/cappers/wgs",
+        destination: "/cappers/wisegentlemensports",
+        permanent: true,
+      },
+      {
+        source: "/cappers/WGS",
+        destination: "/cappers/wisegentlemensports",
+        permanent: true,
+      },
     ];
   },
 };

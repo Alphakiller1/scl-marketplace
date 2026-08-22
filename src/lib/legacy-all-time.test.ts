@@ -6,6 +6,7 @@ import {
   ALL_TIME_LEGACY_SCOPES,
   carriedResultsFromLegacyRows,
   collapseLegacyRecordsBySport,
+  lifetimeGradedSample,
   statsBaselineFromLegacyRows,
 } from "./legacy-all-time";
 
@@ -110,6 +111,35 @@ test("collapseLegacyRecordsBySport sums YEAR_2025 onto PRE_IMPORT per sport", ()
   });
 });
 
+test("lifetimeGradedSample does not double-count carry on all-time evidence", () => {
+  assert.equal(
+    lifetimeGradedSample({
+      windowSettled: 1118,
+      carriedResults: 550,
+      applyBaseline: true,
+    }),
+    1118,
+  );
+  assert.equal(
+    lifetimeGradedSample({
+      windowSettled: 568,
+      carriedResults: 550,
+      playLifetime: 568,
+      applyBaseline: true,
+    }),
+    1118,
+  );
+  assert.equal(
+    lifetimeGradedSample({
+      windowSettled: 12,
+      carriedResults: 550,
+      playLifetime: 568,
+      applyBaseline: false,
+    }),
+    1118,
+  );
+});
+
 test("an empty carried set is not a zero baseline", () => {
   assert.equal(statsBaselineFromLegacyRows([]), null);
   assert.equal(carriedResultsFromLegacyRows([]), 0);
@@ -122,6 +152,7 @@ test("public surfaces fetch every all-time legacy scope, not only PRE_IMPORT", (
     "src/lib/queries/plays.ts",
     "src/lib/queries/capper.ts",
     "src/lib/queries/admin-cappers.ts",
+    "scripts/audit-legacy-accounts.ts",
   ];
   for (const path of sources) {
     const source = readFileSync(path, "utf8");
