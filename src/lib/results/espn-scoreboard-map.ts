@@ -1,3 +1,4 @@
+import { canonicalSoccerClubName } from "@/lib/results/soccer-club-aliases";
 import type { SettledGame } from "@/lib/results/settled-game";
 
 type EspnCompetitor = {
@@ -49,7 +50,7 @@ export function canonicalizeEspnTeamName(name: string): string {
     .trim();
   if (n.includes("american") && n.includes("all")) return "American League";
   if (n.includes("national") && n.includes("all")) return "National League";
-  return name.trim();
+  return canonicalSoccerClubName(name.trim());
 }
 
 export function yyyymmddUtc(d: Date): string {
