@@ -187,6 +187,15 @@ export function getLastOddsApiCapacity(): number | null {
   return lastOddsApiCapacity;
 }
 
+/**
+ * Drop cached remaining/capacity so a pinned one-shot key is not judged
+ * against the previous (often exhausted) Vercel key on a warm isolate.
+ */
+export function resetLastOddsApiUsage(): void {
+  lastOddsApiRemaining = null;
+  lastOddsApiCapacity = null;
+}
+
 /** Log Odds API credit usage from a response so burn is observable vs. the plan cap. */
 export function logOddsUsage(
   res: Response,

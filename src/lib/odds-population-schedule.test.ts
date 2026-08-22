@@ -45,6 +45,8 @@ test("production route accepts a one-shot key after auth, expands MLB then WNBA,
   assert.match(route, /process\.env\.CRON_SECRET/);
   assert.match(route, /x-scl-odds-key/);
   assert.match(route, /pinOddsApiKey/);
+  assert.match(route, /resetOddsKeyPreference/);
+  assert.match(route, /resetLastOddsApiUsage/);
   assert.match(route, /fetchUpcomingOdds/);
   assert.match(route, /updateOddsBoardSegment/);
   assert.match(route, /loadCachedOddsBoard/);
