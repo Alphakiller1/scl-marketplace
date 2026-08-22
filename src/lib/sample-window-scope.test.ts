@@ -13,9 +13,8 @@ import test from "node:test";
  * The split has to hold in both directions:
  *   - maturity claims (meter, rank badge, Early flag) read the career sample,
  *     because they describe the capper;
- *   - signal gating (perfScale on ROI and Units) reads the window sample,
- *     because those figures are computed from the window and a career-sized
- *     denominator would vouch for a three-pick ROI.
+ *   - performance color (perfScale on ROI, Units, and Win%) reads each figure
+ *     on its own — a small window must not paint both ROI and Units amber.
  *
  * Source-level assertions, matching the convention in
  * profile-link-reliability.test.ts — these are wiring invariants, and the
@@ -61,19 +60,21 @@ test("maturity surfaces read the career sample, not the filter window", () => {
   assert.match(compactRow, /isProvisional\(career\)/);
 });
 
-test("ROI and Units stay gated on the window that produced them", () => {
+test("ROI, Units, and Win% are colored independently on both layouts", () => {
   const scales = [
-    ...leaderboard.matchAll(/perfScale\(\s*"(?:roi|units)"[\s\S]*?\)\;/g),
+    ...leaderboard.matchAll(
+      /perfScale\(\s*"(?:roi|units|winPct)"[\s\S]*?\)\;/g,
+    ),
   ];
   assert.ok(
-    scales.length >= 4,
-    "expected ROI and Units scales on both layouts",
+    scales.length >= 6,
+    "expected ROI, Units, and Win% scales on both layouts",
   );
   for (const [scale] of scales) {
     assert.match(
       scale,
       /gradedCount: graded/,
-      `perfScale must gate on the window sample:\n${scale}`,
+      `perfScale must receive the window sample:\n${scale}`,
     );
   }
 });

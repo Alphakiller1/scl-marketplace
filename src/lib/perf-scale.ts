@@ -1,11 +1,16 @@
 /**
- * Shared performance color scale (green → amber → red) for ROI / Units / CLV / win%.
+ * Shared performance color scale (green → muted → red) for ROI / Units / CLV / win%.
  * Number is always rendered — color is never the only signal.
+ *
+ * Each metric is toned from its own value. ROI follows the sign: any plus is
+ * green, any minus is red. Units and win% still use magnitude bands so a
+ * tiny unit total is not painted like a winning book.
  *
  * Settlement Win/Loss/Push colors stay SEPARATE (pills, unit deltas, W/L dots) —
  * do not route those through this module.
  *
- * Early / provisional samples cap at amber — never red and never green.
+ * Early / provisional is a sample claim (meter, Early flag), not a paint job
+ * on every number in the row.
  */
 
 import { isProvisional } from "@/lib/sample";
@@ -64,9 +69,21 @@ function toneForBand(band: PerfScaleResult["band"]): PerfTone {
   }
 }
 
+/** ROI is signed money: any plus is green, any minus is red, zero is muted. */
+function toneForMetric(metric: PerfMetric, value: number): PerfTone {
+  if (metric === "roi") {
+    if (value > 0) return "pos";
+    if (value < 0) return "neg";
+    return "muted";
+  }
+  return toneForBand(bandFor(metric, value));
+}
+
 /**
  * Map a performance metric to tone + band.
- * @param gradedCount — when provisional, never return red (neg); soft/weak → amber.
+ * `gradedCount` is kept for callers and aria; it does not override color.
+ * Sample immaturity is shown by the Early flag / maturity meter, not by
+ * painting every signed figure yellow.
  */
 export function perfScale(
   metric: PerfMetric,
@@ -83,18 +100,15 @@ export function perfScale(
   }
 
   const band = bandFor(metric, value);
-  let tone = toneForBand(band);
-
-  // Early samples cap at amber — never red (failure) and never green (elite).
-  // Band identity stays honest for aria; only the color is softened.
-  if (isProvisional(opts?.gradedCount) && (tone === "neg" || tone === "pos")) {
-    tone = "amber";
-  }
+  const tone = toneForMetric(metric, value);
+  const early = isProvisional(opts?.gradedCount);
 
   return {
     tone,
     band,
-    ariaLabel: `${label}: ${formatPerfValue(metric, value)} (${band})`,
+    ariaLabel: `${label}: ${formatPerfValue(metric, value)} (${band})${
+      early ? ", early sample" : ""
+    }`,
   };
 }
 

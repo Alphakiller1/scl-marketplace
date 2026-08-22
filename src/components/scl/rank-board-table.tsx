@@ -130,6 +130,9 @@ export function RankBoardTable({
               const unitsScale = perfScale("units", capper.units, {
                 gradedCount: graded,
               });
+              const winScale = perfScale("winPct", capper.winPct, {
+                gradedCount: graded,
+              });
 
               return (
                 <tr
@@ -202,7 +205,9 @@ export function RankBoardTable({
                     className={cn(
                       "scl-data text-right align-middle font-semibold tabular-nums",
                       cell,
+                      perfToneClass(winScale.tone),
                     )}
+                    title={winScale.ariaLabel}
                   >
                     {capper.winPct.toFixed(1)}%
                   </td>
@@ -284,6 +289,7 @@ function RankBoardMobileRow({
     .slice(0, compact ? 2 : 3);
   const roiScale = perfScale("roi", capper.roi, { gradedCount: graded });
   const unitsScale = perfScale("units", capper.units, { gradedCount: graded });
+  const winScale = perfScale("winPct", capper.winPct, { gradedCount: graded });
   const leadByRoi = primaryMetric === "roi";
   const primary = leadByRoi
     ? { text: formatRoi(capper.roi), scale: roiScale }
@@ -344,7 +350,13 @@ function RankBoardMobileRow({
             <span className="inline-flex w-[3.25rem] shrink-0 items-center">
               <SampleMaturityMeter graded={graded} compact />
             </span>
-            <span className="scl-data tabular-nums">
+            <span
+              className={cn(
+                "scl-data font-semibold tabular-nums",
+                perfToneClass(winScale.tone),
+              )}
+              title={winScale.ariaLabel}
+            >
               {capper.winPct.toFixed(1)}%
             </span>
           </span>
