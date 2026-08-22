@@ -57,6 +57,8 @@ export async function getGradingHealthReport(
     now.getTime() - RESULTS_CLIFF_WARNING_DAYS * 24 * 60 * 60 * 1000,
   );
 
+  // Keep `listOverduePendingPlays` on this same public-record set. Parlay
+  // legs are units=0; counting them as overdue 503'd a HEALTHY grade cron.
   const baseWhere = {
     outcome: "PENDING" as const,
     status: "COMMITTED" as const,

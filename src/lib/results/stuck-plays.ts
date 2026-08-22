@@ -1,5 +1,6 @@
 import "server-only";
 
+import { UNIT_MIN } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { isAgedOut } from "@/lib/results/skip-reason";
 import { expectedFinalAt } from "@/lib/results/grading-window";
@@ -73,7 +74,15 @@ export async function listAgedOutPendingPlays(
   );
 }
 
-/** Pending committed plays whose sport-specific final deadline has passed. */
+/**
+ * Pending committed plays whose sport-specific final deadline has passed.
+ *
+ * Same public-record set as grading health (`pendingPastExpectedFinal`):
+ * straight plays at or above `UNIT_MIN`. Parlay legs are `units: 0` — the
+ * parent ticket is the position of record — so counting them here made the
+ * grade cron return 503 while health stayed HEALTHY. Two Inter Milan soccer
+ * legs did that after FT.
+ */
 export async function listOverduePendingPlays(
   now = new Date(),
   take = 50,
@@ -83,6 +92,8 @@ export async function listOverduePendingPlays(
     where: {
       outcome: "PENDING",
       status: "COMMITTED",
+      parlayId: null,
+      units: { gte: UNIT_MIN },
       capper: {
         user: {
           accountStatus: "ACTIVE",

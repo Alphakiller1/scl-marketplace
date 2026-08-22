@@ -58,6 +58,15 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
   assert.doesNotMatch(route, /odds-coverage-report/);
   assert.match(health, /pendingPastExpectedFinal/);
   assert.match(health, /isAutoGradeBlocked/);
+  assert.match(health, /units: \{ gte: UNIT_MIN \}/);
+
+  const stuck = fs.readFileSync(
+    path.join(root, "src/lib/results/stuck-plays.ts"),
+    "utf8",
+  );
+  // Overdue inventory must match health or the cron 503s a HEALTHY run.
+  assert.match(stuck, /parlayId: null/);
+  assert.match(stuck, /units: \{ gte: UNIT_MIN \}/);
   // Every 30 minutes — pinned so automatic grading cannot drift to a slower cadence.
   assert.match(workflow, /- cron: "7,37 \* \* \* \*"/);
   assert.match(workflow, /types: \[grade-pending\]/);

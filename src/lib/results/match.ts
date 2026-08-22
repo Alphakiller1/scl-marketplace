@@ -6,6 +6,7 @@ import {
   isTeamTotalMarket,
   parseTeamTotalSelection,
 } from "@/lib/team-total-markets";
+import { soccerClubAliases } from "@/lib/results/soccer-club-aliases";
 import type { SettledGame } from "@/lib/results/settled-game";
 
 /**
@@ -124,7 +125,7 @@ const WEAK_NICKNAMES = new Set([
  * lookup over each club's canonical abbr and aliases — so a short token only
  * matches when it is genuinely that club's code, never by coincidence.
  */
-function mentions(text: string, team: string, sport?: string): boolean {
+function mentionsName(text: string, team: string, sport?: string): boolean {
   const t = norm(text);
   const tn = norm(team);
   if (!t || !tn) return false;
@@ -144,6 +145,15 @@ function mentions(text: string, team: string, sport?: string): boolean {
         token.length >= 2 &&
         resolveKnownTeam(token, sport!)?.key === target.key,
     );
+}
+
+function mentions(text: string, team: string, sport?: string): boolean {
+  if (sport?.trim().toUpperCase() === "SOCCER") {
+    return soccerClubAliases(team).some((alias) =>
+      mentionsName(text, alias, sport),
+    );
+  }
+  return mentionsName(text, team, sport);
 }
 
 /**

@@ -20,6 +20,7 @@ test("canonicalizeEspnTeamName maps All-Stars to League labels", () => {
     canonicalizeEspnTeamName("Los Angeles Dodgers"),
     "Los Angeles Dodgers",
   );
+  assert.equal(canonicalizeEspnTeamName("Internazionale"), "Inter Milan");
 });
 
 test("yyyymmddUtc formats UTC calendar day", () => {

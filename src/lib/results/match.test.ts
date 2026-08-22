@@ -412,3 +412,68 @@ test("an MMA moneyline grades from the winner flag scores", () => {
     "LOSS",
   );
 });
+
+test("soccer Inter Milan matches ESPN Internazionale across providers", () => {
+  // Production: two @betitsimple parlay legs, Odds API event id, kickoff
+  // 2026-08-22T16:30Z. ESPN already had Internazionale 4-1 Monza FT. The
+  // names share no token, so findGame returned null → event_not_found.
+  const start = new Date("2026-08-22T16:30:00.000Z");
+  const espnGame: SettledGame = {
+    sport: "SOCCER",
+    home: "Internazionale",
+    away: "Monza",
+    homeScore: 4,
+    awayScore: 1,
+    completed: true,
+    eventId: "espn:401874931",
+    startsAt: start,
+  };
+  const play: GradablePlay = {
+    id: "cmt2gf3420005jo046lwskqww",
+    sport: "SOCCER",
+    market: "Moneyline",
+    selection: "Inter Milan",
+    oddsAmerican: -600,
+    units: 0,
+    eventId: "ef8a47c3c8c0f71a251e2efcbf84854a",
+    eventStartsAt: start,
+    homeTeam: "Inter Milan",
+    awayTeam: "Monza",
+  };
+
+  assert.equal(findGame(play, [espnGame])?.eventId, "espn:401874931");
+  assert.equal(resolveOutcome(play, [espnGame]), "WIN");
+});
+
+test("Inter Miami is not graded from an Internazionale final", () => {
+  const start = new Date("2026-08-22T16:30:00.000Z");
+  const espnGame: SettledGame = {
+    sport: "SOCCER",
+    home: "Internazionale",
+    away: "Monza",
+    homeScore: 4,
+    awayScore: 1,
+    completed: true,
+    eventId: "espn:401874931",
+    startsAt: start,
+  };
+
+  assert.equal(
+    findGame(
+      {
+        id: "miami",
+        sport: "SOCCER",
+        market: "Moneyline",
+        selection: "Inter Miami",
+        oddsAmerican: -110,
+        units: 1,
+        eventId: "odds-miami",
+        eventStartsAt: start,
+        homeTeam: "Inter Miami",
+        awayTeam: "Atlanta United",
+      },
+      [espnGame],
+    ),
+    null,
+  );
+});
