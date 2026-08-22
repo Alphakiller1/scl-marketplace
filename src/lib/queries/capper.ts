@@ -27,6 +27,12 @@ import {
   hasClvColumns,
   hasNotesPublicColumn,
 } from "@/lib/results/schema-features";
+import {
+  allTimeLegacyRecordWhere,
+  collapseLegacyRecordsBySport,
+  normalizeLegacyAggregateRow,
+  statsBaselineFromLegacyRows,
+} from "@/lib/legacy-all-time";
 import { LEGACY_RECORD_ALL_SPORTS } from "@/lib/schemas/legacy-records.schema";
 
 export type PublicCapper = {
@@ -324,10 +330,11 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
       select: { clvPts: true, notes: true },
     });
   });
-  // Per-sport PRE_IMPORT residuals (ALL excluded in sort helper).
+  // Per-sport all-time carry: PRE_IMPORT plus prior years (ALL excluded
+  // in the sort helper after same-sport rows are collapsed).
   const legacyResult = await settle("public profile legacy records", () =>
     prisma.legacyRecord.findMany({
-      where: { capperId: capper.id, scope: "PRE_IMPORT" },
+      where: { capperId: capper.id, ...allTimeLegacyRecordWhere },
       select: {
         sport: true,
         wins: true,
@@ -422,13 +429,24 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
 
   const legacyRows =
     legacyResult.status === "fulfilled"
-      ? legacyResult.value.map((row) => ({
-          sport: row.sport,
+      ? collapseLegacyRecordsBySport(
+          legacyResult.value.map((row) =>
+            normalizeLegacyAggregateRow({
+              sport: row.sport,
+              wins: row.wins,
+              losses: row.losses,
+              pushes: row.pushes,
+              unitsRisked: row.unitsRisked,
+              unitsNet: row.unitsNet,
+            }),
+          ),
+        ).map((row) => ({
+          sport: row.sport ?? LEGACY_RECORD_ALL_SPORTS,
           wins: row.wins,
           losses: row.losses,
           pushes: row.pushes,
-          unitsRisked: Number(row.unitsRisked),
-          unitsNet: Number(row.unitsNet),
+          unitsRisked: row.unitsRisked,
+          unitsNet: row.unitsNet,
         }))
       : [];
   if (legacyResult.status === "rejected") {
@@ -442,15 +460,7 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
   );
   legacyBySport = mergeCareerSportRecords({
     legacyBySport: sortLegacySportRecords(legacyRows),
-    allBaseline: combined
-      ? {
-          wins: combined.wins,
-          losses: combined.losses,
-          pushes: combined.pushes,
-          stakedUnits: combined.unitsRisked,
-          units: combined.unitsNet,
-        }
-      : null,
+    allBaseline: combined ? statsBaselineFromLegacyRows([combined]) : null,
     sclBySport,
   });
 
@@ -488,7 +498,7 @@ const getCachedPublicCapperByHandle = cachedQuery(
   async (handle: string) => loadPublicCapperByHandle(handle),
   // v2 intentionally abandons partial profile payloads cached before metadata
   // stopped launching a competing full hydration on cold requests.
-  ["public-capper-by-handle-v3"],
+  ["public-capper-by-handle-v4"],
   { revalidate: 60, tags: ["leaderboard"] },
 );
 

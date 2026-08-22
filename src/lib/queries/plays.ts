@@ -9,6 +9,12 @@ import {
   type LegacySportRecordView,
 } from "@/lib/legacy-sport-records";
 import { stakeFromStored } from "@/lib/extreme-stake";
+import {
+  allTimeLegacyRecordWhere,
+  collapseLegacyRecordsBySport,
+  normalizeLegacyAggregateRow,
+  statsBaselineFromLegacyRows,
+} from "@/lib/legacy-all-time";
 import { LEGACY_RECORD_ALL_SPORTS } from "@/lib/schemas/legacy-records.schema";
 import type { StatsBaseline } from "@/lib/stats";
 import type { CapperSummary, TodayPick } from "@/lib/mock";
@@ -109,9 +115,9 @@ export function mergeRecordEntries(
 }
 
 export type CapperLegacyRecords = {
-  /** Combined PRE_IMPORT total, ready to hand to computeCapperStats. */
+  /** Combined all-time carry, ready to hand to computeCapperStats. */
   baseline: StatsBaseline | null;
-  /** Per-sport PRE_IMPORT rows for the dashboard's By Sport table. */
+  /** Per-sport all-time rows for the dashboard's By Sport table. */
   bySport: LegacySportRecordView[];
 };
 
@@ -123,11 +129,10 @@ export type CapperLegacyRecords = {
  * dashboard and a different one on their public profile — 518 graded against
  * 1,946 for the capper who reported it. Same numbers, same source, both places.
  *
- * PRE_IMPORT only, and that matters: it is the legacy calendar-year total with the
- * individually imported plays already subtracted. The other scopes on the same
- * table (LAST_30D, CURRENT_SEASON, YEAR_2025 and the rest) overlap each other
- * and the imported plays, so summing across scopes double-counts. One capper
- * carries 61 of these rows.
+ * All-time carry: `PRE_IMPORT` (current year minus imported receipts) plus
+ * prior complete years. Trailing windows, seasons, and `CURRENT_YEAR` overlap
+ * those rows — summing them would double-count. One capper still carries ~60
+ * of those overlapping rows; they stay stored and unused for standings.
  */
 export async function getCapperLegacyRecords(
   userId: string,
@@ -139,7 +144,7 @@ export async function getCapperLegacyRecords(
   if (!profile) return { baseline: null, bySport: [] };
 
   const rows = await prisma.legacyRecord.findMany({
-    where: { capperId: profile.id, scope: "PRE_IMPORT" },
+    where: { capperId: profile.id, ...allTimeLegacyRecordWhere },
     select: {
       sport: true,
       wins: true,
@@ -151,31 +156,27 @@ export async function getCapperLegacyRecords(
   });
   if (rows.length === 0) return { baseline: null, bySport: [] };
 
-  const normalized = rows.map((row) => ({
-    sport: row.sport,
-    wins: row.wins,
-    losses: row.losses,
-    pushes: row.pushes,
-    unitsRisked: Number(row.unitsRisked),
-    unitsNet: Number(row.unitsNet),
-  }));
+  const normalized = collapseLegacyRecordsBySport(
+    rows.map(normalizeLegacyAggregateRow),
+  );
 
   const combined = normalized.find(
     (row) => row.sport === LEGACY_RECORD_ALL_SPORTS,
   );
 
   return {
-    baseline: combined
-      ? {
-          wins: combined.wins,
-          losses: combined.losses,
-          pushes: combined.pushes,
-          stakedUnits: combined.unitsRisked,
-          units: combined.unitsNet,
-        }
-      : null,
+    baseline: combined ? statsBaselineFromLegacyRows([combined]) : null,
     // sortLegacySportRecords drops the ALL sentinel and any empty row.
-    bySport: sortLegacySportRecords(normalized),
+    bySport: sortLegacySportRecords(
+      normalized.map((row) => ({
+        sport: row.sport ?? LEGACY_RECORD_ALL_SPORTS,
+        wins: row.wins,
+        losses: row.losses,
+        pushes: row.pushes,
+        unitsRisked: row.unitsRisked,
+        unitsNet: row.unitsNet,
+      })),
+    ),
   };
 }
 

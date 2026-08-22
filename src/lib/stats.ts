@@ -23,9 +23,10 @@ export type CapperStats = {
  * individual picks beyond a rolling 90-day window. Folded into the totals
  * before win%/ROI are derived so those stay consistent with the record shown.
  *
- * Callers must pass the `PRE_IMPORT` scope, which already has the imported
- * plays subtracted out — passing a full legacy total alongside the plays it
- * contains would double-count the overlap.
+ * Callers must pass the all-time carry (`PRE_IMPORT` plus prior complete
+ * years). `PRE_IMPORT` already has the imported plays subtracted out —
+ * passing a full current-year total alongside those plays would double-count
+ * the overlap.
  */
 export type StatsBaseline = {
   wins: number;

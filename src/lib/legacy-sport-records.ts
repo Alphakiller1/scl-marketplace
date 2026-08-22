@@ -143,10 +143,10 @@ function sumViews(rows: LegacySportRecordView[]): SportTotals {
 }
 
 /**
- * One career-by-sport table: PRE_IMPORT per sport + SCL-logged positions
+ * One career-by-sport table: all-time legacy per sport + SCL-logged positions
  * (imported 90-day receipts and anything logged on this site).
  *
- * Evidence Brief uses the ALL PRE_IMPORT baseline plus those same positions.
+ * Evidence Brief uses the ALL all-time baseline plus those same positions.
  * Customers do not care which era a pick came from, so this table is built to
  * sum to that headline sample. When ALL is larger than the per-sport legacy
  * rows, the unattributed remainder lands in Other — it is not "new-site" volume.

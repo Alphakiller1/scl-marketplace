@@ -20,6 +20,7 @@ import {
   parseAdminCapperFilters,
   type AdminCapperSearchParams,
 } from "@/lib/admin-cappers";
+import { statsBaselineFromLegacyRows } from "@/lib/legacy-all-time";
 import { getAdminCapperAccounts } from "@/lib/queries/admin-cappers";
 
 export const metadata = { title: "Capper accounts" };
@@ -149,7 +150,15 @@ export default async function AdminCappersPage({
                     ? `@${account.username.replace(/^@/, "")}`
                     : account.email);
                 const latestPick = profile?.plays[0]?.createdAt ?? null;
-                const carried = profile?.legacyRecords[0] ?? null;
+                const carried = statsBaselineFromLegacyRows(
+                  (profile?.legacyRecords ?? []).map((row) => ({
+                    wins: row.wins,
+                    losses: row.losses,
+                    pushes: row.pushes,
+                    unitsRisked: 0,
+                    unitsNet: row.unitsNet ?? 0,
+                  })),
+                );
 
                 return (
                   <article

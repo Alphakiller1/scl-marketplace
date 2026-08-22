@@ -108,12 +108,15 @@ live site: `stats1` is the current **year** (not one day) and drives
 current-year.php; `stats_current` is the current **season** and drives
 current-season.php.
 
-**`PRE_IMPORT` is the only scope that affects standings.** It is the legacy
-calendar-year total _minus_ the plays imported as real `Play` rows, so adding it
-to computed stats reproduces the legacy year-to-date total without counting the
-~90 days present in both. The calendar year is intentional: an all-sports
-headline cannot coherently add "current season" figures when NFL, NBA, MLB, and
-the other sports all have different season boundaries.
+**All-time standings fold `PRE_IMPORT` plus prior complete years
+(`YEAR_2025`, `YEAR_2024`).** `PRE_IMPORT` is the legacy calendar-year total
+_minus_ the plays imported as real `Play` rows, so adding it to computed stats
+reproduces the current-year total without counting the ~90 days present in both.
+Prior years do not overlap those receipts (the mid-2026 export's pick rows all
+fall in 2026). Trailing windows and seasons stay out: they overlap `PRE_IMPORT`
+and/or the imported plays, and an all-sports headline cannot coherently add
+"current season" figures when NFL, NBA, MLB, and the other sports all have
+different season boundaries.
 
 Where it applies:
 
