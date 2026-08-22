@@ -8,6 +8,7 @@ import {
 } from "@/lib/odds-budget";
 import { oddsApiKey } from "@/lib/odds-config";
 import { fetchWithOddsKeyRollover } from "@/lib/odds-key-rollover";
+import { surfaceCommenceQuery } from "@/lib/odds-surface-window";
 import {
   SOCCER_LEAGUES,
   SOCCER_LEAGUE_LIMIT,
@@ -170,6 +171,51 @@ export type OddsUsagePurpose = "board" | "verify" | "results" | "clv";
 
 let lastOddsApiRemaining: number | null = null;
 let lastOddsApiCapacity: number | null = null;
+let circuitBreakSuspended = false;
+
+/**
+ * A pinned one-shot key is meant to be spent on this populate. The 25-credit
+ * reserve would otherwise stop soccer/NFL after two leagues and leave football
+ * empty while credits are still sitting on the key.
+ */
+export function setOddsCircuitBreakSuspended(suspended: boolean): void {
+  circuitBreakSuspended = suspended;
+}
+
+function shouldSkipUncachedBoard(
+  remaining: number | null,
+  capacity: number | null = null,
+) {
+  return !circuitBreakSuspended && shouldCircuitBreak(remaining, capacity);
+}
+
+function surfaceOddsPath(
+  apiSport: string,
+  key: string,
+  books?: readonly string[],
+): string {
+  return (
+    `https://api.the-odds-api.com/v4/sports/${apiSport}/odds/` +
+    `?apiKey=${key}&${oddsScopeQuery(books)}&markets=h2h,spreads,totals&oddsFormat=american&${surfaceCommenceQuery()}`
+  );
+}
+
+/** Free `/events` probe — skip a paid odds call when the slate window is empty. */
+async function hasUpcomingSurfaceEvents(apiSport: string): Promise<boolean> {
+  try {
+    const { response: res } = await fetchWithOddsKeyRollover(
+      (key) =>
+        `https://api.the-odds-api.com/v4/sports/${apiSport}/events/` +
+        `?apiKey=${key}&${surfaceCommenceQuery()}`,
+      { next: { revalidate: 3600 } },
+    );
+    if (!res?.ok) return true;
+    const rows = (await res.json()) as unknown;
+    return Array.isArray(rows) && rows.length > 0;
+  } catch {
+    return true;
+  }
+}
 
 /** Last `x-requests-remaining` observed from an Odds API response. */
 export function getLastOddsApiRemaining(): number | null {
@@ -368,7 +414,7 @@ export async function fetchSoccerBoard(
 ): Promise<OddsEvent[]> {
   if (!oddsApiKey()) return [];
 
-  if (shouldCircuitBreak(lastOddsApiRemaining, lastOddsApiCapacity)) {
+  if (shouldSkipUncachedBoard(lastOddsApiRemaining, lastOddsApiCapacity)) {
     console.warn(
       `[odds] circuit-breaker active (remaining=${lastOddsApiRemaining}) — skipping soccer board`,
     );
@@ -386,9 +432,7 @@ export async function fetchSoccerBoard(
       // slightly older price: the number that actually goes on the record is
       // re-fetched per event at submit time.
       const { response: res } = await fetchWithOddsKeyRollover(
-        (key) =>
-          `https://api.the-odds-api.com/v4/sports/${leagueApiSport}/odds/` +
-          `?apiKey=${key}&${oddsScopeQuery(books)}&markets=h2h,spreads,totals&oddsFormat=american`,
+        (key) => surfaceOddsPath(leagueApiSport, key, books),
         { next: { revalidate: BOARD_TTL } },
       );
       if (!res) return [] as OddsEvent[];
@@ -453,7 +497,10 @@ export async function fetchTennisBoard(
 ): Promise<OddsEvent[]> {
   if (!oddsApiKey()) return [];
 
-  if (shouldCircuitBreakTennisSurface(lastOddsApiRemaining)) {
+  if (
+    !circuitBreakSuspended &&
+    shouldCircuitBreakTennisSurface(lastOddsApiRemaining)
+  ) {
     console.warn(
       `[odds] tennis surface skipped (remaining=${lastOddsApiRemaining} < ${TENNIS_SURFACE_CREDIT_COST} credits)`,
     );
@@ -464,9 +511,7 @@ export async function fetchTennisBoard(
   const fetchTour = async (tour: TennisTour) => {
     const attempt = async (books: readonly string[] | undefined) => {
       const { response: res } = await fetchWithOddsKeyRollover(
-        (key) =>
-          `https://api.the-odds-api.com/v4/sports/${tour.oddsApiKey}/odds/` +
-          `?apiKey=${key}&${oddsScopeQuery(books)}&markets=h2h,spreads,totals&oddsFormat=american`,
+        (key) => surfaceOddsPath(tour.oddsApiKey, key, books),
         { next: { revalidate: BOARD_TTL } },
       );
       if (!res) return [] as OddsEvent[];
@@ -674,10 +719,11 @@ async function fetchExtraSportBoards(
   const boards = await Promise.all(
     extras.map(async (apiSport) => {
       try {
+        if (!(await hasUpcomingSurfaceEvents(apiSport))) {
+          return [] as OddsEvent[];
+        }
         const { response: res } = await fetchWithOddsKeyRollover(
-          (key) =>
-            `https://api.the-odds-api.com/v4/sports/${apiSport}/odds/` +
-            `?apiKey=${key}&${oddsScopeQuery(preferred)}&markets=h2h,spreads,totals&oddsFormat=american`,
+          (key) => surfaceOddsPath(apiSport, key, preferred),
           { next: { revalidate: BOARD_TTL } },
         );
         if (!res) return [] as OddsEvent[];
@@ -715,7 +761,7 @@ export async function fetchUpcomingOdds(
   const apiSport = toOddsApiSport(sclSport);
   if (!oddsApiKey() || !apiSport) return [];
 
-  if (shouldCircuitBreak(lastOddsApiRemaining, lastOddsApiCapacity)) {
+  if (shouldSkipUncachedBoard(lastOddsApiRemaining, lastOddsApiCapacity)) {
     console.warn(
       `[odds] circuit-breaker active (remaining=${lastOddsApiRemaining}) — skipping uncached board fetch for ${sclSport}`,
     );
@@ -737,9 +783,7 @@ export async function fetchUpcomingOdds(
     // this constant is that TTL is the whole story — a stale board here is a
     // stale price on the record, not something a later check corrects.
     const { response: res } = await fetchWithOddsKeyRollover(
-      (key) =>
-        `https://api.the-odds-api.com/v4/sports/${apiSport}/odds/` +
-        `?apiKey=${key}&${oddsScopeQuery(books)}&markets=h2h,spreads,totals&oddsFormat=american`,
+      (key) => surfaceOddsPath(apiSport, key, books),
       { next: { revalidate: BOARD_TTL } },
     );
     if (!res) return [] as OddsEvent[];
@@ -759,7 +803,13 @@ export async function fetchUpcomingOdds(
   };
 
   try {
-    const board = await attempt(preferred);
+    const primaryLive = await hasUpcomingSurfaceEvents(apiSport);
+    if (!primaryLive) {
+      console.info(
+        `[odds] upcoming ${sclSport}: no fixtures in the slate window — skipping paid board`,
+      );
+    }
+    const board = primaryLive ? await attempt(preferred) : [];
     // Preseason lives under its own sport key, so it is fetched alongside and
     // merged rather than replacing anything: during the crossover weeks both
     // slates are genuinely live.

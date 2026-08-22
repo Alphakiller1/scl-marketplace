@@ -45,6 +45,18 @@ test("manual temp-key population sends the key to the signed route and never sto
     workflow,
     /\(\.sports \| index\("WNBA"\) \| not\) or \(\.surface\.WNBA\.events/,
   );
+  assert.match(
+    workflow,
+    /\(\.sports \| index\("TENNIS"\) \| not\) or \(\.surface\.TENNIS\.events/,
+  );
+  assert.match(
+    workflow,
+    /\(\.sports \| index\("SOCCER"\) \| not\) or \(\.surface\.SOCCER\.events/,
+  );
+  assert.match(
+    workflow,
+    /\(\.sports \| index\("NFL"\) \| not\) or \(\.surface\.NFL\.events/,
+  );
   assert.doesNotMatch(
     workflow,
     /jq -e '\.ok == true and \.surface\.MLB\.events > 0 and \.surface\.WNBA\.events > 0'/,
@@ -59,6 +71,7 @@ test("production route accepts a one-shot key after auth, expands MLB then WNBA,
   assert.match(route, /pinOddsApiKey/);
   assert.match(route, /resetOddsKeyPreference/);
   assert.match(route, /resetLastOddsApiUsage/);
+  assert.match(route, /setOddsCircuitBreakSuspended\(true\)/);
   assert.match(route, /fetchUpcomingOdds/);
   assert.match(route, /updateOddsBoardSegment/);
   assert.match(route, /loadCachedOddsBoard/);
@@ -74,6 +87,7 @@ test("production route accepts a one-shot key after auth, expands MLB then WNBA,
     route,
     /DEFAULT_SPORTS = \["MLB", "WNBA", "TENNIS", "SOCCER", "NFL"\]/,
   );
+  assert.match(route, /DEFAULT_SPORTS\.every\(surfaceReady\)/);
 });
 
 test("Vercel cron is a backup when GitHub misses the 20:00 ET populate", () => {
