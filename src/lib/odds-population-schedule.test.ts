@@ -37,6 +37,18 @@ test("manual temp-key population sends the key to the signed route and never sto
   assert.match(workflow, /expandedOrder=\$\{encoded_order\}/);
   assert.match(workflow, /client_payload\.skipPopulated \|\| '1'/);
   assert.match(workflow, /client_payload\.expandedOrder \|\| 'MLB,WNBA'/);
+  assert.match(
+    workflow,
+    /\(\.sports \| index\("MLB"\) \| not\) or \(\.surface\.MLB\.events/,
+  );
+  assert.match(
+    workflow,
+    /\(\.sports \| index\("WNBA"\) \| not\) or \(\.surface\.WNBA\.events/,
+  );
+  assert.doesNotMatch(
+    workflow,
+    /jq -e '\.ok == true and \.surface\.MLB\.events > 0 and \.surface\.WNBA\.events > 0'/,
+  );
   assert.doesNotMatch(workflow, /secrets\.DATABASE_URL/);
   assert.doesNotMatch(workflow, /WRITE_DB/);
 });
