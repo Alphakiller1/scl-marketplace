@@ -36,7 +36,10 @@ test("manual temp-key population sends the key to the signed route and never sto
   assert.match(workflow, /skipPopulated=\$\{SKIP_POPULATED\}/);
   assert.match(workflow, /expandedOrder=\$\{encoded_order\}/);
   assert.match(workflow, /client_payload\.skipPopulated \|\| '1'/);
-  assert.match(workflow, /client_payload\.expandedOrder \|\| 'MLB,WNBA'/);
+  assert.match(
+    workflow,
+    /client_payload\.expandedOrder \|\| 'MLB,WNBA,TENNIS'/,
+  );
   assert.match(
     workflow,
     /\(\.sports \| index\("MLB"\) \| not\) or \(\.surface\.MLB\.events/,
@@ -65,7 +68,7 @@ test("manual temp-key population sends the key to the signed route and never sto
   assert.doesNotMatch(workflow, /WRITE_DB/);
 });
 
-test("production route accepts a one-shot key after auth, expands MLB then WNBA, and retains fallback", () => {
+test("production route accepts a one-shot key, expands supported sports, and retains fallback", () => {
   assert.match(route, /process\.env\.CRON_SECRET/);
   assert.match(route, /x-scl-odds-key/);
   assert.match(route, /pinOddsApiKey/);

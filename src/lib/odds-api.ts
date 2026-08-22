@@ -989,7 +989,7 @@ export async function fetchLiveLine(params: {
 export async function fetchEventBoard(
   sclSport: string,
   eventId: string,
-  opts?: OddsBoardOpts,
+  opts?: OddsBoardOpts & { league?: string | null },
 ): Promise<OddsSelection[]> {
   const markets = expandedBoardMarkets(sclSport);
   if (markets.length === 0) return [];

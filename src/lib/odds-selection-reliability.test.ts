@@ -244,6 +244,6 @@ test("event details retain the last populated prop and period board", () => {
   assert.match(cache, /selections: cached\.selections/);
   assert.match(cache, /readDurableOddsSnapshot/);
   assert.match(cache, /writeDurableOddsSnapshot/);
-  assert.match(route, /loadEventBoard\(sport, eventId\)/);
+  assert.match(route, /loadEventBoard\(sport, eventId, \{ league \}\)/);
   assert.match(route, /"Cache-Control": "private, no-store"/);
 });

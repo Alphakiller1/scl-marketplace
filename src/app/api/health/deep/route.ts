@@ -95,7 +95,10 @@ export async function GET(request: NextRequest) {
     // Expanded props/alternates are intentionally lazy to protect credits.
     // Health verifies their approved scope, not that every event was pre-billed.
     oddsExpandedBoards: oddsCoverage.games.every(
-      (game) => game.sport === "MLB" || game.sport === "WNBA",
+      (game) =>
+        game.sport === "MLB" ||
+        game.sport === "WNBA" ||
+        game.sport === "TENNIS",
     ),
   };
   const ready = Object.values(checks).every(Boolean);

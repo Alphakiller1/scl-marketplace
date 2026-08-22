@@ -137,3 +137,31 @@ test("sports without an expanded board are not asked for team totals", () => {
   );
   assert.equal(nhl.missing.includes("team totals"), false);
 });
+
+test("tennis coverage requires alternate full-match spreads and totals", () => {
+  const tennisEvent = {
+    ...event,
+    id: "tennis-1",
+    sport: "TENNIS",
+    league: "ATP_US_OPEN",
+  };
+  const complete = summarizeEventMarketCoverage(
+    tennisEvent,
+    [
+      selection("Spread", { featured: false, line: 2.5 }),
+      selection("Total", { featured: false, line: 22.5 }),
+    ],
+    "runtime_cache",
+    false,
+  );
+  assert.equal(complete.fullyCovered, true);
+  assert.equal(complete.league, "ATP_US_OPEN");
+
+  const partial = summarizeEventMarketCoverage(
+    tennisEvent,
+    [selection("Spread", { featured: false, line: 2.5 })],
+    "runtime_cache",
+    false,
+  );
+  assert.deepEqual(partial.missing, ["alternate totals"]);
+});

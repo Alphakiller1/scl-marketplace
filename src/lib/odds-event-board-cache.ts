@@ -142,10 +142,11 @@ async function refreshEventBoard(
   sport: string,
   eventId: string,
   cached: EventBoardSnapshot | null,
+  league?: string | null,
 ): Promise<LoadedEventBoard> {
   let selections: OddsSelection[] = [];
   try {
-    selections = await fetchEventBoard(sport, eventId);
+    selections = await fetchEventBoard(sport, eventId, { league });
   } catch (error) {
     console.warn("[odds-event-cache] provider refresh failed", {
       sport,
@@ -187,7 +188,7 @@ async function refreshEventBoard(
 export async function loadEventBoard(
   sport: string,
   eventId: string,
-  options: { forceRefresh?: boolean } = {},
+  options: { forceRefresh?: boolean; league?: string | null } = {},
 ): Promise<LoadedEventBoard> {
   const normalizedSport = sport.toUpperCase();
   const key = cacheKey(normalizedSport, eventId);
@@ -236,9 +237,12 @@ export async function loadEventBoard(
 
   const existing = inFlight.get(key);
   if (existing) return existing;
-  const pending = refreshEventBoard(normalizedSport, eventId, cached).finally(
-    () => inFlight.delete(key),
-  );
+  const pending = refreshEventBoard(
+    normalizedSport,
+    eventId,
+    cached,
+    options.league,
+  ).finally(() => inFlight.delete(key));
   inFlight.set(key, pending);
   return pending;
 }

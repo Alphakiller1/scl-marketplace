@@ -130,6 +130,13 @@ export function verificationMarkets(sclSport: string): string[] {
  * credits per event without adding a selectable line.
  */
 export function expandedBoardMarkets(sclSport: string): string[] {
+  // Tennis surface boards already request the featured spread and total, but
+  // books often expose their useful game ladders only from the per-event
+  // endpoint. Keep this to full-match markets: set markets need a dedicated
+  // result feed before SCL can grade them safely.
+  if (sclSport === "TENNIS") {
+    return ["alternate_spreads", "alternate_totals"];
+  }
   if (sclSport !== "MLB" && sclSport !== "WNBA") return [];
   const props = PROP_MARKETS_BY_SPORT[sclSport] ?? [];
   return [

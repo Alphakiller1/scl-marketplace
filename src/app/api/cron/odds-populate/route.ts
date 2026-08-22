@@ -205,6 +205,7 @@ async function runPopulate(req: NextRequest) {
         fetched += 1;
         const board = await loadEventBoard(sport, event.id, {
           forceRefresh: true,
+          league: event.league,
         });
         if (board.selections.length > 0) populated += 1;
         selections += board.selections.length;
