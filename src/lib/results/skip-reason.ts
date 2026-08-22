@@ -2,6 +2,7 @@ import { RESULTS_LOOKBACK_DAYS } from "@/lib/results/lookback";
 import { isAwaitingExpectedFinal } from "@/lib/results/grading-window";
 import {
   findGame,
+  isAutoGradeBlocked,
   isDeferredProp,
   type GradablePlay,
 } from "@/lib/results/match";
@@ -57,6 +58,12 @@ export function classifySkipReason(opts: {
   now: Date;
   lookbackDays?: number;
 }): SkipReason {
+  // Tennis spreads/totals stay PENDING for a human. The scores window
+  // falling off must not relabel that as aged_out — the grade cron treats
+  // "every skip is aged_out" as a permanently stuck backlog (#133), which
+  // is how Zverev -4.5 from Aug 17 failed a HEALTHY run.
+  if (isAutoGradeBlocked(opts.play)) return "market_unhandled";
+
   if (!opts.gameFound) {
     if (
       isAwaitingExpectedFinal(
