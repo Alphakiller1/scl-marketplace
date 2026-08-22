@@ -86,7 +86,14 @@ jobs:
             "https://sportscappersleaderboard.com/api/cron/odds-populate?sports=${encoded_sports}&expanded=${EXPANDED}&expandedDays=${encoded_days}&surface=${SURFACE}&skipPopulated=${SKIP_POPULATED}&expandedOrder=${encoded_order}" \
             --output /tmp/populate.json
           jq . /tmp/populate.json
-          jq -e '.ok == true and .surface.MLB.events > 0 and .surface.WNBA.events > 0' /tmp/populate.json >/dev/null
+          # Match the route: only require a sport's surface when that sport was requested.
+          # A WNBA-only top-up writes boards and returns ok, but the old MLB+WNBA
+          # gate marked the job failed after today's slate fill.
+          jq -e '
+            .ok == true
+            and ((.sports | index("MLB") | not) or (.surface.MLB.events // 0) > 0)
+            and ((.sports | index("WNBA") | not) or (.surface.WNBA.events // 0) > 0)
+          ' /tmp/populate.json >/dev/null
 
       - name: Summary
         if: always()
@@ -124,7 +131,11 @@ jobs:
             "https://sportscappersleaderboard.com/api/cron/odds-populate?sports=${encoded_sports}&expanded=${EXPANDED}&expandedDays=${encoded_days}&surface=${SURFACE}" \
             --output /tmp/populate.json
           jq . /tmp/populate.json
-          jq -e '.ok == true and .surface.MLB.events > 0 and .surface.WNBA.events > 0' /tmp/populate.json >/dev/null
+          jq -e '
+            .ok == true
+            and ((.sports | index("MLB") | not) or (.surface.MLB.events // 0) > 0)
+            and ((.sports | index("WNBA") | not) or (.surface.WNBA.events // 0) > 0)
+          ' /tmp/populate.json >/dev/null
 
       - name: Summary
         if: always()
