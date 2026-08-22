@@ -467,6 +467,7 @@ test("ESPN summary JSON maps to stat lines, keeping pitching and batting apart",
 
   // "H" on the batting line is hits; it must not become a pitching stat.
   const witt = mapped.players.find((p) => p.name === "Bobby Witt Jr.");
+  assert.equal(witt?.stats.hitsAllowed, undefined);
   assert.deepEqual(witt?.stats, {
     runs: 2,
     hits: 3,
@@ -476,7 +477,6 @@ test("ESPN summary JSON maps to stat lines, keeping pitching and batting apart",
     rbis: 3,
     totalBases: 7,
   });
-  assert.equal(witt?.stats.hitsAllowed, undefined);
 
   assert.equal(
     mapped.players.find((p) => p.name === "Bench Arm")?.played,
