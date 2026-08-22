@@ -93,6 +93,9 @@ jobs:
             .ok == true
             and ((.sports | index("MLB") | not) or (.surface.MLB.events // 0) > 0)
             and ((.sports | index("WNBA") | not) or (.surface.WNBA.events // 0) > 0)
+            and ((.sports | index("TENNIS") | not) or (.surface.TENNIS.events // 0) > 0)
+            and ((.sports | index("SOCCER") | not) or (.surface.SOCCER.events // 0) > 0)
+            and ((.sports | index("NFL") | not) or (.surface.NFL.events // 0) > 0)
           ' /tmp/populate.json >/dev/null
 
       - name: Summary
@@ -135,6 +138,9 @@ jobs:
             .ok == true
             and ((.sports | index("MLB") | not) or (.surface.MLB.events // 0) > 0)
             and ((.sports | index("WNBA") | not) or (.surface.WNBA.events // 0) > 0)
+            and ((.sports | index("TENNIS") | not) or (.surface.TENNIS.events // 0) > 0)
+            and ((.sports | index("SOCCER") | not) or (.surface.SOCCER.events // 0) > 0)
+            and ((.sports | index("NFL") | not) or (.surface.NFL.events // 0) > 0)
           ' /tmp/populate.json >/dev/null
 
       - name: Summary

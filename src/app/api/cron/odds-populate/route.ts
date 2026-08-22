@@ -4,6 +4,7 @@ import {
   fetchUpcomingOdds,
   getLastOddsApiRemaining,
   resetLastOddsApiUsage,
+  setOddsCircuitBreakSuspended,
 } from "@/lib/odds-api";
 import { MIN_CIRCUIT_BREAK_RESERVE } from "@/lib/odds-budget";
 import { pinOddsApiKey } from "@/lib/odds-config";
@@ -105,8 +106,17 @@ async function populate(req: NextRequest) {
     // key. Leaving it at 0 circuit-breaks every surface before the first
     // request, so the one-shot key is never used.
     resetLastOddsApiUsage();
+    setOddsCircuitBreakSuspended(true);
   }
 
+  try {
+    return await runPopulate(req);
+  } finally {
+    if (override) setOddsCircuitBreakSuspended(false);
+  }
+}
+
+async function runPopulate(req: NextRequest) {
   const sports = requestedSports(req);
   const requestedExpanded = Number(
     req.nextUrl.searchParams.get("expanded") ?? 0,
@@ -216,10 +226,10 @@ async function populate(req: NextRequest) {
     await loadSurface(sport, refreshSurface, boardEvents, surface);
   }
 
-  const mlbReady = !sports.includes("MLB") || (surface.MLB?.events ?? 0) > 0;
-  const wnbaReady = !sports.includes("WNBA") || (surface.WNBA?.events ?? 0) > 0;
+  const surfaceReady = (sport: string) =>
+    !sports.includes(sport) || (surface[sport]?.events ?? 0) > 0;
   return NextResponse.json({
-    ok: mlbReady && wnbaReady,
+    ok: DEFAULT_SPORTS.every(surfaceReady),
     sports,
     expandedDays,
     expandedOrder,
