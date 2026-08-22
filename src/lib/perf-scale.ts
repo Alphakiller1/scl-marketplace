@@ -2,9 +2,9 @@
  * Shared performance color scale (green → muted → red) for ROI / Units / CLV / win%.
  * Number is always rendered — color is never the only signal.
  *
- * Each metric is toned from its own value. A small window sample must not
- * paint ROI and Units the same amber: +12% ROI is green even when units are
- * flat, and −units are red even when ROI is still green.
+ * Each metric is toned from its own value. ROI follows the sign: any plus is
+ * green, any minus is red. Units and win% still use magnitude bands so a
+ * tiny unit total is not painted like a winning book.
  *
  * Settlement Win/Loss/Push colors stay SEPARATE (pills, unit deltas, W/L dots) —
  * do not route those through this module.
@@ -69,6 +69,16 @@ function toneForBand(band: PerfScaleResult["band"]): PerfTone {
   }
 }
 
+/** ROI is signed money: any plus is green, any minus is red, zero is muted. */
+function toneForMetric(metric: PerfMetric, value: number): PerfTone {
+  if (metric === "roi") {
+    if (value > 0) return "pos";
+    if (value < 0) return "neg";
+    return "muted";
+  }
+  return toneForBand(bandFor(metric, value));
+}
+
 /**
  * Map a performance metric to tone + band.
  * `gradedCount` is kept for callers and aria; it does not override color.
@@ -90,7 +100,7 @@ export function perfScale(
   }
 
   const band = bandFor(metric, value);
-  const tone = toneForBand(band);
+  const tone = toneForMetric(metric, value);
   const early = isProvisional(opts?.gradedCount);
 
   return {

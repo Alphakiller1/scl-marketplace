@@ -60,9 +60,13 @@ describe("perfScale ROI boundaries", () => {
     assert.notEqual(roi.tone, mixedUnits.tone);
   });
 
-  it("mature sample may be red or green", () => {
-    assert.equal(perfScale("roi", -10, { gradedCount: 25 }).tone, "neg");
-    assert.equal(perfScale("roi", 12, { gradedCount: 25 }).tone, "pos");
+  it("any plus ROI is green and any minus ROI is red", () => {
+    assert.equal(perfScale("roi", 0.1, { gradedCount: 20 }).tone, "pos");
+    assert.equal(perfScale("roi", 2.9, { gradedCount: 20 }).tone, "pos");
+    assert.equal(perfScale("roi", 0, { gradedCount: 20 }).tone, "muted");
+    assert.equal(perfScale("roi", -0.1, { gradedCount: 20 }).tone, "neg");
+    assert.equal(perfScale("roi", -2.9, { gradedCount: 20 }).tone, "neg");
+    assert.equal(perfScale("roi", 0.1, { gradedCount: 20 }).band, "neutral");
   });
 });
 
