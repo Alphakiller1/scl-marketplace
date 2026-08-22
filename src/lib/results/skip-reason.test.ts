@@ -102,3 +102,33 @@ test("classifySkipReason: aged_out does not win when game is found", () => {
   });
   assert.equal(reason, "market_unhandled");
 });
+
+test("classifySkipReason: a tennis spread is market_unhandled even after lookback", () => {
+  const starts = new Date(NOW.getTime() - 5 * 24 * 60 * 60 * 1000);
+  const reason = classifySkipReason({
+    play: play({
+      sport: "TENNIS",
+      market: "Spread",
+      selection: "Alexander Zverev -4.5",
+      eventStartsAt: starts,
+    }),
+    gameFound: false,
+    now: NOW,
+  });
+  assert.equal(reason, "market_unhandled");
+});
+
+test("classifySkipReason: a tennis moneyline still ages out when the scores window is gone", () => {
+  const starts = new Date(NOW.getTime() - 5 * 24 * 60 * 60 * 1000);
+  const reason = classifySkipReason({
+    play: play({
+      sport: "TENNIS",
+      market: "Moneyline",
+      selection: "Alexander Zverev",
+      eventStartsAt: starts,
+    }),
+    gameFound: false,
+    now: NOW,
+  });
+  assert.equal(reason, "aged_out");
+});
