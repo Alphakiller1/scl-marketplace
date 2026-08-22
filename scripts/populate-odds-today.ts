@@ -5,8 +5,8 @@
  *
  * Runs on a fixed credit budget: it reports `x-requests-remaining` after every
  * call and stops at BUDGET_FLOOR rather than fetching a slate it cannot afford.
- * Expanded MLB is 34 credits PER EVENT and WNBA 24, measured — a full 11-game
- * MLB slate is 374 credits, more than a 500-credit key holds.
+ * Expanded MLB is 44 credits PER EVENT and WNBA 24 — a full 12-game MLB slate
+ * costs 528 credits, more than a 500-credit key holds.
  *
  * Snapshots are built with the app's own pure normalizers and written under the
  * same keys `odds-board-cache` / `odds-event-board-cache` use, so the app reads
@@ -293,7 +293,7 @@ async function main() {
   console.log("\nEXPANDED PER-EVENT (alt lines, team totals, segments, props)");
   for (const [sclSport, apiSport, events] of [
     // WNBA first: two or three games, ~24 credits each. A 500-credit key
-    // cannot finish a 15-game MLB expanded slate (~31/event) AND WNBA if MLB
+    // cannot finish a 15-game MLB expanded slate (44/event) AND WNBA if MLB
     // goes first.
     ["WNBA", "basketball_wnba", wnba],
     ["MLB", "baseball_mlb", mlb],

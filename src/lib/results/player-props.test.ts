@@ -100,6 +100,12 @@ const box: PlayerBoxScore = {
       stats: { strikeouts: 2, outs: 9 },
     },
     {
+      name: "Aaron Judge",
+      team: "New York Yankees",
+      played: true,
+      stats: { hits: 2, totalBases: 5, homeRuns: 1, rbis: 3, runs: 2 },
+    },
+    {
       name: "Sophie Cunningham",
       team: "Indiana Fever",
       played: true,
@@ -298,6 +304,35 @@ test("market labels map to the stat the board writes", () => {
   // Two different markets on two different stat lines.
   assert.equal(statKeyForMarket("Hits"), "hits");
   assert.equal(statKeyForMarket("Hits Allowed"), "hitsAllowed");
+  assert.equal(statKeyForMarket("Total Bases"), "totalBases");
+  assert.equal(statKeyForMarket("Home Runs"), "homeRuns");
+  assert.equal(statKeyForMarket("RBIs"), "rbis");
+  assert.equal(statKeyForMarket("Runs Scored"), "runs");
+  assert.equal(statKeyForMarket("Hits+Runs+RBIs"), "hitsRunsRbis");
+});
+
+test("core MLB batter props settle from official batting stats", () => {
+  for (const [market, line, outcome] of [
+    ["Total Bases", 4.5, "WIN"],
+    ["Home Runs", 1.5, "LOSS"],
+    ["RBIs", 2.5, "WIN"],
+    ["Runs Scored", 2, "PUSH"],
+    ["Hits+Runs+RBIs", 6.5, "WIN"],
+  ] as const) {
+    assert.equal(
+      resolvePlayerProp(
+        {
+          market,
+          selection: `Aaron Judge Over ${line}`,
+          side: "Over",
+          line,
+        },
+        box,
+      ),
+      outcome,
+      market,
+    );
+  }
 });
 
 test("hits allowed settles off the pitching line, never the batting one", () => {
@@ -388,11 +423,11 @@ test("ESPN summary JSON maps to stat lines, keeping pitching and batting apart",
           statistics: [
             {
               type: "batting",
-              labels: ["AB", "R", "H", "RBI"],
+              labels: ["AB", "R", "H", "2B", "3B", "HR", "RBI"],
               athletes: [
                 {
                   athlete: { displayName: "Bobby Witt Jr." },
-                  stats: ["4", "1", "2", "1"],
+                  stats: ["4", "2", "3", "1", "0", "1", "3"],
                 },
               ],
             },
@@ -432,7 +467,15 @@ test("ESPN summary JSON maps to stat lines, keeping pitching and batting apart",
 
   // "H" on the batting line is hits; it must not become a pitching stat.
   const witt = mapped.players.find((p) => p.name === "Bobby Witt Jr.");
-  assert.equal(witt?.stats.hits, 2);
+  assert.deepEqual(witt?.stats, {
+    runs: 2,
+    hits: 3,
+    doubles: 1,
+    triples: 0,
+    homeRuns: 1,
+    rbis: 3,
+    totalBases: 7,
+  });
   assert.equal(witt?.stats.hitsAllowed, undefined);
 
   assert.equal(

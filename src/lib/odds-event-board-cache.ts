@@ -210,7 +210,7 @@ export async function loadEventBoard(
   // The breaker applies even to a forced refresh. `forceRefresh` means "ignore
   // the freshness window", not "ignore the credit reserve" — but it was doing
   // both, and the ONLY caller that sets it is the coverage warm loop, which is
-  // also the most expensive path in the system at ~31 credits per event. So the
+  // also the most expensive path in the system at 44 MLB credits per event. So the
   // one safeguard that holds a reserve back was disabled on precisely the path
   // that can spend a whole plan in a single run, and every provider key drained
   // to exactly zero rather than stopping at its reserve.

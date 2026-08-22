@@ -31,10 +31,12 @@ describe("propMarketShortLabel", () => {
     assert.equal(propMarketShortLabel("3-Pointers"), "3PM");
     assert.equal(propMarketShortLabel("Strikeouts"), "Ks");
     assert.equal(propMarketShortLabel("Hits"), "Hits");
+    assert.equal(propMarketShortLabel("Total Bases"), "TB");
+    assert.equal(propMarketShortLabel("Hits+Runs+RBIs"), "H+R+RBI");
   });
 
   it("falls back to the full label for unknown markets", () => {
-    assert.equal(propMarketShortLabel("Total Bases"), "Total Bases");
+    assert.equal(propMarketShortLabel("Batting Average"), "Batting Average");
   });
 });
 

@@ -430,6 +430,17 @@ test("MLB periods and props plus WNBA halves and props all reach selection rows"
             ],
           },
           {
+            key: "batter_total_bases",
+            outcomes: [
+              {
+                name: "Over",
+                description: "Aaron Judge",
+                point: 1.5,
+                price: -115,
+              },
+            ],
+          },
+          {
             key: "alternate_spreads_h1",
             outcomes: [{ name: "Atlanta Dream", point: -2.5, price: 110 }],
           },
@@ -454,6 +465,14 @@ test("MLB periods and props plus WNBA halves and props all reach selection rows"
     board.some(
       (selection) =>
         selection.market === "1st 7 Innings Total" && selection.line === 6.5,
+    ),
+  );
+  assert.ok(
+    board.some(
+      (selection) =>
+        selection.market === "Total Bases" &&
+        selection.player === "Aaron Judge" &&
+        selection.line === 1.5,
     ),
   );
   assert.ok(

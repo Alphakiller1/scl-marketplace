@@ -2,8 +2,10 @@ import type { OddsEvent, OddsSelection } from "@/lib/odds-board";
 import { parsePeriodMarket } from "@/lib/period-markets";
 import {
   expandedBoardMarkets,
+  PRIMARY_MLB_PROP_MARKETS,
   PROP_MARKET_LABEL,
   PROP_MARKETS_BY_SPORT,
+  propMarketLabel,
 } from "@/lib/odds-verify";
 import {
   isTeamTotalMarket,
@@ -36,6 +38,7 @@ export type EventMarketCoverage = {
   stale: boolean;
   selectionCount: number;
   props: number;
+  propMarkets: string[];
   alternateGameLines: number;
   alternateSpreads: number;
   alternateTotals: number;
@@ -57,6 +60,7 @@ export function summarizeEventMarketCoverage(
 ): EventMarketCoverage {
   const sport = event.sport.toUpperCase();
   let props = 0;
+  const propMarkets = new Set<string>();
   let alternateGameLines = 0;
   let alternateSpreads = 0;
   let alternateTotals = 0;
@@ -73,6 +77,7 @@ export function summarizeEventMarketCoverage(
       PROP_LABELS.has(selection.market.trim().toLowerCase())
     ) {
       props++;
+      propMarkets.add(selection.market);
     }
     if (
       !period &&
@@ -96,6 +101,20 @@ export function summarizeEventMarketCoverage(
   if (alternateTotals === 0) missing.push("alternate totals");
   if ((PROP_MARKETS_BY_SPORT[sport]?.length ?? 0) > 0 && props === 0) {
     missing.push("player props");
+  }
+  // "Some props" is not complete MLB coverage. A strikeouts-only snapshot used
+  // to pass this gate, so manual top-ups skipped it forever even when the three
+  // most requested baseball families were absent.
+  if (sport === "MLB" && props > 0) {
+    const normalizedPresent = new Set(
+      [...propMarkets].map((market) => market.trim().toLowerCase()),
+    );
+    for (const key of PRIMARY_MLB_PROP_MARKETS) {
+      const label = propMarketLabel(key);
+      if (label && !normalizedPresent.has(label.toLowerCase())) {
+        missing.push(`${label} props`);
+      }
+    }
   }
   // Counted since this report was written, but never checked — so a game whose
   // snapshot came back with no team totals was reported fullyCovered and the
@@ -121,6 +140,7 @@ export function summarizeEventMarketCoverage(
     stale,
     selectionCount: selections.length,
     props,
+    propMarkets: [...propMarkets].sort((a, b) => a.localeCompare(b)),
     alternateGameLines,
     alternateSpreads,
     alternateTotals,

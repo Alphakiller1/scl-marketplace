@@ -26,7 +26,7 @@ on:
   # two was tried and `strategic-odds-cadence.test.ts` fails with "a kickoff
   # at 14:00 UTC has no run in its 240-minute window", meaning MLB day games
   # would never refresh. Cadence is not the credit lever — what each run
-  # WARMS is (expanded MLB is 34 credits per event).
+  # WARMS is (expanded MLB is 44 credits per event).
   #
   # - cron: "0 12 * * *" # 08:00 ET — morning slate, WNBA 08:00 fixed slot
   # - cron: "0 16 * * *" # 12:00 ET — before MLB/soccer day games

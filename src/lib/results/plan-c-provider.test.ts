@@ -163,7 +163,17 @@ test("MLB official box score maps every owner-required baseball prop", () => {
           },
           ID2: {
             person: { fullName: "Riley Greene" },
-            stats: { batting: { gamesPlayed: 1, hits: 2 } },
+            stats: {
+              batting: {
+                gamesPlayed: 1,
+                hits: 3,
+                doubles: 1,
+                triples: 0,
+                homeRuns: 1,
+                rbi: 3,
+                runs: 2,
+              },
+            },
           },
         },
       },
@@ -176,5 +186,11 @@ test("MLB official box score maps every owner-required baseball prop", () => {
     outs: 21,
     earnedRuns: 2,
   });
-  assert.equal(box.players[1]!.stats.hits, 2);
+  assert.deepEqual(box.players[1]!.stats, {
+    hits: 3,
+    homeRuns: 1,
+    rbis: 3,
+    runs: 2,
+    totalBases: 7,
+  });
 });
