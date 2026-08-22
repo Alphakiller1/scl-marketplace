@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { fetchUpcomingOdds, getLastOddsApiRemaining } from "@/lib/odds-api";
+import {
+  fetchUpcomingOdds,
+  getLastOddsApiRemaining,
+  resetLastOddsApiUsage,
+} from "@/lib/odds-api";
 import { MIN_CIRCUIT_BREAK_RESERVE } from "@/lib/odds-budget";
 import { pinOddsApiKey } from "@/lib/odds-config";
 import { resetOddsKeyPreference } from "@/lib/odds-key-rollover";
@@ -97,6 +101,10 @@ async function populate(req: NextRequest) {
   if (override) {
     pinOddsApiKey(override);
     resetOddsKeyPreference();
+    // Warm Fluid isolates keep lastOddsApiRemaining from the spent Vercel
+    // key. Leaving it at 0 circuit-breaks every surface before the first
+    // request, so the one-shot key is never used.
+    resetLastOddsApiUsage();
   }
 
   const sports = requestedSports(req);
