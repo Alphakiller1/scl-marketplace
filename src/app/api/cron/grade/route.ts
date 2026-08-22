@@ -7,6 +7,7 @@ import { autoGradePending } from "@/lib/results/auto-grade";
 import { getGradingResultsProvider } from "@/lib/results/provider";
 import {
   listAgedOutPendingPlays,
+  listManualGradingQueue,
   listOverduePendingPlays,
 } from "@/lib/results/stuck-plays";
 
@@ -95,6 +96,14 @@ async function runGrade(req: NextRequest) {
         ? await listAgedOutPendingPlays()
         : [];
     const overduePending = await listOverduePendingPlays();
+    // Plays auto-grading has permanently given up on, and a human must
+    // settle. Reported apart from overduePending on purpose: these never
+    // resolve on their own, so folding them into the health signal would
+    // pin the pipeline at UNHEALTHY forever. That is exactly why they were
+    // excluded from it -- and with nothing else naming them, a tennis games
+    // spread sat PENDING for five days. The count belongs in the output a
+    // human reads, not only on a page nobody opens.
+    const manualQueue = await listManualGradingQueue();
     const gradeOk =
       health.status !== "UNHEALTHY" && overduePending.length === 0;
 
@@ -114,6 +123,7 @@ async function runGrade(req: NextRequest) {
         meta: {
           health,
           overduePending: overduePending.length,
+          needsManualGrading: manualQueue.length,
         },
       },
     });
@@ -128,6 +138,16 @@ async function runGrade(req: NextRequest) {
     revalidatePath("/discover");
     revalidatePath("/cappers/[handle]", "page");
     revalidatePath("/");
+
+    if (manualQueue.length > 0) {
+      console.warn(
+        `[cron/grade] ${manualQueue.length} play(s) need MANUAL grading — ` +
+          `auto-grading will never settle these: ` +
+          manualQueue
+            .map((play) => `${play.id} ${play.sport} ${play.selection}`)
+            .join("; "),
+      );
+    }
 
     if (health.status === "UNHEALTHY") {
       console.warn(
@@ -145,6 +165,7 @@ async function runGrade(req: NextRequest) {
         ...result,
         health,
         overduePending,
+        needsManualGrading: manualQueue,
         stuckPlays,
       },
       { status: gradeOk ? 200 : 503 },

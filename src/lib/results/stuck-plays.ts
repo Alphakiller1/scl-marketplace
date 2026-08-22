@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { isAgedOut } from "@/lib/results/skip-reason";
 import { expectedFinalAt } from "@/lib/results/grading-window";
 import { isAutoGradeBlocked } from "@/lib/results/match";
+import {
+  manualGradingReason,
+  needsManualGrading,
+} from "@/lib/results/manual-grading";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 
 export type StuckPlayRow = {
@@ -129,4 +133,67 @@ export async function countPendingPlays(): Promise<number> {
   return prisma.play.count({
     where: { outcome: "PENDING", status: "COMMITTED" },
   });
+}
+
+/**
+ * Plays auto-grading has permanently given up on and a human must settle.
+ *
+ * Deliberately NOT the same set as `listOverduePendingPlays`, which excludes
+ * these so an ungradeable market cannot hold the pipeline at UNHEALTHY forever.
+ * That exclusion is right, and on its own it made the play invisible: the only
+ * alert for ungraded plays skipped exactly the plays that can never grade
+ * themselves. A tennis games spread sat PENDING for five days that way.
+ *
+ * Same shape as the other stuck reports, plus the reason, so the admin queue
+ * says what the human has to go and find.
+ */
+export async function listManualGradingQueue(
+  now = new Date(),
+  take = 50,
+): Promise<(StuckPlayRow & { reason: string })[]> {
+  const excludedUsers = await prismaExcludeTestHandlesLive();
+  const rows = await prisma.play.findMany({
+    where: {
+      outcome: "PENDING",
+      status: "COMMITTED",
+      capper: {
+        user: {
+          accountStatus: "ACTIVE",
+          username: { not: null },
+          ...excludedUsers,
+        },
+      },
+    },
+    select: {
+      id: true,
+      sport: true,
+      market: true,
+      selection: true,
+      oddsAmerican: true,
+      units: true,
+      eventId: true,
+      eventStartsAt: true,
+      parlayId: true,
+      capper: { select: { user: { select: { username: true } } } },
+    },
+    orderBy: { eventStartsAt: "asc" },
+    take: 1_000,
+  });
+
+  return rows
+    .filter((play) => needsManualGrading(play, now))
+    .slice(0, take)
+    .map((play) => ({
+      id: play.id,
+      handle: play.capper.user.username,
+      sport: play.sport,
+      market: play.market,
+      selection: play.selection,
+      oddsAmerican: play.oddsAmerican,
+      units: Number(play.units),
+      eventId: play.eventId,
+      eventStartsAt: play.eventStartsAt?.toISOString() ?? null,
+      parlayId: play.parlayId,
+      reason: manualGradingReason(play),
+    }));
 }
