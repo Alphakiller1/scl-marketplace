@@ -43,7 +43,7 @@ function scheduledRunMinutes(): number[] {
 
 test("every scheduled run is a fixed time and there are only a handful", () => {
   const runs = scheduledRunMinutes();
-  // The endpoint warms expanded boards at ~31 credits per event, so cadence is
+  // The endpoint warms expanded MLB boards at 44 credits per event, so cadence is
   // the largest lever on the monthly bill. Ninety-six runs a day is what
   // exhausted three provider keys in three days.
   assert.ok(

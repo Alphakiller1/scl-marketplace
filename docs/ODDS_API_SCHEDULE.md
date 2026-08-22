@@ -15,7 +15,7 @@ Two jobs exist. Only the **populate** job is on a clock.
 | Job               | Workflow                                                       | Cadence (America/New_York)                                                            | What it warms                                                                                                                                                                                                                                                       |
 | ----------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Surface populate  | `.github/workflows/populate-odds.yml` plus `vercel.json` crons | **08:00 ET** and **20:00 ET** daily                                                   | Game lists + basic prices (`h2h` / spreads / totals) for the default sports below. Tennis is fetched before NFL so a cheap Masters board is not skipped after NFL burns the key. GitHub’s scheduled workflow can miss a tick; Vercel hits the same route as backup. |
-| Strategic refresh | `.github/workflows/odds-refresh.yml`                           | **Paused** — `workflow_dispatch` only (owner request while credits are under control) | Expanded per-event boards (~31 credits/event). Restoring the clock requires all five UTC times in that file; a two-run day misses MLB day games                                                                                                                     |
+| Strategic refresh | `.github/workflows/odds-refresh.yml`                           | **Paused** — `workflow_dispatch` only (owner request while credits are under control) | Expanded per-event boards (44 credits/MLB event). Restoring the clock requires all five UTC times in that file; a two-run day misses MLB day games                                                                                                                  |
 
 Scheduled populate calls:
 
@@ -53,6 +53,9 @@ not a league-wide refresh, and it is why a capper can still log a verified
 price between the two daily surface runs.
 
 Props stay lazy. They are not part of the twice-daily surface populate.
+The MLB event bundle includes pitcher earned runs plus batter hits, total
+bases, home runs, RBIs, runs scored, and hits+runs+RBIs. Opening a matchup
+loads these when covered books have posted them.
 
 ## If we turn strategic refresh back on
 

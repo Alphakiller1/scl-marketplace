@@ -86,7 +86,16 @@ export async function fetchPlayerBoxScore(
 type MlbBoxPlayer = {
   person?: { fullName?: string };
   stats?: {
-    batting?: { gamesPlayed?: number; hits?: number };
+    batting?: {
+      gamesPlayed?: number;
+      hits?: number;
+      doubles?: number;
+      triples?: number;
+      homeRuns?: number;
+      rbi?: number;
+      runs?: number;
+      totalBases?: number;
+    };
     pitching?: {
       gamesPlayed?: number;
       strikeOuts?: number;
@@ -117,6 +126,26 @@ export function mapMlbOfficialPlayerBox(data: unknown): PlayerBoxScore | null {
       const pitching = player.stats?.pitching;
       const stats: Record<string, number> = {};
       if (typeof batting?.hits === "number") stats.hits = batting.hits;
+      if (typeof batting?.homeRuns === "number") {
+        stats.homeRuns = batting.homeRuns;
+      }
+      if (typeof batting?.rbi === "number") stats.rbis = batting.rbi;
+      if (typeof batting?.runs === "number") stats.runs = batting.runs;
+      if (typeof batting?.totalBases === "number") {
+        stats.totalBases = batting.totalBases;
+      } else if (
+        typeof batting?.hits === "number" &&
+        typeof batting?.doubles === "number" &&
+        typeof batting?.triples === "number" &&
+        typeof batting?.homeRuns === "number"
+      ) {
+        // 1B + 2×2B + 3×3B + 4×HR, simplified using H.
+        stats.totalBases =
+          batting.hits +
+          batting.doubles +
+          2 * batting.triples +
+          3 * batting.homeRuns;
+      }
       if (typeof pitching?.strikeOuts === "number") {
         stats.strikeouts = pitching.strikeOuts;
       }
@@ -168,7 +197,15 @@ export async function fetchMlbOfficialPlayerBoxScore(
  */
 const STATS_BY_GROUP: Record<string, Record<string, string>> = {
   pitching: { K: "strikeouts", ER: "earnedRuns", H: "hitsAllowed" },
-  batting: { H: "hits", HR: "homeRuns", RBI: "rbis" },
+  batting: {
+    H: "hits",
+    "2B": "doubles",
+    "3B": "triples",
+    HR: "homeRuns",
+    RBI: "rbis",
+    R: "runs",
+    TB: "totalBases",
+  },
   // Basketball/football/hockey report one group; ESPN names it per sport.
   default: {
     PTS: "points",
@@ -263,6 +300,20 @@ export function mapSummaryToPlayerBox(data: unknown): PlayerBoxScore | null {
 
         byName.set(name, entry);
       }
+    }
+  }
+
+  for (const entry of byName.values()) {
+    const { stats } = entry;
+    if (
+      stats.totalBases == null &&
+      stats.hits != null &&
+      stats.doubles != null &&
+      stats.triples != null &&
+      stats.homeRuns != null
+    ) {
+      stats.totalBases =
+        stats.hits + stats.doubles + 2 * stats.triples + 3 * stats.homeRuns;
     }
   }
 

@@ -195,6 +195,16 @@ test("expanded MLB and WNBA boards request the complete owner-required matrix", 
     "pitcher_earned_runs_alternate",
     "batter_hits",
     "batter_hits_alternate",
+    "batter_total_bases",
+    "batter_total_bases_alternate",
+    "batter_home_runs",
+    "batter_home_runs_alternate",
+    "batter_rbis",
+    "batter_rbis_alternate",
+    "batter_runs_scored",
+    "batter_runs_scored_alternate",
+    "batter_hits_runs_rbis",
+    "batter_hits_runs_rbis_alternate",
   ]) {
     assert.ok(mlb.includes(market), `MLB should request ${market}`);
   }
@@ -267,6 +277,10 @@ test("marketKeysForMarket maps game markets to featured + alternate keys", () =>
   assert.deepEqual(marketKeysForMarket("Points"), [
     "player_points",
     "player_points_alternate",
+  ]);
+  assert.deepEqual(marketKeysForMarket("Total Bases"), [
+    "batter_total_bases",
+    "batter_total_bases_alternate",
   ]);
   // a raw key (or anything unrecognized) is passed through, trimmed
   assert.deepEqual(marketKeysForMarket("  pitcher_strikeouts "), [

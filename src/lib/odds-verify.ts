@@ -53,12 +53,21 @@ export const CORE_MARKETS = [
  * Listed as FEATURED keys only; {@link propMarketKeysWithAlternates} appends the `_alternate`
  * variant of each when the board and verification request them.
  */
+export const PRIMARY_MLB_PROP_MARKETS = [
+  "pitcher_earned_runs",
+  "batter_hits",
+  "batter_total_bases",
+] as const;
+
 export const PROP_MARKETS_BY_SPORT: Record<string, readonly string[]> = {
   MLB: [
     "pitcher_strikeouts",
     "pitcher_outs",
-    "pitcher_earned_runs",
-    "batter_hits",
+    ...PRIMARY_MLB_PROP_MARKETS,
+    "batter_home_runs",
+    "batter_rbis",
+    "batter_runs_scored",
+    "batter_hits_runs_rbis",
     // Hits ALLOWED — the pitcher's line, not the batter's. It settles from the
     // pitching group under its own stat key for the reason spelled out in
     // stats-provider's STATS_BY_GROUP: baseball reports "H" in both groups
@@ -142,6 +151,11 @@ export const PROP_MARKET_LABEL: Record<string, string> = {
   pitcher_outs: "Outs",
   pitcher_earned_runs: "Earned Runs",
   batter_hits: "Hits",
+  batter_total_bases: "Total Bases",
+  batter_home_runs: "Home Runs",
+  batter_rbis: "RBIs",
+  batter_runs_scored: "Runs Scored",
+  batter_hits_runs_rbis: "Hits+Runs+RBIs",
   // Distinct from "Hits" on purpose — these are two different markets on two
   // different stat lines, and PROP_LABEL_TO_KEY requires unique labels.
   pitcher_hits_allowed: "Hits Allowed",

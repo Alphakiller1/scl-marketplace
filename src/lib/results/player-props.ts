@@ -79,6 +79,11 @@ const MARKET_STAT_KEY: Record<string, string> = {
   outs: "outs",
   "earned runs": "earnedRuns",
   hits: "hits",
+  "total bases": "totalBases",
+  "home runs": "homeRuns",
+  rbis: "rbis",
+  "runs scored": "runs",
+  "hits+runs+rbis": "hitsRunsRbis",
   // NOT "hits": that key is the BATTING line. A pitcher's hits allowed comes
   // from the pitching group under its own key — see STATS_BY_GROUP.
   "hits allowed": "hitsAllowed",
@@ -94,6 +99,7 @@ const MARKET_STAT_KEY: Record<string, string> = {
  */
 const DERIVED_STATS: Record<string, readonly string[]> = {
   pointsReboundsAssists: ["points", "rebounds", "assists"],
+  hitsRunsRbis: ["hits", "runs", "rbis"],
 };
 
 /**

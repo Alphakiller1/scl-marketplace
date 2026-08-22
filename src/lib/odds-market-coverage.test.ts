@@ -37,6 +37,9 @@ test("MLB coverage distinguishes every requested expanded market family", () => 
       selection("Spread", { featured: false, line: 1.5 }),
       selection("Total", { featured: false, line: 8.5 }),
       selection("Strikeouts", { player: "Pitcher", line: 5.5 }),
+      selection("Earned Runs", { player: "Pitcher", line: 2.5 }),
+      selection("Hits", { player: "Batter", line: 1.5 }),
+      selection("Total Bases", { player: "Batter", line: 1.5 }),
       selection("Team Total", { line: 4.5 }),
       selection("1st 3 Innings Total", { line: 2.5 }),
       selection("1st 5 Innings Spread", { line: 1.5 }),
@@ -47,7 +50,13 @@ test("MLB coverage distinguishes every requested expanded market family", () => 
   );
 
   assert.equal(coverage.fullyCovered, true);
-  assert.equal(coverage.props, 1);
+  assert.equal(coverage.props, 4);
+  assert.deepEqual(coverage.propMarkets, [
+    "Earned Runs",
+    "Hits",
+    "Strikeouts",
+    "Total Bases",
+  ]);
   assert.equal(coverage.alternateGameLines, 2);
   assert.equal(coverage.alternateSpreads, 1);
   assert.equal(coverage.alternateTotals, 1);
@@ -83,6 +92,9 @@ test("a game with no team totals is not fully covered", () => {
       selection("Spread", { featured: false, line: 1.5 }),
       selection("Total", { featured: false, line: 8.5 }),
       selection("Strikeouts", { player: "Pitcher", line: 5.5 }),
+      selection("Earned Runs", { player: "Pitcher", line: 2.5 }),
+      selection("Hits", { player: "Batter", line: 1.5 }),
+      selection("Total Bases", { player: "Batter", line: 1.5 }),
       selection("1st 3 Innings Total", { line: 2.5 }),
       selection("1st 5 Innings Spread", { line: 1.5 }),
       selection("1st 7 Innings Moneyline"),
@@ -94,6 +106,24 @@ test("a game with no team totals is not fully covered", () => {
   assert.equal(coverage.teamTotals, 0);
   assert.equal(coverage.fullyCovered, false);
   assert.deepEqual(coverage.missing, ["team totals"]);
+});
+
+test("MLB coverage requires the requested earned-runs, hits, and total-bases families", () => {
+  const coverage = summarizeEventMarketCoverage(
+    event,
+    [selection("Strikeouts", { player: "Pitcher", line: 5.5 })],
+    "runtime_cache",
+    false,
+  );
+
+  assert.deepEqual(coverage.missing.slice(0, 3), [
+    "alternate spreads",
+    "alternate totals",
+    "Earned Runs props",
+  ]);
+  assert.ok(coverage.missing.includes("Hits props"));
+  assert.ok(coverage.missing.includes("Total Bases props"));
+  assert.equal(coverage.fullyCovered, false);
 });
 
 test("sports without an expanded board are not asked for team totals", () => {
