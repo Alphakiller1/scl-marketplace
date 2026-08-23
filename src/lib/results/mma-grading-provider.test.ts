@@ -44,6 +44,13 @@ test("admin Grade completed uses the full scores stack and 14-day lookback", () 
   assert.match(grader, /lookbackDays\?: number/);
 });
 
+test("ESPN UFC names alias Odds API fighter spellings", () => {
+  const aliases = read("src/lib/results/mma-fighter-aliases.ts");
+  assert.match(aliases, /Sergey Spivak/);
+  assert.match(aliases, /Serghei Spivac/);
+  assert.match(match, /mmaFighterAliases/);
+});
+
 test("ESPN scoreboard covers UFC cards for the 14-day cliff", () => {
   assert.match(espn, /MMA: \{ sport: "mma", league: "ufc" \}/);
   assert.match(mapper, /athlete\?: \{ displayName\?: string/);

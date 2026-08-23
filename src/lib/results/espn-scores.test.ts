@@ -21,6 +21,7 @@ test("canonicalizeEspnTeamName maps All-Stars to League labels", () => {
     "Los Angeles Dodgers",
   );
   assert.equal(canonicalizeEspnTeamName("Internazionale"), "Inter Milan");
+  assert.equal(canonicalizeEspnTeamName("Serghei Spivac"), "Sergey Spivak");
 });
 
 test("yyyymmddUtc formats UTC calendar day", () => {
@@ -160,6 +161,35 @@ test("mapEspnScoreboard maps every completed UFC bout on a card", () => {
     games.some((game) => game.home === "Live A" || game.away === "Live A"),
     false,
   );
+});
+
+test("mapEspnScoreboard aliases ESPN's Serghei Spivac to the board spelling", () => {
+  const games = mapEspnScoreboard("MMA", {
+    events: [
+      {
+        id: "600059999",
+        date: "2026-08-22T21:00Z",
+        status: { type: { completed: true, name: "STATUS_FINAL" } },
+        competitions: [
+          {
+            id: "401905285",
+            date: "2026-08-23T00:00Z",
+            status: { type: { completed: true, name: "STATUS_FINAL" } },
+            competitors: [
+              { winner: false, athlete: { displayName: "Serghei Spivac" } },
+              { winner: true, athlete: { displayName: "Vitor Petrino" } },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+
+  assert.equal(games.length, 1);
+  assert.equal(games[0]!.home, "Vitor Petrino");
+  assert.equal(games[0]!.away, "Sergey Spivak");
+  assert.equal(games[0]!.homeScore, 1);
+  assert.equal(games[0]!.awayScore, 0);
 });
 
 test("mapEspnScoreboard skips MMA no-contests instead of pushing 0-0", () => {

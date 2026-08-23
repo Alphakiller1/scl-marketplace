@@ -413,6 +413,53 @@ test("an MMA moneyline grades from the winner flag scores", () => {
   );
 });
 
+test("UFC Sergey Spivak matches ESPN Serghei Spivac across providers", () => {
+  // Production: @vision_vulture7 Petrino and @cashtheticket365 Spivak,
+  // Odds API event id, start 2026-08-23T00:00Z. ESPN already had
+  // Vitor Petrino def. Serghei Spivac FINAL. Last names share no token,
+  // so findGame returned null → event_not_found and the cron 503'd.
+  const start = new Date("2026-08-23T00:00:00.000Z");
+  const espnFight: SettledGame = {
+    sport: "MMA",
+    home: "Vitor Petrino",
+    away: "Serghei Spivac",
+    homeScore: 1,
+    awayScore: 0,
+    completed: true,
+    eventId: "espn:401905285",
+    startsAt: start,
+  };
+  const petrino: GradablePlay = {
+    id: "cmt4y0mhl0001in04ujy72iod",
+    sport: "MMA",
+    market: "Moneyline",
+    selection: "Vitor Petrino",
+    oddsAmerican: -170,
+    units: 1,
+    eventId: "97b2100edfd0274e695646adcdbaeb21",
+    eventStartsAt: start,
+    homeTeam: "Vitor Petrino",
+    awayTeam: "Sergey Spivak",
+  };
+  const spivak: GradablePlay = {
+    id: "cmt4ehdgd0003ic04p5h1au4g",
+    sport: "MMA",
+    market: "Moneyline",
+    selection: "Sergey Spivak",
+    oddsAmerican: 142,
+    units: 1,
+    eventId: "97b2100edfd0274e695646adcdbaeb21",
+    eventStartsAt: start,
+    homeTeam: "Vitor Petrino",
+    awayTeam: "Sergey Spivak",
+  };
+
+  assert.equal(findGame(petrino, [espnFight])?.eventId, "espn:401905285");
+  assert.equal(resolveOutcome(petrino, [espnFight]), "WIN");
+  assert.equal(findGame(spivak, [espnFight])?.eventId, "espn:401905285");
+  assert.equal(resolveOutcome(spivak, [espnFight]), "LOSS");
+});
+
 test("soccer Inter Milan matches ESPN Internazionale across providers", () => {
   // Production: two @betitsimple parlay legs, Odds API event id, kickoff
   // 2026-08-22T16:30Z. ESPN already had Internazionale 4-1 Monza FT. The

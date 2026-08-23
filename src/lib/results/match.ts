@@ -6,6 +6,7 @@ import {
   isTeamTotalMarket,
   parseTeamTotalSelection,
 } from "@/lib/team-total-markets";
+import { mmaFighterAliases } from "@/lib/results/mma-fighter-aliases";
 import { soccerClubAliases } from "@/lib/results/soccer-club-aliases";
 import type { SettledGame } from "@/lib/results/settled-game";
 
@@ -148,8 +149,14 @@ function mentionsName(text: string, team: string, sport?: string): boolean {
 }
 
 function mentions(text: string, team: string, sport?: string): boolean {
-  if (sport?.trim().toUpperCase() === "SOCCER") {
+  const key = sport?.trim().toUpperCase();
+  if (key === "SOCCER") {
     return soccerClubAliases(team).some((alias) =>
+      mentionsName(text, alias, sport),
+    );
+  }
+  if (key === "MMA") {
+    return mmaFighterAliases(team).some((alias) =>
       mentionsName(text, alias, sport),
     );
   }
@@ -330,11 +337,12 @@ export function findGame(
           : null;
     const sameSlot = sameBoundFixtureWindow(play, bySport);
     if (fixture) {
-      return sole(
+      const bound = sole(
         sameSlot.filter((game) =>
           teamsAreOpponents(fixture.a, fixture.b, game),
         ),
       );
+      if (bound) return bound;
     }
 
     const namedTeam = sameSlot.filter((game) => {
