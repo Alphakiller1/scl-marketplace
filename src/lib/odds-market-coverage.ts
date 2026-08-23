@@ -27,6 +27,9 @@ function requestsTeamTotals(sport: string): boolean {
 const PROP_LABELS = new Set(
   Object.values(PROP_MARKET_LABEL).map((label) => label.toLowerCase()),
 );
+/** The featured team-total market prices one line per club — no more. */
+const FEATURED_TEAM_TOTAL_LINES = 2;
+
 const HALF_SPORTS = new Set(["CFL", "NFL", "NCAAF", "NBA", "NCAAB", "WNBA"]);
 
 export type EventMarketCoverage = {
@@ -44,6 +47,9 @@ export type EventMarketCoverage = {
   alternateSpreads: number;
   alternateTotals: number;
   teamTotals: number;
+  /** Distinct team-total LINES. The featured market yields at most one per
+   *  club, so anything above that is the alternate ladder. */
+  teamTotalLines: number;
   f3: number;
   f5: number;
   f7: number;
@@ -66,6 +72,7 @@ export function summarizeEventMarketCoverage(
   let alternateSpreads = 0;
   let alternateTotals = 0;
   let teamTotals = 0;
+  const teamTotalLines = new Set<number>();
   let f3 = 0;
   let f5 = 0;
   let f7 = 0;
@@ -89,7 +96,11 @@ export function summarizeEventMarketCoverage(
       if (selection.market === "Spread") alternateSpreads++;
       if (selection.market === "Total") alternateTotals++;
     }
-    if (isTeamTotalMarket(selection.market)) teamTotals++;
+    if (isTeamTotalMarket(selection.market)) {
+      teamTotals++;
+      if (typeof selection.line === "number")
+        teamTotalLines.add(selection.line);
+    }
     if (period?.innings === 3) f3++;
     if (period?.innings === 5) f5++;
     if (period?.innings === 7) f7++;
@@ -122,8 +133,21 @@ export function summarizeEventMarketCoverage(
   // warmer never returned to fill them. Every other expanded market has a rule
   // here; team totals were the one gap, which made them the one market that
   // could stay permanently thin no matter how often the refresh ran.
-  if (requestsTeamTotals(sport) && teamTotals === 0) {
-    missing.push("team totals");
+  if (requestsTeamTotals(sport)) {
+    if (teamTotals === 0) {
+      missing.push("team totals");
+    } else if (teamTotalLines.size <= FEATURED_TEAM_TOTAL_LINES) {
+      // Counting team totals as present the moment ONE exists is what hid
+      // this: the featured `team_totals` market returns a single line per
+      // club, so a game with four selections and no ladder at all read as
+      // fully covered. `skipPopulated` then skipped it on every later run,
+      // so the alternate rungs never arrived even once books posted them —
+      // ten of fifteen MLB games sat that way while four had thirteen lines.
+      //
+      // Two lines is the most the featured market can produce (one per
+      // club), so at or below it the alternate ladder is absent, not thin.
+      missing.push("alternate team totals");
+    }
   }
   if (sport === "MLB") {
     if (f3 === 0) missing.push("F3");
@@ -147,6 +171,7 @@ export function summarizeEventMarketCoverage(
     alternateSpreads,
     alternateTotals,
     teamTotals,
+    teamTotalLines: teamTotalLines.size,
     f3,
     f5,
     f7,
