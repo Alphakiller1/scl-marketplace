@@ -42,6 +42,11 @@ on:
         required: false
         default: ""
         type: string
+      skip_populated:
+        description: "Skip events whose board already reads as covered. Turn off to force a full re-fetch — coverage calls a four-row team total covered, so a thin board is never repaired while this is on."
+        required: false
+        default: true
+        type: boolean
       surface:
         description: "Refresh surface boards before expanding"
         required: false
@@ -75,7 +80,7 @@ jobs:
           EXPANDED: ${{ github.event.client_payload.expanded || github.event.inputs.expanded || '99' }}
           EXPANDED_DAYS: ${{ github.event.client_payload.expanded_days || github.event.inputs.expanded_days || 'today' }}
           SURFACE: ${{ github.event.client_payload.surface || '1' }}
-          SKIP_POPULATED: ${{ github.event.client_payload.skipPopulated || '1' }}
+          SKIP_POPULATED: ${{ github.event.client_payload.skipPopulated || (inputs.skip_populated && '1' || '0') }}
           EXPANDED_ORDER: ${{ github.event.client_payload.expandedOrder || 'MLB,WNBA,TENNIS' }}
           MARKETS: ${{ github.event.client_payload.markets || github.event.inputs.markets }}
         run: |
