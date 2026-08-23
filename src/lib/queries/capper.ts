@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { Outcome } from "@prisma/client";
 import { cache } from "react";
 
 import { cachedQuery } from "@/lib/cached-query";
@@ -8,8 +9,9 @@ import { UNIT_MIN } from "@/lib/constants";
 import { withTransientDatabaseRetry } from "@/lib/database-retry";
 import { stakeFromStored } from "@/lib/extreme-stake";
 import {
+  assembleLegacySportTable,
+  filterPlaysAfterLegacySnapshot,
   mergeCareerSportRecords,
-  sortLegacySportRecords,
   type LegacySportRecordView,
 } from "@/lib/legacy-sport-records";
 import type { CapperSummary } from "@/lib/mock";
@@ -23,18 +25,16 @@ import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 import { publicPickEmbargoState } from "@/lib/public-pick-embargo";
 import { getPublicCapperEvidenceByIds } from "@/lib/queries/leaderboard";
 import type { PlayView } from "@/lib/queries/plays";
+import { computeStatsBySport } from "@/lib/stats";
 import {
   hasClvColumns,
   hasNotesPublicColumn,
 } from "@/lib/results/schema-features";
 import {
-  allTimeLegacyRecordWhere,
-  collapseLegacyRecordsBySport,
-  normalizeLegacyAggregateRow,
-  statsBaselineFromLegacyRows,
+  getAllTimeLegacyBaseline,
+  profileLegacyRecordWhere,
 } from "@/lib/legacy-all-time";
 import { resolveLegacyHandleAlias } from "@/lib/legacy-handle-aliases";
-import { LEGACY_RECORD_ALL_SPORTS } from "@/lib/schemas/legacy-records.schema";
 
 export type PublicCapper = {
   capper: CapperSummary;
@@ -45,7 +45,7 @@ export type PublicCapper = {
   chartSeries?: ProfileChartSeries;
   chartSeriesBySport: Record<string, ProfileChartSeries>;
   historyNextCursor: string | null;
-  /** Career by sport: all-time legacy per sport + SCL-logged positions. */
+  /** Career by sport: old-site year pages + plays logged after the export. */
   legacyBySport: LegacySportRecordView[];
 };
 
@@ -333,18 +333,20 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
       select: { clvPts: true, notes: true },
     });
   });
-  // Per-sport all-time carry: PRE_IMPORT plus prior years (ALL excluded
-  // in the sort helper after same-sport rows are collapsed).
+  // Sport table: CURRENT_YEAR + prior years. Headline carry still comes
+  // from getPublicCapperEvidenceByIds (PRE_IMPORT + years).
   const legacyResult = await settle("public profile legacy records", () =>
     prisma.legacyRecord.findMany({
-      where: { capperId: capper.id, ...allTimeLegacyRecordWhere },
+      where: { capperId: capper.id, ...profileLegacyRecordWhere },
       select: {
+        scope: true,
         sport: true,
         wins: true,
         losses: true,
         pushes: true,
         unitsRisked: true,
         unitsNet: true,
+        capturedAt: true,
       },
     }),
   );
@@ -360,6 +362,13 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
     playsError = true;
   }
 
+  let chartRows: {
+    createdAt: Date;
+    outcome: Outcome;
+    profitUnits: number | null;
+    units: number;
+    sport: string;
+  }[] = [];
   if (chartResult.status === "fulfilled") {
     const [straightRows, parlayRows] = chartResult.value;
     const straightChart = straightRows
@@ -384,7 +393,7 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
         sport: row.legs[0]?.sport ?? "MULTI",
       };
     });
-    const chartRows = [...straightChart, ...parlayChart].sort(
+    chartRows = [...straightChart, ...parlayChart].sort(
       (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
     );
     const chartNow = new Date();
@@ -430,41 +439,28 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
     );
   }
 
-  const legacyRows =
+  const assembled =
     legacyResult.status === "fulfilled"
-      ? collapseLegacyRecordsBySport(
-          legacyResult.value.map((row) =>
-            normalizeLegacyAggregateRow({
-              sport: row.sport,
-              wins: row.wins,
-              losses: row.losses,
-              pushes: row.pushes,
-              unitsRisked: row.unitsRisked,
-              unitsNet: row.unitsNet,
-            }),
-          ),
-        ).map((row) => ({
-          sport: row.sport ?? LEGACY_RECORD_ALL_SPORTS,
-          wins: row.wins,
-          losses: row.losses,
-          pushes: row.pushes,
-          unitsRisked: row.unitsRisked,
-          unitsNet: row.unitsNet,
-        }))
-      : [];
+      ? assembleLegacySportTable(legacyResult.value)
+      : { bySport: [], capturedAt: null };
   if (legacyResult.status === "rejected") {
     console.error(
       "[getPublicCapperByHandle] legacy sport records unavailable:",
       legacyResult.reason,
     );
   }
-  const combined = legacyRows.find(
-    (row) => row.sport === LEGACY_RECORD_ALL_SPORTS,
-  );
+  const sclForTable = assembled.capturedAt
+    ? computeStatsBySport(
+        filterPlaysAfterLegacySnapshot(chartRows, assembled.capturedAt),
+      )
+    : sclBySport;
   legacyBySport = mergeCareerSportRecords({
-    legacyBySport: sortLegacySportRecords(legacyRows),
-    allBaseline: combined ? statsBaselineFromLegacyRows([combined]) : null,
-    sclBySport,
+    legacyBySport: assembled.bySport,
+    allBaseline:
+      assembled.capturedAt || legacyResult.status !== "fulfilled"
+        ? null
+        : getAllTimeLegacyBaseline(legacyResult.value),
+    sclBySport: sclForTable,
   });
 
   return {
@@ -501,7 +497,7 @@ const getCachedPublicCapperByHandle = cachedQuery(
   async (handle: string) => loadPublicCapperByHandle(handle),
   // v2 intentionally abandons partial profile payloads cached before metadata
   // stopped launching a competing full hydration on cold requests.
-  ["public-capper-by-handle-v5"],
+  ["public-capper-by-handle-v6"],
   { revalidate: 60, tags: ["leaderboard"] },
 );
 

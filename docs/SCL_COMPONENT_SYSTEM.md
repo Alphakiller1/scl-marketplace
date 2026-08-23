@@ -74,9 +74,10 @@ Numbers are the product. These render performance consistently everywhere.
 - `SectionHeader` (`section.tsx`) — titled section with optional "view all".
 - `CapperProfileHeader` — cover-led public identity, trust, specialties, socials, and profile actions.
 - `LegacySportBreakdown` — career record by sport on public profiles and the
-  capper dashboard (PRE_IMPORT totals plus SCL-logged positions, sortable by
-  units/ROI/win%/sample; desktop table + mobile cards; sport name next to the
-  mark). The sample is built to match Evidence Brief.
+  capper dashboard (old-site `CURRENT_YEAR` plus prior-year pages, then plays
+  logged after the export; sortable by units/ROI/win%/sample; desktop table +
+  mobile cards; sport name next to the mark). A year ALL with no sport
+  breakdown is labeled 2025/2024, not Other.
 - `CapperStorefront` — public storefront identity, third-party commerce disclosure, and honest
   pre-package empty state.
 - `PerformanceSummary` — record, win rate, units, ROI, streak, and recent form.

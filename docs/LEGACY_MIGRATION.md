@@ -118,6 +118,16 @@ and/or the imported plays, and an all-sports headline cannot coherently add
 "current season" figures when NFL, NBA, MLB, and the other sports all have
 different season boundaries.
 
+**The career-by-sport table reads `CURRENT_YEAR` plus those same prior years,
+not `PRE_IMPORT`.** `CURRENT_YEAR` is the old site's year-to-date page — the
+imported slips are already inside it. Adding those `Play` rows on top was
+turning a leftover residual (and any year-ALL with no per-sport rows) into a
+fake "Other" bucket. A prior-year ALL with no sport breakdown is labeled
+**2025** / **2024**. Other is only the leftover of `CURRENT_YEAR` ALL minus
+that year's named sports. Plays logged after the export snapshot still add
+on top. Sport-filtered all-time leaderboards use the same year-page counters
+so a profile NFL line and the NFL board agree.
+
 Where it applies:
 
 - **All-time** leaderboard, public profile, and Discover's base summary — yes.

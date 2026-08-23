@@ -5,17 +5,14 @@ import type { Outcome } from "@prisma/client";
 import { withTransientDatabaseRetry } from "@/lib/database-retry";
 import { prisma } from "@/lib/prisma";
 import {
-  sortLegacySportRecords,
+  assembleLegacySportTable,
   type LegacySportRecordView,
 } from "@/lib/legacy-sport-records";
 import { stakeFromStored } from "@/lib/extreme-stake";
 import {
-  allTimeLegacyRecordWhere,
-  collapseLegacyRecordsBySport,
-  normalizeLegacyAggregateRow,
-  statsBaselineFromLegacyRows,
+  getAllTimeLegacyBaseline,
+  profileLegacyRecordWhere,
 } from "@/lib/legacy-all-time";
-import { LEGACY_RECORD_ALL_SPORTS } from "@/lib/schemas/legacy-records.schema";
 import type { StatsBaseline } from "@/lib/stats";
 import type { CapperSummary, TodayPick } from "@/lib/mock";
 import {
@@ -117,8 +114,10 @@ export function mergeRecordEntries(
 export type CapperLegacyRecords = {
   /** Combined all-time carry, ready to hand to computeCapperStats. */
   baseline: StatsBaseline | null;
-  /** Per-sport all-time rows for the dashboard's By Sport table. */
+  /** Per-sport table from the old site's year pages, not PRE_IMPORT leftovers. */
   bySport: LegacySportRecordView[];
+  /** Export instant; imported slips at or before this are already in bySport. */
+  capturedAt: Date | null;
 };
 
 /**
@@ -129,54 +128,41 @@ export type CapperLegacyRecords = {
  * dashboard and a different one on their public profile — 518 graded against
  * 1,946 for the capper who reported it. Same numbers, same source, both places.
  *
- * All-time carry: `PRE_IMPORT` (current year minus imported receipts) plus
- * prior complete years. Trailing windows, seasons, and `CURRENT_YEAR` overlap
- * those rows — summing them would double-count. One capper still carries ~60
- * of those overlapping rows; they stay stored and unused for standings.
+ * Headline carry: `PRE_IMPORT` (current year minus imported receipts) plus
+ * prior complete years. The by-sport table reads `CURRENT_YEAR` plus those
+ * years so NFL matches the old site's year page instead of the leftover after
+ * imported slips. Trailing windows and seasons stay out of both.
  */
 export async function getCapperLegacyRecords(
   userId: string,
 ): Promise<CapperLegacyRecords> {
+  const empty = { baseline: null, bySport: [], capturedAt: null };
   const profile = await prisma.capperProfile.findUnique({
     where: { userId },
     select: { id: true },
   });
-  if (!profile) return { baseline: null, bySport: [] };
+  if (!profile) return empty;
 
   const rows = await prisma.legacyRecord.findMany({
-    where: { capperId: profile.id, ...allTimeLegacyRecordWhere },
+    where: { capperId: profile.id, ...profileLegacyRecordWhere },
     select: {
+      scope: true,
       sport: true,
       wins: true,
       losses: true,
       pushes: true,
       unitsRisked: true,
       unitsNet: true,
+      capturedAt: true,
     },
   });
-  if (rows.length === 0) return { baseline: null, bySport: [] };
+  if (rows.length === 0) return empty;
 
-  const normalized = collapseLegacyRecordsBySport(
-    rows.map(normalizeLegacyAggregateRow),
-  );
-
-  const combined = normalized.find(
-    (row) => row.sport === LEGACY_RECORD_ALL_SPORTS,
-  );
-
+  const assembled = assembleLegacySportTable(rows);
   return {
-    baseline: combined ? statsBaselineFromLegacyRows([combined]) : null,
-    // sortLegacySportRecords drops the ALL sentinel and any empty row.
-    bySport: sortLegacySportRecords(
-      normalized.map((row) => ({
-        sport: row.sport ?? LEGACY_RECORD_ALL_SPORTS,
-        wins: row.wins,
-        losses: row.losses,
-        pushes: row.pushes,
-        unitsRisked: row.unitsRisked,
-        unitsNet: row.unitsNet,
-      })),
-    ),
+    baseline: getAllTimeLegacyBaseline(rows),
+    bySport: assembled.bySport,
+    capturedAt: assembled.capturedAt,
   };
 }
 
