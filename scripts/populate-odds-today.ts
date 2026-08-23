@@ -24,6 +24,15 @@
  * EXPANDED=<n>       max events to expand per sport (default 99)
  * EXPANDED_DAYS=<csv> ET slate days to expand: today,tomorrow (default tomorrow)
  * SPORTS=MLB,WNBA…   restrict the surface pass (default all)
+ * MARKETS=<csv>      fetch only these event markets instead of the sport's full
+ *                    expanded list. Cost is one credit per market per event, so a
+ *                    targeted top-up (`alternate_team_totals`) is 1 credit an
+ *                    event where a whole MLB board is 44 — which is what makes a
+ *                    nearly spent key still able to add a market. Merged into the
+ *                    stored board, never written over it.
+ * SURFACE=0          skip the billed surface pass and take the event list from the
+ *                    free `/events` endpoint. No surface board is written, so a
+ *                    top-up cannot overwrite one with selection-less events.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -34,7 +43,9 @@ import {
   normalizeUpcomingEvent,
   sortByKickoff,
   type OddsEvent,
+  type OddsSelection,
 } from "@/lib/odds-board";
+import { mergeEventBoardSelections } from "@/lib/odds-event-board-contract";
 import { expandedBoardMarkets } from "@/lib/odds-verify";
 import {
   selectLeaguesWithFixtures,
@@ -66,6 +77,11 @@ const EXPANDED_DAYS = parseExpandedSlateDays(
   process.env.EXPANDED_DAYS ?? "tomorrow",
 );
 const WRITE_DB = process.env.WRITE_DB === "1";
+const MARKET_OVERRIDE = (process.env.MARKETS ?? "")
+  .split(",")
+  .map((market) => market.trim())
+  .filter(Boolean);
+const REFRESH_SURFACE = process.env.SURFACE !== "0";
 const ONLY = (process.env.SPORTS ?? "")
   .split(",")
   .map((s) => s.trim().toUpperCase())
@@ -186,6 +202,55 @@ async function surface(sclSport: string, apiSport: string, league?: string) {
   return events;
 }
 
+/**
+ * The slate without paying for it — `/events` is unbilled and carries the ids,
+ * kickoffs and clubs an expanded fetch needs. Selections are deliberately empty:
+ * these rows exist to be expanded, never to be written as a board.
+ */
+async function freeEventList(
+  sclSport: string,
+  apiSport: string,
+  league?: string,
+): Promise<OddsEvent[]> {
+  const rows = (await freeApi(`/v4/sports/${apiSport}/events`)) as
+    | {
+        id?: string;
+        commence_time?: string;
+        home_team?: string;
+        away_team?: string;
+      }[]
+    | null;
+  if (!Array.isArray(rows)) return [];
+  const events = rows
+    .filter(
+      (row): row is { id: string; commence_time: string } & typeof row =>
+        Boolean(row.id) && Date.parse(row.commence_time ?? "") > Date.now(),
+    )
+    .map((row) => ({
+      id: row.id,
+      sport: sclSport.toUpperCase(),
+      ...(league ? { league } : {}),
+      commenceTime: row.commence_time,
+      home: row.home_team ?? "",
+      away: row.away_team ?? "",
+      selections: [],
+    }));
+  console.log(
+    `  ${apiSport.padEnd(38)} events=${String(events.length).padStart(3)} (free listing)`,
+  );
+  return events;
+}
+
+/** Surface board when the pass is billed; the free listing when it is skipped. */
+async function slateEvents(
+  sclSport: string,
+  apiSport: string,
+  league?: string,
+): Promise<OddsEvent[]> {
+  if (!REFRESH_SURFACE) return freeEventList(sclSport, apiSport, league);
+  return (await surface(sclSport, apiSport, league)) ?? [];
+}
+
 function pushBoard(sclSport: string, events: OddsEvent[], cap: number) {
   const ordered = sortByKickoff(dedupeOddsEvents(events)).slice(0, cap);
   if (ordered.length === 0) {
@@ -223,14 +288,16 @@ async function main() {
   let tennis: OddsEvent[] = [];
 
   if (wanted("MLB")) {
-    const events = await surface("MLB", "baseball_mlb");
-    if (events) mlb = pushBoard("MLB", events, BOARD_CAP);
+    const events = await slateEvents("MLB", "baseball_mlb");
+    mlb = REFRESH_SURFACE ? pushBoard("MLB", events, BOARD_CAP) : events;
   }
   if (wanted("WNBA")) {
-    const events = await surface("WNBA", "basketball_wnba");
-    if (events) wnba = pushBoard("WNBA", events, BOARD_CAP);
+    const events = await slateEvents("WNBA", "basketball_wnba");
+    wnba = REFRESH_SURFACE ? pushBoard("WNBA", events, BOARD_CAP) : events;
   }
-  if (wanted("NFL")) {
+  // Football and soccer are surface-only — no expanded markets — so a run that
+  // skips the surface pass has nothing to do for them.
+  if (wanted("NFL") && REFRESH_SURFACE) {
     // Preseason carries its own league tag so a pick logged there resolves back
     // to the preseason sport key at verification time.
     const regular = await surface("NFL", "americanfootball_nfl");
@@ -277,13 +344,11 @@ async function main() {
       `  tennis slate: ${tours.map((tour) => tour.key).join(", ")} (from ${candidates.length} in season)`,
     );
     for (const tour of tours) {
-      events.push(
-        ...((await surface("TENNIS", tour.oddsApiKey, tour.key)) ?? []),
-      );
+      events.push(...(await slateEvents("TENNIS", tour.oddsApiKey, tour.key)));
     }
-    tennis = pushBoard("TENNIS", events, BOARD_CAP);
+    tennis = REFRESH_SURFACE ? pushBoard("TENNIS", events, BOARD_CAP) : events;
   }
-  if (wanted("SOCCER")) {
+  if (wanted("SOCCER") && REFRESH_SURFACE) {
     const events: OddsEvent[] = [];
     for (const league of await soccerLeaguesForBoard(catalog)) {
       events.push(
@@ -322,7 +387,10 @@ async function main() {
   ] as const) {
     const expandedEvents = selectExpandedSlateEvents(events, EXPANDED_DAYS);
     if (!expandedEvents.length) continue;
-    const markets = expandedBoardMarkets(sclSport);
+    const markets = MARKET_OVERRIDE.length
+      ? MARKET_OVERRIDE
+      : expandedBoardMarkets(sclSport);
+    if (!markets.length) continue;
     console.log(
       `  ${sclSport}: ${markets.length} markets/event x ${expandedEvents.length} ${EXPANDED_DAYS.join("+")} events = ${markets.length * expandedEvents.length} credits for the expanded slate`,
     );
@@ -375,21 +443,35 @@ async function main() {
   const prisma = new PrismaClient();
   try {
     for (const snapshot of snapshots) {
+      const prior = await prisma.oddsCacheSnapshot.findUnique({
+        where: { key: snapshot.key },
+        select: { payload: true },
+      });
+      const priorPayload =
+        prior?.payload && typeof prior.payload === "object"
+          ? (prior.payload as Record<string, unknown>)
+          : null;
       if (snapshot.key.startsWith("board:v1:")) {
-        const prior = await prisma.oddsCacheSnapshot.findUnique({
-          where: { key: snapshot.key },
-          select: { payload: true },
-        });
-        const priorEvents =
-          prior?.payload &&
-          typeof prior.payload === "object" &&
-          "events" in prior.payload &&
-          Array.isArray(prior.payload.events)
-            ? (prior.payload.events as unknown as OddsEvent[])
-            : [];
+        const priorEvents = Array.isArray(priorPayload?.events)
+          ? (priorPayload.events as unknown as OddsEvent[])
+          : [];
         snapshot.payload.events = mergeLastGoodBoardEvents(
           snapshot.payload.events as unknown as OddsEvent[],
           priorEvents,
+        );
+      }
+      if (snapshot.key.startsWith("event-board:v1:")) {
+        // Merge, never replace — the same contract `refreshEventBoard` applies
+        // on the live path. A plain upsert was fine while every run asked for
+        // the sport's whole market list, but it makes a targeted MARKETS top-up
+        // destructive: writing 48 alternate team totals over a 590-selection
+        // board would delete every prop, segment and alternate line on it.
+        const priorSelections = Array.isArray(priorPayload?.selections)
+          ? (priorPayload.selections as unknown as OddsSelection[])
+          : [];
+        snapshot.payload.selections = mergeEventBoardSelections(
+          priorSelections,
+          snapshot.payload.selections as unknown as OddsSelection[],
         );
       }
       const savedAt = new Date(snapshot.payload.savedAt as number);
