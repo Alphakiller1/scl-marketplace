@@ -5,6 +5,7 @@ import {
   yyyymmddUtc,
 } from "@/lib/results/espn-scoreboard-map";
 import { espnSoccerLeagueSlug } from "@/lib/results/espn-soccer-leagues";
+import { mapEspnTennisScoreboard } from "@/lib/results/espn-tennis-map";
 import type { SettledGame } from "@/lib/results/settled-game";
 
 /** Days of ESPN scoreboard history to pull when Odds API lookback is exhausted. */
@@ -30,6 +31,9 @@ const ESPN_SPORT_PATH: Record<string, { sport: string; league: string }> = {
   CFL: { sport: "football", league: "cfl" },
   MMA: { sport: "mma", league: "ufc" },
 };
+
+/** Current ATP / WTA tournament cards — matches live under groupings. */
+const ESPN_TENNIS_TOURS = ["atp", "wta"] as const;
 
 async function fetchEspnScoreboardDay(
   sclSport: string,
@@ -64,6 +68,27 @@ async function fetchEspnScoreboardDay(
     );
   } catch (err) {
     console.error(`[results] espn scoreboard ${sclSport} ${yyyymmdd}:`, err);
+    return [];
+  }
+}
+
+async function fetchEspnTennisTour(tour: string): Promise<SettledGame[]> {
+  const url = `https://site.api.espn.com/apis/site/v2/sports/tennis/${tour}/scoreboard`;
+  try {
+    const res = await fetch(url, {
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) {
+      console.error(`[results] espn tennis ${tour} HTTP ${res.status}`);
+      return [];
+    }
+    const json = (await res.json()) as Parameters<
+      typeof mapEspnTennisScoreboard
+    >[0];
+    return mapEspnTennisScoreboard(json);
+  } catch (err) {
+    console.error(`[results] espn tennis ${tour}:`, err);
     return [];
   }
 }
@@ -111,6 +136,13 @@ export function espnHistoricalResultsProvider(
           ? soccerLeagues.flatMap((league) =>
               dates.map((day) => fetchEspnScoreboardDay("SOCCER", day, league)),
             )
+          : []),
+        // Tennis is not in ESPN_SPORT_PATH: the dated league scoreboard is a
+        // tournament card. One current ATP + WTA fetch already includes every
+        // completed match on those events (Fils/Cobolli SF was on the undated
+        // Cincinnati card). League tags are not required — unlike Odds API.
+        ...(distinct.includes("TENNIS")
+          ? ESPN_TENNIS_TOURS.map((tour) => fetchEspnTennisTour(tour))
           : []),
       ];
       if (requests.length === 0) return [];

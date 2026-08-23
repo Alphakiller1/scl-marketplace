@@ -334,9 +334,11 @@ export function compositeResultsProvider(
  * Sports whose free scoreboards cannot cover the whole board. Grading uses the
  * Odds API **scores** endpoint only — never pricing / expanded boards.
  *
- * ESPN maps UFC cards (14d) but not PFL/Bellator. Tennis has no ESPN path.
- * ESPN's CFL calendar is stale; Odds API covers 3 days and CFL.ca covers the
- * season. Dropping this layer (PR #550) left every UFC moneyline PENDING forever.
+ * ESPN maps UFC cards (14d) but not PFL/Bellator. Tennis now has a free ATP/WTA
+ * scoreboard backstop (matches live under tournament groupings); Odds API still
+ * covers challengers ESPN drops. ESPN's CFL calendar is stale; Odds API covers
+ * 3 days and CFL.ca covers the season. Dropping this layer (PR #550) left every
+ * UFC moneyline PENDING forever.
  */
 export const ODDS_SCORES_ONLY_SPORTS = ["MMA", "TENNIS", "CFL"] as const;
 

@@ -123,9 +123,11 @@ function competitionCompleted(
   );
 }
 
+export type EspnScoreboardPayload = { events?: EspnEvent[] };
+
 export function mapEspnScoreboard(
   sclSport: string,
-  payload: { events?: EspnEvent[] },
+  payload: EspnScoreboardPayload,
 ): SettledGame[] {
   const out: SettledGame[] = [];
   for (const event of payload.events ?? []) {
