@@ -989,9 +989,20 @@ export async function fetchLiveLine(params: {
 export async function fetchEventBoard(
   sclSport: string,
   eventId: string,
-  opts?: OddsBoardOpts & { league?: string | null },
+  opts?: OddsBoardOpts & {
+    league?: string | null;
+    markets?: readonly string[];
+  },
 ): Promise<OddsSelection[]> {
-  const markets = expandedBoardMarkets(sclSport);
+  // A caller may ask for a subset. Books publish the alternate ladders only a
+  // few hours before first pitch, so the market a board is missing is usually
+  // one market, and re-billing the sport's whole list (44 on MLB) to collect it
+  // is what puts the top-up out of reach of a key that already paid for the
+  // slate. One market is one credit. Merging is what makes it safe: the caller
+  // below folds the response into the stored board rather than over it.
+  const markets = opts?.markets?.length
+    ? [...opts.markets]
+    : expandedBoardMarkets(sclSport);
   if (markets.length === 0) return [];
   const event = await fetchEventOddsForVerification(sclSport, eventId, {
     ...opts,

@@ -38,7 +38,7 @@ on:
         default: "20"
         type: string
       markets:
-        description: "Top up only these event markets (e.g. alternate_team_totals) instead of the full expanded board. One credit per market per event."
+        description: "Top up only these event markets (e.g. alternate_team_totals) instead of the whole expanded board. One credit per market per event."
         required: false
         default: ""
         type: string
@@ -54,14 +54,14 @@ concurrency:
 
 jobs:
   populate-temp-key:
-    if: github.event_name == 'repository_dispatch' || (github.event_name == 'workflow_dispatch' && inputs.odds_key != '' && inputs.markets == '')
+    if: github.event_name == 'repository_dispatch' || (github.event_name == 'workflow_dispatch' && inputs.odds_key != '')
     runs-on: ubuntu-latest
     environment: Production
     timeout-minutes: 15
     steps:
-      # Through env, not interpolated into the command: the runner echoes every
-      # command it runs, so an inlined key is printed in full BEFORE the mask
-      # that is meant to hide it exists.
+      # Through env, never interpolated into the command: the runner echoes each
+      # command before running it, so an inlined key is printed in full one line
+      # above the mask that exists to hide it.
       - name: Mask the key
         env:
           ODDS_KEY: ${{ github.event.client_payload.odds_key || github.event.inputs.odds_key }}
@@ -77,6 +77,7 @@ jobs:
           SURFACE: ${{ github.event.client_payload.surface || '1' }}
           SKIP_POPULATED: ${{ github.event.client_payload.skipPopulated || '1' }}
           EXPANDED_ORDER: ${{ github.event.client_payload.expandedOrder || 'MLB,WNBA,TENNIS' }}
+          MARKETS: ${{ github.event.client_payload.markets || github.event.inputs.markets }}
         run: |
           if [ -z "$CRON_SECRET" ]; then
             echo "::error::CRON_SECRET is not configured. No odds credits were spent."
@@ -89,11 +90,12 @@ jobs:
           encoded_sports=$(jq -rn --arg value "$SPORTS" '$value|@uri')
           encoded_days=$(jq -rn --arg value "$EXPANDED_DAYS" '$value|@uri')
           encoded_order=$(jq -rn --arg value "$EXPANDED_ORDER" '$value|@uri')
+          encoded_markets=$(jq -rn --arg value "${MARKETS:-}" '$value|@uri')
           curl --fail --silent --show-error \
             --header "Authorization: Bearer $CRON_SECRET" \
             --header "x-scl-odds-key: $ODDS_KEY" \
             --request POST \
-            "https://sportscappersleaderboard.com/api/cron/odds-populate?sports=${encoded_sports}&expanded=${EXPANDED}&expandedDays=${encoded_days}&surface=${SURFACE}&skipPopulated=${SKIP_POPULATED}&expandedOrder=${encoded_order}" \
+            "https://sportscappersleaderboard.com/api/cron/odds-populate?sports=${encoded_sports}&expanded=${EXPANDED}&expandedDays=${encoded_days}&surface=${SURFACE}&skipPopulated=${SKIP_POPULATED}&expandedOrder=${encoded_order}&markets=${encoded_markets}" \
             --output /tmp/populate.json
           jq . /tmp/populate.json
           # Match the route: only require a sport's surface when that sport was requested.
@@ -118,76 +120,8 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-  # A market top-up, not a board rebuild. Books post the alternate ladders
-  # (team totals especially) only a few hours before first pitch, so the
-  # overnight populate writes a board whose featured lines are complete and
-  # whose ladders are simply not published yet. Re-running the whole expanded
-  # board to collect them costs 44 credits an event; asking for the one market
-  # costs 1, which is the difference between affordable and not on a key that
-  # has already paid for the slate. Writes through the script rather than the
-  # signed route because the route has no market override — and because the
-  # script merges into the stored board, so the top-up adds rows instead of
-  # replacing 590 of them.
-  top-up-markets:
-    if: github.event_name == 'workflow_dispatch' && inputs.markets != '' && inputs.odds_key != ''
-    runs-on: ubuntu-latest
-    environment: Production
-    timeout-minutes: 20
-    steps:
-      - name: Mask the key
-        env:
-          ODDS_KEY: ${{ inputs.odds_key }}
-        run: echo "::add-mask::$ODDS_KEY"
-
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-
-      # Before the first billed call: a run that cannot write is a run that
-      # spends the key and throws the answer away.
-      - name: Resolve DATABASE_URL
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DIRECT_URL: ${{ secrets.DIRECT_URL }}
-        run: |
-          if [ -z "$DATABASE_URL" ]; then
-            echo "::error::No DATABASE_URL in the Production environment. No odds credits were spent."
-            exit 1
-          fi
-          {
-            echo "DATABASE_URL=$DATABASE_URL"
-            [ -n "$DIRECT_URL" ] && echo "DIRECT_URL=$DIRECT_URL"
-          } >> "$GITHUB_ENV"
-
-      - name: Top up the requested markets
-        env:
-          ODDS_KEY: ${{ inputs.odds_key }}
-          WRITE_DB: "1"
-          MARKETS: ${{ inputs.markets }}
-          SPORTS: ${{ inputs.sports }}
-          EXPANDED: ${{ inputs.expanded }}
-          EXPANDED_DAYS: ${{ inputs.expanded_days }}
-          BUDGET_FLOOR: ${{ inputs.budget_floor }}
-          # A top-up never rewrites surface boards: it reads the slate from the
-          # free /events endpoint so every credit goes to the market asked for.
-          SURFACE: "0"
-        run: npx tsx scripts/populate-odds-today.ts | tee /tmp/topup.log
-
-      - name: Summary
-        if: always()
-        run: |
-          {
-            echo "### Odds market top-up (${{ inputs.markets }})"
-            echo '```'
-            tail -40 /tmp/topup.log 2>/dev/null || echo "run did not complete"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-
   populate:
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.odds_key == '' && inputs.markets == '')
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.odds_key == '')
     runs-on: ubuntu-latest
     environment: Production
     timeout-minutes: 10

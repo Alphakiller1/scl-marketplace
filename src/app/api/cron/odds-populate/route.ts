@@ -127,10 +127,27 @@ async function runPopulate(req: NextRequest) {
   const expandedDays = parseExpandedSlateDays(
     req.nextUrl.searchParams.get("expandedDays") ?? "tomorrow",
   );
+  // A market top-up: fetch only these and merge them into the stored board.
+  // Books post the alternate ladders a few hours before first pitch, so the
+  // overnight populate writes a board that is complete except for them, and
+  // re-billing the sport's whole list to collect one market (44 credits an
+  // event on MLB against 1) is what a key that already paid for the slate
+  // cannot afford.
+  const marketOverride = (req.nextUrl.searchParams.get("markets") ?? "")
+    .split(",")
+    .map((market) => market.trim())
+    .filter(Boolean);
   const refreshSurface = req.nextUrl.searchParams.get("surface") !== "0";
   // Default on: a top-up key should fill missing expanded boards, not rebill
   // the ones already cached. Pass skipPopulated=0 to force a full re-fetch.
-  const skipPopulated = req.nextUrl.searchParams.get("skipPopulated") !== "0";
+  //
+  // A market override never skips: coverage asks whether a market is present at
+  // all, and the board this is meant to repair passes that test — four team
+  // totals where the book prices forty read as covered, which would skip every
+  // event and make the top-up a no-op.
+  const skipPopulated =
+    marketOverride.length === 0 &&
+    req.nextUrl.searchParams.get("skipPopulated") !== "0";
   const expandedOrder = parseExpandedSportOrder(
     req.nextUrl.searchParams.get("expandedOrder"),
     sports,
@@ -161,13 +178,20 @@ async function runPopulate(req: NextRequest) {
     }));
     for (let index = 0; index < slates.length; index += 1) {
       const { sport, events } = slates[index]!;
-      const laterCredits = laterExpandedCreditReserve(
-        slates.slice(index + 1).map((row) => ({
-          sport: row.sport,
-          events: row.events.length,
-        })),
-      );
-      const nextCost = expandedEventCreditCost(sport);
+      const laterCredits = marketOverride.length
+        ? slates
+            .slice(index + 1)
+            .reduce(
+              (sum, row) => sum + row.events.length * marketOverride.length,
+              0,
+            )
+        : laterExpandedCreditReserve(
+            slates.slice(index + 1).map((row) => ({
+              sport: row.sport,
+              events: row.events.length,
+            })),
+          );
+      const nextCost = marketOverride.length || expandedEventCreditCost(sport);
       let populated = 0;
       let skipped = 0;
       let fetched = 0;
@@ -206,6 +230,7 @@ async function runPopulate(req: NextRequest) {
         const board = await loadEventBoard(sport, event.id, {
           forceRefresh: true,
           league: event.league,
+          ...(marketOverride.length ? { markets: marketOverride } : {}),
         });
         if (board.selections.length > 0) populated += 1;
         selections += board.selections.length;
@@ -234,6 +259,7 @@ async function runPopulate(req: NextRequest) {
     sports,
     expandedDays,
     expandedOrder,
+    ...(marketOverride.length ? { markets: marketOverride } : {}),
     refreshSurface,
     skipPopulated,
     surface,

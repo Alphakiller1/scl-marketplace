@@ -28,10 +28,16 @@ test("manual temp-key population sends the key to the signed route and never sto
   assert.match(workflow, /repository_dispatch:/);
   assert.match(workflow, /types: \[populate-odds\]/);
   assert.match(workflow, /inputs\.odds_key/);
+  // Masked from the environment, never inlined into the command. The runner
+  // echoes each command before it runs, so an interpolated key is printed in
+  // full one line above the mask meant to hide it — which is how a one-shot key
+  // ended up readable in a run log.
   assert.match(
     workflow,
-    /::add-mask::\$\{\{ github\.event\.client_payload\.odds_key \|\| github\.event\.inputs\.odds_key \}\}/,
+    /ODDS_KEY: \$\{\{ github\.event\.client_payload\.odds_key \|\| github\.event\.inputs\.odds_key \}\}/,
   );
+  assert.match(workflow, /::add-mask::\$ODDS_KEY/);
+  assert.doesNotMatch(workflow, /::add-mask::\$\{\{/);
   assert.match(workflow, /x-scl-odds-key: \$ODDS_KEY/);
   assert.match(workflow, /skipPopulated=\$\{SKIP_POPULATED\}/);
   assert.match(workflow, /expandedOrder=\$\{encoded_order\}/);
@@ -66,6 +72,29 @@ test("manual temp-key population sends the key to the signed route and never sto
   );
   assert.doesNotMatch(workflow, /secrets\.DATABASE_URL/);
   assert.doesNotMatch(workflow, /WRITE_DB/);
+});
+
+test("a market top-up bills one market an event and merges into the stored board", () => {
+  assert.match(workflow, /markets=\$\{encoded_markets\}/);
+  assert.match(
+    workflow,
+    /MARKETS: \$\{\{ github\.event\.client_payload\.markets/,
+  );
+  // Still the signed route, still no database credentials on the runner.
+  assert.doesNotMatch(workflow, /secrets\.DATABASE_URL/);
+  assert.doesNotMatch(workflow, /WRITE_DB/);
+
+  assert.match(route, /searchParams\.get\("markets"\)/);
+  // Coverage calls a board with four team totals "covered", so a top-up that
+  // honoured skipPopulated would skip every event and write nothing.
+  assert.match(route, /marketOverride\.length === 0 &&/);
+  assert.match(route, /markets: marketOverride/);
+
+  const cache = readFileSync("src/lib/odds-event-board-cache.ts", "utf8");
+  // The merge is what makes a partial fetch safe: 48 team totals must fold into
+  // a 590-selection board, never replace it.
+  assert.match(cache, /mergeEventBoardSelections/);
+  assert.match(cache, /markets\?: readonly string\[\]/);
 });
 
 test("production route accepts a one-shot key, expands supported sports, and retains fallback", () => {

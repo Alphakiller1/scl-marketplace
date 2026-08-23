@@ -269,8 +269,27 @@ function pushBoard(sclSport: string, events: OddsEvent[], cap: number) {
   return ordered;
 }
 
+/**
+ * Open the database BEFORE the first billed call.
+ *
+ * The writes used to happen only after the whole slate had been fetched, so a
+ * database the runner could not reach — a DATABASE_URL secret pointing at the
+ * wrong project, say — surfaced as a Prisma error with every credit already
+ * spent and the snapshots discarded with the runner. A run that cannot write is
+ * a run that must not fetch.
+ */
+async function openDatabase() {
+  const { PrismaClient } = await import("@prisma/client");
+  const prisma = new PrismaClient();
+  const boards = await prisma.oddsCacheSnapshot.count();
+  console.log(`database ok — ${boards} cached snapshots\n`);
+  return prisma;
+}
+
 async function main() {
   mkdirSync(OUT, { recursive: true });
+  // Imported lazily so a dry run needs no database at all.
+  const prisma = WRITE_DB ? await openDatabase() : null;
   const catalog = (await api("/v4/sports/")) as
     | {
         key?: string;
@@ -433,14 +452,11 @@ async function main() {
     `\n${snapshots.length} snapshots built | credits used ${used} | remaining ${remaining}`,
   );
 
-  if (!WRITE_DB) {
+  if (!prisma) {
     console.log("WRITE_DB not set — nothing written to the database.");
     return;
   }
 
-  // Imported lazily so a dry run needs no database at all.
-  const { PrismaClient } = await import("@prisma/client");
-  const prisma = new PrismaClient();
   try {
     for (const snapshot of snapshots) {
       const prior = await prisma.oddsCacheSnapshot.findUnique({
