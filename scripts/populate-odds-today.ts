@@ -1,12 +1,14 @@
 /**
  * Manual odds population — surface boards for every sport, plus expanded
  * per-event markets (alternate lines, team totals, innings segments, props)
- * for MLB and WNBA.
+ * for MLB, WNBA and tennis. Football and soccer stay surface-only: their
+ * expanded market list is empty, so the bulk h2h/spreads/totals board is the
+ * whole board.
  *
  * Runs on a fixed credit budget: it reports `x-requests-remaining` after every
  * call and stops at BUDGET_FLOOR rather than fetching a slate it cannot afford.
- * Expanded MLB is 44 credits PER EVENT and WNBA 24 — a full 12-game MLB slate
- * costs 528 credits, more than a 500-credit key holds.
+ * Expanded MLB is 44 credits PER EVENT, WNBA 24 and tennis 2 — a full 12-game
+ * MLB slate costs 528 credits, more than a 500-credit key holds.
  *
  * Snapshots are built with the app's own pure normalizers and written under the
  * same keys `odds-board-cache` / `odds-event-board-cache` use, so the app reads
@@ -47,6 +49,7 @@ import {
   TENNIS_CANDIDATE_LIMIT,
   TENNIS_TOUR_LIMIT,
   selectTennisToursWithFixtures,
+  tennisTourByKey,
 } from "@/lib/tennis-tours";
 import {
   mergeLastGoodBoardEvents,
@@ -217,6 +220,7 @@ async function main() {
 
   let mlb: OddsEvent[] = [];
   let wnba: OddsEvent[] = [];
+  let tennis: OddsEvent[] = [];
 
   if (wanted("MLB")) {
     const events = await surface("MLB", "baseball_mlb");
@@ -277,7 +281,7 @@ async function main() {
         ...((await surface("TENNIS", tour.oddsApiKey, tour.key)) ?? []),
       );
     }
-    pushBoard("TENNIS", events, BOARD_CAP);
+    tennis = pushBoard("TENNIS", events, BOARD_CAP);
   }
   if (wanted("SOCCER")) {
     const events: OddsEvent[] = [];
@@ -291,12 +295,30 @@ async function main() {
 
   // ── expanded per-event markets ─────────────────────────────────────────────
   console.log("\nEXPANDED PER-EVENT (alt lines, team totals, segments, props)");
-  for (const [sclSport, apiSport, events] of [
-    // WNBA first: two or three games, ~24 credits each. A 500-credit key
-    // cannot finish a 15-game MLB expanded slate (44/event) AND WNBA if MLB
-    // goes first.
-    ["WNBA", "basketball_wnba", wnba],
-    ["MLB", "baseball_mlb", mlb],
+  for (const { sclSport, apiSportFor, events } of [
+    // Cheapest first, so the sport that can exhaust the key never decides
+    // whether the others get a board at all. Tennis is 2 credits an event and
+    // WNBA ~24; a 500-credit key cannot finish a 15-game MLB expanded slate
+    // (44/event) AND the rest if MLB goes first.
+    {
+      sclSport: "TENNIS",
+      // Tennis has no single sport key — one per tournament — so the event's
+      // league tag is the only route back to it, exactly as
+      // `resolveOddsApiSport` does for the live path.
+      apiSportFor: (event: OddsEvent) =>
+        tennisTourByKey(event.league ?? "")?.oddsApiKey,
+      events: tennis,
+    },
+    {
+      sclSport: "WNBA",
+      apiSportFor: () => "basketball_wnba",
+      events: wnba,
+    },
+    {
+      sclSport: "MLB",
+      apiSportFor: () => "baseball_mlb",
+      events: mlb,
+    },
   ] as const) {
     const expandedEvents = selectExpandedSlateEvents(events, EXPANDED_DAYS);
     if (!expandedEvents.length) continue;
@@ -307,6 +329,9 @@ async function main() {
     let done = 0;
     for (const event of expandedEvents) {
       if (done >= EXPANDED_LIMIT || remaining <= BUDGET_FLOOR) break;
+      const apiSport = apiSportFor(event);
+      // A tennis event with no resolvable tour key has no endpoint to ask.
+      if (!apiSport) continue;
       const raw = await api(
         `/v4/sports/${apiSport}/events/${event.id}/odds/?regions=${REGIONS}&markets=${markets.join(",")}&oddsFormat=american`,
       );
