@@ -40,7 +40,11 @@ test("MLB coverage distinguishes every requested expanded market family", () => 
       selection("Earned Runs", { player: "Pitcher", line: 2.5 }),
       selection("Hits", { player: "Batter", line: 1.5 }),
       selection("Total Bases", { player: "Batter", line: 1.5 }),
+      // A real ladder, not one rung: the featured market alone tops out at
+      // one line per club, and coverage now requires the alternates.
+      selection("Team Total", { line: 3.5 }),
       selection("Team Total", { line: 4.5 }),
+      selection("Team Total", { line: 5.5 }),
       selection("1st 3 Innings Total", { line: 2.5 }),
       selection("1st 5 Innings Spread", { line: 1.5 }),
       selection("1st 7 Innings Moneyline"),
@@ -60,7 +64,8 @@ test("MLB coverage distinguishes every requested expanded market family", () => 
   assert.equal(coverage.alternateGameLines, 2);
   assert.equal(coverage.alternateSpreads, 1);
   assert.equal(coverage.alternateTotals, 1);
-  assert.equal(coverage.teamTotals, 1);
+  assert.equal(coverage.teamTotals, 3);
+  assert.equal(coverage.teamTotalLines, 3);
   assert.deepEqual(coverage.missing, []);
 });
 
@@ -164,4 +169,83 @@ test("tennis coverage requires alternate full-match spreads and totals", () => {
     false,
   );
   assert.deepEqual(partial.missing, ["alternate totals"]);
+});
+
+// ── alternate team totals ────────────────────────────────────────────────────
+// The owner asked for alt team totals and they were missing on ten of fifteen
+// MLB games. Coverage counted team totals as present the moment ONE existed, so
+// a game holding only the featured line read as fully covered and
+// `skipPopulated` skipped it on every later run — the ladder never arrived.
+function mlbEvent(): Parameters<typeof summarizeEventMarketCoverage>[0] {
+  return {
+    id: "tt-cov",
+    sport: "MLB",
+    commenceTime: "2026-08-23T18:10:00Z",
+    home: "Kansas City Royals",
+    away: "Detroit Tigers",
+    selections: [],
+  };
+}
+
+function teamTotalSelections(lines: number[]) {
+  return lines.flatMap((line) =>
+    (["Over", "Under"] as const).map((side) => ({
+      label: `Royals ${side} ${line}`,
+      market: "Team Total",
+      selection: `Kansas City Royals ${side} ${line}`,
+      side,
+      line,
+      featured: false,
+      oddsAmerican: -110,
+    })),
+  );
+}
+
+test("a featured-only team total is not full coverage", () => {
+  const coverage = summarizeEventMarketCoverage(
+    mlbEvent(),
+    teamTotalSelections([4.5]),
+    "runtime_cache",
+    false,
+  );
+  assert.equal(coverage.teamTotals > 0, true, "team totals are present");
+  assert.equal(coverage.teamTotalLines, 1);
+  assert.ok(
+    coverage.missing.includes("alternate team totals"),
+    `expected the alternate ladder to be missing, got ${JSON.stringify(coverage.missing)}`,
+  );
+});
+
+test("one line per club is still only the featured market", () => {
+  const coverage = summarizeEventMarketCoverage(
+    mlbEvent(),
+    teamTotalSelections([4.5, 3.5]),
+    "runtime_cache",
+    false,
+  );
+  assert.equal(coverage.teamTotalLines, 2);
+  assert.ok(coverage.missing.includes("alternate team totals"));
+});
+
+test("a real ladder satisfies the team-total requirement", () => {
+  const coverage = summarizeEventMarketCoverage(
+    mlbEvent(),
+    teamTotalSelections([2.5, 3.5, 4.5, 5.5, 6.5]),
+    "runtime_cache",
+    false,
+  );
+  assert.equal(coverage.teamTotalLines, 5);
+  assert.equal(coverage.missing.includes("alternate team totals"), false);
+  assert.equal(coverage.missing.includes("team totals"), false);
+});
+
+test("no team totals at all still reports the base gap, not the ladder", () => {
+  const coverage = summarizeEventMarketCoverage(
+    mlbEvent(),
+    [],
+    "runtime_cache",
+    false,
+  );
+  assert.ok(coverage.missing.includes("team totals"));
+  assert.equal(coverage.missing.includes("alternate team totals"), false);
 });
