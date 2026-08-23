@@ -41,7 +41,10 @@ test("manual temp-key population sends the key to the signed route and never sto
   assert.match(workflow, /x-scl-odds-key: \$ODDS_KEY/);
   assert.match(workflow, /skipPopulated=\$\{SKIP_POPULATED\}/);
   assert.match(workflow, /expandedOrder=\$\{encoded_order\}/);
-  assert.match(workflow, /client_payload\.skipPopulated \|\| '1'/);
+  assert.match(workflow, /client_payload\.skipPopulated \|\|/);
+  // A dispatch can force a full re-fetch; without it a thin board is never
+  // repaired, because coverage calls a four-row team total covered.
+  assert.match(workflow, /inputs\.skip_populated && '1' \|\| '0'/);
   assert.match(
     workflow,
     /client_payload\.expandedOrder \|\| 'MLB,WNBA,TENNIS'/,
