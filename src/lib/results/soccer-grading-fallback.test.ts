@@ -34,6 +34,8 @@ test("primary and ESPN fallbacks fan generic SOCCER out by league", () => {
   assert.match(provider, /fetchSportScores\("SOCCER", league\)/);
   assert.match(provider, /fetchSportScores\("TENNIS", tour\)/);
   assert.match(espn, /fetchEspnScoreboardDay\("SOCCER", day, league\)/);
+  assert.match(espn, /fetchEspnTennisTour/);
+  assert.match(espn, /ESPN_TENNIS_TOURS/);
 });
 
 test("the live tennis board fans out by tournament instead of a missing TENNIS sport key", () => {
