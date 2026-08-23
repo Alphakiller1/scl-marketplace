@@ -29,11 +29,15 @@ const SOCCER_CLUB_NAME_GROUPS: readonly (readonly string[])[] = [
   ],
   ["Bayern Munich", "FC Bayern Munich", "FC Bayern München", "Bayern München"],
   ["Sporting Lisbon", "Sporting CP", "Sporting Clube de Portugal"],
+  ["FC St. Pauli", "St. Pauli", "FC St. Pauli Hamburg"],
+  ["SC Freiburg", "Freiburg", "Sport-Club Freiburg"],
 ];
 
 function clubKey(name: string): string {
   return name
     .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
     .replace(/[^a-z0-9]+/g, "")
     .trim();
 }

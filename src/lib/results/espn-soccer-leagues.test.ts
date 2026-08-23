@@ -14,6 +14,11 @@ test("maps catalog-derived Odds API league tags", () => {
   assert.equal(espnSoccerLeagueSlug("usa_mls"), "usa.1");
   assert.equal(espnSoccerLeagueSlug("mexico-ligamx"), "mex.1");
   assert.equal(espnSoccerLeagueSlug("efl_champ"), "eng.2");
+  assert.equal(espnSoccerLeagueSlug("GERMANY_DFB_POKAL"), "ger.dfb_pokal");
+  assert.equal(
+    espnSoccerLeagueSlug("soccer_germany_dfb_pokal"),
+    "ger.dfb_pokal",
+  );
 });
 
 test("unknown or missing leagues fail closed", () => {
