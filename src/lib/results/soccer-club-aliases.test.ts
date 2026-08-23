@@ -22,6 +22,13 @@ test("Inter Miami is not Internazionale", () => {
   );
 });
 
+test("St. Pauli and SC Freiburg keep their board labels", () => {
+  assert.equal(canonicalSoccerClubName("St. Pauli"), "FC St. Pauli");
+  assert.equal(canonicalSoccerClubName("Freiburg"), "SC Freiburg");
+  assert.ok(soccerClubAliases("FC St. Pauli").includes("St. Pauli"));
+  assert.ok(soccerClubAliases("SC Freiburg").includes("Freiburg"));
+});
+
 test("unknown clubs pass through", () => {
   assert.equal(canonicalSoccerClubName("Monza"), "Monza");
   assert.deepEqual(soccerClubAliases("Monza"), ["Monza"]);

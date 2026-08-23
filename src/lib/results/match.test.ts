@@ -413,6 +413,93 @@ test("an MMA moneyline grades from the winner flag scores", () => {
   );
 });
 
+test("a tennis moneyline still binds when ESPN starts 105 minutes late", () => {
+  // Production: @vision_vulture7 Coco Gauff −375, Odds API commence
+  // 2026-08-22T23:30Z. ESPN Cincinnati SF stamped 2026-08-23T01:15Z (105 min
+  // later). The 90-minute bound window used for baseball nightcaps dropped
+  // the final, so findGame returned null after Fils/Pegula had already graded.
+  const scheduled = new Date("2026-08-22T23:30:00.000Z");
+  const espnStart = new Date("2026-08-23T01:15:00.000Z");
+  const espnMatch: SettledGame = {
+    sport: "TENNIS",
+    home: "Sara Bejlek",
+    away: "Coco Gauff",
+    homeScore: 0,
+    awayScore: 1,
+    completed: true,
+    eventId: "espn:182418",
+    startsAt: espnStart,
+  };
+  const play: GradablePlay = {
+    id: "cmt4ihz2c0005lb04qenw7l24",
+    sport: "TENNIS",
+    market: "Moneyline",
+    selection: "Coco Gauff",
+    oddsAmerican: -375,
+    units: 5,
+    eventId: "f4cffdce3d1effa9d1e21997f18c98f7",
+    eventStartsAt: scheduled,
+    homeTeam: "Sara Bejlek",
+    awayTeam: "Coco Gauff",
+  };
+
+  assert.equal(findGame(play, [espnMatch])?.eventId, "espn:182418");
+  assert.equal(resolveOutcome(play, [espnMatch]), "WIN");
+});
+
+test("DFB-Pokal moneylines bind ESPN cup names to the board clubs", () => {
+  const kickoff = new Date("2026-08-23T16:00:00.000Z");
+  const essen: SettledGame = {
+    sport: "SOCCER",
+    home: "Rot-Weiss Essen",
+    away: "St. Pauli",
+    homeScore: 2,
+    awayScore: 0,
+    completed: true,
+    eventId: "espn:pokal-essen",
+    startsAt: kickoff,
+  };
+  const freiburg: SettledGame = {
+    sport: "SOCCER",
+    home: "Fortuna Düsseldorf",
+    away: "SC Freiburg",
+    homeScore: 1,
+    awayScore: 5,
+    completed: true,
+    eventId: "espn:pokal-freiburg",
+    startsAt: kickoff,
+  };
+  const pauli: GradablePlay = {
+    id: "cmt5yjr0p0003jo048mdka2j2",
+    sport: "SOCCER",
+    market: "Moneyline",
+    selection: "FC St. Pauli",
+    oddsAmerican: 115,
+    units: 1,
+    eventId: "8bbdec0bd34dfd96a2b49e39f714dfec",
+    eventStartsAt: kickoff,
+    homeTeam: "Rot-Weiss Essen",
+    awayTeam: "FC St. Pauli",
+  };
+  const sc: GradablePlay = {
+    id: "cmt5yjrc60005jo04c8ahhq26",
+    sport: "SOCCER",
+    market: "Moneyline",
+    selection: "SC Freiburg",
+    oddsAmerican: -200,
+    units: 1,
+    eventId: "a4f34d64d2ec584dfae40bda70ec8002",
+    eventStartsAt: kickoff,
+    homeTeam: "Fortuna Dusseldorf",
+    awayTeam: "SC Freiburg",
+  };
+
+  assert.equal(findGame(pauli, [essen, freiburg])?.eventId, "espn:pokal-essen");
+  assert.equal(resolveOutcome(pauli, [essen, freiburg]), "LOSS");
+  assert.equal(findGame(sc, [essen, freiburg])?.eventId, "espn:pokal-freiburg");
+  assert.equal(resolveOutcome(sc, [essen, freiburg]), "WIN");
+});
+
 test("UFC Sergey Spivak matches ESPN Serghei Spivac across providers", () => {
   // Production: @vision_vulture7 Petrino and @cashtheticket365 Spivak,
   // Odds API event id, start 2026-08-23T00:00Z. ESPN already had

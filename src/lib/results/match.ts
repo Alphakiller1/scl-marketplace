@@ -95,6 +95,8 @@ export function isDeferredProp(play: GradablePlay): boolean {
 function norm(s: string): string {
   return s
     .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
     .replace(/[^a-z0-9 ]/g, "")
     .trim();
 }
@@ -243,6 +245,14 @@ const BOUND_CROSS_PROVIDER_WINDOW_MS = 90 * 60 * 1000;
  */
 const MMA_FIXTURE_WINDOW_MS = 12 * 60 * 60 * 1000;
 
+/**
+ * Tennis matches slip when the previous court match runs long. Odds API keeps
+ * the scheduled commence; ESPN stamps the actual start. Coco Gauff's
+ * Cincinnati SF was 105 minutes later on ESPN than on the slip — inside a
+ * tennis day, outside the 90-minute baseball nightcap window.
+ */
+const TENNIS_BOUND_WINDOW_MS = SAME_FIXTURE_WINDOW_MS;
+
 function fixtureWindowMs(sport: string): number {
   return sport.trim().toUpperCase() === "MMA"
     ? MMA_FIXTURE_WINDOW_MS
@@ -250,9 +260,10 @@ function fixtureWindowMs(sport: string): number {
 }
 
 function boundWindowMs(sport: string): number {
-  return sport.trim().toUpperCase() === "MMA"
-    ? MMA_FIXTURE_WINDOW_MS
-    : BOUND_CROSS_PROVIDER_WINDOW_MS;
+  const key = sport.trim().toUpperCase();
+  if (key === "MMA") return MMA_FIXTURE_WINDOW_MS;
+  if (key === "TENNIS") return TENNIS_BOUND_WINDOW_MS;
+  return BOUND_CROSS_PROVIDER_WINDOW_MS;
 }
 
 /**
