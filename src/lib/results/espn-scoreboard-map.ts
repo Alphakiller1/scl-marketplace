@@ -1,3 +1,4 @@
+import { canonicalMmaFighterName } from "@/lib/results/mma-fighter-aliases";
 import { canonicalSoccerClubName } from "@/lib/results/soccer-club-aliases";
 import type { SettledGame } from "@/lib/results/settled-game";
 
@@ -50,7 +51,10 @@ export function canonicalizeEspnTeamName(name: string): string {
     .trim();
   if (n.includes("american") && n.includes("all")) return "American League";
   if (n.includes("national") && n.includes("all")) return "National League";
-  return canonicalSoccerClubName(name.trim());
+  const trimmed = name.trim();
+  const fighter = canonicalMmaFighterName(trimmed);
+  if (fighter !== trimmed) return fighter;
+  return canonicalSoccerClubName(trimmed);
 }
 
 export function yyyymmddUtc(d: Date): string {
