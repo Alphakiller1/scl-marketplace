@@ -8,7 +8,10 @@ import {
   mergeRecordEntries,
 } from "@/lib/queries/plays";
 import { computeCapperStats, computeStatsBySport } from "@/lib/stats";
-import { mergeCareerSportRecords } from "@/lib/legacy-sport-records";
+import {
+  filterPlaysAfterLegacySnapshot,
+  mergeCareerSportRecords,
+} from "@/lib/legacy-sport-records";
 import { buildPerformanceTrend } from "@/lib/leaderboard";
 import { NewPickButton } from "@/components/scl/new-pick-button";
 import { Card } from "@/components/ui/card";
@@ -31,7 +34,7 @@ export default async function DashboardPage() {
         getCapperParlays(user.id),
         getCapperLegacyRecords(user.id),
       ])
-    : [[], [], { baseline: null, bySport: [] }];
+    : [[], [], { baseline: null, bySport: [], capturedAt: null }];
   // The carried-over legacy total is part of the capper's record on every
   // public surface, so it is part of it here too. Without it the dashboard
   // reported a different career than the profile it links to.
@@ -50,23 +53,29 @@ export default async function DashboardPage() {
     ],
     legacy.baseline,
   );
-  const sclBySport = computeStatsBySport([
-    ...plays.map((play) => ({
-      sport: play.sport,
-      outcome: play.outcome,
-      units: play.units,
-      profitUnits: play.profitUnits,
-    })),
-    ...parlays.map((parlay) => ({
-      sport: parlay.legs[0]?.sport ?? "MULTI",
-      outcome: parlay.outcome,
-      units: parlay.units,
-      profitUnits: parlay.profitUnits,
-    })),
-  ]);
+  const sclPositions = filterPlaysAfterLegacySnapshot(
+    [
+      ...plays.map((play) => ({
+        sport: play.sport,
+        outcome: play.outcome,
+        units: play.units,
+        profitUnits: play.profitUnits,
+        createdAt: play.createdAt,
+      })),
+      ...parlays.map((parlay) => ({
+        sport: parlay.legs[0]?.sport ?? "MULTI",
+        outcome: parlay.outcome,
+        units: parlay.units,
+        profitUnits: parlay.profitUnits,
+        createdAt: parlay.createdAt,
+      })),
+    ],
+    legacy.capturedAt,
+  );
+  const sclBySport = computeStatsBySport(sclPositions);
   const bySport = mergeCareerSportRecords({
     legacyBySport: legacy.bySport,
-    allBaseline: legacy.baseline,
+    allBaseline: legacy.capturedAt ? null : legacy.baseline,
     sclBySport,
   });
   const positions = mergeRecordEntries(plays, parlays);

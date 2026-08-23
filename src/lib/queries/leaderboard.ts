@@ -36,7 +36,9 @@ import { activePublicPackageWhere } from "@/lib/public-packages";
 import {
   allTimeLegacyRecordWhere,
   carriedResultsFromLegacyRows,
+  legacySnapshotCapturedAt,
   lifetimeGradedSample,
+  sportTableLegacyRecordWhere,
   statsBaselineFromLegacyRows,
 } from "@/lib/legacy-all-time";
 
@@ -135,15 +137,19 @@ async function fetchRankableProfiles(
         },
         orderBy: { createdAt: "asc" },
       },
-      // All-time carried totals: PRE_IMPORT (current year minus imported
-      // receipts) plus prior complete years. Trailing/season scopes overlap
-      // those rows and are left out on purpose.
+      // All-sports headline: PRE_IMPORT + prior years. A sport filter reads
+      // CURRENT_YEAR + prior years so NFL matches the old site's year page
+      // instead of the leftover after imported slips.
       legacyRecords: {
         where: {
-          ...allTimeLegacyRecordWhere,
+          ...(filters.sport === "ALL"
+            ? allTimeLegacyRecordWhere
+            : sportTableLegacyRecordWhere),
           sport: filters.sport === "ALL" ? "ALL" : filters.sport,
         },
         select: {
+          scope: true,
+          capturedAt: true,
           wins: true,
           losses: true,
           pushes: true,
@@ -325,8 +331,14 @@ function summarize(
   ].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
   const legacyBaseline = baselineFor(p, applyBaseline);
+  const snapshotAt = applyBaseline
+    ? legacySnapshotCapturedAt(p.legacyRecords)
+    : null;
+  const countedPositions = snapshotAt
+    ? positions.filter((row) => row.createdAt.getTime() > snapshotAt.getTime())
+    : positions;
   const stats = computeCapperStats(
-    positions.map((x) => ({
+    countedPositions.map((x) => ({
       outcome: x.outcome,
       units: x.units,
       profitUnits: x.profitUnits,
@@ -561,7 +573,7 @@ const getCachedLeaderboardResult = cachedQuery(
     const filters = JSON.parse(cacheKey) as LeaderboardFilters;
     return loadLeaderboardResult(filters);
   },
-  ["leaderboard-result"],
+  ["leaderboard-result-v2"],
   { revalidate: 60, tags: ["leaderboard"] },
 );
 

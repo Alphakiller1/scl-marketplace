@@ -4,8 +4,12 @@ import test from "node:test";
 
 import {
   ALL_TIME_LEGACY_SCOPES,
+  PROFILE_LEGACY_SCOPES,
+  SPORT_TABLE_LEGACY_SCOPES,
   carriedResultsFromLegacyRows,
   collapseLegacyRecordsBySport,
+  getAllTimeLegacyBaseline,
+  legacySnapshotCapturedAt,
   lifetimeGradedSample,
   statsBaselineFromLegacyRows,
 } from "./legacy-all-time";
@@ -19,6 +23,86 @@ test("all-time legacy scopes are the year residual plus prior years", () => {
   assert.ok(!scopes.includes("CURRENT_YEAR"));
   assert.ok(!scopes.includes("CURRENT_SEASON"));
   assert.ok(!scopes.includes("LAST_90D"));
+});
+
+test("sport table reads CURRENT_YEAR plus prior years, not PRE_IMPORT", () => {
+  assert.deepEqual(
+    [...SPORT_TABLE_LEGACY_SCOPES],
+    ["CURRENT_YEAR", "YEAR_2025", "YEAR_2024"],
+  );
+  assert.deepEqual(
+    [...PROFILE_LEGACY_SCOPES],
+    ["PRE_IMPORT", "CURRENT_YEAR", "YEAR_2025", "YEAR_2024"],
+  );
+  const sportScopes: readonly string[] = SPORT_TABLE_LEGACY_SCOPES;
+  assert.ok(!sportScopes.includes("PRE_IMPORT"));
+});
+
+test("getAllTimeLegacyBaseline ignores CURRENT_YEAR and per-sport rows", () => {
+  const baseline = getAllTimeLegacyBaseline([
+    {
+      scope: "PRE_IMPORT",
+      sport: "ALL",
+      wins: 300,
+      losses: 240,
+      pushes: 10,
+      unitsRisked: 800,
+      unitsNet: -29.37,
+    },
+    {
+      scope: "YEAR_2025",
+      sport: "ALL",
+      wins: 420,
+      losses: 350,
+      pushes: 12,
+      unitsRisked: 1100,
+      unitsNet: 185.5,
+    },
+    {
+      scope: "CURRENT_YEAR",
+      sport: "ALL",
+      wins: 500,
+      losses: 400,
+      pushes: 14,
+      unitsRisked: 1400,
+      unitsNet: 200,
+    },
+    {
+      scope: "PRE_IMPORT",
+      sport: "NFL",
+      wins: 2,
+      losses: 0,
+      pushes: 0,
+      unitsRisked: 5,
+      unitsNet: 17.17,
+    },
+  ]);
+
+  assert.deepEqual(baseline, {
+    wins: 720,
+    losses: 590,
+    pushes: 22,
+    stakedUnits: 1900,
+    units: 156.13,
+  });
+});
+
+test("legacySnapshotCapturedAt reads only the current-year export instant", () => {
+  const capturedAt = legacySnapshotCapturedAt([
+    {
+      scope: "YEAR_2025",
+      capturedAt: new Date("2025-12-31T00:00:00.000Z"),
+    },
+    {
+      scope: "CURRENT_YEAR",
+      capturedAt: new Date("2026-07-30T01:17:00.000Z"),
+    },
+    {
+      scope: "PRE_IMPORT",
+      capturedAt: new Date("2026-08-01T00:00:00.000Z"),
+    },
+  ]);
+  assert.equal(capturedAt?.toISOString(), "2026-07-30T01:17:00.000Z");
 });
 
 test("statsBaselineFromLegacyRows adds a prior year onto the PRE_IMPORT residual", () => {
@@ -145,6 +229,12 @@ test("an empty carried set is not a zero baseline", () => {
   assert.equal(carriedResultsFromLegacyRows([]), 0);
 });
 
+test("sport-filtered all-time boards read CURRENT_YEAR, not PRE_IMPORT leftovers", () => {
+  const source = readFileSync("src/lib/queries/leaderboard.ts", "utf8");
+  assert.match(source, /sportTableLegacyRecordWhere/);
+  assert.match(source, /legacySnapshotCapturedAt/);
+});
+
 test("public surfaces fetch every all-time legacy scope, not only PRE_IMPORT", () => {
   const sources = [
     "src/lib/queries/leaderboard.ts",
@@ -158,7 +248,7 @@ test("public surfaces fetch every all-time legacy scope, not only PRE_IMPORT", (
     const source = readFileSync(path, "utf8");
     assert.match(
       source,
-      /allTimeLegacyRecordWhere|ALL_TIME_LEGACY_SCOPES/,
+      /allTimeLegacyRecordWhere|ALL_TIME_LEGACY_SCOPES|profileLegacyRecordWhere|PROFILE_LEGACY_SCOPES/,
       `${path} must read prior-year legacy totals`,
     );
     assert.doesNotMatch(
