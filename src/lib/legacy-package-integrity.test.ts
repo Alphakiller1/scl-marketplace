@@ -139,6 +139,16 @@ test("the production gate catches Whop URL drift even when tracking matches it",
   );
 });
 
+test("the production gate accepts a public handle rename when the Whop offer is unchanged", () => {
+  const rows = databaseRows(sourcePackages());
+  rows[0] = {
+    ...rows[0]!,
+    username: "bankroll_blueprints",
+  };
+
+  assert.deepEqual(inspectLegacyPackageIntegrity(rows).errors, []);
+});
+
 test("package lineage proves the source total plus audited lifecycle changes", () => {
   const events = [
     { action: "CREATED" },
