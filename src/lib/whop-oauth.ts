@@ -12,6 +12,7 @@ export type WhopPkceState = {
   nonce: string;
   capperProfileId: string;
   connectionId: string;
+  returnOrigin?: string;
 };
 
 export type WhopTokenResponse = {
@@ -33,6 +34,7 @@ function base64url(bytes: Buffer): string {
 export function generatePkceState(
   capperProfileId: string,
   connectionId: string,
+  returnOrigin?: string,
 ): WhopPkceState {
   return {
     codeVerifier: base64url(randomBytes(32)),
@@ -40,6 +42,7 @@ export function generatePkceState(
     nonce: base64url(randomBytes(16)),
     capperProfileId,
     connectionId,
+    ...(returnOrigin && { returnOrigin }),
   };
 }
 

@@ -233,7 +233,11 @@ test("Whop OAuth callback route exists for storefront connection", () => {
   assert.match(connect, /whopOAuthRedirectUri/);
   assert.match(connect, /ensureWhopOAuthRedirectRegistered/);
   assert.match(connect, /oauth-misconfigured/);
+  assert.match(connect, /serializeWhopPkceCookie/);
+  assert.match(connect, /whopOAuthCookieDomain/);
   assert.match(callback, /whopOAuthRedirectUri/);
+  assert.match(callback, /parseWhopPkceCookie/);
+  assert.match(callback, /whopOAuthReturnOrigin/);
   assert.doesNotMatch(connect, /\$\{siteUrl\(\)\} \/api\/whop\/callback/);
 });
 

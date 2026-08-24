@@ -1,9 +1,6 @@
 import { mergeWhopAppRedirectUris } from "@/lib/whop-api";
 import { whopAccountApiKey, whopAppApiKey, whopAppId } from "@/lib/whop-config";
-import {
-  whopOAuthRedirectUri,
-  whopOAuthRedirectUrisToRegister,
-} from "@/lib/whop-oauth-redirect";
+import { whopOAuthRedirectUri } from "@/lib/whop-oauth-redirect";
 
 export type WhopOAuthRedirectSync = "ok" | "missing" | "unknown";
 
@@ -29,9 +26,10 @@ export async function ensureWhopOAuthRedirectRegistered(
   const result = await mergeWhopAppRedirectUris({
     accessToken: token,
     appId,
-    redirectUris: Array.from(
-      new Set([...whopOAuthRedirectUrisToRegister(), needed]),
-    ),
+    // Only the callback used by this flow is required. A read-only app key can
+    // still verify an existing URI without failing while trying to add an
+    // optional second host that requires developer:update_app.
+    redirectUris: [needed],
   });
   if (result.ok) {
     return result.redirectUris.includes(needed) ? "ok" : "missing";
