@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { buildWhopProductCheckoutUrl } from "@/lib/whop-api";
+import { buildWhopProductCheckoutUrl, updateWhopProduct } from "@/lib/whop-api";
 import { whopWebhookCompanyId, whopWebhookEventName } from "@/lib/whop-sync";
 
 describe("whop api helpers", () => {
@@ -15,6 +15,40 @@ describe("whop api helpers", () => {
       url,
       "https://whop.com/pickaxe/analytics-pro?a=sportscappersleaderboard",
     );
+  });
+
+  it("sends only fields supported by Whop's product update schema", async () => {
+    const originalFetch = globalThis.fetch;
+    let body: unknown;
+    globalThis.fetch = (async (_input, init) => {
+      body = JSON.parse(String(init?.body));
+      return new Response("{}", { status: 200 });
+    }) as typeof fetch;
+
+    try {
+      const result = await updateWhopProduct({
+        accessToken: "test-token",
+        productId: "prod_test",
+        update: {
+          title: "SCL title",
+          headline: "SCL headline",
+          visibility: "visible",
+        },
+      });
+      assert.deepEqual(result, { ok: true });
+      assert.deepEqual(body, {
+        title: "SCL title",
+        headline: "SCL headline",
+        visibility: "visible",
+      });
+      assert.equal(
+        Object.hasOwn(body as object, "metadata"),
+        false,
+        "Whop's product update endpoint does not accept metadata",
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });
 

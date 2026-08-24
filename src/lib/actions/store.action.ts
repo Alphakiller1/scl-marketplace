@@ -1,7 +1,5 @@
 "use server";
 
-import { after } from "next/server";
-
 import { afterResponse } from "@/lib/after-response";
 import type { Prisma } from "@prisma/client";
 
@@ -433,11 +431,18 @@ export async function adminUpdateStoreConnectionAction(
  * outage must not fail the save or make an admin wait on a third party.
  */
 function mirrorPackageToWhop(packageId: string): void {
-  after(async () => {
+  afterResponse(async () => {
     try {
       const result = await pushPackageToWhop(packageId);
       if (!result.ok) {
-        console.warn(`[whop-push] ${packageId}: ${result.error}`);
+        console.warn(
+          JSON.stringify({
+            level: "warning",
+            message: "Immediate Whop package push will be retried",
+            packageId,
+            error: result.error,
+          }),
+        );
       }
     } catch (err) {
       console.error("[whop-push] unexpected failure:", err);
@@ -470,7 +475,11 @@ export async function adminSavePackageAction(
   const existingPackage = d.id
     ? await prisma.package.findUnique({
         where: { id: d.id },
-        select: { capperId: true, storeConnectionId: true },
+        select: {
+          capperId: true,
+          storeConnectionId: true,
+          externalProductId: true,
+        },
       })
     : null;
   if (d.id && !existingPackage) {
@@ -502,6 +511,13 @@ export async function adminSavePackageAction(
     }
   }
 
+  const whopPushQueuedAt =
+    existingPackage?.externalProductId &&
+    d.affiliateProvider === "WHOP" &&
+    storeConnectionId
+      ? new Date()
+      : null;
+
   const packageId = await prisma.$transaction(async (tx) => {
     const pkg = d.id
       ? await tx.package.update({
@@ -519,6 +535,9 @@ export async function adminSavePackageAction(
             sortOrder: d.sortOrder,
             isActive: d.isActive,
             providerType: "PREMIUM",
+            whopPushPendingAt: whopPushQueuedAt,
+            whopPushAttempts: 0,
+            whopPushLastError: null,
           },
         })
       : await tx.package.create({
@@ -582,7 +601,7 @@ export async function adminSavePackageAction(
     return pkg.id;
   });
 
-  mirrorPackageToWhop(packageId);
+  if (whopPushQueuedAt) mirrorPackageToWhop(packageId);
   await revalidateCommercePaths(capper.user.username, capper.user.id);
   return { ok: true, packageId };
 }
@@ -601,6 +620,8 @@ export async function adminSetPackageActiveAction(
       title: true,
       capperId: true,
       storeConnectionId: true,
+      externalProductId: true,
+      storeConnection: { select: { provider: true } },
       capper: {
         select: { user: { select: { id: true, username: true } } },
       },
@@ -608,10 +629,22 @@ export async function adminSetPackageActiveAction(
   });
   if (!pkg) return { ok: false, error: "Package not found." };
 
+  const whopPushQueuedAt =
+    pkg.externalProductId && pkg.storeConnection?.provider === "WHOP"
+      ? new Date()
+      : null;
+
   await prisma.$transaction(async (tx) => {
     await tx.package.update({
       where: { id: pkg.id },
-      data: { isActive: parsed.data.isActive },
+      data: {
+        isActive: parsed.data.isActive,
+        ...(whopPushQueuedAt && {
+          whopPushPendingAt: whopPushQueuedAt,
+          whopPushAttempts: 0,
+          whopPushLastError: null,
+        }),
+      },
     });
     // Taking an offer down (or putting one up) changes what the public can buy,
     // so it is attributed like any other storefront decision.
@@ -631,7 +664,7 @@ export async function adminSetPackageActiveAction(
 
   // Publishing or hiding an offer is exactly the change a capper expects to see
   // reflected on their Whop storefront.
-  mirrorPackageToWhop(pkg.id);
+  if (whopPushQueuedAt) mirrorPackageToWhop(pkg.id);
   await revalidateCommercePaths(pkg.capper.user.username, pkg.capper.user.id);
   return { ok: true };
 }

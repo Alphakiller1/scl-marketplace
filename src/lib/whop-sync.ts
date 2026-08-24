@@ -196,9 +196,18 @@ export async function syncWhopStorefront(input: {
           checkoutUrl: true,
           affiliateProvider: true,
           sortOrder: true,
+          whopPushPendingAt: true,
           trackingUrls: { select: { id: true, targetUrl: true }, take: 1 },
         },
       });
+
+      // A local admin edit is waiting to be delivered upstream. Whop must not
+      // win this race and overwrite the SCL value before the retry worker has
+      // acknowledged that exact pending revision.
+      if (existing?.whopPushPendingAt) {
+        skipped += 1;
+        continue;
+      }
 
       const syncAction = whopProductSyncAction(product, Boolean(existing));
       if (syncAction !== "upsert") {
@@ -508,9 +517,8 @@ export function whopWebhookCompanyId(
  *
  * Only ever called from an explicit SCL edit, never from `syncWhopStorefront`.
  * That asymmetry is what prevents an oscillation: the cycle needs a
- * sync-triggers-push edge, and that edge simply does not exist. Whop's own
- * `product.updated` webhook then writes the same values back into SCL, which is
- * a no-op rather than a new push.
+ * sync-triggers-push edge, and that edge simply does not exist. The later
+ * scheduled or on-view pull sees the same values and is a no-op.
  *
  * Title, headline and visibility only. Price lives on a Whop Plan and decides
  * what real customers are charged — SCL owns presentation, Whop owns money.
@@ -531,6 +539,8 @@ export async function pushPackageToWhop(
       isActive: true,
       externalProductId: true,
       affiliateProvider: true,
+      whopPushPendingAt: true,
+      whopPushAttempts: true,
       storeConnection: {
         select: {
           id: true,
@@ -556,7 +566,33 @@ export async function pushPackageToWhop(
   }
   const accessToken = whopStorefrontApiKey(connection.whopAccessToken);
   if (!accessToken || !connection.whopCompanyId) {
-    return { ok: true, pushed: false };
+    const error = "Whop credentials or company mapping are unavailable.";
+    if (pkg.whopPushPendingAt) {
+      await Promise.all([
+        prisma.package.updateMany({
+          where: { id: pkg.id, whopPushPendingAt: pkg.whopPushPendingAt },
+          data: {
+            whopPushAttempts: { increment: 1 },
+            whopPushLastError: error,
+          },
+        }),
+        prisma.storeConnection.update({
+          where: { id: connection.id },
+          data: { requiresAttention: true },
+        }),
+      ]);
+    }
+    console.error(
+      JSON.stringify({
+        level: "error",
+        message: "Whop package push failed",
+        packageId: pkg.id,
+        connectionId: connection.id,
+        attempt: pkg.whopPushAttempts + 1,
+        error,
+      }),
+    );
+    return { ok: false, error };
   }
 
   // Prefer the stable app-server key. OAuth remains a compatibility fallback;
@@ -569,9 +605,58 @@ export async function pushPackageToWhop(
       title: pkg.title,
       headline: pkg.description,
       visibility: pkg.isActive ? "visible" : "hidden",
-      metadata: { scl_pushed_at: new Date().toISOString() },
     },
   });
-  if (!result.ok) return result;
+  if (!result.ok) {
+    if (pkg.whopPushPendingAt) {
+      await Promise.all([
+        prisma.package.updateMany({
+          where: { id: pkg.id, whopPushPendingAt: pkg.whopPushPendingAt },
+          data: {
+            whopPushAttempts: { increment: 1 },
+            whopPushLastError: result.error,
+          },
+        }),
+        prisma.storeConnection.update({
+          where: { id: connection.id },
+          data: { requiresAttention: true },
+        }),
+      ]);
+    }
+    console.error(
+      JSON.stringify({
+        level: "error",
+        message: "Whop package push failed",
+        packageId: pkg.id,
+        connectionId: connection.id,
+        attempt: pkg.whopPushAttempts + 1,
+        error: result.error,
+      }),
+    );
+    return result;
+  }
+
+  const pushedAt = new Date();
+  if (pkg.whopPushPendingAt) {
+    await prisma.package.updateMany({
+      where: { id: pkg.id, whopPushPendingAt: pkg.whopPushPendingAt },
+      data: {
+        whopPushPendingAt: null,
+        whopLastPushedAt: pushedAt,
+        whopPushAttempts: 0,
+        whopPushLastError: null,
+      },
+    });
+  }
+  console.info(
+    JSON.stringify({
+      level: "info",
+      message: "Whop package push completed",
+      packageId: pkg.id,
+      connectionId: connection.id,
+      productId: pkg.externalProductId,
+      pushedAt: pushedAt.toISOString(),
+    }),
+  );
   return { ok: true, pushed: true };
 }

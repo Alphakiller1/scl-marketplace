@@ -18,16 +18,20 @@ export type WhopOAuthRedirectSync = "ok" | "missing" | "unknown";
  * Whop's JSON into the browser. A permissions miss is `unknown` and must
  * not block Connect.
  */
-export async function ensureWhopOAuthRedirectRegistered(): Promise<WhopOAuthRedirectSync> {
+export async function ensureWhopOAuthRedirectRegistered(
+  neededRedirectUri = whopOAuthRedirectUri(),
+): Promise<WhopOAuthRedirectSync> {
   const appId = whopAppId();
   const token = whopAccountApiKey() || whopAppApiKey();
   if (!appId || !token) return "unknown";
 
-  const needed = whopOAuthRedirectUri();
+  const needed = neededRedirectUri;
   const result = await mergeWhopAppRedirectUris({
     accessToken: token,
     appId,
-    redirectUris: whopOAuthRedirectUrisToRegister(),
+    redirectUris: Array.from(
+      new Set([...whopOAuthRedirectUrisToRegister(), needed]),
+    ),
   });
   if (result.ok) {
     return result.redirectUris.includes(needed) ? "ok" : "missing";
