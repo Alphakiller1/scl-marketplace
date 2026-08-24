@@ -52,7 +52,19 @@ export async function getPackagePerformanceEvidence(
             parlayLinks: {
               select: {
                 parlay: {
-                  select: { outcome: true, units: true, profitUnits: true },
+                  select: {
+                    outcome: true,
+                    units: true,
+                    profitUnits: true,
+                    createdAt: true,
+                    // A parlay has no sport column; the sport filter attributes
+                    // it to leg one, as every other surface does.
+                    legs: {
+                      select: { sport: true },
+                      orderBy: { createdAt: "asc" as const },
+                      take: 1,
+                    },
+                  },
                 },
               },
             },
@@ -89,14 +101,35 @@ export async function getPackagePerformanceEvidence(
       });
       evidence[pkg.id] = summarizePackagePositions([...plays, ...parlays]);
 
-      const sports = [...new Set(plays.map((play) => play.sport))].sort();
+      // The chart plots the same positions the headline evidence counts. Before
+      // this it plotted straight picks only, so a package sold on parlays
+      // showed a record its curve never explained.
+      const positions = [
+        ...plays.map((play) => ({
+          createdAt: play.createdAt,
+          outcome: play.outcome,
+          units: play.units,
+          profitUnits: play.profitUnits,
+          sport: play.sport,
+        })),
+        ...parlays.map((parlay) => ({
+          createdAt: parlay.createdAt,
+          outcome: parlay.outcome,
+          units: parlay.units,
+          profitUnits: parlay.profitUnits,
+          sport: parlay.legs[0]?.sport ?? "MULTI",
+        })),
+      ].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+      const sports = [
+        ...new Set(positions.map((position) => position.sport)),
+      ].sort();
       profiles[pkg.id] = {
-        chartSeries: buildProfileChartSeries(plays, now),
+        chartSeries: buildProfileChartSeries(positions, now),
         chartSeriesBySport: Object.fromEntries(
           sports.map((sport) => [
             sport,
             buildProfileChartSeries(
-              plays.filter((play) => play.sport === sport),
+              positions.filter((position) => position.sport === sport),
               now,
             ),
           ]),

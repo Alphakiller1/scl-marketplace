@@ -3,6 +3,7 @@ import "server-only";
 import type { Outcome, VerificationTier } from "@prisma/client";
 
 import { UNIT_MIN } from "@/lib/constants";
+import { parlayDisplaySport } from "@/lib/parlay-display";
 import { prisma } from "@/lib/prisma";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 import { hasClvColumns } from "@/lib/results/schema-features";
@@ -27,7 +28,7 @@ export type LiveTickerKind = "win" | "clv" | "posted";
 
 export type LiveTickerItem = {
   id: string;
-  /** Straight-play receipt that this activity item represents. */
+  /** The receipt this activity item represents — a straight pick or a parlay. */
   receiptId: string;
   kind: LiveTickerKind;
   handle: string;
@@ -73,62 +74,106 @@ export async function getLiveActivityTicker(): Promise<LiveActivityTickerPayload
       verificationTier: { in: VERIFIED_TIERS },
       capper: capperFilter,
     };
+    // A parlay is board-verified only when every leg is — the same bar a
+    // straight pick clears, applied to a ticket that only pays if all land.
+    const parlayBaseWhere = {
+      units: { gte: UNIT_MIN },
+      legs: {
+        some: {},
+        every: { verificationTier: { in: VERIFIED_TIERS } },
+      },
+      capper: capperFilter,
+    };
+    const parlaySelect = {
+      id: true,
+      legs: { select: { sport: true }, orderBy: { createdAt: "asc" as const } },
+    } as const;
 
     const selectCapper = {
       capper: { select: { user: { select: { username: true } } } },
     } as const;
 
-    const [wins, posted, clvRows] = await Promise.all([
-      prisma.play.findMany({
-        where: {
-          ...baseWhere,
-          outcome: "WIN" satisfies Outcome,
-          gradedAt: { gte: since },
-        },
-        select: {
-          id: true,
-          sport: true,
-          profitUnits: true,
-          gradedAt: true,
-          ...selectCapper,
-        },
-        orderBy: { gradedAt: "desc" },
-        take: PER_KIND,
-      }),
-      prisma.play.findMany({
-        where: {
-          ...baseWhere,
-          outcome: "PENDING" satisfies Outcome,
-          createdAt: { gte: since },
-        },
-        select: {
-          id: true,
-          sport: true,
-          createdAt: true,
-          ...selectCapper,
-        },
-        orderBy: { createdAt: "desc" },
-        take: PER_KIND,
-      }),
-      clvReady
-        ? prisma.play.findMany({
-            where: {
-              ...baseWhere,
-              clvPts: { gte: MIN_TICKER_CLV_PTS },
-              closingCapturedAt: { gte: since },
-            },
-            select: {
-              id: true,
-              sport: true,
-              clvPts: true,
-              closingCapturedAt: true,
-              ...selectCapper,
-            },
-            orderBy: { closingCapturedAt: "desc" },
-            take: PER_KIND,
-          })
-        : Promise.resolve([]),
-    ]);
+    const [wins, posted, clvRows, parlayWins, parlaysPosted] =
+      await Promise.all([
+        prisma.play.findMany({
+          where: {
+            ...baseWhere,
+            outcome: "WIN" satisfies Outcome,
+            gradedAt: { gte: since },
+          },
+          select: {
+            id: true,
+            sport: true,
+            profitUnits: true,
+            gradedAt: true,
+            ...selectCapper,
+          },
+          orderBy: { gradedAt: "desc" },
+          take: PER_KIND,
+        }),
+        prisma.play.findMany({
+          where: {
+            ...baseWhere,
+            outcome: "PENDING" satisfies Outcome,
+            createdAt: { gte: since },
+          },
+          select: {
+            id: true,
+            sport: true,
+            createdAt: true,
+            ...selectCapper,
+          },
+          orderBy: { createdAt: "desc" },
+          take: PER_KIND,
+        }),
+        clvReady
+          ? prisma.play.findMany({
+              where: {
+                ...baseWhere,
+                clvPts: { gte: MIN_TICKER_CLV_PTS },
+                closingCapturedAt: { gte: since },
+              },
+              select: {
+                id: true,
+                sport: true,
+                clvPts: true,
+                closingCapturedAt: true,
+                ...selectCapper,
+              },
+              orderBy: { closingCapturedAt: "desc" },
+              take: PER_KIND,
+            })
+          : Promise.resolve([]),
+        prisma.parlay.findMany({
+          where: {
+            ...parlayBaseWhere,
+            outcome: "WIN" satisfies Outcome,
+            gradedAt: { gte: since },
+          },
+          select: {
+            ...parlaySelect,
+            profitUnits: true,
+            gradedAt: true,
+            ...selectCapper,
+          },
+          orderBy: { gradedAt: "desc" },
+          take: PER_KIND,
+        }),
+        prisma.parlay.findMany({
+          where: {
+            ...parlayBaseWhere,
+            outcome: "PENDING" satisfies Outcome,
+            createdAt: { gte: since },
+          },
+          select: {
+            ...parlaySelect,
+            createdAt: true,
+            ...selectCapper,
+          },
+          orderBy: { createdAt: "desc" },
+          take: PER_KIND,
+        }),
+      ]);
 
     const items: LiveTickerItem[] = [];
 
@@ -141,6 +186,20 @@ export async function getLiveActivityTicker(): Promise<LiveActivityTickerPayload
         kind: "win",
         handle,
         sport: row.sport,
+        at: row.gradedAt.toISOString(),
+        profitUnits: row.profitUnits == null ? null : Number(row.profitUnits),
+      });
+    }
+
+    for (const row of parlayWins) {
+      const handle = row.capper.user.username;
+      if (!handle || !row.gradedAt) continue;
+      items.push({
+        id: `win-${row.id}`,
+        receiptId: row.id,
+        kind: "win",
+        handle,
+        sport: parlayDisplaySport(row.legs),
         at: row.gradedAt.toISOString(),
         profitUnits: row.profitUnits == null ? null : Number(row.profitUnits),
       });
@@ -181,6 +240,19 @@ export async function getLiveActivityTicker(): Promise<LiveActivityTickerPayload
         kind: "posted",
         handle,
         sport: row.sport,
+        at: row.createdAt.toISOString(),
+      });
+    }
+
+    for (const row of parlaysPosted) {
+      const handle = row.capper.user.username;
+      if (!handle) continue;
+      items.push({
+        id: `posted-${row.id}`,
+        receiptId: row.id,
+        kind: "posted",
+        handle,
+        sport: parlayDisplaySport(row.legs),
         at: row.createdAt.toISOString(),
       });
     }

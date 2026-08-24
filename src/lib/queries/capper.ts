@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { Outcome } from "@prisma/client";
+import type { Outcome, Prisma, VerificationTier } from "@prisma/client";
 import { cache } from "react";
 
 import { cachedQuery } from "@/lib/cached-query";
@@ -19,12 +19,24 @@ import {
   buildProfileChartSeries,
   type ProfileChartSeries,
 } from "@/lib/profile-chart-window";
+import {
+  compareHistoryKeysDesc,
+  decodeHistoryCursor,
+  encodeHistoryCursor,
+  entriesThroughWatermark,
+  historyBatchWatermark,
+  mergeHistoryEntries,
+  type ProfileHistoryEntry,
+  type ProfileHistoryKey,
+  type PublicParlayView,
+} from "@/lib/profile-history";
 import { prisma } from "@/lib/prisma";
 import { hasQaNoteMarker, isValidPublicStake } from "@/lib/public-eligibility";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 import { publicPickEmbargoState } from "@/lib/public-pick-embargo";
 import { getPublicCapperEvidenceByIds } from "@/lib/queries/leaderboard";
 import type { PlayView } from "@/lib/queries/plays";
+import { earliestLegStart, parlayVerificationTier } from "@/lib/parlay-display";
 import { computeStatsBySport } from "@/lib/stats";
 import {
   hasClvColumns,
@@ -38,7 +50,8 @@ import { resolveLegacyHandleAlias } from "@/lib/legacy-handle-aliases";
 
 export type PublicCapper = {
   capper: CapperSummary;
-  plays: PlayView[];
+  /** Pick History rows: straight plays and whole parlays, newest first. */
+  history: ProfileHistoryEntry[];
   playsError: boolean;
   avgClv: number | null;
   clvTracker: ClvTrackerSummary;
@@ -50,7 +63,7 @@ export type PublicCapper = {
 };
 
 export type PublicProfileHistoryPage = {
-  plays: PlayView[];
+  entries: ProfileHistoryEntry[];
   nextCursor: string | null;
 };
 
@@ -59,7 +72,14 @@ const PROFILE_HISTORY_FETCH_SIZE = PROFILE_HISTORY_PAGE_SIZE * 3;
 const PROFILE_HISTORY_MAX_BATCHES = 16;
 const PROFILE_CHART_QUERY_LIMIT = 5_000;
 
-/** Bounded public receipt page; parlay legs are never positions of record. */
+/**
+ * Bounded public receipt page — straight plays and whole parlays.
+ *
+ * Parlay legs are never positions of record, but the parlay is: the record,
+ * units, and chart on this same profile all count it. Reading only `Play`
+ * rows here left parlay-only cappers with a ledger frozen at their last
+ * straight pick while their public record kept moving.
+ */
 export async function getPublicProfileHistoryPage(
   handle: string,
   cursor?: string | null,
@@ -67,8 +87,18 @@ export async function getPublicProfileHistoryPage(
   const excludeTest = await prismaExcludeTestHandlesLive();
   const notesPublicReady = await hasNotesPublicColumn();
   const clvReady = await hasClvColumns();
-  const visible: PlayView[] = [];
-  let scanCursor = cursor ?? null;
+  const capperWhere = {
+    capper: {
+      user: {
+        username: { equals: handle, mode: "insensitive" as const },
+        accountStatus: "ACTIVE" as const,
+        ...excludeTest,
+      },
+    },
+    units: { gte: UNIT_MIN },
+  };
+  const visible: ProfileHistoryEntry[] = [];
+  let boundary = await resolveHistoryBoundary(cursor);
   let exhausted = false;
 
   for (
@@ -78,109 +108,286 @@ export async function getPublicProfileHistoryPage(
     !exhausted;
     batch += 1
   ) {
-    const rows = await prisma.play.findMany({
-      where: {
-        capper: {
-          user: {
-            username: { equals: handle, mode: "insensitive" },
-            accountStatus: "ACTIVE",
-            ...excludeTest,
+    const [playRows, parlayRows] = await Promise.all([
+      prisma.play.findMany({
+        where: {
+          ...capperWhere,
+          parlayId: null,
+          ...historyKeysetWhere(boundary),
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: PROFILE_HISTORY_FETCH_SIZE,
+        select: {
+          id: true,
+          sport: true,
+          league: true,
+          market: true,
+          selection: true,
+          oddsAmerican: true,
+          units: true,
+          outcome: true,
+          profitUnits: true,
+          createdAt: true,
+          verificationTier: true,
+          side: true,
+          eventStartsAt: true,
+          eventLabel: true,
+          homeTeam: true,
+          awayTeam: true,
+          book: true,
+          notes: true,
+          ...(notesPublicReady ? { notesPublic: true } : {}),
+          ...(clvReady ? { closingOddsAmerican: true, clvPts: true } : {}),
+        },
+      }),
+      prisma.parlay.findMany({
+        where: { ...capperWhere, ...historyKeysetWhere(boundary) },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: PROFILE_HISTORY_FETCH_SIZE,
+        select: {
+          id: true,
+          combinedOddsAmerican: true,
+          units: true,
+          outcome: true,
+          profitUnits: true,
+          createdAt: true,
+          legs: {
+            orderBy: { createdAt: "asc" as const },
+            select: {
+              id: true,
+              sport: true,
+              league: true,
+              market: true,
+              selection: true,
+              oddsAmerican: true,
+              side: true,
+              book: true,
+              eventLabel: true,
+              homeTeam: true,
+              awayTeam: true,
+              eventStartsAt: true,
+              verificationTier: true,
+              notes: true,
+            },
           },
         },
-        units: { gte: UNIT_MIN },
-        parlayId: null,
-      },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: PROFILE_HISTORY_FETCH_SIZE,
-      ...(scanCursor ? { cursor: { id: scanCursor }, skip: 1 } : {}),
-      select: {
-        id: true,
-        sport: true,
-        league: true,
-        market: true,
-        selection: true,
-        oddsAmerican: true,
-        units: true,
-        outcome: true,
-        profitUnits: true,
-        createdAt: true,
-        verificationTier: true,
-        side: true,
-        eventStartsAt: true,
-        eventLabel: true,
-        homeTeam: true,
-        awayTeam: true,
-        book: true,
-        notes: true,
-        ...(notesPublicReady ? { notesPublic: true } : {}),
-        ...(clvReady ? { closingOddsAmerican: true, clvPts: true } : {}),
-      },
-    });
-    if (rows.length === 0) {
+      }),
+    ]);
+    if (playRows.length === 0 && parlayRows.length === 0) {
       exhausted = true;
       break;
     }
-    scanCursor = rows.at(-1)?.id ?? scanCursor;
-    exhausted = rows.length < PROFILE_HISTORY_FETCH_SIZE;
-    visible.push(
-      ...rows
-        .filter((row) => !hasQaNoteMarker(row.notes))
-        .map((row) => {
-          const embargo = publicPickEmbargoState(row);
-          const stake = stakeFromStored(row.units, row.profitUnits);
-          return {
-            id: row.id,
-            sport: row.sport,
-            league: row.league,
-            market: row.market,
-            selection: embargo.isEmbargoed ? "Pick hidden" : row.selection,
-            oddsAmerican: embargo.isEmbargoed ? 0 : row.oddsAmerican,
-            units: stake.units,
-            outcome: row.outcome,
-            profitUnits: stake.profitUnits,
-            createdAt: row.createdAt,
-            verificationTier: row.verificationTier,
-            side: embargo.isEmbargoed ? null : row.side,
-            eventStartsAt: row.eventStartsAt,
-            // Which game, not which side of it — disclosed on the same terms as
-            // eventLabel, which an embargoed row already carries.
-            eventLabel: row.eventLabel,
-            homeTeam: row.homeTeam,
-            awayTeam: row.awayTeam,
-            book: embargo.isEmbargoed ? null : row.book,
-            notes:
-              embargo.isEmbargoed ||
-              ("notesPublic" in row &&
-                (row as { notesPublic?: boolean }).notesPublic === false)
-                ? null
-                : row.notes,
-            notesPublic:
-              "notesPublic" in row
-                ? ((row as { notesPublic?: boolean }).notesPublic ?? true)
-                : true,
-            closingOddsAmerican:
-              embargo.isEmbargoed || !("closingOddsAmerican" in row)
-                ? null
-                : ((row as { closingOddsAmerican?: number | null })
-                    .closingOddsAmerican ?? null),
-            clvPts:
-              embargo.isEmbargoed ||
-              !("clvPts" in row) ||
-              (row as { clvPts?: unknown }).clvPts == null
-                ? null
-                : Number((row as { clvPts: unknown }).clvPts),
-            ...embargo,
-          };
-        })
-        .filter((play) => isValidPublicStake(play.units)),
+
+    const playFull = playRows.length === PROFILE_HISTORY_FETCH_SIZE;
+    const parlayFull = parlayRows.length === PROFILE_HISTORY_FETCH_SIZE;
+    exhausted = !playFull && !parlayFull;
+    const watermark = historyBatchWatermark({
+      playTail: playRows.at(-1) ?? null,
+      playFull,
+      parlayTail: parlayRows.at(-1) ?? null,
+      parlayFull,
+    });
+    // Uncut batch (both streams exhausted): fall back to the older of the two
+    // tails so a resumed scan never re-reads rows this batch already emitted.
+    boundary =
+      watermark ?? oldestKey(playRows.at(-1), parlayRows.at(-1)) ?? boundary;
+
+    const merged = entriesThroughWatermark(
+      mergeHistoryEntries(
+        playRows
+          .filter((row) => !hasQaNoteMarker(row.notes))
+          .map(toPublicPlayEntry),
+        parlayRows
+          .filter((row) => !row.legs.some((leg) => hasQaNoteMarker(leg.notes)))
+          .map(toPublicParlayEntry),
+      ),
+      watermark,
     );
+    visible.push(...merged.filter((entry) => isValidPublicStake(entry.units)));
   }
-  const plays = visible.slice(0, PROFILE_HISTORY_PAGE_SIZE);
+
+  const entries = visible.slice(0, PROFILE_HISTORY_PAGE_SIZE);
   const mayHaveMore = visible.length > PROFILE_HISTORY_PAGE_SIZE || !exhausted;
+  const last = entries.at(-1) ?? boundary;
 
   return {
-    plays,
-    nextCursor: mayHaveMore ? (plays.at(-1)?.id ?? scanCursor) : null,
+    entries,
+    nextCursor: mayHaveMore && last ? encodeHistoryCursor(last) : null,
+  };
+}
+
+/** The lower (older) of two keyset positions, ignoring the missing ones. */
+function oldestKey(
+  a: ProfileHistoryKey | undefined,
+  b: ProfileHistoryKey | undefined,
+): ProfileHistoryKey | null {
+  if (!a) return b ?? null;
+  if (!b) return a;
+  return compareHistoryKeysDesc(a, b) > 0 ? a : b;
+}
+
+/** Keyset predicate for `[createdAt desc, id desc]` — works on either table. */
+function historyKeysetWhere(boundary: ProfileHistoryKey | null) {
+  if (!boundary) return {};
+  return {
+    OR: [
+      { createdAt: { lt: boundary.createdAt } },
+      { createdAt: boundary.createdAt, id: { lt: boundary.id } },
+    ],
+  };
+}
+
+/**
+ * A cursor from a page rendered before parlays joined the ledger is a bare
+ * play id. Resolve it to a keyset position rather than dropping the reader
+ * back to the top of the history.
+ */
+async function resolveHistoryBoundary(
+  cursor: string | null | undefined,
+): Promise<ProfileHistoryKey | null> {
+  const decoded = decodeHistoryCursor(cursor);
+  if (decoded) return decoded;
+  if (!cursor) return null;
+  return prisma.play.findUnique({
+    where: { id: cursor },
+    select: { id: true, createdAt: true },
+  });
+}
+
+type PublicPlayRow = {
+  id: string;
+  sport: string;
+  league: string | null;
+  market: string;
+  selection: string;
+  oddsAmerican: number;
+  units: Prisma.Decimal;
+  outcome: Outcome;
+  profitUnits: Prisma.Decimal | null;
+  createdAt: Date;
+  verificationTier: VerificationTier;
+  side: string | null;
+  eventStartsAt: Date | null;
+  eventLabel: string | null;
+  homeTeam: string | null;
+  awayTeam: string | null;
+  book: string | null;
+  notes: string | null;
+  notesPublic?: boolean;
+  closingOddsAmerican?: number | null;
+  clvPts?: Prisma.Decimal | null;
+};
+
+function toPublicPlayEntry(row: PublicPlayRow): { kind: "play" } & PlayView {
+  const embargo = publicPickEmbargoState(row);
+  const stake = stakeFromStored(row.units, row.profitUnits);
+  return {
+    kind: "play",
+    id: row.id,
+    sport: row.sport,
+    league: row.league,
+    market: row.market,
+    selection: embargo.isEmbargoed ? "Pick hidden" : row.selection,
+    oddsAmerican: embargo.isEmbargoed ? 0 : row.oddsAmerican,
+    units: stake.units,
+    outcome: row.outcome,
+    profitUnits: stake.profitUnits,
+    createdAt: row.createdAt,
+    verificationTier: row.verificationTier,
+    side: embargo.isEmbargoed ? null : row.side,
+    eventStartsAt: row.eventStartsAt,
+    // Which game, not which side of it — disclosed on the same terms as
+    // eventLabel, which an embargoed row already carries.
+    eventLabel: row.eventLabel,
+    homeTeam: row.homeTeam,
+    awayTeam: row.awayTeam,
+    book: embargo.isEmbargoed ? null : row.book,
+    notes:
+      embargo.isEmbargoed ||
+      ("notesPublic" in row &&
+        (row as { notesPublic?: boolean }).notesPublic === false)
+        ? null
+        : row.notes,
+    notesPublic:
+      "notesPublic" in row
+        ? ((row as { notesPublic?: boolean }).notesPublic ?? true)
+        : true,
+    closingOddsAmerican:
+      embargo.isEmbargoed || !("closingOddsAmerican" in row)
+        ? null
+        : ((row as { closingOddsAmerican?: number | null })
+            .closingOddsAmerican ?? null),
+    clvPts:
+      embargo.isEmbargoed ||
+      !("clvPts" in row) ||
+      (row as { clvPts?: unknown }).clvPts == null
+        ? null
+        : Number((row as { clvPts: unknown }).clvPts),
+    ...embargo,
+  };
+}
+
+type PublicParlayRow = {
+  id: string;
+  combinedOddsAmerican: number | null;
+  units: Prisma.Decimal;
+  outcome: Outcome;
+  profitUnits: Prisma.Decimal | null;
+  createdAt: Date;
+  legs: {
+    id: string;
+    sport: string;
+    league: string | null;
+    market: string;
+    selection: string;
+    oddsAmerican: number;
+    side: string | null;
+    book: string | null;
+    eventLabel: string | null;
+    homeTeam: string | null;
+    awayTeam: string | null;
+    eventStartsAt: Date | null;
+    verificationTier: VerificationTier;
+    notes: string | null;
+  }[];
+};
+
+function toPublicParlayEntry(
+  row: PublicParlayRow,
+): { kind: "parlay" } & PublicParlayView {
+  const eventStartsAt = earliestLegStart(row.legs);
+  const embargo = publicPickEmbargoState({
+    outcome: row.outcome,
+    eventStartsAt,
+  });
+  const stake = stakeFromStored(row.units, row.profitUnits);
+  return {
+    kind: "parlay",
+    id: row.id,
+    // An embargoed parlay's price would reconstruct its legs, so it waits too.
+    combinedOddsAmerican: embargo.isEmbargoed ? null : row.combinedOddsAmerican,
+    units: stake.units,
+    outcome: row.outcome,
+    profitUnits: stake.profitUnits,
+    createdAt: row.createdAt,
+    verificationTier: parlayVerificationTier(row.legs),
+    eventStartsAt,
+    legs: row.legs.map((leg) => ({
+      id: leg.id,
+      sport: leg.sport,
+      league: leg.league,
+      market: leg.market,
+      selection: embargo.isEmbargoed ? "Pick hidden" : leg.selection,
+      oddsAmerican: embargo.isEmbargoed ? 0 : leg.oddsAmerican,
+      side: embargo.isEmbargoed ? null : leg.side,
+      book: embargo.isEmbargoed ? null : leg.book,
+      // Same disclosure terms as a straight pick: the fixture, not the side.
+      eventLabel: leg.eventLabel,
+      homeTeam: leg.homeTeam,
+      awayTeam: leg.awayTeam,
+      eventStartsAt: leg.eventStartsAt,
+    })),
+    ...embargo,
   };
 }
 
@@ -248,7 +455,7 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
   }
   const sclBySport = sclBySportByCapperId[capper.id] ?? [];
 
-  let plays: PlayView[] = [];
+  let history: ProfileHistoryEntry[] = [];
   let playsError = false;
   let avgClv: number | null = null;
   let clvTracker = summarizeClvTracker([]);
@@ -352,7 +559,7 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
   );
 
   if (historyResult.status === "fulfilled") {
-    plays = historyResult.value.plays;
+    history = historyResult.value.entries;
     historyNextCursor = historyResult.value.nextCursor;
   } else {
     console.error(
@@ -465,7 +672,7 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
 
   return {
     capper,
-    plays,
+    history,
     playsError,
     avgClv,
     clvTracker,
@@ -497,7 +704,7 @@ const getCachedPublicCapperByHandle = cachedQuery(
   async (handle: string) => loadPublicCapperByHandle(handle),
   // v2 intentionally abandons partial profile payloads cached before metadata
   // stopped launching a competing full hydration on cold requests.
-  ["public-capper-by-handle-v6"],
+  ["public-capper-by-handle-v7"],
   { revalidate: 60, tags: ["leaderboard"] },
 );
 

@@ -16,16 +16,25 @@ import {
 import type { StatsBaseline } from "@/lib/stats";
 import type { CapperSummary, TodayPick } from "@/lib/mock";
 import {
+  joinParlaysToPublicPicks,
   joinPlaysToPublicPicks,
+  mergePublicPicks,
+  type PublicParlayJoinRow,
   type PublicPlayJoinRow,
 } from "@/lib/public-picks";
 import {
   DEFAULT_PUBLIC_PICKS_FILTERS,
   type PublicPicksLedgerFilters,
 } from "@/lib/public-picks-ledger";
-import { buildPublicPicksScopeWhere } from "@/lib/public-picks-scope";
+import {
+  buildPublicParlayScopeWhere,
+  buildPublicPicksScopeWhere,
+} from "@/lib/public-picks-scope";
 import { hasQaNoteMarker } from "@/lib/public-eligibility";
-import { buildPublishedStraightPlayWhere } from "@/lib/queries/published-play-where";
+import {
+  buildPublishedParlayWhere,
+  buildPublishedStraightPlayWhere,
+} from "@/lib/queries/published-play-where";
 import {
   hasClvColumns,
   hasNotesPublicColumn,
@@ -342,7 +351,10 @@ export async function getPublicRecentPicksResult(
 ): Promise<{ picks: TodayPick[]; failed: boolean }> {
   const result = await getPublicRecentPickRows(take, filters, now);
   return {
-    picks: joinPlaysToPublicPicks(result.plays, cappers, now),
+    picks: mergePublicPicks(
+      joinPlaysToPublicPicks(result.plays, cappers, now),
+      joinParlaysToPublicPicks(result.parlays, cappers, now),
+    ),
     failed: result.failed,
   };
 }
@@ -359,57 +371,145 @@ export async function getPublicRecentPickRows(
   take = 8,
   filters: PublicPicksLedgerFilters = DEFAULT_PUBLIC_PICKS_FILTERS,
   now: Date = new Date(),
-): Promise<{ plays: PublicPlayJoinRow[]; failed: boolean }> {
+): Promise<{
+  plays: PublicPlayJoinRow[];
+  parlays: PublicParlayJoinRow[];
+  failed: boolean;
+}> {
   try {
-    const plays = await withTransientDatabaseRetry(
+    const rows = await withTransientDatabaseRetry(
       async () => {
         const notesPublicReady = await hasNotesPublicColumn();
-        const publicationWhere = await buildPublishedStraightPlayWhere();
-        const scopeWhere = buildPublicPicksScopeWhere(filters, now);
-        return prisma.play.findMany({
-          where: {
-            ...publicationWhere,
-            ...scopeWhere,
-          },
-          select: {
-            id: true,
-            capperId: true,
-            sport: true,
-            league: true,
-            market: true,
-            selection: true,
-            oddsAmerican: true,
-            units: true,
-            outcome: true,
-            profitUnits: true,
-            createdAt: true,
-            verificationTier: true,
-            side: true,
-            eventStartsAt: true,
-            eventLabel: true,
-            homeTeam: true,
-            awayTeam: true,
-            book: true,
-            closingOddsAmerican: true,
-            clvPts: true,
-            notes: true,
-            ...(notesPublicReady ? { notesPublic: true } : {}),
-          },
-          orderBy: { createdAt: "desc" },
-          // Over-fetch so QA-noted plays dropped below don't shrink the feed.
-          take: take * 2,
-        });
+        const [playWhere, parlayWhere] = await Promise.all([
+          buildPublishedStraightPlayWhere(),
+          buildPublishedParlayWhere(),
+        ]);
+        return Promise.all([
+          prisma.play.findMany({
+            where: {
+              ...playWhere,
+              ...buildPublicPicksScopeWhere(filters, now),
+            },
+            select: {
+              id: true,
+              capperId: true,
+              sport: true,
+              league: true,
+              market: true,
+              selection: true,
+              oddsAmerican: true,
+              units: true,
+              outcome: true,
+              profitUnits: true,
+              createdAt: true,
+              verificationTier: true,
+              side: true,
+              eventStartsAt: true,
+              eventLabel: true,
+              homeTeam: true,
+              awayTeam: true,
+              book: true,
+              closingOddsAmerican: true,
+              clvPts: true,
+              notes: true,
+              ...(notesPublicReady ? { notesPublic: true } : {}),
+            },
+            orderBy: { createdAt: "desc" },
+            // Over-fetch so QA-noted plays dropped below don't shrink the feed.
+            take: take * 2,
+          }),
+          // Parlays are positions of record, so the public ledger lists them
+          // beside straight picks. Their legs are display detail carried on
+          // the row, never rows of their own.
+          prisma.parlay.findMany({
+            where: {
+              ...parlayWhere,
+              ...buildPublicParlayScopeWhere(filters, now),
+            },
+            select: {
+              id: true,
+              capperId: true,
+              combinedOddsAmerican: true,
+              units: true,
+              outcome: true,
+              profitUnits: true,
+              createdAt: true,
+              legs: {
+                orderBy: { createdAt: "asc" as const },
+                select: {
+                  id: true,
+                  sport: true,
+                  league: true,
+                  market: true,
+                  selection: true,
+                  oddsAmerican: true,
+                  side: true,
+                  book: true,
+                  eventLabel: true,
+                  homeTeam: true,
+                  awayTeam: true,
+                  eventStartsAt: true,
+                  verificationTier: true,
+                  notes: true,
+                },
+              },
+            },
+            orderBy: { createdAt: "desc" },
+            take: take * 2,
+          }),
+        ]);
       },
       { label: "public picks feed" },
     );
 
-    const visible = plays
-      .filter((p) => !hasQaNoteMarker(p.notes))
-      .slice(0, take);
+    const [playRows, parlayRows] = rows;
+    const visiblePlays = playRows.filter((p) => !hasQaNoteMarker(p.notes));
+    const visibleParlays = parlayRows.filter(
+      (p) => !p.legs.some((leg) => hasQaNoteMarker(leg.notes)),
+    );
+    // One bounded feed across both tables: merge on capture time, then cut.
+    const kept = new Set(
+      [
+        ...visiblePlays.map((p) => ({ id: p.id, createdAt: p.createdAt })),
+        ...visibleParlays.map((p) => ({ id: p.id, createdAt: p.createdAt })),
+      ]
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+        .slice(0, take)
+        .map((row) => row.id),
+    );
 
-    return { plays: visible, failed: false };
+    return {
+      plays: visiblePlays.filter((p) => kept.has(p.id)),
+      parlays: visibleParlays
+        .filter((p) => kept.has(p.id))
+        .map((p) => ({
+          id: p.id,
+          capperId: p.capperId,
+          combinedOddsAmerican: p.combinedOddsAmerican,
+          units: p.units,
+          outcome: p.outcome,
+          profitUnits: p.profitUnits,
+          createdAt: p.createdAt,
+          legs: p.legs.map((leg) => ({
+            id: leg.id,
+            sport: leg.sport,
+            league: leg.league,
+            market: leg.market,
+            selection: leg.selection,
+            oddsAmerican: leg.oddsAmerican,
+            side: leg.side,
+            book: leg.book,
+            eventLabel: leg.eventLabel,
+            homeTeam: leg.homeTeam,
+            awayTeam: leg.awayTeam,
+            eventStartsAt: leg.eventStartsAt,
+            verificationTier: leg.verificationTier,
+          })),
+        })),
+      failed: false,
+    };
   } catch (error) {
     console.error("[getPublicRecentPicks] database unavailable:", error);
-    return { plays: [], failed: true };
+    return { plays: [], parlays: [], failed: true };
   }
 }
