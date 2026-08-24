@@ -239,8 +239,6 @@ export type WhopProductUpdate = {
   title?: string;
   headline?: string | null;
   visibility?: "visible" | "hidden";
-  /** Stamped so the inbound webhook can recognise SCL's own echo. */
-  metadata?: Record<string, string>;
 };
 
 /**

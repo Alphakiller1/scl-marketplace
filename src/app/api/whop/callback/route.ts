@@ -3,12 +3,11 @@ import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
-import { siteUrl } from "@/lib/site-url";
 import {
   exchangeWhopAuthorizationCode,
   type WhopPkceState,
 } from "@/lib/whop-oauth";
-import { whopOAuthRedirectUri } from "@/lib/whop-oauth-redirect";
+import { whopOAuthRedirectUriForOrigin } from "@/lib/whop-oauth-redirect";
 import { listWhopCompanies } from "@/lib/whop-api";
 import { persistWhopOAuthCredentials } from "@/lib/whop-sync";
 import {
@@ -22,12 +21,8 @@ export const dynamic = "force-dynamic";
 
 const PKCE_COOKIE = "whop_oauth_pkce";
 
-function redirectUri() {
-  return whopOAuthRedirectUri();
-}
-
-function monetizationUrl(query?: Record<string, string>) {
-  const url = new URL("/dashboard/monetization", siteUrl());
+function monetizationUrl(origin: string, query?: Record<string, string>) {
+  const url = new URL("/dashboard/monetization", origin);
   if (query) {
     for (const [key, value] of Object.entries(query)) {
       url.searchParams.set(key, value);
@@ -41,13 +36,15 @@ function monetizationUrl(query?: Record<string, string>) {
  * capper installed the SCL app, and returns them to the storefront setup page.
  */
 export async function GET(req: NextRequest) {
+  const origin = req.nextUrl.origin;
+  const redirectUri = whopOAuthRedirectUriForOrigin(origin);
   const params = req.nextUrl.searchParams;
   const oauthError = params.get("error");
   if (oauthError) {
     const description = params.get("error_description") || oauthError;
     console.warn(`[whop/callback] OAuth error: ${description}`);
     return NextResponse.redirect(
-      monetizationUrl({
+      monetizationUrl(origin, {
         whop: "oauth-denied",
         reason: description.slice(0, 120),
       }),
@@ -55,13 +52,17 @@ export async function GET(req: NextRequest) {
   }
 
   if (!whopOAuthConfigured()) {
-    return NextResponse.redirect(monetizationUrl({ whop: "not-configured" }));
+    return NextResponse.redirect(
+      monetizationUrl(origin, { whop: "not-configured" }),
+    );
   }
 
   const code = params.get("code");
   const returnedState = params.get("state");
   if (!code || !returnedState) {
-    return NextResponse.redirect(monetizationUrl({ whop: "invalid-callback" }));
+    return NextResponse.redirect(
+      monetizationUrl(origin, { whop: "invalid-callback" }),
+    );
   }
 
   const cookieStore = await cookies();
@@ -72,17 +73,23 @@ export async function GET(req: NextRequest) {
   try {
     pkce = JSON.parse(rawPkce || "null") as WhopPkceState;
   } catch {
-    return NextResponse.redirect(monetizationUrl({ whop: "session-expired" }));
+    return NextResponse.redirect(
+      monetizationUrl(origin, { whop: "session-expired" }),
+    );
   }
 
   if (!pkce?.state || pkce.state !== returnedState) {
-    return NextResponse.redirect(monetizationUrl({ whop: "state-mismatch" }));
+    return NextResponse.redirect(
+      monetizationUrl(origin, { whop: "state-mismatch" }),
+    );
   }
 
   const appId = whopAppId();
   const appSecret = whopAppApiKey();
   if (!appId || !appSecret) {
-    return NextResponse.redirect(monetizationUrl({ whop: "not-configured" }));
+    return NextResponse.redirect(
+      monetizationUrl(origin, { whop: "not-configured" }),
+    );
   }
 
   let tokens;
@@ -91,12 +98,14 @@ export async function GET(req: NextRequest) {
       code,
       clientId: appId,
       clientSecret: appSecret,
-      redirectUri: redirectUri(),
+      redirectUri,
       codeVerifier: pkce.codeVerifier,
     });
   } catch (error) {
     console.error("[whop/callback] token exchange failed:", error);
-    return NextResponse.redirect(monetizationUrl({ whop: "exchange-failed" }));
+    return NextResponse.redirect(
+      monetizationUrl(origin, { whop: "exchange-failed" }),
+    );
   }
 
   let companies: Array<{ id: string; route: string }> = [];
@@ -104,7 +113,9 @@ export async function GET(req: NextRequest) {
     companies = await listWhopCompanies(tokens.access_token);
   } catch (error) {
     console.error("[whop/callback] company lookup failed:", error);
-    return NextResponse.redirect(monetizationUrl({ whop: "company-missing" }));
+    return NextResponse.redirect(
+      monetizationUrl(origin, { whop: "company-missing" }),
+    );
   }
 
   const persisted = await persistWhopOAuthCredentials({
@@ -116,7 +127,10 @@ export async function GET(req: NextRequest) {
   });
   if (!persisted.ok) {
     return NextResponse.redirect(
-      monetizationUrl({ whop: "company-missing", reason: persisted.error }),
+      monetizationUrl(origin, {
+        whop: "company-missing",
+        reason: persisted.error,
+      }),
     );
   }
 
@@ -126,7 +140,7 @@ export async function GET(req: NextRequest) {
   });
   if (!connection) {
     return NextResponse.redirect(
-      monetizationUrl({ whop: "connection-missing" }),
+      monetizationUrl(origin, { whop: "connection-missing" }),
     );
   }
 
@@ -144,5 +158,5 @@ export async function GET(req: NextRequest) {
   revalidatePath("/dashboard/monetization");
   revalidatePath("/admin/store-setup");
 
-  return NextResponse.redirect(monetizationUrl({ whop: "connected" }));
+  return NextResponse.redirect(monetizationUrl(origin, { whop: "connected" }));
 }

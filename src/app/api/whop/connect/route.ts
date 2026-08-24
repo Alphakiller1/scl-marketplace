@@ -1,12 +1,11 @@
 import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { siteUrl } from "@/lib/site-url";
 import { buildWhopAuthorizeUrl, generatePkceState } from "@/lib/whop-oauth";
 import { ensureWhopOAuthRedirectRegistered } from "@/lib/whop-oauth-register";
-import { whopOAuthRedirectUri } from "@/lib/whop-oauth-redirect";
+import { whopOAuthRedirectUriForOrigin } from "@/lib/whop-oauth-redirect";
 import { whopAppId, whopOAuthConfigured } from "@/lib/whop-config";
 
 export const runtime = "nodejs";
@@ -15,13 +14,9 @@ export const dynamic = "force-dynamic";
 const PKCE_COOKIE = "whop_oauth_pkce";
 const PKCE_MAX_AGE = 60 * 10;
 
-function redirectUri() {
-  return whopOAuthRedirectUri();
-}
-
-function monetizationRedirect(code: string) {
+function monetizationRedirect(code: string, origin: string) {
   return NextResponse.redirect(
-    new URL(`/dashboard/monetization?whop=${code}`, siteUrl()),
+    new URL(`/dashboard/monetization?whop=${code}`, origin),
   );
 }
 
@@ -31,15 +26,17 @@ function monetizationRedirect(code: string) {
  * Always redirects back to monetization with a toastable `?whop=` code —
  * never dumps raw JSON into the browser.
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const origin = req.nextUrl.origin;
+  const redirectUri = whopOAuthRedirectUriForOrigin(origin);
   if (!whopOAuthConfigured()) {
-    return monetizationRedirect("not-configured");
+    return monetizationRedirect("not-configured", origin);
   }
 
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.redirect(
-      new URL("/login?callbackUrl=/dashboard/monetization", siteUrl()),
+      new URL("/login?callbackUrl=/dashboard/monetization", origin),
     );
   }
 
@@ -48,7 +45,7 @@ export async function GET() {
     select: { id: true },
   });
   if (!profile) {
-    return monetizationRedirect("profile-missing");
+    return monetizationRedirect("profile-missing", origin);
   }
 
   const connection = await prisma.storeConnection.findUnique({
@@ -58,20 +55,20 @@ export async function GET() {
     select: { id: true, status: true },
   });
   if (!connection || connection.status === "NOT_STARTED") {
-    return monetizationRedirect("start-setup");
+    return monetizationRedirect("start-setup", origin);
   }
   if (connection.status === "DISABLED") {
-    return monetizationRedirect("suspended");
+    return monetizationRedirect("suspended", origin);
   }
 
   const appId = whopAppId();
   if (!appId) {
-    return monetizationRedirect("not-configured");
+    return monetizationRedirect("not-configured", origin);
   }
 
-  const redirectSync = await ensureWhopOAuthRedirectRegistered();
+  const redirectSync = await ensureWhopOAuthRedirectRegistered(redirectUri);
   if (redirectSync === "missing") {
-    return monetizationRedirect("oauth-misconfigured");
+    return monetizationRedirect("oauth-misconfigured", origin);
   }
 
   const pkce = generatePkceState(profile.id, connection.id);
@@ -86,7 +83,7 @@ export async function GET() {
 
   const authorizeUrl = buildWhopAuthorizeUrl({
     clientId: appId,
-    redirectUri: redirectUri(),
+    redirectUri,
     pkce,
   });
 

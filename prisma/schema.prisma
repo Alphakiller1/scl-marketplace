@@ -461,6 +461,12 @@ model Package {
   isActive             Boolean        @default(true)
   /// Whop product id (prod_…) when imported via API sync.
   externalProductId    String?
+  /// Durable SCL → Whop delivery state. A pending local edit is retried by the
+  /// reconciliation worker and is never overwritten by an inbound refresh.
+  whopPushPendingAt    DateTime?
+  whopLastPushedAt     DateTime?
+  whopPushAttempts     Int            @default(0)
+  whopPushLastError    String?
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
 
@@ -477,6 +483,7 @@ model Package {
   @@index([isActive])
   @@index([sortOrder])
   @@index([externalProductId])
+  @@index([whopPushPendingAt])
 }
 
 model TrackingUrl {

@@ -88,3 +88,34 @@ test("scheduled Whop checks do not write no-op package audit events", () => {
     /if \(imported > 0 \|\| updated > 0 \|\| readiness\.status !== connection\.status\)/,
   );
 });
+
+test("SCL edits remain durable until Whop acknowledges the exact revision", () => {
+  const schema = fs.readFileSync(
+    path.join(root, "prisma/schema.prisma"),
+    "utf8",
+  );
+  const storeAction = fs.readFileSync(
+    path.join(root, "src/lib/actions/store.action.ts"),
+    "utf8",
+  );
+  const sync = fs.readFileSync(path.join(root, "src/lib/whop-sync.ts"), "utf8");
+  const cron = fs.readFileSync(
+    path.join(root, "src/app/api/cron/whop-sync/route.ts"),
+    "utf8",
+  );
+
+  assert.match(schema, /whopPushPendingAt\s+DateTime\?/);
+  assert.match(schema, /whopPushAttempts\s+Int\s+@default\(0\)/);
+  assert.match(storeAction, /whopPushPendingAt: whopPushQueuedAt/);
+  assert.match(storeAction, /afterResponse\(async \(\) =>/);
+  assert.match(sync, /if \(existing\?\.whopPushPendingAt\)/);
+  assert.match(
+    sync,
+    /where: \{ id: pkg\.id, whopPushPendingAt: pkg\.whopPushPendingAt \}/,
+  );
+  assert.ok(
+    cron.indexOf("pushPackageToWhop(pending.id)") <
+      cron.indexOf("syncWhopStorefront({"),
+    "pending outbound revisions must be delivered before inbound polling",
+  );
+});
