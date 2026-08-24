@@ -3,10 +3,18 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  serializeWhopPkceCookie,
+  whopOAuthCookieDomain,
+} from "@/lib/whop-oauth-cookie";
 import { buildWhopAuthorizeUrl, generatePkceState } from "@/lib/whop-oauth";
 import { ensureWhopOAuthRedirectRegistered } from "@/lib/whop-oauth-register";
-import { whopOAuthRedirectUriForOrigin } from "@/lib/whop-oauth-redirect";
-import { whopAppId, whopOAuthConfigured } from "@/lib/whop-config";
+import { whopOAuthRedirectUri } from "@/lib/whop-oauth-redirect";
+import {
+  whopAppApiKey,
+  whopAppId,
+  whopOAuthConfigured,
+} from "@/lib/whop-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,7 +36,7 @@ function monetizationRedirect(code: string, origin: string) {
  */
 export async function GET(req: NextRequest) {
   const origin = req.nextUrl.origin;
-  const redirectUri = whopOAuthRedirectUriForOrigin(origin);
+  const redirectUri = whopOAuthRedirectUri();
   if (!whopOAuthConfigured()) {
     return monetizationRedirect("not-configured", origin);
   }
@@ -62,7 +70,8 @@ export async function GET(req: NextRequest) {
   }
 
   const appId = whopAppId();
-  if (!appId) {
+  const appSecret = whopAppApiKey();
+  if (!appId || !appSecret) {
     return monetizationRedirect("not-configured", origin);
   }
 
@@ -71,14 +80,17 @@ export async function GET(req: NextRequest) {
     return monetizationRedirect("oauth-misconfigured", origin);
   }
 
-  const pkce = generatePkceState(profile.id, connection.id);
+  const pkce = generatePkceState(profile.id, connection.id, origin);
   const cookieStore = await cookies();
-  cookieStore.set(PKCE_COOKIE, JSON.stringify(pkce), {
+  const cookieDomain = whopOAuthCookieDomain(origin);
+  cookieStore.delete(PKCE_COOKIE);
+  cookieStore.set(PKCE_COOKIE, serializeWhopPkceCookie(pkce, appSecret), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     maxAge: PKCE_MAX_AGE,
     path: "/api/whop",
+    ...(cookieDomain && { domain: cookieDomain }),
   });
 
   const authorizeUrl = buildWhopAuthorizeUrl({

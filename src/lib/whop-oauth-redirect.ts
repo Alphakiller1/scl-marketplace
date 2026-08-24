@@ -43,33 +43,6 @@ export function whopOAuthRedirectUri(): string {
   return `${origin}${WHOP_OAUTH_CALLBACK_PATH}`;
 }
 
-/**
- * Keep the OAuth callback on the same public host that started the flow.
- *
- * Auth and PKCE cookies are host-scoped. Sending a signed-in `www` capper to
- * the apex callback drops both cookies and turns Connect into a login redirect.
- * Whop has both public callbacks registered, so preserving either known host is
- * safe. Preview and unrecognised hosts still fall back to the configured URI.
- */
-export function whopOAuthRedirectUriForOrigin(requestOrigin: string): string {
-  const explicit = process.env.WHOP_OAUTH_REDIRECT_URI?.trim();
-  if (explicit) return normalizeRedirectUri(explicit);
-
-  try {
-    const origin = new URL(normalizeRedirectUri(requestOrigin)).origin;
-    if (
-      origin === SCL_PRODUCTION_ORIGIN ||
-      origin === SCL_WWW_PRODUCTION_ORIGIN
-    ) {
-      return `${origin}${WHOP_OAUTH_CALLBACK_PATH}`;
-    }
-  } catch {
-    // Fall through to the configured, validated callback below.
-  }
-
-  return whopOAuthRedirectUri();
-}
-
 /** URIs SCL keeps registered on the Whop app so either public host works. */
 export function whopOAuthRedirectUrisToRegister(): string[] {
   const current = whopOAuthRedirectUri();

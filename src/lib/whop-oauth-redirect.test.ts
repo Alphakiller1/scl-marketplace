@@ -3,7 +3,6 @@ import { afterEach, test } from "node:test";
 
 import {
   whopOAuthRedirectUri,
-  whopOAuthRedirectUriForOrigin,
   whopOAuthRedirectUrisToRegister,
 } from "@/lib/whop-oauth-redirect";
 
@@ -75,43 +74,5 @@ test("the allowlist always includes apex and www", () => {
   );
   assert.ok(
     uris.includes("https://www.sportscappersleaderboard.com/api/whop/callback"),
-  );
-});
-
-test("the live OAuth flow preserves the public host that owns its cookies", () => {
-  delete process.env.WHOP_OAUTH_REDIRECT_URI;
-  process.env.NEXT_PUBLIC_SITE_URL = "https://sportscappersleaderboard.com";
-
-  assert.equal(
-    whopOAuthRedirectUriForOrigin("https://www.sportscappersleaderboard.com"),
-    "https://www.sportscappersleaderboard.com/api/whop/callback",
-  );
-  assert.equal(
-    whopOAuthRedirectUriForOrigin("https://sportscappersleaderboard.com"),
-    "https://sportscappersleaderboard.com/api/whop/callback",
-  );
-});
-
-test("unrecognised and preview origins cannot become OAuth callbacks", () => {
-  delete process.env.WHOP_OAUTH_REDIRECT_URI;
-  process.env.NEXT_PUBLIC_SITE_URL = "https://sportscappersleaderboard.com";
-
-  assert.equal(
-    whopOAuthRedirectUriForOrigin("https://attacker.example"),
-    "https://sportscappersleaderboard.com/api/whop/callback",
-  );
-  assert.equal(
-    whopOAuthRedirectUriForOrigin("https://scl-marketplace-branch.vercel.app"),
-    "https://sportscappersleaderboard.com/api/whop/callback",
-  );
-});
-
-test("an explicit OAuth callback still overrides the incoming host", () => {
-  process.env.WHOP_OAUTH_REDIRECT_URI =
-    "https://sportscappersleaderboard.com/api/whop/callback/";
-
-  assert.equal(
-    whopOAuthRedirectUriForOrigin("https://www.sportscappersleaderboard.com"),
-    "https://sportscappersleaderboard.com/api/whop/callback",
   );
 });

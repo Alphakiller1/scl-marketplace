@@ -4,10 +4,15 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import {
+  parseWhopPkceCookie,
+  whopOAuthCookieDomain,
+  whopOAuthReturnOrigin,
+} from "@/lib/whop-oauth-cookie";
+import {
   exchangeWhopAuthorizationCode,
   type WhopPkceState,
 } from "@/lib/whop-oauth";
-import { whopOAuthRedirectUriForOrigin } from "@/lib/whop-oauth-redirect";
+import { whopOAuthRedirectUri } from "@/lib/whop-oauth-redirect";
 import { listWhopCompanies } from "@/lib/whop-api";
 import { persistWhopOAuthCredentials } from "@/lib/whop-sync";
 import {
@@ -37,50 +42,11 @@ function monetizationUrl(origin: string, query?: Record<string, string>) {
  */
 export async function GET(req: NextRequest) {
   const origin = req.nextUrl.origin;
-  const redirectUri = whopOAuthRedirectUriForOrigin(origin);
+  const redirectUri = whopOAuthRedirectUri();
   const params = req.nextUrl.searchParams;
-  const oauthError = params.get("error");
-  if (oauthError) {
-    const description = params.get("error_description") || oauthError;
-    console.warn(`[whop/callback] OAuth error: ${description}`);
-    return NextResponse.redirect(
-      monetizationUrl(origin, {
-        whop: "oauth-denied",
-        reason: description.slice(0, 120),
-      }),
-    );
-  }
-
   if (!whopOAuthConfigured()) {
     return NextResponse.redirect(
       monetizationUrl(origin, { whop: "not-configured" }),
-    );
-  }
-
-  const code = params.get("code");
-  const returnedState = params.get("state");
-  if (!code || !returnedState) {
-    return NextResponse.redirect(
-      monetizationUrl(origin, { whop: "invalid-callback" }),
-    );
-  }
-
-  const cookieStore = await cookies();
-  const rawPkce = cookieStore.get(PKCE_COOKIE)?.value;
-  cookieStore.delete(PKCE_COOKIE);
-
-  let pkce: WhopPkceState;
-  try {
-    pkce = JSON.parse(rawPkce || "null") as WhopPkceState;
-  } catch {
-    return NextResponse.redirect(
-      monetizationUrl(origin, { whop: "session-expired" }),
-    );
-  }
-
-  if (!pkce?.state || pkce.state !== returnedState) {
-    return NextResponse.redirect(
-      monetizationUrl(origin, { whop: "state-mismatch" }),
     );
   }
 
@@ -89,6 +55,53 @@ export async function GET(req: NextRequest) {
   if (!appId || !appSecret) {
     return NextResponse.redirect(
       monetizationUrl(origin, { whop: "not-configured" }),
+    );
+  }
+
+  const cookieStore = await cookies();
+  const rawPkce = cookieStore.get(PKCE_COOKIE)?.value;
+  const cookieDomain = whopOAuthCookieDomain(origin);
+  cookieStore.set(PKCE_COOKIE, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 0,
+    path: "/api/whop",
+    ...(cookieDomain && { domain: cookieDomain }),
+  });
+
+  const pkce: WhopPkceState | null = parseWhopPkceCookie(rawPkce, appSecret);
+  const returnOrigin = whopOAuthReturnOrigin(pkce?.returnOrigin, origin);
+
+  const oauthError = params.get("error");
+  if (oauthError) {
+    const description = params.get("error_description") || oauthError;
+    console.warn(`[whop/callback] OAuth error: ${description}`);
+    return NextResponse.redirect(
+      monetizationUrl(returnOrigin, {
+        whop: "oauth-denied",
+        reason: description.slice(0, 120),
+      }),
+    );
+  }
+
+  const code = params.get("code");
+  const returnedState = params.get("state");
+  if (!code || !returnedState) {
+    return NextResponse.redirect(
+      monetizationUrl(returnOrigin, { whop: "invalid-callback" }),
+    );
+  }
+
+  if (!pkce) {
+    return NextResponse.redirect(
+      monetizationUrl(returnOrigin, { whop: "session-expired" }),
+    );
+  }
+
+  if (!pkce?.state || pkce.state !== returnedState) {
+    return NextResponse.redirect(
+      monetizationUrl(returnOrigin, { whop: "state-mismatch" }),
     );
   }
 
@@ -104,7 +117,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error("[whop/callback] token exchange failed:", error);
     return NextResponse.redirect(
-      monetizationUrl(origin, { whop: "exchange-failed" }),
+      monetizationUrl(returnOrigin, { whop: "exchange-failed" }),
     );
   }
 
@@ -114,7 +127,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error("[whop/callback] company lookup failed:", error);
     return NextResponse.redirect(
-      monetizationUrl(origin, { whop: "company-missing" }),
+      monetizationUrl(returnOrigin, { whop: "company-missing" }),
     );
   }
 
@@ -127,7 +140,7 @@ export async function GET(req: NextRequest) {
   });
   if (!persisted.ok) {
     return NextResponse.redirect(
-      monetizationUrl(origin, {
+      monetizationUrl(returnOrigin, {
         whop: "company-missing",
         reason: persisted.error,
       }),
@@ -140,7 +153,7 @@ export async function GET(req: NextRequest) {
   });
   if (!connection) {
     return NextResponse.redirect(
-      monetizationUrl(origin, { whop: "connection-missing" }),
+      monetizationUrl(returnOrigin, { whop: "connection-missing" }),
     );
   }
 
@@ -158,5 +171,7 @@ export async function GET(req: NextRequest) {
   revalidatePath("/dashboard/monetization");
   revalidatePath("/admin/store-setup");
 
-  return NextResponse.redirect(monetizationUrl(origin, { whop: "connected" }));
+  return NextResponse.redirect(
+    monetizationUrl(returnOrigin, { whop: "connected" }),
+  );
 }
