@@ -7,7 +7,9 @@ import {
   isExtremeAmericanOdds,
   matchesBoardSelection,
   normalizeEventBoard,
+  normalizeUpcomingEvent,
   preferredThenAll,
+  resolveBoardBooks,
   type OddsEvent,
 } from "@/lib/odds-board";
 import { PICK_BOARD_BOOKS } from "@/lib/books";
@@ -497,6 +499,86 @@ test("MLB periods and props plus WNBA halves and props all reach selection rows"
         selection.market === "Points" &&
         selection.player === "Rhyne Howard" &&
         selection.line === 24.5,
+    ),
+  );
+});
+
+test("tennis Best keeps Bovada game spreads the pick-form five do not post", () => {
+  assert.equal(resolveBoardBooks(undefined, "TENNIS").fallbackToAll, true);
+  assert.equal(resolveBoardBooks(undefined, "MLB").fallbackToAll, false);
+
+  const tennis: RawEventOdds = {
+    id: "t1",
+    bookmakers: [
+      {
+        key: "fanduel",
+        markets: [
+          {
+            key: "h2h",
+            outcomes: [
+              { name: "Ann Li", price: -180 },
+              { name: "Maria Camila Osorio Serrano", price: 150 },
+            ],
+          },
+        ],
+      },
+      {
+        key: "bovada",
+        markets: [
+          {
+            key: "h2h",
+            outcomes: [
+              { name: "Ann Li", price: -175 },
+              { name: "Maria Camila Osorio Serrano", price: 145 },
+            ],
+          },
+          {
+            key: "spreads",
+            outcomes: [
+              { name: "Ann Li", price: -110, point: -3.5 },
+              { name: "Maria Camila Osorio Serrano", price: -110, point: 3.5 },
+            ],
+          },
+          {
+            key: "totals",
+            outcomes: [
+              { name: "Over", price: -115, point: 21.5 },
+              { name: "Under", price: -105, point: 21.5 },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  const board = normalizeEventBoard(tennis, { sport: "TENNIS" });
+  const spread = board.find(
+    (s) => s.market === "Spread" && s.side === "Ann Li" && s.line === -3.5,
+  );
+  const total = board.find(
+    (s) => s.market === "Total" && s.side === "Over" && s.line === 21.5,
+  );
+  assert.ok(spread);
+  assert.equal(spread!.book, "bovada");
+  assert.equal(spread!.oddsAmerican, -110);
+  assert.ok(total);
+  assert.equal(total!.book, "bovada");
+
+  const surface = normalizeUpcomingEvent("TENNIS", {
+    id: "t1",
+    commence_time: "2026-08-24T18:00:00Z",
+    home_team: "Maria Camila Osorio Serrano",
+    away_team: "Ann Li",
+    bookmakers: tennis.bookmakers,
+  });
+  assert.ok(
+    surface.selections.some(
+      (s) => s.market === "Spread" && s.side === "Ann Li" && s.line === -3.5,
+    ),
+  );
+  assert.ok(
+    surface.selections.some(
+      (s) => s.market === "Total" && s.side === "Over" && s.line === 21.5,
     ),
   );
 });

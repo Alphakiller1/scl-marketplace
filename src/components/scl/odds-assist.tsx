@@ -588,7 +588,7 @@ export function EventDetail({
     key: string,
     labelOverride?: string,
   ) => {
-    const priced = selectionForActiveBook(s, activeBook);
+    const priced = selectionForActiveBook(s, activeBook, event.sport);
     const pick: OddsPick | null =
       priced.oddsAmerican === null
         ? null

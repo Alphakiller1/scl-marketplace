@@ -109,8 +109,20 @@ export function summarizeEventMarketCoverage(
 
   const missing: string[] = [];
   if (selections.length === 0) missing.push("expanded board");
-  if (alternateSpreads === 0) missing.push("alternate spreads");
-  if (alternateTotals === 0) missing.push("alternate totals");
+  if (sport === "TENNIS") {
+    // Tennis often has a single featured game spread/total (Bovada) and no
+    // alternate ladder. Requiring featured:false rows made skipPopulated
+    // refetch every match forever while the main lines were already cached.
+    if (!selections.some((row) => row.market === "Spread")) {
+      missing.push("spreads");
+    }
+    if (!selections.some((row) => row.market === "Total")) {
+      missing.push("totals");
+    }
+  } else {
+    if (alternateSpreads === 0) missing.push("alternate spreads");
+    if (alternateTotals === 0) missing.push("alternate totals");
+  }
   if ((PROP_MARKETS_BY_SPORT[sport]?.length ?? 0) > 0 && props === 0) {
     missing.push("player props");
   }

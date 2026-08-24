@@ -10,6 +10,7 @@ import {
   isBookKey,
   isPickBoardBook,
   oddsSourceBoardLabel,
+  pickFormFallsBackOutsideRail,
   PICK_BOARD_BOOKS,
 } from "@/lib/books";
 
@@ -29,6 +30,8 @@ describe("books", () => {
     );
     assert.equal(isPickBoardBook("betmgm"), true);
     assert.equal(isPickBoardBook("bovada"), false);
+    assert.equal(pickFormFallsBackOutsideRail("TENNIS"), true);
+    assert.equal(pickFormFallsBackOutsideRail("MLB"), false);
   });
 
   it("maps labels and shorts", () => {

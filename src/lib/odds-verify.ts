@@ -135,7 +135,10 @@ export function expandedBoardMarkets(sclSport: string): string[] {
   // endpoint. Keep this to full-match markets: set markets need a dedicated
   // result feed before SCL can grade them safely.
   if (sclSport === "TENNIS") {
-    return ["alternate_spreads", "alternate_totals"];
+    // Featured spreads/totals are requested on the tournament surface too, but
+    // US pick-form books often return moneyline only. The per-event call is
+    // what actually carries Bovada/BetRivers game lines plus the alt ladder.
+    return ["spreads", "totals", "alternate_spreads", "alternate_totals"];
   }
   if (sclSport !== "MLB" && sclSport !== "WNBA") return [];
   const props = PROP_MARKETS_BY_SPORT[sclSport] ?? [];

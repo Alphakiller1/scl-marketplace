@@ -998,5 +998,5 @@ export async function fetchEventBoard(
     markets,
   });
   if (!event) return [];
-  return normalizeEventBoard(event, opts);
+  return normalizeEventBoard(event, { ...opts, sport: sclSport });
 }

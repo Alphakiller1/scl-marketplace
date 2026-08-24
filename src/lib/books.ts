@@ -42,6 +42,15 @@ export function isPickBoardBook(value: string): value is PickBoardBook {
   return PICK_BOARD_BOOK_SET.has(value);
 }
 
+/**
+ * Tennis game spreads/totals are on Bovada/BetRivers, not the five pick-form
+ * books (those usually post moneyline only). Best may fall back to the rest of
+ * `regions=us` for tennis; other sports stay on the rail.
+ */
+export function pickFormFallsBackOutsideRail(sport?: string): boolean {
+  return sport?.trim().toUpperCase() === "TENNIS";
+}
+
 const BY_KEY = new Map(SUPPORTED_BOOKS.map((b) => [b.key, b]));
 
 export function isBookKey(value: string): value is BookKey {
