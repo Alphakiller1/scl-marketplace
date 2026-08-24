@@ -143,7 +143,7 @@ test("sports without an expanded board are not asked for team totals", () => {
   assert.equal(nhl.missing.includes("team totals"), false);
 });
 
-test("tennis coverage requires alternate full-match spreads and totals", () => {
+test("tennis coverage is complete with featured game spreads and totals", () => {
   const tennisEvent = {
     ...event,
     id: "tennis-1",
@@ -153,8 +153,8 @@ test("tennis coverage requires alternate full-match spreads and totals", () => {
   const complete = summarizeEventMarketCoverage(
     tennisEvent,
     [
-      selection("Spread", { featured: false, line: 2.5 }),
-      selection("Total", { featured: false, line: 22.5 }),
+      selection("Spread", { featured: true, line: 5.5 }),
+      selection("Total", { featured: true, line: 22.5 }),
     ],
     "runtime_cache",
     false,
@@ -164,11 +164,11 @@ test("tennis coverage requires alternate full-match spreads and totals", () => {
 
   const partial = summarizeEventMarketCoverage(
     tennisEvent,
-    [selection("Spread", { featured: false, line: 2.5 })],
+    [selection("Spread", { featured: true, line: 5.5 })],
     "runtime_cache",
     false,
   );
-  assert.deepEqual(partial.missing, ["alternate totals"]);
+  assert.deepEqual(partial.missing, ["totals"]);
 });
 
 // ── alternate team totals ────────────────────────────────────────────────────

@@ -3,7 +3,11 @@
  * No React / network — unit-testable.
  */
 
-import { isPickBoardBook, PICK_BOARD_BOOKS } from "@/lib/books";
+import {
+  isPickBoardBook,
+  pickFormFallsBackOutsideRail,
+  PICK_BOARD_BOOKS,
+} from "@/lib/books";
 import {
   getOddsForBook,
   preferredThenAll,
@@ -130,11 +134,13 @@ export function categoryCounts(
  * Resolve the displayed American price for a board selection under an active book.
  * Honest null when that book has no line (UI renders "—"; never substitutes).
  * When no active book, Best is the most bettor-favorable price among
- * {@link PICK_BOARD_BOOKS} only — extra US books on the payload are ignored.
+ * {@link PICK_BOARD_BOOKS}. Tennis also falls back to other US books because
+ * the five usually post moneyline only for that sport.
  */
 export function selectionForActiveBook(
   selection: OddsSelection,
   activeBook: string | null | undefined,
+  sport?: string,
 ): { oddsAmerican: number | null; book?: string; oddsCapturedAt?: string } {
   if (!activeBook) {
     const byBook = new Map(
@@ -150,7 +156,7 @@ export function selectionForActiveBook(
         )
       : undefined;
     const best = preferredThenAll(byBook, PICK_BOARD_BOOKS, lastUpdateByBook, {
-      fallbackToAll: false,
+      fallbackToAll: pickFormFallsBackOutsideRail(sport),
     });
     if (best) {
       return {
@@ -159,7 +165,10 @@ export function selectionForActiveBook(
         ...(best.capturedAt ? { oddsCapturedAt: best.capturedAt } : {}),
       };
     }
-    if (selection.book && isPickBoardBook(selection.book)) {
+    if (
+      selection.book &&
+      (isPickBoardBook(selection.book) || pickFormFallsBackOutsideRail(sport))
+    ) {
       return {
         oddsAmerican: selection.oddsAmerican,
         book: selection.book,

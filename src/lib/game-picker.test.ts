@@ -223,3 +223,23 @@ test("best-available ignores books outside the pick-form five", () => {
   assert.equal(best.oddsAmerican, -105);
   assert.equal(best.book, "fanduel");
 });
+
+test("tennis Best falls back to Bovada when the five have no game line", () => {
+  const selection: OddsSelection = {
+    label: "Ann Li -3.5",
+    market: "Spread",
+    selection: "Ann Li -3.5",
+    side: "Ann Li",
+    line: -3.5,
+    oddsAmerican: -110,
+    book: "bovada",
+    bookPrices: { bovada: -110 },
+  };
+  const hidden = selectionForActiveBook(selection, null, "MLB");
+  assert.equal(hidden.oddsAmerican, null);
+  const tennis = selectionForActiveBook(selection, null, "TENNIS");
+  assert.equal(tennis.oddsAmerican, -110);
+  assert.equal(tennis.book, "bovada");
+  const fanduelTab = selectionForActiveBook(selection, "fanduel", "TENNIS");
+  assert.equal(fanduelTab.oddsAmerican, null);
+});

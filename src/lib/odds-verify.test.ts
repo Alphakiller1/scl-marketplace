@@ -182,8 +182,10 @@ test("expandedBoardMarkets omits already-loaded featured lines", () => {
   assert.ok(mlb.includes("pitcher_strikeouts_alternate"));
 });
 
-test("expanded tennis boards request full-match spread and total ladders", () => {
+test("expanded tennis boards request featured and alternate full-match lines", () => {
   assert.deepEqual(expandedBoardMarkets("TENNIS"), [
+    "spreads",
+    "totals",
     "alternate_spreads",
     "alternate_totals",
   ]);

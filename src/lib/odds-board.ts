@@ -3,7 +3,11 @@
  * No network / no server-only — unit-testable. Fetch lives in odds-api.ts.
  */
 
-import { isBookKey, PICK_BOARD_BOOKS } from "@/lib/books";
+import {
+  isBookKey,
+  pickFormFallsBackOutsideRail,
+  PICK_BOARD_BOOKS,
+} from "@/lib/books";
 import {
   PERIOD_MARKET_LABEL,
   parsePeriodMarket,
@@ -71,10 +75,19 @@ export type OddsBoardOpts = {
    * A non-empty list still prefers those keys, then the rest of the payload.
    */
   books?: readonly string[];
+  /** SCL sport. Tennis game spreads/totals live on Bovada/BetRivers, not the five. */
+  sport?: string;
 };
 
-/** Pick-form default: Best among the five books, no Bovada/ESPN BET fallback. */
-export function resolveBoardBooks(books?: readonly string[]): {
+/**
+ * Pick-form default: Best among the five books, no Bovada/ESPN BET fallback —
+ * except tennis, where those five usually post moneyline only and the game
+ * spread/total lives on the rest of `regions=us`.
+ */
+export function resolveBoardBooks(
+  books?: readonly string[],
+  sport?: string,
+): {
   preferred: readonly string[];
   fallbackToAll: boolean;
 } {
@@ -82,7 +95,10 @@ export function resolveBoardBooks(books?: readonly string[]): {
   if (known.length > 0) {
     return { preferred: known, fallbackToAll: true };
   }
-  return { preferred: PICK_BOARD_BOOKS, fallbackToAll: false };
+  return {
+    preferred: PICK_BOARD_BOOKS,
+    fallbackToAll: pickFormFallsBackOutsideRail(sport),
+  };
 }
 
 export type BoardSelectionClaim = {
@@ -340,7 +356,10 @@ export function normalizeEventBoard(
   opts?: OddsBoardOpts,
 ): OddsSelection[] {
   const groups = new Map<string, BoardGroup>();
-  const { preferred, fallbackToAll } = resolveBoardBooks(opts?.books);
+  const { preferred, fallbackToAll } = resolveBoardBooks(
+    opts?.books,
+    opts?.sport,
+  );
 
   const add = (
     key: string,
@@ -617,7 +636,10 @@ export function normalizeUpcomingEvent(
   preferredBooks?: readonly string[],
   league?: string,
 ): OddsEvent {
-  const { preferred, fallbackToAll } = resolveBoardBooks(preferredBooks);
+  const { preferred, fallbackToAll } = resolveBoardBooks(
+    preferredBooks,
+    sclSport,
+  );
   const groups = new Map<
     string,
     {
