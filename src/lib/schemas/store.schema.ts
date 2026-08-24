@@ -154,6 +154,23 @@ export const adminPackageSchema = z
 
 export type AdminPackageInput = z.infer<typeof adminPackageSchema>;
 
+/**
+ * Fields a capper may mirror between their SCL card and an attached Whop
+ * product. Whop owns plans/pricing, checkout configuration, and included apps;
+ * SCL only writes the product presentation fields its API supports safely.
+ */
+export const capperWhopPackageUpdateSchema = z.object({
+  packageId: z.string().min(1),
+  expectedUpdatedAt: z.string().datetime({ offset: true }),
+  title: z.string().trim().min(2).max(80),
+  description: z.string().trim().max(2000),
+  isActive: z.boolean(),
+});
+
+export type CapperWhopPackageUpdateInput = z.infer<
+  typeof capperWhopPackageUpdateSchema
+>;
+
 export const adminPackageActiveSchema = z.object({
   packageId: z.string().min(1),
   isActive: z.boolean(),

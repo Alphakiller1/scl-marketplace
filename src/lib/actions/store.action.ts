@@ -12,6 +12,7 @@ import {
   adminPackageReorderSchema,
   adminPackageSchema,
   adminUpdateStoreConnectionSchema,
+  capperWhopPackageUpdateSchema,
   markInstructionsViewedSchema,
   submitStoreConnectionSchema,
   type AdminPackageActiveInput,
@@ -19,6 +20,7 @@ import {
   type AdminPackageReorderInput,
   type AdminPackageInput,
   type AdminUpdateStoreConnectionInput,
+  type CapperWhopPackageUpdateInput,
   type SubmitStoreConnectionInput,
 } from "@/lib/schemas/store.schema";
 import {
@@ -448,6 +450,115 @@ function mirrorPackageToWhop(packageId: string): void {
       console.error("[whop-push] unexpected failure:", err);
     }
   });
+}
+
+/**
+ * Let a capper edit the presentation of their own attached Whop product.
+ *
+ * The ownership filter is deliberately relational: knowing a package id is
+ * never enough. Price, billing, checkout URLs, and Whop app membership remain
+ * provider-owned and cannot be changed through this action.
+ */
+export async function capperUpdateWhopPackageAction(
+  input: CapperWhopPackageUpdateInput,
+): Promise<ActionResult> {
+  const user = await requireCapperAccess();
+  const parsed = capperWhopPackageUpdateSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message || "Invalid package update.",
+    };
+  }
+  const d = parsed.data;
+
+  const ownedPackage = await prisma.package.findFirst({
+    where: {
+      id: d.packageId,
+      affiliateProvider: "WHOP",
+      externalProductId: { not: null },
+      capper: { is: { userId: user.id } },
+      storeConnection: {
+        is: {
+          provider: "WHOP",
+          status: { not: "DISABLED" },
+          capper: { is: { userId: user.id } },
+        },
+      },
+    },
+    select: {
+      id: true,
+      capperId: true,
+      storeConnectionId: true,
+      title: true,
+      capper: { select: { user: { select: { id: true, username: true } } } },
+    },
+  });
+  if (!ownedPackage?.storeConnectionId) {
+    return {
+      ok: false,
+      error: "This Whop package is not attached to your active storefront.",
+    };
+  }
+
+  const whopPushQueuedAt = new Date();
+  const result = await prisma.$transaction(async (tx) => {
+    const updated = await tx.package.updateMany({
+      where: {
+        id: ownedPackage.id,
+        capperId: ownedPackage.capperId,
+        updatedAt: new Date(d.expectedUpdatedAt),
+        storeConnection: {
+          is: {
+            id: ownedPackage.storeConnectionId!,
+            provider: "WHOP",
+            status: { not: "DISABLED" },
+          },
+        },
+      },
+      data: {
+        title: d.title,
+        description: d.description || null,
+        isActive: d.isActive,
+        whopPushPendingAt: whopPushQueuedAt,
+        whopPushAttempts: 0,
+        whopPushLastError: null,
+      },
+    });
+    if (updated.count !== 1) {
+      return {
+        ok: false as const,
+        error:
+          "This package changed while you were editing. Refresh and try again.",
+      };
+    }
+
+    await tx.packageAuditEvent.create({
+      data: {
+        packageId: ownedPackage.id,
+        capperId: ownedPackage.capperId,
+        actorId: user.id,
+        action: "UPDATED",
+        summary: `Capper updated Whop package "${ownedPackage.title}" and queued provider sync.`,
+      },
+    });
+    await syncConnectionFromLivePackages(
+      tx,
+      ownedPackage.storeConnectionId!,
+      user.id,
+    );
+    return { ok: true as const };
+  });
+  if (!result.ok) return result;
+
+  // The exact committed revision stays pending until Whop acknowledges it.
+  // Immediate delivery keeps the UI responsive; the cron retries any outage.
+  mirrorPackageToWhop(ownedPackage.id);
+  await revalidateCommercePaths(
+    ownedPackage.capper.user.username,
+    ownedPackage.capper.user.id,
+  );
+  return { ok: true };
 }
 
 export async function adminSavePackageAction(

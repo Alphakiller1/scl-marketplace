@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   adminPackageSchema,
   adminUpdateStoreConnectionSchema,
+  capperWhopPackageUpdateSchema,
 } from "@/lib/schemas/store.schema";
 import {
   isWinibleCreatorReferralUrl,
@@ -69,5 +70,42 @@ test("storefront suspension requires a reason and stale-status guard", () => {
       reason: "Affiliate relationship ended",
     }).success,
     true,
+  );
+});
+
+test("capper Whop edits accept only safe presentation fields", () => {
+  const valid = capperWhopPackageUpdateSchema.safeParse({
+    packageId: "pkg_1",
+    expectedUpdatedAt: "2026-08-24T22:00:00.000Z",
+    title: "Premium picks",
+    description: "Daily researched selections",
+    isActive: true,
+  });
+  assert.equal(valid.success, true);
+
+  const withProviderOwnedPrice = capperWhopPackageUpdateSchema.safeParse({
+    packageId: "pkg_1",
+    expectedUpdatedAt: "2026-08-24T22:00:00.000Z",
+    title: "Premium picks",
+    description: "Daily researched selections",
+    isActive: true,
+    priceCents: 1,
+  });
+  assert.equal(withProviderOwnedPrice.success, true);
+  assert.equal(
+    withProviderOwnedPrice.success &&
+      "priceCents" in withProviderOwnedPrice.data,
+    false,
+  );
+
+  assert.equal(
+    capperWhopPackageUpdateSchema.safeParse({
+      packageId: "pkg_1",
+      expectedUpdatedAt: "2026-08-24T22:00:00.000Z",
+      title: "x".repeat(81),
+      description: "Too long for Whop's product title limit",
+      isActive: true,
+    }).success,
+    false,
   );
 });

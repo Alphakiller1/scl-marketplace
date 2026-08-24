@@ -399,6 +399,62 @@ export async function getOwnerLivePackagesForCapper(
   return queryLivePackagesForCapper(capperId, "owner");
 }
 
+export type OwnerWhopPackage = {
+  id: string;
+  title: string;
+  description: string | null;
+  priceLabel: string;
+  isActive: boolean;
+  updatedAt: string;
+  syncPending: boolean;
+  syncFailed: boolean;
+};
+
+/** Attached Whop products the signed-in capper may edit from SCL. */
+export async function getOwnerWhopPackagesForCapper(
+  capperId: string,
+): Promise<OwnerWhopPackage[]> {
+  const packages = await prisma.package.findMany({
+    where: {
+      capperId,
+      affiliateProvider: "WHOP",
+      externalProductId: { not: null },
+      storeConnection: {
+        is: { provider: "WHOP", status: { not: "DISABLED" } },
+      },
+    },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      priceCents: true,
+      billingPeriod: true,
+      billingIntervalCount: true,
+      isActive: true,
+      updatedAt: true,
+      whopPushPendingAt: true,
+      whopPushLastError: true,
+    },
+  });
+
+  return packages.map((pkg) => ({
+    id: pkg.id,
+    title: pkg.title,
+    description: pkg.description,
+    priceLabel:
+      formatPriceCents(
+        pkg.priceCents,
+        pkg.billingPeriod,
+        pkg.billingIntervalCount,
+      ) ?? "See Whop for current price",
+    isActive: pkg.isActive,
+    updatedAt: pkg.updatedAt.toISOString(),
+    syncPending: Boolean(pkg.whopPushPendingAt),
+    syncFailed: Boolean(pkg.whopPushLastError),
+  }));
+}
+
 export async function listActiveMarketplacePackagesResult(): Promise<{
   packages: PublicMarketplacePackage[];
   failed: boolean;
