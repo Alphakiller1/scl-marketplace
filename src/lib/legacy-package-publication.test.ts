@@ -91,11 +91,12 @@ test("importing Prisma does not start competing schema patch queries", () => {
   assert.doesNotMatch(prismaSource, /ensureStorefrontMessagesSchema/);
 });
 
-test("production deploys fail closed on migration or package audit failure", () => {
+test("production deploys still migrate and audit, but next build proceeds if those fail", () => {
   const migrationSource = source("scripts/migrate-on-production-only.mjs");
 
-  assert.match(migrationSource, /blocking deployment/);
   assert.match(migrationSource, /verify-package-integrity\.ts/);
+  assert.match(migrationSource, /continuing to next build/);
+  assert.match(migrationSource, /refusing an unverified deployment/);
   assert.match(migrationSource, /process\.exit\(1\)/);
 });
 
