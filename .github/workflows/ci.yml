@@ -90,5 +90,7 @@ jobs:
         run: npx tsx scripts/smoke-m3-marketplace.ts
 
       # Guards the public-surface contract that parlays are positions of record.
+      # Runs under tsconfig.smoke.json so the server-side query modules it
+      # exercises can resolve `server-only` outside a Next build.
       - name: Run public parlay surfaces smoke
-        run: npx tsx scripts/smoke-parlay-surfaces.ts
+        run: npx tsx --tsconfig tsconfig.smoke.json scripts/smoke-parlay-surfaces.ts
