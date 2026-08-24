@@ -1,0 +1,55 @@
+name: Populate tennis live boards
+
+# Runs only when this file is pushed to main. Used to rewrite tennis boards
+# with the live normalizer (spreads/totals from the rest of regions=us).
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/populate-tennis-live.yml"
+
+jobs:
+  populate:
+    runs-on: ubuntu-latest
+    environment: Production
+    timeout-minutes: 15
+    steps:
+      - name: Mask the one-shot key
+        run: |
+          if [ -n "${{ secrets.ODDS_API_KEY }}" ]; then
+            echo "::add-mask::${{ secrets.ODDS_API_KEY }}"
+          fi
+
+      - name: Populate tennis through the signed production route
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          ODDS_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET is not configured. No odds credits were spent."
+            exit 1
+          fi
+          extra=()
+          if [ -n "$ODDS_KEY" ]; then
+            extra+=(--header "x-scl-odds-key: $ODDS_KEY")
+          fi
+          encoded_days=$(jq -rn --arg value "today,tomorrow" '$value|@uri')
+          curl --fail --silent --show-error \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            --header "Accept: application/json" \
+            "${extra[@]}" \
+            --request POST \
+            "https://sportscappersleaderboard.com/api/cron/odds-populate?sports=TENNIS&expanded=99&expandedDays=${encoded_days}&surface=1&skipPopulated=1&expandedOrder=TENNIS" \
+            --output /tmp/populate.json
+          jq . /tmp/populate.json
+          jq -e '.ok == true and (.surface.TENNIS.events // 0) > 0' /tmp/populate.json >/dev/null
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Tennis live populate"
+            echo '```json'
+            jq . /tmp/populate.json 2>/dev/null || echo '{"ok":false,"reason":"request did not complete"}'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
