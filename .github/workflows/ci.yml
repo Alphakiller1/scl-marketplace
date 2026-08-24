@@ -88,3 +88,7 @@ jobs:
 
       - name: Run Milestone 3 marketplace smoke
         run: npx tsx scripts/smoke-m3-marketplace.ts
+
+      # Guards the public-surface contract that parlays are positions of record.
+      - name: Run public parlay surfaces smoke
+        run: npx tsx scripts/smoke-parlay-surfaces.ts
