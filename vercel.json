@@ -9,6 +9,10 @@
     {
       "path": "/api/cron/odds-populate?sports=MLB,WNBA,TENNIS,SOCCER,NFL&expanded=0&surface=1",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/whop-sync",
+      "schedule": "*/5 * * * *"
     }
   ]
 }
