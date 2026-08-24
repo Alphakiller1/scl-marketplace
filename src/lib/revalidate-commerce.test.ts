@@ -76,6 +76,30 @@ test("owner and public storefront views refresh stale Whop packages", () => {
   );
 });
 
+test("cappers can edit only their attached Whop presentation fields", () => {
+  const action = fs.readFileSync(
+    path.join(root, "src/lib/actions/store.action.ts"),
+    "utf8",
+  );
+  const page = fs.readFileSync(
+    path.join(root, "src/app/(capper)/dashboard/monetization/page.tsx"),
+    "utf8",
+  );
+  const editor = fs.readFileSync(
+    path.join(root, "src/components/scl/capper-whop-package-editor.tsx"),
+    "utf8",
+  );
+
+  assert.match(action, /capperUpdateWhopPackageAction/);
+  assert.match(action, /externalProductId: \{ not: null \}/);
+  assert.match(action, /capper: \{ is: \{ userId: user\.id \} \}/);
+  assert.match(action, /whopPushPendingAt: whopPushQueuedAt/);
+  assert.doesNotMatch(editor, /priceCents|billingPeriod|checkoutUrl/);
+  assert.match(editor, /Save and sync to Whop/);
+  assert.match(page, /getOwnerWhopPackagesForCapper/);
+  assert.match(page, /Names, descriptions, and visibility sync both ways/);
+});
+
 test("scheduled Whop checks do not write no-op package audit events", () => {
   const source = fs.readFileSync(
     path.join(root, "src/lib/whop-sync.ts"),
@@ -107,6 +131,16 @@ test("SCL edits remain durable until Whop acknowledges the exact revision", () =
   assert.match(schema, /whopPushPendingAt\s+DateTime\?/);
   assert.match(schema, /whopPushAttempts\s+Int\s+@default\(0\)/);
   assert.match(storeAction, /whopPushPendingAt: whopPushQueuedAt/);
+  assert.match(
+    storeAction,
+    /export async function capperUpdateWhopPackageAction/,
+  );
+  assert.match(storeAction, /capper: \{ is: \{ userId: user\.id \} \}/);
+  assert.match(
+    storeAction,
+    /This package changed while you were editing\. Refresh and try again\./,
+  );
+  assert.match(storeAction, /mirrorPackageToWhop\(ownedPackage\.id\)/);
   assert.match(storeAction, /afterResponse\(async \(\) =>/);
   assert.match(sync, /if \(existing\?\.whopPushPendingAt\)/);
   assert.match(

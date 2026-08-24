@@ -1,6 +1,7 @@
 import { Store } from "lucide-react";
 import { Suspense } from "react";
 
+import { CapperWhopPackageEditor } from "@/components/scl/capper-whop-package-editor";
 import { MonetizationWizard } from "@/components/scl/monetization-wizard";
 import { WhopOAuthNotice } from "@/components/scl/whop-oauth-notice";
 import { SectionHeader } from "@/components/scl/section";
@@ -10,6 +11,7 @@ import { getCurrentUser } from "@/lib/session";
 import {
   getCapperProfileIdForUser,
   getOwnerLivePackagesForCapper,
+  getOwnerWhopPackagesForCapper,
   listConnectionsForCapper,
 } from "@/lib/queries/store";
 import { getStorefrontMessagesForCapper } from "@/lib/queries/storefront-messages";
@@ -36,12 +38,13 @@ export default async function MonetizationPage({ searchParams }: Search) {
         select: { username: true },
       })
     : null;
-  const [connections, livePackages] = capperId
+  const [connections, livePackages, ownerWhopPackages] = capperId
     ? await Promise.all([
         listConnectionsForCapper(capperId),
         getOwnerLivePackagesForCapper(capperId),
+        getOwnerWhopPackagesForCapper(capperId),
       ])
-    : [[], []];
+    : [[], [], []];
 
   const connectionIds = connections.map((connection) => connection.id);
   const messagesByConnection = capperId
@@ -60,6 +63,10 @@ export default async function MonetizationPage({ searchParams }: Search) {
 
   const carriedOver = connections.length ? [] : livePackages;
   const hasCarriedStorefront = carriedOver.length > 0;
+  const editableWhopIds = new Set(ownerWhopPackages.map((pkg) => pkg.id));
+  const readOnlyPackages = livePackages.filter(
+    (pkg) => !editableWhopIds.has(pkg.id),
+  );
 
   return (
     <div className="space-y-6">
@@ -107,13 +114,32 @@ export default async function MonetizationPage({ searchParams }: Search) {
         capperUsername={capperAccount?.username ?? null}
       />
 
-      {livePackages.length ? (
+      {ownerWhopPackages.length ? (
+        <section className="space-y-3">
+          <div>
+            <h2 className="scl-display text-sm font-bold tracking-[0.08em] uppercase">
+              Your Whop packages
+            </h2>
+            <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+              Names, descriptions, and visibility sync both ways. Whop remains
+              the source of truth for price and billing.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {ownerWhopPackages.map((pkg) => (
+              <CapperWhopPackageEditor key={pkg.id} pkg={pkg} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {readOnlyPackages.length ? (
         <section className="space-y-3">
           <h2 className="scl-display text-sm font-bold tracking-[0.08em] uppercase">
-            Live packages (read-only)
+            Other live packages (read-only)
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
-            {livePackages.map((pkg) => (
+            {readOnlyPackages.map((pkg) => (
               <PackageCard key={pkg.id} pkg={pkg} />
             ))}
           </div>
