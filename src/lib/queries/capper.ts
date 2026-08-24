@@ -36,8 +36,8 @@ import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 import { publicPickEmbargoState } from "@/lib/public-pick-embargo";
 import { getPublicCapperEvidenceByIds } from "@/lib/queries/leaderboard";
 import type { PlayView } from "@/lib/queries/plays";
+import { earliestLegStart, parlayVerificationTier } from "@/lib/parlay-display";
 import { computeStatsBySport } from "@/lib/stats";
-import { isVerifiedTier } from "@/lib/verification";
 import {
   hasClvColumns,
   hasNotesPublicColumn,
@@ -352,15 +352,6 @@ type PublicParlayRow = {
   }[];
 };
 
-/** Earliest leg start (or null) — the parlay's lifecycle anchors to its first game. */
-function earliestLegStart(legs: { eventStartsAt: Date | null }[]): Date | null {
-  const starts = legs
-    .map((leg) => leg.eventStartsAt)
-    .filter((value): value is Date => value != null);
-  if (starts.length === 0) return null;
-  return starts.reduce((a, b) => (a.getTime() <= b.getTime() ? a : b));
-}
-
 function toPublicParlayEntry(
   row: PublicParlayRow,
 ): { kind: "parlay" } & PublicParlayView {
@@ -379,11 +370,7 @@ function toPublicParlayEntry(
     outcome: row.outcome,
     profitUnits: stake.profitUnits,
     createdAt: row.createdAt,
-    verificationTier:
-      row.legs.length > 0 &&
-      row.legs.every((leg) => isVerifiedTier(leg.verificationTier))
-        ? "VERIFIED"
-        : "SELF_REPORTED",
+    verificationTier: parlayVerificationTier(row.legs),
     eventStartsAt,
     legs: row.legs.map((leg) => ({
       id: leg.id,

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { etDayBounds } from "@/lib/et-day";
 import { UNIT_MIN } from "@/lib/constants";
 import { stakeFromStored } from "@/lib/extreme-stake";
+import { parlayTitle } from "@/lib/parlay-display";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 
 const GRADED: Outcome[] = ["WIN", "LOSS", "PUSH"];
@@ -34,38 +35,77 @@ async function queryGradedResults(whereGradedAt: {
   lt?: Date;
 }): Promise<GradedTickerResult[]> {
   const excludeTest = await prismaExcludeTestHandlesLive();
-  const plays = await prisma.play.findMany({
-    where: {
-      outcome: { in: GRADED },
-      parlayId: null,
-      units: { gte: UNIT_MIN },
-      gradedAt: whereGradedAt,
-      capper: {
-        user: {
-          accountStatus: "ACTIVE",
-          username: { not: null },
-          ...excludeTest,
-        },
+  const capperWhere = {
+    capper: {
+      user: {
+        accountStatus: "ACTIVE" as const,
+        username: { not: null },
+        ...excludeTest,
       },
     },
-    select: {
-      id: true,
-      selection: true,
-      units: true,
-      profitUnits: true,
-      outcome: true,
-      gradedAt: true,
-      capper: {
-        select: {
-          user: { select: { username: true } },
+  };
+  // Straight picks and parlays are both positions of record, so both settle
+  // onto this ticker. Legs are excluded by `parlayId` — a parlay's result is
+  // the ticket's, not three separate ones.
+  const [plays, parlays] = await Promise.all([
+    prisma.play.findMany({
+      where: {
+        outcome: { in: GRADED },
+        parlayId: null,
+        units: { gte: UNIT_MIN },
+        gradedAt: whereGradedAt,
+        ...capperWhere,
+      },
+      select: {
+        id: true,
+        selection: true,
+        units: true,
+        profitUnits: true,
+        outcome: true,
+        gradedAt: true,
+        capper: {
+          select: {
+            user: { select: { username: true } },
+          },
         },
       },
-    },
-    orderBy: { gradedAt: "desc" },
-    take: 24,
-  });
+      orderBy: { gradedAt: "desc" },
+      take: 24,
+    }),
+    prisma.parlay.findMany({
+      where: {
+        outcome: { in: GRADED },
+        units: { gte: UNIT_MIN },
+        gradedAt: whereGradedAt,
+        ...capperWhere,
+      },
+      select: {
+        id: true,
+        units: true,
+        profitUnits: true,
+        outcome: true,
+        gradedAt: true,
+        _count: { select: { legs: true } },
+        capper: {
+          select: {
+            user: { select: { username: true } },
+          },
+        },
+      },
+      orderBy: { gradedAt: "desc" },
+      take: 24,
+    }),
+  ]);
 
-  return plays.flatMap((p) => {
+  const rows = [
+    ...plays.map((p) => ({ ...p, selection: p.selection })),
+    ...parlays.map((p) => ({
+      ...p,
+      selection: parlayTitle(p._count.legs),
+    })),
+  ].sort((a, b) => (b.gradedAt?.getTime() ?? 0) - (a.gradedAt?.getTime() ?? 0));
+
+  return rows.slice(0, 24).flatMap((p) => {
     const handle = p.capper.user.username;
     if (!handle) return [];
     if (p.outcome !== "WIN" && p.outcome !== "LOSS" && p.outcome !== "PUSH") {

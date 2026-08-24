@@ -52,3 +52,51 @@ export function buildPublicPicksScopeWhere(
     ...lifecycle,
   };
 }
+
+/**
+ * The same scope for parlays.
+ *
+ * A parlay has no `sport` or `eventStartsAt` of its own — its legs carry both —
+ * so sport matches when any leg is in that sport, and the lifecycle reads off
+ * the legs: in progress once any leg has started inside the expected-final
+ * window, still pending when none has.
+ */
+export function buildPublicParlayScopeWhere(
+  filters: PublicPicksLedgerFilters,
+  now: Date,
+): Prisma.ParlayWhereInput {
+  const liveLowerBound = new Date(now.getTime() - EXPECTED_FINAL_MS);
+  const started = { eventStartsAt: { gt: liveLowerBound, lte: now } };
+  // Sport and lifecycle both constrain `legs`, so they are ANDed rather than
+  // spread into one object where the second would silently drop the first.
+  const conditions: Prisma.ParlayWhereInput[] = [];
+
+  if (filters.window !== "all") {
+    conditions.push({
+      createdAt: {
+        gte: new Date(
+          now.getTime() -
+            (filters.window === "7d" ? 7 : 30) * 24 * 60 * 60 * 1000,
+        ),
+      },
+    });
+  }
+  if (filters.sport !== "all") {
+    conditions.push({ legs: { some: { sport: filters.sport } } });
+  }
+  switch (filters.status) {
+    case "graded":
+      conditions.push({ outcome: { in: ["WIN", "LOSS", "PUSH", "VOID"] } });
+      break;
+    case "live":
+      conditions.push({ outcome: "PENDING" }, { legs: { some: started } });
+      break;
+    case "pending":
+      conditions.push({ outcome: "PENDING" }, { legs: { none: started } });
+      break;
+    default:
+      break;
+  }
+
+  return conditions.length ? { AND: conditions } : {};
+}

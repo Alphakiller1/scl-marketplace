@@ -48,6 +48,11 @@ import {
   pickContextLabel,
   pickEventDate,
 } from "@/lib/pick-identity";
+import {
+  parlayBookLabel,
+  parlayGameLabel,
+  parlayTitle,
+} from "@/lib/parlay-display";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
 import { toHeadshotLeague } from "@/lib/player-headshots";
 import {
@@ -456,25 +461,6 @@ export function EvidenceBrief({
 
 const PROOF_HISTORY_PAGE_SIZE = 10;
 
-/** "3-Leg Parlay" — the parlay is the position, its legs are the detail. */
-function parlayTitle(parlay: PublicParlayView): string {
-  return `${parlay.legs.length}-Leg Parlay`;
-}
-
-/** The fixtures a parlay spans, or a single matchup when every leg shares one. */
-function parlayGameLabel(parlay: PublicParlayView): string | null {
-  const games = [
-    ...new Set(
-      parlay.legs
-        .map((leg) => matchupLabel(leg))
-        .filter((label): label is string => Boolean(label)),
-    ),
-  ];
-  if (games.length === 1) return games[0]!;
-  if (games.length > 1) return `${games.length} games`;
-  return null;
-}
-
 function parlayToProofReceipt(
   parlay: PublicParlayView,
   density: ProofReceiptDensity,
@@ -497,18 +483,11 @@ function parlayToProofReceipt(
           parlay.combinedOddsAmerican,
           parlay.units,
         ));
-  const books = [
-    ...new Set(
-      parlay.legs
-        .map((leg) => leg.book)
-        .filter((book): book is string => Boolean(book)),
-    ),
-  ];
-  const game = parlayGameLabel(parlay);
+  const game = parlayGameLabel(parlay.legs);
   return (
     <ProofReceipt
       key={`${parlay.id}-${density}`}
-      selectionTitle={`${parlayTitle(parlay)}\n${parlay.legs
+      selectionTitle={`${parlayTitle(parlay.legs.length)}\n${parlay.legs
         .map((leg) => leg.selection)
         .join(" · ")}`}
       eventLine={
@@ -532,9 +511,7 @@ function parlayToProofReceipt(
         receiptUnits == null ? "—" : formatUnits(receiptUnits, true, settled)
       }
       capturedAt={asDate(parlay.createdAt)?.toISOString() ?? null}
-      book={
-        books.length === 1 ? books[0]! : books.length > 1 ? "Mixed Books" : null
-      }
+      book={parlayBookLabel(parlay.legs)}
       state={state}
       density={density}
       verificationDominant={density === "expanded-paper"}
@@ -655,7 +632,7 @@ function ProofHistoryLedger({
             const parlay = entry.kind === "parlay" ? entry : null;
             const play = entry.kind === "play" ? entry : null;
             const title = parlay
-              ? parlayTitle(parlay)
+              ? parlayTitle(parlay.legs.length)
               : (play?.selection ?? "");
             // Legs are a parlay's substance, so they read on every viewport;
             // a straight pick only needs its fixture where the Game column is
@@ -664,7 +641,7 @@ function ProofHistoryLedger({
               ? parlay.legs.map((leg) => leg.selection).join(" · ")
               : null;
             const game = parlay
-              ? parlayGameLabel(parlay)
+              ? parlayGameLabel(parlay.legs)
               : play
                 ? (matchupLabel(play) ??
                   pickContextLabel({

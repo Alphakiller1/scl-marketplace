@@ -8,7 +8,12 @@ import { getGradingHealth } from "@/lib/grading-health";
 import { parsePublicPicksLedgerFilters } from "@/lib/public-picks-ledger";
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 import { getPublicRecentPickRows } from "@/lib/queries/plays";
-import { joinPlaysToPublicPicks, publicFeedCappers } from "@/lib/public-picks";
+import {
+  joinParlaysToPublicPicks,
+  joinPlaysToPublicPicks,
+  mergePublicPicks,
+  publicFeedCappers,
+} from "@/lib/public-picks";
 
 export const metadata: Metadata = {
   title: { absolute: "Latest picks · SCL" },
@@ -32,10 +37,10 @@ export default async function PicksPage({
   const gradingHealthy = await getGradingHealth();
   const feed = await getPublicRecentPickRows(24, filters, now);
   const { cappers, unranked, failed: leaderboardFailed } = board;
-  const picks = joinPlaysToPublicPicks(
-    feed.plays,
-    publicFeedCappers(cappers, unranked),
-    now,
+  const feedCappers = publicFeedCappers(cappers, unranked);
+  const picks = mergePublicPicks(
+    joinPlaysToPublicPicks(feed.plays, feedCappers, now),
+    joinParlaysToPublicPicks(feed.parlays, feedCappers, now),
   );
   const failed = leaderboardFailed || feed.failed;
   const requestedReceipt = Array.isArray(params.receipt)

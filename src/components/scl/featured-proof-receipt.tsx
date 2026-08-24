@@ -92,12 +92,16 @@ function FeaturedReceiptBody({ play }: { play: FeaturedGradedPlay }) {
     play.oddsAmerican,
     play.units,
   );
+  // A parlay whose combined price was never stored has nothing to compute a
+  // return from — show an em-dash rather than a payout of zero.
   const resultUnits =
     play.profitUnits != null
       ? formatUnits(play.profitUnits)
-      : computedResult != null
-        ? formatUnits(computedResult)
-        : "—";
+      : play.parlay?.combinedOddsAmerican == null && play.parlay
+        ? "—"
+        : computedResult != null
+          ? formatUnits(computedResult)
+          : "—";
   const eventContext =
     matchupLabel(play) ??
     pickContextLabel({
@@ -106,16 +110,30 @@ function FeaturedReceiptBody({ play }: { play: FeaturedGradedPlay }) {
       market: play.market,
     });
   const boardVerified = isVerifiedTier(play.verificationTier);
+  const parlay = play.parlay;
+  const sports = parlay
+    ? [...new Set(parlay.legs.map((leg) => leg.sport))]
+    : [play.sport];
 
   return (
     <ProofReceipt
-      selectionTitle={play.selection}
+      selectionTitle={
+        parlay
+          ? `${play.selection}\n${parlay.legs
+              .map((leg) => leg.selection)
+              .join(" · ")}`
+          : play.selection
+      }
       leadingMark={
-        <TeamRef name={play.side} sport={play.sport} size="md" knownOnly />
+        parlay ? null : (
+          <TeamRef name={play.side} sport={play.sport} size="md" knownOnly />
+        )
       }
       eventLine={
         <span className="inline-flex flex-wrap items-center gap-1.5 tracking-normal normal-case">
-          <LeagueRef sport={play.sport} />
+          {sports.map((sport) => (
+            <LeagueRef key={sport} sport={sport} />
+          ))}
           {eventContext ? (
             <span className="scl-data tracking-[0.06em] uppercase">
               {eventContext}
@@ -123,8 +141,12 @@ function FeaturedReceiptBody({ play }: { play: FeaturedGradedPlay }) {
           ) : null}
         </span>
       }
-      legs={1}
-      odds={formatOdds(play.oddsAmerican)}
+      legs={parlay ? parlay.legs.length : 1}
+      odds={
+        parlay && parlay.combinedOddsAmerican == null
+          ? "—"
+          : formatOdds(play.oddsAmerican)
+      }
       stake={formatUnits(play.units, true, false)}
       toWin={resultUnits}
       capturedAt={play.createdAt.toISOString()}

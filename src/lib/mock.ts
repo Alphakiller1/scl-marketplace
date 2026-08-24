@@ -4,6 +4,7 @@
  * NOT for production use — replace with Prisma-backed queries per feature.
  */
 
+import type { ParlayPositionDetail } from "@/lib/parlay-display";
 import type { VerificationTier } from "@/lib/verification";
 
 export type FormResult = "W" | "L" | "P";
@@ -144,6 +145,12 @@ export type TodayPick = {
   clvPts?: number | null;
   notes?: string | null;
   notesPublic?: boolean;
+  /**
+   * Present when this position is a parlay. The card still reads as one
+   * position — combined price, one stake, one result — and the legs are the
+   * detail underneath it, never positions of their own.
+   */
+  parlay?: ParlayPositionDetail;
   /** True when the server has removed the paid selection during its embargo. */
   isEmbargoed?: boolean;
   /** Scheduled public reveal time; null when the event start is unavailable. */

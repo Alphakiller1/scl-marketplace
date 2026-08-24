@@ -64,8 +64,31 @@ function embargoMessage(pick: TodayPick): string {
     : "Selection unlocks after the event start is confirmed";
 }
 
+/**
+ * The line under a pick's name: its legs for a parlay (that is the substance
+ * of the position), its fixture for a straight pick.
+ */
+function pickDetailLine(pick: TodayPick): string {
+  if (!pick.parlay) return pick.event;
+  const legs = pick.parlay.legs.map((leg) => leg.selection).join(" · ");
+  return pick.event ? `${legs} · ${pick.event}` : legs;
+}
+
+/** A parlay with no stored combined price shows an em-dash, never a fake 0. */
+function pickOdds(pick: TodayPick): string {
+  if (pick.isEmbargoed) return "—";
+  if (pick.parlay && pick.parlay.combinedOddsAmerican == null) return "—";
+  return formatOdds(pick.oddsAmerican);
+}
+
 function receiptUnits(pick: TodayPick): string {
   const graded = isPublicPickGraded(pick);
+  // No stored parlay price means no return to compute — never show a fake 0.
+  if (pick.parlay?.combinedOddsAmerican == null && pick.parlay) {
+    return pick.profitUnits == null
+      ? "—"
+      : formatUnits(pick.profitUnits, true, graded);
+  }
   const outcome =
     pick.status === "loss"
       ? "LOSS"
@@ -374,11 +397,11 @@ function DesktopLedgerRows({
             {pick.selection}
           </p>
           <p className="text-muted-foreground mt-0.5 truncate text-xs">
-            {pick.isEmbargoed ? embargoMessage(pick) : pick.event}
+            {pick.isEmbargoed ? embargoMessage(pick) : pickDetailLine(pick)}
           </p>
         </td>
         <td className="scl-data text-foreground px-3 py-3 text-sm font-semibold tabular-nums">
-          {pick.isEmbargoed ? "—" : formatOdds(pick.oddsAmerican)}
+          {pickOdds(pick)}
         </td>
         <td className="scl-data text-foreground px-3 py-3 text-sm font-semibold tabular-nums">
           {formatUnits(pick.units, true, false)}
@@ -465,7 +488,7 @@ function MobileLedgerRow({
               @{pick.capper.handle}
             </span>
             <span className="scl-data text-foreground text-sm font-semibold tabular-nums">
-              {pick.isEmbargoed ? "Odds hidden" : formatOdds(pick.oddsAmerican)}
+              {pick.isEmbargoed ? "Odds hidden" : pickOdds(pick)}
             </span>
             <span className="scl-data text-muted-foreground text-xs tabular-nums">
               {formatUnits(pick.units, true, false)}
@@ -573,13 +596,27 @@ function ExpandedEvidence({
       </div>
 
       <ProofReceipt
-        selectionTitle={pick.selection}
-        leadingMark={
-          <TeamRef name={pick.side} sport={pick.sport} size="md" knownOnly />
+        selectionTitle={
+          pick.parlay
+            ? `${pick.selection}\n${pick.parlay.legs
+                .map((leg) => leg.selection)
+                .join(" · ")}`
+            : pick.selection
         }
+        leadingMark={
+          pick.parlay ? null : (
+            <TeamRef name={pick.side} sport={pick.sport} size="md" knownOnly />
+          )
+        }
+        legs={pick.parlay ? pick.parlay.legs.length : 1}
         eventLine={
           <span className="inline-flex flex-wrap items-center gap-1.5 tracking-normal normal-case">
-            <LeagueRef sport={pick.sport} />
+            {(pick.parlay
+              ? [...new Set(pick.parlay.legs.map((leg) => leg.sport))]
+              : [pick.sport]
+            ).map((sport) => (
+              <LeagueRef key={sport} sport={sport} />
+            ))}
             {pick.event ? (
               <span className="scl-data tracking-[0.06em] uppercase">
                 {pick.event}
@@ -587,7 +624,7 @@ function ExpandedEvidence({
             ) : null}
           </span>
         }
-        odds={formatOdds(pick.oddsAmerican)}
+        odds={pickOdds(pick)}
         stake={formatUnits(pick.units, true, false)}
         toWin={receiptUnits(pick)}
         capturedAt={new Date(pick.postedAt).toISOString()}
