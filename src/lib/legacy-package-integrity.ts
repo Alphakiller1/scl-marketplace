@@ -214,11 +214,11 @@ export function inspectLegacyPackageIntegrity(
   }
 
   for (const expected of LEGACY_WHOP_EXPECTATIONS) {
-    const matches = rows.filter(
-      (row) =>
-        row.username?.toLowerCase() === expected.username.toLowerCase() &&
-        row.title === expected.title,
-    );
+    // Public handles are owner-editable and are not package identity. Match the
+    // migrated offer by its stable title, then verify the exact provider and
+    // checkout URL below. This keeps a legitimate capper rename from degrading
+    // production health without allowing the Whop destination to drift.
+    const matches = rows.filter((row) => row.title === expected.title);
     const expectedLabel = `@${expected.username} · ${expected.title}`;
     if (matches.length !== 1) {
       errors.push(
