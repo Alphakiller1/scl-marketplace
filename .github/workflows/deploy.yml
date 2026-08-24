@@ -1,9 +1,11 @@
 name: Deploy (Vercel)
 
 # Vercel's Git integration deploys every push to main. This workflow verifies
-# that exact commit after the native deployment becomes healthy. Manual runs
-# retain the Deploy Hook / CLI path as an operational recovery mechanism.
-# Secrets live under GitHub → Environments → Production.
+# that exact commit after the native deployment becomes healthy. If Git never
+# promotes the SHA (failed Vercel build, author access, stalled alias), the
+# job recovers with the Deploy Hook / CLI path instead of leaving production
+# on the previous release. Manual workflow_dispatch uses that same recovery
+# path immediately. Secrets live under GitHub → Environments → Production.
 # See docs/SCL_DEPLOYMENT.md.
 
 on:
@@ -13,12 +15,10 @@ on:
 
 concurrency:
   group: deploy-${{ github.ref }}
-  # Never cancel a run in progress. This workflow does not perform the
-  # deployment — Vercel's Git integration does that on push, independently of
-  # GitHub Actions — it verifies that the commit just merged is the one
-  # production actually ends up serving. Cancelling therefore does not stop a
-  # deploy; it only throws away the check that would notice a deploy going
-  # wrong.
+  # Never cancel a run in progress. Git integration still does the first
+  # production build. This job waits for that SHA, and only then deploys via
+  # hook/CLI when Git never promotes it. Cancelling would drop both the
+  # verification and that recovery deploy.
   #
   # With `true`, a run of merges cancels its own predecessors: on 2026-08-06,
   # thirteen PRs merged in quick succession and twelve verification runs were
@@ -41,9 +41,42 @@ jobs:
         with:
           node-version: 22
 
+      - name: Wait for Vercel Git integration
+        id: wait_git
+        if: github.event_name == 'push'
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL || 'https://scl-marketplace.vercel.app' }}
+        run: |
+          echo "Waiting for $PRODUCTION_URL to serve $EXPECTED_SHA"
+          ready=false
+          for attempt in $(seq 1 60); do
+            code=$(curl -L -sS --max-time 20 -o /tmp/scl-health.json -w "%{http_code}" \
+              "$PRODUCTION_URL/api/health" || true)
+            if [ "$code" = "200" ] && node -e '
+              const health = require("/tmp/scl-health.json");
+              const expected = process.argv[1];
+              if (health.status !== "ok") process.exit(1);
+              if (health.release !== expected) process.exit(1);
+            ' "$EXPECTED_SHA"; then
+              ready=true
+              break
+            fi
+            echo "Attempt $attempt/60: HTTP $code; production has not reached the expected healthy release yet."
+            sleep 10
+          done
+          if [ "$ready" = "true" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "Vercel Git is already serving \`$EXPECTED_SHA\`." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Vercel Git did not promote \`$EXPECTED_SHA\` — recovering via Deploy Hook / CLI." >> "$GITHUB_STEP_SUMMARY"
+            cat /tmp/scl-health.json || true
+          fi
+
       - name: Trigger Vercel Deploy Hook
         id: hook
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' || steps.wait_git.outputs.ready != 'true'
         env:
           VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
         run: |
@@ -68,7 +101,9 @@ jobs:
 
       - name: Check CLI token fallback
         id: cfg
-        if: github.event_name == 'workflow_dispatch' && steps.hook.outputs.hook != 'true'
+        if: >-
+          (github.event_name == 'workflow_dispatch' || steps.wait_git.outputs.ready != 'true')
+          && steps.hook.outputs.hook != 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -143,15 +178,12 @@ jobs:
             {
               echo "### ❌ Production did not reach commit \`$EXPECTED_SHA\`"
               echo ""
-              echo "Live release after 10 minutes: \`$live_release\`"
+              echo "Live release after recovery wait: \`$live_release\`"
               echo ""
-              echo "This usually means the **Vercel production build failed** (not just a slow deploy)."
+              echo "Git integration failed, and Deploy Hook / CLI recovery did not promote this SHA."
               echo "Check Vercel → Project → Deployments for the failed build log."
-              echo "Recent merges often fail when \`prisma migrate deploy\` aborts the build —"
-              echo "builds must never \`exit 1\` on migration issues; use runtime schema patches instead."
-              echo ""
-              echo "Recovery: fix the build, merge to \`main\`, or run this workflow manually"
-              echo "(workflow_dispatch) with \`VERCEL_DEPLOY_HOOK_URL\` set under Production secrets."
+              echo "Confirm GitHub → Environments → Production has \`VERCEL_DEPLOY_HOOK_URL\` or"
+              echo "\`VERCEL_TOKEN\` + \`VERCEL_ORG_ID\` + \`VERCEL_PROJECT_ID\`."
             } >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
@@ -169,3 +201,35 @@ jobs:
 
           echo "### ✅ Live release verified" >> "$GITHUB_STEP_SUMMARY"
           echo "Commit \`$EXPECTED_SHA\` passed eight deep data, odds-provider, package-integrity, and public-page rounds." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Refresh tennis boards with the live normalizer
+        continue-on-error: true
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          ODDS_KEY: ${{ secrets.ODDS_API_KEY }}
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL || 'https://sportscappersleaderboard.com' }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET missing — skipping tennis populate."
+            exit 0
+          fi
+          extra=()
+          if [ -n "$ODDS_KEY" ]; then
+            extra+=(--header "x-scl-odds-key: $ODDS_KEY")
+          fi
+          encoded_days=$(jq -rn --arg value "today,tomorrow" '$value|@uri')
+          curl --fail --silent --show-error \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            --header "Accept: application/json" \
+            "${extra[@]}" \
+            --request POST \
+            "${PRODUCTION_URL%/}/api/cron/odds-populate?sports=TENNIS&expanded=99&expandedDays=${encoded_days}&surface=1&skipPopulated=1&expandedOrder=TENNIS" \
+            --output /tmp/tennis-populate.json
+          jq . /tmp/tennis-populate.json
+          {
+            echo "### Tennis populate"
+            echo '```json'
+            jq . /tmp/tennis-populate.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          jq -e '.ok == true and (.surface.TENNIS.events // 0) > 0' /tmp/tennis-populate.json >/dev/null
