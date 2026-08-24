@@ -161,7 +161,9 @@ export type AdminPackageInput = z.infer<typeof adminPackageSchema>;
  */
 export const capperWhopPackageUpdateSchema = z.object({
   packageId: z.string().min(1),
-  expectedUpdatedAt: z.string().datetime({ offset: true }),
+  expectedTitle: z.string().max(80),
+  expectedDescription: z.string().max(2000).nullable(),
+  expectedIsActive: z.boolean(),
   title: z.string().trim().min(2).max(80),
   description: z.string().trim().max(2000),
   isActive: z.boolean(),
