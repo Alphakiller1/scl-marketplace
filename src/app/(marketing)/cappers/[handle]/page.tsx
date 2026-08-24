@@ -33,7 +33,7 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
 
   const {
     capper,
-    plays,
+    history,
     playsError,
     avgClv,
     clvTracker,
@@ -83,7 +83,7 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
         />
         <EvidenceBrief
           capper={profileCapper}
-          plays={plays}
+          history={history}
           playsError={playsError}
           avgClv={avgClv}
           clvTracker={clvTracker}

@@ -61,11 +61,34 @@ import {
   formatClvPts,
   type ProofReceiptDensity,
 } from "@/lib/proof-receipt";
+import type {
+  ProfileHistoryEntry,
+  PublicParlayView,
+} from "@/lib/profile-history";
 import type { PlayView } from "@/lib/queries/plays";
 import { isValidPublicStake } from "@/lib/public-eligibility";
 import { isProvisional } from "@/lib/sample";
 import { isVerifiedTier } from "@/lib/verification";
 import { cn } from "@/lib/utils";
+
+/** Sealed paid selection — same panel whether the position is a play or a parlay. */
+function embargoedReceiptPanel(): ReactNode {
+  return (
+    <div className="border-border bg-surface-2/40 flex min-h-40 flex-col items-center justify-center border-y px-5 py-8 text-center">
+      <LockKeyhole
+        className="size-5 text-[color:var(--scl-blue)]"
+        aria-hidden
+      />
+      <p className="scl-display text-foreground mt-3 font-semibold">
+        Paid selection temporarily hidden
+      </p>
+      <p className="text-muted-foreground mt-1 max-w-md text-sm leading-relaxed">
+        The complete pick and receipt publish 90 minutes after the scheduled
+        event start.
+      </p>
+    </div>
+  );
+}
 
 function playToProofReceipt(
   play: PlayView,
@@ -73,23 +96,7 @@ function playToProofReceipt(
 ): ReactNode {
   // Public receipts must never show 0U / sub-minimum stakes (data error).
   if (!isValidPublicStake(play.units)) return null;
-  if (play.isEmbargoed) {
-    return (
-      <div className="border-border bg-surface-2/40 flex min-h-40 flex-col items-center justify-center border-y px-5 py-8 text-center">
-        <LockKeyhole
-          className="size-5 text-[color:var(--scl-blue)]"
-          aria-hidden
-        />
-        <p className="scl-display text-foreground mt-3 font-semibold">
-          Paid selection temporarily hidden
-        </p>
-        <p className="text-muted-foreground mt-1 max-w-md text-sm leading-relaxed">
-          The complete pick and receipt publish 90 minutes after the scheduled
-          event start.
-        </p>
-      </div>
-    );
-  }
+  if (play.isEmbargoed) return embargoedReceiptPanel();
   const state = deriveProofReceiptState({
     outcome: play.outcome,
     eventStartsAt: play.eventStartsAt,
@@ -163,7 +170,8 @@ function playToProofReceipt(
  */
 export function EvidenceBrief({
   capper,
-  plays,
+  plays = [],
+  history,
   playsError,
   avgClv,
   clvTracker: clvTrackerProp,
@@ -176,7 +184,10 @@ export function EvidenceBrief({
   className,
 }: {
   capper: CapperSummary;
-  plays: PlayView[];
+  /** Straight plays only — kept for fixtures that predate the merged ledger. */
+  plays?: PlayView[];
+  /** Pick History rows: straight plays and whole parlays, newest first. */
+  history?: ProfileHistoryEntry[];
   playsError?: boolean;
   avgClv?: number | null;
   clvTracker?: ClvTrackerSummary;
@@ -191,9 +202,22 @@ export function EvidenceBrief({
 }) {
   const graded = capper.settledPicks ?? 0;
   const provisional = isProvisional(graded);
+  // Positions of record: straight plays and whole parlays alike. A parlay-only
+  // capper has no straight plays at all, so a play-only ledger reads empty
+  // while the record above it keeps moving.
+  const entries = useMemo<ProfileHistoryEntry[]>(
+    () =>
+      (
+        history ?? plays.map((play) => ({ kind: "play" as const, ...play }))
+      ).filter((entry) => isValidPublicStake(entry.units)),
+    [history, plays],
+  );
   const eligiblePlays = useMemo(
-    () => plays.filter((play) => isValidPublicStake(play.units)),
-    [plays],
+    () =>
+      entries.filter(
+        (entry): entry is { kind: "play" } & PlayView => entry.kind === "play",
+      ),
+    [entries],
   );
 
   const clvTracker = useMemo(() => {
@@ -217,11 +241,28 @@ export function EvidenceBrief({
   const [chartSport, setChartSport] = useState("ALL");
   const [chartWindow, setChartWindow] = useState<ProfileChartWindow>("all");
 
+  const fallbackChartRows = useMemo(
+    () =>
+      entries.map((entry) => ({
+        createdAt: entry.createdAt,
+        outcome: entry.outcome,
+        profitUnits: entry.profitUnits,
+        units: entry.units,
+        // A parlay spans fixtures; the sport filter attributes it to leg one,
+        // exactly as the server-built series does.
+        sport:
+          entry.kind === "parlay"
+            ? (entry.legs[0]?.sport ?? "MULTI")
+            : entry.sport,
+      })),
+    [entries],
+  );
+
   const chartSeries = useMemo(
     () =>
       chartSeriesProp ??
       buildProfileChartSeries(
-        eligiblePlays,
+        fallbackChartRows,
         new Date(),
         120,
         // All-window only; sport filters stay receipt-only (see builder).
@@ -229,7 +270,7 @@ export function EvidenceBrief({
       ),
     [
       chartSeriesProp,
-      eligiblePlays,
+      fallbackChartRows,
       selectedPackageId,
       capper.legacyBaselineUnits,
     ],
@@ -256,10 +297,10 @@ export function EvidenceBrief({
     capper,
     activePackage ? activePackage.evidence : undefined,
   );
-  const historyLedgerKey = `${capper.handle}:${historyNextCursor ?? "end"}:${eligiblePlays
+  const historyLedgerKey = `${capper.handle}:${historyNextCursor ?? "end"}:${entries
     .map(
-      (play) =>
-        `${play.id}:${play.outcome}:${play.profitUnits ?? "open"}:${play.createdAt.getTime()}`,
+      (entry) =>
+        `${entry.id}:${entry.outcome}:${entry.profitUnits ?? "open"}:${entry.createdAt.getTime()}`,
     )
     .join(",")}`;
 
@@ -386,10 +427,10 @@ export function EvidenceBrief({
           </div>
         </div>
 
-        {eligiblePlays.length || historyNextCursor ? (
+        {entries.length || historyNextCursor ? (
           <ProofHistoryLedger
             key={historyLedgerKey}
-            plays={eligiblePlays}
+            entries={entries}
             handle={capper.handle}
             initialNextCursor={historyNextCursor ?? null}
           />
@@ -415,18 +456,116 @@ export function EvidenceBrief({
 
 const PROOF_HISTORY_PAGE_SIZE = 10;
 
+/** "3-Leg Parlay" — the parlay is the position, its legs are the detail. */
+function parlayTitle(parlay: PublicParlayView): string {
+  return `${parlay.legs.length}-Leg Parlay`;
+}
+
+/** The fixtures a parlay spans, or a single matchup when every leg shares one. */
+function parlayGameLabel(parlay: PublicParlayView): string | null {
+  const games = [
+    ...new Set(
+      parlay.legs
+        .map((leg) => matchupLabel(leg))
+        .filter((label): label is string => Boolean(label)),
+    ),
+  ];
+  if (games.length === 1) return games[0]!;
+  if (games.length > 1) return `${games.length} games`;
+  return null;
+}
+
+function parlayToProofReceipt(
+  parlay: PublicParlayView,
+  density: ProofReceiptDensity,
+): ReactNode {
+  if (!isValidPublicStake(parlay.units)) return null;
+  if (parlay.isEmbargoed) return embargoedReceiptPanel();
+
+  const state = deriveProofReceiptState({
+    outcome: parlay.outcome,
+    eventStartsAt: parlay.eventStartsAt,
+    verificationTier: parlay.verificationTier,
+  });
+  const settled = parlay.outcome !== "PENDING";
+  const receiptUnits =
+    parlay.profitUnits ??
+    (parlay.combinedOddsAmerican == null
+      ? null
+      : profitUnitsForOutcome(
+          settled ? parlay.outcome : "WIN",
+          parlay.combinedOddsAmerican,
+          parlay.units,
+        ));
+  const books = [
+    ...new Set(
+      parlay.legs
+        .map((leg) => leg.book)
+        .filter((book): book is string => Boolean(book)),
+    ),
+  ];
+  const game = parlayGameLabel(parlay);
+  return (
+    <ProofReceipt
+      key={`${parlay.id}-${density}`}
+      selectionTitle={`${parlayTitle(parlay)}\n${parlay.legs
+        .map((leg) => leg.selection)
+        .join(" · ")}`}
+      eventLine={
+        <span className="inline-flex flex-wrap items-center gap-1.5 tracking-normal normal-case">
+          {[...new Set(parlay.legs.map((leg) => leg.sport))].map((sport) => (
+            <LeagueRef key={sport} sport={sport} />
+          ))}
+          {game ? (
+            <span className="scl-data tracking-[0.06em] uppercase">{game}</span>
+          ) : null}
+        </span>
+      }
+      legs={parlay.legs.length}
+      odds={
+        parlay.combinedOddsAmerican == null
+          ? "—"
+          : formatOdds(parlay.combinedOddsAmerican)
+      }
+      stake={formatUnits(parlay.units, true, false)}
+      toWin={
+        receiptUnits == null ? "—" : formatUnits(receiptUnits, true, settled)
+      }
+      capturedAt={asDate(parlay.createdAt)?.toISOString() ?? null}
+      book={
+        books.length === 1 ? books[0]! : books.length > 1 ? "Mixed Books" : null
+      }
+      state={state}
+      density={density}
+      verificationDominant={density === "expanded-paper"}
+      boardVerified={isVerifiedTier(parlay.verificationTier)}
+      evidenceId={parlay.id}
+      eventStartsAt={pickEventDate(parlay)}
+    />
+  );
+}
+
+function entryToProofReceipt(
+  entry: ProfileHistoryEntry,
+  density: ProofReceiptDensity,
+): ReactNode {
+  return entry.kind === "parlay"
+    ? parlayToProofReceipt(entry, density)
+    : playToProofReceipt(entry, density);
+}
+
 function ProofHistoryLedger({
-  plays,
+  entries,
   handle,
   initialNextCursor,
 }: {
-  plays: PlayView[];
+  entries: ProfileHistoryEntry[];
   handle: string;
   initialNextCursor: string | null;
 }) {
   const allInitial = useMemo(
-    () => plays.filter((play) => isValidPublicStake(play.units)),
-    [plays],
+    () => entries.filter((entry) => isValidPublicStake(entry.units)),
+    [entries],
   );
   const initialRows = useMemo(
     () => allInitial.slice(0, PROOF_HISTORY_PAGE_SIZE),
@@ -458,8 +597,8 @@ function ProofHistoryLedger({
         const requestedCursor = nextCursor;
         const page = await loadPublicProfileHistory(handle, requestedCursor);
         setShown((current) => {
-          const byId = new Map(current.map((play) => [play.id, play]));
-          for (const play of page.plays) byId.set(play.id, play);
+          const byId = new Map(current.map((entry) => [entry.id, entry]));
+          for (const entry of page.entries) byId.set(entry.id, entry);
           return [...byId.values()];
         });
         setNextCursor(
@@ -509,28 +648,49 @@ function ProofHistoryLedger({
           </tr>
         </thead>
         <tbody className="divide-border divide-y">
-          {shown.map((play) => {
-            const expanded = expandedId === play.id;
-            const resultLabel = proofResultLabel(play);
-            const resultClass = proofResultClass(play.outcome);
-            const game =
-              matchupLabel(play) ??
-              pickContextLabel({
-                sport: play.sport,
-                league: play.league,
-                market: play.market,
-              });
+          {shown.map((entry) => {
+            const expanded = expandedId === entry.id;
+            const resultLabel = proofResultLabel(entry);
+            const resultClass = proofResultClass(entry.outcome);
+            const parlay = entry.kind === "parlay" ? entry : null;
+            const play = entry.kind === "play" ? entry : null;
+            const title = parlay
+              ? parlayTitle(parlay)
+              : (play?.selection ?? "");
+            // Legs are a parlay's substance, so they read on every viewport;
+            // a straight pick only needs its fixture where the Game column is
+            // hidden.
+            const detail = parlay
+              ? parlay.legs.map((leg) => leg.selection).join(" · ")
+              : null;
+            const game = parlay
+              ? parlayGameLabel(parlay)
+              : play
+                ? (matchupLabel(play) ??
+                  pickContextLabel({
+                    sport: play.sport,
+                    league: play.league,
+                    market: play.market,
+                  }))
+                : null;
+            const line = parlay
+              ? parlay.combinedOddsAmerican == null
+                ? "—"
+                : formatOdds(parlay.combinedOddsAmerican)
+              : play && !play.isEmbargoed
+                ? formatOdds(play.oddsAmerican)
+                : "—";
             return (
-              <Fragment key={play.id}>
+              <Fragment key={entry.id}>
                 <tr>
                   <td className="py-1 pr-2 align-middle">
                     <button
                       type="button"
                       className="border-border bg-surface-2 text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex min-h-10 items-center gap-1 rounded-full border px-2 text-[0.65rem] font-semibold hover:border-[color:var(--scl-blue)] focus-visible:ring-2 focus-visible:outline-none"
                       aria-expanded={expanded}
-                      aria-controls={`proof-history-${play.id}`}
-                      aria-label={`${expanded ? "Close" : "Open"} ticket for ${play.selection}`}
-                      onClick={() => setExpandedId(expanded ? null : play.id)}
+                      aria-controls={`proof-history-${entry.id}`}
+                      aria-label={`${expanded ? "Close" : "Open"} ticket for ${title}`}
+                      onClick={() => setExpandedId(expanded ? null : entry.id)}
                     >
                       <ReceiptText className="size-3" aria-hidden />
                       <span>{expanded ? "Close" : "View"}</span>
@@ -544,7 +704,7 @@ function ProofHistoryLedger({
                     </button>
                   </td>
                   <td className="text-muted-foreground hidden truncate py-2.5 pr-2 tabular-nums sm:table-cell">
-                    {asDate(play.createdAt)?.toLocaleDateString("en-US", {
+                    {asDate(entry.createdAt)?.toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
                       year: "numeric",
@@ -553,7 +713,7 @@ function ProofHistoryLedger({
                   </td>
                   <td className="py-2.5 pr-2 font-medium">
                     <span className="flex min-w-0 items-center gap-2">
-                      {play.market === "Player Prop" ? (
+                      {play && play.market === "Player Prop" ? (
                         <PlayerHeadshot
                           selection={play.selection}
                           league={toHeadshotLeague(play.sport)}
@@ -562,8 +722,12 @@ function ProofHistoryLedger({
                         />
                       ) : null}
                       <span className="min-w-0">
-                        <span className="block truncate">{play.selection}</span>
-                        {game ? (
+                        <span className="block truncate">{title}</span>
+                        {detail ? (
+                          <span className="text-muted-foreground mt-0.5 block truncate text-[0.65rem] font-normal">
+                            {detail}
+                          </span>
+                        ) : game ? (
                           <span className="text-muted-foreground mt-0.5 block truncate text-[0.65rem] font-normal md:hidden">
                             {game}
                           </span>
@@ -575,10 +739,13 @@ function ProofHistoryLedger({
                     {game ?? "—"}
                   </td>
                   <td className="scl-data text-muted-foreground hidden py-2.5 pr-2 tabular-nums sm:table-cell">
-                    {play.isEmbargoed ? "—" : formatOdds(play.oddsAmerican)}
+                    {line}
                   </td>
                   <td className="scl-data text-muted-foreground hidden py-2.5 pr-2 tabular-nums md:table-cell">
-                    {play.isEmbargoed ? "—" : formatClvPts(play.clvPts)}
+                    {/* CLV is a single-price measurement — a parlay has none. */}
+                    {play && !play.isEmbargoed
+                      ? formatClvPts(play.clvPts)
+                      : "—"}
                   </td>
                   <td
                     className={cn(
@@ -594,19 +761,19 @@ function ProofHistoryLedger({
                       resultClass,
                     )}
                   >
-                    {play.profitUnits == null
+                    {entry.profitUnits == null
                       ? "—"
-                      : formatUnits(play.profitUnits, true, false)}
+                      : formatUnits(entry.profitUnits, true, false)}
                   </td>
                 </tr>
                 {expanded ? (
-                  <tr id={`proof-history-${play.id}`}>
+                  <tr id={`proof-history-${entry.id}`}>
                     <td
                       colSpan={8}
                       className="bg-surface-2 px-2 py-3 sm:px-4 sm:py-4"
                     >
                       <div className="mx-auto max-w-3xl">
-                        {playToProofReceipt(play, "feed")}
+                        {entryToProofReceipt(entry, "feed")}
                       </div>
                     </td>
                   </tr>
@@ -663,11 +830,11 @@ function ProofHistoryLedger({
   );
 }
 
-function proofResultLabel(play: PlayView): string {
+function proofResultLabel(entry: ProfileHistoryEntry): string {
   const state = deriveProofReceiptState({
-    outcome: play.outcome,
-    eventStartsAt: play.eventStartsAt,
-    verificationTier: play.verificationTier,
+    outcome: entry.outcome,
+    eventStartsAt: entry.eventStartsAt,
+    verificationTier: entry.verificationTier,
   });
   if (state === "won") return "Won";
   if (state === "loss") return "Loss";

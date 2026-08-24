@@ -11,6 +11,6 @@ export async function loadPublicProfileHistory(
   cursor: string,
 ): Promise<PublicProfileHistoryPage> {
   const normalizedHandle = handle.replace(/^@+/, "").trim();
-  if (!normalizedHandle || !cursor) return { plays: [], nextCursor: null };
+  if (!normalizedHandle || !cursor) return { entries: [], nextCursor: null };
   return getPublicProfileHistoryPage(normalizedHandle, cursor);
 }
