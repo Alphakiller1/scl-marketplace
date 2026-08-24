@@ -203,6 +203,7 @@ jobs:
           echo "Commit \`$EXPECTED_SHA\` passed eight deep data, odds-provider, package-integrity, and public-page rounds." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Refresh tennis boards with the live normalizer
+        if: always()
         continue-on-error: true
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
