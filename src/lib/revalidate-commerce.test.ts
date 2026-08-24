@@ -45,6 +45,9 @@ test("Whop storefronts have a signed scheduled reconciliation path", () => {
     path.join(root, ".github/workflows/whop-sync.yml"),
     "utf8",
   );
+  const vercel = JSON.parse(
+    fs.readFileSync(path.join(root, "vercel.json"), "utf8"),
+  ) as { crons?: Array<{ path?: string; schedule?: string }> };
 
   assert.match(route, /process\.env\.CRON_SECRET/);
   assert.match(route, /syncWhopStorefront/);
@@ -53,6 +56,10 @@ test("Whop storefronts have a signed scheduled reconciliation path", () => {
   assert.match(workflow, /cron: "\*\/5 \* \* \* \*"/);
   assert.match(workflow, /api\/cron\/whop-sync/);
   assert.match(workflow, /Authorization: Bearer \$CRON_SECRET/);
+  assert.deepEqual(
+    vercel.crons?.find((cron) => cron.path === "/api/cron/whop-sync"),
+    { path: "/api/cron/whop-sync", schedule: "*/5 * * * *" },
+  );
 });
 
 test("owner and public storefront views refresh stale Whop packages", () => {
