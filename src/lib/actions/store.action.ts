@@ -507,7 +507,9 @@ export async function capperUpdateWhopPackageAction(
       where: {
         id: ownedPackage.id,
         capperId: ownedPackage.capperId,
-        updatedAt: new Date(d.expectedUpdatedAt),
+        title: d.expectedTitle,
+        description: d.expectedDescription,
+        isActive: d.expectedIsActive,
         storeConnection: {
           is: {
             id: ownedPackage.storeConnectionId!,

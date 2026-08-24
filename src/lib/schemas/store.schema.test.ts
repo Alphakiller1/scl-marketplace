@@ -76,7 +76,9 @@ test("storefront suspension requires a reason and stale-status guard", () => {
 test("capper Whop edits accept only safe presentation fields", () => {
   const valid = capperWhopPackageUpdateSchema.safeParse({
     packageId: "pkg_1",
-    expectedUpdatedAt: "2026-08-24T22:00:00.000Z",
+    expectedTitle: "Premium picks",
+    expectedDescription: "Daily researched selections",
+    expectedIsActive: true,
     title: "Premium picks",
     description: "Daily researched selections",
     isActive: true,
@@ -85,7 +87,9 @@ test("capper Whop edits accept only safe presentation fields", () => {
 
   const withProviderOwnedPrice = capperWhopPackageUpdateSchema.safeParse({
     packageId: "pkg_1",
-    expectedUpdatedAt: "2026-08-24T22:00:00.000Z",
+    expectedTitle: "Premium picks",
+    expectedDescription: "Daily researched selections",
+    expectedIsActive: true,
     title: "Premium picks",
     description: "Daily researched selections",
     isActive: true,
@@ -101,7 +105,9 @@ test("capper Whop edits accept only safe presentation fields", () => {
   assert.equal(
     capperWhopPackageUpdateSchema.safeParse({
       packageId: "pkg_1",
-      expectedUpdatedAt: "2026-08-24T22:00:00.000Z",
+      expectedTitle: "Premium picks",
+      expectedDescription: "Daily researched selections",
+      expectedIsActive: true,
       title: "x".repeat(81),
       description: "Too long for Whop's product title limit",
       isActive: true,

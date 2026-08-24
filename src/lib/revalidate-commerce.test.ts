@@ -140,6 +140,13 @@ test("SCL edits remain durable until Whop acknowledges the exact revision", () =
     storeAction,
     /This package changed while you were editing\. Refresh and try again\./,
   );
+  assert.match(storeAction, /title: d\.expectedTitle/);
+  assert.match(storeAction, /description: d\.expectedDescription/);
+  assert.match(storeAction, /isActive: d\.expectedIsActive/);
+  assert.doesNotMatch(
+    storeAction,
+    /updatedAt: new Date\(d\.expectedUpdatedAt\)/,
+  );
   assert.match(storeAction, /mirrorPackageToWhop\(ownedPackage\.id\)/);
   assert.match(storeAction, /afterResponse\(async \(\) =>/);
   assert.match(sync, /if \(existing\?\.whopPushPendingAt\)/);

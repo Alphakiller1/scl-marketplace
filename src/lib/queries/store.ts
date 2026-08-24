@@ -405,7 +405,6 @@ export type OwnerWhopPackage = {
   description: string | null;
   priceLabel: string;
   isActive: boolean;
-  updatedAt: string;
   syncPending: boolean;
   syncFailed: boolean;
 };
@@ -432,7 +431,6 @@ export async function getOwnerWhopPackagesForCapper(
       billingPeriod: true,
       billingIntervalCount: true,
       isActive: true,
-      updatedAt: true,
       whopPushPendingAt: true,
       whopPushLastError: true,
     },
@@ -449,7 +447,6 @@ export async function getOwnerWhopPackagesForCapper(
         pkg.billingIntervalCount,
       ) ?? "See Whop for current price",
     isActive: pkg.isActive,
-    updatedAt: pkg.updatedAt.toISOString(),
     syncPending: Boolean(pkg.whopPushPendingAt),
     syncFailed: Boolean(pkg.whopPushLastError),
   }));

@@ -22,7 +22,9 @@ export function CapperWhopPackageEditor({ pkg }: { pkg: OwnerWhopPackage }) {
     startTransition(async () => {
       const result = await capperUpdateWhopPackageAction({
         packageId: pkg.id,
-        expectedUpdatedAt: pkg.updatedAt,
+        expectedTitle: pkg.title,
+        expectedDescription: pkg.description,
+        expectedIsActive: pkg.isActive,
         title,
         description,
         isActive,
