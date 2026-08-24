@@ -19,25 +19,49 @@ export async function ensureWhopOAuthRedirectRegistered(
   neededRedirectUri = whopOAuthRedirectUri(),
 ): Promise<WhopOAuthRedirectSync> {
   const appId = whopAppId();
-  const token = whopAccountApiKey() || whopAppApiKey();
-  if (!appId || !token) return "unknown";
+  const credentials = Array.from(
+    new Map(
+      [
+        ["app", whopAppApiKey()],
+        ["account", whopAccountApiKey()],
+      ]
+        .filter((entry): entry is [string, string] => Boolean(entry[1]))
+        .map(([kind, token]) => [token, { kind, token }]),
+    ).values(),
+  );
+  if (!appId || credentials.length === 0) return "unknown";
 
   const needed = neededRedirectUri;
-  const result = await mergeWhopAppRedirectUris({
-    accessToken: token,
-    appId,
-    // Only the callback used by this flow is required. A read-only app key can
-    // still verify an existing URI without failing while trying to add an
-    // optional second host that requires developer:update_app.
-    redirectUris: [needed],
-  });
-  if (result.ok) {
-    return result.redirectUris.includes(needed) ? "ok" : "missing";
+  let readAllowlist = false;
+  const errors: string[] = [];
+
+  for (const credential of credentials) {
+    const result = await mergeWhopAppRedirectUris({
+      accessToken: credential.token,
+      appId,
+      // Only the callback used by this flow is required. A read-only key can
+      // still verify an existing URI. If it cannot update the app, try the
+      // other configured credential before treating the callback as missing.
+      redirectUris: [needed],
+    });
+    if (result.ok) {
+      if (result.redirectUris.includes(needed)) return "ok";
+      readAllowlist = true;
+      continue;
+    }
+
+    errors.push(`${credential.kind}: ${result.error}`);
+    if (result.redirectUris) {
+      if (result.redirectUris.includes(needed)) return "ok";
+      readAllowlist = true;
+    }
   }
 
-  console.error("[whop] OAuth redirect URI sync failed:", result.error);
-  if (result.redirectUris) {
-    return result.redirectUris.includes(needed) ? "ok" : "missing";
+  if (errors.length > 0) {
+    console.error(
+      "[whop] OAuth redirect URI sync failed for configured credentials:",
+      errors.join(" | "),
+    );
   }
-  return "unknown";
+  return readAllowlist ? "missing" : "unknown";
 }
