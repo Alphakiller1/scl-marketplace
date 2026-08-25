@@ -13,12 +13,14 @@ import {
   type WhopPkceState,
 } from "@/lib/whop-oauth";
 import { whopOAuthRedirectUri } from "@/lib/whop-oauth-redirect";
-import { listWhopCompanies } from "@/lib/whop-api";
+import { listWhopCompanies, listWhopPlans } from "@/lib/whop-api";
+import { isWhopPlanReadPermissionError } from "@/lib/whop-app-permissions";
 import { persistWhopOAuthCredentials } from "@/lib/whop-sync";
 import {
   whopAppApiKey,
   whopAppId,
   whopOAuthConfigured,
+  whopStorefrontApiKey,
 } from "@/lib/whop-config";
 
 export const runtime = "nodejs";
@@ -147,9 +149,31 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // A successful OAuth exchange only proves identity. Verify the installed
+  // business granted the app permission needed for package price/cadence sync
+  // before telling the capper that setup succeeded.
+  let permissionFailure: "missing" | "unavailable" | null = null;
+  const companyId = companies[0]?.id;
+  const storefrontApiKey = whopStorefrontApiKey(tokens.access_token);
+  if (!companyId || !storefrontApiKey) {
+    permissionFailure = "unavailable";
+  } else {
+    try {
+      await listWhopPlans({ accessToken: storefrontApiKey, companyId });
+    } catch (error) {
+      permissionFailure = isWhopPlanReadPermissionError(error)
+        ? "missing"
+        : "unavailable";
+      console.error(
+        `[whop/callback] post-install plan permission probe failed for ${companyId}:`,
+        error,
+      );
+    }
+  }
+
   const connection = await prisma.storeConnection.findUnique({
     where: { id: pkce.connectionId },
-    select: { id: true, adminNotes: true },
+    select: { id: true, status: true, adminNotes: true },
   });
   if (!connection) {
     return NextResponse.redirect(
@@ -158,20 +182,37 @@ export async function GET(req: NextRequest) {
   }
 
   const stamp = new Date().toISOString();
-  const noteLine = `[${stamp}] Capper installed the SCL Whop app via OAuth (${companies[0]?.id ?? "unknown company"}).`;
+  const permissionNote =
+    permissionFailure === "missing"
+      ? " Required plan:basic:read permission was not granted; connection marked NEEDS_ACTION."
+      : permissionFailure === "unavailable"
+        ? " SCL could not verify plan access; connection marked NEEDS_ACTION."
+        : " Required plan:basic:read permission verified.";
+  const noteLine = `[${stamp}] Capper installed the SCL Whop app via OAuth (${companies[0]?.id ?? "unknown company"}).${permissionNote}`;
   const adminNotes = connection.adminNotes
     ? `${connection.adminNotes}\n${noteLine}`
     : noteLine;
 
   await prisma.storeConnection.update({
     where: { id: connection.id },
-    data: { adminNotes },
+    data: {
+      adminNotes,
+      ...(permissionFailure && connection.status !== "DISABLED"
+        ? { status: "NEEDS_ACTION" as const, requiresAttention: true }
+        : {}),
+    },
   });
 
   revalidatePath("/dashboard/monetization");
   revalidatePath("/admin/store-setup");
 
+  const whopResult =
+    permissionFailure === "missing"
+      ? "permissions-required"
+      : permissionFailure === "unavailable"
+        ? "permission-check-failed"
+        : "connected";
   return NextResponse.redirect(
-    monetizationUrl(returnOrigin, { whop: "connected" }),
+    monetizationUrl(returnOrigin, { whop: whopResult }),
   );
 }

@@ -22,6 +22,12 @@ const MESSAGES: Record<string, string> = {
     "Whop connection is temporarily unavailable. Complete the affiliate steps and submit — SCL will review manually.",
   "oauth-misconfigured":
     "Whop isn't accepting SCL's callback URL yet. Try Connect SCL to Whop again in a minute, or contact support if it keeps happening.",
+  "app-permissions-missing":
+    "SCL's Whop app is being upgraded for package price sync. No change is needed in your capper account; retry after SCL support confirms the upgrade.",
+  "permissions-required":
+    "Whop connected, but package price sync permission was not granted. Re-approve SCL Marketplace under Whop → Authorized apps, then reconnect.",
+  "permission-check-failed":
+    "Whop connected, but SCL could not verify package price sync. Your storefront was marked for review instead of being reported as fully synced.",
   "start-setup": "Review the Whop setup steps before connecting SCL on Whop.",
   suspended:
     "This Whop storefront is suspended. Contact SCL before continuing.",

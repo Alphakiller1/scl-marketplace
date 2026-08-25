@@ -201,6 +201,22 @@ export function isWhopApiConfigured(accessToken: string | null | undefined) {
 export type WhopAppRecord = {
   id: string;
   redirect_uris?: string[] | null;
+  requested_permissions?: WhopAppRequestedPermission[] | null;
+};
+
+export type WhopAppRequestedPermission = {
+  is_required: boolean;
+  justification?: string | null;
+  permission_action: {
+    action: string;
+    name?: string | null;
+  };
+};
+
+export type WhopAppRequestedPermissionInput = {
+  action: string;
+  is_required: boolean;
+  justification: string;
 };
 
 function unwrapWhopApp(
@@ -226,6 +242,38 @@ export async function retrieveWhopApp(
     accessToken,
   );
   return unwrapWhopApp(raw);
+}
+
+export async function updateWhopAppRequestedPermissions(input: {
+  accessToken: string;
+  appId: string;
+  requestedPermissions: WhopAppRequestedPermissionInput[];
+}): Promise<void> {
+  const res = await fetch(
+    `${WHOP_API_BASE}/apps/${encodeURIComponent(input.appId)}/permissions`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${input.accessToken}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        requested_permissions: input.requestedPermissions,
+      }),
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as {
+      error?: { message?: string };
+    };
+    throw new WhopApiError(
+      res.status,
+      body.error?.message ||
+        `Whop app permission update failed (${res.status})`,
+    );
+  }
 }
 
 /**
