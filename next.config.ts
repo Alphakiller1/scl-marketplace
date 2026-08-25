@@ -54,6 +54,9 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/dashboard/profile": ["./node_modules/@img/**/*"],
     "/api/*": ["./node_modules/@img/**/*"],
+    "/api/cron/odds-replay": [
+      "./data/odds-snapshots/2026-08-25T15-08Z.json.gz",
+    ],
   },
 
   // Profile media server actions accept up to 5 MB (cover) plus multipart

@@ -1,0 +1,41 @@
+name: Replay captured odds snapshot
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: populate-odds
+  cancel-in-progress: false
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    environment: Production
+    timeout-minutes: 10
+    steps:
+      - name: Replay the paid capture through production
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET is not configured."
+            exit 1
+          fi
+          curl --fail --silent --show-error \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            --request POST \
+            https://sportscappersleaderboard.com/api/cron/odds-replay \
+            --output /tmp/replay.json
+          jq . /tmp/replay.json
+          jq -e '.ok == true and .providerCreditsSpent == 0 and .written > 0' \
+            /tmp/replay.json >/dev/null
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Captured odds replay"
+            echo '```json'
+            jq . /tmp/replay.json 2>/dev/null || echo '{"ok":false}'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
