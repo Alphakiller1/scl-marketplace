@@ -82,8 +82,12 @@ that is a Whop app they install in one click, instead of every capper mailing us
    Connect now syncs these onto the app via the API before sending a capper to
    Whop, so a missing allowlist entry should self-heal. If Connect still shows
    raw JSON on `api.whop.com`, the App ID in Vercel does not match this app.
-5. **Permissions the app requests:** the same three reads as above. Keep it read-only. Cappers
-   are far more likely to install something that can't touch their money.
+5. **Permissions the app requests:** include the sales/affiliate reads above,
+   plus `access_pass:basic:read`, `access_pass:update`, and
+   `plan:basic:read` for storefront synchronization. The only write permission
+   changes product title, headline, and visibility; SCL never requests a plan
+   price write, refund, payout, or money-movement permission. Existing installs
+   must re-approve after a permission is added.
 
 ---
 
@@ -173,8 +177,10 @@ data to the business that owns it, so our key can't see their sales on its own. 
 >    `scleaderboard@gmail.com`, set the commission we agreed on, and apply it to all current
 >    and future plans.
 > 2. **Install the "Sports Cappers Leaderboard" app** on your Whop business: `<install link>`.
->    It's read-only — it can see referrals, memberships, and payments so we can credit sales
->    correctly. It cannot issue refunds, move money, or change your products.
+>    It can see referrals, memberships, payments, products, and plan prices so
+>    we can credit sales and keep storefronts accurate. It can mirror product
+>    title/description/visibility edits, but cannot change plan prices, issue
+>    refunds, or move money.
 >
 > That's it. Your packages then sync to SCL on their own.
 
@@ -203,6 +209,8 @@ capper to store and rotate, so treat it as the exception.
 
 - That capper's package sales and commissions
 - Auto-import of their packages instead of us pasting checkout links
+- Whop-owned plan price and billing cadence reflected on SCL package cards
+- Safe SCL product title, headline, and visibility edits reflected on Whop
 
 **Still manual, by Whop's design:**
 

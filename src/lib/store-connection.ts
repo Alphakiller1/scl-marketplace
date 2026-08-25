@@ -271,10 +271,10 @@ export function billingTermLabel(
  * this shipped. A trial's real length belongs in billingIntervalCount, and it
  * can be shown here once someone has actually set it.
  *
- * Known gap: the schema cannot tell "free" from "price never entered", because
- * priceCents is a non-nullable Int defaulting to 0. That is fine today —
- * nothing is sitting at 0 by accident — but a future import could reintroduce
- * the ambiguity, and the fix would be to make the column nullable.
+ * Provider imports use -1 as an explicit "price unavailable" sentinel. It is
+ * never accepted by the admin input schema, and it renders through the caller's
+ * provider-price fallback. That keeps a plan permission error or a multi-plan
+ * Whop product from being falsely advertised as free.
  */
 export function formatPriceCents(
   cents: number,
