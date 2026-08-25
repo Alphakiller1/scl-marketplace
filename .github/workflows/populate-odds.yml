@@ -4,6 +4,9 @@ name: Populate odds
 # route (the keys already on Vercel). One-shot populate sends a temporary Odds
 # API key to that same route — used for that job only, never stored — so Vercel
 # writes scl.OddsCacheSnapshot with the database it already holds.
+#
+# `snapshot_file` runs neither: it replays a slate already fetched into
+# data/odds-snapshots/ straight into the database, spending no Odds API credits.
 
 on:
   schedule:
@@ -42,12 +45,63 @@ on:
         required: false
         default: true
         type: boolean
+      snapshot_file:
+        description: "Replay an already-fetched snapshot file into the DB (no Odds API credits). Path under data/odds-snapshots/."
+        required: false
+        default: ""
+        type: string
+      snapshot_kinds:
+        description: "Which snapshot kinds to replay: board, event-board, or both"
+        required: false
+        default: "board,event-board"
+        type: string
 
 concurrency:
   group: populate-odds
   cancel-in-progress: false
 
 jobs:
+  # Replay a slate that was already paid for. Fetching and writing are separate
+  # jobs because they need different things: fetching needs Odds API credits,
+  # writing needs the production database. A run that has one and not the other
+  # used to strand the slate — credits spent, nothing on the board.
+  write-snapshots:
+    if: github.event_name == 'workflow_dispatch' && inputs.snapshot_file != ''
+    runs-on: ubuntu-latest
+    environment: Production
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Write snapshots
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SNAPSHOT_FILE: data/odds-snapshots/${{ inputs.snapshot_file }}
+          KINDS: ${{ inputs.snapshot_kinds }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL is not configured for the Production environment."
+            exit 1
+          fi
+          if [ ! -f "$SNAPSHOT_FILE" ]; then
+            echo "::error::$SNAPSHOT_FILE does not exist on this ref."
+            exit 1
+          fi
+          npx tsx scripts/write-odds-snapshots.ts | tee /tmp/write.log
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Odds snapshot replay"
+            echo '```'
+            cat /tmp/write.log 2>/dev/null || echo "the run did not complete"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   populate-temp-key:
     if: github.event_name == 'repository_dispatch' || (github.event_name == 'workflow_dispatch' && inputs.odds_key != '')
     runs-on: ubuntu-latest
@@ -66,7 +120,7 @@ jobs:
           EXPANDED_DAYS: ${{ github.event.client_payload.expanded_days || github.event.inputs.expanded_days || 'today' }}
           SURFACE: ${{ github.event.client_payload.surface || '1' }}
           SKIP_POPULATED: ${{ github.event.client_payload.skipPopulated || '1' }}
-          EXPANDED_ORDER: ${{ github.event.client_payload.expandedOrder || 'MLB,WNBA,TENNIS' }}
+          EXPANDED_ORDER: ${{ github.event.client_payload.expandedOrder || 'MLB,WNBA,TENNIS,SOCCER' }}
         run: |
           if [ -z "$CRON_SECRET" ]; then
             echo "::error::CRON_SECRET is not configured. No odds credits were spent."
@@ -109,7 +163,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   populate:
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.odds_key == '')
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.odds_key == '' && inputs.snapshot_file == '')
     runs-on: ubuntu-latest
     environment: Production
     timeout-minutes: 10

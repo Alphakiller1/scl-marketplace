@@ -1,8 +1,21 @@
 import type { OddsEvent } from "@/lib/odds-board";
 import { expandedBoardMarkets } from "@/lib/odds-verify";
 
-/** Owner priority for sports with per-event expanded boards. */
-export const DEFAULT_EXPANDED_SPORT_ORDER = ["MLB", "WNBA", "TENNIS"] as const;
+/**
+ * Owner priority for sports with per-event expanded boards.
+ *
+ * MLB first and soccer last is a budget decision, not a taste one: a full MLB
+ * card at full markets costs more than a whole top-up key, so whatever runs
+ * after it only gets what the reserve held back. Soccer's expanded call adds a
+ * single market (Double Chance) across eighty fixtures, so it is the one that
+ * can be cut to a partial slate without leaving a game unbettable.
+ */
+export const DEFAULT_EXPANDED_SPORT_ORDER = [
+  "MLB",
+  "WNBA",
+  "TENNIS",
+  "SOCCER",
+] as const;
 
 export type ExpandedSlateDay = "today" | "tomorrow";
 
@@ -74,6 +87,53 @@ export function mergeLastGoodBoardEvents(
 /** Markets × one region — the billed cost of one expanded event board. */
 export function expandedEventCreditCost(sport: string): number {
   return expandedBoardMarkets(sport).length;
+}
+
+/**
+ * The Odds API bills one credit for `/events/{id}/markets`, which lists exactly
+ * which market keys the covered books are pricing for that fixture.
+ */
+export const EVENT_MARKET_CATALOG_CREDIT_COST = 1;
+
+/**
+ * Market keys any covered book is actually pricing for one event.
+ *
+ * The odds endpoint bills `markets × regions` whether or not a market comes
+ * back with anything, so a fixed request list pays for every key no book posts
+ * — on a full MLB card that is the difference between finishing the slate and
+ * running out of credits partway through it. Reading the catalog first costs
+ * one credit and removes the rest.
+ */
+export function eventMarketCatalogKeys(payload: unknown): string[] {
+  const bookmakers = (payload as { bookmakers?: unknown })?.bookmakers;
+  if (!Array.isArray(bookmakers)) return [];
+  const keys = new Set<string>();
+  for (const bookmaker of bookmakers) {
+    const markets = (bookmaker as { markets?: unknown })?.markets;
+    if (!Array.isArray(markets)) continue;
+    for (const market of markets) {
+      const key = (market as { key?: unknown })?.key;
+      if (typeof key === "string" && key.trim()) keys.add(key.trim());
+    }
+  }
+  return [...keys];
+}
+
+/**
+ * The markets worth paying for on this event: what we want, minus what nobody
+ * is pricing. Order follows the request list so the board keeps its shape.
+ *
+ * An empty catalog means the lookup failed, not that the fixture has no
+ * markets — falling back to the full request list there keeps a catalog outage
+ * from silently emptying the board.
+ */
+export function intersectExpandedMarkets(
+  desired: readonly string[],
+  available: readonly string[],
+): string[] {
+  if (available.length === 0) return [...desired];
+  const offered = new Set(available);
+  return desired.filter((market) => offered.has(market));
 }
 
 /**

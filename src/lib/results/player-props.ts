@@ -87,7 +87,27 @@ const MARKET_STAT_KEY: Record<string, string> = {
   // NOT "hits": that key is the BATTING line. A pitcher's hits allowed comes
   // from the pitching group under its own key — see STATS_BY_GROUP.
   "hits allowed": "hitsAllowed",
+  // Same split as hits: the hitter's walks and strikeouts come from the batting
+  // group, the pitcher's from the pitching group, and the two are different
+  // numbers in the same box score.
+  walks: "walks",
+  "walks allowed": "walksAllowed",
+  "batter strikeouts": "batterStrikeouts",
+  // Mapped even though the ESPN summary does not report them today: an unmapped
+  // label is a silent pass-through, while a mapped one with no column defers
+  // honestly through `statValue` and starts grading itself the day a feed
+  // carries the column.
+  singles: "singles",
+  doubles: "doubles",
+  triples: "triples",
+  "stolen bases": "stolenBases",
+  blocks: "blocks",
+  steals: "steals",
+  turnovers: "turnovers",
   "pts+reb+ast": "pointsReboundsAssists",
+  "pts+reb": "pointsRebounds",
+  "pts+ast": "pointsAssists",
+  "reb+ast": "reboundsAssists",
 };
 
 /**
@@ -99,6 +119,9 @@ const MARKET_STAT_KEY: Record<string, string> = {
  */
 const DERIVED_STATS: Record<string, readonly string[]> = {
   pointsReboundsAssists: ["points", "rebounds", "assists"],
+  pointsRebounds: ["points", "rebounds"],
+  pointsAssists: ["points", "assists"],
+  reboundsAssists: ["rebounds", "assists"],
   hitsRunsRbis: ["hits", "runs", "rbis"],
 };
 

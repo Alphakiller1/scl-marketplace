@@ -1,12 +1,25 @@
 /**
  * Manual odds population — surface boards for every sport, plus expanded
- * per-event markets (alternate lines, team totals, innings segments, props)
- * for MLB and WNBA.
+ * per-event markets for the sports that have them: alternate lines, team
+ * totals, innings segments and the full pitcher/hitter prop card for MLB, the
+ * same shape plus halves for WNBA, the full-match ladder for tennis, and
+ * Double Chance for soccer. Football is surface-level odds only.
  *
  * Runs on a fixed credit budget: it reports `x-requests-remaining` after every
  * call and stops at BUDGET_FLOOR rather than fetching a slate it cannot afford.
- * Expanded MLB is 44 credits PER EVENT and WNBA 24 — a full 12-game MLB slate
- * costs 528 credits, more than a 500-credit key holds.
+ * Expanded MLB is ~58 credits PER EVENT, so a fifteen-game card costs more than
+ * a 500-credit key holds — which is why spending is ordered and reserved rather
+ * than first-come:
+ *
+ *   1. surface boards for the metered sports (MLB, WNBA, tennis)
+ *   2. expanded boards in EXPANDED_ORDER, each sport holding back the credits
+ *      the sports after it need (MLB -> WNBA -> TENNIS -> SOCCER)
+ *   3. surface boards for everything else (soccer, NFL)
+ *
+ * Each expanded event reads `/events/{id}/markets` first (1 credit) and asks
+ * only for the keys a covered book is actually pricing. The odds endpoint bills
+ * `markets × regions` whether or not a key returns anything, so on a full MLB
+ * card the catalog pays for itself several times over.
  *
  * Snapshots are built with the app's own pure normalizers and written under the
  * same keys `odds-board-cache` / `odds-event-board-cache` use, so the app reads
@@ -22,6 +35,8 @@
  * EXPANDED=<n>       max events to expand per sport (default 99)
  * EXPANDED_DAYS=<csv> ET slate days to expand: today,tomorrow (default tomorrow)
  * SPORTS=MLB,WNBA…   restrict the surface pass (default all)
+ * EXPANDED_ORDER=<csv> expanded spend priority (default MLB,WNBA,TENNIS,SOCCER)
+ * REST_RESERVE=<n>   credits held back for the soccer/NFL surface pass
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -37,6 +52,7 @@ import { expandedBoardMarkets } from "@/lib/odds-verify";
 import {
   selectLeaguesWithFixtures,
   selectSoccerLeagues,
+  soccerLeagueByKey,
   SOCCER_LEAGUE_LIMIT,
   type LeagueFixtureWindow,
   type OddsApiSportRow,
@@ -47,8 +63,13 @@ import {
   TENNIS_CANDIDATE_LIMIT,
   TENNIS_TOUR_LIMIT,
   selectTennisToursWithFixtures,
+  tennisTourByKey,
 } from "@/lib/tennis-tours";
 import {
+  DEFAULT_EXPANDED_SPORT_ORDER,
+  EVENT_MARKET_CATALOG_CREDIT_COST,
+  eventMarketCatalogKeys,
+  intersectExpandedMarkets,
   mergeLastGoodBoardEvents,
   parseExpandedSlateDays,
   selectExpandedSlateEvents,
@@ -67,6 +88,21 @@ const ONLY = (process.env.SPORTS ?? "")
   .split(",")
   .map((s) => s.trim().toUpperCase())
   .filter(Boolean);
+const EXPANDED_ORDER = (
+  process.env.EXPANDED_ORDER ?? DEFAULT_EXPANDED_SPORT_ORDER.join(",")
+)
+  .split(",")
+  .map((s) => s.trim().toUpperCase())
+  .filter((s): s is (typeof DEFAULT_EXPANDED_SPORT_ORDER)[number] =>
+    (DEFAULT_EXPANDED_SPORT_ORDER as readonly string[]).includes(s),
+  );
+/**
+ * Credits held back from the expanded pass for the soccer + NFL surface boards
+ * that run after it. Without it a long MLB card spends the key down to the
+ * floor and the public soccer board goes out empty — a whole sport unbettable
+ * so that one more baseball game could have its prop card.
+ */
+const REST_RESERVE = Number(process.env.REST_RESERVE ?? 45);
 const OUT = join(process.cwd(), "tmp", "odds-populate");
 const REGIONS = "us";
 const SURFACE_MARKETS = "h2h,spreads,totals";
@@ -201,6 +237,117 @@ function pushBoard(sclSport: string, events: OddsEvent[], cap: number) {
   return ordered;
 }
 
+/**
+ * Per-event cost estimate used for the reserve: the market list plus the one
+ * credit the market catalog costs. The catalog can only make the real spend
+ * SMALLER, so estimating with it keeps the reserve on the safe side.
+ */
+function perEventCost(sclSport: string): number {
+  return (
+    expandedBoardMarkets(sclSport).length + EVENT_MARKET_CATALOG_CREDIT_COST
+  );
+}
+
+/**
+ * The Odds API sport key for one board event. Soccer and tennis fixtures carry
+ * their competition on the event, so a single SCL sport spans many API sports.
+ */
+function apiSportForEvent(
+  sclSport: string,
+  apiSport: string,
+  event: OddsEvent,
+): string | null {
+  if (apiSport) return apiSport;
+  if (!event.league) return null;
+  const key =
+    sclSport === "SOCCER"
+      ? soccerLeagueByKey(event.league)?.oddsApiKey
+      : tennisTourByKey(event.league)?.oddsApiKey;
+  return key ?? null;
+}
+
+/**
+ * Expanded per-event boards for one sport, newest-kickoff-last, stopping while
+ * `reserve` credits are still unspent so the sports after this one still run.
+ */
+async function expandSport(
+  sclSport: string,
+  apiSport: string,
+  events: readonly OddsEvent[],
+  reserve: number,
+): Promise<void> {
+  if (!wanted(sclSport)) return;
+  const wantedMarkets = expandedBoardMarkets(sclSport);
+  if (wantedMarkets.length === 0) return;
+  const slate = selectExpandedSlateEvents(events, EXPANDED_DAYS).slice(
+    0,
+    EXPANDED_LIMIT,
+  );
+  if (slate.length === 0) {
+    console.log(
+      `  ${sclSport}: no ${EXPANDED_DAYS.join("+")} events to expand`,
+    );
+    return;
+  }
+  console.log(
+    `  ${sclSport}: ${slate.length} ${EXPANDED_DAYS.join("+")} events, up to ${perEventCost(sclSport)} credits each (holding ${reserve} back)`,
+  );
+
+  let done = 0;
+  let held = 0;
+  for (const event of slate) {
+    const floor = BUDGET_FLOOR + reserve;
+    // Priced against the full list: the catalog has not been read yet, so the
+    // worst case is what has to fit.
+    if (remaining - perEventCost(sclSport) < floor) {
+      held += 1;
+      continue;
+    }
+    const sportKey = apiSportForEvent(sclSport, apiSport, event);
+    if (!sportKey) continue;
+
+    const catalog = await api(
+      `/v4/sports/${sportKey}/events/${event.id}/markets?regions=${REGIONS}`,
+    );
+    const markets = intersectExpandedMarkets(
+      wantedMarkets,
+      eventMarketCatalogKeys(catalog),
+    );
+    if (markets.length === 0) {
+      console.log(
+        `    ${`${event.away} @ ${event.home}`.padEnd(48)}no covered book prices these markets`,
+      );
+      continue;
+    }
+    const raw = await api(
+      `/v4/sports/${sportKey}/events/${event.id}/odds/?regions=${REGIONS}&markets=${markets.join(",")}&oddsFormat=american`,
+    );
+    if (!raw) break;
+    const selections = normalizeEventBoard(
+      raw as Parameters<typeof normalizeEventBoard>[0],
+      { sport: sclSport },
+    );
+    if (!selections.length) continue;
+    snapshots.push({
+      key: `event-board:v1:${sclSport}:${event.id}`,
+      payload: {
+        version: 1,
+        sport: sclSport,
+        eventId: event.id,
+        selections,
+        savedAt: Date.now(),
+      },
+    });
+    done++;
+    console.log(
+      `    ${`${event.away} @ ${event.home}`.padEnd(48)}mkt=${String(markets.length).padStart(2)}/${wantedMarkets.length} sel=${String(selections.length).padStart(4)} remaining=${remaining}`,
+    );
+  }
+  console.log(
+    `  ${sclSport}: expanded ${done}/${slate.length}${held ? ` (${held} held for later sports)` : ""} — remaining ${remaining}`,
+  );
+}
+
 async function main() {
   mkdirSync(OUT, { recursive: true });
   const catalog = (await api("/v4/sports/")) as
@@ -217,6 +364,7 @@ async function main() {
 
   let mlb: OddsEvent[] = [];
   let wnba: OddsEvent[] = [];
+  let tennis: OddsEvent[] = [];
 
   if (wanted("MLB")) {
     const events = await surface("MLB", "baseball_mlb");
@@ -225,19 +373,6 @@ async function main() {
   if (wanted("WNBA")) {
     const events = await surface("WNBA", "basketball_wnba");
     if (events) wnba = pushBoard("WNBA", events, BOARD_CAP);
-  }
-  if (wanted("NFL")) {
-    // Preseason carries its own league tag so a pick logged there resolves back
-    // to the preseason sport key at verification time.
-    const regular = await surface("NFL", "americanfootball_nfl");
-    const preseason = await surface(
-      "NFL",
-      "americanfootball_nfl_preseason",
-      "AMERICANFOOTBALL_NFL_PRESEASON",
-    );
-    if (regular || preseason) {
-      pushBoard("NFL", [...(regular ?? []), ...(preseason ?? [])], BOARD_CAP);
-    }
   }
   if (wanted("TENNIS")) {
     const events: OddsEvent[] = [];
@@ -277,8 +412,47 @@ async function main() {
         ...((await surface("TENNIS", tour.oddsApiKey, tour.key)) ?? []),
       );
     }
-    pushBoard("TENNIS", events, BOARD_CAP);
+    tennis = pushBoard("TENNIS", events, BOARD_CAP);
   }
+
+  // ── expanded per-event markets ─────────────────────────────────────────────
+  //
+  // Ordered and reserved rather than first-come. A fifteen-game MLB card at the
+  // full prop set costs more than a whole top-up key, so without a reserve the
+  // first sport in the loop eats the budget and every sport after it ships an
+  // empty expanded board.
+  console.log(
+    `\nEXPANDED PER-EVENT (order ${EXPANDED_ORDER.join(" > ")}, rest reserve ${REST_RESERVE})`,
+  );
+  const slates: Record<string, { apiSport: string; events: OddsEvent[] }> = {
+    MLB: { apiSport: "baseball_mlb", events: mlb },
+    WNBA: { apiSport: "basketball_wnba", events: wnba },
+    TENNIS: { apiSport: "", events: tennis },
+    SOCCER: { apiSport: "", events: [] },
+  };
+  const metered = EXPANDED_ORDER.filter((sport) => sport !== "SOCCER");
+  for (let index = 0; index < metered.length; index += 1) {
+    const sport = metered[index]!;
+    const later = metered
+      .slice(index + 1)
+      .reduce(
+        (sum, next) =>
+          sum +
+          selectExpandedSlateEvents(slates[next]!.events, EXPANDED_DAYS)
+            .length *
+            perEventCost(next),
+        0,
+      );
+    await expandSport(
+      sport,
+      slates[sport]!.apiSport,
+      slates[sport]!.events,
+      later + REST_RESERVE,
+    );
+  }
+
+  // ── everything else: surface boards only ───────────────────────────────────
+  console.log("\nSURFACE BOARDS (rest)");
   if (wanted("SOCCER")) {
     const events: OddsEvent[] = [];
     for (const league of await soccerLeaguesForBoard(catalog)) {
@@ -286,50 +460,28 @@ async function main() {
         ...((await surface("SOCCER", league.oddsApiKey, league.key)) ?? []),
       );
     }
-    pushBoard("SOCCER", events, SOCCER_BOARD_CAP);
+    slates.SOCCER!.events = pushBoard("SOCCER", events, SOCCER_BOARD_CAP);
+  }
+  if (wanted("NFL")) {
+    // Preseason carries its own league tag so a pick logged there resolves back
+    // to the preseason sport key at verification time.
+    const regular = await surface("NFL", "americanfootball_nfl");
+    const preseason = await surface(
+      "NFL",
+      "americanfootball_nfl_preseason",
+      "AMERICANFOOTBALL_NFL_PRESEASON",
+    );
+    if (regular || preseason) {
+      pushBoard("NFL", [...(regular ?? []), ...(preseason ?? [])], BOARD_CAP);
+    }
   }
 
-  // ── expanded per-event markets ─────────────────────────────────────────────
-  console.log("\nEXPANDED PER-EVENT (alt lines, team totals, segments, props)");
-  for (const [sclSport, apiSport, events] of [
-    // WNBA first: two or three games, ~24 credits each. A 500-credit key
-    // cannot finish a 15-game MLB expanded slate (44/event) AND WNBA if MLB
-    // goes first.
-    ["WNBA", "basketball_wnba", wnba],
-    ["MLB", "baseball_mlb", mlb],
-  ] as const) {
-    const expandedEvents = selectExpandedSlateEvents(events, EXPANDED_DAYS);
-    if (!expandedEvents.length) continue;
-    const markets = expandedBoardMarkets(sclSport);
-    console.log(
-      `  ${sclSport}: ${markets.length} markets/event x ${expandedEvents.length} ${EXPANDED_DAYS.join("+")} events = ${markets.length * expandedEvents.length} credits for the expanded slate`,
-    );
-    let done = 0;
-    for (const event of expandedEvents) {
-      if (done >= EXPANDED_LIMIT || remaining <= BUDGET_FLOOR) break;
-      const raw = await api(
-        `/v4/sports/${apiSport}/events/${event.id}/odds/?regions=${REGIONS}&markets=${markets.join(",")}&oddsFormat=american`,
-      );
-      if (!raw) break;
-      const selections = normalizeEventBoard(
-        raw as Parameters<typeof normalizeEventBoard>[0],
-      );
-      if (!selections.length) continue;
-      snapshots.push({
-        key: `event-board:v1:${sclSport}:${event.id}`,
-        payload: {
-          version: 1,
-          sport: sclSport,
-          eventId: event.id,
-          selections,
-          savedAt: Date.now(),
-        },
-      });
-      done++;
-      console.log(
-        `    ${`${event.away} @ ${event.home}`.padEnd(48)}sel=${String(selections.length).padStart(4)} remaining=${remaining}`,
-      );
-    }
+  // Soccer's one expanded market (Double Chance) runs last and on leftovers
+  // only: it is one credit per fixture across eighty of them, and no fixture
+  // becomes unbettable without it — the surface three are already on the board.
+  if (EXPANDED_ORDER.includes("SOCCER")) {
+    console.log("\nEXPANDED PER-EVENT (soccer, leftover credits)");
+    await expandSport("SOCCER", "", slates.SOCCER!.events, 0);
   }
 
   writeFileSync(

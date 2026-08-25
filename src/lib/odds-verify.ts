@@ -21,6 +21,10 @@ import {
   periodMarketKeysForSport,
 } from "@/lib/period-markets";
 import {
+  DOUBLE_CHANCE_MARKET_KEY,
+  isDoubleChanceMarket,
+} from "@/lib/soccer-markets";
+import {
   isTeamTotalMarket,
   TEAM_TOTAL_MARKET_KEYS,
 } from "@/lib/team-total-markets";
@@ -59,29 +63,72 @@ export const PRIMARY_MLB_PROP_MARKETS = [
   "batter_total_bases",
 ] as const;
 
+/**
+ * Every pitcher prop line SCL offers.
+ *
+ * The board carries the full pitching card rather than a curated three, because
+ * a capper who cannot log the walks or hits-allowed line he actually bet logs it
+ * as free text — which never verifies and never reaches the auto-graded record.
+ *
+ * `pitcher_record_a_win` is deliberately absent: it is a Yes/No market with no
+ * `point`, and the board discards a selection without a line, so requesting it
+ * would be billed on every event and render nothing.
+ */
+export const MLB_PITCHER_PROP_MARKETS = [
+  "pitcher_strikeouts",
+  "pitcher_outs",
+  "pitcher_earned_runs",
+  "pitcher_hits_allowed",
+  "pitcher_walks",
+] as const;
+
+/**
+ * Every hitter prop line SCL offers, for the same reason as the pitching card.
+ *
+ * `batter_first_home_run` is excluded on the Yes/No-no-line rule above, and
+ * `batter_fantasy_score` because no box score SCL grades from reports a fantasy
+ * total — offering it would put an ungradable market on a verified-record
+ * product.
+ */
+export const MLB_BATTER_PROP_MARKETS = [
+  "batter_hits",
+  "batter_total_bases",
+  "batter_home_runs",
+  "batter_rbis",
+  "batter_runs_scored",
+  "batter_hits_runs_rbis",
+  "batter_singles",
+  "batter_doubles",
+  "batter_triples",
+  "batter_walks",
+  "batter_strikeouts",
+  "batter_stolen_bases",
+] as const;
+
 export const PROP_MARKETS_BY_SPORT: Record<string, readonly string[]> = {
-  MLB: [
-    "pitcher_strikeouts",
-    "pitcher_outs",
-    ...PRIMARY_MLB_PROP_MARKETS,
-    "batter_home_runs",
-    "batter_rbis",
-    "batter_runs_scored",
-    "batter_hits_runs_rbis",
-    // Hits ALLOWED — the pitcher's line, not the batter's. It settles from the
-    // pitching group under its own stat key for the reason spelled out in
-    // stats-provider's STATS_BY_GROUP: baseball reports "H" in both groups
-    // meaning opposite things, and a pitcher graded on his batting hits would
-    // read 0 in every AL game.
-    "pitcher_hits_allowed",
-  ],
+  // The pitching card first, then the hitting card — the order a book lists
+  // them, and the order the board renders them in.
+  //
+  // Walks, strikeouts and hits appear on BOTH cards under different keys, and
+  // that is not duplication: baseball reports the same three counting stats for
+  // the man throwing and the man swinging. They carry separate labels and
+  // separate stat keys for the reason spelled out in stats-provider's
+  // STATS_BY_GROUP — a pitcher graded on his batting strikeouts would read 0 in
+  // every AL game.
+  MLB: [...MLB_PITCHER_PROP_MARKETS, ...MLB_BATTER_PROP_MARKETS],
   NBA: ["player_points", "player_rebounds", "player_assists", "player_threes"],
   WNBA: [
     "player_points",
     "player_rebounds",
     "player_assists",
     "player_threes",
+    "player_blocks",
+    "player_steals",
+    "player_turnovers",
     "player_points_rebounds_assists",
+    "player_points_rebounds",
+    "player_points_assists",
+    "player_rebounds_assists",
   ],
   NCAAB: ["player_points"],
   NFL: [
@@ -119,9 +166,24 @@ export function verificationMarkets(sclSport: string): string[] {
   const props = PROP_MARKETS_BY_SPORT[sclSport] ?? [];
   return [
     ...CORE_MARKETS,
+    ...soccerExtraMarkets(sclSport),
     ...periodMarketKeysForSport(sclSport),
     ...props.flatMap(propMarketKeysWithAlternates),
   ];
+}
+
+/**
+ * Soccer's one non-surface market: Double Chance.
+ *
+ * Deliberately narrow. Soccer is a wide, cheap-to-browse board — ten leagues,
+ * eighty fixtures — so every market key added here is eighty credits a refresh.
+ * Double Chance earns its slot because it is the one soccer bet cappers post
+ * that the three surface markets cannot express.
+ */
+function soccerExtraMarkets(sclSport: string): string[] {
+  return sclSport.trim().toUpperCase() === "SOCCER"
+    ? [DOUBLE_CHANCE_MARKET_KEY]
+    : [];
 }
 
 /**
@@ -140,6 +202,12 @@ export function expandedBoardMarkets(sclSport: string): string[] {
     // what actually carries Bovada/BetRivers game lines plus the alt ladder.
     return ["spreads", "totals", "alternate_spreads", "alternate_totals"];
   }
+  // Surface h2h/spreads/totals already carry soccer's game lines; the per-event
+  // call adds only Double Chance, which the bulk endpoint does not serve.
+  if (sclSport === "SOCCER") return [DOUBLE_CHANCE_MARKET_KEY];
+  // Football is surface-level odds only (OWNER decision) — h2h/spreads/totals
+  // arrive on the shared slate, and nothing here would add a market it does not
+  // already have.
   if (sclSport !== "MLB" && sclSport !== "WNBA") return [];
   const props = PROP_MARKETS_BY_SPORT[sclSport] ?? [];
   return [
@@ -166,6 +234,17 @@ export const PROP_MARKET_LABEL: Record<string, string> = {
   batter_rbis: "RBIs",
   batter_runs_scored: "Runs Scored",
   batter_hits_runs_rbis: "Hits+Runs+RBIs",
+  batter_singles: "Singles",
+  batter_doubles: "Doubles",
+  batter_triples: "Triples",
+  batter_stolen_bases: "Stolen Bases",
+  // Walks and strikeouts are priced for BOTH the hitter and the pitcher, and the
+  // two settle from different halves of the box score. The labels say which is
+  // which — a shared "Walks" would collapse in PROP_LABEL_TO_KEY and send every
+  // hitter's walk pick to the pitching line.
+  batter_walks: "Walks",
+  batter_strikeouts: "Batter Strikeouts",
+  pitcher_walks: "Walks Allowed",
   // Distinct from "Hits" on purpose — these are two different markets on two
   // different stat lines, and PROP_LABEL_TO_KEY requires unique labels.
   pitcher_hits_allowed: "Hits Allowed",
@@ -174,6 +253,12 @@ export const PROP_MARKET_LABEL: Record<string, string> = {
   player_assists: "Assists",
   player_threes: "3-Pointers",
   player_points_rebounds_assists: "Pts+Reb+Ast",
+  player_points_rebounds: "Pts+Reb",
+  player_points_assists: "Pts+Ast",
+  player_rebounds_assists: "Reb+Ast",
+  player_blocks: "Blocks",
+  player_steals: "Steals",
+  player_turnovers: "Turnovers",
   player_pass_yds: "Passing Yds",
   player_rush_yds: "Rushing Yds",
   player_receptions: "Receptions",
@@ -230,6 +315,9 @@ export function marketKeysForMarket(market: string): string[] {
   // be priced against both keys or verification cannot find the line it was
   // logged at.
   if (isTeamTotalMarket(m)) return [...TEAM_TOTAL_MARKET_KEYS];
+  // Also a game line. Double Chance has no alternate ladder — the three
+  // combinations are the whole market.
+  if (isDoubleChanceMarket(m)) return [DOUBLE_CHANCE_MARKET_KEY];
   // A pick logged at a milestone line (6+ strikeouts) lives in the alternate
   // market, so verification has to look in both or it would fail to price it.
   const propKey = PROP_LABEL_TO_KEY[m];

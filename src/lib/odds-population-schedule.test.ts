@@ -18,9 +18,12 @@ test("scheduled population calls the signed production route, never a stored Odd
   assert.match(workflow, /Authorization: Bearer \$CRON_SECRET/);
   assert.match(workflow, /api\/cron\/odds-populate/);
   assert.doesNotMatch(workflow, /secrets\.ODDS_API_KEY/);
+  // The manual dispatch reaches the paid route only when it carries neither a
+  // temporary key nor a snapshot file to replay — a replay must never spend
+  // credits just because it was dispatched from the same workflow.
   assert.match(
     workflow,
-    /event_name == 'schedule' \|\| \(github\.event_name == 'workflow_dispatch' && inputs\.odds_key == ''\)/,
+    /event_name == 'schedule' \|\| \(github\.event_name == 'workflow_dispatch' && inputs\.odds_key == '' && inputs\.snapshot_file == ''\)/,
   );
 });
 
@@ -36,9 +39,12 @@ test("manual temp-key population sends the key to the signed route and never sto
   assert.match(workflow, /skipPopulated=\$\{SKIP_POPULATED\}/);
   assert.match(workflow, /expandedOrder=\$\{encoded_order\}/);
   assert.match(workflow, /client_payload\.skipPopulated \|\| '1'/);
+  // Soccer joins the expanded order last: its per-event call is Double Chance
+  // only, and it is the sport that can be cut short without leaving a fixture
+  // unbettable.
   assert.match(
     workflow,
-    /client_payload\.expandedOrder \|\| 'MLB,WNBA,TENNIS'/,
+    /client_payload\.expandedOrder \|\| 'MLB,WNBA,TENNIS,SOCCER'/,
   );
   assert.match(
     workflow,
@@ -64,7 +70,15 @@ test("manual temp-key population sends the key to the signed route and never sto
     workflow,
     /jq -e '\.ok == true and \.surface\.MLB\.events > 0 and \.surface\.WNBA\.events > 0'/,
   );
-  assert.doesNotMatch(workflow, /secrets\.DATABASE_URL/);
+  // Scoped to the paid job rather than the file: a temp-key population must
+  // still reach the database only through the signed route, but the replay job
+  // added alongside it writes the database directly and by design — it spends
+  // no credits and has no route to go through.
+  const tempKeyJob = workflow.slice(
+    workflow.indexOf("populate-temp-key:"),
+    workflow.indexOf("\n  populate:"),
+  );
+  assert.doesNotMatch(tempKeyJob, /secrets\.DATABASE_URL/);
   assert.doesNotMatch(workflow, /WRITE_DB/);
 });
 
@@ -98,4 +112,20 @@ test("Vercel cron is a backup when GitHub misses the 20:00 ET populate", () => {
   assert.match(vercel, /0 12 \* \* \*/);
   assert.match(vercel, /0 0 \* \* \*/);
   assert.match(vercel, /TENNIS,SOCCER,NFL/);
+});
+
+test("a snapshot replay writes the database and spends no Odds API credits", () => {
+  assert.match(workflow, /write-snapshots:/);
+  assert.match(workflow, /inputs\.snapshot_file != ''/);
+  assert.match(workflow, /scripts\/write-odds-snapshots\.ts/);
+  assert.match(workflow, /SNAPSHOT_FILE: data\/odds-snapshots\//);
+  assert.match(workflow, /DATABASE_URL: \$\{\{ secrets\.DATABASE_URL \}\}/);
+  // The replay job must never touch the provider: no key input, no odds route.
+  const replayJob = workflow.slice(
+    workflow.indexOf("write-snapshots:"),
+    workflow.indexOf("populate-temp-key:"),
+  );
+  assert.doesNotMatch(replayJob, /x-scl-odds-key/);
+  assert.doesNotMatch(replayJob, /the-odds-api\.com/);
+  assert.doesNotMatch(replayJob, /api\/cron\/odds-populate/);
 });

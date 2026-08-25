@@ -7,6 +7,7 @@ import {
   PROP_MARKETS_BY_SPORT,
   propMarketLabel,
 } from "@/lib/odds-verify";
+import { isDoubleChanceMarket } from "@/lib/soccer-markets";
 import {
   isTeamTotalMarket,
   TEAM_TOTAL_MARKET_KEYS,
@@ -50,6 +51,8 @@ export type EventMarketCoverage = {
   /** Distinct team-total LINES. The featured market yields at most one per
    *  club, so anything above that is the alternate ladder. */
   teamTotalLines: number;
+  /** Soccer only — the three Double Chance combinations. */
+  doubleChance: number;
   f3: number;
   f5: number;
   f7: number;
@@ -73,6 +76,7 @@ export function summarizeEventMarketCoverage(
   let alternateTotals = 0;
   let teamTotals = 0;
   const teamTotalLines = new Set<number>();
+  let doubleChance = 0;
   let f3 = 0;
   let f5 = 0;
   let f7 = 0;
@@ -101,6 +105,7 @@ export function summarizeEventMarketCoverage(
       if (typeof selection.line === "number")
         teamTotalLines.add(selection.line);
     }
+    if (isDoubleChanceMarket(selection.market)) doubleChance++;
     if (period?.innings === 3) f3++;
     if (period?.innings === 5) f5++;
     if (period?.innings === 7) f7++;
@@ -119,6 +124,11 @@ export function summarizeEventMarketCoverage(
     if (!selections.some((row) => row.market === "Total")) {
       missing.push("totals");
     }
+  } else if (sport === "SOCCER") {
+    // Soccer's expanded call asks for Double Chance and nothing else, so an
+    // alternate-ladder rule here would mark every fixture incomplete forever
+    // and make `skipPopulated` re-bill the whole slate on every run.
+    if (doubleChance === 0) missing.push("double chance");
   } else {
     if (alternateSpreads === 0) missing.push("alternate spreads");
     if (alternateTotals === 0) missing.push("alternate totals");
@@ -184,6 +194,7 @@ export function summarizeEventMarketCoverage(
     alternateTotals,
     teamTotals,
     teamTotalLines: teamTotalLines.size,
+    doubleChance,
     f3,
     f5,
     f7,

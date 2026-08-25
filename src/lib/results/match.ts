@@ -3,6 +3,10 @@ import { PROP_MARKET_LABEL } from "@/lib/odds-verify";
 import { isPeriodMarket } from "@/lib/period-markets";
 import { resolveKnownTeam } from "@/lib/teams";
 import {
+  isDoubleChanceMarket,
+  parseDoubleChanceSelection,
+} from "@/lib/soccer-markets";
+import {
   isTeamTotalMarket,
   parseTeamTotalSelection,
 } from "@/lib/team-total-markets";
@@ -513,6 +517,27 @@ export function resolveOutcome(
   // confirmed, rather than being graded on an assumption.
   if (isAutoGradeBlocked(play)) {
     return null;
+  }
+
+  // ---- soccer double chance ("Palace or Draw") ----
+  //
+  // MUST precede everything below. The selection names a club, so the moneyline
+  // branch at the bottom reads it as a straight team pick and settles a drawn
+  // match as a LOSS — on a ticket whose whole point was that the draw wins.
+  if (isDoubleChanceMarket(play.market)) {
+    const parsed = parseDoubleChanceSelection(play.selection);
+    // Only the two shapes the provider writes resolve. Anything else stays
+    // PENDING rather than being graded on a guess about which combination it
+    // names.
+    if (!parsed) return null;
+    const isDraw = game.homeScore === game.awayScore;
+    if (parsed.kind === "either-team") return isDraw ? "LOSS" : "WIN";
+    if (isDraw) return "WIN";
+    const pickedHome = mentions(parsed.team, game.home, game.sport);
+    const pickedAway = mentions(parsed.team, game.away, game.sport);
+    if (pickedHome === pickedAway) return null;
+    const homeWon = game.homeScore > game.awayScore;
+    return pickedHome === homeWon ? "WIN" : "LOSS";
   }
 
   // ---- team totals (one club's runs) ----

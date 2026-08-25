@@ -3,7 +3,10 @@ import test from "node:test";
 
 import type { OddsEvent } from "@/lib/odds-board";
 import {
+  EVENT_MARKET_CATALOG_CREDIT_COST,
+  eventMarketCatalogKeys,
   expandedEventCreditCost,
+  intersectExpandedMarkets,
   laterExpandedCreditReserve,
   mergeLastGoodBoardEvents,
   parseExpandedSlateDays,
@@ -73,9 +76,12 @@ test("a partial refresh retains future last-good fixtures", () => {
 });
 
 test("expanded order includes tennis and ignores sports without event markets", () => {
+  // NFL is surface-level odds only, so it never joins the expanded pass; soccer
+  // does, for Double Chance, and sorts last because it is the sport whose
+  // expanded market can be dropped without leaving a fixture unbettable.
   assert.deepEqual(
     parseExpandedSportOrder(null, ["NFL", "WNBA", "MLB", "SOCCER"]),
-    ["MLB", "WNBA"],
+    ["MLB", "WNBA", "SOCCER"],
   );
   assert.deepEqual(parseExpandedSportOrder("WNBA,MLB", ["MLB", "WNBA"]), [
     "WNBA",
@@ -103,4 +109,48 @@ test("a short key holds MLB credits so today's WNBA expanded board still fits", 
   assert.equal(shouldHoldCreditsForLater(400, mlbCost, later, 25), false);
   assert.equal(shouldHoldCreditsForLater(null, mlbCost, later, 25), false);
   assert.equal(shouldHoldCreditsForLater(40, mlbCost, 0, 25), false);
+});
+
+test("event market catalog reads every key any covered book prices", () => {
+  const payload = {
+    bookmakers: [
+      { key: "draftkings", markets: [{ key: "h2h" }, { key: "team_totals" }] },
+      {
+        key: "fanduel",
+        markets: [{ key: "team_totals" }, { key: "batter_walks" }],
+      },
+      { key: "broken", markets: "not-an-array" },
+    ],
+  };
+  assert.deepEqual(eventMarketCatalogKeys(payload).sort(), [
+    "batter_walks",
+    "h2h",
+    "team_totals",
+  ]);
+  assert.deepEqual(eventMarketCatalogKeys(null), []);
+  assert.deepEqual(eventMarketCatalogKeys({ bookmakers: [] }), []);
+});
+
+test("expanded markets drop keys no book is pricing, keeping request order", () => {
+  const desired = ["alternate_spreads", "batter_walks", "pitcher_walks"];
+  assert.deepEqual(
+    intersectExpandedMarkets(desired, [
+      "pitcher_walks",
+      "h2h",
+      "alternate_spreads",
+    ]),
+    ["alternate_spreads", "pitcher_walks"],
+  );
+  // A failed catalog lookup must not empty the board — it falls back to asking
+  // for everything, which is exactly the old behaviour.
+  assert.deepEqual(intersectExpandedMarkets(desired, []), desired);
+});
+
+test("the reserve prices an expanded event with its catalog call included", () => {
+  // Estimating high is the safe direction: the catalog can only make the real
+  // spend smaller, so a reserve built on it never starves the next sport.
+  assert.equal(EVENT_MARKET_CATALOG_CREDIT_COST, 1);
+  assert.equal(expandedEventCreditCost("MLB") > 40, true);
+  assert.equal(expandedEventCreditCost("NFL"), 0);
+  assert.equal(expandedEventCreditCost("SOCCER"), 1);
 });

@@ -196,7 +196,16 @@ export async function fetchMlbOfficialPlayerBoxScore(
  * from the pitching group. Keys here are the ones `player-props.ts` looks up.
  */
 const STATS_BY_GROUP: Record<string, Record<string, string>> = {
-  pitching: { K: "strikeouts", ER: "earnedRuns", H: "hitsAllowed" },
+  pitching: {
+    K: "strikeouts",
+    ER: "earnedRuns",
+    H: "hitsAllowed",
+    // The pitcher's own walk line. Under its own key for the same reason "H"
+    // is: "BB" appears in BOTH groups meaning opposite things, and a hitter
+    // graded on the walks his pitcher issued is a wrong number, confidently
+    // written.
+    BB: "walksAllowed",
+  },
   batting: {
     H: "hits",
     "2B": "doubles",
@@ -204,13 +213,19 @@ const STATS_BY_GROUP: Record<string, Record<string, string>> = {
     HR: "homeRuns",
     RBI: "rbis",
     R: "runs",
+    SB: "stolenBases",
     TB: "totalBases",
+    BB: "walks",
+    K: "batterStrikeouts",
   },
   // Basketball/football/hockey report one group; ESPN names it per sport.
   default: {
     PTS: "points",
     REB: "rebounds",
     AST: "assists",
+    STL: "steals",
+    BLK: "blocks",
+    TO: "turnovers",
     SOG: "shotsOnGoal",
     REC: "receptions",
   },
@@ -314,6 +329,22 @@ export function mapSummaryToPlayerBox(data: unknown): PlayerBoxScore | null {
     ) {
       stats.totalBases =
         stats.hits + stats.doubles + 2 * stats.triples + 3 * stats.homeRuns;
+    }
+    // A single has no column in any box score — it is what is left of the hits
+    // once the extra-base hits are taken out. Derived here rather than in
+    // DERIVED_STATS because that helper only sums, and every component is
+    // required: a missing doubles column would otherwise report every hit as a
+    // single and settle a losing "2+ singles" ticket as a win.
+    if (
+      stats.singles == null &&
+      stats.hits != null &&
+      stats.doubles != null &&
+      stats.triples != null &&
+      stats.homeRuns != null
+    ) {
+      const singles =
+        stats.hits - stats.doubles - stats.triples - stats.homeRuns;
+      if (singles >= 0) stats.singles = singles;
     }
   }
 
