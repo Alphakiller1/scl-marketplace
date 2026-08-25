@@ -12,7 +12,11 @@ import {
 } from "@/lib/team-total-markets";
 import { mmaFighterAliases } from "@/lib/results/mma-fighter-aliases";
 import { soccerClubAliases } from "@/lib/results/soccer-club-aliases";
-import type { SettledGame } from "@/lib/results/settled-game";
+import { tennisGamesWon } from "@/lib/results/tennis-games";
+import {
+  lineScoresForFixture,
+  type SettledGame,
+} from "@/lib/results/settled-game";
 
 /**
  * Pure play↔result matching (no DB, no server-only) so it's unit-testable.
@@ -448,6 +452,29 @@ export function pickedSideForGame(
   return home;
 }
 
+/** Read "Over 21.5" / "u 7" off a selection. */
+function parseTotalFromSelection(
+  selection: string,
+): { side: "over" | "under"; line: number } | null {
+  const match = selection
+    .toLowerCase()
+    .match(/\b(over|under|o|u)\b\D*(\d+(?:\.\d+)?)/);
+  if (!match) return null;
+  const raw = match[1]!;
+  const line = Number(match[2]);
+  if (!Number.isFinite(line)) return null;
+  return { side: raw === "u" || raw === "under" ? "under" : "over", line };
+}
+
+function gradeTotal(
+  total: number,
+  side: "over" | "under",
+  line: number,
+): "WIN" | "LOSS" | "PUSH" {
+  if (total === line) return "PUSH";
+  return (side === "over") === total > line ? "WIN" : "LOSS";
+}
+
 export function parseSpreadFromSelection(
   selection: string,
 ): { team: string; line: number } | null {
@@ -478,11 +505,12 @@ function gradeSpread(
 }
 
 /**
- * Markets the auto-grader will never settle from a two-number scoreboard.
+ * Markets that cannot be settled from a two-number scoreboard alone.
  *
- * Tennis spreads/totals are the current case: the feed does not say whether
- * the numbers are sets or games, so grading them would invent a result. These
- * stays PENDING for a human and must not mark the whole pipeline UNHEALTHY.
+ * Tennis spreads/totals are the current case: those numbers may count sets or
+ * games, and the markets are priced in GAMES. They now settle whenever the
+ * feed also reports the per-set line scores (`tennisGamesWon`); without them
+ * the play stays PENDING for a human and must not mark the pipeline UNHEALTHY.
  */
 export function isAutoGradeBlocked(
   play: Pick<GradablePlay, "sport" | "market">,
@@ -490,6 +518,54 @@ export function isAutoGradeBlocked(
   return (
     play.sport.trim().toUpperCase() === "TENNIS" &&
     !isMoneylineMarket(play.market)
+  );
+}
+
+/**
+ * A tennis games spread or total, settled from the per-set line scores.
+ *
+ * Kept apart from the generic branches below on purpose. Those fall through to
+ * a moneyline when they cannot read a line, and a games score must never grade
+ * one: the player who wins more games is USUALLY the winner, not always, and
+ * "usually" is not a track record. Anything this cannot read returns null and
+ * waits for the manual queue, exactly as every tennis spread did before.
+ */
+function resolveTennisGamesMarket(
+  play: GradablePlay,
+  game: SettledGame,
+  pool: SettledGame[],
+): "WIN" | "LOSS" | "PUSH" | null {
+  // The matched copy is usually the Odds API one — it carries the hash the play
+  // is bound to and no line scores at all. Read them off whichever copy of the
+  // same match has them, exactly as box-score grading reads the ESPN id.
+  const lineScores = lineScoresForFixture(game, pool);
+  const games = tennisGamesWon(lineScores ? { ...game, ...lineScores } : game);
+  if (!games) return null;
+
+  const market = norm(play.market);
+  const isTotal =
+    market.includes("total") ||
+    /\b(o|u|over|under)\b/.test(norm(play.selection));
+  const parsedTotal = parseTotalFromSelection(play.selection);
+  if (isTotal) {
+    if (!parsedTotal) return null;
+    return gradeTotal(
+      games.home + games.away,
+      parsedTotal.side,
+      parsedTotal.line,
+    );
+  }
+
+  const isSpread =
+    market.includes("spread") || (play.line != null && play.side != null);
+  if (!isSpread) return null;
+  const spread = parseSpreadFromSelection(play.selection);
+  const line = play.line ?? spread?.line ?? null;
+  if (line == null || Number.isNaN(line)) return null;
+  return gradeSpread(
+    { ...game, homeScore: games.home, awayScore: games.away },
+    play.side ?? spread?.team ?? play.selection,
+    line,
   );
 }
 
@@ -504,7 +580,7 @@ export function resolveOutcome(
   const game = findGame(play, games);
   if (!game) return null;
 
-  // ---- tennis: moneyline only ----
+  // ---- tennis: moneyline here, games markets on the line scores ----
   //
   // The scores feed reports a tennis match as two numbers, and a moneyline
   // needs only their order — whoever is higher won, whether the provider
@@ -513,10 +589,11 @@ export function resolveOutcome(
   // and settling it against a 2-0 set score reads as a 2-point margin and
   // books a confident LOSS on a bet that cleared by nine games.
   //
-  // So the rest defer (null keeps the play PENDING) until the unit is
-  // confirmed, rather than being graded on an assumption.
+  // So the rest are settled from the per-set line scores instead, which say
+  // games outright, and defer (null keeps the play PENDING) when the feed did
+  // not report them — never graded on an assumption about the unit.
   if (isAutoGradeBlocked(play)) {
-    return null;
+    return resolveTennisGamesMarket(play, game, games);
   }
 
   // ---- soccer double chance ("Palace or Draw") ----
@@ -563,19 +640,15 @@ export function resolveOutcome(
   }
 
   // ---- totals (over/under a number) ----
-  const totalMatch = play.selection
-    .toLowerCase()
-    .match(/\b(over|under|o|u)\b\D*(\d+(?:\.\d+)?)/);
+  const parsedTotal = parseTotalFromSelection(play.selection);
   const isTotal =
     market.includes("total") || /\b(o|u|over|under)\b/.test(selection);
-  if (totalMatch && isTotal) {
-    const sideRaw = totalMatch[1]!;
-    const side = sideRaw === "u" || sideRaw === "under" ? "under" : "over";
-    const line = Number(totalMatch[2]);
-    const total = game.homeScore + game.awayScore;
-    if (total === line) return "PUSH";
-    const over = total > line;
-    return (side === "over") === over ? "WIN" : "LOSS";
+  if (parsedTotal && isTotal) {
+    return gradeTotal(
+      game.homeScore + game.awayScore,
+      parsedTotal.side,
+      parsedTotal.line,
+    );
   }
 
   // ---- spreads ----

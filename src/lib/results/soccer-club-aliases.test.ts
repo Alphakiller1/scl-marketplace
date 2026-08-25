@@ -29,6 +29,16 @@ test("St. Pauli and SC Freiburg keep their board labels", () => {
   assert.ok(soccerClubAliases("SC Freiburg").includes("Freiburg"));
 });
 
+test("FC Cologne is 1. FC Köln", () => {
+  // Production: a DFB Pokal moneyline at Würzburg stayed PENDING past full
+  // time, and failed the grade cron on every run, because ESPN reported the
+  // fixture as "FC Cologne at Würzburger Kickers".
+  assert.equal(canonicalSoccerClubName("FC Cologne"), "1. FC Köln");
+  assert.equal(canonicalSoccerClubName("Cologne"), "1. FC Köln");
+  assert.ok(soccerClubAliases("1. FC Köln").includes("FC Cologne"));
+  assert.ok(soccerClubAliases("FC Cologne").includes("1. FC Köln"));
+});
+
 test("unknown clubs pass through", () => {
   assert.equal(canonicalSoccerClubName("Monza"), "Monza");
   assert.deepEqual(soccerClubAliases("Monza"), ["Monza"]);

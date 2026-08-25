@@ -81,10 +81,12 @@ describe("needsManualGrading", () => {
 });
 
 describe("manualGradingReason", () => {
-  it("names the sets-vs-games problem for tennis", () => {
+  it("names the missing game score for tennis", () => {
+    // The games markets settle themselves now, from the per-set line scores.
+    // What still reaches this queue is a match the feed reported without them.
     assert.match(
       manualGradingReason({ sport: "TENNIS", market: "Spread" }),
-      /sets, not games/,
+      /per-set game score/,
     );
   });
 
