@@ -54,6 +54,9 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
   assert.match(route, /revalidateTag\("leaderboard", \{ expire: 0 \}\)/);
   assert.match(route, /revalidatePath\("\/cappers\/\[handle\]", "page"\)/);
   assert.match(route, /getGradingResultsProvider/);
+  assert.match(route, /x-scl-odds-key/);
+  assert.match(route, /pinOddsApiKey/);
+  assert.match(route, /resetOddsKeyPreference/);
   assert.doesNotMatch(route, /snapshotClosingOdds/);
   assert.doesNotMatch(route, /odds-coverage-report/);
   assert.match(health, /pendingPastExpectedFinal/);
@@ -72,6 +75,9 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
   assert.match(workflow, /types: \[grade-pending\]/);
   assert.match(workflow, /--retry 3/);
   assert.match(workflow, /overduePending/);
+  assert.match(workflow, /inputs\.odds_key/);
+  assert.match(workflow, /::add-mask::\$ODDS_KEY/);
+  assert.match(workflow, /x-scl-odds-key: \$ODDS_KEY/);
 
   const espn = fs.readFileSync(
     path.join(root, "src/lib/results/espn-scores.ts"),

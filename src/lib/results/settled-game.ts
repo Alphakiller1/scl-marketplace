@@ -34,6 +34,14 @@ export type SettledGame = {
   /** Per-inning/period scoring supplied by the settled scoreboard, when present. */
   homePeriods?: number[];
   awayPeriods?: number[];
+  /**
+   * Periods the format plays in regulation, when the provider states it.
+   *
+   * Tennis reads this as the best-of: it is the difference between a completed
+   * best-of-three and a best-of-five somebody retired out of after two sets,
+   * and the two have very different game scores. See `tennisGamesWon`.
+   */
+  regulationPeriods?: number;
 };
 
 /**
@@ -146,6 +154,63 @@ export function mlbGamePkForFixture(
   return near.length === 1 ? (near[0]!.mlbGamePk ?? null) : null;
 }
 
+/** Per-set / per-period scores and the format they were played in. */
+export type FixtureLineScores = Pick<
+  SettledGame,
+  "homePeriods" | "awayPeriods" | "regulationPeriods"
+>;
+
+/**
+ * The line scores for a fixture, looking past the merge when it did not
+ * collapse — the same problem `espnIdForFixture` solves for the ESPN id.
+ *
+ * An event-bound play matches the Odds API copy, which carries the hash and
+ * nothing else. Tennis games spreads and totals are settled from the per-set
+ * scores, and only the free scoreboard reports those, so a fixture the two
+ * feeds time differently would defer forever with the numbers sitting on the
+ * other copy of the same match.
+ *
+ * A doubleheader-style pair of candidates settles nothing: line scores from the
+ * wrong game would grade a real result against it.
+ */
+export function lineScoresForFixture(
+  game: SettledGame,
+  pool: readonly SettledGame[],
+): FixtureLineScores | null {
+  if (game.homePeriods?.length && game.awayPeriods?.length) {
+    return {
+      homePeriods: game.homePeriods,
+      awayPeriods: game.awayPeriods,
+      regulationPeriods: game.regulationPeriods,
+    };
+  }
+
+  const key = clubsKey(game);
+  const candidates = pool.filter(
+    (candidate) =>
+      candidate !== game &&
+      clubsKey(candidate) === key &&
+      candidate.homePeriods?.length &&
+      candidate.awayPeriods?.length,
+  );
+  const near =
+    game.startsAt == null
+      ? candidates
+      : candidates.filter(
+          (candidate) =>
+            candidate.startsAt != null &&
+            Math.abs(candidate.startsAt.getTime() - game.startsAt!.getTime()) <=
+              SAME_GAME_HOURS * 3_600_000,
+        );
+  if (near.length !== 1) return null;
+  const match = near[0]!;
+  return {
+    homePeriods: match.homePeriods,
+    awayPeriods: match.awayPeriods,
+    regulationPeriods: match.regulationPeriods,
+  };
+}
+
 export function mergeSettledGames(
   primary: SettledGame[],
   secondary: SettledGame[],
@@ -172,6 +237,8 @@ export function mergeSettledGames(
     const wnbaGameSlug = g.wnbaGameSlug ?? secondaryCopy?.wnbaGameSlug;
     const homePeriods = g.homePeriods ?? secondaryCopy?.homePeriods;
     const awayPeriods = g.awayPeriods ?? secondaryCopy?.awayPeriods;
+    const regulationPeriods =
+      g.regulationPeriods ?? secondaryCopy?.regulationPeriods;
     byKey.set(key, {
       ...g,
       ...(espnEventId ? { espnEventId } : {}),
@@ -180,6 +247,7 @@ export function mergeSettledGames(
       ...(wnbaGameSlug ? { wnbaGameSlug } : {}),
       ...(homePeriods ? { homePeriods } : {}),
       ...(awayPeriods ? { awayPeriods } : {}),
+      ...(regulationPeriods ? { regulationPeriods } : {}),
     });
   }
   return [...byKey.values()];
