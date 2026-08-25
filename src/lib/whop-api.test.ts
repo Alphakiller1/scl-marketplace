@@ -5,6 +5,7 @@ import {
   buildWhopProductCheckoutUrl,
   listWhopPlans,
   updateWhopProduct,
+  WhopApiError,
 } from "@/lib/whop-api";
 import { whopWebhookCompanyId, whopWebhookEventName } from "@/lib/whop-sync";
 
@@ -86,6 +87,30 @@ describe("whop api helpers", () => {
       assert.match(urls[0]!, /company_id=biz_test/);
       assert.match(urls[0]!, /first=50/);
       assert.match(urls[1]!, /after=cursor-1/);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("preserves Whop HTTP failures as real errors with status and message", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      Response.json(
+        { error: { message: "Missing plan:basic:read" } },
+        { status: 403 },
+      )) as typeof fetch;
+
+    try {
+      await assert.rejects(
+        listWhopPlans({ accessToken: "test-token", companyId: "biz_test" }),
+        (error: unknown) => {
+          assert(error instanceof WhopApiError);
+          assert(error instanceof Error);
+          assert.equal(error.status, 403);
+          assert.equal(error.message, "Missing plan:basic:read");
+          return true;
+        },
+      );
     } finally {
       globalThis.fetch = originalFetch;
     }
