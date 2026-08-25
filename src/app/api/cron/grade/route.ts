@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getGradingHealthReport } from "@/lib/grading-health";
+import { pinOddsApiKey } from "@/lib/odds-config";
+import { resetOddsKeyPreference } from "@/lib/odds-key-rollover";
 import { autoGradePending } from "@/lib/results/auto-grade";
 import { getGradingResultsProvider } from "@/lib/results/provider";
 import {
@@ -41,6 +43,15 @@ export async function POST(req: NextRequest) {
 async function runGrade(req: NextRequest) {
   if (!authorizeCron(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // A signed owner-triggered run may carry a temporary provider key. Keep it
+  // in the request header rather than GitHub/Vercel storage, and reset a warm
+  // isolate's preferred-key cursor so a previously exhausted key cannot win.
+  const override = req.headers.get("x-scl-odds-key")?.trim();
+  if (override) {
+    pinOddsApiKey(override);
+    resetOddsKeyPreference();
   }
 
   // Prevent overlapping runs
