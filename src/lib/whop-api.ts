@@ -5,10 +5,16 @@
 
 const WHOP_API_BASE = "https://api.whop.com/api/v1";
 
-export type WhopApiError = {
-  status: number;
-  message: string;
-};
+/** A real Error so callers and production logs retain Whop's HTTP detail. */
+export class WhopApiError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "WhopApiError";
+  }
+}
 
 export type WhopCompanyListItem = {
   id: string;
@@ -77,10 +83,10 @@ async function whopFetch<T>(
     const body = (await res.json().catch(() => ({}))) as {
       error?: { message?: string };
     };
-    throw {
-      status: res.status,
-      message: body.error?.message || `Whop API ${path} failed (${res.status})`,
-    } satisfies WhopApiError;
+    throw new WhopApiError(
+      res.status,
+      body.error?.message || `Whop API ${path} failed (${res.status})`,
+    );
   }
 
   return (await res.json()) as T;
