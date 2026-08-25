@@ -31,7 +31,7 @@ afterEach(() => {
 });
 
 describe("whop-config defaults", () => {
-  it("falls back to the public SCL app id and affiliate username", () => {
+  it("falls back to the public SCL OAuth client ID and affiliate username", () => {
     delete process.env.NEXT_PUBLIC_WHOP_APP_ID;
     delete process.env.WHOP_APP_ID;
     delete process.env.WHOP_AFFILIATE_USERNAME;

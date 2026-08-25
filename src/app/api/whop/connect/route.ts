@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
   const permissionReadiness = await readWhopAppPermissionReadiness();
   if (permissionReadiness === "missing") {
     console.error(
-      "[whop/connect] SCL app is missing required plan:basic:read install permission.",
+      "[whop/connect] SCL's Whop API client is missing the required plan:basic:read permission.",
     );
     return monetizationRedirect("app-permissions-missing", origin);
   }

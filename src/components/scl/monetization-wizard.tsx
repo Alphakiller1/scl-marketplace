@@ -47,7 +47,7 @@ const PLATFORM_SELECTION_COPY = [
   [
     "WHOP",
     "Whop",
-    "Already sell picks on Whop? Add SCL as an affiliate, connect SCL on Whop, then submit — our team reviews and publishes your approved packages.",
+    "Already sell picks on Whop? Add SCL as an affiliate, authorize the Whop API connection from SCL, then submit — our team reviews and publishes your approved packages.",
   ],
   [
     "NONE",
@@ -63,7 +63,7 @@ function platformSelectionGuidance(
     case "WINIBLE":
       return "Complete the Winible affiliate invite, then submit — SCL accepts the relationship and manually publishes your package links.";
     case "WHOP":
-      return "Add SCL as a Whop affiliate, connect SCL on Whop, then submit — SCL reviews and publishes your approved packages.";
+      return "Add SCL as a Whop affiliate, authorize the Whop API connection from SCL, then submit — SCL reviews and publishes your approved packages.";
     case "NONE":
       return "We’ll help you create a Winible or Whop storefront and connect it to SCL.";
     default:
@@ -161,7 +161,7 @@ export function MonetizationWizard({
 
   const ackCopy = useMemo(() => {
     if (provider === "WHOP") {
-      return `I understand that connecting my Whop store to SCL requires adding Sports Cappers Leaderboard (${SCL_AFFILIATE_EMAIL}) as an affiliate at ${SCL_WHOP_AFFILIATE_COMMISSION.percent}% ${SCL_WHOP_AFFILIATE_COMMISSION.duration}, then connecting SCL on my Whop storefront. I understand that Whop controls checkout and commission payouts, and that SCL will publish approved packages on my SCL profile.`;
+      return `I understand that connecting my Whop store to SCL requires adding Sports Cappers Leaderboard (${SCL_AFFILIATE_EMAIL}) as an affiliate at ${SCL_WHOP_AFFILIATE_COMMISSION.percent}% ${SCL_WHOP_AFFILIATE_COMMISSION.duration}, then authorizing SCL to access my Whop business through Whop's API. I understand that Whop controls checkout and commission payouts, and that SCL will publish approved packages on my SCL profile.`;
     }
     return `I confirm that I’ve completed the Winible affiliate setup and designated Sports Cappers Leaderboard as my affiliate partner in Winible. I understand SCL will use the affiliate links provided by Winible on my SCL profile and package pages. I understand that Winible controls its own affiliate attribution and commission rules.`;
   }, [provider]);
@@ -490,9 +490,9 @@ export function MonetizationWizard({
             <div className="space-y-3 text-sm">
               <p className="border-border bg-surface-2 rounded-lg border p-3 leading-relaxed">
                 Add Sports Cappers Leaderboard as an affiliate in Whop, then
-                connect SCL to your storefront. After you submit, SCL verifies
-                the relationship and publishes the approved packages on your
-                profile.
+                authorize the Whop API connection from SCL. After you submit,
+                SCL verifies the relationship and publishes the approved
+                packages on your profile.
               </p>
               <ol className="space-y-3">
                 <li className="border-border rounded-lg border p-3">
@@ -580,12 +580,16 @@ export function MonetizationWizard({
                   </p>
                 </li>
                 <li className="border-border rounded-lg border p-3">
-                  <p className="font-semibold">4. Connect SCL to your Whop</p>
+                  <p className="font-semibold">
+                    4. Connect Whop to SCL through the API
+                  </p>
                   <p className="text-muted-foreground mt-1">
-                    Connect SCL to your Whop storefront so we can sync your
-                    packages and publish the approved ones on your SCL profile.
-                    Hiding a mapped product on Whop also takes its SCL offer
-                    down. Prices remain controlled in Whop.
+                    Use the button below from SCL, sign in to the correct Whop
+                    business, and authorize secure API access so SCL can sync
+                    your packages. This authorizes an API connection; nothing is
+                    installed on Whop or your device. Hiding a mapped product on
+                    Whop also takes its SCL offer down. Prices remain controlled
+                    in Whop.
                   </p>
                   <Button
                     variant="outline"
@@ -593,7 +597,7 @@ export function MonetizationWizard({
                     render={<a href="/api/whop/connect" />}
                     nativeButton={false}
                   >
-                    Connect SCL to Whop
+                    Connect Whop API
                   </Button>
                 </li>
               </ol>

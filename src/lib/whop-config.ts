@@ -6,7 +6,7 @@
  * is unset — they appear in OAuth redirects and checkout URLs anyway.
  */
 
-/** SCL Whop app (`Sports Cappers Leaderboard`) — public OAuth client id. */
+/** SCL's Whop integration (`Sports Cappers Leaderboard`) — public OAuth client ID. */
 export const SCL_WHOP_APP_ID = "app_I5rsiJlsDgRe5O";
 
 /** SCL affiliate slug on Whop checkout links (`?a=`). */
@@ -51,7 +51,7 @@ export function whopAppApiKey(): string | null {
 }
 
 /**
- * Server credential for a company that installed the SCL Whop app.
+ * Server credential for a company that authorized SCL's Whop API connection.
  *
  * Whop's current server API examples call this credential `WHOP_API_KEY`.
  * Earlier SCL setup guides called the equivalent app credential
