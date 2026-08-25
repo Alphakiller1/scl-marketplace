@@ -33,7 +33,14 @@ export type WhopSyncResult =
 
 export const WHOP_STOREFRONT_FRESHNESS_MS = 60_000;
 
-function productDescription(product: WhopProductListItem): string | null {
+export function whopProductDescription(
+  product: WhopProductListItem,
+): string | null {
+  const description = product.description?.trim();
+  if (description) return description;
+
+  // Older Whop products may only have a headline. Preserve that compatibility
+  // while preferring the dashboard-editable description for new changes.
   const headline = product.headline?.trim();
   return headline || null;
 }
@@ -242,7 +249,7 @@ export async function syncWhopStorefront(input: {
           continue;
         }
 
-        const nextDescription = productDescription(product);
+        const nextDescription = whopProductDescription(product);
         const packageChanged =
           existing.title !== product.title ||
           existing.description !== nextDescription ||
@@ -285,7 +292,7 @@ export async function syncWhopStorefront(input: {
       const nextPriceCents = planPrice?.priceCents ?? (plans ? -1 : null);
 
       if (existing) {
-        const nextDescription = productDescription(product);
+        const nextDescription = whopProductDescription(product);
         const tracking = existing.trackingUrls[0];
         const packageChanged =
           existing.title !== product.title ||
@@ -346,7 +353,7 @@ export async function syncWhopStorefront(input: {
           storeConnectionId: connection.id,
           externalProductId: product.id,
           title: product.title,
-          description: productDescription(product),
+          description: whopProductDescription(product),
           checkoutUrl,
           affiliateProvider: "WHOP",
           priceCents: planPrice?.priceCents ?? -1,
@@ -648,6 +655,9 @@ export async function pushPackageToWhop(
     productId: pkg.externalProductId,
     update: {
       title: pkg.title,
+      description: pkg.description,
+      // Keep the prominent product-page headline aligned for products that
+      // previously used it as their only summary.
       headline: pkg.description,
       visibility: pkg.isActive ? "visible" : "hidden",
     },

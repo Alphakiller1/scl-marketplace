@@ -27,6 +27,7 @@ export type WhopProductListItem = {
   route: string;
   title: string;
   headline?: string | null;
+  description?: string | null;
   visibility?: string | null;
   company?: WhopCompanyListItem | null;
 };
@@ -343,6 +344,7 @@ export async function mergeWhopAppRedirectUris(input: {
 export type WhopProductUpdate = {
   title?: string;
   headline?: string | null;
+  description?: string | null;
   visibility?: "visible" | "hidden";
 };
 
