@@ -7,7 +7,11 @@ import {
   updateWhopProduct,
   WhopApiError,
 } from "@/lib/whop-api";
-import { whopWebhookCompanyId, whopWebhookEventName } from "@/lib/whop-sync";
+import {
+  whopProductDescription,
+  whopWebhookCompanyId,
+  whopWebhookEventName,
+} from "@/lib/whop-sync";
 
 describe("whop api helpers", () => {
   it("builds attributed checkout URLs", () => {
@@ -37,6 +41,7 @@ describe("whop api helpers", () => {
         update: {
           title: "SCL title",
           headline: "SCL headline",
+          description: "SCL description",
           visibility: "visible",
         },
       });
@@ -44,6 +49,7 @@ describe("whop api helpers", () => {
       assert.deepEqual(body, {
         title: "SCL title",
         headline: "SCL headline",
+        description: "SCL description",
         visibility: "visible",
       });
       assert.equal(
@@ -54,6 +60,29 @@ describe("whop api helpers", () => {
     } finally {
       globalThis.fetch = originalFetch;
     }
+  });
+
+  it("uses Whop's dashboard-editable description before its headline", () => {
+    assert.equal(
+      whopProductDescription({
+        id: "prod_test",
+        route: "test",
+        title: "Test",
+        description: " Dashboard description ",
+        headline: "Legacy headline",
+      }),
+      "Dashboard description",
+    );
+    assert.equal(
+      whopProductDescription({
+        id: "prod_legacy",
+        route: "legacy",
+        title: "Legacy",
+        description: " ",
+        headline: " Legacy headline ",
+      }),
+      "Legacy headline",
+    );
   });
 
   it("lists every Whop plan page for the connected company", async () => {
