@@ -49,6 +49,38 @@ export function readConnectionVars(text) {
   return found;
 }
 
+/**
+ * Name the shape of a value without echoing any of it.
+ *
+ * Printing even the first few characters is useless here as well as risky:
+ * Actions masks anything resembling a registered secret, so the diagnostic came
+ * back as `starts with "[SENSITI"` and said nothing at all. A scheme name and a
+ * length are enough to tell a Prisma Accelerate URL from a truncated one, and
+ * neither is a credential.
+ */
+export function describeUrl(value) {
+  const scheme = value.match(/^([a-z][a-z0-9+.-]*):\/\//i)?.[1];
+  return `${scheme ? `${scheme}:// scheme` : "no scheme"}, ${value.length} chars`;
+}
+
+/**
+ * The Postgres URL a plain Prisma Client can open.
+ *
+ * DATABASE_URL is not always one. An app fronted by Prisma Accelerate holds a
+ * `prisma://` URL there and keeps the real Postgres string in DIRECT_URL, and
+ * Accelerate is exactly the setup a script like this cannot use: it needs the
+ * database itself. So the choice is by shape, not by name.
+ */
+export function selectPostgresUrl(found) {
+  for (const name of ["DATABASE_URL", "DIRECT_URL"]) {
+    const hit = found.find(
+      ([key, value]) => key === name && isPostgresUrl(value),
+    );
+    if (hit) return { name: hit[0], value: hit[1] };
+  }
+  return null;
+}
+
 function main() {
   const file = process.env.FILE;
   const githubEnv = process.env.GITHUB_ENV;
@@ -58,16 +90,22 @@ function main() {
   const found = readConnectionVars(readFileSync(file, "utf8"));
   if (found.length === 0) throw new Error(`${file} carried no DATABASE_URL`);
 
-  for (const [name, value] of found) {
-    if (!isPostgresUrl(value)) {
-      // The scheme is the only part safe to echo — the rest is credentials.
-      throw new Error(
-        `${name} in ${file} is not a Postgres URL (starts with ${JSON.stringify(value.slice(0, 8))})`,
-      );
-    }
-    appendFileSync(githubEnv, `${name}=${value}\n`);
+  const selected = selectPostgresUrl(found);
+  if (!selected) {
+    const shapes = found
+      .map(([name, value]) => `${name} (${describeUrl(value)})`)
+      .join(", ");
+    throw new Error(`${file} carried no Postgres URL — found ${shapes}`);
   }
-  console.log(`resolved ${found.length} connection variable(s) from ${file}`);
+
+  appendFileSync(githubEnv, `DATABASE_URL=${selected.value}\n`);
+  const direct = found.find(
+    ([name, value]) => name === "DIRECT_URL" && isPostgresUrl(value),
+  );
+  if (direct) appendFileSync(githubEnv, `DIRECT_URL=${direct[1]}\n`);
+  console.log(
+    `resolved DATABASE_URL from ${selected.name} in ${file} (${describeUrl(selected.value)})`,
+  );
 }
 
 if (process.env.FILE) main();
