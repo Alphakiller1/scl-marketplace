@@ -1,0 +1,39 @@
+name: Ensure Whop app permissions
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ensure-whop-app-permissions
+  cancel-in-progress: false
+
+jobs:
+  ensure:
+    runs-on: ubuntu-latest
+    environment: Production
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Require plan access for every SCL Marketplace install
+        env:
+          WHOP_API_KEY: ${{ secrets.WHOP_API_KEY }}
+          WHOP_APP_API_KEY: ${{ secrets.WHOP_APP_API_KEY }}
+          NEXT_PUBLIC_WHOP_APP_ID: ${{ secrets.NEXT_PUBLIC_WHOP_APP_ID }}
+          WHOP_APP_ID: ${{ secrets.WHOP_APP_ID }}
+        run: npx tsx scripts/ensure-whop-app-permissions.ts
+
+      - name: Summary
+        run: |
+          {
+            echo "### Whop app onboarding permission verified"
+            echo ""
+            echo "\`plan:basic:read\` is required on the SCL Marketplace app. New capper installs must approve it; existing installs must re-approve once."
+          } >> "$GITHUB_STEP_SUMMARY"
