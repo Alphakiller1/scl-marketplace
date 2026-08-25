@@ -77,10 +77,17 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # Vercel first, repository secret second — the reverse of seed-ghosts.
-      # That secret names a DIFFERENT Supabase project than the app runs on, so
-      # the app's own production environment is the only source known to point
-      # at the SCL database. The script re-checks before it writes anything.
+      # Neither source works today, and this step exists to say so precisely
+      # rather than to write somewhere wrong:
+      #   - the repository DATABASE_URL secret names a DIFFERENT Supabase
+      #     project than the app runs on
+      #   - the Vercel production DATABASE_URL is marked sensitive, so
+      #     `vercel pull` writes an 11-character placeholder, not a connection
+      #     string
+      # Fix either one and this job starts working; until then surface
+      # refreshes go through the signed production route below, which runs
+      # inside Vercel where the real connection exists. The script re-checks
+      # the database it lands on before it writes anything.
       - name: Resolve DATABASE_URL
         env:
           FALLBACK_DATABASE_URL: ${{ secrets.DATABASE_URL }}

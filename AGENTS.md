@@ -130,6 +130,25 @@ already in the repo.
   surfaces only when `SCL_ALLOW_GHOST_PUBLICATION=1` (opt-in). Seed production with
   `GHOST_SEED=1 GHOST_SEED_FORCE=1 npm run seed:ghosts` against the production
   `DATABASE_URL`. Set the env to `0` and wipe ghosts when the real roster is enough.
+- **Odds population is two steps, and they need different things.** Fetching needs Odds API
+  credits (`scripts/populate-odds-today.ts`, which reads each event's market catalog first so
+  it only pays for markets a covered book is pricing, and spends in the order
+  MLB → WNBA → TENNIS → SOCCER with a reserve for the sports after each). Writing needs the
+  production database (`scripts/write-odds-snapshots.ts`, zero credits, replays a slate from
+  `data/odds-snapshots/`). Run the write half with the **Populate odds** workflow's
+  `snapshot_file` input.
+- **No CI runner can currently reach the SCL database, and that is why population goes through
+  the signed production route.** The repository `DATABASE_URL` secret points at a **different
+  Supabase project**, and the Vercel production `DATABASE_URL` is marked sensitive, so
+  `vercel pull` writes an 11-character placeholder rather than the connection string. The
+  `write-snapshots` job resolves both and fails loudly rather than writing somewhere wrong;
+  making it work means fixing one of those two secrets first. Until then, surface refreshes go
+  through `/api/cron/odds-populate` with `CRON_SECRET` (+ `x-scl-odds-key` for a temporary
+  key), which runs inside Vercel where the real connection exists.
+- **Never write a market to the odds cache that the deployed build cannot grade.** A market
+  label the deployed `isDeferredProp` does not know falls through to the full-game resolver: a
+  player prop gets settled against the game total, and a wrong W/L lands on a public verified
+  record. Ship the code first, populate the expanded boards second.
 - **Auth host gotcha:** `.env` sets `AUTH_URL=http://localhost:3000`. Browse and sign in via
   `http://localhost:3000`, not `http://127.0.0.1:3000`, or Auth.js cookies/session will not
   stick and login will look broken.
