@@ -295,7 +295,15 @@ async function expandSport(
 
   let done = 0;
   let held = 0;
+  // Books post Double Chance by competition, not by fixture: today's run paid a
+  // catalog credit for all twenty EFL Cup ties and got nothing on any of them.
+  // After two consecutive misses a competition is treated as not pricing this
+  // sport's expanded markets at all, and the rest of its fixtures are skipped.
+  const misses = new Map<string, number>();
+  const MISS_LIMIT = 2;
   for (const event of slate) {
+    const competition = event.league ?? sclSport;
+    if ((misses.get(competition) ?? 0) >= MISS_LIMIT) continue;
     const floor = BUDGET_FLOOR + reserve;
     // Priced against the full list: the catalog has not been read yet, so the
     // worst case is what has to fit.
@@ -314,11 +322,14 @@ async function expandSport(
       eventMarketCatalogKeys(catalog),
     );
     if (markets.length === 0) {
+      const seen = (misses.get(competition) ?? 0) + 1;
+      misses.set(competition, seen);
       console.log(
-        `    ${`${event.away} @ ${event.home}`.padEnd(48)}no covered book prices these markets`,
+        `    ${`${event.away} @ ${event.home}`.padEnd(48)}no covered book prices these markets${seen >= MISS_LIMIT ? ` — skipping the rest of ${competition}` : ""}`,
       );
       continue;
     }
+    misses.set(competition, 0);
     const raw = await api(
       `/v4/sports/${sportKey}/events/${event.id}/odds/?regions=${REGIONS}&markets=${markets.join(",")}&oddsFormat=american`,
     );

@@ -14,6 +14,7 @@
  * KINDS=board,event-board   which snapshot kinds to write (default both)
  * SPORTS=MLB,WNBA           restrict to these SCL sports (default all)
  * DRY_RUN=1                 report what would be written, touch nothing
+ * ALLOW_EMPTY_TABLE=1       write even when the odds cache table is empty
  *
  * Board snapshots keep the last-known-good contract: a future fixture already
  * in the row and absent from the file is retained rather than dropped, exactly
@@ -93,6 +94,23 @@ async function main() {
   const { PrismaClient } = await import("@prisma/client");
   const prisma = new PrismaClient();
   try {
+    // Confirm this is the SCL odds database before writing to it.
+    //
+    // The first replay run reached a database that was not SCL's: the
+    // repository DATABASE_URL secret names a different Supabase project
+    // entirely. That one happened to be unreachable, which announced itself —
+    // a reachable wrong database would have quietly taken every write. The
+    // odds cache is never empty in production, so an empty table here means
+    // the connection is wrong, not that there is nothing to replace.
+    const existing = await prisma.oddsCacheSnapshot.count();
+    if (existing === 0 && process.env.ALLOW_EMPTY_TABLE !== "1") {
+      throw new Error(
+        'scl."OddsCacheSnapshot" is empty — this is probably not the SCL ' +
+          "database. Set ALLOW_EMPTY_TABLE=1 if it really is.",
+      );
+    }
+    console.log(`database: ${existing} snapshots already cached`);
+
     for (const snapshot of selected) {
       if (snapshotKind(snapshot.key) === "board") {
         const prior = await prisma.oddsCacheSnapshot.findUnique({

@@ -77,14 +77,49 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Vercel first, repository secret second — the reverse of seed-ghosts.
+      # That secret names a DIFFERENT Supabase project than the app runs on, so
+      # the app's own production environment is the only source known to point
+      # at the SCL database. The script re-checks before it writes anything.
+      - name: Resolve DATABASE_URL
+        env:
+          FALLBACK_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -uo pipefail
+          if [ -n "${VERCEL_TOKEN:-}" ] && [ -n "${VERCEL_ORG_ID:-}" ] && [ -n "${VERCEL_PROJECT_ID:-}" ]; then
+            npm install -g vercel@latest >/dev/null
+            vercel pull --yes --environment=production --token="$VERCEL_TOKEN" >/dev/null
+            for f in .vercel/.env.production.local .env.production.local .env; do
+              if [ -f "$f" ]; then FILE="$f"; break; fi
+            done
+            if [ -n "${FILE:-}" ]; then
+              FILE="$FILE" node scripts/emit-database-url.mjs
+              echo "Resolved DATABASE_URL from the Vercel production environment." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+          fi
+          if [ -n "${FALLBACK_DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL=$FALLBACK_DATABASE_URL" >> "$GITHUB_ENV"
+            echo "Resolved DATABASE_URL from the Production environment secret." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "::error::No Vercel CLI secrets and no DATABASE_URL secret."
+          exit 1
+
       - name: Write snapshots
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SNAPSHOT_FILE: data/odds-snapshots/${{ inputs.snapshot_file }}
           KINDS: ${{ inputs.snapshot_kinds }}
         run: |
-          if [ -z "$DATABASE_URL" ]; then
-            echo "::error::DATABASE_URL is not configured for the Production environment."
+          # pipefail, or `tee` reports success for a script that threw — which
+          # is exactly how the first replay run went green having written
+          # nothing at all.
+          set -o pipefail
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "::error::DATABASE_URL was not resolved."
             exit 1
           fi
           if [ ! -f "$SNAPSHOT_FILE" ]; then
