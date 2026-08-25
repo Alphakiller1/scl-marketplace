@@ -4,6 +4,9 @@ name: Populate odds
 # route (the keys already on Vercel). One-shot populate sends a temporary Odds
 # API key to that same route — used for that job only, never stored — so Vercel
 # writes scl.OddsCacheSnapshot with the database it already holds.
+#
+# `snapshot_file` runs neither: it replays a slate already fetched into
+# data/odds-snapshots/ straight into the database, spending no Odds API credits.
 
 on:
   schedule:
@@ -42,12 +45,105 @@ on:
         required: false
         default: true
         type: boolean
+      snapshot_file:
+        description: "Replay an already-fetched snapshot file into the DB (no Odds API credits). Path under data/odds-snapshots/."
+        required: false
+        default: ""
+        type: string
+      snapshot_kinds:
+        description: "Which snapshot kinds to replay: board, event-board, or both"
+        required: false
+        default: "board,event-board"
+        type: string
 
 concurrency:
   group: populate-odds
   cancel-in-progress: false
 
 jobs:
+  # Replay a slate that was already paid for. Fetching and writing are separate
+  # jobs because they need different things: fetching needs Odds API credits,
+  # writing needs the production database. A run that has one and not the other
+  # used to strand the slate — credits spent, nothing on the board.
+  write-snapshots:
+    if: github.event_name == 'workflow_dispatch' && inputs.snapshot_file != ''
+    runs-on: ubuntu-latest
+    environment: Production
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Neither source works today, and this step exists to say so precisely
+      # rather than to write somewhere wrong:
+      #   - the repository DATABASE_URL secret names a DIFFERENT Supabase
+      #     project than the app runs on
+      #   - the Vercel production DATABASE_URL is marked sensitive, so
+      #     `vercel pull` writes an 11-character placeholder, not a connection
+      #     string
+      # Fix either one and this job starts working; until then surface
+      # refreshes go through the signed production route below, which runs
+      # inside Vercel where the real connection exists. The script re-checks
+      # the database it lands on before it writes anything.
+      - name: Resolve DATABASE_URL
+        env:
+          FALLBACK_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -uo pipefail
+          if [ -n "${VERCEL_TOKEN:-}" ] && [ -n "${VERCEL_ORG_ID:-}" ] && [ -n "${VERCEL_PROJECT_ID:-}" ]; then
+            npm install -g vercel@latest >/dev/null
+            vercel pull --yes --environment=production --token="$VERCEL_TOKEN" >/dev/null
+            for f in .vercel/.env.production.local .env.production.local .env; do
+              if [ -f "$f" ]; then FILE="$f"; break; fi
+            done
+            if [ -n "${FILE:-}" ]; then
+              FILE="$FILE" node scripts/emit-database-url.mjs
+              echo "Resolved DATABASE_URL from the Vercel production environment." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+          fi
+          if [ -n "${FALLBACK_DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL=$FALLBACK_DATABASE_URL" >> "$GITHUB_ENV"
+            echo "Resolved DATABASE_URL from the Production environment secret." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "::error::No Vercel CLI secrets and no DATABASE_URL secret."
+          exit 1
+
+      - name: Write snapshots
+        env:
+          SNAPSHOT_FILE: data/odds-snapshots/${{ inputs.snapshot_file }}
+          KINDS: ${{ inputs.snapshot_kinds }}
+        run: |
+          # pipefail, or `tee` reports success for a script that threw — which
+          # is exactly how the first replay run went green having written
+          # nothing at all.
+          set -o pipefail
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "::error::DATABASE_URL was not resolved."
+            exit 1
+          fi
+          if [ ! -f "$SNAPSHOT_FILE" ]; then
+            echo "::error::$SNAPSHOT_FILE does not exist on this ref."
+            exit 1
+          fi
+          npx tsx scripts/write-odds-snapshots.ts | tee /tmp/write.log
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Odds snapshot replay"
+            echo '```'
+            cat /tmp/write.log 2>/dev/null || echo "the run did not complete"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   populate-temp-key:
     if: github.event_name == 'repository_dispatch' || (github.event_name == 'workflow_dispatch' && inputs.odds_key != '')
     runs-on: ubuntu-latest
@@ -66,7 +162,7 @@ jobs:
           EXPANDED_DAYS: ${{ github.event.client_payload.expanded_days || github.event.inputs.expanded_days || 'today' }}
           SURFACE: ${{ github.event.client_payload.surface || '1' }}
           SKIP_POPULATED: ${{ github.event.client_payload.skipPopulated || '1' }}
-          EXPANDED_ORDER: ${{ github.event.client_payload.expandedOrder || 'MLB,WNBA,TENNIS' }}
+          EXPANDED_ORDER: ${{ github.event.client_payload.expandedOrder || 'MLB,WNBA,TENNIS,SOCCER' }}
         run: |
           if [ -z "$CRON_SECRET" ]; then
             echo "::error::CRON_SECRET is not configured. No odds credits were spent."
@@ -109,7 +205,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   populate:
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.odds_key == '')
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.odds_key == '' && inputs.snapshot_file == '')
     runs-on: ubuntu-latest
     environment: Production
     timeout-minutes: 10

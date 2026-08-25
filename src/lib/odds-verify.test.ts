@@ -7,6 +7,11 @@ import {
   decidePickIntegrity,
   expandedBoardMarkets,
   getOddsForBook,
+  MLB_BATTER_PROP_MARKETS,
+  MLB_PITCHER_PROP_MARKETS,
+  PROP_MARKET_LABEL,
+  PROP_MARKETS_BY_SPORT,
+  propMarketLabel,
   impliedProbFromAmerican,
   marketKeysForMarket,
   medianAmerican,
@@ -189,6 +194,103 @@ test("expanded tennis boards request featured and alternate full-match lines", (
     "alternate_spreads",
     "alternate_totals",
   ]);
+});
+
+test("MLB expanded boards carry the full pitcher and hitter card", () => {
+  const mlb = expandedBoardMarkets("MLB");
+  // Every line a book prices for a pitcher and a hitter, featured key plus the
+  // milestone ladder. A capper who cannot tap the line he bet types it as free
+  // text, and free text never reaches the verified record.
+  for (const key of [...MLB_PITCHER_PROP_MARKETS, ...MLB_BATTER_PROP_MARKETS]) {
+    assert.ok(mlb.includes(key), `MLB should request ${key}`);
+    assert.ok(
+      mlb.includes(`${key}_alternate`),
+      `MLB should request ${key}_alternate`,
+    );
+  }
+  // Both halves of the shared baseball counting stats, under separate keys.
+  for (const key of [
+    "pitcher_walks",
+    "batter_walks",
+    "pitcher_strikeouts",
+    "batter_strikeouts",
+    "pitcher_hits_allowed",
+    "batter_hits",
+  ]) {
+    assert.ok(mlb.includes(key), `MLB should request ${key}`);
+  }
+  // Yes/No markets carry no `point`, and the board drops a selection without a
+  // line — requesting them would be billed on every event and render nothing.
+  for (const key of [
+    "pitcher_record_a_win",
+    "batter_first_home_run",
+    "batter_fantasy_score",
+  ]) {
+    assert.ok(!mlb.includes(key), `MLB should not request ${key}`);
+  }
+  // Full alternate team totals, not just the featured line per club.
+  assert.ok(mlb.includes("team_totals"));
+  assert.ok(mlb.includes("alternate_team_totals"));
+});
+
+test("every requested prop key has a display label, so nothing is billed then dropped", () => {
+  for (const [sport, keys] of Object.entries(PROP_MARKETS_BY_SPORT)) {
+    for (const key of keys) {
+      assert.ok(
+        propMarketLabel(key),
+        `${sport} requests ${key} with no label — it would be fetched, billed and discarded`,
+      );
+      assert.ok(
+        propMarketLabel(`${key}_alternate`),
+        `${sport} requests ${key}_alternate with no label`,
+      );
+    }
+  }
+});
+
+test("prop display labels stay unique, so a label maps back to one market", () => {
+  const labels = Object.values(PROP_MARKET_LABEL);
+  assert.equal(
+    new Set(labels.map((label) => label.toLowerCase())).size,
+    labels.length,
+  );
+  // The specific collision that matters: a hitter's walks and the walks a
+  // pitcher issued settle from different halves of the box score.
+  assert.notEqual(
+    PROP_MARKET_LABEL.batter_walks,
+    PROP_MARKET_LABEL.pitcher_walks,
+  );
+  assert.notEqual(
+    PROP_MARKET_LABEL.batter_strikeouts,
+    PROP_MARKET_LABEL.pitcher_strikeouts,
+  );
+});
+
+test("WNBA expanded boards carry the full player card", () => {
+  const wnba = expandedBoardMarkets("WNBA");
+  for (const key of [
+    "player_threes",
+    "player_blocks",
+    "player_steals",
+    "player_turnovers",
+    "player_points_rebounds",
+    "player_points_assists",
+    "player_rebounds_assists",
+    "player_points_rebounds_assists",
+  ]) {
+    assert.ok(wnba.includes(key), `WNBA should request ${key}`);
+    assert.ok(
+      wnba.includes(`${key}_alternate`),
+      `WNBA should request ${key}_alternate`,
+    );
+  }
+});
+
+test("football is surface-level odds only", () => {
+  // h2h/spreads/totals already arrive on the shared slate, so the per-event
+  // call has nothing to add and is never billed.
+  assert.deepEqual(expandedBoardMarkets("NFL"), []);
+  assert.deepEqual(expandedBoardMarkets("NCAAF"), []);
 });
 
 test("expanded MLB and WNBA boards request the complete owner-required matrix", () => {

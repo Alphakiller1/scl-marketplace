@@ -19,6 +19,11 @@ import {
   type RawEventOdds,
 } from "@/lib/odds-verify";
 import {
+  DOUBLE_CHANCE_LABEL,
+  DOUBLE_CHANCE_MARKET_KEY,
+  isDoubleChanceMarket,
+} from "@/lib/soccer-markets";
+import {
   isTeamTotalMarket,
   TEAM_TOTAL_LABEL,
   TEAM_TOTAL_MARKET_KEYS,
@@ -309,6 +314,8 @@ const TEAM_TOTAL_KEY_SET = new Set<string>(TEAM_TOTAL_MARKET_KEYS);
 const MARKET_SORT = { Moneyline: 0, Spread: 1, Total: 2 } as const;
 /** A team total is a game line — it belongs with them, ahead of period lines. */
 const TEAM_TOTAL_RANK = 3;
+/** Double Chance is a full-match soccer line; it sorts with the game block. */
+const DOUBLE_CHANCE_RANK = 4;
 /** Period lines sit between the full-game block and props. */
 const PERIOD_RANK = 5;
 const PROP_RANK = 10;
@@ -338,6 +345,7 @@ function marketRank(market: string): number {
   // Before the period check, and before the prop fallthrough: a team total is a
   // game line, and landing in PROP_RANK would sort it among player props.
   if (isTeamTotalMarket(market)) return TEAM_TOTAL_RANK;
+  if (isDoubleChanceMarket(market)) return DOUBLE_CHANCE_RANK;
   const period = parsePeriodMarket(market);
   if (!period) return PROP_RANK;
   // F3 before F5 before F7, moneyline/spread/total within each.
@@ -398,11 +406,21 @@ export function normalizeEventBoard(
       const gameMarket = BOARD_MARKETS[m.key];
       const periodLabel = PERIOD_MARKET_LABEL[m.key];
       const isTeamTotal = TEAM_TOTAL_KEY_SET.has(m.key);
+      const isDoubleChance = m.key === DOUBLE_CHANCE_MARKET_KEY;
       // Only consulted when nothing above claimed the key. Team totals carry a
       // `description` exactly like a player prop does, so without this check
       // first they would look like props whose "player" is a club.
-      const propLabel = isTeamTotal ? undefined : propMarketLabel(m.key);
-      if (!gameMarket && !periodLabel && !isTeamTotal && !propLabel) continue;
+      const propLabel =
+        isTeamTotal || isDoubleChance ? undefined : propMarketLabel(m.key);
+      if (
+        !gameMarket &&
+        !periodLabel &&
+        !isTeamTotal &&
+        !isDoubleChance &&
+        !propLabel
+      ) {
+        continue;
+      }
       const isFeatured = FEATURED_KEYS.has(m.key);
       for (const o of m.outcomes ?? []) {
         if (typeof o.price !== "number") continue;
@@ -440,6 +458,24 @@ export function normalizeEventBoard(
             bookKey,
             price,
             isFeatured,
+            lastUpdate,
+          );
+        } else if (isDoubleChance) {
+          // Three outcomes, no line and no description: the provider names them
+          // "Crystal Palace or Draw" / "Crystal Palace or Manchester City", and
+          // that name IS the bet.
+          const outcome = o.name.trim();
+          if (!outcome) continue;
+          add(
+            `dc|${outcome.toLowerCase()}`,
+            () => ({
+              market: DOUBLE_CHANCE_LABEL,
+              side: outcome,
+              featured: false,
+            }),
+            bookKey,
+            price,
+            false,
             lastUpdate,
           );
         } else if (isTeamTotal) {
@@ -544,6 +580,22 @@ export function normalizeEventBoard(
         side: g.side,
         line: g.line,
         player: g.player,
+        oddsAmerican: best.price,
+        book,
+        bookPrices: best.bookPrices,
+        ...(best.bookCapturedAt ? { bookCapturedAt: best.bookCapturedAt } : {}),
+        ...(oddsCapturedAt ? { oddsCapturedAt } : {}),
+      });
+    } else if (isDoubleChanceMarket(g.market)) {
+      // Explicit, and ahead of the game-line chain: the final `else` below
+      // emits a Total, so a market with no branch of its own would be stored as
+      // a totals pick with no line — invisible on the board and ungradable.
+      selections.push({
+        label: g.side,
+        market: DOUBLE_CHANCE_LABEL,
+        selection: g.side,
+        side: g.side,
+        featured: false,
         oddsAmerican: best.price,
         book,
         bookPrices: best.bookPrices,

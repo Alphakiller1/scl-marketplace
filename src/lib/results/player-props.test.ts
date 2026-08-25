@@ -423,11 +423,11 @@ test("ESPN summary JSON maps to stat lines, keeping pitching and batting apart",
           statistics: [
             {
               type: "batting",
-              labels: ["AB", "R", "H", "2B", "3B", "HR", "RBI"],
+              labels: ["AB", "R", "H", "2B", "3B", "HR", "RBI", "BB", "K"],
               athletes: [
                 {
                   athlete: { displayName: "Bobby Witt Jr." },
-                  stats: ["4", "2", "3", "1", "0", "1", "3"],
+                  stats: ["4", "2", "3", "1", "0", "1", "3", "2", "1"],
                 },
               ],
             },
@@ -457,17 +457,23 @@ test("ESPN summary JSON maps to stat lines, keeping pitching and batting apart",
   // BEFORE the deepEqual below, which narrows `stats` to its literal shape and
   // would make this a type error rather than a check.
   assert.equal(wacha?.stats.hits, undefined);
+  // Same trap as "H", one column over: "BB" is on both lines, and the walks a
+  // pitcher ISSUED must never settle a hitter's walk prop.
+  assert.equal(wacha?.stats.walks, undefined);
+  assert.equal(wacha?.stats.batterStrikeouts, undefined);
   assert.deepEqual(wacha?.stats, {
     outs: 17,
     strikeouts: 1,
     earnedRuns: 3,
     hitsAllowed: 6,
+    walksAllowed: 1,
   });
   assert.equal(wacha?.played, true);
 
   // "H" on the batting line is hits; it must not become a pitching stat.
   const witt = mapped.players.find((p) => p.name === "Bobby Witt Jr.");
   assert.equal(witt?.stats.hitsAllowed, undefined);
+  assert.equal(witt?.stats.walksAllowed, undefined);
   assert.deepEqual(witt?.stats, {
     runs: 2,
     hits: 3,
@@ -475,7 +481,12 @@ test("ESPN summary JSON maps to stat lines, keeping pitching and batting apart",
     triples: 0,
     homeRuns: 1,
     rbis: 3,
+    walks: 2,
+    batterStrikeouts: 1,
     totalBases: 7,
+    // No box score has a singles column — three hits minus the double and the
+    // home run is the one single.
+    singles: 1,
   });
 
   assert.equal(
