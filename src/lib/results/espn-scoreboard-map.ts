@@ -36,6 +36,8 @@ type EspnEvent = {
     competitors?: EspnCompetitor[];
     date?: string;
     status?: { type?: { completed?: boolean; name?: string } };
+    /** Tennis reports the best-of here; the games markets need it. */
+    format?: { regulation?: { periods?: number } };
   }>;
   status?: { type?: { completed?: boolean; name?: string } };
 };
@@ -159,6 +161,7 @@ export function mapEspnScoreboard(
       const awayScore = competitorScore(away);
       if (!decided || homeScore == null || awayScore == null) continue;
 
+      const regulationPeriods = comp?.format?.regulation?.periods;
       const providerId = comp?.id ?? event.id;
       const rawDate = comp?.date ?? event.date;
       const startsAt = rawDate ? new Date(rawDate) : undefined;
@@ -178,6 +181,10 @@ export function mapEspnScoreboard(
           startsAt && !Number.isNaN(startsAt.getTime()) ? startsAt : undefined,
         homePeriods: periodValues(home),
         awayPeriods: periodValues(away),
+        ...(typeof regulationPeriods === "number" &&
+        Number.isFinite(regulationPeriods)
+          ? { regulationPeriods }
+          : {}),
       });
     }
   }

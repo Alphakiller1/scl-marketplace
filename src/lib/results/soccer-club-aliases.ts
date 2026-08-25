@@ -28,6 +28,11 @@ const SOCCER_CLUB_NAME_GROUPS: readonly (readonly string[])[] = [
     "Atletico de Madrid",
   ],
   ["Bayern Munich", "FC Bayern Munich", "FC Bayern München", "Bayern München"],
+  // ESPN anglicises this one, and no name-shape rule can join a translation:
+  // "1 fc koln" shares no substring or last token with "fc cologne". The DFB
+  // Pokal tie at Würzburg sat PENDING past full time for that reason alone,
+  // and it failed the grade cron on every run while it did.
+  ["1. FC Köln", "FC Cologne", "1. FC Koln", "Köln", "Cologne", "FC Köln"],
   ["Sporting Lisbon", "Sporting CP", "Sporting Clube de Portugal"],
   ["FC St. Pauli", "St. Pauli", "FC St. Pauli Hamburg"],
   ["SC Freiburg", "Freiburg", "Sport-Club Freiburg"],
