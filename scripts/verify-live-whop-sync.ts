@@ -6,7 +6,7 @@ import {
   retrieveWhopProduct,
   updateWhopProduct,
 } from "@/lib/whop-api";
-import { whopStorefrontApiKey } from "@/lib/whop-config";
+import { whopAffiliateUsername, whopStorefrontApiKey } from "@/lib/whop-config";
 import { resolveWhopProductPlanPrice } from "@/lib/whop-plan-sync";
 import { pushPackageToWhop, syncWhopStorefront } from "@/lib/whop-sync";
 
@@ -21,6 +21,25 @@ async function mustUpdateWhop(input: Parameters<typeof updateWhopProduct>[0]) {
   if (!result.ok) throw new Error(result.error);
 }
 
+function assertWhopAffiliateAttribution(
+  rawUrl: string | null,
+  affiliateUsername: string,
+  label: string,
+) {
+  assert(rawUrl, `${label} is missing.`);
+  const url = new URL(rawUrl);
+  assert.match(
+    url.hostname,
+    /^(?:www\.)?whop\.com$/i,
+    `${label} must remain on Whop.`,
+  );
+  assert.equal(
+    url.searchParams.get("a"),
+    affiliateUsername,
+    `${label} lost SCL affiliate attribution.`,
+  );
+}
+
 export async function runLiveWhopSyncVerification(input: {
   capperEmail: string;
   companyId: string;
@@ -31,6 +50,8 @@ export async function runLiveWhopSyncVerification(input: {
   const productId = input.productId.trim();
   const apiKey = whopStorefrontApiKey(null);
   assert(apiKey, "WHOP_API_KEY or WHOP_APP_API_KEY is required.");
+  const affiliateUsername = whopAffiliateUsername();
+  assert(affiliateUsername, "WHOP_AFFILIATE_USERNAME is required.");
 
   const [originalProduct, originalPlans, user, admin] = await Promise.all([
     retrieveWhopProduct(apiKey, productId),
@@ -132,6 +153,8 @@ export async function runLiveWhopSyncVerification(input: {
       priceCents: true,
       billingPeriod: true,
       billingIntervalCount: true,
+      checkoutUrl: true,
+      trackingUrls: { select: { targetUrl: true }, take: 1 },
     },
   });
   assert(pkg, "The Whop product was not imported into SCL.");
@@ -140,6 +163,21 @@ export async function runLiveWhopSyncVerification(input: {
   assert.equal(
     pkg.billingIntervalCount,
     originalPlanPrice.billingIntervalCount,
+  );
+  assertWhopAffiliateAttribution(
+    pkg.checkoutUrl,
+    affiliateUsername,
+    "SCL package checkout URL",
+  );
+  assertWhopAffiliateAttribution(
+    pkg.trackingUrls[0]?.targetUrl ?? null,
+    affiliateUsername,
+    "SCL tracking redirect target",
+  );
+  assert.equal(
+    pkg.trackingUrls[0]?.targetUrl,
+    pkg.checkoutUrl,
+    "The tracked customer link and package checkout URL must remain identical.",
   );
 
   await prisma.$transaction(async (tx) => {
@@ -218,11 +256,27 @@ export async function runLiveWhopSyncVerification(input: {
     assert(inboundSync.ok, inboundSync.ok ? undefined : inboundSync.error);
     const inboundPackage = await prisma.package.findUniqueOrThrow({
       where: { id: pkg.id },
-      select: { title: true, description: true, isActive: true },
+      select: {
+        title: true,
+        description: true,
+        isActive: true,
+        checkoutUrl: true,
+        trackingUrls: { select: { targetUrl: true }, take: 1 },
+      },
     });
     assert.equal(inboundPackage.title, inboundTitle);
     assert.equal(inboundPackage.description, inboundHeadline);
     assert.equal(inboundPackage.isActive, true);
+    assertWhopAffiliateAttribution(
+      inboundPackage.checkoutUrl,
+      affiliateUsername,
+      "Whop-to-SCL refreshed checkout URL",
+    );
+    assert.equal(
+      inboundPackage.trackingUrls[0]?.targetUrl,
+      inboundPackage.checkoutUrl,
+      "Whop-to-SCL refresh must preserve the attributed tracking target.",
+    );
 
     await mustUpdateWhop({
       accessToken: apiKey,
@@ -296,6 +350,7 @@ export async function runLiveWhopSyncVerification(input: {
     whopHideToSclDeactivate: true,
     sclToWhop: true,
     whopPlanToScl: true,
+    affiliateAttribution: true,
     priceCents: originalPlanPrice.priceCents,
     billingPeriod: originalPlanPrice.billingPeriod,
     billingIntervalCount: originalPlanPrice.billingIntervalCount,
