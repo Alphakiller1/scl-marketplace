@@ -8,6 +8,7 @@ import {
   WhopApiError,
 } from "@/lib/whop-api";
 import {
+  hydrateWhopProductDescriptions,
   whopProductDescription,
   whopWebhookCompanyId,
   whopWebhookEventName,
@@ -83,6 +84,51 @@ describe("whop api helpers", () => {
       }),
       "Legacy headline",
     );
+  });
+
+  it("hydrates rich descriptions omitted by Whop's product list", async () => {
+    const originalFetch = globalThis.fetch;
+    const urls: string[] = [];
+    globalThis.fetch = (async (input) => {
+      urls.push(String(input));
+      return Response.json({
+        id: "prod_detail",
+        route: "detail",
+        title: "Detail",
+        headline: "Detail headline",
+        description: "Dashboard description",
+        visibility: "visible",
+      });
+    }) as typeof fetch;
+
+    try {
+      const products = await hydrateWhopProductDescriptions({
+        accessToken: "test-token",
+        products: [
+          {
+            id: "prod_detail",
+            route: "detail",
+            title: "Detail",
+            headline: "List headline",
+          },
+          {
+            id: "prod_complete",
+            route: "complete",
+            title: "Complete",
+            description: "Already present",
+          },
+        ],
+      });
+
+      assert.equal(products[0]?.description, "Dashboard description");
+      assert.equal(products[0]?.headline, "Detail headline");
+      assert.equal(products[1]?.description, "Already present");
+      assert.deepEqual(urls, [
+        "https://api.whop.com/api/v1/products/prod_detail",
+      ]);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("lists every Whop plan page for the connected company", async () => {
