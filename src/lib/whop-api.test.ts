@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { buildWhopProductCheckoutUrl, updateWhopProduct } from "@/lib/whop-api";
+import {
+  buildWhopProductCheckoutUrl,
+  listWhopPlans,
+  updateWhopProduct,
+} from "@/lib/whop-api";
 import { whopWebhookCompanyId, whopWebhookEventName } from "@/lib/whop-sync";
 
 describe("whop api helpers", () => {
@@ -46,6 +50,42 @@ describe("whop api helpers", () => {
         false,
         "Whop's product update endpoint does not accept metadata",
       );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("lists every Whop plan page for the connected company", async () => {
+    const originalFetch = globalThis.fetch;
+    const urls: string[] = [];
+    globalThis.fetch = (async (input) => {
+      const url = String(input);
+      urls.push(url);
+      const secondPage = url.includes("after=cursor-1");
+      return Response.json(
+        secondPage
+          ? { data: [{ id: "plan_2" }], page_info: { has_next_page: false } }
+          : {
+              data: [{ id: "plan_1" }],
+              page_info: { has_next_page: true, end_cursor: "cursor-1" },
+            },
+      );
+    }) as typeof fetch;
+
+    try {
+      const plans = await listWhopPlans({
+        accessToken: "test-token",
+        companyId: "biz_test",
+      });
+      assert.deepEqual(
+        plans.map((plan) => plan.id),
+        ["plan_1", "plan_2"],
+      );
+      assert.equal(urls.length, 2);
+      assert.match(urls[0]!, /\/api\/v1\/plans\?/);
+      assert.match(urls[0]!, /company_id=biz_test/);
+      assert.match(urls[0]!, /first=50/);
+      assert.match(urls[1]!, /after=cursor-1/);
     } finally {
       globalThis.fetch = originalFetch;
     }

@@ -25,6 +25,24 @@ export type WhopProductListItem = {
   company?: WhopCompanyListItem | null;
 };
 
+/**
+ * Pricing is attached to a Whop Plan, not to its Product. Keep this shape
+ * intentionally small so the sync only depends on fields it actually uses.
+ *
+ * @see https://docs.whop.com/api-reference/plans/list-plans
+ */
+export type WhopPlanListItem = {
+  id: string;
+  visibility?: string | null;
+  plan_type?: string | null;
+  release_method?: string | null;
+  currency?: string | null;
+  product?: { id: string } | null;
+  billing_period?: number | null;
+  initial_price?: number | null;
+  renewal_price?: number | null;
+};
+
 type WhopListResponse<T> = {
   data: T[];
   page_info?: {
@@ -122,6 +140,39 @@ export async function listWhopProducts(input: {
   }
 
   return products;
+}
+
+/**
+ * List every plan for one connected company in a single paginated pass.
+ * Filtering by product happens locally because the raw REST API represents
+ * `product_ids` as an array query parameter, while a company-wide read is both
+ * simpler and avoids one request per product.
+ *
+ * Requires Whop's `plan:basic:read` permission.
+ */
+export async function listWhopPlans(input: {
+  accessToken: string;
+  companyId: string;
+}): Promise<WhopPlanListItem[]> {
+  const plans: WhopPlanListItem[] = [];
+  let after: string | undefined;
+
+  for (let page = 0; page < 10; page += 1) {
+    const res = await whopFetch<WhopListResponse<WhopPlanListItem>>(
+      "/plans",
+      input.accessToken,
+      {
+        company_id: input.companyId,
+        first: 50,
+        after,
+      },
+    );
+    plans.push(...(res.data ?? []));
+    if (!res.page_info?.has_next_page || !res.page_info.end_cursor) break;
+    after = res.page_info.end_cursor;
+  }
+
+  return plans;
 }
 
 /** Public Whop checkout URL with SCL affiliate attribution. */

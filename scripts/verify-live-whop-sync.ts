@@ -1,8 +1,13 @@
 import assert from "node:assert/strict";
 
 import { prisma } from "@/lib/prisma";
-import { retrieveWhopProduct, updateWhopProduct } from "@/lib/whop-api";
+import {
+  listWhopPlans,
+  retrieveWhopProduct,
+  updateWhopProduct,
+} from "@/lib/whop-api";
 import { whopStorefrontApiKey } from "@/lib/whop-config";
+import { resolveWhopProductPlanPrice } from "@/lib/whop-plan-sync";
 import { pushPackageToWhop, syncWhopStorefront } from "@/lib/whop-sync";
 
 function required(name: string): string {
@@ -27,8 +32,9 @@ export async function runLiveWhopSyncVerification(input: {
   const apiKey = whopStorefrontApiKey(null);
   assert(apiKey, "WHOP_API_KEY or WHOP_APP_API_KEY is required.");
 
-  const [originalProduct, user, admin] = await Promise.all([
+  const [originalProduct, originalPlans, user, admin] = await Promise.all([
     retrieveWhopProduct(apiKey, productId),
+    listWhopPlans({ accessToken: apiKey, companyId }),
     prisma.user.findFirst({
       where: { email: { equals: capperEmail, mode: "insensitive" } },
       select: {
@@ -53,6 +59,14 @@ export async function runLiveWhopSyncVerification(input: {
   assert.equal(company.id, companyId);
   assert(company.route, "Whop company route is missing.");
   assert.equal(originalProduct.id, productId);
+  const originalPlanPrice = resolveWhopProductPlanPrice(
+    originalPlans,
+    productId,
+  );
+  assert(
+    originalPlanPrice,
+    "The Whop test product does not have exactly one representable public USD buy-now price. Confirm plan:basic:read and use a dedicated single-plan test product.",
+  );
   assert.match(
     originalProduct.title,
     /SCL Sync Test/i,
@@ -112,9 +126,21 @@ export async function runLiveWhopSyncVerification(input: {
 
   const pkg = await prisma.package.findFirst({
     where: { storeConnectionId: connection.id, externalProductId: productId },
-    select: { id: true, isActive: true },
+    select: {
+      id: true,
+      isActive: true,
+      priceCents: true,
+      billingPeriod: true,
+      billingIntervalCount: true,
+    },
   });
   assert(pkg, "The Whop product was not imported into SCL.");
+  assert.equal(pkg.priceCents, originalPlanPrice.priceCents);
+  assert.equal(pkg.billingPeriod, originalPlanPrice.billingPeriod);
+  assert.equal(
+    pkg.billingIntervalCount,
+    originalPlanPrice.billingIntervalCount,
+  );
 
   await prisma.$transaction(async (tx) => {
     const beforeLive = await tx.storeConnection.findUniqueOrThrow({
@@ -269,6 +295,10 @@ export async function runLiveWhopSyncVerification(input: {
     whopToScl: true,
     whopHideToSclDeactivate: true,
     sclToWhop: true,
+    whopPlanToScl: true,
+    priceCents: originalPlanPrice.priceCents,
+    billingPeriod: originalPlanPrice.billingPeriod,
+    billingIntervalCount: originalPlanPrice.billingIntervalCount,
     restored: true,
   };
 }

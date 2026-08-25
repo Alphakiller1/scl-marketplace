@@ -1,8 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import {
   buildWhopProductCheckoutUrl,
+  listWhopPlans,
   listWhopProducts,
   updateWhopProduct,
+  type WhopPlanListItem,
   type WhopProductListItem,
 } from "@/lib/whop-api";
 import {
@@ -18,6 +20,7 @@ import {
 } from "@/lib/whop-product-sync";
 import { makeTrackingSlug } from "@/lib/store-connection";
 import { resolveStorefrontPackageReadiness } from "@/lib/storefront-review";
+import { resolveWhopProductPlanPrice } from "@/lib/whop-plan-sync";
 
 export type WhopSyncResult =
   | {
@@ -158,6 +161,26 @@ export async function syncWhopStorefront(input: {
     return { ok: false, error: message };
   }
 
+  // Product presentation can still reconcile if the installed app has not yet
+  // been re-approved with plan:basic:read. In that case preserve existing SCL
+  // prices; new imports use the explicit unknown-price sentinel instead of
+  // incorrectly advertising them as free.
+  let plans: WhopPlanListItem[] | null = null;
+  try {
+    plans = await listWhopPlans({
+      accessToken,
+      companyId: connection.whopCompanyId,
+    });
+  } catch (error) {
+    const message =
+      error && typeof error === "object" && "message" in error
+        ? String((error as { message: string }).message)
+        : "Could not fetch plans from Whop.";
+    console.warn(
+      `[whop-sync] plan pricing unavailable for ${connection.whopCompanyId}: ${message}`,
+    );
+  }
+
   const syncable = products.filter(isWhopProductSyncable);
   if (!syncable.length) {
     const hiddenProductIds = products.map((product) => product.id);
@@ -195,6 +218,9 @@ export async function syncWhopStorefront(input: {
           description: true,
           checkoutUrl: true,
           affiliateProvider: true,
+          priceCents: true,
+          billingPeriod: true,
+          billingIntervalCount: true,
           sortOrder: true,
           whopPushPendingAt: true,
           trackingUrls: { select: { id: true, targetUrl: true }, take: 1 },
@@ -251,6 +277,12 @@ export async function syncWhopStorefront(input: {
         productRoute: product.route,
         affiliateUsername,
       });
+      const planPrice = plans
+        ? resolveWhopProductPlanPrice(plans, product.id)
+        : null;
+      // -1 is the established provider-owned "unknown" sentinel consumed by
+      // formatPriceCents. Zero is reserved for a confirmed free Whop plan.
+      const nextPriceCents = planPrice?.priceCents ?? (plans ? -1 : null);
 
       if (existing) {
         const nextDescription = productDescription(product);
@@ -260,6 +292,11 @@ export async function syncWhopStorefront(input: {
           existing.description !== nextDescription ||
           existing.checkoutUrl !== checkoutUrl ||
           existing.affiliateProvider !== "WHOP" ||
+          (nextPriceCents !== null && existing.priceCents !== nextPriceCents) ||
+          (planPrice !== null &&
+            (existing.billingPeriod !== planPrice.billingPeriod ||
+              existing.billingIntervalCount !==
+                planPrice.billingIntervalCount)) ||
           existing.sortOrder !== index;
         const trackingChanged = tracking?.targetUrl !== checkoutUrl;
         if (!packageChanged && !trackingChanged) continue;
@@ -272,6 +309,13 @@ export async function syncWhopStorefront(input: {
               description: nextDescription,
               checkoutUrl,
               affiliateProvider: "WHOP",
+              ...(nextPriceCents !== null && {
+                priceCents: nextPriceCents,
+              }),
+              ...(planPrice && {
+                billingPeriod: planPrice.billingPeriod,
+                billingIntervalCount: planPrice.billingIntervalCount,
+              }),
               sortOrder: index,
             },
           });
@@ -305,8 +349,9 @@ export async function syncWhopStorefront(input: {
           description: productDescription(product),
           checkoutUrl,
           affiliateProvider: "WHOP",
-          priceCents: 0,
-          billingPeriod: "MONTH",
+          priceCents: planPrice?.priceCents ?? -1,
+          billingPeriod: planPrice?.billingPeriod ?? "ONE_TIME",
+          billingIntervalCount: planPrice?.billingIntervalCount ?? 1,
           providerType: "PREMIUM",
           sortOrder: index,
           isActive: false,

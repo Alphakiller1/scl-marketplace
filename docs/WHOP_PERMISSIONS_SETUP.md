@@ -4,23 +4,24 @@
 
 **Time:** ~5 minutes in Whop, plus a re-approval click per connected capper.
 
-**Why it matters:** SCL can already read a capper's Whop products. It cannot yet
-_write_ back. Until the two permissions below are granted, editing a package
-title or hiding an offer in SCL will not change anything on the capper's Whop
-storefront.
+**Why it matters:** SCL reads a capper's Whop products and plans, then mirrors
+safe presentation edits back. Until all three permissions below are granted,
+title/visibility writes can fail or SCL can be forced to show “See Whop for
+current price” instead of the real plan price.
 
 ---
 
 ## What is broken without this
 
 `pushPackageToWhop` calls `PATCH /products/{id}` whenever an admin saves a
-package or publishes/hides an offer. Whop's spec requires two permissions for
-that endpoint:
+package or publishes/hides an offer. `syncWhopStorefront` also reads
+`GET /plans` so Whop remains the source of truth for price. Whop's spec requires:
 
 | Permission               | Why the endpoint needs it                     |
 | ------------------------ | --------------------------------------------- |
 | `access_pass:update`     | Writing `title`, `headline`, `visibility`     |
 | `access_pass:basic:read` | Reading the product back to confirm the write |
+| `plan:basic:read`        | Reading the real price and billing cadence    |
 
 Without them Whop returns **HTTP 403**. The failure is deliberately quiet and
 safe:
@@ -40,9 +41,10 @@ So the symptom is not a crash. It is silence: SCL and Whop quietly drift apart.
 2. Select the **SCL app**.
 3. Click the **Permissions** tab.
 4. Click **Add permissions**.
-5. Add **both**:
+5. Add **all three**:
    - `access_pass:update`
    - `access_pass:basic:read`
+   - `plan:basic:read`
 
 ## Step 2 — Justify and mark each one
 
@@ -57,7 +59,10 @@ it is worth writing plainly. Suggested text:
 > **access_pass:basic:read** — Reads your product back after an update so we can
 > confirm the change landed.
 
-Mark **both as required**. Two-way sync is not a side feature — if a creator
+> **plan:basic:read** — Reads the plan's actual price and billing interval so
+> SCL never labels a paid Whop package as free. SCL does not write plan prices.
+
+Mark **all three as required**. Two-way sync is not a side feature — if a creator
 declines it, SCL and Whop drift silently, which is worse than not offering the
 sync at all.
 
@@ -122,18 +127,28 @@ Getting a single capper through it proves both directions at once.
 
 Once permissions are granted and one capper is connected:
 
-1. **Inbound.** In Whop, change that product's title. Within a few seconds the
-   webhook should re-import and the new title should appear on the capper's SCL
-   packages. If it does not, check that the `StoreConnection` row has a
-   `whopCompanyId` matching the company that fired the webhook.
+1. **Inbound.** In Whop, change that product's title. Open the SCL storefront or
+   dashboard after 60 seconds, or wait for the five-minute reconciliation job;
+   the new title should appear on the capper's SCL packages. Whop's current
+   webhook event catalog does not expose product/plan lifecycle events, so the
+   lease-protected on-view refresh and scheduled reconciliation are the durable
+   triggers. If it does not update, check that the `StoreConnection` row has a
+   `whopCompanyId` matching the business.
 
-2. **Outbound.** In SCL admin (`/admin/store-setup`), edit the same package's
+2. **Plan pricing (read-only from SCL).** In a safe test plan, change the price
+   or billing cadence in Whop. After the next reconciliation, SCL should show
+   the same price/cadence. A product with different public plan options should
+   show “See Whop for current price” because SCL has one price slot and must not
+   guess which option wins.
+
+3. **Outbound.** In SCL admin (`/admin/store-setup`), edit the same package's
    title and save. Refresh the product on Whop — it should show SCL's title.
 
-3. **Visibility.** Hide the offer in SCL. The Whop product should flip to
+4. **Visibility.** Hide the offer in SCL. The Whop product should flip to
    `hidden`.
 
-4. **Confirm no 403s.** Look for `[whop-push]` in the Vercel runtime logs. A
+5. **Confirm no 403s.** Look for `[whop-push]` and `plan pricing unavailable`
+   in the Vercel runtime logs. A
    successful push logs nothing; a rejected one logs the HTTP status.
 
 A useful check that the link exists at all:
@@ -152,15 +167,17 @@ establish the link before expecting outbound updates.
 
 ---
 
-## What is deliberately _not_ synced
+## What is deliberately _not_ written from SCL
 
-**Price.** On Whop a price lives on a **Plan**, not the Product. Writing one
-changes what real customers are charged, so SCL does not touch it. SCL owns how
+**Price.** On Whop a price lives on a **Plan**, not the Product. SCL now reads
+that price and billing cadence so its cards stay accurate, but it never writes
+plan pricing because that changes what real customers are charged. SCL owns how
 an offer is presented — title, headline, visibility. Whop remains the source of
 truth for money.
 
-If you later want price sync, it needs its own decision about which side wins
-and what happens to existing subscribers. It is not a config change.
+If you later want SCL-to-Whop price writes, that needs a separate decision about
+which side wins and what happens to existing subscribers. It is not a config
+change.
 
 ---
 
