@@ -3,6 +3,7 @@ import {
   buildWhopProductCheckoutUrl,
   listWhopPlans,
   listWhopProducts,
+  retrieveWhopProduct,
   updateWhopProduct,
   type WhopPlanListItem,
   type WhopProductListItem,
@@ -32,6 +33,7 @@ export type WhopSyncResult =
   | { ok: false; error: string };
 
 export const WHOP_STOREFRONT_FRESHNESS_MS = 60_000;
+const WHOP_PRODUCT_DETAIL_BATCH_SIZE = 5;
 
 export function whopProductDescription(
   product: WhopProductListItem,
@@ -43,6 +45,59 @@ export function whopProductDescription(
   // while preferring the dashboard-editable description for new changes.
   const headline = product.headline?.trim();
   return headline || null;
+}
+
+/**
+ * Whop's list endpoint omits the dashboard-editable rich description. Hydrate
+ * that field from product detail in small batches while retaining list data if
+ * an individual detail request is temporarily unavailable.
+ */
+export async function hydrateWhopProductDescriptions(input: {
+  accessToken: string;
+  products: WhopProductListItem[];
+}): Promise<WhopProductListItem[]> {
+  const hydrated: WhopProductListItem[] = [];
+
+  for (
+    let index = 0;
+    index < input.products.length;
+    index += WHOP_PRODUCT_DETAIL_BATCH_SIZE
+  ) {
+    const batch = input.products.slice(
+      index,
+      index + WHOP_PRODUCT_DETAIL_BATCH_SIZE,
+    );
+    hydrated.push(
+      ...(await Promise.all(
+        batch.map(async (product) => {
+          if (product.description !== undefined) return product;
+
+          try {
+            const detail = await retrieveWhopProduct(
+              input.accessToken,
+              product.id,
+            );
+            return {
+              ...product,
+              description: detail.description,
+              headline: detail.headline ?? product.headline,
+            };
+          } catch (error) {
+            const message =
+              error && typeof error === "object" && "message" in error
+                ? String((error as { message: string }).message)
+                : "Could not fetch product detail.";
+            console.warn(
+              `[whop-sync] product detail unavailable for ${product.id}: ${message}`,
+            );
+            return product;
+          }
+        }),
+      )),
+    );
+  }
+
+  return hydrated;
 }
 
 export async function syncWhopStorefront(input: {
@@ -167,6 +222,8 @@ export async function syncWhopStorefront(input: {
         : "Could not fetch products from Whop.";
     return { ok: false, error: message };
   }
+
+  products = await hydrateWhopProductDescriptions({ accessToken, products });
 
   // Product presentation can still reconcile if the installed app has not yet
   // been re-approved with plan:basic:read. In that case preserve existing SCL
