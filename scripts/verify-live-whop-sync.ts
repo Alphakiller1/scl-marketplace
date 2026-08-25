@@ -8,7 +8,11 @@ import {
 } from "@/lib/whop-api";
 import { whopAffiliateUsername, whopStorefrontApiKey } from "@/lib/whop-config";
 import { resolveWhopProductPlanPrice } from "@/lib/whop-plan-sync";
-import { pushPackageToWhop, syncWhopStorefront } from "@/lib/whop-sync";
+import {
+  pushPackageToWhop,
+  syncWhopStorefront,
+  whopProductDescription,
+} from "@/lib/whop-sync";
 
 function required(name: string): string {
   const value = process.env[name]?.trim();
@@ -235,7 +239,7 @@ export async function runLiveWhopSyncVerification(input: {
 
   const stamp = Date.now().toString(36);
   const inboundTitle = `${originalProduct.title} [WHOP-${stamp}]`;
-  const inboundHeadline = `Whop to SCL live verification ${stamp}`;
+  const inboundDescription = `Whop to SCL live verification ${stamp}`;
   const outboundTitle = `${originalProduct.title} [SCL-${stamp}]`;
   const outboundHeadline = `SCL to Whop live verification ${stamp}`;
 
@@ -245,7 +249,8 @@ export async function runLiveWhopSyncVerification(input: {
       productId,
       update: {
         title: inboundTitle,
-        headline: inboundHeadline,
+        description: inboundDescription,
+        headline: inboundDescription,
         visibility: "visible",
       },
     });
@@ -265,7 +270,7 @@ export async function runLiveWhopSyncVerification(input: {
       },
     });
     assert.equal(inboundPackage.title, inboundTitle);
-    assert.equal(inboundPackage.description, inboundHeadline);
+    assert.equal(inboundPackage.description, inboundDescription);
     assert.equal(inboundPackage.isActive, true);
     assertWhopAffiliateAttribution(
       inboundPackage.checkoutUrl,
@@ -312,6 +317,7 @@ export async function runLiveWhopSyncVerification(input: {
     assert.equal(outboundPush.pushed, true);
     const outboundProduct = await retrieveWhopProduct(apiKey, productId);
     assert.equal(outboundProduct.title, outboundTitle);
+    assert.equal(outboundProduct.description, outboundHeadline);
     assert.equal(outboundProduct.headline, outboundHeadline);
     assert.equal(outboundProduct.visibility, "visible");
   } finally {
@@ -320,6 +326,7 @@ export async function runLiveWhopSyncVerification(input: {
       productId,
       update: {
         title: originalProduct.title,
+        description: originalProduct.description ?? null,
         headline: originalProduct.headline ?? null,
         visibility: "visible",
       },
@@ -328,7 +335,7 @@ export async function runLiveWhopSyncVerification(input: {
       where: { storeConnectionId: connection.id, externalProductId: productId },
       data: {
         title: originalProduct.title,
-        description: originalProduct.headline ?? null,
+        description: whopProductDescription(originalProduct),
         isActive: true,
       },
     });
@@ -347,8 +354,10 @@ export async function runLiveWhopSyncVerification(input: {
     companyId,
     productId,
     whopToScl: true,
+    whopDescriptionToScl: true,
     whopHideToSclDeactivate: true,
     sclToWhop: true,
+    sclDescriptionToWhop: true,
     whopPlanToScl: true,
     affiliateAttribution: true,
     priceCents: originalPlanPrice.priceCents,
