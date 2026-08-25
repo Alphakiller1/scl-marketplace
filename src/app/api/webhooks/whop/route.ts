@@ -85,7 +85,7 @@ async function maybeSyncWhopProducts(event: WhopWebhookEnvelope) {
  * Whop webhook receiver.
  *
  * Verifies signatures, acknowledges quickly, and triggers storefront sync for
- * product lifecycle events when a capper has connected the SCL app.
+ * product lifecycle events when a capper has authorized SCL's Whop API access.
  */
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();

@@ -26,7 +26,10 @@ test("capper storefront setup tailors platform guidance to the selected option",
     source,
     /Complete the Winible affiliate invite, then submit — SCL accepts the relationship and manually publishes your package links\./,
   );
-  assert.match(source, /Add SCL as a Whop affiliate, connect SCL on Whop/);
+  assert.match(
+    source,
+    /Add SCL as a Whop affiliate, authorize the Whop API connection from SCL/,
+  );
   assert.match(
     source,
     /We’ll help you create a Winible or Whop storefront and connect it to SCL\./,
@@ -77,7 +80,7 @@ test("Whop connection copy explains the capper experience", () => {
     /checkout, subscriptions, and payments stay on \$\{label\}\./,
   );
   assert.match(source, /Continue to Connect Whop/);
-  assert.match(source, /Connect SCL to Whop/);
+  assert.match(source, /Connect Whop API/);
   assert.match(source, /SCL_WHOP_AFFILIATE_PAGE_URL/);
   assert.match(source, /href="\/api\/whop\/connect"/);
   assert.doesNotMatch(
@@ -90,6 +93,7 @@ test("Whop connection copy explains the capper experience", () => {
     "utf8",
   );
   assert.match(notice, /oauth-misconfigured/);
+  assert.doesNotMatch(notice, /Authorized apps/);
   assert.match(
     source,
     /When SCL refers a subscriber to your storefront, we earn an affiliate commission/,
@@ -154,7 +158,7 @@ test("Whop setup instructions focus on the capper workflow", () => {
 
   assert.match(
     normalized,
-    /Add Sports Cappers Leaderboard as an affiliate in Whop, then connect SCL to your storefront/,
+    /Add Sports Cappers Leaderboard as an affiliate in Whop, then authorize the Whop API connection from SCL/,
   );
 
   // The owner-authored manual affiliate steps, in order, each with its shot.
@@ -182,9 +186,13 @@ test("Whop setup instructions focus on the capper workflow", () => {
   );
   assert.match(normalized, /whop-steps\/3-invite-form\.png/);
 
-  // The synced connect step is unrelated to the manual affiliate invite and
-  // stays put — it just moves to the end of the list.
-  assert.match(normalized, /4\. Connect SCL to your Whop/);
+  // The API authorization step is unrelated to the manual affiliate invite and
+  // stays at the end of the list.
+  assert.match(normalized, /4\. Connect Whop to SCL through the API/);
+  assert.match(
+    normalized,
+    /This authorizes an API connection; nothing is installed on Whop or your device/,
+  );
   assert.match(
     normalized,
     /Hiding a mapped product on Whop also takes its SCL offer down/,
@@ -246,7 +254,7 @@ test("Whop OAuth callback route exists for storefront connection", () => {
   assert.doesNotMatch(connect, /\$\{siteUrl\(\)\} \/api\/whop\/callback/);
 });
 
-test("existing Whop storefronts can install or repair their app connection", () => {
+test("existing Whop storefronts can connect or repair their API connection", () => {
   const source = fs.readFileSync(
     path.join(process.cwd(), "src/components/scl/store-status-panel.tsx"),
     "utf8",
@@ -254,5 +262,6 @@ test("existing Whop storefronts can install or repair their app connection", () 
 
   assert.match(source, /provider === "WHOP" && status !== "DISABLED"/);
   assert.match(source, /href="\/api\/whop\/connect"/);
-  assert.match(source, /Install or reconnect SCL app/);
+  assert.match(source, /Connect or reconnect Whop API/);
+  assert.doesNotMatch(source, /\bSCL app\b/i);
 });

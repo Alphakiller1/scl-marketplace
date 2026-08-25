@@ -48,7 +48,7 @@ export function AdminWhopSyncPanel({
         {syncConfigured
           ? whopConnected
             ? "Pull visible products from the capper's Whop business into draft packages with attributed checkout links (?a=). Sync never publishes — activate + Mark live still required."
-            : "Waiting on the capper to install the SCL app from Dashboard → Storefront."
+            : "Waiting on the capper to authorize the Whop API connection from Dashboard → Storefront."
           : "Whop OAuth is not fully configured on the server yet."}
       </p>
       {whopConnected ? (

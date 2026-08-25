@@ -141,14 +141,14 @@ export async function syncWhopStorefront(input: {
     return {
       ok: false,
       error:
-        "Capper has not connected a Whop business yet. They must install the SCL app from Dashboard → Storefront.",
+        "Capper has not connected a Whop business yet. They must authorize the Whop API connection from Dashboard → Storefront.",
     };
   }
   if (!connection.whopCompanyRoute) {
     return {
       ok: false,
       error:
-        "Whop company route is missing. Ask the capper to reconnect the SCL app.",
+        "Whop company route is missing. Ask the capper to reconnect the Whop API.",
     };
   }
 
@@ -169,7 +169,7 @@ export async function syncWhopStorefront(input: {
       return {
         ok: false,
         error:
-          "Whop access expired. Ask the capper to reinstall the SCL app from Dashboard → Storefront.",
+          "Whop access expired. Ask the capper to reconnect the Whop API from Dashboard → Storefront.",
       };
     }
     const clientId = whopAppId();
@@ -204,7 +204,7 @@ export async function syncWhopStorefront(input: {
       return {
         ok: false,
         error:
-          "Whop access expired and refresh failed. Ask the capper to reinstall the SCL app.",
+          "Whop access expired and refresh failed. Ask the capper to reconnect the Whop API.",
       };
     }
   }

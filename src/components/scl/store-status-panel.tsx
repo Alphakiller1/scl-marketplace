@@ -15,7 +15,7 @@ function timeline(
     provider === "WHOP"
       ? [
           "Choose Whop and review the connection process",
-          "Add SCL as an affiliate on Whop (install the SCL app when available)",
+          "Add SCL as an affiliate on Whop and authorize the API connection from SCL",
           "SCL verifies the connection and publishes approved package links",
           "Your packages go live on your SCL profile",
         ]
@@ -126,7 +126,7 @@ export function StoreStatusPanel({
           render={<a href="/api/whop/connect" rel="noreferrer" />}
           nativeButton={false}
         >
-          Install or reconnect SCL app
+          Connect or reconnect Whop API
           <ExternalLink className="size-4" />
         </Button>
       ) : null}

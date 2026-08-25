@@ -40,7 +40,7 @@ function monetizationUrl(origin: string, query?: Record<string, string>) {
 
 /**
  * Whop OAuth callback — exchanges the authorization code, records that the
- * capper installed the SCL app, and returns them to the storefront setup page.
+ * capper authorized SCL's API access, and returns them to the storefront setup page.
  */
 export async function GET(req: NextRequest) {
   const origin = req.nextUrl.origin;
@@ -188,7 +188,7 @@ export async function GET(req: NextRequest) {
       : permissionFailure === "unavailable"
         ? " SCL could not verify plan access; connection marked NEEDS_ACTION."
         : " Required plan:basic:read permission verified.";
-  const noteLine = `[${stamp}] Capper installed the SCL Whop app via OAuth (${companies[0]?.id ?? "unknown company"}).${permissionNote}`;
+  const noteLine = `[${stamp}] Capper authorized the SCL Whop API connection via OAuth (${companies[0]?.id ?? "unknown company"}).${permissionNote}`;
   const adminNotes = connection.adminNotes
     ? `${connection.adminNotes}\n${noteLine}`
     : noteLine;

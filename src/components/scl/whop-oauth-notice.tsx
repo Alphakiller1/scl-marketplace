@@ -10,22 +10,22 @@ const MESSAGES: Record<string, string> = {
   connected:
     "SCL is connected on Whop. Finish the affiliate steps below and submit when ready.",
   "oauth-denied":
-    "Whop connection was cancelled. You can retry Connect SCL to Whop after adding SCL as an affiliate.",
+    "Whop connection was cancelled. You can retry Connect Whop API after adding SCL as an affiliate.",
   "exchange-failed":
     "Could not complete the Whop connection. Try again or contact support.",
   "session-expired":
-    "Whop connection session expired. Click Connect SCL to Whop to retry.",
+    "Whop connection session expired. Click Connect Whop API to retry.",
   "state-mismatch": "Whop connection could not be verified. Please try again.",
   "company-missing":
-    "Whop connected but no business was returned. Reconnect SCL on Whop or contact support.",
+    "Whop connected but no business was returned. Reconnect the Whop API or contact support.",
   "not-configured":
     "Whop connection is temporarily unavailable. Complete the affiliate steps and submit — SCL will review manually.",
   "oauth-misconfigured":
-    "Whop isn't accepting SCL's callback URL yet. Try Connect SCL to Whop again in a minute, or contact support if it keeps happening.",
+    "Whop isn't accepting SCL's callback URL yet. Try Connect Whop API again in a minute, or contact support if it keeps happening.",
   "app-permissions-missing":
-    "SCL's Whop app is being upgraded for package price sync. No change is needed in your capper account; retry after SCL support confirms the upgrade.",
+    "SCL's Whop API access is being upgraded for package price sync. No change is needed in your capper account; retry after SCL support confirms the upgrade.",
   "permissions-required":
-    "Whop connected, but package price sync permission was not granted. Re-approve SCL Marketplace under Whop → Authorized apps, then reconnect.",
+    "Whop connected, but package price sync permission was not granted. Return to SCL and reconnect the Whop API to authorize the required access.",
   "permission-check-failed":
     "Whop connected, but SCL could not verify package price sync. Your storefront was marked for review instead of being reported as fully synced.",
   "start-setup": "Review the Whop setup steps before connecting SCL on Whop.",
@@ -34,7 +34,7 @@ const MESSAGES: Record<string, string> = {
   "profile-missing":
     "Your capper profile is missing. Refresh and try again, or contact support.",
   "invalid-callback":
-    "Whop returned an incomplete response. Click Connect SCL to Whop to retry.",
+    "Whop returned an incomplete response. Click Connect Whop API to retry.",
   "connection-missing":
     "Your Whop storefront setup was not found. Restart setup from Dashboard → Storefront.",
 };
