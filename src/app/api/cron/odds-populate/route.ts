@@ -185,6 +185,8 @@ async function runPopulate(req: NextRequest) {
       events: selectExpandedSlateEvents(
         boardEvents.get(sport) ?? [],
         expandedDays,
+        new Date(),
+        sport,
       ).slice(0, expandedLimit),
     }));
     for (let index = 0; index < slates.length; index += 1) {

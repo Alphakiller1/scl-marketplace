@@ -4,12 +4,13 @@ import test from "node:test";
 import type { OddsEvent } from "@/lib/odds-board";
 import { expandedBoardMarkets } from "@/lib/odds-verify";
 import {
-  canSkipExpandedEvent,
   CATALOG_WORTH_READING_MARKETS,
   DEFAULT_EXPANDED_MAX_AGE_MINUTES,
   EVENT_MARKET_CATALOG_CREDIT_COST,
+  canSkipExpandedEvent,
   eventMarketCatalogKeys,
   expandedEventCreditCost,
+  expandsFullSlate,
   intersectExpandedMarkets,
   laterExpandedCreditReserve,
   mergeLastGoodBoardEvents,
@@ -271,4 +272,48 @@ test("the expanded max age falls back rather than trusting a bad query value", (
   // has to be rebuilt now.
   assert.equal(parseExpandedMaxAgeMinutes("0"), 0);
   assert.equal(parseExpandedMaxAgeMinutes("99999"), 24 * 60);
+});
+
+test("soccer expands every fixture on the board, not just today's slate", () => {
+  // Double Chance is a single 1-credit market, and the soccer board carries
+  // roughly six days of fixtures. Capping expansion to the ET slate day saved
+  // almost nothing and cost the market entirely — 46 of 49 fixtures had no
+  // Double Chance, so it appeared on a handful of games and vanished on the
+  // rest.
+  const now = new Date("2026-08-26T17:00:00Z");
+  const events = [
+    { id: "today", commenceTime: "2026-08-26T23:00:00Z" },
+    { id: "tomorrow", commenceTime: "2026-08-27T23:00:00Z" },
+    { id: "day-four", commenceTime: "2026-08-29T23:00:00Z" },
+    { id: "started", commenceTime: "2026-08-26T12:00:00Z" },
+  ] as unknown as OddsEvent[];
+
+  const soccer = selectExpandedSlateEvents(events, ["today"], now, "SOCCER");
+  assert.deepEqual(
+    soccer.map((e) => e.id),
+    ["today", "tomorrow", "day-four"],
+  );
+  // A fixture already under way is still excluded — full slate, not full history.
+  assert.ok(!soccer.some((e) => e.id === "started"));
+
+  // MLB keeps the slate-day budget control: its expanded board is ~20 credits a
+  // game, so paying that for a fixture four days out is exactly what the filter
+  // exists to prevent.
+  assert.deepEqual(
+    selectExpandedSlateEvents(events, ["today"], now, "MLB").map((e) => e.id),
+    ["today"],
+  );
+  // Unchanged when no sport is supplied.
+  assert.deepEqual(
+    selectExpandedSlateEvents(events, ["today"], now).map((e) => e.id),
+    ["today"],
+  );
+});
+
+test("expandsFullSlate is keyed on cost shape and is case-insensitive", () => {
+  assert.equal(expandsFullSlate("SOCCER"), true);
+  assert.equal(expandsFullSlate("soccer"), true);
+  assert.equal(expandsFullSlate(" Soccer "), true);
+  assert.equal(expandsFullSlate("MLB"), false);
+  assert.equal(expandsFullSlate("TENNIS"), false);
 });
