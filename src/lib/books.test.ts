@@ -31,7 +31,14 @@ describe("books", () => {
     assert.equal(isPickBoardBook("betmgm"), true);
     assert.equal(isPickBoardBook("bovada"), false);
     assert.equal(pickFormFallsBackOutsideRail("TENNIS"), true);
+    // Soccer joins tennis: rail coverage varies fixture by fixture across ten
+    // competitions, so a match came back moneyline-only and the next
+    // totals-only. Dropping a market no rail book posted is what did it.
+    assert.equal(pickFormFallsBackOutsideRail("SOCCER"), true);
+    assert.equal(pickFormFallsBackOutsideRail("soccer"), true);
     assert.equal(pickFormFallsBackOutsideRail("MLB"), false);
+    assert.equal(pickFormFallsBackOutsideRail("NFL"), false);
+    assert.equal(pickFormFallsBackOutsideRail(undefined), false);
   });
 
   it("maps labels and shorts", () => {
