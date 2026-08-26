@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { OddsEvent } from "@/lib/odds-board";
+import { expandedBoardMarkets } from "@/lib/odds-verify";
 import {
+  CATALOG_WORTH_READING_MARKETS,
   EVENT_MARKET_CATALOG_CREDIT_COST,
   eventMarketCatalogKeys,
   expandedEventCreditCost,
@@ -13,6 +15,8 @@ import {
   parseExpandedSportOrder,
   selectExpandedSlateEvents,
   shouldHoldCreditsForLater,
+  staleSurfaceSports,
+  surfaceRefreshReachedProvider,
 } from "@/lib/manual-odds-population";
 
 const NOW = new Date("2026-08-18T06:00:00.000Z");
@@ -153,4 +157,70 @@ test("the reserve prices an expanded event with its catalog call included", () =
   assert.equal(expandedEventCreditCost("MLB") > 40, true);
   assert.equal(expandedEventCreditCost("NFL"), 0);
   assert.equal(expandedEventCreditCost("SOCCER"), 1);
+});
+
+test("the catalog is read for the sports whose request list can waste credits", () => {
+  // MLB asks for 58 markets and WNBA 36: most of a prop card goes unpriced on
+  // any given fixture, so one credit spent learning which keys are live saves
+  // many. Tennis asks for four and soccer for one, where the catalog can cost
+  // more than the markets it would skip.
+  assert.ok(expandedBoardMarkets("MLB").length > CATALOG_WORTH_READING_MARKETS);
+  assert.ok(
+    expandedBoardMarkets("WNBA").length > CATALOG_WORTH_READING_MARKETS,
+  );
+  assert.ok(
+    expandedBoardMarkets("TENNIS").length <= CATALOG_WORTH_READING_MARKETS,
+  );
+  assert.ok(
+    expandedBoardMarkets("SOCCER").length <= CATALOG_WORTH_READING_MARKETS,
+  );
+});
+
+test("a catalog outage keeps the full request list rather than emptying the board", () => {
+  // [] means the lookup failed, not that the fixture prices nothing. Reading it
+  // as "nothing is priced" would skip the odds call and blank a live board.
+  const wanted = expandedBoardMarkets("MLB");
+  assert.deepEqual(intersectExpandedMarkets(wanted, []), wanted);
+});
+
+test("a surface refresh that reached no provider is not a successful populate", () => {
+  // The shape of the run that hid a spent key for a day: every sport served
+  // last-good data, every board still held events, and the job went green.
+  const allStale = {
+    MLB: { source: "stale_provider_failure", stale: true },
+    WNBA: { source: "stale_provider_failure", stale: true },
+    TENNIS: { source: "stale_provider_failure", stale: true },
+  };
+  assert.equal(surfaceRefreshReachedProvider(true, allStale), false);
+
+  // One live board is enough: the others may be out of season.
+  assert.equal(
+    surfaceRefreshReachedProvider(true, {
+      ...allStale,
+      MLB: { source: "provider", stale: false },
+    }),
+    true,
+  );
+});
+
+test("a top-up that asked for no surface refresh is not judged on one", () => {
+  // `surface=0` reads the cache by design, so `runtime_cache` everywhere is the
+  // correct outcome, not a provider failure.
+  assert.equal(
+    surfaceRefreshReachedProvider(false, {
+      MLB: { source: "runtime_cache", stale: false },
+    }),
+    true,
+  );
+});
+
+test("stale sports are named so a frozen board says which one froze", () => {
+  assert.deepEqual(
+    staleSurfaceSports({
+      WNBA: { source: "stale_cache_only", stale: true },
+      MLB: { source: "provider", stale: false },
+      TENNIS: { source: "stale_cache_only", stale: true },
+    }),
+    ["TENNIS", "WNBA"],
+  );
 });

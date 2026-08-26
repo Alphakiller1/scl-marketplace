@@ -2,39 +2,82 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
+import { REFRESH_MAX_GAP_MINUTES } from "@/lib/strategic-odds-policy";
+
 const workflow = readFileSync(".github/workflows/populate-odds.yml", "utf8");
 const route = readFileSync("src/app/api/cron/odds-populate/route.ts", "utf8");
 const vercel = readFileSync("vercel.json", "utf8");
 
-test("population performs exactly two scheduled surface refreshes per day", () => {
+/**
+ * Exactly one schedule, and it is the free one.
+ *
+ * Both this workflow and `vercel.json` used to fire at `0 12` and `0 0` against
+ * the same paid endpoint, so every scheduled surface refresh was billed twice
+ * for one board. Vercel owns the paid cadence now — it runs inside the
+ * deployment holding the provider keys and it fires on time, where a GitHub
+ * `0 0` schedule was landing at 00:50. What is left here spends nothing.
+ */
+test("the workflow schedules the free audit and no paid population", () => {
   const cronLines = workflow.match(/^\s*- cron:/gm) ?? [];
-  assert.equal(cronLines.length, 2);
-  assert.match(workflow, /EXPANDED:.*event_name == 'schedule'.*'0'/);
+  assert.equal(cronLines.length, 1);
   assert.match(workflow, /cancel-in-progress: false/);
+  // The audit reads the cache: no surface refresh, no expanded events, so the
+  // route answers without calling the provider.
+  assert.match(workflow, /audit:\n\s+if: github\.event_name == 'schedule'/);
+  assert.match(workflow, /expanded=0&surface=0/);
+  // Nothing else may run on a schedule — that is what double-billed.
+  for (const job of ["populate", "populate-temp-key", "write-snapshots"]) {
+    const start = workflow.indexOf(`\n  ${job}:`);
+    assert.ok(start > 0, `${job} job not found`);
+    const condition = workflow.slice(start, start + 400);
+    assert.doesNotMatch(
+      condition,
+      /event_name == 'schedule'/,
+      `${job} must not run on a schedule`,
+    );
+  }
+});
+
+test("the audit fails loudly on a spent key or a board that stopped moving", () => {
+  assert.match(workflow, /\.provider\.exhausted/);
+  assert.match(workflow, /\.provider\.staleSports/);
+  assert.match(
+    workflow,
+    /::error::The Odds API key on Vercel is out of credits/,
+  );
 });
 
 test("scheduled population calls the signed production route, never a stored Odds API key", () => {
   assert.match(workflow, /secrets\.CRON_SECRET/);
   assert.match(workflow, /Authorization: Bearer \$CRON_SECRET/);
   assert.match(workflow, /api\/cron\/odds-populate/);
-  assert.doesNotMatch(workflow, /secrets\.ODDS_API_KEY/);
   // The manual dispatch reaches the paid route only when it carries neither a
   // temporary key nor a snapshot file to replay — a replay must never spend
   // credits just because it was dispatched from the same workflow.
   assert.match(
     workflow,
-    /event_name == 'schedule' \|\| \(github\.event_name == 'workflow_dispatch' && inputs\.odds_key == '' && inputs\.snapshot_file == ''\)/,
+    /github\.event_name == 'workflow_dispatch' && !inputs\.use_temp_key && inputs\.odds_key == '' && inputs\.snapshot_file == ''/,
   );
 });
 
-test("manual temp-key population sends the key to the signed route and never stores it", () => {
+/**
+ * A key reaches the route from a SECRET and never from a dispatch input.
+ *
+ * Actions masks `secrets.*` and nothing else. Registering an input with
+ * `::add-mask::` is what leaked one: the runner echoes each `run:` body with
+ * its expressions already expanded, before the step runs, so the masking
+ * command printed the key it was about to hide — into a public run log. The
+ * `env:` block is printed resolved too, so no ordering makes an input safe.
+ */
+test("manual temp-key population takes the key from a secret, never an input", () => {
   assert.match(workflow, /repository_dispatch:/);
   assert.match(workflow, /types: \[populate-odds\]/);
-  assert.match(workflow, /inputs\.odds_key/);
-  assert.match(
-    workflow,
-    /::add-mask::\$\{\{ github\.event\.client_payload\.odds_key \|\| github\.event\.inputs\.odds_key \}\}/,
-  );
+  assert.doesNotMatch(workflow, /::add-mask::/);
+  assert.match(workflow, /ODDS_KEY: \$\{\{ secrets\.ODDS_API_KEY_TEMP \}\}/);
+  // A run that passes a key as an input is refused before any credit is spent,
+  // rather than quietly publishing it.
+  assert.match(workflow, /SUPPLIED_INPUT/);
+  assert.match(workflow, /An Odds API key was passed as a dispatch input/);
   assert.match(workflow, /x-scl-odds-key: \$ODDS_KEY/);
   assert.match(workflow, /skipPopulated=\$\{SKIP_POPULATED\}/);
   assert.match(workflow, /expandedOrder=\$\{encoded_order\}/);
@@ -107,11 +150,60 @@ test("production route accepts a one-shot key, expands supported sports, and ret
   assert.match(route, /DEFAULT_SPORTS\.every\(surfaceReady\)/);
 });
 
-test("Vercel cron is a backup when GitHub misses the 20:00 ET populate", () => {
-  assert.match(vercel, /\/api\/cron\/odds-populate/);
-  assert.match(vercel, /0 12 \* \* \*/);
-  assert.match(vercel, /0 0 \* \* \*/);
-  assert.match(vercel, /TENNIS,SOCCER,NFL/);
+/**
+ * Vercel owns the paid cadence, and it has to be an INTRADAY one.
+ *
+ * Two surface-only runs a day is not a live board: books post the alternate
+ * ladders and the prop cards a few hours before first pitch, so an overnight
+ * populate writes the featured lines and nothing else, and `expanded=0` meant
+ * the expanded markets were never fetched on a schedule at all — only by hand.
+ */
+test("Vercel runs the paid cadence through the day, expanded boards included", () => {
+  const crons = (
+    JSON.parse(vercel) as { crons: { path: string; schedule: string }[] }
+  ).crons.filter((cron) => cron.path.startsWith("/api/cron/odds-populate"));
+
+  assert.ok(
+    crons.length >= 5,
+    `expected an intraday cadence, found ${crons.length} populate crons`,
+  );
+  assert.ok(
+    crons.some((cron) => cron.path.includes("expandedDays=today")),
+    "no cron warms today's expanded boards",
+  );
+  assert.ok(
+    crons.some((cron) => cron.path.includes("expandedDays=today,tomorrow")),
+    "no cron builds tomorrow's board overnight",
+  );
+  for (const cron of crons) {
+    assert.match(cron.path, /sports=MLB,WNBA,TENNIS,SOCCER,NFL/);
+    assert.match(cron.schedule, /^\S+ \S+ \* \* \*$/);
+    // Every expanded run tops up what is missing rather than re-billing a card
+    // already on the board.
+    if (cron.path.includes("expanded=99")) {
+      assert.match(cron.path, /skipPopulated=1/);
+    }
+  }
+
+  // Through the hours US games are priced and played, no gap may outlive the
+  // window a board is considered fresh for — otherwise the site serves prices
+  // it has already marked stale, and the audit reports a fault on a cadence
+  // that ran exactly as written. The overnight gap is deliberately longer:
+  // nothing starts between 23:00 and 07:00 ET, and the 03:00 UTC run builds the
+  // next day's board.
+  const ACTIVE_FROM = 11 * 60; // 07:00 ET
+  const ACTIVE_TO = 23 * 60; // 19:00 ET
+  const active = crons
+    .map((cron) => cron.schedule.trim().split(/\s+/))
+    .map(([minute, hour]) => Number(hour) * 60 + Number(minute))
+    .filter((slot) => slot >= ACTIVE_FROM && slot <= ACTIVE_TO)
+    .sort((a, b) => a - b);
+  assert.ok(active.length >= 2, "no daytime cadence to check");
+  const gaps = active.slice(1).map((slot, index) => slot - active[index]!);
+  assert.ok(
+    Math.max(...gaps) <= REFRESH_MAX_GAP_MINUTES,
+    `a daytime gap of ${Math.max(...gaps)} minutes outlives the freshness window`,
+  );
 });
 
 test("a snapshot replay writes the database and spends no Odds API credits", () => {

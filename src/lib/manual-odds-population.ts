@@ -96,6 +96,23 @@ export function expandedEventCreditCost(sport: string): number {
 export const EVENT_MARKET_CATALOG_CREDIT_COST = 1;
 
 /**
+ * Request lists at or below this length are cheaper to just ask for.
+ *
+ * Reading the catalog costs one credit and saves one per market no book is
+ * pricing, so it pays off only when the request list is long enough that some
+ * of it is likely to come back empty. MLB asks for 58 markets and WNBA 36 —
+ * there the catalog is the difference between finishing the slate and running
+ * out partway through it. Tennis asks for four and soccer for one: paying a
+ * credit to learn which of four to skip can cost more than the four, and on a
+ * single-market request it always does.
+ *
+ * Eight is a deliberate margin above tennis's four rather than a tuned number;
+ * what matters is that the two expensive sports are on the catalog path and the
+ * two cheap ones are not.
+ */
+export const CATALOG_WORTH_READING_MARKETS = 8;
+
+/**
  * Market keys any covered book is actually pricing for one event.
  *
  * The odds endpoint bills `markets × regions` whether or not a market comes
@@ -160,6 +177,40 @@ export function parseExpandedSportOrder(
     if (wanted.has(sport) && !ordered.includes(sport)) ordered.push(sport);
   }
   return ordered;
+}
+
+/** One sport's surface board as the populate route saw it. */
+export type SurfaceOutcome = { source: string; stale: boolean };
+
+/**
+ * Did a populate that asked for fresh prices actually get any?
+ *
+ * `updateOddsBoardSegment` writes `provider` only when the provider answered
+ * with events; every other source is last-good data replayed out of the cache.
+ * Counting cached events as success is what hid a spent key for a full day —
+ * five sports came back `stale_provider_failure`, the board froze on yesterday's
+ * prices, and the scheduled job reported success on all five because the CACHE
+ * still held events.
+ *
+ * A run that did not ask for a surface refresh (`surface=0`, the shape a
+ * targeted expanded top-up uses) has nothing to judge and passes.
+ */
+export function surfaceRefreshReachedProvider(
+  refreshSurface: boolean,
+  surfaces: Readonly<Record<string, SurfaceOutcome>>,
+): boolean {
+  if (!refreshSurface) return true;
+  return Object.values(surfaces).some((row) => row.source === "provider");
+}
+
+/** Sports serving a board older than the freshness window. */
+export function staleSurfaceSports(
+  surfaces: Readonly<Record<string, SurfaceOutcome>>,
+): string[] {
+  return Object.entries(surfaces)
+    .filter(([, row]) => row.stale)
+    .map(([sport]) => sport)
+    .sort();
 }
 
 export function laterExpandedCreditReserve(
