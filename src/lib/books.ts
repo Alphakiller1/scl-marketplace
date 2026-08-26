@@ -43,12 +43,29 @@ export function isPickBoardBook(value: string): value is PickBoardBook {
 }
 
 /**
- * Tennis game spreads/totals are on Bovada/BetRivers, not the five pick-form
- * books (those usually post moneyline only). Best may fall back to the rest of
- * `regions=us` for tennis; other sports stay on the rail.
+ * Sports whose board may take a price from outside the five pick-form books.
+ *
+ * The rail exists so the board shows prices a capper can actually bet. But a
+ * market NO rail book posts is dropped selection by selection
+ * (`preferredThenAll` returns null and `normalizeUpcomingEvent` skips the
+ * group), and for these two sports that silently guts the board:
+ *
+ * - TENNIS: game spreads and totals are on Bovada/BetRivers; the five usually
+ *   post moneyline only.
+ * - SOCCER: rail coverage varies fixture by fixture across ten competitions, so
+ *   one match came back moneyline-only and the next totals-only — the same
+ *   match, the same league, different books having posted. The `regions=us`
+ *   response already carries the missing prices; they were fetched, billed, and
+ *   then discarded for want of a rail book.
+ *
+ * Falling back costs nothing and loses no integrity: the price still comes from
+ * a covered US book, verification bounds a claim against that same `regions=us`
+ * set, and the board labels which book it came from.
  */
+const RAIL_FALLBACK_SPORTS = new Set(["TENNIS", "SOCCER"]);
+
 export function pickFormFallsBackOutsideRail(sport?: string): boolean {
-  return sport?.trim().toUpperCase() === "TENNIS";
+  return RAIL_FALLBACK_SPORTS.has(sport?.trim().toUpperCase() ?? "");
 }
 
 const BY_KEY = new Map(SUPPORTED_BOOKS.map((b) => [b.key, b]));

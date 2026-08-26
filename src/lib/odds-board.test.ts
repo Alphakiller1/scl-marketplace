@@ -582,3 +582,112 @@ test("tennis Best keeps Bovada game spreads the pick-form five do not post", () 
     ),
   );
 });
+
+test("a soccer fixture keeps the market only a non-rail book priced", () => {
+  assert.equal(resolveBoardBooks(undefined, "SOCCER").fallbackToAll, true);
+
+  // The reported symptom, as the provider actually returns it: one fixture
+  // where a rail book posted the 3-way moneyline and only Bovada posted the
+  // total. The total was fetched under regions=us and billed, then dropped for
+  // want of a rail price — so the match rendered moneyline-only.
+  const moneylineOnlyRail = normalizeUpcomingEvent(
+    "SOCCER",
+    {
+      id: "s1",
+      commence_time: "2026-08-26T23:00:00Z",
+      home_team: "Palmeiras",
+      away_team: "Corinthians",
+      bookmakers: [
+        {
+          key: "draftkings",
+          markets: [
+            {
+              key: "h2h",
+              outcomes: [
+                { name: "Palmeiras", price: -130 },
+                { name: "Corinthians", price: 320 },
+                { name: "Draw", price: 260 },
+              ],
+            },
+          ],
+        },
+        {
+          key: "bovada",
+          markets: [
+            {
+              key: "totals",
+              outcomes: [
+                { name: "Over", price: -115, point: 2.5 },
+                { name: "Under", price: -105, point: 2.5 },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    undefined,
+    "BRAZIL_SERIE_A",
+  );
+
+  const total = moneylineOnlyRail.selections.find(
+    (s) => s.market === "Total" && s.side === "Over" && s.line === 2.5,
+  );
+  assert.ok(total, "the total priced only by a non-rail book was dropped");
+  assert.equal(total!.book, "bovada");
+  // The rail price still wins where the rail has one.
+  const moneyline = moneylineOnlyRail.selections.find(
+    (s) => s.market === "Moneyline" && s.side === "Palmeiras",
+  );
+  assert.equal(moneyline!.book, "draftkings");
+
+  // ...and the mirror image, which is why the board looked inconsistent from
+  // one fixture to the next: here no rail book posted the moneyline.
+  const totalsOnlyRail = normalizeUpcomingEvent(
+    "SOCCER",
+    {
+      id: "s2",
+      commence_time: "2026-08-26T23:00:00Z",
+      home_team: "Vejle",
+      away_team: "Randers",
+      bookmakers: [
+        {
+          key: "bovada",
+          markets: [
+            {
+              key: "h2h",
+              outcomes: [
+                { name: "Vejle", price: 150 },
+                { name: "Randers", price: 175 },
+                { name: "Draw", price: 230 },
+              ],
+            },
+          ],
+        },
+        {
+          key: "fanduel",
+          markets: [
+            {
+              key: "totals",
+              outcomes: [
+                { name: "Over", price: -120, point: 2.5 },
+                { name: "Under", price: 100, point: 2.5 },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    undefined,
+    "DENMARK_SUPERLIGA",
+  );
+  assert.ok(
+    totalsOnlyRail.selections.some(
+      (s) => s.market === "Moneyline" && s.side === "Draw",
+    ),
+    "the moneyline priced only by a non-rail book was dropped",
+  );
+
+  // The rail still governs the US majors: nothing here widens those boards.
+  assert.equal(resolveBoardBooks(undefined, "MLB").fallbackToAll, false);
+  assert.equal(resolveBoardBooks(undefined, "NFL").fallbackToAll, false);
+});
