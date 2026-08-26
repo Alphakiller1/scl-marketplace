@@ -67,6 +67,12 @@ export type PlayView = {
   /** Server-side disclosure state for pending paid selections. */
   isEmbargoed?: boolean;
   embargoedUntil?: Date | null;
+  /**
+   * Set when this entry IS a parlay shown as one position of record. Legs are
+   * never rows of their own, so a surface that lists positions must render the
+   * parlay itself or the capper's parlay-only days look empty.
+   */
+  parlayLegs?: ParlayLegView[];
 };
 
 export type ParlayLegView = {

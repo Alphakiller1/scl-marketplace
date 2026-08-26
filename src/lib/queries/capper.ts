@@ -24,6 +24,7 @@ import { hasQaNoteMarker, isValidPublicStake } from "@/lib/public-eligibility";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
 import { publicPickEmbargoState } from "@/lib/public-pick-embargo";
 import { getPublicCapperEvidenceByIds } from "@/lib/queries/leaderboard";
+import { parlayToRecordView } from "@/lib/parlay-record";
 import type { PlayView } from "@/lib/queries/plays";
 import { computeStatsBySport } from "@/lib/stats";
 import {
@@ -59,7 +60,49 @@ const PROFILE_HISTORY_FETCH_SIZE = PROFILE_HISTORY_PAGE_SIZE * 3;
 const PROFILE_HISTORY_MAX_BATCHES = 16;
 const PROFILE_CHART_QUERY_LIMIT = 5_000;
 
-/** Bounded public receipt page; parlay legs are never positions of record. */
+/**
+ * Bounded public receipt page. A parlay is ONE position of record: its legs are
+ * never rows of their own, so the parlay itself has to be listed or a capper who
+ * posts only parlays shows an empty history while their chart and record move.
+ */
+type HistoryScan = { createdAt: Date; id: string };
+
+/** Cursor is opaque to callers; it travels through a server action, never a URL. */
+function encodeHistoryCursor(scan: HistoryScan): string {
+  return `${scan.createdAt.toISOString()}|${scan.id}`;
+}
+
+async function decodeHistoryCursor(
+  cursor: string | null | undefined,
+): Promise<HistoryScan | null> {
+  if (!cursor) return null;
+  const split = cursor.indexOf("|");
+  if (split > 0) {
+    const createdAt = new Date(cursor.slice(0, split));
+    const id = cursor.slice(split + 1);
+    if (!Number.isNaN(createdAt.getTime()) && id) return { createdAt, id };
+    return null;
+  }
+  // Legacy cursor: a bare Play id issued before parlays joined this ledger.
+  // Resolve it so a page open across the deploy keeps paging instead of stalling.
+  const row = await prisma.play.findUnique({
+    where: { id: cursor },
+    select: { id: true, createdAt: true },
+  });
+  return row ? { createdAt: row.createdAt, id: row.id } : null;
+}
+
+/** Keyset predicate for "strictly older than the scan position". */
+function olderThan(scan: HistoryScan | null) {
+  if (!scan) return {};
+  return {
+    OR: [
+      { createdAt: { lt: scan.createdAt } },
+      { createdAt: scan.createdAt, id: { lt: scan.id } },
+    ],
+  };
+}
+
 export async function getPublicProfileHistoryPage(
   handle: string,
   cursor?: string | null,
@@ -68,8 +111,16 @@ export async function getPublicProfileHistoryPage(
   const notesPublicReady = await hasNotesPublicColumn();
   const clvReady = await hasClvColumns();
   const visible: PlayView[] = [];
-  let scanCursor = cursor ?? null;
+  let scan = await decodeHistoryCursor(cursor);
   let exhausted = false;
+
+  const capperWhere = {
+    user: {
+      username: { equals: handle, mode: "insensitive" as const },
+      accountStatus: "ACTIVE" as const,
+      ...excludeTest,
+    },
+  };
 
   for (
     let batch = 0;
@@ -78,109 +129,162 @@ export async function getPublicProfileHistoryPage(
     !exhausted;
     batch += 1
   ) {
-    const rows = await prisma.play.findMany({
-      where: {
-        capper: {
-          user: {
-            username: { equals: handle, mode: "insensitive" },
-            accountStatus: "ACTIVE",
-            ...excludeTest,
+    const [rows, parlayRows] = await Promise.all([
+      prisma.play.findMany({
+        where: {
+          capper: capperWhere,
+          units: { gte: UNIT_MIN },
+          parlayId: null,
+          ...olderThan(scan),
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: PROFILE_HISTORY_FETCH_SIZE,
+        select: {
+          id: true,
+          sport: true,
+          league: true,
+          market: true,
+          selection: true,
+          oddsAmerican: true,
+          units: true,
+          outcome: true,
+          profitUnits: true,
+          createdAt: true,
+          verificationTier: true,
+          side: true,
+          eventStartsAt: true,
+          eventLabel: true,
+          book: true,
+          notes: true,
+          ...(notesPublicReady ? { notesPublic: true } : {}),
+          ...(clvReady ? { closingOddsAmerican: true, clvPts: true } : {}),
+        },
+      }),
+      prisma.parlay.findMany({
+        where: {
+          capper: capperWhere,
+          units: { gte: UNIT_MIN },
+          ...olderThan(scan),
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: PROFILE_HISTORY_FETCH_SIZE,
+        select: {
+          id: true,
+          combinedOddsAmerican: true,
+          units: true,
+          outcome: true,
+          profitUnits: true,
+          createdAt: true,
+          legs: {
+            orderBy: { createdAt: "asc" },
+            select: {
+              id: true,
+              sport: true,
+              market: true,
+              selection: true,
+              oddsAmerican: true,
+              side: true,
+              book: true,
+              verificationTier: true,
+              eventStartsAt: true,
+              notes: true,
+            },
           },
         },
-        units: { gte: UNIT_MIN },
-        parlayId: null,
-      },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: PROFILE_HISTORY_FETCH_SIZE,
-      ...(scanCursor ? { cursor: { id: scanCursor }, skip: 1 } : {}),
-      select: {
-        id: true,
-        sport: true,
-        league: true,
-        market: true,
-        selection: true,
-        oddsAmerican: true,
-        units: true,
-        outcome: true,
-        profitUnits: true,
-        createdAt: true,
-        verificationTier: true,
-        side: true,
-        eventStartsAt: true,
-        eventLabel: true,
-        homeTeam: true,
-        awayTeam: true,
-        book: true,
-        notes: true,
-        ...(notesPublicReady ? { notesPublic: true } : {}),
-        ...(clvReady ? { closingOddsAmerican: true, clvPts: true } : {}),
-      },
-    });
-    if (rows.length === 0) {
+      }),
+    ]);
+    if (rows.length === 0 && parlayRows.length === 0) {
       exhausted = true;
       break;
     }
-    scanCursor = rows.at(-1)?.id ?? scanCursor;
-    exhausted = rows.length < PROFILE_HISTORY_FETCH_SIZE;
-    visible.push(
-      ...rows
-        .filter((row) => !hasQaNoteMarker(row.notes))
-        .map((row) => {
-          const embargo = publicPickEmbargoState(row);
-          const stake = stakeFromStored(row.units, row.profitUnits);
-          return {
-            id: row.id,
-            sport: row.sport,
-            league: row.league,
-            market: row.market,
-            selection: embargo.isEmbargoed ? "Pick hidden" : row.selection,
-            oddsAmerican: embargo.isEmbargoed ? 0 : row.oddsAmerican,
-            units: stake.units,
-            outcome: row.outcome,
-            profitUnits: stake.profitUnits,
-            createdAt: row.createdAt,
-            verificationTier: row.verificationTier,
-            side: embargo.isEmbargoed ? null : row.side,
-            eventStartsAt: row.eventStartsAt,
-            // Which game, not which side of it — disclosed on the same terms as
-            // eventLabel, which an embargoed row already carries.
-            eventLabel: row.eventLabel,
-            homeTeam: row.homeTeam,
-            awayTeam: row.awayTeam,
-            book: embargo.isEmbargoed ? null : row.book,
-            notes:
-              embargo.isEmbargoed ||
-              ("notesPublic" in row &&
-                (row as { notesPublic?: boolean }).notesPublic === false)
-                ? null
-                : row.notes,
-            notesPublic:
-              "notesPublic" in row
-                ? ((row as { notesPublic?: boolean }).notesPublic ?? true)
-                : true,
-            closingOddsAmerican:
-              embargo.isEmbargoed || !("closingOddsAmerican" in row)
-                ? null
-                : ((row as { closingOddsAmerican?: number | null })
-                    .closingOddsAmerican ?? null),
-            clvPts:
-              embargo.isEmbargoed ||
-              !("clvPts" in row) ||
-              (row as { clvPts?: unknown }).clvPts == null
-                ? null
-                : Number((row as { clvPts: unknown }).clvPts),
-            ...embargo,
-          };
-        })
-        .filter((play) => isValidPublicStake(play.units)),
-    );
+    exhausted =
+      rows.length < PROFILE_HISTORY_FETCH_SIZE &&
+      parlayRows.length < PROFILE_HISTORY_FETCH_SIZE;
+
+    const mappedPlays: PlayView[] = rows
+      .filter((row) => !hasQaNoteMarker(row.notes))
+      .map((row) => {
+        const embargo = publicPickEmbargoState(row);
+        return {
+          id: row.id,
+          sport: row.sport,
+          league: row.league,
+          market: row.market,
+          selection: embargo.isEmbargoed ? "Pick hidden" : row.selection,
+          oddsAmerican: embargo.isEmbargoed ? 0 : row.oddsAmerican,
+          units: Number(row.units),
+          outcome: row.outcome,
+          profitUnits: row.profitUnits == null ? null : Number(row.profitUnits),
+          createdAt: row.createdAt,
+          verificationTier: row.verificationTier,
+          side: embargo.isEmbargoed ? null : row.side,
+          eventStartsAt: row.eventStartsAt,
+          eventLabel: row.eventLabel,
+          book: embargo.isEmbargoed ? null : row.book,
+          notes:
+            embargo.isEmbargoed ||
+            ("notesPublic" in row &&
+              (row as { notesPublic?: boolean }).notesPublic === false)
+              ? null
+              : row.notes,
+          notesPublic:
+            "notesPublic" in row
+              ? ((row as { notesPublic?: boolean }).notesPublic ?? true)
+              : true,
+          closingOddsAmerican:
+            embargo.isEmbargoed || !("closingOddsAmerican" in row)
+              ? null
+              : ((row as { closingOddsAmerican?: number | null })
+                  .closingOddsAmerican ?? null),
+          clvPts:
+            embargo.isEmbargoed ||
+            !("clvPts" in row) ||
+            (row as { clvPts?: unknown }).clvPts == null
+              ? null
+              : Number((row as { clvPts: unknown }).clvPts),
+          ...embargo,
+        };
+      });
+
+    const mappedParlays: PlayView[] = parlayRows
+      // A parlay carries no notes of its own; a QA marker on any leg hides it.
+      .filter((row) => !row.legs.some((leg) => hasQaNoteMarker(leg.notes)))
+      .map((row) => {
+        const view = parlayToRecordView(row);
+        const embargo = publicPickEmbargoState(view);
+        return {
+          ...view,
+          selection: embargo.isEmbargoed ? "Pick hidden" : view.selection,
+          oddsAmerican: embargo.isEmbargoed ? 0 : view.oddsAmerican,
+          parlayLegs: embargo.isEmbargoed ? [] : view.parlayLegs,
+          ...embargo,
+        };
+      });
+
+    const merged = [...mappedPlays, ...mappedParlays].sort((a, b) => {
+      const delta = b.createdAt.getTime() - a.createdAt.getTime();
+      if (delta !== 0) return delta;
+      return a.id < b.id ? 1 : -1;
+    });
+    // Advance only to the OLDEST row consumed: anything older in the other
+    // table is still ahead of the next scan, so nothing is skipped.
+    const oldest = merged.at(-1);
+    if (oldest) scan = { createdAt: oldest.createdAt, id: oldest.id };
+    visible.push(...merged.filter((play) => isValidPublicStake(play.units)));
   }
   const plays = visible.slice(0, PROFILE_HISTORY_PAGE_SIZE);
   const mayHaveMore = visible.length > PROFILE_HISTORY_PAGE_SIZE || !exhausted;
+  const last = plays.at(-1);
 
   return {
     plays,
-    nextCursor: mayHaveMore ? (plays.at(-1)?.id ?? scanCursor) : null,
+    nextCursor: mayHaveMore
+      ? last
+        ? encodeHistoryCursor({ createdAt: last.createdAt, id: last.id })
+        : scan
+          ? encodeHistoryCursor(scan)
+          : null
+      : null,
   };
 }
 

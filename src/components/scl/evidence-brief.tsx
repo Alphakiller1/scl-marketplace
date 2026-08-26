@@ -11,6 +11,7 @@ import {
 } from "react";
 import {
   ChevronDown,
+  Layers,
   ListChecks,
   LockKeyhole,
   ReceiptText,
@@ -67,6 +68,16 @@ import { isProvisional } from "@/lib/sample";
 import { isVerifiedTier } from "@/lib/verification";
 import { cn } from "@/lib/utils";
 
+/** A parlay may carry no combined price; never render that as +0. */
+function isParlayEntry(play: PlayView): boolean {
+  return (play.parlayLegs?.length ?? 0) > 0;
+}
+
+function displayOdds(play: PlayView): string {
+  if (isParlayEntry(play) && !play.oddsAmerican) return "—";
+  return formatOdds(play.oddsAmerican);
+}
+
 function playToProofReceipt(
   play: PlayView,
   density: ProofReceiptDensity,
@@ -113,12 +124,16 @@ function playToProofReceipt(
       league: play.league,
       market: play.market,
     });
-  return (
+  const parlayLegs = play.parlayLegs ?? [];
+  const isParlay = parlayLegs.length > 0;
+  const receipt = (
     <ProofReceipt
       key={`${play.id}-${density}`}
       selectionTitle={play.selection}
       leadingMark={
-        play.market === "Player Prop" ? (
+        isParlay ? (
+          <Layers className="size-5 text-[color:var(--scl-blue)]" aria-hidden />
+        ) : play.market === "Player Prop" ? (
           <PlayerHeadshot
             selection={play.selection}
             league={toHeadshotLeague(play.sport)}
@@ -138,8 +153,8 @@ function playToProofReceipt(
           ) : null}
         </span>
       }
-      legs={1}
-      odds={formatOdds(play.oddsAmerican)}
+      legs={isParlay ? parlayLegs.length : 1}
+      odds={displayOdds(play)}
       stake={formatUnits(play.units, true, false)}
       toWin={toWin}
       capturedAt={asDate(play.createdAt)?.toISOString() ?? null}
@@ -154,6 +169,35 @@ function playToProofReceipt(
       eventStartsAt={pickEventDate(play)}
       analysis={play.notesPublic === false ? null : play.notes}
     />
+  );
+  if (!isParlay) return receipt;
+  return (
+    <div className="space-y-3">
+      {receipt}
+      <ol className="border-border bg-surface-2/40 divide-border divide-y rounded-md border text-xs">
+        {parlayLegs.map((leg, index) => (
+          <li
+            key={leg.id}
+            className="flex items-baseline justify-between gap-3 px-3 py-2"
+          >
+            <span className="min-w-0">
+              <span className="text-muted-foreground mr-2 tabular-nums">
+                {index + 1}.
+              </span>
+              <span className="text-foreground font-medium">
+                {leg.selection}
+              </span>
+              <span className="text-muted-foreground mt-0.5 block text-[0.65rem]">
+                {leg.market}
+              </span>
+            </span>
+            <span className="scl-data text-muted-foreground shrink-0 tabular-nums">
+              {formatOdds(leg.oddsAmerican)}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 
@@ -575,7 +619,7 @@ function ProofHistoryLedger({
                     {game ?? "—"}
                   </td>
                   <td className="scl-data text-muted-foreground hidden py-2.5 pr-2 tabular-nums sm:table-cell">
-                    {play.isEmbargoed ? "—" : formatOdds(play.oddsAmerican)}
+                    {play.isEmbargoed ? "—" : displayOdds(play)}
                   </td>
                   <td className="scl-data text-muted-foreground hidden py-2.5 pr-2 tabular-nums md:table-cell">
                     {play.isEmbargoed ? "—" : formatClvPts(play.clvPts)}
