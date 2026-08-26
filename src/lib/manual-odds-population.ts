@@ -179,6 +179,58 @@ export function parseExpandedSportOrder(
   return ordered;
 }
 
+/**
+ * How old an expanded event board may be before a scheduled populate pays to
+ * move it, in minutes.
+ *
+ * `ODDS_EVENT_FRESH_SECONDS` (10 minutes) is the browse window — the age at
+ * which opening a matchup refetches one event. Reusing it here would refetch
+ * every event on every run, since runs are hours apart, and a full MLB card is
+ * the most expensive thing this route can do.
+ *
+ * Two hours sits below the gap between scheduled runs, so each run moves the
+ * prices the run before it wrote, while a manual run fired minutes after
+ * another does not re-bill the whole slate.
+ */
+export const DEFAULT_EXPANDED_MAX_AGE_MINUTES = 120;
+
+export function parseExpandedMaxAgeMinutes(
+  value: string | null | undefined,
+): number {
+  // Checked before `Number`, which reads null and "" as 0 — and 0 is the one
+  // value that means "refetch every covered board". An absent parameter would
+  // otherwise re-bill the whole slate on every scheduled run.
+  const trimmed = value?.trim();
+  if (!trimmed) return DEFAULT_EXPANDED_MAX_AGE_MINUTES;
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return DEFAULT_EXPANDED_MAX_AGE_MINUTES;
+  }
+  // A day is the ceiling: past that the slate has turned over anyway.
+  return Math.min(24 * 60, Math.floor(parsed));
+}
+
+/**
+ * May a populate skip this event, or does it owe it fresh prices?
+ *
+ * Coverage alone said skip, and "complete" is a permanent property — once a
+ * board was filled it was skipped on every later run and its prop and alternate
+ * prices never moved again. The 13:22 populate on 2026-08-26 refreshed all five
+ * surface boards and skipped 13 of 15 MLB games as covered, 11 of them serving
+ * expanded prices captured the previous evening. An intraday cadence cannot
+ * reach the deep board while completeness alone decides.
+ */
+export function canSkipExpandedEvent(
+  fullyCovered: boolean,
+  savedAt: number | null,
+  maxAgeMinutes: number,
+  now: number = Date.now(),
+): boolean {
+  if (!fullyCovered) return false;
+  if (savedAt == null) return false;
+  return now - savedAt <= maxAgeMinutes * 60_000;
+}
+
 /** One sport's surface board as the populate route saw it. */
 export type SurfaceOutcome = { source: string; stale: boolean };
 

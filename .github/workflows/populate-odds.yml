@@ -50,6 +50,11 @@ on:
         required: false
         default: "today"
         type: string
+      expanded_max_age_minutes:
+        description: "Refetch a complete expanded board older than this many minutes. 0 rebuilds every board now."
+        required: false
+        default: "120"
+        type: string
       budget_floor:
         description: "Stop spending once remaining credits hit this (temp-key runs)"
         required: false
@@ -314,6 +319,7 @@ jobs:
           EXPANDED: ${{ inputs.expanded }}
           EXPANDED_DAYS: ${{ inputs.expanded_days || 'tomorrow' }}
           SURFACE: ${{ inputs.surface && '1' || '0' }}
+          MAX_AGE: ${{ inputs.expanded_max_age_minutes || '120' }}
         run: |
           if [ -z "$CRON_SECRET" ]; then
             echo "::error::CRON_SECRET is not configured. No odds credits were spent."
@@ -324,7 +330,7 @@ jobs:
           curl --fail --silent --show-error \
             --header "Authorization: Bearer $CRON_SECRET" \
             --request POST \
-            "https://sportscappersleaderboard.com/api/cron/odds-populate?sports=${encoded_sports}&expanded=${EXPANDED}&expandedDays=${encoded_days}&surface=${SURFACE}" \
+            "https://sportscappersleaderboard.com/api/cron/odds-populate?sports=${encoded_sports}&expanded=${EXPANDED}&expandedDays=${encoded_days}&surface=${SURFACE}&expandedMaxAgeMinutes=${MAX_AGE}" \
             --output /tmp/populate.json
           jq . /tmp/populate.json
           jq -e '

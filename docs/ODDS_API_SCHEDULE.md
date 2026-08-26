@@ -23,7 +23,18 @@ holds the provider keys, and it fires on time.
 | `0 3 * * *`  | 23:00    | yes     | today + tomorrow | Next-day lines                                           |
 
 Every expanded run carries `skipPopulated=1`, so an event whose card is already
-complete costs nothing; only the gaps are billed.
+complete costs nothing — but "complete" alone is not enough to skip it.
+Completeness is permanent: a board filled once was skipped on every later run
+and its prop and alternate prices never moved again. The 13:22 UTC populate on
+2026-08-26 refreshed all five surface boards and skipped 13 of 15 MLB games as
+covered, 11 of them serving expanded prices captured the previous evening.
+
+So a covered board is also refetched once it ages past
+`expandedMaxAgeMinutes` (default 120, set per cron URL). Two hours sits below
+the gap between runs, so each run moves what the run before it wrote, while a
+manual run fired minutes after a scheduled one does not re-bill the slate. Pass
+`expandedMaxAgeMinutes=0` — or the workflow's `expanded_max_age_minutes` input —
+to rebuild every board now.
 
 Through the hours games are priced and played, no gap exceeds the four hours a
 board is considered fresh for. The overnight gap is deliberately longer —

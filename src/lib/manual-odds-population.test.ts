@@ -4,13 +4,16 @@ import test from "node:test";
 import type { OddsEvent } from "@/lib/odds-board";
 import { expandedBoardMarkets } from "@/lib/odds-verify";
 import {
+  canSkipExpandedEvent,
   CATALOG_WORTH_READING_MARKETS,
+  DEFAULT_EXPANDED_MAX_AGE_MINUTES,
   EVENT_MARKET_CATALOG_CREDIT_COST,
   eventMarketCatalogKeys,
   expandedEventCreditCost,
   intersectExpandedMarkets,
   laterExpandedCreditReserve,
   mergeLastGoodBoardEvents,
+  parseExpandedMaxAgeMinutes,
   parseExpandedSlateDays,
   parseExpandedSportOrder,
   selectExpandedSlateEvents,
@@ -223,4 +226,49 @@ test("stale sports are named so a frozen board says which one froze", () => {
     }),
     ["TENNIS", "WNBA"],
   );
+});
+
+test("a complete expanded board is refetched once its prices have aged", () => {
+  const now = Date.parse("2026-08-26T13:22:00.000Z");
+  const lastEvening = Date.parse("2026-08-25T18:20:00.000Z");
+  // The shape of the 13:22 populate: covered, and serving prices from the
+  // previous evening. Coverage alone said skip, which is how a board that was
+  // filled once stopped moving for the rest of the day.
+  assert.equal(canSkipExpandedEvent(true, lastEvening, 120, now), false);
+
+  // Written by the run three hours earlier — also due.
+  assert.equal(
+    canSkipExpandedEvent(true, now - 3 * 60 * 60_000, 120, now),
+    false,
+  );
+
+  // Written minutes ago: a manual run right after a scheduled one must not
+  // re-bill the whole card.
+  assert.equal(canSkipExpandedEvent(true, now - 5 * 60_000, 120, now), true);
+});
+
+test("an incomplete or uncached expanded board is never skipped", () => {
+  const now = Date.now();
+  assert.equal(canSkipExpandedEvent(false, now, 120, now), false);
+  assert.equal(canSkipExpandedEvent(true, null, 120, now), false);
+});
+
+test("the expanded max age falls back rather than trusting a bad query value", () => {
+  assert.equal(
+    parseExpandedMaxAgeMinutes(null),
+    DEFAULT_EXPANDED_MAX_AGE_MINUTES,
+  );
+  assert.equal(
+    parseExpandedMaxAgeMinutes("nonsense"),
+    DEFAULT_EXPANDED_MAX_AGE_MINUTES,
+  );
+  assert.equal(
+    parseExpandedMaxAgeMinutes("-5"),
+    DEFAULT_EXPANDED_MAX_AGE_MINUTES,
+  );
+  assert.equal(parseExpandedMaxAgeMinutes("45"), 45);
+  // 0 forces every covered board to refetch — the escape hatch for a slate that
+  // has to be rebuilt now.
+  assert.equal(parseExpandedMaxAgeMinutes("0"), 0);
+  assert.equal(parseExpandedMaxAgeMinutes("99999"), 24 * 60);
 });

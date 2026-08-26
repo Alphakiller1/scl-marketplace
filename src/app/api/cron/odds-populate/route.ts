@@ -23,8 +23,10 @@ import {
 } from "@/lib/odds-event-board-cache";
 import { summarizeEventMarketCoverage } from "@/lib/odds-market-coverage";
 import {
+  canSkipExpandedEvent,
   expandedEventCreditCost,
   laterExpandedCreditReserve,
+  parseExpandedMaxAgeMinutes,
   parseExpandedSlateDays,
   parseExpandedSportOrder,
   selectExpandedSlateEvents,
@@ -151,6 +153,12 @@ async function runPopulate(req: NextRequest) {
   // Default on: a top-up key should fill missing expanded boards, not rebill
   // the ones already cached. Pass skipPopulated=0 to force a full re-fetch.
   const skipPopulated = req.nextUrl.searchParams.get("skipPopulated") !== "0";
+  // How stale an already-complete expanded board may be before this run pays to
+  // move it. Tunable from the cron URL so the deep-board spend can be traded
+  // against the credit budget without a deploy.
+  const expandedMaxAgeMinutes = parseExpandedMaxAgeMinutes(
+    req.nextUrl.searchParams.get("expandedMaxAgeMinutes"),
+  );
   const expandedOrder = parseExpandedSportOrder(
     req.nextUrl.searchParams.get("expandedOrder"),
     sports,
@@ -210,11 +218,16 @@ async function runPopulate(req: NextRequest) {
             cached.source,
             cached.stale,
           );
-          if (coverage.fullyCovered) {
+          if (
+            canSkipExpandedEvent(
+              coverage.fullyCovered,
+              cached.savedAt,
+              expandedMaxAgeMinutes,
+            )
+          ) {
             skipped += 1;
             populated += 1;
             selections += cached.selections.length;
-            if (cached.stale) stale += 1;
             continue;
           }
         }
@@ -298,6 +311,7 @@ async function runPopulate(req: NextRequest) {
     expandedOrder,
     refreshSurface,
     skipPopulated,
+    expandedMaxAgeMinutes,
     surface,
     expanded,
     provider,
