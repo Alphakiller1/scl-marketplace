@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 
 import {
   fetchUpcomingOdds,
+  getLastOddsApiCapacity,
   getLastOddsApiRemaining,
   resetLastOddsApiUsage,
   setOddsCircuitBreakSuspended,
 } from "@/lib/odds-api";
-import { MIN_CIRCUIT_BREAK_RESERVE } from "@/lib/odds-budget";
+import {
+  circuitBreakThreshold,
+  MIN_CIRCUIT_BREAK_RESERVE,
+} from "@/lib/odds-budget";
 import { pinOddsApiKey } from "@/lib/odds-config";
 import { resetOddsKeyPreference } from "@/lib/odds-key-rollover";
 import {
@@ -19,12 +23,16 @@ import {
 } from "@/lib/odds-event-board-cache";
 import { summarizeEventMarketCoverage } from "@/lib/odds-market-coverage";
 import {
+  canSkipExpandedEvent,
   expandedEventCreditCost,
   laterExpandedCreditReserve,
+  parseExpandedMaxAgeMinutes,
   parseExpandedSlateDays,
   parseExpandedSportOrder,
   selectExpandedSlateEvents,
   shouldHoldCreditsForLater,
+  staleSurfaceSports,
+  surfaceRefreshReachedProvider,
 } from "@/lib/manual-odds-population";
 
 export const maxDuration = 300;
@@ -57,7 +65,21 @@ type ExpandedRow = {
   held: number;
   selections: number;
   stale: number;
+  /** Fixtures skipped because their competition priced none of these markets. */
+  unpriced: number;
 };
+
+/**
+ * Consecutive empty expanded boards before the rest of a competition is left
+ * alone for this run.
+ *
+ * Books post the non-surface markets by competition, not by fixture: either the
+ * league's card carries Double Chance or none of it does. Without this, one
+ * populate paid a call for all twenty EFL Cup ties and got nothing on any of
+ * them, and did it again on the next run — a fixture nobody prices never
+ * reaches full coverage, so `skipPopulated` cannot learn to skip it.
+ */
+const UNPRICED_COMPETITION_LIMIT = 2;
 
 async function loadSurface(
   sport: string,
@@ -131,6 +153,12 @@ async function runPopulate(req: NextRequest) {
   // Default on: a top-up key should fill missing expanded boards, not rebill
   // the ones already cached. Pass skipPopulated=0 to force a full re-fetch.
   const skipPopulated = req.nextUrl.searchParams.get("skipPopulated") !== "0";
+  // How stale an already-complete expanded board may be before this run pays to
+  // move it. Tunable from the cron URL so the deep-board spend can be traded
+  // against the credit budget without a deploy.
+  const expandedMaxAgeMinutes = parseExpandedMaxAgeMinutes(
+    req.nextUrl.searchParams.get("expandedMaxAgeMinutes"),
+  );
   const expandedOrder = parseExpandedSportOrder(
     req.nextUrl.searchParams.get("expandedOrder"),
     sports,
@@ -174,7 +202,14 @@ async function runPopulate(req: NextRequest) {
       let held = 0;
       let selections = 0;
       let stale = 0;
+      let unpriced = 0;
+      const emptyRuns = new Map<string, number>();
       for (const event of events) {
+        const competition = event.league ?? sport;
+        if ((emptyRuns.get(competition) ?? 0) >= UNPRICED_COMPETITION_LIMIT) {
+          unpriced += 1;
+          continue;
+        }
         if (skipPopulated) {
           const cached = await loadCachedEventBoard(sport, event.id);
           const coverage = summarizeEventMarketCoverage(
@@ -183,11 +218,16 @@ async function runPopulate(req: NextRequest) {
             cached.source,
             cached.stale,
           );
-          if (coverage.fullyCovered) {
+          if (
+            canSkipExpandedEvent(
+              coverage.fullyCovered,
+              cached.savedAt,
+              expandedMaxAgeMinutes,
+            )
+          ) {
             skipped += 1;
             populated += 1;
             selections += cached.selections.length;
-            if (cached.stale) stale += 1;
             continue;
           }
         }
@@ -207,7 +247,12 @@ async function runPopulate(req: NextRequest) {
           forceRefresh: true,
           league: event.league,
         });
-        if (board.selections.length > 0) populated += 1;
+        if (board.selections.length > 0) {
+          populated += 1;
+          emptyRuns.set(competition, 0);
+        } else {
+          emptyRuns.set(competition, (emptyRuns.get(competition) ?? 0) + 1);
+        }
         selections += board.selections.length;
         if (board.stale) stale += 1;
       }
@@ -219,6 +264,7 @@ async function runPopulate(req: NextRequest) {
         held,
         selections,
         stale,
+        unpriced,
       };
     }
   }
@@ -229,16 +275,47 @@ async function runPopulate(req: NextRequest) {
 
   const surfaceReady = (sport: string) =>
     !sports.includes(sport) || (surface[sport]?.events ?? 0) > 0;
+
+  const refreshedSports = Object.values(surface).filter(
+    (row) => row.source === "provider",
+  ).length;
+  const staleSports = staleSurfaceSports(surface);
+  const remaining = getLastOddsApiRemaining();
+  const capacity = getLastOddsApiCapacity();
+  const provider = {
+    requestsRemaining: remaining,
+    capacity,
+    circuitBreakThreshold: circuitBreakThreshold(capacity),
+    // Below the reserve nothing uncached will fetch, so the board is frozen
+    // whatever the cadence says.
+    exhausted: remaining != null && remaining <= 0,
+    refreshedSports,
+    staleSports,
+  };
+
+  // `ok` used to ask only whether the cached board held events, which is true of
+  // yesterday's board too. Every scheduled run since the production key hit zero
+  // credits therefore reported success while writing nothing: five sports came
+  // back `stale_provider_failure`, the job went green, and the board silently
+  // stopped moving. A refresh that was asked for and reached no fresh price is
+  // a failed refresh, and has to say so.
+  const surfaceRefreshed = surfaceRefreshReachedProvider(
+    refreshSurface,
+    surface,
+  );
   return NextResponse.json({
-    ok: DEFAULT_SPORTS.every(surfaceReady),
+    ok: DEFAULT_SPORTS.every(surfaceReady) && surfaceRefreshed,
+    surfaceRefreshed,
     sports,
     expandedDays,
     expandedOrder,
     refreshSurface,
     skipPopulated,
+    expandedMaxAgeMinutes,
     surface,
     expanded,
-    requestsRemaining: getLastOddsApiRemaining(),
+    provider,
+    requestsRemaining: remaining,
   });
 }
 

@@ -1,25 +1,40 @@
 name: Populate odds
 
-# Two daily scheduled runs refresh surface prices through the signed production
-# route (the keys already on Vercel). One-shot populate sends a temporary Odds
-# API key to that same route — used for that job only, never stored — so Vercel
-# writes scl.OddsCacheSnapshot with the database it already holds.
+# Manual population plus a free daily audit. The paid CADENCE lives in
+# `vercel.json` — see docs/ODDS_API_SCHEDULE.md.
 #
-# `snapshot_file` runs neither: it replays a slate already fetched into
-# data/odds-snapshots/ straight into the database, spending no Odds API credits.
+# This file used to carry `0 12` and `0 0` schedules of its own, hitting the
+# same endpoint that `vercel.json` already hit at those minutes. Both spent
+# credits, so every scheduled surface refresh was billed twice for one board.
+# Vercel owns the schedule now: it runs inside the deployment that holds the
+# provider keys, and it fires on time (a GitHub schedule for `0 0` was landing
+# at 00:50).
+#
+# What is left here:
+#   - `audit` — a scheduled, ZERO-CREDIT read of the cached board, so a frozen
+#     board is visible in Actions rather than only in the site's odds.
+#   - `populate` / `populate-temp-key` — manual runs, on demand.
+#   - `write-snapshots` — replays an already-fetched slate into the database.
 
 on:
   schedule:
-    - cron: "0 12 * * *" # 08:00 ET (during daylight time)
-    - cron: "0 0 * * *" # 20:00 ET (during daylight time)
+    # 13:00 UTC / 09:00 ET — two hours after the first paid populate of the day,
+    # which is long enough that a board still stale at this point is a fault and
+    # not a run in flight.
+    - cron: "0 13 * * *"
   repository_dispatch:
     types: [populate-odds]
   workflow_dispatch:
     inputs:
       odds_key:
-        description: "Temporary Odds API key for this run only. Leave blank to use production keys."
+        description: "DO NOT USE — a key typed here is printed in this public run log. Set the ODDS_API_KEY_TEMP secret instead. Kept only so a run that passes one is refused rather than silently leaking it."
         required: false
         type: string
+      use_temp_key:
+        description: "Populate with the ODDS_API_KEY_TEMP secret instead of the keys on Vercel"
+        required: false
+        default: false
+        type: boolean
       sports:
         description: "Comma-separated SCL sports, or blank for all"
         required: false
@@ -34,6 +49,11 @@ on:
         description: "ET slate days for expanded MLB/WNBA: today,tomorrow"
         required: false
         default: "today"
+        type: string
+      expanded_max_age_minutes:
+        description: "Refetch a complete expanded board older than this many minutes. 0 rebuilds every board now."
+        required: false
+        default: "120"
         type: string
       budget_floor:
         description: "Stop spending once remaining credits hit this (temp-key runs)"
@@ -61,6 +81,57 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Reads the cached board and spends nothing: `surface=0&expanded=0` makes the
+  # route answer from `scl.OddsCacheSnapshot` without calling the provider.
+  #
+  # This job exists because the failure it looks for was invisible for a day.
+  # The production key hit zero credits, every surface refresh fell back to
+  # last-good data, and the scheduled job reported success on all five sports
+  # because the CACHE still held events. Nothing distinguished "refreshed" from
+  # "replayed yesterday" until someone opened the board.
+  audit:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    environment: Production
+    timeout-minutes: 5
+    steps:
+      - name: Read the cached board
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET is not configured."
+            exit 1
+          fi
+          curl --fail --silent --show-error \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            --request POST \
+            "https://sportscappersleaderboard.com/api/cron/odds-populate?sports=MLB,WNBA,TENNIS,SOCCER,NFL&expanded=0&surface=0" \
+            --output /tmp/audit.json
+          jq . /tmp/audit.json
+
+          # Credits first: an exhausted key freezes the board whatever the
+          # cadence says, and it is the one fault no code change can clear.
+          if [ "$(jq -r '.provider.exhausted' /tmp/audit.json)" = "true" ]; then
+            echo "::error::The Odds API key on Vercel is out of credits. The board is frozen on last-good prices until ODDS_API_KEYS is topped up."
+            exit 1
+          fi
+
+          stale=$(jq -r '.provider.staleSports | join(", ")' /tmp/audit.json)
+          if [ -n "$stale" ]; then
+            echo "::error::Boards older than the 4-hour freshness window: ${stale}. The paid cadence in vercel.json is not landing."
+            exit 1
+          fi
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Odds board audit (no credits spent)"
+            echo '```json'
+            jq . /tmp/audit.json 2>/dev/null || echo '{"reason":"request did not complete"}'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   # Replay a slate that was already paid for. Fetching and writing are separate
   # jobs because they need different things: fetching needs Odds API credits,
   # writing needs the production database. A run that has one and not the other
@@ -145,18 +216,47 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   populate-temp-key:
-    if: github.event_name == 'repository_dispatch' || (github.event_name == 'workflow_dispatch' && inputs.odds_key != '')
+    if: github.event_name == 'repository_dispatch' || (github.event_name == 'workflow_dispatch' && (inputs.use_temp_key || inputs.odds_key != ''))
     runs-on: ubuntu-latest
     environment: Production
     timeout-minutes: 15
     steps:
-      - name: Mask the key
-        run: echo "::add-mask::${{ github.event.client_payload.odds_key || github.event.inputs.odds_key }}"
+      # The key comes from a SECRET, never from a dispatch input.
+      #
+      # Actions masks `secrets.*` everywhere and masks nothing else. A dispatch
+      # input has to be registered with an add-mask command, and registering it is
+      # what leaked it: the runner echoes each `run:` body with its expressions
+      # already expanded, and it does that BEFORE the step executes — so the
+      # masking command printed the key it was about to hide. Moving the value
+      # into `env:` does not help, since the runner prints the resolved env
+      # block too. There is no ordering that makes an input safe here, and this
+      # repository is public.
+      #
+      # Rotate the key at the-odds-api.com and store it as ODDS_API_KEY_TEMP in
+      # the Production environment. Better still, add it to ODDS_API_KEYS on
+      # Vercel: `oddsApiKeys()` reads that comma-separated list, so a key parked
+      # there is picked up by the scheduled cadence with no dispatch at all.
+      - name: Check the key is configured
+        env:
+          ODDS_KEY: ${{ secrets.ODDS_API_KEY_TEMP }}
+          # One expression, defaulted, so a repository_dispatch (where
+          # `github.event.inputs` is null) does not read as "an input was
+          # supplied" and refuse every dispatch.
+          SUPPLIED_INPUT: ${{ (github.event.client_payload.odds_key || github.event.inputs.odds_key || '') != '' }}
+        run: |
+          if [ "$SUPPLIED_INPUT" = "true" ]; then
+            echo "::error::An Odds API key was passed as a dispatch input. Inputs are printed in this public run log, so the run was stopped and no credits were spent. Rotate that key and store the new one as the ODDS_API_KEY_TEMP secret."
+            exit 1
+          fi
+          if [ -z "$ODDS_KEY" ]; then
+            echo "::error::ODDS_API_KEY_TEMP is not configured in the Production environment. No odds credits were spent."
+            exit 1
+          fi
 
       - name: Populate through the signed production route
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          ODDS_KEY: ${{ github.event.client_payload.odds_key || github.event.inputs.odds_key }}
+          ODDS_KEY: ${{ secrets.ODDS_API_KEY_TEMP }}
           SPORTS: ${{ github.event.client_payload.sports || github.event.inputs.sports || 'MLB,WNBA,TENNIS,SOCCER,NFL' }}
           EXPANDED: ${{ github.event.client_payload.expanded || github.event.inputs.expanded || '99' }}
           EXPANDED_DAYS: ${{ github.event.client_payload.expanded_days || github.event.inputs.expanded_days || 'today' }}
@@ -204,8 +304,10 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
+  # Manual only. The daily cadence is Vercel's; this is the on-demand button for
+  # an off-schedule top-up using the keys already on the deployment.
   populate:
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.odds_key == '' && inputs.snapshot_file == '')
+    if: github.event_name == 'workflow_dispatch' && !inputs.use_temp_key && inputs.odds_key == '' && inputs.snapshot_file == ''
     runs-on: ubuntu-latest
     environment: Production
     timeout-minutes: 10
@@ -214,9 +316,10 @@ jobs:
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           SPORTS: ${{ inputs.sports || 'MLB,WNBA,TENNIS,SOCCER,NFL' }}
-          EXPANDED: ${{ github.event_name == 'schedule' && '0' || inputs.expanded }}
+          EXPANDED: ${{ inputs.expanded }}
           EXPANDED_DAYS: ${{ inputs.expanded_days || 'tomorrow' }}
-          SURFACE: ${{ github.event_name == 'schedule' && '1' || (inputs.surface && '1' || '0') }}
+          SURFACE: ${{ inputs.surface && '1' || '0' }}
+          MAX_AGE: ${{ inputs.expanded_max_age_minutes || '120' }}
         run: |
           if [ -z "$CRON_SECRET" ]; then
             echo "::error::CRON_SECRET is not configured. No odds credits were spent."
@@ -227,7 +330,7 @@ jobs:
           curl --fail --silent --show-error \
             --header "Authorization: Bearer $CRON_SECRET" \
             --request POST \
-            "https://sportscappersleaderboard.com/api/cron/odds-populate?sports=${encoded_sports}&expanded=${EXPANDED}&expandedDays=${encoded_days}&surface=${SURFACE}" \
+            "https://sportscappersleaderboard.com/api/cron/odds-populate?sports=${encoded_sports}&expanded=${EXPANDED}&expandedDays=${encoded_days}&surface=${SURFACE}&expandedMaxAgeMinutes=${MAX_AGE}" \
             --output /tmp/populate.json
           jq . /tmp/populate.json
           jq -e '

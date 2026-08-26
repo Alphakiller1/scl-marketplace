@@ -2,17 +2,24 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { OddsEvent } from "@/lib/odds-board";
+import { expandedBoardMarkets } from "@/lib/odds-verify";
 import {
+  canSkipExpandedEvent,
+  CATALOG_WORTH_READING_MARKETS,
+  DEFAULT_EXPANDED_MAX_AGE_MINUTES,
   EVENT_MARKET_CATALOG_CREDIT_COST,
   eventMarketCatalogKeys,
   expandedEventCreditCost,
   intersectExpandedMarkets,
   laterExpandedCreditReserve,
   mergeLastGoodBoardEvents,
+  parseExpandedMaxAgeMinutes,
   parseExpandedSlateDays,
   parseExpandedSportOrder,
   selectExpandedSlateEvents,
   shouldHoldCreditsForLater,
+  staleSurfaceSports,
+  surfaceRefreshReachedProvider,
 } from "@/lib/manual-odds-population";
 
 const NOW = new Date("2026-08-18T06:00:00.000Z");
@@ -153,4 +160,115 @@ test("the reserve prices an expanded event with its catalog call included", () =
   assert.equal(expandedEventCreditCost("MLB") > 40, true);
   assert.equal(expandedEventCreditCost("NFL"), 0);
   assert.equal(expandedEventCreditCost("SOCCER"), 1);
+});
+
+test("the catalog is read for the sports whose request list can waste credits", () => {
+  // MLB asks for 58 markets and WNBA 36: most of a prop card goes unpriced on
+  // any given fixture, so one credit spent learning which keys are live saves
+  // many. Tennis asks for four and soccer for one, where the catalog can cost
+  // more than the markets it would skip.
+  assert.ok(expandedBoardMarkets("MLB").length > CATALOG_WORTH_READING_MARKETS);
+  assert.ok(
+    expandedBoardMarkets("WNBA").length > CATALOG_WORTH_READING_MARKETS,
+  );
+  assert.ok(
+    expandedBoardMarkets("TENNIS").length <= CATALOG_WORTH_READING_MARKETS,
+  );
+  assert.ok(
+    expandedBoardMarkets("SOCCER").length <= CATALOG_WORTH_READING_MARKETS,
+  );
+});
+
+test("a catalog outage keeps the full request list rather than emptying the board", () => {
+  // [] means the lookup failed, not that the fixture prices nothing. Reading it
+  // as "nothing is priced" would skip the odds call and blank a live board.
+  const wanted = expandedBoardMarkets("MLB");
+  assert.deepEqual(intersectExpandedMarkets(wanted, []), wanted);
+});
+
+test("a surface refresh that reached no provider is not a successful populate", () => {
+  // The shape of the run that hid a spent key for a day: every sport served
+  // last-good data, every board still held events, and the job went green.
+  const allStale = {
+    MLB: { source: "stale_provider_failure", stale: true },
+    WNBA: { source: "stale_provider_failure", stale: true },
+    TENNIS: { source: "stale_provider_failure", stale: true },
+  };
+  assert.equal(surfaceRefreshReachedProvider(true, allStale), false);
+
+  // One live board is enough: the others may be out of season.
+  assert.equal(
+    surfaceRefreshReachedProvider(true, {
+      ...allStale,
+      MLB: { source: "provider", stale: false },
+    }),
+    true,
+  );
+});
+
+test("a top-up that asked for no surface refresh is not judged on one", () => {
+  // `surface=0` reads the cache by design, so `runtime_cache` everywhere is the
+  // correct outcome, not a provider failure.
+  assert.equal(
+    surfaceRefreshReachedProvider(false, {
+      MLB: { source: "runtime_cache", stale: false },
+    }),
+    true,
+  );
+});
+
+test("stale sports are named so a frozen board says which one froze", () => {
+  assert.deepEqual(
+    staleSurfaceSports({
+      WNBA: { source: "stale_cache_only", stale: true },
+      MLB: { source: "provider", stale: false },
+      TENNIS: { source: "stale_cache_only", stale: true },
+    }),
+    ["TENNIS", "WNBA"],
+  );
+});
+
+test("a complete expanded board is refetched once its prices have aged", () => {
+  const now = Date.parse("2026-08-26T13:22:00.000Z");
+  const lastEvening = Date.parse("2026-08-25T18:20:00.000Z");
+  // The shape of the 13:22 populate: covered, and serving prices from the
+  // previous evening. Coverage alone said skip, which is how a board that was
+  // filled once stopped moving for the rest of the day.
+  assert.equal(canSkipExpandedEvent(true, lastEvening, 120, now), false);
+
+  // Written by the run three hours earlier — also due.
+  assert.equal(
+    canSkipExpandedEvent(true, now - 3 * 60 * 60_000, 120, now),
+    false,
+  );
+
+  // Written minutes ago: a manual run right after a scheduled one must not
+  // re-bill the whole card.
+  assert.equal(canSkipExpandedEvent(true, now - 5 * 60_000, 120, now), true);
+});
+
+test("an incomplete or uncached expanded board is never skipped", () => {
+  const now = Date.now();
+  assert.equal(canSkipExpandedEvent(false, now, 120, now), false);
+  assert.equal(canSkipExpandedEvent(true, null, 120, now), false);
+});
+
+test("the expanded max age falls back rather than trusting a bad query value", () => {
+  assert.equal(
+    parseExpandedMaxAgeMinutes(null),
+    DEFAULT_EXPANDED_MAX_AGE_MINUTES,
+  );
+  assert.equal(
+    parseExpandedMaxAgeMinutes("nonsense"),
+    DEFAULT_EXPANDED_MAX_AGE_MINUTES,
+  );
+  assert.equal(
+    parseExpandedMaxAgeMinutes("-5"),
+    DEFAULT_EXPANDED_MAX_AGE_MINUTES,
+  );
+  assert.equal(parseExpandedMaxAgeMinutes("45"), 45);
+  // 0 forces every covered board to refetch — the escape hatch for a slate that
+  // has to be rebuilt now.
+  assert.equal(parseExpandedMaxAgeMinutes("0"), 0);
+  assert.equal(parseExpandedMaxAgeMinutes("99999"), 24 * 60);
 });

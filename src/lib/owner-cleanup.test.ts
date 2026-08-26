@@ -51,8 +51,17 @@ test("pick form names the last API call and the schedule is documented", () => {
     picker,
     /Showing odds from the last API call\. Prices may have moved\./,
   );
-  assert.match(schedule, /08:00 ET/);
-  assert.match(schedule, /20:00 ET/);
+  // The doc has to state WHEN the board is refreshed, since the form's copy
+  // ("the last API call") is only meaningful next to a cadence. It named the
+  // two old run times literally, which broke the moment the cadence became an
+  // intraday one — assert the shape instead: an ET column, several runs, and
+  // the sports the pick form offers.
+  assert.match(schedule, /ET \(EDT\)/);
+  const etTimes = schedule.match(/^\| `0 \d+ \* \* \*` \| \d{2}:\d{2}/gm) ?? [];
+  assert.ok(
+    etTimes.length >= 5,
+    `expected an intraday cadence in the doc, found ${etTimes.length} runs`,
+  );
   assert.match(schedule, /\bMLB\b/);
   assert.match(schedule, /\bWNBA\b/);
 });

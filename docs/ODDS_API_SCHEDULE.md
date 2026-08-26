@@ -10,56 +10,105 @@ successful provider call for that sport. The form says so:
 
 ## What actually runs today
 
-Two jobs exist. Only the **populate** job is on a clock.
+The paid cadence lives in **`vercel.json`**. It runs inside the deployment that
+holds the provider keys, and it fires on time.
 
-| Job               | Workflow                                                       | Cadence (America/New_York)                                                            | What it warms                                                                                                                                                                                                                                                       |
-| ----------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Surface populate  | `.github/workflows/populate-odds.yml` plus `vercel.json` crons | **08:00 ET** and **20:00 ET** daily                                                   | Game lists + basic prices (`h2h` / spreads / totals) for the default sports below. Tennis is fetched before NFL so a cheap Masters board is not skipped after NFL burns the key. GitHub’s scheduled workflow can miss a tick; Vercel hits the same route as backup. |
-| Strategic refresh | `.github/workflows/odds-refresh.yml`                           | **Paused** — `workflow_dispatch` only (owner request while credits are under control) | Expanded per-event boards (44 credits/MLB event). Restoring the clock requires all five UTC times in that file; a two-run day misses MLB day games                                                                                                                  |
+| UTC          | ET (EDT) | Surface | Expanded         | Purpose                                                  |
+| ------------ | -------- | ------- | ---------------- | -------------------------------------------------------- |
+| `0 11 * * *` | 07:00    | yes     | today            | Build the day's board before the first pricing window    |
+| `0 15 * * *` | 11:00    | yes     | today            | Top up what books have posted since                      |
+| `0 18 * * *` | 14:00    | yes     | today            | Afternoon move, ahead of the day slate                   |
+| `0 21 * * *` | 17:00    | yes     | today            | Prop cards and alternate ladders are fully posted by now |
+| `0 23 * * *` | 19:00    | yes     | —                | Prices only, as the evening slate starts                 |
+| `0 3 * * *`  | 23:00    | yes     | today + tomorrow | Next-day lines                                           |
 
-Scheduled populate calls:
+Every expanded run carries `skipPopulated=1`, so an event whose card is already
+complete costs nothing — but "complete" alone is not enough to skip it.
+Completeness is permanent: a board filled once was skipped on every later run
+and its prop and alternate prices never moved again. The 13:22 UTC populate on
+2026-08-26 refreshed all five surface boards and skipped 13 of 15 MLB games as
+covered, 11 of them serving expanded prices captured the previous evening.
 
-`POST /api/cron/odds-populate?sports=MLB,WNBA,TENNIS,SOCCER,NFL&expanded=0&surface=1`
+So a covered board is also refetched once it ages past
+`expandedMaxAgeMinutes` (default 120, set per cron URL). Two hours sits below
+the gap between runs, so each run moves what the run before it wrote, while a
+manual run fired minutes after a scheduled one does not re-bill the slate. Pass
+`expandedMaxAgeMinutes=0` — or the workflow's `expanded_max_age_minutes` input —
+to rebuild every board now.
 
-`expanded=0` on the clock: tomorrow’s MLB/WNBA event boards are **not** rebuilt
-on the schedule. They stay on the last-good cache (up to 30 days) unless someone
-runs the workflow by hand.
+Through the hours games are priced and played, no gap exceeds the four hours a
+board is considered fresh for. The overnight gap is deliberately longer —
+nothing starts between 23:00 and 07:00 ET, and the 03:00 UTC run has already
+built the next day's board. `src/lib/odds-population-schedule.test.ts` enforces
+both halves of that.
 
-## By sport — scheduled surface refresh
+### Why the GitHub workflow no longer has a paid schedule
 
-| SCL sport     | 08:00 ET | 20:00 ET | Notes                                                                                                                                       |
-| ------------- | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| MLB           | yes      | yes      | Default populate sport. Expanded event boards only on manual dispatch                                                                       |
-| WNBA          | yes      | yes      | Same as MLB                                                                                                                                 |
-| NFL           | yes      | yes      | Includes preseason when the provider is carrying it                                                                                         |
-| Tennis        | yes      | yes      | In-season ATP/WTA tournaments from the Odds API catalog, ranked by fixtures so Cincinnati is not dropped when the US Open is already listed |
-| Soccer        | yes      | yes      | MLS / Liga MX / Leagues Cup / La Liga / Primeira Liga / UCL qualification as covered                                                        |
-| NBA           | —        | —        | No scheduled populate; board uses last cache + on-demand event fetch                                                                        |
-| NCAAF / NCAAB | —        | —        | Same                                                                                                                                        |
-| NHL           | —        | —        | Same                                                                                                                                        |
-| CFL / UFL     | —        | —        | Same                                                                                                                                        |
-| MMA / Boxing  | —        | —        | MMA has a strategic slot (daily + before first fight) that only runs when the paused refresh job is dispatched                              |
-| PGA / NASCAR  | —        | —        | Same                                                                                                                                        |
+`.github/workflows/populate-odds.yml` used to run `0 12` and `0 0` against the
+same endpoint `vercel.json` already hit at those minutes, so **every scheduled
+surface refresh was billed twice for one board**. Vercel owns the schedule now.
+The workflow keeps:
 
-Times above are Eastern. The GitHub cron strings are UTC (`0 12 * * *` and
-`0 0 * * *`) and therefore shift one hour relative to ET when daylight time
-ends.
+- **`audit`** — one scheduled run at 13:00 UTC that spends **nothing**
+  (`expanded=0&surface=0` answers from the cache) and fails the job when the key
+  is out of credits or a board has stopped moving.
+- **`populate` / `populate-temp-key`** — manual, on demand.
+- **`write-snapshots`** — replays an already-fetched slate into the database.
+
+### What a run reports
+
+`/api/cron/odds-populate` returns a `provider` block: `requestsRemaining`,
+observed `capacity`, `exhausted`, how many sports were refreshed from the
+provider, and which are stale. `ok` is false when a run that asked for fresh
+prices got none.
+
+That last part is not cosmetic. `ok` previously asked only whether the cached
+board held events — which is true of yesterday's board too. When the production
+key hit zero credits, every scheduled run reported success while writing
+nothing: five sports came back `stale_provider_failure`, the job went green, and
+the board silently stopped moving.
+
+## Market depth by sport
+
+Owner decision, and the shape of the credit bill. Depth is set in
+`expandedBoardMarkets()` (`src/lib/odds-verify.ts`).
+
+| Sport           | Expanded markets | What a capper can log                                                                                       |
+| --------------- | ---------------- | ----------------------------------------------------------------------------------------------------------- |
+| MLB             | 58               | Full pitcher and hitter cards with milestone ladders, alternate spreads/totals, team totals, F1/F3/F5/F7    |
+| WNBA            | 36               | Points/rebounds/assists/threes, blocks/steals/turnovers, the combo card, halves, team totals, alt ladders   |
+| Tennis          | 4                | Game spread and total plus their alternate ladders. Set markets stay out until set-score grading is trusted |
+| Soccer          | 1                | Double Chance — the one soccer bet the three surface markets cannot express                                 |
+| Everything else | 0                | Surface only: `h2h` / spreads / totals from the shared slate                                                |
+
+### Keeping the bill down
+
+The odds endpoint bills `markets x regions` **whether or not a market comes
+back with anything**, so a fixed 58-key MLB request pays for every prop no book
+posts. Two things stop that:
+
+- **Catalog first.** `/events/{id}/markets` costs one credit and names the keys
+  a covered book is actually pricing; only those are requested. Used where the
+  request list is long enough to pay for itself (MLB, WNBA) and skipped where it
+  is not (tennis's four keys, soccer's one) — see
+  `CATALOG_WORTH_READING_MARKETS`.
+- **Unpriced competitions are dropped mid-run.** Books post non-surface markets
+  by competition, not by fixture. After two fixtures in a competition come back
+  empty, the rest of it is left alone for that run — one populate had been
+  paying a call for all twenty EFL Cup ties and getting Double Chance on none.
+
+A fixture nobody prices never reaches full coverage, so `skipPopulated` alone
+cannot learn to skip it. That is why the miss limit exists.
 
 ## On-demand (not a schedule)
 
-Opening a matchup in the pick form can fetch that event’s markets when the
-cached event board is missing or stale. That is a **per-event** credit spend,
-not a league-wide refresh, and it is why a capper can still log a verified
-price between the two daily surface runs.
+Opening a matchup still fetches that event's markets on demand when the cached
+board is missing or stale, which is how a capper logs a verified price between
+scheduled runs. Props are no longer lazy-only, though: the expanded runs above
+warm the full MLB and WNBA cards on a schedule.
 
-Props stay lazy. They are not part of the twice-daily surface populate.
-The MLB event bundle includes pitcher earned runs plus batter hits, total
-bases, home runs, RBIs, runs scored, and hits+runs+RBIs. Opening a matchup
-loads these when covered books have posted them.
-
-Tennis surface calls request the featured game spread and total. Opening a
-matchup (or running manual expanded population for Tennis) additionally fetches
-the full-match alternate spread and total ladders from the per-event endpoint.
+Tennis surface calls request the featured game spread and total. The per-event
+call additionally fetches the full-match alternate spread and total ladders.
 Set-specific markets remain excluded until SCL has a trustworthy set-score
 grading source.
 

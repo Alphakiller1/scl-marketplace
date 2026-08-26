@@ -130,13 +130,28 @@ already in the repo.
   surfaces only when `SCL_ALLOW_GHOST_PUBLICATION=1` (opt-in). Seed production with
   `GHOST_SEED=1 GHOST_SEED_FORCE=1 npm run seed:ghosts` against the production
   `DATABASE_URL`. Set the env to `0` and wipe ghosts when the real roster is enough.
+- **The paid odds cadence lives in `vercel.json`, not in a workflow.** Six runs a day refresh
+  surface prices and warm the expanded MLB/WNBA/tennis boards for today's slate; see
+  `docs/ODDS_API_SCHEDULE.md`. `.github/workflows/populate-odds.yml` keeps only a free daily
+  `audit` job (`expanded=0&surface=0` reads the cache and spends nothing) plus manual runs.
+  Both used to fire at `0 12` and `0 0` against the same endpoint, which billed every
+  scheduled refresh twice.
+- **A green populate is not a fresh board.** `ok` now requires that a run which asked for
+  fresh prices actually reached the provider, and the response carries a `provider` block
+  (`requestsRemaining`, `capacity`, `exhausted`, `staleSports`). Before that, a spent key
+  produced five `stale_provider_failure` boards and a passing job for a full day.
+- **Never pass an Odds API key as a workflow input.** Actions masks `secrets.*` and nothing
+  else; the runner echoes each `run:` body with its expressions already expanded, so the
+  `add-mask` step printed the key it was about to hide — into a log on a public repository.
+  Temporary keys go in the `ODDS_API_KEY_TEMP` secret; a key with credit on it belongs in
+  Vercel's `ODDS_API_KEYS` list, where the scheduled cadence picks it up with no dispatch.
 - **Odds population is two steps, and they need different things.** Fetching needs Odds API
-  credits (`scripts/populate-odds-today.ts`, which reads each event's market catalog first so
-  it only pays for markets a covered book is pricing, and spends in the order
-  MLB → WNBA → TENNIS → SOCCER with a reserve for the sports after each). Writing needs the
-  production database (`scripts/write-odds-snapshots.ts`, zero credits, replays a slate from
-  `data/odds-snapshots/`). Run the write half with the **Populate odds** workflow's
-  `snapshot_file` input.
+  credits (`/api/cron/odds-populate`, and `scripts/populate-odds-today.ts` for a local run;
+  both read each event's market catalog first so they only pay for markets a covered book is
+  pricing, and spend in the order MLB → WNBA → TENNIS → SOCCER with a reserve for the sports
+  after each). Writing needs the production database (`scripts/write-odds-snapshots.ts`, zero
+  credits, replays a slate from `data/odds-snapshots/`). Run the write half with the
+  **Populate odds** workflow's `snapshot_file` input.
 - **No CI runner can currently reach the SCL database, and that is why population goes through
   the signed production route.** The repository `DATABASE_URL` secret points at a **different
   Supabase project**, and the Vercel production `DATABASE_URL` is marked sensitive, so

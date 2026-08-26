@@ -3,6 +3,11 @@ import "server-only";
 import { afterResponse } from "@/lib/after-response";
 import { bookmakersQueryParam, isBookKey } from "@/lib/books";
 import {
+  CATALOG_WORTH_READING_MARKETS,
+  eventMarketCatalogKeys,
+  intersectExpandedMarkets,
+} from "@/lib/manual-odds-population";
+import {
   shouldCircuitBreak,
   shouldCircuitBreakTennisSurface,
 } from "@/lib/odds-budget";
@@ -991,7 +996,12 @@ export async function fetchEventBoard(
   eventId: string,
   opts?: OddsBoardOpts & { league?: string | null },
 ): Promise<OddsSelection[]> {
-  const markets = expandedBoardMarkets(sclSport);
+  const wanted = expandedBoardMarkets(sclSport);
+  if (wanted.length === 0) return [];
+  const markets = await pricedExpandedMarkets(sclSport, eventId, wanted, opts);
+  // Every wanted market read the catalog and none came back: no covered book is
+  // pricing this fixture's expanded card. The odds call would bill for all of
+  // them and return nothing, so it is not worth making.
   if (markets.length === 0) return [];
   const event = await fetchEventOddsForVerification(sclSport, eventId, {
     ...opts,
@@ -999,4 +1009,61 @@ export async function fetchEventBoard(
   });
   if (!event) return [];
   return normalizeEventBoard(event, { ...opts, sport: sclSport });
+}
+
+/**
+ * The subset of `wanted` that a covered book is actually pricing for this event.
+ *
+ * The odds endpoint bills `markets × regions` whether or not a market comes
+ * back with anything, so a fixed 58-key MLB request pays for every prop no book
+ * posts — on a full card that is the difference between finishing the slate and
+ * running out of credits partway through it. `/events/{id}/markets` costs one
+ * credit and says which keys are live.
+ *
+ * This ran only in `scripts/populate-odds-today.ts`, which needs a machine with
+ * the production database. The scheduled population goes through this module
+ * instead, so the saving never applied to the runs that actually keep the board
+ * fresh — which is the whole population budget.
+ */
+async function pricedExpandedMarkets(
+  sclSport: string,
+  eventId: string,
+  wanted: readonly string[],
+  opts?: OddsBoardOpts & { league?: string | null },
+): Promise<string[]> {
+  if (wanted.length <= CATALOG_WORTH_READING_MARKETS) return [...wanted];
+  const catalog = await fetchEventMarketCatalog(sclSport, eventId, opts);
+  // A failed lookup returns [], and `intersectExpandedMarkets` reads that as
+  // "unknown" and keeps the full list — a catalog outage must not empty the
+  // board, only stop saving credits.
+  return intersectExpandedMarkets(wanted, catalog);
+}
+
+/** Market keys any covered book prices for one event. One credit. */
+async function fetchEventMarketCatalog(
+  sclSport: string,
+  eventId: string,
+  opts?: OddsBoardOpts & { league?: string | null },
+): Promise<string[]> {
+  const apiSport = resolveOddsApiSport(sclSport, opts?.league);
+  if (!apiSport) return [];
+  try {
+    const { response: res } = await fetchWithOddsKeyRollover(
+      (apiKey) =>
+        `https://api.the-odds-api.com/v4/sports/${apiSport}/events/${eventId}/markets` +
+        `?apiKey=${apiKey}&${oddsScopeQuery(opts?.books)}`,
+      {
+        next: {
+          revalidate: VERIFY_TTL_SECONDS,
+          tags: [`odds-event:${eventId}`],
+        },
+      },
+    );
+    if (!res) return [];
+    logOddsUsage(res, `event ${eventId} markets`, "board", sclSport);
+    if (!res.ok) return [];
+    return eventMarketCatalogKeys(await res.json());
+  } catch {
+    return [];
+  }
 }
