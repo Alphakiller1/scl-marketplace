@@ -40,12 +40,45 @@ export function parseExpandedSlateDays(value: string): ExpandedSlateDay[] {
   return [...new Set(days)];
 }
 
+/**
+ * Sports whose expanded board covers EVERY fixture on the board.
+ *
+ * The ET slate-day filter is a budget control, and it is the right one when an
+ * expanded board costs twenty-odd credits a game: MLB pays for alternate
+ * ladders, team totals, F3/F5/F7 and four prop markets, so paying that for a
+ * fixture four days out would spend the month on games nobody is pricing yet.
+ *
+ * Soccer is the opposite shape. Its expanded call is ONE market — Double
+ * Chance, which the bulk endpoint does not serve — so a fixture costs a single
+ * credit. Capping it to "today" therefore saved almost nothing and cost the
+ * market entirely: the soccer board carries six days of fixtures, so 46 of 49
+ * had no Double Chance at all and cappers saw it appear on a handful of games
+ * and vanish on the rest. Covering the whole board is ~49 credits against a
+ * five-figure balance.
+ *
+ * The rule is the cost shape, not the sport: a sport belongs here when one
+ * expanded board is cheap enough that the slate-day filter buys nothing.
+ */
+export const FULL_SLATE_EXPANDED_SPORTS = new Set(["SOCCER"]);
+
+/** True when every future fixture on the board should be expanded. */
+export function expandsFullSlate(sport: string): boolean {
+  return FULL_SLATE_EXPANDED_SPORTS.has(sport.trim().toUpperCase());
+}
+
 /** Select only the ET slate days that should receive metered event markets. */
 export function selectExpandedSlateEvents(
   events: readonly OddsEvent[],
   days: readonly ExpandedSlateDay[],
   now = new Date(),
+  sport?: string,
 ): OddsEvent[] {
+  const future = events.filter(
+    (event) => Date.parse(event.commenceTime) > now.getTime(),
+  );
+  // A cheap expanded board follows the board, not the slate day.
+  if (sport && expandsFullSlate(sport)) return future;
+
   const allowed = new Set<string>();
   if (days.includes("today")) allowed.add(etDay(now));
   if (days.includes("tomorrow")) {
@@ -53,10 +86,8 @@ export function selectExpandedSlateEvents(
     tomorrow.setDate(tomorrow.getDate() + 1);
     allowed.add(etDay(tomorrow));
   }
-  return events.filter(
-    (event) =>
-      Date.parse(event.commenceTime) > now.getTime() &&
-      allowed.has(etDay(new Date(event.commenceTime))),
+  return future.filter((event) =>
+    allowed.has(etDay(new Date(event.commenceTime))),
   );
 }
 
