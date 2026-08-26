@@ -9,6 +9,36 @@ import { oddsApiKeys } from "@/lib/odds-config";
 
 let preferredIndex = 0;
 
+/**
+ * Called whenever the preferred key actually changes.
+ *
+ * `odds-api` registers `resetLastOddsApiUsage` here, and that registration is
+ * what stops one spent key from freezing every other one. The circuit breaker
+ * reads the LAST observed `x-requests-remaining`, and it runs before any
+ * request is made — so once a spent key reported -2, every later board fetch
+ * was refused without a call, `fetchWithOddsKeyRollover` was never reached, and
+ * the funded key sitting next in the list was never tried. A 500-credit key at
+ * the front of the rotation froze the whole board while a 97,000-credit key was
+ * one index away.
+ *
+ * The breaker's job is to protect the reserve of the key in use. The moment we
+ * move to a different key, the previous key's balance says nothing about it.
+ */
+let onPreferredKeyChanged: (() => void) | undefined;
+
+/** Registered once by `odds-api`; see {@link onPreferredKeyChanged}. */
+export function setOddsKeyChangeHandler(
+  handler: (() => void) | undefined,
+): void {
+  onPreferredKeyChanged = handler;
+}
+
+function setPreferredIndex(next: number): void {
+  if (next === preferredIndex) return;
+  preferredIndex = next;
+  onPreferredKeyChanged?.();
+}
+
 export type OddsKeyFetchResult = {
   response: Response | null;
   keyIndex: number | null;
@@ -60,14 +90,14 @@ export async function fetchWithOddsKeyRollover(
     // A successful final response is still usable. Consume it, then move the
     // next request to the fallback instead of paying twice for the same data.
     if (response.ok && Number.isFinite(remaining) && remaining <= 0) {
-      preferredIndex = Math.min(index + 1, keys.length - 1);
+      setPreferredIndex(Math.min(index + 1, keys.length - 1));
       return { response, keyIndex: index, rolledOver: index > 0 };
     }
     if (!shouldRollOver(response) || index === keys.length - 1) {
-      preferredIndex = index;
+      setPreferredIndex(index);
       return { response, keyIndex: index, rolledOver: index > 0 };
     }
-    preferredIndex = index + 1;
+    setPreferredIndex(index + 1);
     console.warn("[odds] provider key rollover activated", {
       exhaustedKeyIndex: index,
       status: response.status,
@@ -79,8 +109,9 @@ export async function fetchWithOddsKeyRollover(
 
 export function resetOddsKeyPreferenceForTests(): void {
   preferredIndex = 0;
+  onPreferredKeyChanged = undefined;
 }
 
 export function resetOddsKeyPreference(): void {
-  preferredIndex = 0;
+  setPreferredIndex(0);
 }

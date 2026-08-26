@@ -12,7 +12,10 @@ import {
   shouldCircuitBreakTennisSurface,
 } from "@/lib/odds-budget";
 import { oddsApiKey } from "@/lib/odds-config";
-import { fetchWithOddsKeyRollover } from "@/lib/odds-key-rollover";
+import {
+  fetchWithOddsKeyRollover,
+  setOddsKeyChangeHandler,
+} from "@/lib/odds-key-rollover";
 import { surfaceCommenceQuery } from "@/lib/odds-surface-window";
 import {
   SOCCER_LEAGUES,
@@ -246,6 +249,13 @@ export function resetLastOddsApiUsage(): void {
   lastOddsApiRemaining = null;
   lastOddsApiCapacity = null;
 }
+
+// Moving to a different provider key clears the previous key's balance, so the
+// circuit breaker judges the new key on its own reserve. Without this a single
+// spent key froze every board: the breaker runs before any request, so once it
+// saw that key's -2 it refused every later fetch and rollover was never
+// reached — with a funded key sitting one index away in the same list.
+setOddsKeyChangeHandler(resetLastOddsApiUsage);
 
 /** Log Odds API credit usage from a response so burn is observable vs. the plan cap. */
 export function logOddsUsage(

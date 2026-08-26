@@ -6,6 +6,7 @@ import {
   isProviderRefusal,
   PROVIDER_REFUSED_STATUSES,
   resetOddsKeyPreferenceForTests,
+  setOddsKeyChangeHandler,
 } from "@/lib/odds-key-rollover";
 
 /**
@@ -125,4 +126,72 @@ test("a transient 429 keeps the healthy key preferred and does not burn a fallba
   assert.deepEqual(tried, ["rate-limited"]);
   assert.equal(result.response?.status, 429);
   assert.equal(result.rolledOver, false);
+});
+
+/**
+ * A spent key at the front of the rotation must not freeze the funded ones.
+ *
+ * The circuit breaker reads the last observed `x-requests-remaining` and runs
+ * BEFORE any request. Once a 500-credit key reported -2, every later board
+ * fetch was refused without a call, so `fetchWithOddsKeyRollover` was never
+ * reached and the 97,000-credit key one index away was never tried. The board
+ * froze on last-good prices while credit sat unused.
+ */
+test("moving off a spent key clears the balance the breaker judges by", async () => {
+  resetOddsKeyPreferenceForTests();
+  // `oddsApiKeys()` also reads ODDS_API_KEY_FALLBACK and ODDS_API_KEY_2, so a
+  // value left behind by an earlier test lands between these two and shifts
+  // every index. Clear the whole set, not just the two this test sets.
+  for (const name of [
+    "ODDS_API_KEY",
+    "ODD_API_KEY",
+    "ODDS_API_KEY_FALLBACK",
+    "ODDS_API_KEY_2",
+    "ODDS_API_KEYS",
+  ]) {
+    delete process.env[name];
+  }
+  process.env.ODDS_API_KEY = "spent-500";
+  process.env.ODDS_API_KEYS = "spent-500,funded-97k";
+
+  let cleared = 0;
+  setOddsKeyChangeHandler(() => {
+    cleared += 1;
+  });
+
+  const used: string[] = [];
+  const spentThenFunded: typeof fetch = async (input) => {
+    const url = String(input);
+    used.push(url.includes("funded-97k") ? "funded" : "spent");
+    // The shape that hid this: HTTP 200, so `shouldRollOver` is false, but the
+    // key has nothing left. It is consumed and the NEXT request must move on.
+    return new Response("[]", {
+      status: 200,
+      headers: { "x-requests-remaining": "-2", "x-requests-used": "502" },
+    });
+  };
+
+  const first = await fetchWithOddsKeyRollover(
+    (key) => `https://api.the-odds-api.com/v4/sports/x/odds/?apiKey=${key}`,
+    undefined,
+    spentThenFunded,
+  );
+  assert.equal(first.keyIndex, 0);
+  assert.deepEqual(used, ["spent"]);
+  // The preferred key moved, so the stale -2 must have been cleared — that is
+  // what lets the breaker try the funded key at all.
+  assert.equal(cleared, 1, "rollover did not clear the previous key's balance");
+
+  const second = await fetchWithOddsKeyRollover(
+    (key) => `https://api.the-odds-api.com/v4/sports/x/odds/?apiKey=${key}`,
+    undefined,
+    spentThenFunded,
+  );
+  assert.equal(second.keyIndex, 1);
+  assert.deepEqual(used, ["spent", "funded"]);
+
+  setOddsKeyChangeHandler(undefined);
+  resetOddsKeyPreferenceForTests();
+  delete process.env.ODDS_API_KEY;
+  delete process.env.ODDS_API_KEYS;
 });
