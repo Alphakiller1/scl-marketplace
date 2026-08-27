@@ -30,9 +30,24 @@ and its prop and alternate prices never moved again. The 13:22 UTC populate on
 covered, 11 of them serving expanded prices captured the previous evening.
 
 So a covered board is also refetched once it ages past
-`expandedMaxAgeMinutes` (default 120, set per cron URL). Two hours sits below
-the gap between runs, so each run moves what the run before it wrote, while a
-manual run fired minutes after a scheduled one does not re-bill the slate. Pass
+`expandedMaxAgeMinutes` (set per cron URL; the workflow input still defaults to
+120). The paid crons pass **330**, and that number is a budget decision.
+
+At 120 the threshold sat below every gap between runs, so no board was ever
+young enough to skip and each of the five paid runs re-bought the entire slate.
+MLB asks for 58 markets per event, so a seven-game card cost ~400 credits a run
+and ~2,000 a day for one sport — 6,485 credits went on MLB alone on 2026-08-26.
+Five re-buys is not five times the coverage; it is the same board, five times.
+
+At 330 the buys land at 03:00, 11:00 and 18:00 UTC and the 15:00 and 21:00 runs
+skip boards that are still fresh. Prices still move morning, midday and evening,
+every market and every fixture is still carried, and the deep-board spend drops
+about 40%. Nothing about coverage changes: `canSkipExpandedEvent` returns false
+for any board that is missing or only partly covered, so a fixture the books
+posted after the last run is always fetched, whatever its age.
+
+Surface boards are unaffected — every run still passes `surface=1` and refreshes
+them, which is what the 4-hour freshness audit reads. Pass
 `expandedMaxAgeMinutes=0` — or the workflow's `expanded_max_age_minutes` input —
 to rebuild every board now.
 
