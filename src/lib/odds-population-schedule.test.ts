@@ -4,9 +4,22 @@ import test from "node:test";
 
 import { REFRESH_MAX_GAP_MINUTES } from "@/lib/strategic-odds-policy";
 
-const workflow = readFileSync(".github/workflows/populate-odds.yml", "utf8");
-const route = readFileSync("src/app/api/cron/odds-populate/route.ts", "utf8");
-const vercel = readFileSync("vercel.json", "utf8");
+/**
+ * Read with line endings normalized.
+ *
+ * A Windows checkout writes CRLF into the working tree, and the assertions
+ * below match patterns that span a line break — so this suite passed on CI and
+ * failed on any Windows machine, a red test no CI run would ever reproduce.
+ * `.gitattributes` now pins checkout to LF; normalizing here as well means the
+ * test does not depend on a developer's git config to be correct.
+ */
+function readRepoFile(path: string): string {
+  return readFileSync(path, "utf8").replaceAll("\r\n", "\n");
+}
+
+const workflow = readRepoFile(".github/workflows/populate-odds.yml");
+const route = readRepoFile("src/app/api/cron/odds-populate/route.ts");
+const vercel = readRepoFile("vercel.json");
 
 /**
  * Exactly one schedule, and it is the free one.
