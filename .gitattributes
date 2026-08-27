@@ -1,0 +1,26 @@
+# Check every text file out with LF on every platform.
+#
+# Without this, `core.autocrlf=true` on Windows writes CRLF into the working
+# tree while CI checks out LF. Tests that read repo files and match a pattern
+# spanning a line break then pass on CI and fail on a Windows machine — which is
+# exactly what `odds-population-schedule.test.ts` did: a red suite that no
+# reviewer could reproduce and no CI run would ever catch.
+#
+# The committed blobs are already LF (autocrlf normalizes on the way in), so
+# this changes checkout only, not history.
+* text=auto eol=lf
+
+# Left byte-for-byte: these are not text and must never be line-ending munged.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.mp4 binary
+*.webm binary
