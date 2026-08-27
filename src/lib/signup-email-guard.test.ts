@@ -5,7 +5,9 @@ import { ACCOUNT_RESTRICTED_MESSAGE } from "@/lib/account-claim";
 import {
   EMAIL_ALREADY_REGISTERED_MESSAGE,
   EMAIL_AWAITING_VERIFICATION_MESSAGE,
+  EMAIL_UNIQUE_INDEX,
   evaluateEmailAvailability,
+  isEmailUniqueViolation,
   type ExistingEmailAccount,
 } from "@/lib/signup-email-guard";
 
@@ -106,5 +108,45 @@ describe("EMAIL_ALREADY_REGISTERED_MESSAGE", () => {
       /log in to your existing account/,
     );
     assert.match(EMAIL_ALREADY_REGISTERED_MESSAGE, /Forgot Password/);
+  });
+});
+
+describe("isEmailUniqueViolation", () => {
+  // The guard reads before it writes, so two submissions for one address can
+  // both pass it and race to the insert. The database settles that, and the
+  // loser must be told the same thing the guard would have said.
+  it("recognises the email index by name", () => {
+    assert.equal(
+      isEmailUniqueViolation({ meta: { target: EMAIL_UNIQUE_INDEX } }),
+      true,
+    );
+    assert.equal(
+      isEmailUniqueViolation({ meta: { target: [EMAIL_UNIQUE_INDEX] } }),
+      true,
+    );
+  });
+
+  // Prisma reports the target as a field list on some drivers.
+  it("recognises a bare email field target", () => {
+    assert.equal(isEmailUniqueViolation({ meta: { target: ["email"] } }), true);
+  });
+
+  // The composite [email, username] collision is a DIFFERENT failure and keeps
+  // its own wording — "already taken" reads as nonsense when the handles differ.
+  it("leaves the handle collision alone", () => {
+    assert.equal(
+      isEmailUniqueViolation({ meta: { target: ["username"] } }),
+      false,
+    );
+    assert.equal(
+      isEmailUniqueViolation({ meta: { target: "User_username_key" } }),
+      false,
+    );
+  });
+
+  it("survives a missing or oddly shaped meta", () => {
+    assert.equal(isEmailUniqueViolation({}), false);
+    assert.equal(isEmailUniqueViolation({ meta: undefined }), false);
+    assert.equal(isEmailUniqueViolation({ meta: { target: 42 } }), false);
   });
 });
