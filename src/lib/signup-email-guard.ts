@@ -78,3 +78,30 @@ export function evaluateEmailAvailability(
 
   return { available: false, error: EMAIL_AWAITING_VERIFICATION_MESSAGE };
 }
+
+/** The unique index that enforces one account per address, case-insensitively. */
+export const EMAIL_UNIQUE_INDEX = "User_email_lower_key";
+
+/**
+ * Did this unique-constraint failure come from the email rule?
+ *
+ * The guard above reads before it writes, so two submissions for the same
+ * address can both pass it and race to the insert. The database settles that,
+ * and the loser has to be told the same thing the guard would have told it —
+ * not the composite `[email, username]` wording, which describes a different
+ * collision and reads as nonsense when the handles differ.
+ *
+ * Prisma reports the constraint on `meta.target`, as a string or an array
+ * depending on the driver and the shape of the index, so both are handled.
+ */
+export function isEmailUniqueViolation(error: { meta?: unknown }): boolean {
+  const target = (error.meta as { target?: unknown } | undefined)?.target;
+  const names = Array.isArray(target)
+    ? target.map(String)
+    : typeof target === "string"
+      ? [target]
+      : [];
+  return names.some(
+    (name) => name === EMAIL_UNIQUE_INDEX || name.toLowerCase() === "email",
+  );
+}

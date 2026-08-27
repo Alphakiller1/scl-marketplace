@@ -16,7 +16,11 @@ import { getCurrentPolicyBundle } from "@/lib/queries/policies";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getRequestIdentity } from "@/lib/request-identity";
 import { evaluateAccountClaim, handleTakenMessage } from "@/lib/account-claim";
-import { evaluateEmailAvailability } from "@/lib/signup-email-guard";
+import {
+  EMAIL_ALREADY_REGISTERED_MESSAGE,
+  evaluateEmailAvailability,
+  isEmailUniqueViolation,
+} from "@/lib/signup-email-guard";
 import { ensureAuthEmailSchema } from "@/lib/ensure-auth-email-schema";
 import { emailVerificationEnforced } from "@/lib/email-verification-policy";
 
@@ -190,6 +194,14 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
     ) {
+      // The guard above is a read followed by a write, so two submissions for
+      // the same address can both pass it and race to the insert. The database
+      // settles that -- `User_email_lower_key` is a unique index on
+      // lower(email) -- and the loser lands here, where it has to say the same
+      // thing the guard would have said rather than the composite-key wording.
+      if (isEmailUniqueViolation(error)) {
+        return { ok: false, error: EMAIL_ALREADY_REGISTERED_MESSAGE };
+      }
       return {
         ok: false,
         error: "That email and handle combination is already taken.",
