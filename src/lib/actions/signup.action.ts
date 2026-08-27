@@ -16,6 +16,7 @@ import { getCurrentPolicyBundle } from "@/lib/queries/policies";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getRequestIdentity } from "@/lib/request-identity";
 import { evaluateAccountClaim, handleTakenMessage } from "@/lib/account-claim";
+import { evaluateEmailAvailability } from "@/lib/signup-email-guard";
 import { ensureAuthEmailSchema } from "@/lib/ensure-auth-email-schema";
 import { emailVerificationEnforced } from "@/lib/email-verification-policy";
 
@@ -88,16 +89,40 @@ export async function signupAction(input: SignupInput): Promise<SignupResult> {
     consentTextVersion: CONSENT_TEXT_VERSION,
   };
 
-  const byUsername = await prisma.user.findUnique({
-    where: { username },
-    select: {
-      id: true,
-      email: true,
-      passwordHash: true,
-      emailVerified: true,
-      accountStatus: true,
-    },
-  });
+  const [byUsername, sameEmailAccounts] = await Promise.all([
+    prisma.user.findUnique({
+      where: { username },
+      select: {
+        id: true,
+        email: true,
+        passwordHash: true,
+        emailVerified: true,
+        accountStatus: true,
+      },
+    }),
+    // One account per address. Signup only ever looked itself up by USERNAME,
+    // and the schema's uniqueness is the composite `@@unique([email, username])`
+    // — so an address opened as many accounts as it had spare handles. Four
+    // addresses in production had done exactly that.
+    //
+    // Compared case-insensitively because that is how the row is written
+    // (`lowerEmail`), and older rows predate that.
+    prisma.user.findMany({
+      where: { email: { equals: lowerEmail, mode: "insensitive" } },
+      select: { id: true, emailVerified: true, accountStatus: true },
+    }),
+  ]);
+
+  // Runs before the claim branch as well: a claim rewrites the email on the
+  // record it takes over, so without this it could hand a second account to an
+  // address that already has one.
+  const emailAvailability = evaluateEmailAvailability(
+    sameEmailAccounts,
+    byUsername?.id,
+  );
+  if (!emailAvailability.available) {
+    return { ok: false, error: emailAvailability.error };
+  }
 
   let userId: string;
 
