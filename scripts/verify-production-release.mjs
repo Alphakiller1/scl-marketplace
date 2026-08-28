@@ -5,6 +5,21 @@ function invariant(value, message) {
   if (!value) throw new Error(message);
 }
 
+export const MARKETING_PAGES = [
+  { path: "/picks", story: "picks", countAttribute: "data-pick-count" },
+  {
+    path: "/packages",
+    story: "packages",
+    countAttribute: "data-package-count",
+  },
+  {
+    path: "/leaderboard",
+    story: "leaderboard",
+    countAttribute: "data-capper-count",
+  },
+  { path: "/", story: "home-leaderboard", countAttribute: "data-capper-count" },
+];
+
 export function verifyPublicHealth(health, expectedRelease) {
   invariant(health?.status === "ok", "public health is not ok");
   invariant(
@@ -73,8 +88,23 @@ export function verifyPageMarker(html, story, countAttribute) {
   invariant(Number(match[1]) > 0, `${story} rendered an empty data set`);
 }
 
-async function fetchText(url, headers = {}) {
-  const response = await fetch(url, {
+export async function retryAsync(fn, { attempts, delayMs }) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await fn(attempt);
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+  }
+  throw lastError;
+}
+
+async function fetchText(url, headers = {}, fetchImpl = fetch) {
+  const response = await fetchImpl(url, {
     headers: { "cache-control": "no-cache", ...headers },
     signal: AbortSignal.timeout(30_000),
   });
@@ -87,12 +117,36 @@ async function fetchText(url, headers = {}) {
   return body;
 }
 
-async function fetchJson(url, headers = {}) {
-  const body = await fetchText(url, headers);
+async function fetchJson(url, headers = {}, fetchImpl = fetch) {
+  const body = await fetchText(url, headers, fetchImpl);
   try {
     return JSON.parse(body);
   } catch {
     throw new Error(`${new URL(url).pathname} returned invalid JSON`);
+  }
+}
+
+export async function fetchMarketingPages(base, nonce, fetchImpl = fetch) {
+  const htmlByStory = {};
+  // Marketing pages share the 5-connection Fluid pool. Fetch them one at a
+  // time so a fresh isolate is not stampeded by health + four ISR renders.
+  // 2026-08-22: parallel /picks + /leaderboard + /packages failed deploy
+  // with "picks rendered degraded data" while a follow-up curl was `ok`.
+  for (const page of MARKETING_PAGES) {
+    const html = await fetchText(
+      `${base}${page.path}?verify=${nonce}`,
+      {},
+      fetchImpl,
+    );
+    verifyPageMarker(html, page.story, page.countAttribute);
+    htmlByStory[page.story] = html;
+  }
+  return htmlByStory;
+}
+
+export function verifyMarketingPages(htmlByStory) {
+  for (const page of MARKETING_PAGES) {
+    verifyPageMarker(htmlByStory[page.story], page.story, page.countAttribute);
   }
 }
 
@@ -102,6 +156,9 @@ export async function verifyProductionRelease({
   cronSecret,
   rounds = 8,
   intervalMs = 2_000,
+  pageRetryAttempts = 3,
+  pageRetryDelayMs = 2_000,
+  fetchImpl = fetch,
 }) {
   invariant(baseUrl, "baseUrl is required");
   invariant(expectedRelease, "expectedRelease is required");
@@ -110,24 +167,22 @@ export async function verifyProductionRelease({
 
   for (let round = 1; round <= rounds; round += 1) {
     const nonce = `${Date.now()}-${round}`;
-    const [health, deep, picks, packages, leaderboard, home] =
-      await Promise.all([
-        fetchJson(`${base}/api/health?verify=${nonce}`),
-        fetchJson(`${base}/api/health/deep?verify=${nonce}`, {
-          authorization: cronSecret,
-        }),
-        fetchText(`${base}/picks?verify=${nonce}`),
-        fetchText(`${base}/packages?verify=${nonce}`),
-        fetchText(`${base}/leaderboard?verify=${nonce}`),
-        fetchText(`${base}/?verify=${nonce}`),
-      ]);
+    const [health, deep] = await Promise.all([
+      fetchJson(`${base}/api/health?verify=${nonce}`, {}, fetchImpl),
+      fetchJson(
+        `${base}/api/health/deep?verify=${nonce}`,
+        { authorization: cronSecret },
+        fetchImpl,
+      ),
+    ]);
 
     verifyPublicHealth(health, expectedRelease);
     verifyDeepHealth(deep, expectedRelease);
-    verifyPageMarker(picks, "picks", "data-pick-count");
-    verifyPageMarker(packages, "packages", "data-package-count");
-    verifyPageMarker(leaderboard, "leaderboard", "data-capper-count");
-    verifyPageMarker(home, "home-leaderboard", "data-capper-count");
+
+    await retryAsync(
+      (attempt) => fetchMarketingPages(base, `${nonce}-p${attempt}`, fetchImpl),
+      { attempts: pageRetryAttempts, delayMs: pageRetryDelayMs },
+    );
 
     console.info(
       JSON.stringify({
