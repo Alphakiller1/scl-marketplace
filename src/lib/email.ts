@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import type { StoreProvider } from "@prisma/client";
 
+import { hasDeliverableEmail } from "@/lib/account-claim";
 import { escapeHtml } from "@/lib/email-escape";
 import { renderEmailTemplate } from "@/lib/email-template-render";
 import type { EmailTemplateSlug } from "@/lib/email-templates";
@@ -537,21 +538,44 @@ export async function sendBroadcastBatch(
 ): Promise<{ address: string; delivered: boolean; error?: string }[]> {
   if (messages.length === 0) return [];
 
+  // Resend validates a batch as a unit: one reserved/example recipient makes
+  // the provider reject all 100 messages. Separate those rows before the API
+  // call so bad fixture data cannot block delivery to real cappers.
+  const sendable = messages.filter((message) =>
+    hasDeliverableEmail(message.to),
+  );
+  const blockedAddresses = new Set(
+    messages
+      .filter((message) => !hasDeliverableEmail(message.to))
+      .map((message) => message.to),
+  );
+  const blockedResult = (address: string) => ({
+    address,
+    delivered: false,
+    error: "reserved or placeholder email address",
+  });
+
+  if (sendable.length === 0) {
+    return messages.map((message) => blockedResult(message.to));
+  }
+
   if (!resend) {
-    console.info(`[email:dev] broadcast batch of ${messages.length}`, {
-      to: messages.map((m) => m.to),
-      subject: messages[0]?.subject,
+    console.info(`[email:dev] broadcast batch of ${sendable.length}`, {
+      to: sendable.map((m) => m.to),
+      subject: sendable[0]?.subject,
     });
     return messages.map((m) => ({
       address: m.to,
       delivered: false,
-      error: "mailer not configured",
+      error: blockedAddresses.has(m.to)
+        ? "reserved or placeholder email address"
+        : "mailer not configured",
     }));
   }
 
   try {
     const { error } = await resend.batch.send(
-      messages.map((m) => ({
+      sendable.map((m) => ({
         from,
         to: [m.to],
         subject: m.subject,
@@ -566,17 +590,25 @@ export async function sendBroadcastBatch(
       return messages.map((m) => ({
         address: m.to,
         delivered: false,
-        error: error.message,
+        error: blockedAddresses.has(m.to)
+          ? "reserved or placeholder email address"
+          : error.message,
       }));
     }
-    return messages.map((m) => ({ address: m.to, delivered: true }));
+    return messages.map((m) =>
+      blockedAddresses.has(m.to)
+        ? blockedResult(m.to)
+        : { address: m.to, delivered: true },
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : "send threw";
     console.error("[email] broadcast batch threw:", err);
     return messages.map((m) => ({
       address: m.to,
       delivered: false,
-      error: message,
+      error: blockedAddresses.has(m.to)
+        ? "reserved or placeholder email address"
+        : message,
     }));
   }
 }

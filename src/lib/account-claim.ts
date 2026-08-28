@@ -15,6 +15,27 @@ import type { AccountStatus } from "@prisma/client";
 /** Synthesized address used when a legacy export carried no real email. */
 export const LEGACY_PLACEHOLDER_EMAIL_DOMAIN = "legacy.scl";
 
+/**
+ * Domains reserved for examples, local development, or deliberately invalid
+ * addresses. Providers reject these instead of attempting delivery. Keeping
+ * them out of a batch is important because one invalid recipient can make
+ * Resend reject every otherwise-valid message in that batch.
+ */
+const NON_DELIVERABLE_EMAIL_DOMAINS = new Set([
+  LEGACY_PLACEHOLDER_EMAIL_DOMAIN,
+  "example.com",
+  "example.net",
+  "example.org",
+  "localhost",
+]);
+
+const NON_DELIVERABLE_EMAIL_SUFFIXES = [
+  ".example",
+  ".invalid",
+  ".local",
+  ".test",
+] as const;
+
 export const ACCOUNT_TAKEN_MESSAGE =
   "An account with that email already exists. Try logging in.";
 export const ACCOUNT_RESTRICTED_MESSAGE =
@@ -40,12 +61,17 @@ export function isUnclaimedAccount(account: {
   return !account.passwordHash;
 }
 
-/** A synthesized legacy address can't receive mail — a claim link has to be handed over directly. */
+/** Placeholder and reserved addresses cannot receive mail. */
 export function hasDeliverableEmail(email: string): boolean {
-  return !email
-    .trim()
-    .toLowerCase()
-    .endsWith(`@${LEGACY_PLACEHOLDER_EMAIL_DOMAIN}`);
+  const normalized = email.trim().toLowerCase();
+  const at = normalized.lastIndexOf("@");
+  if (at <= 0 || at === normalized.length - 1) return false;
+
+  const domain = normalized.slice(at + 1);
+  if (NON_DELIVERABLE_EMAIL_DOMAINS.has(domain)) return false;
+  return !NON_DELIVERABLE_EMAIL_SUFFIXES.some((suffix) =>
+    domain.endsWith(suffix),
+  );
 }
 
 /**

@@ -14,7 +14,7 @@ import { broadcastSchema } from "@/lib/schemas/broadcast.schema";
 function candidate(over: Partial<BroadcastCandidate> = {}): BroadcastCandidate {
   return {
     id: "u1",
-    email: "capper@example.com",
+    email: "capper@sclmail.dev",
     username: "capper",
     emailVerified: new Date("2026-08-01"),
     accountStatus: "ACTIVE",
@@ -28,7 +28,7 @@ describe("resolveBroadcastRecipients", () => {
   it("includes an ordinary active capper", () => {
     const out = resolveBroadcastRecipients("ALL_CAPPERS", [candidate()]);
     assert.equal(out.length, 1);
-    assert.equal(out[0]!.email, "capper@example.com");
+    assert.equal(out[0]!.email, "capper@sclmail.dev");
   });
 
   // The imported roster carries synthesized @legacy.scl addresses with no inbox.
@@ -37,6 +37,13 @@ describe("resolveBroadcastRecipients", () => {
   it("skips undeliverable legacy placeholder addresses", () => {
     const out = resolveBroadcastRecipients("ALL_CAPPERS", [
       candidate({ id: "u2", email: "oldtimer@legacy.scl" }),
+    ]);
+    assert.deepEqual(out, []);
+  });
+
+  it("skips provider-rejected reserved example addresses", () => {
+    const out = resolveBroadcastRecipients("ALL_CAPPERS", [
+      candidate({ id: "u2", email: "qa@example.com" }),
     ]);
     assert.deepEqual(out, []);
   });

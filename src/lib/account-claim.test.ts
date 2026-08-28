@@ -78,9 +78,13 @@ test("restricted accounts cannot be claimed back through signup", () => {
   }
 });
 
-test("placeholder legacy addresses are not deliverable", () => {
+test("placeholder and reserved addresses are not deliverable", () => {
   assert.equal(hasDeliverableEmail("sharpshooter@legacy.scl"), false);
   assert.equal(hasDeliverableEmail("SharpShooter@Legacy.SCL "), false);
+  assert.equal(hasDeliverableEmail("qa@example.com"), false);
+  assert.equal(hasDeliverableEmail("qa@fixture.test"), false);
+  assert.equal(hasDeliverableEmail("qa@service.local"), false);
+  assert.equal(hasDeliverableEmail("missing-at-sign"), false);
   assert.equal(hasDeliverableEmail("capper@gmail.com"), true);
   // A real address that merely mentions the domain elsewhere still delivers.
   assert.equal(hasDeliverableEmail("legacy.scl@gmail.com"), true);
