@@ -6,6 +6,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   oddsControlSettingsSchema,
+  oddsRunQueueSchema,
   type OddsControlSettingsInput,
 } from "@/lib/schemas/odds-control.schema";
 import { requireAdmin } from "@/lib/session";
@@ -121,29 +122,55 @@ export async function queueOddsRunAction(input: {
   tier: "surface" | "expanded";
 }): Promise<ActionResult> {
   const admin = await requireAdmin();
-  if (!(["surface", "expanded"] as const).includes(input.tier)) {
-    return { ok: false, error: "Unknown refresh tier." };
+  const parsed = oddsRunQueueSchema.safeParse({
+    sport: input?.sport?.trim().toUpperCase(),
+    tier: input?.tier,
+  });
+  if (!parsed.success) {
+    return { ok: false, error: "Unknown sport or refresh tier." };
   }
+  const { sport, tier } = parsed.data;
   try {
-    const existing = await prisma.oddsSportControl.findUnique({
-      where: { sport: input.sport },
-    });
+    const [config, existing] = await Promise.all([
+      prisma.oddsControlConfig.findUnique({
+        where: { id: "primary" },
+        select: { managedSchedulingEnabled: true },
+      }),
+      prisma.oddsSportControl.findUnique({
+        where: { sport },
+      }),
+    ]);
+    if (!config?.managedSchedulingEnabled) {
+      return {
+        ok: false,
+        error: "Enable owner-managed scheduling before queueing a run.",
+      };
+    }
     if (!existing?.enabled) {
       return { ok: false, error: "Enable this sport before queueing a run." };
     }
+    if (
+      (tier === "surface" && !existing.surfaceEnabled) ||
+      (tier === "expanded" && !existing.expandedEnabled)
+    ) {
+      return {
+        ok: false,
+        error: `Enable the ${tier} tier before queueing a run.`,
+      };
+    }
     await prisma.$transaction([
       prisma.oddsSportControl.update({
-        where: { sport: input.sport },
+        where: { sport },
         data:
-          input.tier === "surface"
+          tier === "surface"
             ? { nextSurfaceRunAt: new Date() }
             : { nextExpandedRunAt: new Date() },
       }),
       prisma.oddsControlAuditEvent.create({
         data: {
           action: "RUN_QUEUED",
-          target: `${input.sport}:${input.tier}`,
-          after: { sport: input.sport, tier: input.tier },
+          target: `${sport}:${tier}`,
+          after: { sport, tier },
           actorId: admin.id,
         },
       }),

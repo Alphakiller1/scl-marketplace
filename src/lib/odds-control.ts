@@ -19,6 +19,18 @@ export const ODDS_CONTROL_SPORTS = [
 export type OddsControlSport = (typeof ODDS_CONTROL_SPORTS)[number];
 export type OddsControlTier = "surface" | "expanded";
 
+/**
+ * Preserve the paid coverage that exists before owner-managed scheduling is
+ * enabled. New sports stay visible in the control plane, but opt in only.
+ */
+export const LEGACY_SCHEDULED_SPORTS: ReadonlySet<OddsControlSport> = new Set([
+  "MLB",
+  "WNBA",
+  "TENNIS",
+  "SOCCER",
+  "NFL",
+]);
+
 export const SURFACE_MARKETS = [
   { key: "h2h", label: "Moneyline" },
   { key: "spreads", label: "Spreads" },
@@ -129,11 +141,12 @@ export function allowedExpandedMarkets(sport: string): string[] {
 
 export function defaultSportControl(sport: OddsControlSport) {
   const expanded = allowedExpandedMarkets(sport);
+  const enabled = LEGACY_SCHEDULED_SPORTS.has(sport);
   return {
     sport,
-    enabled: true,
-    surfaceEnabled: true,
-    expandedEnabled: expanded.length > 0,
+    enabled,
+    surfaceEnabled: enabled,
+    expandedEnabled: enabled && expanded.length > 0,
     surfaceMarkets: SURFACE_MARKETS.map((market) => market.key),
     expandedMarkets: expanded,
     leagues: [] as string[],
@@ -147,6 +160,22 @@ export function defaultSportControl(sport: OddsControlSport) {
   };
 }
 
+export function isMissingOddsControlStorageError(error: unknown): boolean {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "P2021"
+  ) {
+    return true;
+  }
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    /Odds(ControlConfig|SportControl|ApiRun|ControlAuditEvent)/.test(message) &&
+    /(does not exist|unknown table|relation .* does not exist)/i.test(message)
+  );
+}
+
 export const DEFAULT_ODDS_CONTROL_CONFIG = {
   managedSchedulingEnabled: false,
   paused: false,
@@ -155,7 +184,7 @@ export const DEFAULT_ODDS_CONTROL_CONFIG = {
   monthlyCreditLimit: 20_000,
   warningPercent: 70,
   reserveCredits: 1_000,
-  timezone: "America/New_York",
+  timezone: "UTC",
 } as const;
 
 export const CADENCE_OPTIONS = [
@@ -198,6 +227,50 @@ export function creditLimitState(
 ): "ok" | "warning" | "blocked" {
   if (limit <= 0 || used >= limit) return "blocked";
   return used / limit >= warningPercent / 100 ? "warning" : "ok";
+}
+
+export const PROVIDER_BALANCE_FRESH_MS = 24 * 60 * 60_000;
+
+export function canReserveOddsCredits(input: {
+  todayCredits: number;
+  weekCredits: number;
+  monthCredits: number;
+  reservedCredits: number;
+  estimatedCredits: number;
+  dailyLimit: number;
+  weeklyLimit: number;
+  monthlyLimit: number;
+  providerRemaining: number | null;
+  providerBalanceUpdatedAt: Date | null;
+  providerReserve: number;
+  now: Date;
+}): boolean {
+  const {
+    reservedCredits,
+    estimatedCredits,
+    providerRemaining,
+    providerBalanceUpdatedAt,
+    now,
+  } = input;
+  const providerBalanceIsCurrent =
+    providerBalanceUpdatedAt != null &&
+    providerBalanceUpdatedAt >=
+      new Date(now.getTime() - PROVIDER_BALANCE_FRESH_MS);
+  const providerAllows =
+    !providerBalanceIsCurrent ||
+    providerRemaining == null ||
+    providerRemaining - reservedCredits - estimatedCredits >=
+      input.providerReserve;
+
+  return (
+    input.todayCredits + reservedCredits + estimatedCredits <=
+      input.dailyLimit &&
+    input.weekCredits + reservedCredits + estimatedCredits <=
+      input.weeklyLimit &&
+    input.monthCredits + reservedCredits + estimatedCredits <=
+      input.monthlyLimit &&
+    providerAllows
+  );
 }
 
 /** Whether a cached selection remains publishable under the active owner strategy. */

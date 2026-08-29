@@ -80,12 +80,19 @@ export function AdminOddsControlEditor({
   const router = useRouter();
   const [config, setConfig] = useState(initialConfig);
   const [sports, setSports] = useState(initialSports);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function updateSport(sport: OddsControlSport, update: Partial<SportDraft>) {
+    setHasUnsavedChanges(true);
     setSports((current) =>
       current.map((row) => (row.sport === sport ? { ...row, ...update } : row)),
     );
+  }
+
+  function updateConfig(update: Partial<typeof config>) {
+    setHasUnsavedChanges(true);
+    setConfig((current) => ({ ...current, ...update }));
   }
 
   function save() {
@@ -106,6 +113,7 @@ export function AdminOddsControlEditor({
         toast.error(result.error);
         return;
       }
+      setHasUnsavedChanges(false);
       toast.success("API controls saved");
       router.refresh();
     });
@@ -168,13 +176,12 @@ export function AdminOddsControlEditor({
                 min={key === "reserveCredits" ? 0 : 1}
                 value={config[key as keyof typeof config] as number}
                 onChange={(event) =>
-                  setConfig((current) => ({
-                    ...current,
+                  updateConfig({
                     [key]: numberValue(
                       event.target.value,
-                      current[key as keyof typeof current] as number,
+                      config[key as keyof typeof config] as number,
                     ),
-                  }))
+                  })
                 }
               />
             </div>
@@ -184,16 +191,14 @@ export function AdminOddsControlEditor({
           <Toggle
             checked={config.managedSchedulingEnabled}
             onChange={(managedSchedulingEnabled) =>
-              setConfig((current) => ({ ...current, managedSchedulingEnabled }))
+              updateConfig({ managedSchedulingEnabled })
             }
             label="Enable owner-managed scheduling"
             description="Off by default. Until enabled, the existing production cadence remains authoritative."
           />
           <Toggle
             checked={config.paused}
-            onChange={(paused) =>
-              setConfig((current) => ({ ...current, paused }))
-            }
+            onChange={(paused) => updateConfig({ paused })}
             label="Pause optional API population"
             description="Stops scheduled board refreshes while retaining protected results and verification activity."
           />
@@ -229,7 +234,6 @@ export function AdminOddsControlEditor({
               <details
                 key={sport.sport}
                 className="border-border bg-card rounded-xl border"
-                open={sport.sport === "MLB"}
               >
                 <summary className="focus-visible:ring-ring flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-4 py-3 outline-none focus-visible:ring-3">
                   <span className="flex items-center gap-3">
@@ -470,7 +474,10 @@ export function AdminOddsControlEditor({
 
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <p className="text-muted-foreground text-xs">
-                      Next surface:{" "}
+                      {hasUnsavedChanges
+                        ? "Save pending edits before queueing."
+                        : "Queue uses the last saved strategy."}{" "}
+                      · Next surface:{" "}
                       {sport.nextSurfaceRunAt
                         ? new Date(sport.nextSurfaceRunAt).toLocaleString()
                         : "not scheduled"}
@@ -482,7 +489,14 @@ export function AdminOddsControlEditor({
                       <Button
                         type="button"
                         variant="outline"
-                        disabled={pending || !storageReady || !sport.enabled}
+                        disabled={
+                          pending ||
+                          hasUnsavedChanges ||
+                          !storageReady ||
+                          !config.managedSchedulingEnabled ||
+                          !sport.enabled ||
+                          !sport.surfaceEnabled
+                        }
                         onClick={() => queue(sport.sport, "surface")}
                       >
                         <Play className="size-4" aria-hidden /> Queue surface
@@ -491,7 +505,14 @@ export function AdminOddsControlEditor({
                         <Button
                           type="button"
                           variant="outline"
-                          disabled={pending || !storageReady || !sport.enabled}
+                          disabled={
+                            pending ||
+                            hasUnsavedChanges ||
+                            !storageReady ||
+                            !config.managedSchedulingEnabled ||
+                            !sport.enabled ||
+                            !sport.expandedEnabled
+                          }
                           onClick={() => queue(sport.sport, "expanded")}
                         >
                           <Play className="size-4" aria-hidden /> Queue expanded
@@ -508,8 +529,8 @@ export function AdminOddsControlEditor({
 
       <div className="border-border bg-card sticky bottom-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3 shadow-lg">
         <p className="text-muted-foreground text-xs">
-          Saving records an immutable change event. API credentials never reach
-          this form.
+          Saving records an append-only change event. API credentials never
+          reach this form.
         </p>
         <Button type="submit" disabled={pending || !storageReady}>
           <Save className="size-4" aria-hidden />

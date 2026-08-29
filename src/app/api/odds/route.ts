@@ -28,9 +28,18 @@ export async function GET(request: Request) {
     requestedSport === "ALL"
       ? ODDS_BOARD_SPORTS.map((sport) => sport.key)
       : [requestedSport];
-  const policies = await Promise.all(
-    sports.map((sport) => getManagedOddsSportControl(sport)),
-  );
+  let policies: Awaited<ReturnType<typeof getManagedOddsSportControl>>[];
+  try {
+    policies = await Promise.all(
+      sports.map((sport) => getManagedOddsSportControl(sport)),
+    );
+  } catch (error) {
+    console.error("[odds-board] owner controls unavailable", error);
+    return NextResponse.json(
+      { error: "Odds controls are temporarily unavailable." },
+      { status: 503, headers: { "Cache-Control": "private, no-store" } },
+    );
+  }
   const boards = configured
     ? await Promise.all(
         sports.map((sport, index) => {

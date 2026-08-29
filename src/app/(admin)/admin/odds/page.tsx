@@ -174,7 +174,7 @@ export default async function AdminOddsPage() {
           <div className="border-border border-t pt-4">
             <h3 className="font-semibold">Usage by market</h3>
             <p className="text-muted-foreground mb-3 text-xs">
-              Managed runs recorded after activation
+              Approximate allocation across markets requested by managed runs
             </p>
             {data.byMarket.length ? (
               <div className="max-h-56 space-y-2 overflow-y-auto">

@@ -142,8 +142,19 @@ async function populate(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  let managedSchedulingEnabled: boolean;
+  try {
+    managedSchedulingEnabled = await managedOddsSchedulingEnabled();
+  } catch (error) {
+    console.error("[odds-populate] owner controls unavailable", error);
+    return NextResponse.json(
+      { ok: false, error: "Odds control storage is unavailable." },
+      { status: 503 },
+    );
+  }
+
   if (
-    (await managedOddsSchedulingEnabled()) &&
+    managedSchedulingEnabled &&
     req.headers.get("x-scl-managed-run") !== "1"
   ) {
     return NextResponse.json({

@@ -1,4 +1,4 @@
--- Owner-managed Odds API controls, execution history, and immutable audit trail.
+-- Owner-managed Odds API controls, execution history, and append-only audit trail.
 CREATE TABLE scl."OddsControlConfig" (
   "id" TEXT NOT NULL DEFAULT 'primary',
   "managedSchedulingEnabled" BOOLEAN NOT NULL DEFAULT false,
@@ -8,7 +8,7 @@ CREATE TABLE scl."OddsControlConfig" (
   "monthlyCreditLimit" INTEGER NOT NULL DEFAULT 20000,
   "warningPercent" INTEGER NOT NULL DEFAULT 70,
   "reserveCredits" INTEGER NOT NULL DEFAULT 1000,
-  "timezone" TEXT NOT NULL DEFAULT 'America/New_York',
+  "timezone" TEXT NOT NULL DEFAULT 'UTC',
   "updatedById" TEXT,
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TIMESTAMP(3) NOT NULL,

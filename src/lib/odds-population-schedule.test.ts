@@ -235,6 +235,7 @@ test("owner scheduling is a signed, dormant-by-default dispatcher", () => {
   assert.match(dispatcher, /Authorization|authorization/);
   assert.match(dispatcher, /claimDueOddsRuns/);
   assert.match(dispatcher, /x-scl-managed-run/);
+  assert.match(dispatcher, /status: ok \? 200 : 502/);
   assert.match(route, /managedOddsSchedulingEnabled/);
   assert.match(route, /managed_scheduler_active/);
 });

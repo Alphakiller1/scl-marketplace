@@ -685,7 +685,7 @@ model OddsControlConfig {
   monthlyCreditLimit       Int      @default(20000)
   warningPercent           Int      @default(70)
   reserveCredits           Int      @default(1000)
-  timezone                 String   @default("America/New_York")
+  timezone                 String   @default("UTC")
   updatedById              String?
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
@@ -746,7 +746,7 @@ model OddsApiRun {
   @@index([status, startedAt])
 }
 
-/// Immutable owner change history for limits, markets, leagues, and cadence.
+/// Append-only owner change history for limits, markets, leagues, and cadence.
 model OddsControlAuditEvent {
   id        String   @id @default(cuid())
   action    String

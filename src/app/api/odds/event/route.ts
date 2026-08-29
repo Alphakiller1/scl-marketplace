@@ -26,7 +26,16 @@ export async function GET(request: Request) {
   const sport = params.get("sport") ?? "";
   const eventId = params.get("eventId") ?? "";
   const league = params.get("league");
-  const policy = sport ? await getManagedOddsSportControl(sport) : null;
+  let policy: Awaited<ReturnType<typeof getManagedOddsSportControl>> = null;
+  try {
+    policy = sport ? await getManagedOddsSportControl(sport) : null;
+  } catch (error) {
+    console.error("[odds-board] event owner controls unavailable", error);
+    return NextResponse.json(
+      { error: "Odds controls are temporarily unavailable." },
+      { status: 503, headers: { "Cache-Control": "private, no-store" } },
+    );
+  }
   const board =
     sport && eventId && (!policy || (policy.enabled && policy.expandedEnabled))
       ? policy

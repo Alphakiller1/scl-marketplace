@@ -20,8 +20,14 @@ function isoOrNull(value: Date | null): string | null {
 
 export async function oddsControlStorageReady(): Promise<boolean> {
   try {
-    await prisma.$queryRaw`SELECT 1 FROM scl."OddsControlConfig" LIMIT 1`;
-    return true;
+    const [result] = await prisma.$queryRaw<Array<{ ready: boolean }>>`
+      SELECT
+        to_regclass('scl."OddsControlConfig"') IS NOT NULL AND
+        to_regclass('scl."OddsSportControl"') IS NOT NULL AND
+        to_regclass('scl."OddsApiRun"') IS NOT NULL AND
+        to_regclass('scl."OddsControlAuditEvent"') IS NOT NULL AS ready
+    `;
+    return result?.ready === true;
   } catch {
     return false;
   }
@@ -60,7 +66,7 @@ export async function getOddsControlSettings() {
           monthlyCreditLimit: config.monthlyCreditLimit,
           warningPercent: config.warningPercent,
           reserveCredits: config.reserveCredits,
-          timezone: "America/New_York" as const,
+          timezone: "UTC" as const,
         }
       : { ...DEFAULT_ODDS_CONTROL_CONFIG },
     sports: defaults.map((fallback) => {
