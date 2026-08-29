@@ -347,7 +347,7 @@ export function AdminOddsControlEditor({
         </p>
       </Card>
 
-      <section id="sports" className="scroll-mt-24 space-y-5">
+      <section id="sports" className="scroll-mt-36 space-y-5">
         <Card className="space-y-5 p-4 sm:p-6">
           <StepHeader
             step={3}
@@ -732,6 +732,7 @@ export function AdminOddsControlEditor({
                       <Button
                         type="button"
                         variant="outline"
+                        className="min-h-10"
                         disabled={
                           pending ||
                           hasUnsavedChanges ||
@@ -749,6 +750,7 @@ export function AdminOddsControlEditor({
                         <Button
                           type="button"
                           variant="outline"
+                          className="min-h-10"
                           disabled={
                             pending ||
                             hasUnsavedChanges ||
@@ -774,7 +776,7 @@ export function AdminOddsControlEditor({
 
       <div
         className={cn(
-          "border-border bg-card sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3 shadow-lg",
+          "border-border bg-card sticky bottom-3 z-10 flex items-center justify-between gap-3 rounded-xl border p-3 shadow-lg",
           hasUnsavedChanges && "border-primary/40",
         )}
       >
@@ -782,7 +784,7 @@ export function AdminOddsControlEditor({
           <p className="text-sm font-medium">
             {hasUnsavedChanges ? "Unsaved strategy changes" : "Strategy saved"}
           </p>
-          <p className="text-muted-foreground text-xs">
+          <p className="text-muted-foreground hidden text-xs sm:block">
             Changes are audited. API credentials never reach this form.
           </p>
         </div>
@@ -791,7 +793,10 @@ export function AdminOddsControlEditor({
           disabled={pending || !storageReady || !hasUnsavedChanges}
         >
           <Save className="size-4" aria-hidden />
-          {pending ? "Saving…" : "Save API strategy"}
+          <span className="sm:hidden">{pending ? "Saving…" : "Save"}</span>
+          <span className="hidden sm:inline">
+            {pending ? "Saving…" : "Save API strategy"}
+          </span>
         </Button>
       </div>
     </form>

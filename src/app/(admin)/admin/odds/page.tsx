@@ -174,7 +174,7 @@ export default async function AdminOddsPage() {
 
       <nav
         aria-label="API credit dashboard sections"
-        className="border-border bg-card sticky top-[calc(4rem+env(safe-area-inset-top))] z-20 -mx-4 flex gap-1 overflow-x-auto border-y px-4 py-2 sm:mx-0 sm:rounded-xl sm:border"
+        className="border-border bg-card sticky top-[calc(4rem+env(safe-area-inset-top))] z-20 -mx-4 flex [scrollbar-width:none] gap-1 overflow-x-auto border-y px-4 py-2 [-ms-overflow-style:none] sm:mx-0 sm:rounded-xl sm:border [&::-webkit-scrollbar]:hidden"
       >
         {[
           ["Usage", "#usage"],
@@ -185,7 +185,7 @@ export default async function AdminOddsPage() {
           <a
             key={href}
             href={href}
-            className="hover:bg-surface-2 focus-visible:ring-ring shrink-0 rounded-lg px-3 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:outline-none"
+            className="hover:bg-surface-2 focus-visible:ring-ring inline-flex min-h-10 shrink-0 items-center rounded-lg px-3 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:outline-none"
           >
             {label}
           </a>
@@ -267,7 +267,7 @@ export default async function AdminOddsPage() {
         </Card>
       </section>
 
-      <section id="usage" className="scroll-mt-24 space-y-5">
+      <section id="usage" className="scroll-mt-36 space-y-5">
         <SectionHeader
           icon={Gauge}
           title="Usage & budget"
@@ -441,7 +441,7 @@ export default async function AdminOddsPage() {
         </div>
       </section>
 
-      <section id="controls" className="scroll-mt-24 space-y-5">
+      <section id="controls" className="scroll-mt-36 space-y-5">
         <SectionHeader
           icon={Settings2}
           title="Owner strategy"
@@ -454,7 +454,7 @@ export default async function AdminOddsPage() {
         />
       </section>
 
-      <section id="activity" className="scroll-mt-24 space-y-5">
+      <section id="activity" className="scroll-mt-36 space-y-5">
         <SectionHeader
           icon={History}
           title="Activity & change history"

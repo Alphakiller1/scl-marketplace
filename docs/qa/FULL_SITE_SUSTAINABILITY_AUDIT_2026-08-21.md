@@ -184,7 +184,7 @@ Admin is **secure and usable**. It is **not** at the public product bar. That is
 - **OK:** App Router, Server Components default, marketing header does not call `auth()` (ISR preserved).
 - **OK:** Home streams via Suspense islands.
 - **Debt:** oversized client editors (profile-form ~548, leaderboard ~642, pick-entry stack).
-- **Debt:** token escapes `text-[color:var(--scl-*)]` (~80+), amber palette, one hex gradient.
+- **Debt:** roughly 80 arbitrary SCL text-color token escapes, the amber palette, and one hex gradient.
 
 ### Cron / jobs
 
