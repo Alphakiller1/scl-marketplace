@@ -2,10 +2,23 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, CalendarClock, Play, Save } from "lucide-react";
+import {
+  AlertTriangle,
+  CalendarClock,
+  Check,
+  ChevronDown,
+  CircleDollarSign,
+  Gauge,
+  Play,
+  Save,
+  ShieldCheck,
+  SlidersHorizontal,
+} from "lucide-react";
 import { toast } from "sonner";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -21,6 +34,7 @@ import {
   type OddsControlSport,
 } from "@/lib/odds-control";
 import type { OddsControlSettingsInput } from "@/lib/schemas/odds-control.schema";
+import { cn } from "@/lib/utils";
 
 type SportDraft = OddsControlSettingsInput["sports"][number] & {
   nextSurfaceRunAt: string | null;
@@ -43,29 +57,80 @@ function Toggle({
   disabled?: boolean;
 }) {
   return (
-    <label className="border-border bg-surface-2 flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border p-3">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-        disabled={disabled}
-        className="accent-primary mt-0.5 size-4 shrink-0"
-      />
+    <label
+      className={cn(
+        "border-border bg-card flex min-h-12 items-start justify-between gap-4 rounded-xl border p-3 transition-colors",
+        disabled
+          ? "cursor-not-allowed opacity-50"
+          : "hover:border-border-strong cursor-pointer",
+        checked && !disabled && "border-primary/40 bg-primary/5",
+      )}
+    >
       <span className="min-w-0">
         <span className="block text-sm font-medium">{label}</span>
         {description ? (
-          <span className="text-muted-foreground block text-xs leading-relaxed">
+          <span className="text-muted-foreground mt-0.5 block text-xs leading-relaxed">
             {description}
           </span>
         ) : null}
       </span>
+      <input
+        type="checkbox"
+        role="switch"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        disabled={disabled}
+        className="peer sr-only"
+      />
+      <span
+        aria-hidden="true"
+        className="bg-surface-2 peer-focus-visible:ring-ring peer-checked:bg-primary after:bg-primary-foreground relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 peer-disabled:opacity-60 after:absolute after:top-1 after:left-1 after:size-4 after:rounded-full after:shadow-sm after:transition-transform peer-checked:after:translate-x-5"
+      />
     </label>
+  );
+}
+
+function StepHeader({
+  step,
+  icon: Icon,
+  title,
+  description,
+}: {
+  step: number;
+  icon: typeof Gauge;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="bg-primary text-primary-foreground nums grid size-8 shrink-0 place-items-center rounded-full text-sm font-semibold">
+        {step}
+      </span>
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <Icon className="text-primary size-4" aria-hidden />
+          <h3 className="text-lg font-semibold">{title}</h3>
+        </div>
+        <p className="text-muted-foreground mt-1 text-sm">{description}</p>
+      </div>
+    </div>
   );
 }
 
 function numberValue(value: string, fallback: number): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? Math.round(parsed) : fallback;
+}
+
+function cadenceLabel(minutes: number): string {
+  return (
+    CADENCE_OPTIONS.find((option) => option.minutes === minutes)?.label ??
+    `${minutes} min`
+  );
+}
+
+function scheduleLabel(value: string | null): string {
+  return value ? new Date(value).toLocaleString() : "Not scheduled";
 }
 
 export function AdminOddsControlEditor({
@@ -133,47 +198,135 @@ export function AdminOddsControlEditor({
 
   return (
     <form
-      className="space-y-6"
+      className="space-y-5"
       onSubmit={(event) => {
         event.preventDefault();
         save();
       }}
     >
       {!storageReady ? (
-        <div className="border-border bg-surface-2 flex gap-3 rounded-xl border p-4 text-sm">
+        <div
+          className="border-neg/30 bg-neg/10 flex gap-3 rounded-xl border p-4 text-sm"
+          role="alert"
+        >
           <AlertTriangle
-            className="text-neg mt-0.5 size-4 shrink-0"
+            className="text-neg mt-0.5 size-5 shrink-0"
             aria-hidden
           />
-          <p>
-            Preview mode: the database migration has not been applied. Controls
-            are visible, but saving and scheduled execution remain disabled.
-          </p>
+          <div>
+            <p className="font-semibold">Preview mode—saving is disabled</p>
+            <p className="text-muted-foreground mt-1">
+              The database migration has not been applied. You can review the
+              controls, but no setting or schedule can change.
+            </p>
+          </div>
         </div>
       ) : null}
 
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold">Global guardrails</h2>
-          <p className="text-muted-foreground text-sm">
-            Hard limits include completed usage and credits reserved by active
-            runs.
-          </p>
+      <Card className="space-y-5 p-4 sm:p-6">
+        <StepHeader
+          step={1}
+          icon={CalendarClock}
+          title="Scheduling authority"
+          description="Choose whether this dashboard controls API pulls, then pause them when needed."
+        />
+        <div className="grid gap-3 md:grid-cols-2">
+          <Toggle
+            checked={config.managedSchedulingEnabled}
+            onChange={(managedSchedulingEnabled) =>
+              updateConfig({ managedSchedulingEnabled })
+            }
+            label="Owner-managed scheduling"
+            description="When on, the dispatcher follows the sport and cadence settings below. When off, existing production cadence remains authoritative."
+          />
+          <Toggle
+            checked={config.paused}
+            onChange={(paused) => updateConfig({ paused })}
+            label="Pause optional API pulls"
+            description="Stops scheduled board refreshes. Protected results and verification activity continue."
+          />
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div
+          className={cn(
+            "flex items-center gap-3 rounded-xl border p-3 text-sm",
+            config.managedSchedulingEnabled && !config.paused
+              ? "border-live/30 bg-live/10"
+              : "border-border bg-surface-2",
+          )}
+          role="status"
+        >
+          <span
+            className={cn(
+              "grid size-7 shrink-0 place-items-center rounded-full",
+              config.managedSchedulingEnabled && !config.paused
+                ? "bg-live text-background"
+                : "bg-muted text-muted-foreground",
+            )}
+            aria-hidden
+          >
+            {config.managedSchedulingEnabled && !config.paused ? (
+              <Check className="size-4" />
+            ) : (
+              <CalendarClock className="size-4" />
+            )}
+          </span>
+          <span className="font-medium">
+            {!config.managedSchedulingEnabled
+              ? "Preview only: these settings will not control API calls."
+              : config.paused
+                ? "Paused: new optional managed pulls will not run."
+                : "Active after save: the dispatcher will enforce this strategy."}
+          </span>
+        </div>
+      </Card>
+
+      <Card className="space-y-5 p-4 sm:p-6">
+        <StepHeader
+          step={2}
+          icon={ShieldCheck}
+          title="Credit guardrails"
+          description="Set the maximum spend for each window and keep a protected reserve."
+        />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {[
-            ["Daily limit", "dailyCreditLimit"],
-            ["Weekly limit", "weeklyCreditLimit"],
-            ["Monthly limit", "monthlyCreditLimit"],
-            ["Protected reserve", "reserveCredits"],
-            ["Warning at %", "warningPercent"],
-          ].map(([label, key]) => (
+            {
+              label: "Daily limit",
+              key: "dailyCreditLimit",
+              help: "Max per calendar day",
+              min: 1,
+            },
+            {
+              label: "Weekly limit",
+              key: "weeklyCreditLimit",
+              help: "Max per rolling 7 days",
+              min: 1,
+            },
+            {
+              label: "Monthly limit",
+              key: "monthlyCreditLimit",
+              help: "Max per calendar month",
+              min: 1,
+            },
+            {
+              label: "Protected reserve",
+              key: "reserveCredits",
+              help: "Held for critical calls",
+              min: 0,
+            },
+            {
+              label: "Warning threshold",
+              key: "warningPercent",
+              help: "Percent of each limit",
+              min: 1,
+            },
+          ].map(({ label, key, help, min }) => (
             <div key={key} className="space-y-1.5">
               <Label htmlFor={key}>{label}</Label>
               <Input
                 id={key}
                 type="number"
-                min={key === "reserveCredits" ? 0 : 1}
+                min={min}
+                max={key === "warningPercent" ? 100 : undefined}
                 value={config[key as keyof typeof config] as number}
                 onChange={(event) =>
                   updateConfig({
@@ -184,36 +337,56 @@ export function AdminOddsControlEditor({
                   })
                 }
               />
+              <p className="text-muted-foreground text-xs">{help}</p>
             </div>
           ))}
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Toggle
-            checked={config.managedSchedulingEnabled}
-            onChange={(managedSchedulingEnabled) =>
-              updateConfig({ managedSchedulingEnabled })
-            }
-            label="Enable owner-managed scheduling"
-            description="Off by default. Until enabled, the existing production cadence remains authoritative."
-          />
-          <Toggle
-            checked={config.paused}
-            onChange={(paused) => updateConfig({ paused })}
-            label="Pause optional API population"
-            description="Stops scheduled board refreshes while retaining protected results and verification activity."
-          />
-        </div>
-      </section>
+        <p className="border-border text-muted-foreground border-t pt-4 text-xs">
+          Hard limits count completed usage plus credits reserved by active
+          runs. New managed runs are blocked before they can exceed a limit.
+        </p>
+      </Card>
 
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold">Sport strategy</h2>
-          <p className="text-muted-foreground text-sm">
-            Select coverage and cadence. Cost figures are conservative upper
-            estimates.
-          </p>
-        </div>
-        <div className="space-y-4">
+      <section id="sports" className="scroll-mt-24 space-y-5">
+        <Card className="space-y-5 p-4 sm:p-6">
+          <StepHeader
+            step={3}
+            icon={SlidersHorizontal}
+            title="Sports, markets & cadence"
+            description="Open a sport to control its board, expanded markets, refresh schedule, and league scope."
+          />
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="border-border bg-surface-2 rounded-xl border p-3">
+              <p className="text-muted-foreground text-xs">Sports enabled</p>
+              <p className="nums mt-1 text-xl font-semibold">
+                {sports.filter((sport) => sport.enabled).length} /{" "}
+                {sports.length}
+              </p>
+            </div>
+            <div className="border-border bg-surface-2 rounded-xl border p-3">
+              <p className="text-muted-foreground text-xs">Standard boards</p>
+              <p className="nums mt-1 text-xl font-semibold">
+                {
+                  sports.filter(
+                    (sport) => sport.enabled && sport.surfaceEnabled,
+                  ).length
+                }
+              </p>
+            </div>
+            <div className="border-border bg-surface-2 rounded-xl border p-3">
+              <p className="text-muted-foreground text-xs">Expanded coverage</p>
+              <p className="nums mt-1 text-xl font-semibold">
+                {
+                  sports.filter(
+                    (sport) => sport.enabled && sport.expandedEnabled,
+                  ).length
+                }
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <div className="space-y-3">
           {sports.map((sport) => {
             const groups = expandedMarketGroups(sport.sport);
             const surfaceEstimate = estimatedRunCredits({
@@ -230,49 +403,82 @@ export function AdminOddsControlEditor({
               leagues: sport.leagues,
               maxEventsPerRun: sport.maxEventsPerRun,
             });
+            const activeTiers = [
+              sport.surfaceEnabled ? "Standard" : null,
+              sport.expandedEnabled && groups.length ? "Expanded" : null,
+            ].filter(Boolean);
+
             return (
               <details
                 key={sport.sport}
-                className="border-border bg-card rounded-xl border"
+                className="border-border bg-card group rounded-xl border"
               >
-                <summary className="focus-visible:ring-ring flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-4 py-3 outline-none focus-visible:ring-3">
-                  <span className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={sport.enabled}
-                      onClick={(event) => event.stopPropagation()}
-                      onChange={(event) =>
-                        updateSport(sport.sport, {
-                          enabled: event.target.checked,
-                        })
-                      }
-                      className="accent-primary size-4"
-                      aria-label={`Enable ${sport.sport}`}
-                    />
-                    <span>
-                      <span className="block font-semibold">{sport.sport}</span>
-                      <span className="text-muted-foreground block text-xs">
-                        Surface ≤ {surfaceEstimate.toLocaleString()} · Expanded
-                        ≤ {expandedEstimate.toLocaleString()} credits/run
-                      </span>
+                <summary className="focus-visible:ring-ring flex min-h-16 cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-4 py-3 outline-none focus-visible:ring-2 [&::-webkit-details-marker]:hidden">
+                  <span className="min-w-0">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold">{sport.sport}</span>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          sport.enabled
+                            ? "border-live/30 bg-live/10 text-live"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        {sport.enabled ? "Enabled" : "Off"}
+                      </Badge>
+                      {sport.enabled && activeTiers.length ? (
+                        <Badge variant="secondary">
+                          {activeTiers.join(" + ")}
+                        </Badge>
+                      ) : null}
+                    </span>
+                    <span className="text-muted-foreground mt-1 block truncate text-xs">
+                      Standard {cadenceLabel(sport.surfaceCadenceMinutes)} · up
+                      to {surfaceEstimate.toLocaleString()} credits/run
+                      {groups.length
+                        ? ` · Expanded ${cadenceLabel(sport.expandedCadenceMinutes)} · up to ${expandedEstimate.toLocaleString()} credits/run`
+                        : ""}
                     </span>
                   </span>
-                  <CalendarClock
-                    className="text-muted-foreground size-4"
+                  <ChevronDown
+                    className="text-muted-foreground size-5 shrink-0 transition-transform group-open:rotate-180"
                     aria-hidden
                   />
                 </summary>
-                <div className="border-border space-y-5 border-t p-4">
-                  <div className="grid gap-4 lg:grid-cols-2">
-                    <div className="space-y-3">
+
+                <div className="border-border space-y-5 border-t p-4 sm:p-5">
+                  <Toggle
+                    checked={sport.enabled}
+                    onChange={(enabled) =>
+                      updateSport(sport.sport, { enabled })
+                    }
+                    label={`Enable ${sport.sport}`}
+                    description="Master switch for this sport. Turning it off prevents both standard and expanded scheduled pulls."
+                  />
+
+                  <div className="grid gap-4 xl:grid-cols-2">
+                    <fieldset
+                      className="border-border space-y-4 rounded-xl border p-4"
+                      disabled={!sport.enabled}
+                    >
+                      <legend className="px-1 font-semibold">
+                        Standard board
+                      </legend>
+                      <p className="text-muted-foreground text-xs">
+                        Shared events and primary game lines. Estimated maximum:{" "}
+                        <span className="nums text-foreground font-semibold">
+                          {surfaceEstimate.toLocaleString()} credits/run
+                        </span>
+                      </p>
                       <Toggle
                         checked={sport.surfaceEnabled}
                         onChange={(surfaceEnabled) =>
                           updateSport(sport.sport, { surfaceEnabled })
                         }
                         disabled={!sport.enabled}
-                        label="Surface board"
-                        description="Shared event board and standard game lines."
+                        label="Pull standard board"
+                        description="Schedules the selected primary markets below."
                       />
                       <div className="grid gap-2 sm:grid-cols-3">
                         {SURFACE_MARKETS.map((market) => (
@@ -300,17 +506,18 @@ export function AdminOddsControlEditor({
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor={`${sport.sport}-surface-cadence`}>
-                          Surface cadence
+                          Refresh cadence
                         </Label>
                         <select
                           id={`${sport.sport}-surface-cadence`}
                           value={sport.surfaceCadenceMinutes}
+                          disabled={!sport.enabled || !sport.surfaceEnabled}
                           onChange={(event) =>
                             updateSport(sport.sport, {
                               surfaceCadenceMinutes: Number(event.target.value),
                             })
                           }
-                          className="border-input bg-background min-h-10 w-full rounded-lg border px-3 text-sm"
+                          className="border-input bg-background min-h-10 w-full rounded-lg border px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {CADENCE_OPTIONS.map((option) => (
                             <option key={option.minutes} value={option.minutes}>
@@ -319,20 +526,33 @@ export function AdminOddsControlEditor({
                           ))}
                         </select>
                       </div>
-                    </div>
+                    </fieldset>
 
-                    <div className="space-y-3">
+                    <fieldset
+                      className="border-border space-y-4 rounded-xl border p-4"
+                      disabled={!sport.enabled || groups.length === 0}
+                    >
+                      <legend className="px-1 font-semibold">
+                        Expanded markets
+                      </legend>
+                      <p className="text-muted-foreground text-xs">
+                        Alternates, props, and specialty markets. Estimated
+                        maximum:{" "}
+                        <span className="nums text-foreground font-semibold">
+                          {expandedEstimate.toLocaleString()} credits/run
+                        </span>
+                      </p>
                       <Toggle
                         checked={sport.expandedEnabled}
                         onChange={(expandedEnabled) =>
                           updateSport(sport.sport, { expandedEnabled })
                         }
                         disabled={!sport.enabled || groups.length === 0}
-                        label="Expanded coverage"
+                        label="Pull expanded markets"
                         description={
                           groups.length
-                            ? "Alternates, props, and supported specialty markets."
-                            : "No expanded markets are currently supported for this sport."
+                            ? "Adds only the market groups selected below."
+                            : "Expanded markets are not supported for this sport."
                         }
                       />
                       <div className="space-y-2">
@@ -372,11 +592,14 @@ export function AdminOddsControlEditor({
                         <div className="grid gap-3 sm:grid-cols-2">
                           <div className="space-y-1.5">
                             <Label htmlFor={`${sport.sport}-expanded-cadence`}>
-                              Expanded cadence
+                              Refresh cadence
                             </Label>
                             <select
                               id={`${sport.sport}-expanded-cadence`}
                               value={sport.expandedCadenceMinutes}
+                              disabled={
+                                !sport.enabled || !sport.expandedEnabled
+                              }
                               onChange={(event) =>
                                 updateSport(sport.sport, {
                                   expandedCadenceMinutes: Number(
@@ -384,7 +607,7 @@ export function AdminOddsControlEditor({
                                   ),
                                 })
                               }
-                              className="border-input bg-background min-h-10 w-full rounded-lg border px-3 text-sm"
+                              className="border-input bg-background min-h-10 w-full rounded-lg border px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {CADENCE_OPTIONS.map((option) => (
                                 <option
@@ -398,13 +621,16 @@ export function AdminOddsControlEditor({
                           </div>
                           <div className="space-y-1.5">
                             <Label htmlFor={`${sport.sport}-event-limit`}>
-                              Max events/run
+                              Max events per run
                             </Label>
                             <Input
                               id={`${sport.sport}-event-limit`}
                               type="number"
                               min={1}
                               max={99}
+                              disabled={
+                                !sport.enabled || !sport.expandedEnabled
+                              }
                               value={sport.maxEventsPerRun}
                               onChange={(event) =>
                                 updateSport(sport.sport, {
@@ -418,23 +644,24 @@ export function AdminOddsControlEditor({
                           </div>
                         </div>
                       ) : null}
-                    </div>
+                    </fieldset>
                   </div>
 
                   {sport.sport === "SOCCER" ? (
-                    <fieldset className="space-y-2">
-                      <legend className="text-sm font-medium">
-                        Soccer leagues
+                    <fieldset className="border-border space-y-3 rounded-xl border p-4">
+                      <legend className="px-1 font-semibold">
+                        League scope
                       </legend>
                       <p className="text-muted-foreground text-xs">
-                        Leave all unchecked to let the live provider catalog
-                        select competitions with upcoming fixtures.
+                        Leave every league off to automatically use competitions
+                        with upcoming fixtures.
                       </p>
                       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                         {SOCCER_CONTROL_LEAGUES.map((league) => (
                           <Toggle
                             key={league.key}
                             checked={sport.leagues.includes(league.key)}
+                            disabled={!sport.enabled}
                             onChange={(checked) =>
                               updateSport(sport.sport, {
                                 leagues: checked
@@ -452,12 +679,17 @@ export function AdminOddsControlEditor({
                   ) : null}
 
                   {sport.sport === "TENNIS" ? (
-                    <div className="space-y-1.5">
+                    <div className="border-border space-y-2 rounded-xl border p-4">
                       <Label htmlFor="tennis-tours">
-                        Tournament keys (optional)
+                        Tournament scope (optional)
                       </Label>
+                      <p className="text-muted-foreground text-xs">
+                        Enter provider tournament keys separated by commas, or
+                        leave blank to select live tournaments automatically.
+                      </p>
                       <Input
                         id="tennis-tours"
+                        disabled={!sport.enabled}
                         value={sport.leagues.join(", ")}
                         onChange={(event) =>
                           updateSport(sport.sport, {
@@ -472,19 +704,30 @@ export function AdminOddsControlEditor({
                     </div>
                   ) : null}
 
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-muted-foreground text-xs">
-                      {hasUnsavedChanges
-                        ? "Save pending edits before queueing."
-                        : "Queue uses the last saved strategy."}{" "}
-                      · Next surface:{" "}
-                      {sport.nextSurfaceRunAt
-                        ? new Date(sport.nextSurfaceRunAt).toLocaleString()
-                        : "not scheduled"}
-                      {groups.length
-                        ? ` · Next expanded: ${sport.nextExpandedRunAt ? new Date(sport.nextExpandedRunAt).toLocaleString() : "not scheduled"}`
-                        : ""}
-                    </p>
+                  <div className="border-border bg-surface-2 grid gap-4 rounded-xl border p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+                    <div>
+                      <div className="mb-2 flex items-center gap-2">
+                        <CircleDollarSign
+                          className="text-primary size-4"
+                          aria-hidden
+                        />
+                        <p className="text-sm font-semibold">Manual refresh</p>
+                      </div>
+                      <p className="text-muted-foreground text-xs leading-5">
+                        {hasUnsavedChanges
+                          ? "Save pending edits before queueing."
+                          : "Queue uses the saved strategy."}
+                        <br />
+                        Next standard: {scheduleLabel(sport.nextSurfaceRunAt)}
+                        {groups.length ? (
+                          <>
+                            <br />
+                            Next expanded:{" "}
+                            {scheduleLabel(sport.nextExpandedRunAt)}
+                          </>
+                        ) : null}
+                      </p>
+                    </div>
                     <div className="flex flex-wrap gap-2">
                       <Button
                         type="button"
@@ -499,7 +742,8 @@ export function AdminOddsControlEditor({
                         }
                         onClick={() => queue(sport.sport, "surface")}
                       >
-                        <Play className="size-4" aria-hidden /> Queue surface
+                        <Play className="size-4" aria-hidden />
+                        Queue standard
                       </Button>
                       {groups.length ? (
                         <Button
@@ -515,7 +759,8 @@ export function AdminOddsControlEditor({
                           }
                           onClick={() => queue(sport.sport, "expanded")}
                         >
-                          <Play className="size-4" aria-hidden /> Queue expanded
+                          <Play className="size-4" aria-hidden />
+                          Queue expanded
                         </Button>
                       ) : null}
                     </div>
@@ -527,12 +772,24 @@ export function AdminOddsControlEditor({
         </div>
       </section>
 
-      <div className="border-border bg-card sticky bottom-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3 shadow-lg">
-        <p className="text-muted-foreground text-xs">
-          Saving records an append-only change event. API credentials never
-          reach this form.
-        </p>
-        <Button type="submit" disabled={pending || !storageReady}>
+      <div
+        className={cn(
+          "border-border bg-card sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3 shadow-lg",
+          hasUnsavedChanges && "border-primary/40",
+        )}
+      >
+        <div>
+          <p className="text-sm font-medium">
+            {hasUnsavedChanges ? "Unsaved strategy changes" : "Strategy saved"}
+          </p>
+          <p className="text-muted-foreground text-xs">
+            Changes are audited. API credentials never reach this form.
+          </p>
+        </div>
+        <Button
+          type="submit"
+          disabled={pending || !storageReady || !hasUnsavedChanges}
+        >
           <Save className="size-4" aria-hidden />
           {pending ? "Saving…" : "Save API strategy"}
         </Button>
