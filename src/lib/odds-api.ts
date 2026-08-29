@@ -176,6 +176,7 @@ export type OddsUsagePurpose = "board" | "verify" | "results" | "clv";
 
 let lastOddsApiRemaining: number | null = null;
 let lastOddsApiCapacity: number | null = null;
+let lastOddsApiRunCost = 0;
 let circuitBreakSuspended = false;
 
 /**
@@ -198,10 +199,11 @@ function surfaceOddsPath(
   apiSport: string,
   key: string,
   books?: readonly string[],
+  markets: readonly string[] = ["h2h", "spreads", "totals"],
 ): string {
   return (
     `https://api.the-odds-api.com/v4/sports/${apiSport}/odds/` +
-    `?apiKey=${key}&${oddsScopeQuery(books)}&markets=h2h,spreads,totals&oddsFormat=american&${surfaceCommenceQuery()}`
+    `?apiKey=${key}&${oddsScopeQuery(books)}&markets=${markets.join(",")}&oddsFormat=american&${surfaceCommenceQuery()}`
   );
 }
 
@@ -247,6 +249,15 @@ export function resetLastOddsApiUsage(): void {
   lastOddsApiCapacity = null;
 }
 
+/** Credits observed since the current population run reset its counter. */
+export function getLastOddsApiRunCost(): number {
+  return lastOddsApiRunCost;
+}
+
+export function resetLastOddsApiRunCost(): void {
+  lastOddsApiRunCost = 0;
+}
+
 /** Log Odds API credit usage from a response so burn is observable vs. the plan cap. */
 export function logOddsUsage(
   res: Response,
@@ -270,6 +281,7 @@ export function logOddsUsage(
     }
   }
   const cost = last != null ? Number(last) : 0;
+  if (Number.isFinite(cost)) lastOddsApiRunCost += cost;
   const remaining =
     remainingHeader != null ? Number(remainingHeader) : undefined;
   if (remainingHeader !== null || last !== null) {
@@ -437,7 +449,13 @@ export async function fetchSoccerBoard(
       // slightly older price: the number that actually goes on the record is
       // re-fetched per event at submit time.
       const { response: res } = await fetchWithOddsKeyRollover(
-        (key) => surfaceOddsPath(leagueApiSport, key, books),
+        (key) =>
+          surfaceOddsPath(
+            leagueApiSport,
+            key,
+            books,
+            opts?.markets?.length ? opts.markets : undefined,
+          ),
         { next: { revalidate: BOARD_TTL } },
       );
       if (!res) return [] as OddsEvent[];
@@ -465,9 +483,17 @@ export async function fetchSoccerBoard(
   // Ask the catalog what is in season, then ask — for free — which of those are
   // actually playing. Falling back to the registry keeps the old behaviour when
   // the catalog is unreachable: degraded, never empty by construction.
-  const candidates =
+  const discovered =
     (await fetchInSeasonSoccerLeagues()) ??
     SOCCER_LEAGUES.slice(0, SOCCER_LEAGUE_LIMIT);
+  const selectedLeagues = new Set(opts?.leagues ?? []);
+  const candidates = selectedLeagues.size
+    ? discovered.filter(
+        (league) =>
+          selectedLeagues.has(league.key) ||
+          selectedLeagues.has(league.oddsApiKey),
+      )
+    : discovered;
   const leagues = await selectPlayingSoccerLeagues(candidates);
 
   const all: OddsEvent[] = [];
@@ -516,7 +542,13 @@ export async function fetchTennisBoard(
   const fetchTour = async (tour: TennisTour) => {
     const attempt = async (books: readonly string[] | undefined) => {
       const { response: res } = await fetchWithOddsKeyRollover(
-        (key) => surfaceOddsPath(tour.oddsApiKey, key, books),
+        (key) =>
+          surfaceOddsPath(
+            tour.oddsApiKey,
+            key,
+            books,
+            opts?.markets?.length ? opts.markets : undefined,
+          ),
         { next: { revalidate: BOARD_TTL } },
       );
       if (!res) return [] as OddsEvent[];
@@ -546,7 +578,17 @@ export async function fetchTennisBoard(
     console.warn("[odds] tennis: catalog unavailable — skipping board fetch");
     return [];
   }
-  const candidates = selectTennisTours(catalog, TENNIS_CANDIDATE_LIMIT);
+  const selectedLeagues = new Set(opts?.leagues ?? []);
+  const discovered = selectTennisTours(
+    catalog,
+    selectedLeagues.size ? 100 : TENNIS_CANDIDATE_LIMIT,
+  );
+  const candidates = selectedLeagues.size
+    ? discovered.filter(
+        (tour) =>
+          selectedLeagues.has(tour.key) || selectedLeagues.has(tour.oddsApiKey),
+      )
+    : discovered;
   const tours = await selectPlayingTennisTours(candidates);
 
   const all: OddsEvent[] = [];
@@ -717,8 +759,15 @@ async function selectPlayingTennisTours(
 async function fetchExtraSportBoards(
   sclSport: string,
   preferred: readonly string[] | undefined,
+  opts?: Pick<OddsBoardOpts, "markets" | "leagues">,
 ): Promise<OddsEvent[]> {
-  const extras = ODDS_API_EXTRA_SPORTS[sclSport] ?? [];
+  const selectedLeagues = new Set(opts?.leagues ?? []);
+  const extras = (ODDS_API_EXTRA_SPORTS[sclSport] ?? []).filter(
+    (apiSport) =>
+      selectedLeagues.size === 0 ||
+      selectedLeagues.has(apiSport) ||
+      selectedLeagues.has(extraSportLeagueTag(apiSport)),
+  );
   if (!oddsApiKey() || extras.length === 0) return [];
 
   const boards = await Promise.all(
@@ -728,7 +777,13 @@ async function fetchExtraSportBoards(
           return [] as OddsEvent[];
         }
         const { response: res } = await fetchWithOddsKeyRollover(
-          (key) => surfaceOddsPath(apiSport, key, preferred),
+          (key) =>
+            surfaceOddsPath(
+              apiSport,
+              key,
+              preferred,
+              opts?.markets?.length ? opts.markets : undefined,
+            ),
           { next: { revalidate: BOARD_TTL } },
         );
         if (!res) return [] as OddsEvent[];
@@ -788,7 +843,13 @@ export async function fetchUpcomingOdds(
     // this constant is that TTL is the whole story — a stale board here is a
     // stale price on the record, not something a later check corrects.
     const { response: res } = await fetchWithOddsKeyRollover(
-      (key) => surfaceOddsPath(apiSport, key, books),
+      (key) =>
+        surfaceOddsPath(
+          apiSport,
+          key,
+          books,
+          opts?.markets?.length ? opts.markets : undefined,
+        ),
       { next: { revalidate: BOARD_TTL } },
     );
     if (!res) return [] as OddsEvent[];
@@ -818,7 +879,7 @@ export async function fetchUpcomingOdds(
     // Preseason lives under its own sport key, so it is fetched alongside and
     // merged rather than replacing anything: during the crossover weeks both
     // slates are genuinely live.
-    const extras = await fetchExtraSportBoards(sclSport, preferred);
+    const extras = await fetchExtraSportBoards(sclSport, preferred, opts);
     if (board.length > 0 || extras.length > 0) {
       // Sort before the cap, or the cap silently decides the slate.
       // `attempt` already returned 60 regular-season events — books post the
@@ -996,7 +1057,9 @@ export async function fetchEventBoard(
   eventId: string,
   opts?: OddsBoardOpts & { league?: string | null },
 ): Promise<OddsSelection[]> {
-  const wanted = expandedBoardMarkets(sclSport);
+  const wanted = opts?.markets?.length
+    ? [...new Set(opts.markets)]
+    : expandedBoardMarkets(sclSport);
   if (wanted.length === 0) return [];
   const markets = await pricedExpandedMarkets(sclSport, eventId, wanted, opts);
   // Every wanted market read the catalog and none came back: no covered book is

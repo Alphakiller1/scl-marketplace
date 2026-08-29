@@ -82,6 +82,10 @@ export type OddsBoardOpts = {
   books?: readonly string[];
   /** SCL sport. Tennis game spreads/totals live on Bovada/BetRivers, not the five. */
   sport?: string;
+  /** Optional owner-selected market keys for a managed population run. */
+  markets?: readonly string[];
+  /** Optional owner-selected competition/tournament keys. Empty means automatic. */
+  leagues?: readonly string[];
 };
 
 /**

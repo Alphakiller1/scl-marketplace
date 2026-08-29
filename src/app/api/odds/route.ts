@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 
 import { getCapperBooks } from "@/lib/capper-books";
 import { buildOddsBoardMeta, oddsApiKey } from "@/lib/odds-api";
-import { loadOddsBoard } from "@/lib/odds-board-cache";
+import { loadCachedOddsBoard, loadOddsBoard } from "@/lib/odds-board-cache";
 import { dedupeOddsEvents, sortByKickoff } from "@/lib/odds-board";
+import { selectionAllowedForMarkets } from "@/lib/odds-control";
+import { getManagedOddsSportControl } from "@/lib/odds-control-runtime";
 import { ODDS_BOARD_SPORTS } from "@/lib/game-picker";
 import { getCurrentUser } from "@/lib/session";
 
@@ -26,17 +28,47 @@ export async function GET(request: Request) {
     requestedSport === "ALL"
       ? ODDS_BOARD_SPORTS.map((sport) => sport.key)
       : [requestedSport];
+  const policies = await Promise.all(
+    sports.map((sport) => getManagedOddsSportControl(sport)),
+  );
   const boards = configured
-    ? await Promise.all(sports.map((sport) => loadOddsBoard(sport)))
+    ? await Promise.all(
+        sports.map((sport, index) => {
+          const policy = policies[index];
+          if (policy && (!policy.enabled || !policy.surfaceEnabled))
+            return null;
+          return policy ? loadCachedOddsBoard(sport) : loadOddsBoard(sport);
+        }),
+      )
     : [];
   const events = sortByKickoff(
-    dedupeOddsEvents(boards.flatMap((board) => board.events)),
+    dedupeOddsEvents(
+      boards.flatMap((board, index) => {
+        if (!board) return [];
+        const policy = policies[index];
+        if (!policy) return board.events;
+        return board.events
+          .filter(
+            (event) =>
+              policy.leagues.length === 0 ||
+              !event.league ||
+              policy.leagues.includes(event.league),
+          )
+          .map((event) => ({
+            ...event,
+            selections: event.selections.filter((selection) =>
+              selectionAllowedForMarkets(selection, policy.surfaceMarkets),
+            ),
+          }))
+          .filter((event) => event.selections.length > 0);
+      }),
+    ),
   );
-  const stale = boards.some((board) => board.stale);
+  const stale = boards.some((board) => board?.stale);
   const circuitBreak = boards.some(
     (board) =>
-      board.source === "stale_circuit_break" ||
-      board.source === "circuit_break_empty",
+      board?.source === "stale_circuit_break" ||
+      board?.source === "circuit_break_empty",
   );
   const baseMeta = buildOddsBoardMeta(requestedSport, events.length, {
     configured,

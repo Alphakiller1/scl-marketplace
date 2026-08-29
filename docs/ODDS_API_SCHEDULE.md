@@ -10,6 +10,11 @@ successful provider call for that sport. The form says so:
 
 ## What actually runs today
 
+The owner-managed control plane is documented in
+[`ODDS_CREDIT_CONTROL.md`](ODDS_CREDIT_CONTROL.md). Its dispatcher checks every
+15 minutes but defaults to a zero-credit no-op. Until an owner explicitly
+enables managed scheduling, the fixed cadence below remains authoritative.
+
 The paid cadence lives in **`vercel.json`**. It runs inside the deployment that
 holds the provider keys, and it fires on time.
 

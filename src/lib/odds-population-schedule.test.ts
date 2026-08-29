@@ -19,6 +19,7 @@ function readRepoFile(path: string): string {
 
 const workflow = readRepoFile(".github/workflows/populate-odds.yml");
 const route = readRepoFile("src/app/api/cron/odds-populate/route.ts");
+const dispatcher = readRepoFile("src/app/api/cron/odds-dispatch/route.ts");
 const vercel = readRepoFile("vercel.json");
 
 /**
@@ -217,6 +218,25 @@ test("Vercel runs the paid cadence through the day, expanded boards included", (
     Math.max(...gaps) <= REFRESH_MAX_GAP_MINUTES,
     `a daytime gap of ${Math.max(...gaps)} minutes outlives the freshness window`,
   );
+});
+
+test("owner scheduling is a signed, dormant-by-default dispatcher", () => {
+  const crons = (
+    JSON.parse(vercel) as { crons: { path: string; schedule: string }[] }
+  ).crons;
+  assert.ok(
+    crons.some(
+      (cron) =>
+        cron.path === "/api/cron/odds-dispatch" &&
+        cron.schedule === "*/15 * * * *",
+    ),
+  );
+  assert.match(dispatcher, /process\.env\.CRON_SECRET/);
+  assert.match(dispatcher, /Authorization|authorization/);
+  assert.match(dispatcher, /claimDueOddsRuns/);
+  assert.match(dispatcher, /x-scl-managed-run/);
+  assert.match(route, /managedOddsSchedulingEnabled/);
+  assert.match(route, /managed_scheduler_active/);
 });
 
 test("a snapshot replay writes the database and spends no Odds API credits", () => {

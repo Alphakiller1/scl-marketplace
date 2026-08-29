@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { oddsApiKey } from "@/lib/odds-api";
-import { loadEventBoard } from "@/lib/odds-event-board-cache";
+import {
+  loadCachedEventBoard,
+  loadEventBoard,
+} from "@/lib/odds-event-board-cache";
+import { selectionAllowedForMarkets } from "@/lib/odds-control";
+import { getManagedOddsSportControl } from "@/lib/odds-control-runtime";
 import { getCurrentUser } from "@/lib/session";
 
 /**
@@ -21,15 +26,22 @@ export async function GET(request: Request) {
   const sport = params.get("sport") ?? "";
   const eventId = params.get("eventId") ?? "";
   const league = params.get("league");
+  const policy = sport ? await getManagedOddsSportControl(sport) : null;
   const board =
-    sport && eventId
-      ? await loadEventBoard(sport, eventId, { league })
+    sport && eventId && (!policy || (policy.enabled && policy.expandedEnabled))
+      ? policy
+        ? await loadCachedEventBoard(sport, eventId)
+        : await loadEventBoard(sport, eventId, { league })
       : {
           selections: [],
           source: "provider_empty" as const,
           stale: false,
         };
-  const { selections } = board;
+  const selections = policy
+    ? board.selections.filter((selection) =>
+        selectionAllowedForMarkets(selection, policy.expandedMarkets),
+      )
+    : board.selections;
   if (selections.length === 0) {
     console.warn("[odds-board] event detail empty", {
       sport,

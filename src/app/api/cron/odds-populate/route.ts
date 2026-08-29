@@ -4,7 +4,9 @@ import {
   fetchUpcomingOdds,
   getLastOddsApiCapacity,
   getLastOddsApiRemaining,
+  getLastOddsApiRunCost,
   resetLastOddsApiUsage,
+  resetLastOddsApiRunCost,
   setOddsCircuitBreakSuspended,
 } from "@/lib/odds-api";
 import {
@@ -34,6 +36,12 @@ import {
   staleSurfaceSports,
   surfaceRefreshReachedProvider,
 } from "@/lib/manual-odds-population";
+import {
+  allowedExpandedMarkets,
+  ODDS_CONTROL_SPORTS,
+  SURFACE_MARKETS,
+} from "@/lib/odds-control";
+import { managedOddsSchedulingEnabled } from "@/lib/odds-control-runtime";
 
 export const maxDuration = 300;
 
@@ -52,8 +60,21 @@ function requestedSports(req: NextRequest): string[] {
   const requested = (req.nextUrl.searchParams.get("sports") ?? "")
     .split(",")
     .map((sport) => sport.trim().toUpperCase())
-    .filter((sport) => DEFAULT_SPORTS.includes(sport));
+    .filter((sport) =>
+      (ODDS_CONTROL_SPORTS as readonly string[]).includes(sport),
+    );
   return requested.length > 0 ? [...new Set(requested)] : DEFAULT_SPORTS;
+}
+
+function selectedValues(req: NextRequest, header: string): string[] {
+  return [
+    ...new Set(
+      (req.headers.get(header) ?? "")
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean),
+    ),
+  ];
 }
 
 type SurfaceRow = { events: number; source: string; stale: boolean };
@@ -86,6 +107,7 @@ async function loadSurface(
   refreshSurface: boolean,
   boardEvents: Map<string, Awaited<ReturnType<typeof fetchUpcomingOdds>>>,
   surface: Record<string, SurfaceRow>,
+  options?: { markets?: readonly string[]; leagues?: readonly string[] },
 ): Promise<void> {
   if (!refreshSurface) {
     const board = await loadCachedOddsBoard(sport);
@@ -99,7 +121,7 @@ async function loadSurface(
   }
   let fresh = [] as Awaited<ReturnType<typeof fetchUpcomingOdds>>;
   try {
-    fresh = await fetchUpcomingOdds(sport);
+    fresh = await fetchUpcomingOdds(sport, options);
   } catch (error) {
     console.warn("[odds-populate] surface provider failure", {
       sport,
@@ -118,6 +140,17 @@ async function loadSurface(
 async function populate(req: NextRequest) {
   if (!authorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (
+    (await managedOddsSchedulingEnabled()) &&
+    req.headers.get("x-scl-managed-run") !== "1"
+  ) {
+    return NextResponse.json({
+      ok: true,
+      skipped: true,
+      reason: "managed_scheduler_active",
+    });
   }
 
   const override = req.headers.get("x-scl-odds-key")?.trim();
@@ -139,7 +172,24 @@ async function populate(req: NextRequest) {
 }
 
 async function runPopulate(req: NextRequest) {
+  resetLastOddsApiRunCost();
   const sports = requestedSports(req);
+  const requestedSurfaceMarkets = selectedValues(req, "x-scl-surface-markets");
+  const allowedSurface = new Set(SURFACE_MARKETS.map((market) => market.key));
+  const surfaceMarkets = requestedSurfaceMarkets.filter((market) =>
+    allowedSurface.has(market as "h2h" | "spreads" | "totals"),
+  );
+  const requestedExpandedMarkets = selectedValues(
+    req,
+    "x-scl-expanded-markets",
+  );
+  const expandedMarkets =
+    sports.length === 1
+      ? requestedExpandedMarkets.filter((market) =>
+          allowedExpandedMarkets(sports[0]!).includes(market),
+        )
+      : [];
+  const leagues = selectedValues(req, "x-scl-leagues");
   const requestedExpanded = Number(
     req.nextUrl.searchParams.get("expanded") ?? 0,
   );
@@ -176,7 +226,10 @@ async function runPopulate(req: NextRequest) {
   // Tennis after NFL is how Cincinnati lost the last populate: NFL spent the
   // key down to 29 credits and the 1,000-credit breaker skipped the Masters.
   for (const sport of expandedOrder) {
-    await loadSurface(sport, refreshSurface, boardEvents, surface);
+    await loadSurface(sport, refreshSurface, boardEvents, surface, {
+      markets: surfaceMarkets.length ? surfaceMarkets : undefined,
+      leagues: leagues.length ? leagues : undefined,
+    });
   }
 
   if (expandedLimit > 0) {
@@ -197,7 +250,9 @@ async function runPopulate(req: NextRequest) {
           events: row.events.length,
         })),
       );
-      const nextCost = expandedEventCreditCost(sport);
+      const nextCost = expandedMarkets.length
+        ? expandedMarkets.length
+        : expandedEventCreditCost(sport);
       let populated = 0;
       let skipped = 0;
       let fetched = 0;
@@ -248,6 +303,7 @@ async function runPopulate(req: NextRequest) {
         const board = await loadEventBoard(sport, event.id, {
           forceRefresh: true,
           league: event.league,
+          markets: expandedMarkets.length ? expandedMarkets : undefined,
         });
         if (board.selections.length > 0) {
           populated += 1;
@@ -272,7 +328,10 @@ async function runPopulate(req: NextRequest) {
   }
 
   for (const sport of restSports) {
-    await loadSurface(sport, refreshSurface, boardEvents, surface);
+    await loadSurface(sport, refreshSurface, boardEvents, surface, {
+      markets: surfaceMarkets.length ? surfaceMarkets : undefined,
+      leagues: leagues.length ? leagues : undefined,
+    });
   }
 
   const surfaceReady = (sport: string) =>
@@ -314,6 +373,13 @@ async function runPopulate(req: NextRequest) {
     refreshSurface,
     skipPopulated,
     expandedMaxAgeMinutes,
+    surfaceMarkets:
+      surfaceMarkets.length > 0
+        ? surfaceMarkets
+        : SURFACE_MARKETS.map((market) => market.key),
+    expandedMarkets,
+    leagues,
+    creditsUsed: getLastOddsApiRunCost(),
     surface,
     expanded,
     provider,

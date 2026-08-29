@@ -9,6 +9,7 @@ import {
   FileText,
   Gavel,
   Mail,
+  Gauge,
   Send,
   Store,
   Users,
@@ -25,6 +26,13 @@ import { countStorefrontQueue } from "@/lib/queries/store";
 export const metadata = { title: "Admin" };
 
 const ADMIN_TOOLS = [
+  {
+    href: "/admin/odds",
+    title: "API credits",
+    description:
+      "Monitor Odds API spend and manage sports, market coverage, cadence, and credit guardrails.",
+    icon: Gauge,
+  },
   {
     href: "/admin/plays",
     title: "Published plays",

@@ -3,6 +3,10 @@
   "buildCommand": "npm run build",
   "crons": [
     {
+      "path": "/api/cron/odds-dispatch",
+      "schedule": "*/15 * * * *"
+    },
+    {
       "path": "/api/cron/odds-populate?sports=MLB,WNBA,TENNIS,SOCCER,NFL&expanded=99&expandedDays=today&surface=1&skipPopulated=1&expandedMaxAgeMinutes=330",
       "schedule": "0 11 * * *"
     },

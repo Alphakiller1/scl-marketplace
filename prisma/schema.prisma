@@ -76,6 +76,10 @@ model User {
   storefrontMessages StorefrontMessage[]       @relation("StorefrontMessageSender")
   broadcastsSent     AdminBroadcast[]          @relation("AdminBroadcastSender")
   broadcastsReceived AdminBroadcastRecipient[] @relation("AdminBroadcastRecipientUser")
+  oddsControlUpdates OddsControlConfig[]       @relation("OddsControlUpdatedBy")
+  oddsSportUpdates   OddsSportControl[]        @relation("OddsSportControlUpdatedBy")
+  oddsControlAudits  OddsControlAuditEvent[]   @relation("OddsControlAuditActor")
+  oddsRunsTriggered  OddsApiRun[]              @relation("OddsApiRunTriggeredBy")
 
   @@unique([email, username])
 }
@@ -669,6 +673,93 @@ model OddsUsageDaily {
 
   @@unique([date, purpose, sport])
   @@index([date])
+}
+
+/// Owner-managed limits and the rollout switch for database-driven odds scheduling.
+model OddsControlConfig {
+  id                       String   @id @default("primary")
+  managedSchedulingEnabled Boolean  @default(false)
+  paused                   Boolean  @default(false)
+  dailyCreditLimit         Int      @default(2000)
+  weeklyCreditLimit        Int      @default(10000)
+  monthlyCreditLimit       Int      @default(20000)
+  warningPercent           Int      @default(70)
+  reserveCredits           Int      @default(1000)
+  timezone                 String   @default("America/New_York")
+  updatedById              String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  updatedBy User? @relation("OddsControlUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+}
+
+/// Per-sport owner strategy. Market keys are validated against SCL's supported registry.
+model OddsSportControl {
+  id                     String    @id @default(cuid())
+  sport                  String    @unique
+  enabled                Boolean   @default(true)
+  surfaceEnabled         Boolean   @default(true)
+  expandedEnabled        Boolean   @default(false)
+  surfaceMarkets         String[]  @default(["h2h", "spreads", "totals"])
+  expandedMarkets        String[]  @default([])
+  leagues                String[]  @default([])
+  surfaceCadenceMinutes  Int       @default(240)
+  expandedCadenceMinutes Int       @default(360)
+  maxEventsPerRun        Int       @default(20)
+  nextSurfaceRunAt       DateTime?
+  nextExpandedRunAt      DateTime?
+  lastSurfaceRunAt       DateTime?
+  lastExpandedRunAt      DateTime?
+  updatedById            String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  updatedBy User? @relation("OddsSportControlUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([enabled, nextSurfaceRunAt])
+  @@index([enabled, nextExpandedRunAt])
+}
+
+/// One provider population attempt, including its reservation and actual cost.
+model OddsApiRun {
+  id               String    @id @default(cuid())
+  sport            String
+  tier             String
+  trigger          String
+  status           String
+  estimatedCredits Int       @default(0)
+  reservedCredits  Int       @default(0)
+  credits          Int       @default(0)
+  remaining        Int?
+  markets          String[]  @default([])
+  leagues          String[]  @default([])
+  details          Json?
+  error            String?
+  triggeredById    String?
+  startedAt        DateTime  @default(now())
+  completedAt      DateTime?
+
+  triggeredBy User? @relation("OddsApiRunTriggeredBy", fields: [triggeredById], references: [id], onDelete: SetNull)
+
+  @@index([startedAt])
+  @@index([sport, startedAt])
+  @@index([status, startedAt])
+}
+
+/// Immutable owner change history for limits, markets, leagues, and cadence.
+model OddsControlAuditEvent {
+  id        String   @id @default(cuid())
+  action    String
+  target    String
+  before    Json?
+  after     Json?
+  actorId   String?
+  createdAt DateTime @default(now())
+
+  actor User? @relation("OddsControlAuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([actorId, createdAt])
 }
 
 /// Deployment-independent last-good odds snapshots used by the pick maker.

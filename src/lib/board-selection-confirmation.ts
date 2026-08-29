@@ -8,6 +8,8 @@ import {
   type BoardSelectionClaim,
   type OddsEvent,
 } from "@/lib/odds-board";
+import { selectionAllowedForMarkets } from "@/lib/odds-control";
+import { getManagedOddsSportControl } from "@/lib/odds-control-runtime";
 
 export type BoardSelectionConfirmation = BoardSelectionClaim & {
   sport: string;
@@ -33,10 +35,12 @@ export async function confirmBoardSelection(
 export async function confirmedBoardEvent(
   claim: BoardSelectionConfirmation,
 ): Promise<OddsEvent | null> {
-  const [slate, detail] = await Promise.all([
+  const [slate, detail, policy] = await Promise.all([
     loadCachedOddsBoard(claim.sport),
     loadCachedEventBoard(claim.sport, claim.eventId),
+    getManagedOddsSportControl(claim.sport),
   ]);
+  if (policy && !policy.enabled) return null;
   const event = slate.events.find(
     (candidate) => candidate.id === claim.eventId,
   );
@@ -53,6 +57,13 @@ export async function confirmedBoardEvent(
   const selections = mergeEventBoardSelections(
     event.selections,
     detail.selections,
+  ).filter((selection) =>
+    policy
+      ? selectionAllowedForMarkets(selection, [
+          ...(policy.surfaceEnabled ? policy.surfaceMarkets : []),
+          ...(policy.expandedEnabled ? policy.expandedMarkets : []),
+        ])
+      : true,
   );
   return selections.some((selection) => matchesBoardSelection(selection, claim))
     ? event
