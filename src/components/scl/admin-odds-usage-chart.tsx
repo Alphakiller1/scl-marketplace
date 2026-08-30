@@ -5,6 +5,7 @@ import {
   AreaChart,
   CartesianGrid,
   ResponsiveContainer,
+  ReferenceDot,
   Tooltip,
   XAxis,
   YAxis,
@@ -13,7 +14,12 @@ import {
 export function AdminOddsUsageChart({
   history,
 }: {
-  history: { date: string; credits: number }[];
+  history: {
+    date: string;
+    credits: number;
+    trailingAverage?: number;
+    spike?: boolean;
+  }[];
 }) {
   if (!history.some((row) => row.credits > 0)) {
     return (
@@ -81,6 +87,22 @@ export function AdminOddsUsageChart({
             strokeWidth={2}
             fill="url(#odds-credit-fill)"
           />
+          {history
+            .filter(
+              (row): row is typeof row & { spike: true } =>
+                "spike" in row && row.spike === true,
+            )
+            .map((row) => (
+              <ReferenceDot
+                key={row.date}
+                x={row.date}
+                y={row.credits}
+                r={5}
+                fill="var(--primary)"
+                stroke="var(--background)"
+                strokeWidth={2}
+              />
+            ))}
         </AreaChart>
       </ResponsiveContainer>
     </div>

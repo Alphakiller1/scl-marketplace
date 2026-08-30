@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import {
   allowedExpandedMarkets,
+  estimatedRunCredits,
   ODDS_CONTROL_SPORTS,
   SOCCER_CONTROL_LEAGUES,
   SURFACE_MARKETS,
@@ -122,9 +123,10 @@ export const oddsControlSettingsSchema = z
     dailyCreditLimit: z.number().int().min(1).max(1_000_000),
     weeklyCreditLimit: z.number().int().min(1).max(1_000_000),
     monthlyCreditLimit: z.number().int().min(1).max(1_000_000),
+    perRunCreditLimit: z.number().int().min(1).max(1_000_000),
     warningPercent: z.number().int().min(25).max(95),
     reserveCredits: z.number().int().min(0).max(1_000_000),
-    timezone: z.literal("UTC"),
+    timezone: z.literal("America/New_York"),
     sports: z.array(oddsSportControlSchema).length(ODDS_CONTROL_SPORTS.length),
   })
   .superRefine((value, context) => {
@@ -142,12 +144,42 @@ export const oddsControlSettingsSchema = z
         message: "Monthly limit cannot be below the weekly limit.",
       });
     }
+    if (value.perRunCreditLimit > value.dailyCreditLimit) {
+      context.addIssue({
+        code: "custom",
+        path: ["perRunCreditLimit"],
+        message: "Per-run limit cannot exceed the daily limit.",
+      });
+    }
     if (value.reserveCredits >= value.monthlyCreditLimit) {
       context.addIssue({
         code: "custom",
         path: ["reserveCredits"],
         message: "Reserve must be below the monthly limit.",
       });
+    }
+    for (const sport of value.sports) {
+      for (const tier of ["surface", "expanded"] as const) {
+        const enabled =
+          sport.enabled &&
+          (tier === "surface" ? sport.surfaceEnabled : sport.expandedEnabled);
+        if (!enabled) continue;
+        const estimate = estimatedRunCredits({
+          sport: sport.sport,
+          tier,
+          markets:
+            tier === "surface" ? sport.surfaceMarkets : sport.expandedMarkets,
+          leagues: sport.leagues,
+          maxEventsPerRun: sport.maxEventsPerRun,
+        });
+        if (estimate > value.perRunCreditLimit) {
+          context.addIssue({
+            code: "custom",
+            path: ["sports", sport.sport, tier],
+            message: `${sport.sport} ${tier} estimate (${estimate}) exceeds the per-run limit (${value.perRunCreditLimit}).`,
+          });
+        }
+      }
     }
     if (
       new Set(value.sports.map((sport) => sport.sport)).size !==
@@ -161,7 +193,7 @@ export const oddsControlSettingsSchema = z
     }
   });
 
-export const oddsRunQueueSchema = z.object({
+export const oddsRunRequestSchema = z.object({
   sport: sportEnum,
   tier: z.enum(["surface", "expanded"]),
 });

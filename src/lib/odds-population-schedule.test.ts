@@ -20,6 +20,9 @@ function readRepoFile(path: string): string {
 const workflow = readRepoFile(".github/workflows/populate-odds.yml");
 const route = readRepoFile("src/app/api/cron/odds-populate/route.ts");
 const dispatcher = readRepoFile("src/app/api/cron/odds-dispatch/route.ts");
+const executor = readRepoFile("src/lib/odds-control-executor.ts");
+const controlActions = readRepoFile("src/lib/actions/odds-control.action.ts");
+const controlRuntime = readRepoFile("src/lib/odds-control-runtime.ts");
 const vercel = readRepoFile("vercel.json");
 
 /**
@@ -234,10 +237,23 @@ test("owner scheduling is a signed, dormant-by-default dispatcher", () => {
   assert.match(dispatcher, /process\.env\.CRON_SECRET/);
   assert.match(dispatcher, /Authorization|authorization/);
   assert.match(dispatcher, /claimDueOddsRuns/);
-  assert.match(dispatcher, /x-scl-managed-run/);
+  assert.match(executor, /x-scl-managed-run/);
   assert.match(dispatcher, /status: ok \? 200 : 502/);
   assert.match(route, /managedOddsSchedulingEnabled/);
   assert.match(route, /managed_scheduler_active/);
+});
+
+test("owner mutations authenticate and immediate runs retain every guardrail", () => {
+  assert.ok(
+    (controlActions.match(/requireAdmin\(\)/g) ?? []).length >= 3,
+    "save, run-now, and dry-run actions must each authenticate",
+  );
+  assert.match(controlActions, /claimManualOddsRun/);
+  assert.match(controlActions, /executeClaimedOddsRun/);
+  assert.match(controlRuntime, /perRunLimit: config\.perRunCreditLimit/);
+  assert.match(controlRuntime, /TransactionIsolationLevel\.Serializable/);
+  assert.match(controlRuntime, /reservedCredits: estimate/);
+  assert.match(executor, /authorization: `Bearer \$\{secret\}`/);
 });
 
 test("a snapshot replay writes the database and spends no Odds API credits", () => {

@@ -10,6 +10,7 @@ import {
   CircleDollarSign,
   Gauge,
   Play,
+  ScanSearch,
   Save,
   ShieldCheck,
   SlidersHorizontal,
@@ -22,7 +23,8 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  queueOddsRunAction,
+  dryRunOddsAction,
+  runOddsNowAction,
   saveOddsControlSettingsAction,
 } from "@/lib/actions/odds-control.action";
 import {
@@ -33,6 +35,7 @@ import {
   SURFACE_MARKETS,
   type OddsControlSport,
 } from "@/lib/odds-control";
+import { formatEasternDateTime } from "@/lib/odds-control-reporting";
 import type { OddsControlSettingsInput } from "@/lib/schemas/odds-control.schema";
 import { cn } from "@/lib/utils";
 
@@ -130,7 +133,7 @@ function cadenceLabel(minutes: number): string {
 }
 
 function scheduleLabel(value: string | null): string {
-  return value ? new Date(value).toLocaleString() : "Not scheduled";
+  return formatEasternDateTime(value);
 }
 
 export function AdminOddsControlEditor({
@@ -184,14 +187,19 @@ export function AdminOddsControlEditor({
     });
   }
 
-  function queue(sport: string, tier: "surface" | "expanded") {
+  function runNow(sport: string, tier: "surface" | "expanded", dryRun = false) {
     startTransition(async () => {
-      const result = await queueOddsRunAction({ sport, tier });
+      const result = dryRun
+        ? await dryRunOddsAction({ sport, tier })
+        : await runOddsNowAction({ sport, tier });
       if (!result.ok) {
         toast.error(result.error);
         return;
       }
-      toast.success(`${sport} ${tier} refresh queued`);
+      toast.success(
+        result.message ??
+          `${sport} ${tier} ${dryRun ? "simulation completed" : "refresh completed"}`,
+      );
       router.refresh();
     });
   }
@@ -287,7 +295,7 @@ export function AdminOddsControlEditor({
           title="Credit guardrails"
           description="Set the maximum spend for each window and keep a protected reserve."
         />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
           {[
             {
               label: "Daily limit",
@@ -305,6 +313,12 @@ export function AdminOddsControlEditor({
               label: "Monthly limit",
               key: "monthlyCreditLimit",
               help: "Max per calendar month",
+              min: 1,
+            },
+            {
+              label: "Per-run limit",
+              key: "perRunCreditLimit",
+              help: "Maximum reserved by one run",
               min: 1,
             },
             {
@@ -343,7 +357,9 @@ export function AdminOddsControlEditor({
         </div>
         <p className="border-border text-muted-foreground border-t pt-4 text-xs">
           Hard limits count completed usage plus credits reserved by active
-          runs. New managed runs are blocked before they can exceed a limit.
+          runs. New managed runs are blocked before they can exceed a limit. All
+          schedules below are shown in Eastern Time and automatically follow
+          daylight-saving changes.
         </p>
       </Card>
 
@@ -403,6 +419,9 @@ export function AdminOddsControlEditor({
               leagues: sport.leagues,
               maxEventsPerRun: sport.maxEventsPerRun,
             });
+            const surfaceOverLimit = surfaceEstimate > config.perRunCreditLimit;
+            const expandedOverLimit =
+              expandedEstimate > config.perRunCreditLimit;
             const activeTiers = [
               sport.surfaceEnabled ? "Standard" : null,
               sport.expandedEnabled && groups.length ? "Expanded" : null,
@@ -431,6 +450,10 @@ export function AdminOddsControlEditor({
                         <Badge variant="secondary">
                           {activeTiers.join(" + ")}
                         </Badge>
+                      ) : null}
+                      {(sport.surfaceEnabled && surfaceOverLimit) ||
+                      (sport.expandedEnabled && expandedOverLimit) ? (
+                        <Badge variant="destructive">Over per-run limit</Badge>
                       ) : null}
                     </span>
                     <span className="text-muted-foreground mt-1 block truncate text-xs">
@@ -467,9 +490,17 @@ export function AdminOddsControlEditor({
                       </legend>
                       <p className="text-muted-foreground text-xs">
                         Shared events and primary game lines. Estimated maximum:{" "}
-                        <span className="nums text-foreground font-semibold">
+                        <span
+                          className={cn(
+                            "nums text-foreground font-semibold",
+                            surfaceOverLimit && "text-neg",
+                          )}
+                        >
                           {surfaceEstimate.toLocaleString()} credits/run
                         </span>
+                        {surfaceOverLimit
+                          ? " — lower coverage or raise the per-run limit"
+                          : ""}
                       </p>
                       <Toggle
                         checked={sport.surfaceEnabled}
@@ -538,9 +569,17 @@ export function AdminOddsControlEditor({
                       <p className="text-muted-foreground text-xs">
                         Alternates, props, and specialty markets. Estimated
                         maximum:{" "}
-                        <span className="nums text-foreground font-semibold">
+                        <span
+                          className={cn(
+                            "nums text-foreground font-semibold",
+                            expandedOverLimit && "text-neg",
+                          )}
+                        >
                           {expandedEstimate.toLocaleString()} credits/run
                         </span>
+                        {expandedOverLimit
+                          ? " — lower coverage/events or raise the per-run limit"
+                          : ""}
                       </p>
                       <Toggle
                         checked={sport.expandedEnabled}
@@ -715,8 +754,8 @@ export function AdminOddsControlEditor({
                       </div>
                       <p className="text-muted-foreground text-xs leading-5">
                         {hasUnsavedChanges
-                          ? "Save pending edits before queueing."
-                          : "Queue uses the saved strategy."}
+                          ? "Save pending edits before running or simulating."
+                          : "Run now starts immediately. Dry run spends zero credits."}
                         <br />
                         Next standard: {scheduleLabel(sport.nextSurfaceRunAt)}
                         {groups.length ? (
@@ -741,29 +780,69 @@ export function AdminOddsControlEditor({
                           !sport.enabled ||
                           !sport.surfaceEnabled
                         }
-                        onClick={() => queue(sport.sport, "surface")}
+                        onClick={() => runNow(sport.sport, "surface", true)}
+                      >
+                        <ScanSearch className="size-4" aria-hidden />
+                        Dry run standard
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="min-h-10"
+                        disabled={
+                          pending ||
+                          hasUnsavedChanges ||
+                          !storageReady ||
+                          !config.managedSchedulingEnabled ||
+                          config.paused ||
+                          !sport.enabled ||
+                          !sport.surfaceEnabled
+                        }
+                        onClick={() => runNow(sport.sport, "surface")}
                       >
                         <Play className="size-4" aria-hidden />
-                        Queue standard
+                        Run standard now
                       </Button>
                       {groups.length ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="min-h-10"
-                          disabled={
-                            pending ||
-                            hasUnsavedChanges ||
-                            !storageReady ||
-                            !config.managedSchedulingEnabled ||
-                            !sport.enabled ||
-                            !sport.expandedEnabled
-                          }
-                          onClick={() => queue(sport.sport, "expanded")}
-                        >
-                          <Play className="size-4" aria-hidden />
-                          Queue expanded
-                        </Button>
+                        <>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="min-h-10"
+                            disabled={
+                              pending ||
+                              hasUnsavedChanges ||
+                              !storageReady ||
+                              !config.managedSchedulingEnabled ||
+                              !sport.enabled ||
+                              !sport.expandedEnabled
+                            }
+                            onClick={() =>
+                              runNow(sport.sport, "expanded", true)
+                            }
+                          >
+                            <ScanSearch className="size-4" aria-hidden />
+                            Dry run expanded
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="min-h-10"
+                            disabled={
+                              pending ||
+                              hasUnsavedChanges ||
+                              !storageReady ||
+                              !config.managedSchedulingEnabled ||
+                              config.paused ||
+                              !sport.enabled ||
+                              !sport.expandedEnabled
+                            }
+                            onClick={() => runNow(sport.sport, "expanded")}
+                          >
+                            <Play className="size-4" aria-hidden />
+                            Run expanded now
+                          </Button>
+                        </>
                       ) : null}
                     </div>
                   </div>

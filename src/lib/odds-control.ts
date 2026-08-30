@@ -182,9 +182,10 @@ export const DEFAULT_ODDS_CONTROL_CONFIG = {
   dailyCreditLimit: 2_000,
   weeklyCreditLimit: 10_000,
   monthlyCreditLimit: 20_000,
+  perRunCreditLimit: 2_000,
   warningPercent: 70,
   reserveCredits: 1_000,
-  timezone: "UTC",
+  timezone: "America/New_York",
 } as const;
 
 export const CADENCE_OPTIONS = [
@@ -231,7 +232,7 @@ export function creditLimitState(
 
 export const PROVIDER_BALANCE_FRESH_MS = 24 * 60 * 60_000;
 
-export function canReserveOddsCredits(input: {
+export type OddsCreditReservationInput = {
   todayCredits: number;
   weekCredits: number;
   monthCredits: number;
@@ -240,11 +241,16 @@ export function canReserveOddsCredits(input: {
   dailyLimit: number;
   weeklyLimit: number;
   monthlyLimit: number;
+  perRunLimit: number;
   providerRemaining: number | null;
   providerBalanceUpdatedAt: Date | null;
   providerReserve: number;
   now: Date;
-}): boolean {
+};
+
+export function oddsReservationBlockReason(
+  input: OddsCreditReservationInput,
+): string | null {
   const {
     reservedCredits,
     estimatedCredits,
@@ -262,15 +268,33 @@ export function canReserveOddsCredits(input: {
     providerRemaining - reservedCredits - estimatedCredits >=
       input.providerReserve;
 
-  return (
-    input.todayCredits + reservedCredits + estimatedCredits <=
-      input.dailyLimit &&
-    input.weekCredits + reservedCredits + estimatedCredits <=
-      input.weeklyLimit &&
-    input.monthCredits + reservedCredits + estimatedCredits <=
-      input.monthlyLimit &&
-    providerAllows
-  );
+  if (estimatedCredits > input.perRunLimit) return "Per-run limit exceeded.";
+  if (
+    input.todayCredits + reservedCredits + estimatedCredits >
+    input.dailyLimit
+  ) {
+    return "Daily limit exceeded.";
+  }
+  if (
+    input.weekCredits + reservedCredits + estimatedCredits >
+    input.weeklyLimit
+  ) {
+    return "Weekly limit exceeded.";
+  }
+  if (
+    input.monthCredits + reservedCredits + estimatedCredits >
+    input.monthlyLimit
+  ) {
+    return "Monthly limit exceeded.";
+  }
+  if (!providerAllows) return "Protected provider reserve would be breached.";
+  return null;
+}
+
+export function canReserveOddsCredits(
+  input: OddsCreditReservationInput,
+): boolean {
+  return oddsReservationBlockReason(input) === null;
 }
 
 /** Whether a cached selection remains publishable under the active owner strategy. */

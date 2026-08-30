@@ -6,6 +6,7 @@ import {
   canReserveOddsCredits,
   estimatedRunCredits,
   isMissingOddsControlStorageError,
+  oddsReservationBlockReason,
   type OddsControlTier,
 } from "@/lib/odds-control";
 import { prisma } from "@/lib/prisma";
@@ -211,6 +212,7 @@ export async function claimDueOddsRuns(
               dailyLimit: config.dailyCreditLimit,
               weeklyLimit: config.weeklyCreditLimit,
               monthlyLimit: config.monthlyCreditLimit,
+              perRunLimit: config.perRunCreditLimit,
               providerRemaining: latestUsage?.remaining ?? null,
               providerBalanceUpdatedAt: latestUsage?.updatedAt ?? null,
               providerReserve: config.reserveCredits,
@@ -285,6 +287,198 @@ export async function claimDueOddsRuns(
     }
   }
   throw new Error("Odds dispatcher claim retry limit exceeded.");
+}
+
+export async function claimManualOddsRun(input: {
+  sport: string;
+  tier: OddsControlTier;
+  triggeredById: string;
+  dryRun?: boolean;
+  now?: Date;
+}): Promise<
+  | { ok: true; run: ClaimedOddsRun; dryRun: boolean; message: string }
+  | { ok: false; error: string }
+> {
+  const now = input.now ?? new Date();
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      return await prisma.$transaction(
+        async (tx) => {
+          const [config, policy] = await Promise.all([
+            tx.oddsControlConfig.findUnique({ where: { id: "primary" } }),
+            tx.oddsSportControl.findUnique({
+              where: { sport: input.sport.trim().toUpperCase() },
+            }),
+          ]);
+          if (!config?.managedSchedulingEnabled) {
+            return {
+              ok: false as const,
+              error:
+                "Enable owner-managed scheduling before running a refresh.",
+            };
+          }
+          if (config.paused && !input.dryRun) {
+            return {
+              ok: false as const,
+              error: "Resume optional API pulls before running a refresh.",
+            };
+          }
+          if (!policy?.enabled) {
+            return { ok: false as const, error: "Enable this sport first." };
+          }
+          const tierEnabled =
+            input.tier === "surface"
+              ? policy.surfaceEnabled
+              : policy.expandedEnabled;
+          const markets =
+            input.tier === "surface"
+              ? policy.surfaceMarkets
+              : policy.expandedMarkets;
+          if (!tierEnabled || markets.length === 0) {
+            return {
+              ok: false as const,
+              error: `Enable the ${input.tier} tier and select its markets first.`,
+            };
+          }
+
+          const dayStart = utcDay(now);
+          const weekStart = utcDay(new Date(now.getTime() - 6 * 86_400_000));
+          const monthStart = new Date(
+            Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+          );
+          const [today, week, month, active, latestUsage] = await Promise.all([
+            tx.oddsUsageDaily.aggregate({
+              where: { date: { gte: dayStart } },
+              _sum: { credits: true },
+            }),
+            tx.oddsUsageDaily.aggregate({
+              where: { date: { gte: weekStart } },
+              _sum: { credits: true },
+            }),
+            tx.oddsUsageDaily.aggregate({
+              where: { date: { gte: monthStart } },
+              _sum: { credits: true },
+            }),
+            tx.oddsApiRun.aggregate({
+              where: { status: "RUNNING" },
+              _sum: { reservedCredits: true },
+            }),
+            tx.oddsUsageDaily.findFirst({
+              where: { remaining: { not: null } },
+              orderBy: { updatedAt: "desc" },
+              select: { remaining: true, updatedAt: true },
+            }),
+          ]);
+          const estimate = estimatedRunCredits({
+            sport: policy.sport,
+            tier: input.tier,
+            markets,
+            leagues: policy.leagues,
+            maxEventsPerRun: policy.maxEventsPerRun,
+          });
+          const reason = oddsReservationBlockReason({
+            todayCredits: today._sum.credits ?? 0,
+            weekCredits: week._sum.credits ?? 0,
+            monthCredits: month._sum.credits ?? 0,
+            reservedCredits: active._sum.reservedCredits ?? 0,
+            estimatedCredits: estimate,
+            dailyLimit: config.dailyCreditLimit,
+            weeklyLimit: config.weeklyCreditLimit,
+            monthlyLimit: config.monthlyCreditLimit,
+            perRunLimit: config.perRunCreditLimit,
+            providerRemaining: latestUsage?.remaining ?? null,
+            providerBalanceUpdatedAt: latestUsage?.updatedAt ?? null,
+            providerReserve: config.reserveCredits,
+            now,
+          });
+          const cadenceMinutes =
+            input.tier === "surface"
+              ? policy.surfaceCadenceMinutes
+              : policy.expandedCadenceMinutes;
+
+          if (input.dryRun) {
+            const record = await tx.oddsApiRun.create({
+              data: {
+                sport: policy.sport,
+                tier: input.tier,
+                trigger: "DRY_RUN",
+                status: "COMPLETED",
+                estimatedCredits: estimate,
+                credits: 0,
+                markets,
+                leagues: policy.leagues,
+                details: {
+                  dryRun: true,
+                  wouldRun: reason === null,
+                  blockedReason: reason,
+                  maxEventsPerRun: policy.maxEventsPerRun,
+                },
+                triggeredById: input.triggeredById,
+                completedAt: now,
+              },
+            });
+            return {
+              ok: true as const,
+              dryRun: true,
+              message: reason
+                ? `Dry run blocked: ${reason}`
+                : `Dry run passed: up to ${estimate.toLocaleString()} credits.`,
+              run: {
+                id: record.id,
+                sport: policy.sport,
+                tier: input.tier,
+                markets,
+                leagues: policy.leagues,
+                maxEventsPerRun: policy.maxEventsPerRun,
+                cadenceMinutes,
+                estimatedCredits: estimate,
+              },
+            };
+          }
+          if (reason) return { ok: false as const, error: reason };
+
+          const record = await tx.oddsApiRun.create({
+            data: {
+              sport: policy.sport,
+              tier: input.tier,
+              trigger: "MANUAL",
+              status: "RUNNING",
+              estimatedCredits: estimate,
+              reservedCredits: estimate,
+              markets,
+              leagues: policy.leagues,
+              triggeredById: input.triggeredById,
+            },
+          });
+          return {
+            ok: true as const,
+            dryRun: false,
+            message: "Run started.",
+            run: {
+              id: record.id,
+              sport: policy.sport,
+              tier: input.tier,
+              markets,
+              leagues: policy.leagues,
+              maxEventsPerRun: policy.maxEventsPerRun,
+              cadenceMinutes,
+              estimatedCredits: estimate,
+            },
+          };
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error) {
+      const conflict =
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        error.code === "P2034";
+      if (conflict && attempt < 3) continue;
+      throw error;
+    }
+  }
+  throw new Error("Manual odds run claim retry limit exceeded.");
 }
 
 export async function completeOddsRun(

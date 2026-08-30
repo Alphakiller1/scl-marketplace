@@ -22,10 +22,12 @@ import { StatBlock } from "@/components/scl/stat";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { creditLimitState } from "@/lib/odds-control";
+import { formatEasternDateTime } from "@/lib/odds-control-reporting";
 import { getOddsCreditDashboard } from "@/lib/queries/odds-control";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "API credits" };
+export const maxDuration = 300;
 
 const CAPABILITIES = [
   {
@@ -110,6 +112,7 @@ function RunStatus({ status }: { status: string }) {
   const normalized = status.toLowerCase();
   const successful = normalized === "completed" || normalized === "success";
   const failed = normalized === "failed" || normalized === "error";
+  const blocked = normalized === "blocked";
 
   return (
     <Badge
@@ -117,6 +120,7 @@ function RunStatus({ status }: { status: string }) {
       className={cn(
         successful && "border-live/30 bg-live/10 text-live",
         failed && "border-neg/30 bg-neg/10 text-neg",
+        blocked && "border-primary/30 bg-primary/10 text-primary",
       )}
     >
       {marketLabel(status)}
@@ -156,6 +160,7 @@ export default async function AdminOddsPage() {
         settings.config.warningPercent,
       ) !== "ok",
   );
+  const spikes = data.history.filter((point) => point.spike);
 
   return (
     <div className="space-y-10">
@@ -174,7 +179,7 @@ export default async function AdminOddsPage() {
 
       <nav
         aria-label="API credit dashboard sections"
-        className="border-border bg-card sticky top-[calc(4rem+env(safe-area-inset-top))] z-20 -mx-4 flex [scrollbar-width:none] gap-1 overflow-x-auto border-y px-4 py-2 [-ms-overflow-style:none] sm:mx-0 sm:rounded-xl sm:border [&::-webkit-scrollbar]:hidden"
+        className="border-border bg-card sticky top-[calc(4rem+env(safe-area-inset-top))] z-20 flex [scrollbar-width:none] gap-1 overflow-x-auto rounded-xl border px-2 py-2 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
       >
         {[
           ["Usage", "#usage"],
@@ -299,7 +304,7 @@ export default async function AdminOddsPage() {
           </div>
         ) : null}
 
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
           <Card className="p-4">
             <StatBlock
               label="Used today"
@@ -329,6 +334,7 @@ export default async function AdminOddsPage() {
                   ? "Unknown"
                   : credits(data.summary.remaining)
               }
+              sub={marketLabel(data.summary.provider.state)}
             />
           </Card>
           <Card className="p-4">
@@ -338,7 +344,44 @@ export default async function AdminOddsPage() {
               sub={`limit ${credits(settings.config.monthlyCreditLimit)}`}
             />
           </Card>
+          <Card className="p-4">
+            <StatBlock
+              label="Provider checked"
+              value={
+                data.summary.provider.ageMinutes != null
+                  ? data.summary.provider.ageMinutes < 1
+                    ? "Just now"
+                    : `${data.summary.provider.ageMinutes} min ago`
+                  : "Never"
+              }
+              sub={
+                data.summary.provider.updatedAt
+                  ? formatEasternDateTime(data.summary.provider.updatedAt)
+                  : "No provider observation"
+              }
+            />
+          </Card>
         </div>
+
+        {data.summary.provider.state !== "healthy" ? (
+          <div
+            className="border-primary/30 bg-primary/10 rounded-xl border p-4 text-sm"
+            role="status"
+          >
+            <p className="font-semibold">
+              Provider status: {marketLabel(data.summary.provider.state)}
+            </p>
+            <p className="text-muted-foreground mt-1">
+              {data.summary.provider.state === "stale"
+                ? "The provider balance is over 24 hours old. The dashboard will treat it as unknown until the next response."
+                : data.summary.provider.state === "reserve"
+                  ? "Remaining provider credits are at or below the protected reserve; optional runs will stop."
+                  : data.summary.provider.state === "exhausted"
+                    ? "The provider reports no credits remaining; optional runs are stopped."
+                    : "No provider response has been recorded yet."}
+            </p>
+          </div>
+        ) : null}
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.55fr)]">
           <Card className="space-y-5 p-4 sm:p-5">
@@ -348,6 +391,25 @@ export default async function AdminOddsPage() {
               subtitle="Board, verification, results, and CLV calls"
             />
             <AdminOddsUsageChart history={data.history} />
+            {spikes.length ? (
+              <div className="border-primary/30 bg-primary/10 rounded-lg border p-3 text-xs">
+                <p className="font-semibold">Usage spikes detected</p>
+                <p className="text-muted-foreground mt-1">
+                  {spikes
+                    .slice(-5)
+                    .map(
+                      (point) =>
+                        `${point.date}: ${credits(point.credits)} credits (${credits(point.trailingAverage)} prior average)`,
+                    )
+                    .join(" · ")}
+                </p>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-xs">
+                No usage spikes detected against the trailing seven-day
+                baseline.
+              </p>
+            )}
           </Card>
 
           <Card className="space-y-5 p-4 sm:p-5">
@@ -378,7 +440,7 @@ export default async function AdminOddsPage() {
           </Card>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-3">
           <Card className="space-y-4 p-4 sm:p-5">
             <div>
               <h3 className="font-semibold">Credits by sport</h3>
@@ -410,9 +472,43 @@ export default async function AdminOddsPage() {
 
           <Card className="space-y-4 p-4 sm:p-5">
             <div>
+              <h3 className="font-semibold">Credits by purpose</h3>
+              <p className="text-muted-foreground text-xs">Current month</p>
+            </div>
+            {data.byPurpose.length ? (
+              <div className="divide-border divide-y">
+                {data.byPurpose.map((row) => (
+                  <div
+                    key={row.purpose}
+                    className="flex items-center justify-between gap-3 py-3 text-sm"
+                  >
+                    <span>{marketLabel(row.purpose)}</span>
+                    <span className="text-right">
+                      <span className="nums block font-semibold">
+                        {credits(row.credits)}
+                      </span>
+                      <span className="text-muted-foreground text-xs">
+                        {row.calls.toLocaleString()} calls
+                      </span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                icon={Activity}
+                title="No purpose usage yet"
+                description="Board, verification, results, and CLV use will appear here."
+                headingLevel="h3"
+              />
+            )}
+          </Card>
+
+          <Card className="space-y-4 p-4 sm:p-5">
+            <div>
               <h3 className="font-semibold">Credits by market</h3>
               <p className="text-muted-foreground text-xs">
-                Estimated allocation from managed runs
+                Exact response-level attribution for newly recorded calls
               </p>
             </div>
             {data.byMarket.length ? (
@@ -423,8 +519,13 @@ export default async function AdminOddsPage() {
                     className="flex items-center justify-between gap-3 py-3 text-sm"
                   >
                     <span className="truncate">{marketLabel(row.market)}</span>
-                    <span className="nums font-semibold">
-                      {credits(row.credits)}
+                    <span className="shrink-0 text-right">
+                      <span className="nums block font-semibold">
+                        {credits(row.credits)}
+                      </span>
+                      <span className="text-muted-foreground text-xs">
+                        {row.calls.toLocaleString()} calls
+                      </span>
                     </span>
                   </div>
                 ))}
@@ -433,12 +534,38 @@ export default async function AdminOddsPage() {
               <EmptyState
                 icon={SlidersHorizontal}
                 title="No market attribution yet"
-                description="Market-level attribution begins with managed API runs."
+                description="Exact market-level attribution begins after the credit-control migration."
                 headingLevel="h3"
               />
             )}
           </Card>
         </div>
+
+        <Card className="space-y-3 p-4 sm:p-5">
+          <h3 className="font-semibold">Board and provider health</h3>
+          <div className="grid gap-3 text-sm sm:grid-cols-3">
+            <div className="border-border bg-surface-2 rounded-lg border p-3">
+              <p className="text-muted-foreground text-xs">Last managed run</p>
+              <p className="mt-1 font-medium">
+                {formatEasternDateTime(data.summary.provider.lastRunAt)}
+              </p>
+            </div>
+            <div className="border-border bg-surface-2 rounded-lg border p-3">
+              <p className="text-muted-foreground text-xs">Sports refreshed</p>
+              <p className="nums mt-1 font-semibold">
+                {data.summary.provider.refreshedSports}
+              </p>
+            </div>
+            <div className="border-border bg-surface-2 rounded-lg border p-3">
+              <p className="text-muted-foreground text-xs">Stale boards</p>
+              <p className="mt-1 font-medium">
+                {data.summary.provider.staleSports.length
+                  ? data.summary.provider.staleSports.join(", ")
+                  : "None reported"}
+              </p>
+            </div>
+          </div>
+        </Card>
       </section>
 
       <section id="controls" className="scroll-mt-36 space-y-5">
@@ -478,18 +605,64 @@ export default async function AdminOddsPage() {
                           {run.sport} · {marketLabel(run.tier)}
                         </p>
                         <p className="text-muted-foreground text-xs">
-                          {new Date(run.startedAt).toLocaleString()} ·{" "}
+                          {formatEasternDateTime(run.startedAt)} ·{" "}
                           {marketLabel(run.trigger)}
                         </p>
                       </div>
                       <RunStatus status={run.status} />
                     </div>
-                    <div className="text-muted-foreground flex justify-between gap-3 text-xs">
-                      <span>Actual credits</span>
-                      <span className="nums text-foreground font-semibold">
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <span className="text-muted-foreground">Estimated</span>
+                      <span className="text-muted-foreground">Actual</span>
+                      <span className="text-muted-foreground">Variance</span>
+                      <span className="nums font-semibold">
+                        {credits(run.estimatedCredits)}
+                      </span>
+                      <span className="nums font-semibold">
                         {credits(run.credits)}
                       </span>
+                      <span className="nums font-semibold">
+                        {run.credits - run.estimatedCredits > 0 ? "+" : ""}
+                        {credits(run.credits - run.estimatedCredits)}
+                      </span>
                     </div>
+                    <details className="border-border rounded-lg border p-2 text-xs">
+                      <summary className="cursor-pointer font-medium">
+                        Run detail
+                      </summary>
+                      <div className="text-muted-foreground mt-2 space-y-1">
+                        <p>
+                          Markets:{" "}
+                          {run.markets.length
+                            ? run.markets.map(marketLabel).join(", ")
+                            : "None"}
+                        </p>
+                        <p>
+                          Leagues:{" "}
+                          {run.leagues.length
+                            ? run.leagues.join(", ")
+                            : "Automatic"}
+                        </p>
+                        <p>
+                          Events {run.details.events} · fetched{" "}
+                          {run.details.fetched} · populated{" "}
+                          {run.details.populated} · skipped fresh{" "}
+                          {run.details.skipped}
+                        </p>
+                        <p>
+                          Held {run.details.held} · stale {run.details.stale} ·
+                          unpriced {run.details.unpriced}
+                        </p>
+                        {run.remaining != null ? (
+                          <p>Provider remaining: {credits(run.remaining)}</p>
+                        ) : null}
+                        {run.details.blockedReason ? (
+                          <p className="text-neg">
+                            {run.details.blockedReason}
+                          </p>
+                        ) : null}
+                      </div>
+                    </details>
                     {run.error ? (
                       <p className="text-neg text-xs">{run.error}</p>
                     ) : null}
@@ -520,8 +693,13 @@ export default async function AdminOddsPage() {
                     <p className="font-medium">{marketLabel(event.action)}</p>
                     <p className="text-muted-foreground mt-1 text-xs">
                       {event.target} · {event.actor} ·{" "}
-                      {new Date(event.createdAt).toLocaleString()}
+                      {formatEasternDateTime(event.createdAt)}
                     </p>
+                    <ul className="text-muted-foreground mt-2 list-disc space-y-1 pl-4 text-xs">
+                      {event.changes.slice(0, 12).map((change) => (
+                        <li key={change}>{change}</li>
+                      ))}
+                    </ul>
                   </article>
                 ))}
               </div>

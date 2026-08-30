@@ -6,6 +6,11 @@ import {
   ODDS_CONTROL_SPORTS,
   type OddsControlSport,
 } from "@/lib/odds-control";
+import {
+  describeOddsAuditChange,
+  identifyUsageSpikes,
+  summarizeOddsRunDetails,
+} from "@/lib/odds-control-reporting";
 import { prisma } from "@/lib/prisma";
 
 function utcDay(date: Date): Date {
@@ -25,6 +30,7 @@ export async function oddsControlStorageReady(): Promise<boolean> {
         to_regclass('scl."OddsControlConfig"') IS NOT NULL AND
         to_regclass('scl."OddsSportControl"') IS NOT NULL AND
         to_regclass('scl."OddsApiRun"') IS NOT NULL AND
+        to_regclass('scl."OddsUsageMarketDaily"') IS NOT NULL AND
         to_regclass('scl."OddsControlAuditEvent"') IS NOT NULL AS ready
     `;
     return result?.ready === true;
@@ -64,9 +70,10 @@ export async function getOddsControlSettings() {
           dailyCreditLimit: config.dailyCreditLimit,
           weeklyCreditLimit: config.weeklyCreditLimit,
           monthlyCreditLimit: config.monthlyCreditLimit,
+          perRunCreditLimit: config.perRunCreditLimit,
           warningPercent: config.warningPercent,
           reserveCredits: config.reserveCredits,
-          timezone: "UTC" as const,
+          timezone: "America/New_York" as const,
         }
       : { ...DEFAULT_ODDS_CONTROL_CONFIG },
     sports: defaults.map((fallback) => {
@@ -116,10 +123,25 @@ export async function getOddsCreditDashboard() {
         remaining: null as number | null,
         percentUsed: 0,
         projectedMonth: 0,
+        provider: {
+          state: "unknown" as const,
+          capacity: null as number | null,
+          updatedAt: null as string | null,
+          ageMinutes: null as number | null,
+          refreshedSports: 0,
+          staleSports: [] as string[],
+          lastRunAt: null as string | null,
+        },
       },
       bySport: [] as { sport: string; credits: number }[],
-      byMarket: [] as { market: string; credits: number }[],
-      history: [] as { date: string; credits: number }[],
+      byPurpose: [] as { purpose: string; credits: number; calls: number }[],
+      byMarket: [] as { market: string; credits: number; calls: number }[],
+      history: [] as {
+        date: string;
+        credits: number;
+        trailingAverage: number;
+        spike: boolean;
+      }[],
       recentRuns: [] as Array<{
         id: string;
         sport: string;
@@ -129,6 +151,11 @@ export async function getOddsCreditDashboard() {
         credits: number;
         estimatedCredits: number;
         startedAt: string;
+        completedAt: string | null;
+        remaining: number | null;
+        markets: string[];
+        leagues: string[];
+        details: ReturnType<typeof summarizeOddsRunDetails>;
         error: string | null;
       }>,
       audit: [] as Array<{
@@ -137,11 +164,12 @@ export async function getOddsCreditDashboard() {
         target: string;
         actor: string;
         createdAt: string;
+        changes: string[];
       }>,
     };
   }
 
-  const [usage, recentRuns, marketRuns, audit] = await Promise.all([
+  const [usage, recentRuns, marketUsage, audit] = await Promise.all([
     prisma.oddsUsageDaily.findMany({
       where: { date: { gte: usageStart } },
       orderBy: [{ date: "asc" }, { updatedAt: "asc" }],
@@ -150,9 +178,9 @@ export async function getOddsCreditDashboard() {
       orderBy: { startedAt: "desc" },
       take: 50,
     }),
-    prisma.oddsApiRun.findMany({
-      where: { status: "COMPLETED", startedAt: { gte: monthStart } },
-      select: { credits: true, markets: true },
+    prisma.oddsUsageMarketDaily.findMany({
+      where: { date: { gte: monthStart } },
+      orderBy: [{ credits: "desc" }, { market: "asc" }],
     }),
     prisma.oddsControlAuditEvent.findMany({
       include: { actor: { select: { username: true, displayName: true } } },
@@ -173,14 +201,20 @@ export async function getOddsCreditDashboard() {
   const daysInMonth = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0),
   ).getUTCDate();
-  const latestRemaining = [...usage]
+  const latestProviderUsage = [...usage]
     .reverse()
-    .find((row) => row.remaining != null)?.remaining;
+    .find((row) => row.remaining != null);
+  const latestRemaining = latestProviderUsage?.remaining;
 
   const sportCredits = new Map<string, number>();
+  const purposeUsage = new Map<string, { credits: number; calls: number }>();
   for (const row of usage.filter((item) => item.date >= monthStart)) {
     const sport = row.sport || "Unattributed";
     sportCredits.set(sport, (sportCredits.get(sport) ?? 0) + row.credits);
+    const purpose = purposeUsage.get(row.purpose) ?? { credits: 0, calls: 0 };
+    purpose.credits += row.credits;
+    purpose.calls += row.calls;
+    purposeUsage.set(row.purpose, purpose);
   }
 
   const daily = new Map<string, number>();
@@ -194,14 +228,36 @@ export async function getOddsCreditDashboard() {
     daily.set(key, (daily.get(key) ?? 0) + row.credits);
   }
 
-  const marketCredits = new Map<string, number>();
-  for (const run of marketRuns) {
-    if (run.markets.length === 0) continue;
-    const share = run.credits / run.markets.length;
-    for (const market of run.markets) {
-      marketCredits.set(market, (marketCredits.get(market) ?? 0) + share);
-    }
+  const marketCredits = new Map<string, { credits: number; calls: number }>();
+  for (const row of marketUsage) {
+    const current = marketCredits.get(row.market) ?? { credits: 0, calls: 0 };
+    current.credits += row.credits;
+    current.calls += row.calls;
+    marketCredits.set(row.market, current);
   }
+  const history = identifyUsageSpikes(
+    [...daily.entries()].map(([date, credits]) => ({ date, credits })),
+  );
+  const newestRun = recentRuns.find((run) => run.trigger !== "DRY_RUN");
+  const newestDetails = summarizeOddsRunDetails(newestRun?.details);
+  const providerAgeMinutes = latestProviderUsage
+    ? Math.max(
+        0,
+        Math.round(
+          (now.getTime() - latestProviderUsage.updatedAt.getTime()) / 60_000,
+        ),
+      )
+    : null;
+  const providerState =
+    latestRemaining == null
+      ? ("unknown" as const)
+      : providerAgeMinutes != null && providerAgeMinutes > 24 * 60
+        ? ("stale" as const)
+        : latestRemaining <= 0
+          ? ("exhausted" as const)
+          : latestRemaining <= settings.config.reserveCredits
+            ? ("reserve" as const)
+            : ("healthy" as const);
 
   return {
     settings,
@@ -212,14 +268,26 @@ export async function getOddsCreditDashboard() {
       remaining: latestRemaining ?? null,
       percentUsed: monthlyLimit > 0 ? (monthCredits / monthlyLimit) * 100 : 0,
       projectedMonth: Math.round((monthCredits / elapsedDays) * daysInMonth),
+      provider: {
+        state: providerState,
+        capacity: latestProviderUsage?.capacity ?? null,
+        updatedAt: latestProviderUsage?.updatedAt.toISOString() ?? null,
+        ageMinutes: providerAgeMinutes,
+        refreshedSports: newestDetails.refreshedSports,
+        staleSports: newestDetails.staleSports,
+        lastRunAt: newestRun?.completedAt?.toISOString() ?? null,
+      },
     },
     bySport: [...sportCredits.entries()]
       .map(([sport, credits]) => ({ sport, credits }))
       .sort((a, b) => b.credits - a.credits),
-    byMarket: [...marketCredits.entries()]
-      .map(([market, credits]) => ({ market, credits }))
+    byPurpose: [...purposeUsage.entries()]
+      .map(([purpose, value]) => ({ purpose, ...value }))
       .sort((a, b) => b.credits - a.credits),
-    history: [...daily.entries()].map(([date, credits]) => ({ date, credits })),
+    byMarket: [...marketCredits.entries()]
+      .map(([market, value]) => ({ market, ...value }))
+      .sort((a, b) => b.credits - a.credits),
+    history,
     recentRuns: recentRuns.map((run) => ({
       id: run.id,
       sport: run.sport,
@@ -229,6 +297,11 @@ export async function getOddsCreditDashboard() {
       credits: run.credits,
       estimatedCredits: run.estimatedCredits,
       startedAt: run.startedAt.toISOString(),
+      completedAt: run.completedAt?.toISOString() ?? null,
+      remaining: run.remaining,
+      markets: run.markets,
+      leagues: run.leagues,
+      details: summarizeOddsRunDetails(run.details),
       error: run.error,
     })),
     audit: audit.map((event) => ({
@@ -238,6 +311,12 @@ export async function getOddsCreditDashboard() {
       actor:
         event.actor?.username ?? event.actor?.displayName ?? "Former admin",
       createdAt: event.createdAt.toISOString(),
+      changes: describeOddsAuditChange({
+        action: event.action,
+        target: event.target,
+        before: event.before,
+        after: event.after,
+      }),
     })),
   };
 }

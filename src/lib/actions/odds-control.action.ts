@@ -4,14 +4,19 @@ import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { appUrl } from "@/lib/app-url";
+import { executeClaimedOddsRun } from "@/lib/odds-control-executor";
+import { claimManualOddsRun } from "@/lib/odds-control-runtime";
 import {
   oddsControlSettingsSchema,
-  oddsRunQueueSchema,
+  oddsRunRequestSchema,
   type OddsControlSettingsInput,
 } from "@/lib/schemas/odds-control.schema";
 import { requireAdmin } from "@/lib/session";
 
-type ActionResult = { ok: true } | { ok: false; error: string };
+type ActionResult =
+  | { ok: true; message?: string; credits?: number }
+  | { ok: false; error: string };
 
 function auditJson(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
@@ -45,6 +50,7 @@ export async function saveOddsControlSettingsAction(
           dailyCreditLimit: next.dailyCreditLimit,
           weeklyCreditLimit: next.weeklyCreditLimit,
           monthlyCreditLimit: next.monthlyCreditLimit,
+          perRunCreditLimit: next.perRunCreditLimit,
           warningPercent: next.warningPercent,
           reserveCredits: next.reserveCredits,
           timezone: next.timezone,
@@ -56,6 +62,7 @@ export async function saveOddsControlSettingsAction(
           dailyCreditLimit: next.dailyCreditLimit,
           weeklyCreditLimit: next.weeklyCreditLimit,
           monthlyCreditLimit: next.monthlyCreditLimit,
+          perRunCreditLimit: next.perRunCreditLimit,
           warningPercent: next.warningPercent,
           reserveCredits: next.reserveCredits,
           timezone: next.timezone,
@@ -117,12 +124,12 @@ export async function saveOddsControlSettingsAction(
   }
 }
 
-export async function queueOddsRunAction(input: {
+export async function runOddsNowAction(input: {
   sport: string;
   tier: "surface" | "expanded";
 }): Promise<ActionResult> {
   const admin = await requireAdmin();
-  const parsed = oddsRunQueueSchema.safeParse({
+  const parsed = oddsRunRequestSchema.safeParse({
     sport: input?.sport?.trim().toUpperCase(),
     tier: input?.tier,
   });
@@ -131,54 +138,72 @@ export async function queueOddsRunAction(input: {
   }
   const { sport, tier } = parsed.data;
   try {
-    const [config, existing] = await Promise.all([
-      prisma.oddsControlConfig.findUnique({
-        where: { id: "primary" },
-        select: { managedSchedulingEnabled: true },
-      }),
-      prisma.oddsSportControl.findUnique({
-        where: { sport },
-      }),
-    ]);
-    if (!config?.managedSchedulingEnabled) {
-      return {
-        ok: false,
-        error: "Enable owner-managed scheduling before queueing a run.",
-      };
-    }
-    if (!existing?.enabled) {
-      return { ok: false, error: "Enable this sport before queueing a run." };
-    }
-    if (
-      (tier === "surface" && !existing.surfaceEnabled) ||
-      (tier === "expanded" && !existing.expandedEnabled)
-    ) {
-      return {
-        ok: false,
-        error: `Enable the ${tier} tier before queueing a run.`,
-      };
-    }
-    await prisma.$transaction([
-      prisma.oddsSportControl.update({
-        where: { sport },
-        data:
-          tier === "surface"
-            ? { nextSurfaceRunAt: new Date() }
-            : { nextExpandedRunAt: new Date() },
-      }),
-      prisma.oddsControlAuditEvent.create({
-        data: {
-          action: "RUN_QUEUED",
-          target: `${sport}:${tier}`,
-          after: { sport, tier },
-          actorId: admin.id,
-        },
-      }),
-    ]);
+    const claimed = await claimManualOddsRun({
+      sport,
+      tier,
+      triggeredById: admin.id,
+    });
+    if (!claimed.ok) return claimed;
+    const result = await executeClaimedOddsRun(appUrl(), claimed.run);
+    await prisma.oddsControlAuditEvent.create({
+      data: {
+        action: "RUN_NOW",
+        target: `${sport}:${tier}`,
+        after: { sport, tier, runId: result.id, credits: result.credits },
+        actorId: admin.id,
+      },
+    });
     revalidatePath("/admin/odds");
-    return { ok: true };
+    return result.ok
+      ? {
+          ok: true,
+          credits: result.credits,
+          message: `Refresh completed using ${result.credits.toLocaleString()} credits.`,
+        }
+      : { ok: false, error: "Refresh started but the provider run failed." };
   } catch (error) {
-    console.error("[odds-control] queue failed", error);
-    return { ok: false, error: "Could not queue the refresh." };
+    console.error("[odds-control] run now failed", error);
+    return { ok: false, error: "Could not complete the refresh." };
+  }
+}
+
+export async function dryRunOddsAction(input: {
+  sport: string;
+  tier: "surface" | "expanded";
+}): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const parsed = oddsRunRequestSchema.safeParse({
+    sport: input?.sport?.trim().toUpperCase(),
+    tier: input?.tier,
+  });
+  if (!parsed.success) {
+    return { ok: false, error: "Unknown sport or refresh tier." };
+  }
+  try {
+    const preview = await claimManualOddsRun({
+      ...parsed.data,
+      triggeredById: admin.id,
+      dryRun: true,
+    });
+    if (!preview.ok) return preview;
+    await prisma.oddsControlAuditEvent.create({
+      data: {
+        action: "DRY_RUN",
+        target: `${parsed.data.sport}:${parsed.data.tier}`,
+        after: {
+          sport: parsed.data.sport,
+          tier: parsed.data.tier,
+          runId: preview.run.id,
+          estimate: preview.run.estimatedCredits,
+          message: preview.message,
+        },
+        actorId: admin.id,
+      },
+    });
+    revalidatePath("/admin/odds");
+    return { ok: true, message: preview.message, credits: 0 };
+  } catch (error) {
+    console.error("[odds-control] dry run failed", error);
+    return { ok: false, error: "Could not simulate the refresh." };
   }
 }

@@ -264,6 +264,7 @@ export function logOddsUsage(
   label: string,
   purpose: OddsUsagePurpose = "board",
   sport?: string,
+  markets: readonly string[] = [],
 ): void {
   const remainingHeader = res.headers.get("x-requests-remaining");
   const last = res.headers.get("x-requests-last");
@@ -284,6 +285,7 @@ export function logOddsUsage(
   if (Number.isFinite(cost)) lastOddsApiRunCost += cost;
   const remaining =
     remainingHeader != null ? Number(remainingHeader) : undefined;
+  const capacity = lastOddsApiCapacity;
   if (remainingHeader !== null || last !== null) {
     console.info(
       `[odds] purpose=${purpose} ${label}: cost=${last ?? "?"} remaining=${remainingHeader ?? "?"}`,
@@ -293,15 +295,24 @@ export function logOddsUsage(
   // off mid-transaction when the isolate froze, wedging a pooled connection
   // `idle in transaction` until it timed out. Telemetry must never cost the app
   // a connection.
-  afterResponse(() =>
-    persistOddsUsageDaily({
+  afterResponse(async () => {
+    await persistOddsUsageDaily({
       purpose,
       sport: sport ?? null,
       cost: Number.isFinite(cost) ? cost : 0,
       remaining:
         remaining != null && Number.isFinite(remaining) ? remaining : null,
-    }),
-  );
+      capacity,
+    });
+    if (markets.length && Number.isFinite(cost) && cost > 0) {
+      await persistOddsMarketUsageDaily({
+        purpose,
+        sport: sport ?? null,
+        markets: [...new Set(markets)],
+        cost,
+      });
+    }
+  });
 }
 
 async function persistOddsUsageDaily(opts: {
@@ -309,6 +320,7 @@ async function persistOddsUsageDaily(opts: {
   sport: string | null;
   cost: number;
   remaining: number | null;
+  capacity: number | null;
 }): Promise<void> {
   const { hasOddsUsageDailyTable } =
     await import("@/lib/results/schema-features");
@@ -332,13 +344,62 @@ async function persistOddsUsageDaily(opts: {
       calls: 1,
       credits: opts.cost,
       remaining: opts.remaining,
+      capacity: opts.capacity,
     },
     update: {
       calls: { increment: 1 },
       credits: { increment: opts.cost },
       remaining: opts.remaining,
+      capacity: opts.capacity,
     },
   });
+}
+
+async function persistOddsMarketUsageDaily(opts: {
+  purpose: OddsUsagePurpose;
+  sport: string | null;
+  markets: string[];
+  cost: number;
+}): Promise<void> {
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const base = Math.floor(opts.cost / opts.markets.length);
+  let remainder = opts.cost % opts.markets.length;
+  try {
+    for (const market of opts.markets) {
+      const credits = base + (remainder > 0 ? 1 : 0);
+      remainder = Math.max(0, remainder - 1);
+      await prisma.oddsUsageMarketDaily.upsert({
+        where: {
+          date_purpose_sport_market: {
+            date: today,
+            purpose: opts.purpose,
+            sport: opts.sport ?? "",
+            market,
+          },
+        },
+        create: {
+          date: today,
+          purpose: opts.purpose,
+          sport: opts.sport ?? "",
+          market,
+          calls: 1,
+          credits,
+        },
+        update: { calls: { increment: 1 }, credits: { increment: credits } },
+      });
+    }
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "P2021"
+    ) {
+      return;
+    }
+    throw error;
+  }
 }
 
 export type OddsBoardMeta = {
@@ -459,7 +520,13 @@ export async function fetchSoccerBoard(
         { next: { revalidate: BOARD_TTL } },
       );
       if (!res) return [] as OddsEvent[];
-      logOddsUsage(res, `soccer ${leagueKey}`, "board", "SOCCER");
+      logOddsUsage(
+        res,
+        `soccer ${leagueKey}`,
+        "board",
+        "SOCCER",
+        opts?.markets?.length ? opts.markets : ["h2h", "spreads", "totals"],
+      );
       if (!res.ok) {
         console.warn(`[odds] soccer ${leagueKey}: HTTP ${res.status}`);
         return [] as OddsEvent[];
@@ -552,7 +619,13 @@ export async function fetchTennisBoard(
         { next: { revalidate: BOARD_TTL } },
       );
       if (!res) return [] as OddsEvent[];
-      logOddsUsage(res, `tennis ${tour.key}`, "board", "TENNIS");
+      logOddsUsage(
+        res,
+        `tennis ${tour.key}`,
+        "board",
+        "TENNIS",
+        opts?.markets?.length ? opts.markets : ["h2h", "spreads", "totals"],
+      );
       if (!res.ok) {
         console.warn(`[odds] tennis ${tour.key}: HTTP ${res.status}`);
         return [] as OddsEvent[];
@@ -787,7 +860,13 @@ async function fetchExtraSportBoards(
           { next: { revalidate: BOARD_TTL } },
         );
         if (!res) return [] as OddsEvent[];
-        logOddsUsage(res, `upcoming ${apiSport}`, "board", sclSport);
+        logOddsUsage(
+          res,
+          `upcoming ${apiSport}`,
+          "board",
+          sclSport,
+          opts?.markets?.length ? opts.markets : ["h2h", "spreads", "totals"],
+        );
         if (!res.ok) return [] as OddsEvent[];
         const events = (await res.json()) as Parameters<
           typeof normalizeUpcomingEvent
@@ -853,7 +932,13 @@ export async function fetchUpcomingOdds(
       { next: { revalidate: BOARD_TTL } },
     );
     if (!res) return [] as OddsEvent[];
-    logOddsUsage(res, `upcoming ${sclSport}`, "board", sclSport);
+    logOddsUsage(
+      res,
+      `upcoming ${sclSport}`,
+      "board",
+      sclSport,
+      opts?.markets?.length ? opts.markets : ["h2h", "spreads", "totals"],
+    );
     if (!res.ok) {
       console.warn(`[odds] upcoming ${sclSport}: HTTP ${res.status}`);
       return [] as OddsEvent[];
@@ -956,7 +1041,7 @@ export async function fetchEventOddsForVerification(
       },
     );
     if (!res) return null;
-    logOddsUsage(res, `event ${eventId}`, purpose, sclSport);
+    logOddsUsage(res, `event ${eventId}`, purpose, sclSport, requested);
     if (!res.ok) return null;
     return (await res.json()) as RawEventOdds;
   };
@@ -1123,7 +1208,9 @@ async function fetchEventMarketCatalog(
       },
     );
     if (!res) return [];
-    logOddsUsage(res, `event ${eventId} markets`, "board", sclSport);
+    logOddsUsage(res, `event ${eventId} markets`, "board", sclSport, [
+      "market_catalog",
+    ]);
     if (!res.ok) return [];
     return eventMarketCatalogKeys(await res.json());
   } catch {

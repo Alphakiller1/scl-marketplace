@@ -27,8 +27,9 @@ additional supported sports are visible but disabled until an owner opts in.
 
 Before a managed run begins, its conservative maximum cost is reserved inside a
 serializable database transaction. Completed usage plus active reservations must
-fit the daily, rolling-seven-day, and calendar-month limits. Usage dates and
-limit resets use UTC, matching `OddsUsageDaily`. The latest provider
+fit the per-run, daily, rolling-seven-day, and calendar-month limits. Usage
+dates and limit resets use UTC, matching `OddsUsageDaily`; owner-facing
+timestamps are rendered in `America/New_York` with automatic EST/EDT handling. The latest provider
 balance, when observed within 24 hours, must also retain the configured
 protected reserve. Older provider balance data is treated as unknown so a
 retired key cannot block every future key; the provider-aware circuit breaker
@@ -42,14 +43,28 @@ the protected integrity path.
 ## Reporting
 
 `OddsUsageDaily` remains the source of truth for credits by day, sport, and
-purpose. `OddsApiRun` adds estimated versus actual cost, selected markets,
-leagues, execution status, and error detail for managed runs. Market attribution
-starts when managed runs are activated and is an approximate even allocation
-across the markets requested by each run; older aggregate rows cannot be
-reliably reconstructed by market.
+purpose. `OddsUsageMarketDaily` records exact response-level cost attribution
+for every requested market key, including the one-credit market catalog probe.
+This instrumentation begins with this migration; older aggregate rows cannot be
+reliably reconstructed by market. `OddsApiRun` adds estimated versus actual
+cost, selected markets, leagues, execution status, processed/skipped counts,
+provider status, and error detail for managed runs.
 
-Every settings save and manual queue request creates an append-only
+Every settings save, immediate run, and zero-credit dry run creates an append-only
 `OddsControlAuditEvent` with the acting administrator.
+
+## Owner operations
+
+- **Run now** reserves the estimated maximum inside the same serializable
+  guardrail transaction as scheduled work, then executes immediately.
+- **Dry run** performs the same configuration and guardrail evaluation, records
+  the estimate and result, and never calls the provider.
+- Provider balance is considered current for 24 hours. A stale observation is
+  clearly labeled and does not permanently block a replacement key.
+- Usage spikes are days at least 10 credits above and at least twice the prior
+  seven-day average.
+
+See `docs/ODDS_CREDIT_OWNER_GUIDE.md` for the owner-facing operating procedure.
 
 ## Pre-production verification
 

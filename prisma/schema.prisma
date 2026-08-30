@@ -669,10 +669,26 @@ model OddsUsageDaily {
   calls     Int      @default(0)
   credits   Int      @default(0)
   remaining Int?
+  capacity  Int?
   updatedAt DateTime @updatedAt
 
   @@unique([date, purpose, sport])
   @@index([date])
+}
+
+/// Exact response-level Odds API usage attributed to requested market keys.
+model OddsUsageMarketDaily {
+  id      String   @id @default(cuid())
+  date    DateTime @db.Date
+  purpose String
+  sport   String   @default("")
+  market  String
+  calls   Int      @default(0)
+  credits Int      @default(0)
+
+  @@unique([date, purpose, sport, market])
+  @@index([date])
+  @@index([sport, date])
 }
 
 /// Owner-managed limits and the rollout switch for database-driven odds scheduling.
@@ -683,9 +699,10 @@ model OddsControlConfig {
   dailyCreditLimit         Int      @default(2000)
   weeklyCreditLimit        Int      @default(10000)
   monthlyCreditLimit       Int      @default(20000)
+  perRunCreditLimit        Int      @default(2000)
   warningPercent           Int      @default(70)
   reserveCredits           Int      @default(1000)
-  timezone                 String   @default("UTC")
+  timezone                 String   @default("America/New_York")
   updatedById              String?
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt

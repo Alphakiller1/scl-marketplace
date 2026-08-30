@@ -14,7 +14,7 @@ import {
 } from "@/lib/odds-control";
 import {
   oddsControlSettingsSchema,
-  oddsRunQueueSchema,
+  oddsRunRequestSchema,
 } from "@/lib/schemas/odds-control.schema";
 
 test("default owner controls validate against the supported market registry", () => {
@@ -24,9 +24,10 @@ test("default owner controls validate against the supported market registry", ()
     dailyCreditLimit: 2_000,
     weeklyCreditLimit: 10_000,
     monthlyCreditLimit: 20_000,
+    perRunCreditLimit: 2_000,
     warningPercent: 70,
     reserveCredits: 1_000,
-    timezone: "UTC",
+    timezone: "America/New_York",
     sports: ODDS_CONTROL_SPORTS.map((sport) => {
       const {
         nextSurfaceRunAt: _nextSurfaceRunAt,
@@ -109,6 +110,7 @@ test("credit reservations enforce local limits and a current provider reserve", 
     dailyLimit: 1_000,
     weeklyLimit: 2_000,
     monthlyLimit: 3_000,
+    perRunLimit: 1_000,
     providerRemaining: 1_100,
     providerBalanceUpdatedAt: now,
     providerReserve: 1_000,
@@ -121,6 +123,7 @@ test("credit reservations enforce local limits and a current provider reserve", 
   );
   assert.equal(canReserveOddsCredits({ ...baseline, dailyLimit: 149 }), false);
   assert.equal(canReserveOddsCredits({ ...baseline, weeklyLimit: 249 }), false);
+  assert.equal(canReserveOddsCredits({ ...baseline, perRunLimit: 29 }), false);
   assert.equal(
     canReserveOddsCredits({ ...baseline, monthlyLimit: 349 }),
     false,
@@ -139,6 +142,7 @@ test("an old key balance cannot permanently block a replacement key", () => {
       dailyLimit: 100,
       weeklyLimit: 500,
       monthlyLimit: 1_000,
+      perRunLimit: 100,
       providerRemaining: 0,
       providerBalanceUpdatedAt: new Date("2026-08-28T11:59:59.999Z"),
       providerReserve: 100,
@@ -200,9 +204,10 @@ test("invalid limits and unsupported markets fail closed", () => {
     dailyCreditLimit: 2_000,
     weeklyCreditLimit: 1_000,
     monthlyCreditLimit: 20_000,
+    perRunCreditLimit: 2_000,
     warningPercent: 70,
     reserveCredits: 1_000,
-    timezone: "UTC",
+    timezone: "America/New_York",
     sports,
   });
   assert.equal(parsed.success, false);
@@ -231,9 +236,10 @@ test("tampered duplicate markets and league controls fail validation", () => {
     dailyCreditLimit: 2_000,
     weeklyCreditLimit: 10_000,
     monthlyCreditLimit: 20_000,
+    perRunCreditLimit: 2_000,
     warningPercent: 70,
     reserveCredits: 1_000,
-    timezone: "UTC",
+    timezone: "America/New_York",
     sports,
   });
   assert.equal(parsed.success, false);
@@ -254,17 +260,19 @@ test("only a missing control-table error permits legacy rollout behavior", () =>
   );
 });
 
-test("manual queue input accepts only a supported sport and tier", () => {
+test("manual run input accepts only a supported sport and tier", () => {
   assert.equal(
-    oddsRunQueueSchema.safeParse({ sport: "MLB", tier: "surface" }).success,
+    oddsRunRequestSchema.safeParse({ sport: "MLB", tier: "surface" }).success,
     true,
   );
   assert.equal(
-    oddsRunQueueSchema.safeParse({ sport: "CRICKET", tier: "surface" }).success,
+    oddsRunRequestSchema.safeParse({ sport: "CRICKET", tier: "surface" })
+      .success,
     false,
   );
   assert.equal(
-    oddsRunQueueSchema.safeParse({ sport: "MLB", tier: "everything" }).success,
+    oddsRunRequestSchema.safeParse({ sport: "MLB", tier: "everything" })
+      .success,
     false,
   );
 });
