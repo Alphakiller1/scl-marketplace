@@ -15,7 +15,7 @@ const ADMIN_NAV = [
   { href: "/admin/cappers", label: "Cappers" },
   { href: "/admin/store-setup", label: "Storefronts & Packages" },
   { href: "/admin/policies", label: "Policies" },
-  { href: "/admin/emails", label: "Emails" },
+  { href: "/admin/emails", label: "Email Cappers" },
 ];
 
 async function AdminGate({ children }: { children: React.ReactNode }) {

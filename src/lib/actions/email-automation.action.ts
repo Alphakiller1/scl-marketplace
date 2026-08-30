@@ -2,7 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 
-import { EMAIL_AUTOMATION_CONFIG_ID } from "@/lib/email-automation";
+import {
+  EMAIL_AUTOMATION_CONFIG_ID,
+  nextAutomationActivationAt,
+} from "@/lib/email-automation";
+import { probeMailer } from "@/lib/email-deliverability";
 import { prisma } from "@/lib/prisma";
 import {
   emailAutomationConfigSchema,
@@ -31,28 +35,42 @@ export async function saveEmailAutomationConfigAction(
     });
     const now = new Date();
     const next = parsed.data;
+    if (next.verificationReminderEnabled || next.noPlaysNudgeEnabled) {
+      const mailer = await probeMailer();
+      if (mailer.deliverable === false) {
+        return {
+          ok: false,
+          error: `Email delivery is not ready: ${mailer.reason ?? "check the Resend configuration"}. You can keep both automations off while it is repaired.`,
+        };
+      }
+    }
+    const verificationReminderActivatedAt = nextAutomationActivationAt({
+      wasEnabled: current?.verificationReminderEnabled ?? false,
+      enabled: next.verificationReminderEnabled,
+      current: current?.verificationReminderActivatedAt ?? null,
+      now,
+    });
+    const noPlaysNudgeActivatedAt = nextAutomationActivationAt({
+      wasEnabled: current?.noPlaysNudgeEnabled ?? false,
+      enabled: next.noPlaysNudgeEnabled,
+      current: current?.noPlaysNudgeActivatedAt ?? null,
+      now,
+    });
     await prisma.emailAutomationConfig.upsert({
       where: { id: EMAIL_AUTOMATION_CONFIG_ID },
       create: {
         id: EMAIL_AUTOMATION_CONFIG_ID,
         ...next,
-        verificationReminderActivatedAt: next.verificationReminderEnabled
-          ? now
-          : null,
-        noPlaysNudgeActivatedAt: next.noPlaysNudgeEnabled ? now : null,
+        verificationReminderActivatedAt,
+        noPlaysNudgeActivatedAt,
         updatedById: admin.id,
       },
       update: {
         ...next,
         // Each off → on transition creates a clean cohort boundary. Pausing for
         // a month must not unleash a month-old backlog when an owner resumes.
-        ...(!current?.verificationReminderEnabled &&
-        next.verificationReminderEnabled
-          ? { verificationReminderActivatedAt: now }
-          : {}),
-        ...(!current?.noPlaysNudgeEnabled && next.noPlaysNudgeEnabled
-          ? { noPlaysNudgeActivatedAt: now }
-          : {}),
+        verificationReminderActivatedAt,
+        noPlaysNudgeActivatedAt,
         updatedById: admin.id,
       },
     });

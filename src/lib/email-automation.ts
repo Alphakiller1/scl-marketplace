@@ -49,3 +49,15 @@ export function remainingAutomationCapacity(
 export function retryAt(now: Date): Date {
   return new Date(now.getTime() + EMAIL_AUTOMATION_LIMITS.retryDelayMs);
 }
+
+/** Start a fresh cohort on every off → on transition and self-heal an enabled
+ * row whose activation timestamp was removed by a manual database edit. */
+export function nextAutomationActivationAt(input: {
+  wasEnabled: boolean;
+  enabled: boolean;
+  current: Date | null;
+  now: Date;
+}): Date | null {
+  if (input.enabled && (!input.wasEnabled || !input.current)) return input.now;
+  return input.current;
+}

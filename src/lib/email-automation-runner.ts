@@ -16,7 +16,7 @@ import {
   rollingDayStart,
   type EmailAutomationKey,
 } from "@/lib/email-automation";
-import { createVerificationToken } from "@/lib/tokens";
+import { createAutomationVerificationToken } from "@/lib/tokens";
 import { prisma } from "@/lib/prisma";
 import { getEmailAutomationConfig } from "@/lib/queries/email-automations";
 
@@ -261,9 +261,16 @@ async function deliver(
   deliveryId: string,
 ) {
   const idempotencyKey = `scl-lifecycle-${deliveryId}`;
+  const secret = process.env.AUTH_SECRET?.trim();
+  if (!secret) {
+    throw new Error("AUTH_SECRET is required for secure lifecycle links.");
+  }
   if (key === "VERIFY_EMAIL_REMINDER") {
-    const token = await createVerificationToken(candidate.id, { force: true });
-    if (!token) throw new Error("Could not create a verification token.");
+    const token = await createAutomationVerificationToken(
+      candidate.id,
+      deliveryId,
+      secret,
+    );
     return sendVerificationReminderEmail({
       email: candidate.email,
       username: candidate.username,
@@ -272,10 +279,6 @@ async function deliver(
     });
   }
 
-  const secret = process.env.AUTH_SECRET?.trim();
-  if (!secret) {
-    throw new Error("AUTH_SECRET is required for the unsubscribe link.");
-  }
   return sendNoPlaysNudgeEmail({
     email: candidate.email,
     username: candidate.username,
@@ -288,6 +291,13 @@ export async function runEmailAutomations(now = new Date()) {
   const config = await getEmailAutomationConfig();
   if (!config.storageReady) {
     throw new Error("Email automation tables are unavailable.");
+  }
+  const anyRuleActive =
+    (config.verificationReminderEnabled &&
+      Boolean(config.verificationReminderActivatedAt)) ||
+    (config.noPlaysNudgeEnabled && Boolean(config.noPlaysNudgeActivatedAt));
+  if (!anyRuleActive) {
+    return { ok: true, disabled: true, attempted: 0, sent: 0 };
   }
 
   const run = await prisma.emailAutomationRun.create({ data: {} });

@@ -6,6 +6,7 @@ import { AdminEmailTemplateEditor } from "@/components/scl/admin-email-template-
 import { SectionHeader } from "@/components/scl/section";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { probeMailer } from "@/lib/email-deliverability";
 import { EMAIL_TEMPLATES, isEmailTemplateSlug } from "@/lib/email-templates";
 import {
   getEmailTemplateRevisions,
@@ -32,11 +33,13 @@ export default async function AdminEmailsPage({
     revisions,
     automation,
     automationActivity,
+    mailer,
   ] = await Promise.all([
     getEmailTemplateWorkspace(),
     getEmailTemplateRevisions(slug),
     getEmailAutomationConfig(),
     getEmailAutomationActivity(),
+    probeMailer(),
   ]);
   const active = templates.find((template) => template.slug === slug);
   if (!active) return null;
@@ -60,6 +63,7 @@ export default async function AdminEmailsPage({
         <Button
           className="min-h-10 shrink-0"
           render={<Link href="/admin/messages" />}
+          nativeButton={false}
         >
           <Send className="size-4" aria-hidden />
           Send mass email
@@ -102,6 +106,11 @@ export default async function AdminEmailsPage({
             }
             sentRollingDay={automationActivity.sentRollingDay}
             capacityUsedRollingDay={automationActivity.capacityUsedRollingDay}
+            mailer={{
+              deliverable: mailer.deliverable,
+              senderDomain: mailer.senderDomain,
+              reason: mailer.reason,
+            }}
           />
         </Card>
       </section>

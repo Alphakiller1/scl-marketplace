@@ -7,11 +7,13 @@ import {
   EMAIL_AUTOMATION_DEFAULTS,
   EMAIL_AUTOMATION_LIMITS,
   eligibilityCutoff,
+  nextAutomationActivationAt,
   remainingAutomationCapacity,
   retryAt,
   rollingDayStart,
 } from "@/lib/email-automation";
 import { emailAutomationConfigSchema } from "@/lib/schemas/email-automation.schema";
+import { deriveAutomationVerificationToken } from "@/lib/tokens";
 
 const read = (relative: string) =>
   fs.readFileSync(path.join(process.cwd(), relative), "utf8");
@@ -67,6 +69,69 @@ describe("email automation policy", () => {
       false,
     );
   });
+
+  it("keeps the verification link stable across idempotent retries", () => {
+    const first = deriveAutomationVerificationToken(
+      "user-1",
+      "delivery-1",
+      "test-secret",
+    );
+    const retry = deriveAutomationVerificationToken(
+      "user-1",
+      "delivery-1",
+      "test-secret",
+    );
+    assert.equal(first, retry);
+    assert.notEqual(
+      first,
+      deriveAutomationVerificationToken("user-1", "delivery-2", "test-secret"),
+    );
+    assert.notEqual(
+      first,
+      deriveAutomationVerificationToken("user-2", "delivery-1", "test-secret"),
+    );
+  });
+
+  it("starts a fresh cohort only when a rule becomes active", () => {
+    const current = new Date("2026-08-01T00:00:00.000Z");
+    const now = new Date("2026-08-29T00:00:00.000Z");
+    assert.equal(
+      nextAutomationActivationAt({
+        wasEnabled: false,
+        enabled: true,
+        current,
+        now,
+      }),
+      now,
+    );
+    assert.equal(
+      nextAutomationActivationAt({
+        wasEnabled: true,
+        enabled: true,
+        current,
+        now,
+      }),
+      current,
+    );
+    assert.equal(
+      nextAutomationActivationAt({
+        wasEnabled: true,
+        enabled: false,
+        current,
+        now,
+      }),
+      current,
+    );
+    assert.equal(
+      nextAutomationActivationAt({
+        wasEnabled: true,
+        enabled: true,
+        current: null,
+        now,
+      }),
+      now,
+    );
+  });
 });
 
 describe("email automation wiring", () => {
@@ -106,9 +171,27 @@ describe("email automation wiring", () => {
     assert.match(runner, /isTest: false/);
     assert.match(runner, /isLegacy: false/);
     assert.match(runner, /hasFreshUserRequestedVerificationLink/);
+    assert.match(runner, /createAutomationVerificationToken/);
     assert.match(runner, /Reserved or placeholder email address/);
-    assert.match(action, /verificationReminderActivatedAt: now/);
-    assert.match(action, /noPlaysNudgeActivatedAt: now/);
+    assert.match(action, /nextAutomationActivationAt/);
+    assert.match(action, /const mailer = await probeMailer\(\)/);
+    assert.match(action, /mailer\.deliverable === false/);
+  });
+
+  it("makes readiness and unsaved state obvious to owners", () => {
+    const page = read("src/app/(admin)/admin/emails/page.tsx");
+    const controls = read(
+      "src/components/scl/admin-email-automation-controls.tsx",
+    );
+    const layout = read("src/app/(admin)/layout.tsx");
+
+    assert.match(page, /probeMailer\(\)/);
+    assert.match(page, /nativeButton=\{false\}/);
+    assert.match(controls, /Mailer needs attention/);
+    assert.match(controls, /Unsaved changes — nothing is live yet/);
+    assert.match(controls, /All automation settings are saved/);
+    assert.match(controls, /mailerBlocksEnable/);
+    assert.match(layout, /Email Cappers/);
   });
 
   it("keeps owner-editable copy and the correct secure destinations", () => {

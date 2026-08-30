@@ -17,7 +17,10 @@ type RuleProps = {
   description: string;
   eligibility: string;
   enabled: boolean;
+  savedEnabled: boolean;
   delayHours: number;
+  dirty: boolean;
+  delayAnchor: string;
   activationLabel: string | null;
   onEnabledChange: (enabled: boolean) => void;
   onDelayChange: (hours: number) => void;
@@ -29,11 +32,24 @@ function AutomationRule({
   description,
   eligibility,
   enabled,
+  savedEnabled,
   delayHours,
+  dirty,
+  delayAnchor,
   activationLabel,
   onEnabledChange,
   onDelayChange,
 }: RuleProps) {
+  const status = dirty ? "Unsaved" : enabled ? "Active" : "Off";
+  const toggleLabel = enabled
+    ? dirty && !savedEnabled
+      ? "Will enable"
+      : "Enabled"
+    : dirty && savedEnabled
+      ? "Will pause"
+      : "Enable";
+  const dayEquivalent = delayHours / 24;
+
   return (
     <article
       className={cn(
@@ -46,14 +62,17 @@ function AutomationRule({
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-semibold">{title}</h3>
             <span
+              aria-live="polite"
               className={cn(
                 "rounded-full px-2 py-0.5 text-xs font-medium",
-                enabled
-                  ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-                  : "bg-muted text-muted-foreground",
+                dirty
+                  ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                  : enabled
+                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                    : "bg-muted text-muted-foreground",
               )}
             >
-              {enabled ? "Active" : "Off"}
+              {status}
             </span>
           </div>
           <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
@@ -73,7 +92,7 @@ function AutomationRule({
             checked={enabled}
             onChange={(event) => onEnabledChange(event.target.checked)}
           />
-          <span>{enabled ? "Enabled" : "Enable"}</span>
+          <span>{toggleLabel}</span>
         </label>
       </div>
 
@@ -89,6 +108,11 @@ function AutomationRule({
             value={delayHours}
             onChange={(event) => onDelayChange(Number(event.target.value))}
           />
+          <p className="text-muted-foreground text-xs">
+            {Number.isFinite(dayEquivalent)
+              ? `${delayHours} hours = ${dayEquivalent.toLocaleString(undefined, { maximumFractionDigits: 1 })} ${dayEquivalent === 1 ? "day" : "days"}. ${delayAnchor}`
+              : delayAnchor}
+          </p>
         </div>
         <div className="border-border bg-background rounded-lg border p-3 text-xs leading-relaxed">
           <p className="font-medium">Who qualifies</p>
@@ -97,9 +121,11 @@ function AutomationRule({
       </div>
 
       <p className="text-muted-foreground mt-3 text-xs">
-        {activationLabel
-          ? `Current cohort began ${activationLabel}. Turning this off and on starts a fresh cohort.`
-          : "When first enabled, only cappers who join afterward can qualify—there is no historical blast."}
+        {dirty
+          ? "Nothing changes until you save these automation settings."
+          : activationLabel
+            ? `Current cohort began ${activationLabel}. Turning this off and on starts a fresh cohort.`
+            : "When first enabled, only cappers who join afterward can qualify—there is no historical blast."}
       </p>
     </article>
   );
@@ -110,6 +136,7 @@ export function AdminEmailAutomationControls({
   storageReady,
   sentRollingDay,
   capacityUsedRollingDay,
+  mailer,
 }: {
   initial: {
     verificationReminderEnabled: boolean;
@@ -123,6 +150,11 @@ export function AdminEmailAutomationControls({
   storageReady: boolean;
   sentRollingDay: number;
   capacityUsedRollingDay: number;
+  mailer: {
+    deliverable: boolean | null;
+    senderDomain: string | null;
+    reason: string | null;
+  };
 }) {
   const router = useRouter();
   const [verificationEnabled, setVerificationEnabled] = useState(
@@ -139,6 +171,16 @@ export function AdminEmailAutomationControls({
   );
   const [dailyLimit, setDailyLimit] = useState(initial.dailyLimit);
   const [pending, startTransition] = useTransition();
+  const verificationDirty =
+    verificationEnabled !== initial.verificationReminderEnabled ||
+    verificationDelay !== initial.verificationReminderDelayHours;
+  const noPlaysDirty =
+    noPlaysEnabled !== initial.noPlaysNudgeEnabled ||
+    noPlaysDelay !== initial.noPlaysNudgeDelayHours;
+  const isDirty =
+    verificationDirty || noPlaysDirty || dailyLimit !== initial.dailyLimit;
+  const mailerBlocksEnable =
+    mailer.deliverable === false && (verificationEnabled || noPlaysEnabled);
 
   function save() {
     startTransition(async () => {
@@ -159,7 +201,13 @@ export function AdminEmailAutomationControls({
   }
 
   return (
-    <div className="space-y-4">
+    <form
+      className="space-y-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        save();
+      }}
+    >
       <div className="grid gap-3 md:grid-cols-3">
         <div className="border-border bg-surface-2 rounded-xl border p-3">
           <div className="text-muted-foreground flex items-center gap-2 text-xs font-medium tracking-wide uppercase">
@@ -186,6 +234,22 @@ export function AdminEmailAutomationControls({
             accounts excluded, and a shared rolling limit that leaves provider
             capacity for account and owner email.
           </p>
+          <p
+            className={cn(
+              "mt-2 text-xs font-medium",
+              mailer.deliverable === true &&
+                "text-emerald-700 dark:text-emerald-300",
+              mailer.deliverable === false && "text-destructive",
+              mailer.deliverable === null &&
+                "text-amber-700 dark:text-amber-300",
+            )}
+          >
+            {mailer.deliverable === true
+              ? `Mailer ready${mailer.senderDomain ? ` · ${mailer.senderDomain}` : ""}`
+              : mailer.deliverable === false
+                ? `Mailer needs attention · ${mailer.reason ?? "check the Resend configuration"}`
+                : `Mailer status unavailable · ${mailer.reason ?? "try again shortly"}`}
+          </p>
         </div>
       </div>
 
@@ -196,6 +260,13 @@ export function AdminEmailAutomationControls({
         </p>
       ) : null}
 
+      {mailerBlocksEnable ? (
+        <p className="border-destructive/40 bg-destructive/5 rounded-lg border p-3 text-sm">
+          Repair email delivery before enabling a job. You can still turn both
+          automations off and save.
+        </p>
+      ) : null}
+
       <div className="grid gap-4 lg:grid-cols-2">
         <AutomationRule
           id="verification-reminder"
@@ -203,7 +274,10 @@ export function AdminEmailAutomationControls({
           description="Sends a fresh, secure confirmation link when a new capper still has not verified their email."
           eligibility="New, non-test capper; still unverified; account is not suspended or disabled. This operational email is not blocked by marketing opt-out."
           enabled={verificationEnabled}
+          savedEnabled={initial.verificationReminderEnabled}
           delayHours={verificationDelay}
+          dirty={verificationDirty}
+          delayAnchor="Measured from signup."
           activationLabel={
             initial.verificationReminderActivatedAt
               ? new Date(
@@ -220,7 +294,10 @@ export function AdminEmailAutomationControls({
           description="Encourages a newly verified capper to post their first pick and explains the value of an SCL record."
           eligibility="New, verified, active capper with zero straight plays and zero parlays. Marketing opt-outs, test accounts, and legacy imports are excluded."
           enabled={noPlaysEnabled}
+          savedEnabled={initial.noPlaysNudgeEnabled}
           delayHours={noPlaysDelay}
+          dirty={noPlaysDirty}
+          delayAnchor="Measured from email verification."
           activationLabel={
             initial.noPlaysNudgeActivatedAt
               ? new Date(initial.noPlaysNudgeActivatedAt).toLocaleString()
@@ -254,10 +331,26 @@ export function AdminEmailAutomationControls({
             sends until capacity returns; eligible cappers stay queued.
           </p>
         </div>
-        <Button onClick={save} disabled={pending || !storageReady}>
-          {pending ? "Saving…" : "Save automation settings"}
-        </Button>
+        <div className="space-y-2 sm:text-right">
+          {isDirty ? (
+            <p className="text-xs text-amber-700 dark:text-amber-300">
+              Unsaved changes — nothing is live yet.
+            </p>
+          ) : (
+            <p className="text-muted-foreground text-xs">
+              All automation settings are saved.
+            </p>
+          )}
+          <Button
+            type="submit"
+            disabled={
+              pending || !storageReady || !isDirty || mailerBlocksEnable
+            }
+          >
+            {pending ? "Saving…" : "Save automation settings"}
+          </Button>
+        </div>
       </div>
-    </div>
+    </form>
   );
 }

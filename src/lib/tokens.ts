@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "crypto";
+import { createHash, createHmac, randomBytes } from "crypto";
 
 import { prisma } from "@/lib/prisma";
 
@@ -6,6 +6,42 @@ const TOKEN_TTL_MS = 1000 * 60 * 60 * 24; // 24h
 const TOKEN_COOLDOWN_MS = 1000 * 60;
 const hashToken = (token: string) =>
   createHash("sha256").update(token).digest("hex");
+
+/**
+ * Stable, unguessable raw token for one automated delivery.
+ *
+ * A provider can accept a message and lose the HTTP response. Resend then
+ * deduplicates our retry by idempotency key, meaning the capper still has the
+ * first email. Regenerating a random verification token during that retry
+ * would invalidate the link in that first email. HMAC keeps the raw token
+ * stable for this delivery without storing it in plaintext.
+ */
+export function deriveAutomationVerificationToken(
+  userId: string,
+  deliveryId: string,
+  secret: string,
+): string {
+  if (!secret.trim()) throw new Error("A token secret is required.");
+  return createHmac("sha256", secret)
+    .update(`scl-email-verification:${userId}:${deliveryId}`)
+    .digest("hex");
+}
+
+export async function createAutomationVerificationToken(
+  userId: string,
+  deliveryId: string,
+  secret: string,
+): Promise<string> {
+  const token = deriveAutomationVerificationToken(userId, deliveryId, secret);
+  const expires = new Date(Date.now() + TOKEN_TTL_MS);
+  await prisma.$transaction([
+    prisma.verificationToken.deleteMany({ where: { identifier: userId } }),
+    prisma.verificationToken.create({
+      data: { identifier: userId, token: hashToken(token), expires },
+    }),
+  ]);
+  return token;
+}
 
 /**
  * Create a fresh email-verification token for a user, replacing any existing
