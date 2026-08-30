@@ -48,6 +48,9 @@ export default async function AdminEmailsPage({
   ]);
   const active = templates.find((template) => template.slug === slug);
   if (!active) return null;
+  const automatedEmailsSent = emailActivity.rows.filter(
+    (row) => row.status === "SENT",
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -272,6 +275,24 @@ export default async function AdminEmailsPage({
             </p>
           </div>
         </div>
+        <Card className="flex items-center justify-between gap-4 p-4 sm:max-w-sm">
+          <div>
+            <p className="text-sm font-medium">Automated emails sent</p>
+            <p className="text-muted-foreground mt-1 text-xs">
+              Last 14 days · provider accepted
+            </p>
+          </div>
+          <p
+            className="text-primary text-3xl font-semibold tabular-nums"
+            aria-label={
+              emailActivity.storageReady
+                ? `${automatedEmailsSent} automated emails sent in the last 14 days`
+                : "Automated email total unavailable"
+            }
+          >
+            {emailActivity.storageReady ? automatedEmailsSent : "—"}
+          </p>
+        </Card>
         <RecentEmailActivity
           rows={emailActivity.rows}
           storageReady={emailActivity.storageReady}

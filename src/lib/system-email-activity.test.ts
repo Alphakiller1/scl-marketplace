@@ -100,6 +100,9 @@ describe("system email activity flow", () => {
       assert.match(component, new RegExp(label));
     }
     assert.match(page, /Recent Email Activity/);
+    assert.match(page, /row\.status === "SENT"/);
+    assert.match(page, /Automated emails sent/);
+    assert.match(page, /Last 14 days · provider accepted/);
     assert.match(component, /max-h-\[42rem\] overflow-y-auto/);
     assert.match(component, /return "Today"/);
     assert.match(component, /return "Yesterday"/);
