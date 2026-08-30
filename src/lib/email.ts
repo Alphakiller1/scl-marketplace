@@ -53,6 +53,8 @@ async function sendTemplatedEmail(input: {
   footerText?: string;
   /** Prefixes the dev log line when no mailer is configured. */
   devLabel: string;
+  /** Stable across retries so a lost provider response cannot duplicate mail. */
+  idempotencyKey?: string;
 }): Promise<{ delivered: boolean; link: string }> {
   // Deferred so importing this module does not pull in `server-only`.
   const { getEmailTemplate } = await import("@/lib/queries/email-templates");
@@ -77,14 +79,19 @@ async function sendTemplatedEmail(input: {
   // Never throw: a provider failure (an unverified sender domain, say) must not
   // break the signup, reset, or verification it is attached to.
   try {
-    const { error } = await resend.emails.send({
-      from,
-      to: input.to,
-      replyTo: supportReplyTo(),
-      subject: template.subject,
-      html,
-      text,
-    });
+    const { error } = await resend.emails.send(
+      {
+        from,
+        to: input.to,
+        replyTo: supportReplyTo(),
+        subject: template.subject,
+        html,
+        text,
+      },
+      input.idempotencyKey
+        ? { idempotencyKey: input.idempotencyKey }
+        : undefined,
+    );
     if (error) {
       console.error(
         `[email] ${input.devLabel} failed for ${input.to}: ${error.message}`,
@@ -103,6 +110,22 @@ function accountVariable(username?: string | null) {
   return { "{{account}}": username ? `Account: @${username}` : "" };
 }
 
+function marketingFooter(unsubscribeUrl?: string) {
+  return {
+    footerHtml: unsubscribeUrl
+      ? `<hr style="border:none;border-top:1px solid #eee;margin:28px 0" />
+       <p style="color:#666;font-size:12px">
+         You are receiving this because you have an SCL capper account.
+         <a href="${escapeHtml(unsubscribeUrl)}">Unsubscribe from announcements</a> —
+         account and security emails will still reach you.
+       </p>`
+      : undefined,
+    footerText: unsubscribeUrl
+      ? `Unsubscribe from announcements: ${unsubscribeUrl}`
+      : undefined,
+  };
+}
+
 export async function sendVerificationEmail(
   email: string,
   token: string,
@@ -118,6 +141,41 @@ export async function sendVerificationEmail(
   return result.delivered
     ? { delivered: true as const, link: result.link }
     : { delivered: false as const, link: result.link };
+}
+
+export async function sendVerificationReminderEmail(input: {
+  email: string;
+  token: string;
+  username?: string | null;
+  idempotencyKey: string;
+}) {
+  const result = await sendTemplatedEmail({
+    slug: "VERIFY_EMAIL_REMINDER",
+    to: input.email,
+    actionUrl: `${appUrl()}/verify?token=${input.token}`,
+    variables: accountVariable(input.username),
+    devLabel: "verification reminder",
+    idempotencyKey: input.idempotencyKey,
+  });
+  return { delivered: result.delivered as boolean };
+}
+
+export async function sendNoPlaysNudgeEmail(input: {
+  email: string;
+  username?: string | null;
+  unsubscribeUrl?: string;
+  idempotencyKey: string;
+}) {
+  const result = await sendTemplatedEmail({
+    slug: "NO_PLAYS_NUDGE",
+    to: input.email,
+    actionUrl: `${appUrl()}/dashboard/picks/new`,
+    variables: accountVariable(input.username),
+    ...marketingFooter(input.unsubscribeUrl),
+    devLabel: "no-plays follow-up",
+    idempotencyKey: input.idempotencyKey,
+  });
+  return { delivered: result.delivered as boolean };
 }
 
 export async function sendPasswordResetEmail(
@@ -184,23 +242,11 @@ export async function sendWelcomeEmail(input: {
   // Matches the announcement footer: this is onboarding, but it is also the
   // pitch, so it honours the same opt-out rather than claiming to be purely
   // operational mail.
-  const footerHtml = input.unsubscribeUrl
-    ? `<hr style="border:none;border-top:1px solid #eee;margin:28px 0" />
-       <p style="color:#666;font-size:12px">
-         You are receiving this because you have an SCL capper account.
-         <a href="${escapeHtml(input.unsubscribeUrl)}">Unsubscribe from announcements</a> —
-         account and security emails will still reach you.
-       </p>`
-    : undefined;
-
   const result = await sendTemplatedEmail({
     slug: "WELCOME",
     to: input.email,
     actionUrl: `${appUrl()}/login`,
-    footerHtml,
-    footerText: input.unsubscribeUrl
-      ? `Unsubscribe from announcements: ${input.unsubscribeUrl}`
-      : undefined,
+    ...marketingFooter(input.unsubscribeUrl),
     devLabel: "welcome email",
   });
   return { delivered: result.delivered as boolean };

@@ -15,6 +15,8 @@
 
 export type EmailTemplateSlug =
   | "WELCOME"
+  | "VERIFY_EMAIL_REMINDER"
+  | "NO_PLAYS_NUDGE"
   | "VERIFICATION"
   | "PASSWORD_RESET"
   | "ACCOUNT_CLAIM"
@@ -22,6 +24,8 @@ export type EmailTemplateSlug =
 
 export const EMAIL_TEMPLATE_SLUGS: readonly EmailTemplateSlug[] = [
   "WELCOME",
+  "VERIFY_EMAIL_REMINDER",
+  "NO_PLAYS_NUDGE",
   "VERIFICATION",
   "PASSWORD_RESET",
   "ACCOUNT_CLAIM",
@@ -89,6 +93,49 @@ Welcome to the new SCL. Let’s see where you land on the leaderboard.
 
 — Sports Cappers Leaderboard`,
     footnote: "",
+  },
+
+  VERIFY_EMAIL_REMINDER: {
+    label: "Verification reminder",
+    description:
+      "Sent once after the configured delay when a new capper still has not confirmed their email.",
+    variables: [
+      { token: "{{account}}", describes: "the capper's @handle, when known" },
+    ],
+    subject: "Reminder: confirm your SCL email",
+    actionLabel: "Confirm my email",
+    body: `# Your SCL account is almost ready
+
+{{account}}
+
+Confirm your email to activate your capper workspace, submit plays, and begin building a verified SCL record.
+
+{{button}}`,
+    footnote:
+      "This new link expires in 24 hours. If you didn't create an SCL account, ignore this email.",
+  },
+
+  NO_PLAYS_NUDGE: {
+    label: "No-plays follow-up",
+    description:
+      "Sent once after the configured delay when a newly verified capper still has no straight plays or parlays.",
+    variables: [
+      { token: "{{account}}", describes: "the capper's @handle, when known" },
+    ],
+    subject: "Start building your SCL record",
+    actionLabel: "Submit my first play",
+    body: `# Put your first play on the board
+
+{{account}}
+
+Your SCL account is ready, but your record starts taking shape only after you submit plays.
+
+Logging your picks consistently builds the transparent history bettors want to see: record, win rate, ROI, units, and sample size. A stronger SCL record also gives your profile and packages more credibility when bettors discover you.
+
+{{button}}
+
+Start with today's best play and keep building from there.`,
+    footnote: "You will receive this getting-started reminder only once.",
   },
 
   VERIFICATION: {
