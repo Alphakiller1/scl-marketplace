@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import { systemEmailActivityCutoff } from "@/lib/system-email-activity-policy";
+import {
+  isSystemEmailActivityType,
+  systemEmailActivityCutoff,
+} from "@/lib/system-email-activity-policy";
 
 export type SystemEmailActivityInput = {
   emailType: string;
@@ -27,10 +30,17 @@ export async function recordSystemEmailActivities(
 ): Promise<void> {
   if (inputs.length === 0) return;
 
+  // Runtime defense for JavaScript callers and stale compiled code. The type
+  // prevents new TypeScript call sites from expanding this ledger by accident.
+  const automatedInputs = inputs.filter((input) =>
+    isSystemEmailActivityType(input.emailType),
+  );
+  if (automatedInputs.length === 0) return;
+
   try {
     const unresolvedEmails = [
       ...new Set(
-        inputs
+        automatedInputs
           .filter((input) => !normalizeUsername(input.recipientUsername))
           .map((input) => input.recipientEmail.trim().toLowerCase()),
       ),
@@ -53,7 +63,7 @@ export async function recordSystemEmailActivities(
         where: { createdAt: { lt: systemEmailActivityCutoff(now) } },
       }),
       prisma.systemEmailActivity.createMany({
-        data: inputs.map((input) => ({
+        data: automatedInputs.map((input) => ({
           emailType: input.emailType,
           recipientUsername:
             normalizeUsername(input.recipientUsername) ??

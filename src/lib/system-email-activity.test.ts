@@ -4,7 +4,9 @@ import path from "node:path";
 import { describe, it } from "node:test";
 
 import {
+  SYSTEM_EMAIL_ACTIVITY_TYPES,
   SYSTEM_EMAIL_ACTIVITY_RETENTION_DAYS,
+  isSystemEmailActivityType,
   systemEmailActivityCutoff,
 } from "@/lib/system-email-activity-policy";
 
@@ -40,15 +42,27 @@ describe("system email activity retention", () => {
 });
 
 describe("system email activity flow", () => {
-  it("records templated messages, broadcasts, and capper storefront mail", () => {
+  it("allows only SCL lifecycle automations into the activity ledger", () => {
     const email = read("src/lib/email.ts");
-    const broadcast = read("src/lib/actions/broadcast.action.ts");
+    assert.deepEqual(SYSTEM_EMAIL_ACTIVITY_TYPES, [
+      "WELCOME",
+      "VERIFY_EMAIL_REMINDER",
+      "NO_PLAYS_NUDGE",
+    ]);
+    for (const type of SYSTEM_EMAIL_ACTIVITY_TYPES) {
+      assert.equal(isSystemEmailActivityType(type), true);
+    }
+    for (const excluded of [
+      "VERIFICATION",
+      "PASSWORD_RESET",
+      "ADMIN_BROADCAST",
+      "STOREFRONT_MESSAGE",
+    ]) {
+      assert.equal(isSystemEmailActivityType(excluded), false);
+    }
     assert.match(email, /recordSystemEmailActivity\(\{/);
     assert.match(email, /emailType: input\.slug/);
     assert.match(email, /providerMessageId: data\?\.id/);
-    assert.match(email, /emailType: "ADMIN_BROADCAST"/);
-    assert.match(email, /emailType: "STOREFRONT_MESSAGE"/);
-    assert.match(broadcast, /username: r\.username/);
   });
 
   it("cannot turn a reporting failure into an email failure", () => {
@@ -64,6 +78,10 @@ describe("system email activity flow", () => {
     assert.match(
       query,
       /createdAt: \{ gte: systemEmailActivityCutoff\(now\) \}/,
+    );
+    assert.match(
+      query,
+      /emailType: \{ in: \[\.\.\.SYSTEM_EMAIL_ACTIVITY_TYPES\] \}/,
     );
     assert.match(query, /orderBy: \[\{ createdAt: "desc" \}/);
     assert.match(runner, /await pruneSystemEmailActivity\(now\)/);

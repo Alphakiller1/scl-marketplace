@@ -263,9 +263,10 @@ export default async function AdminEmailsPage({
               Recent Email Activity
             </h2>
             <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
-              Newest first, grouped by Eastern date. Shows capper-facing emails
-              attempted during the last 14 days; “Sent” means the email provider
-              accepted the message. {emailActivity.rows.length}{" "}
+              Newest first, grouped by Eastern date. Shows only SCL’s automated
+              Welcome, Verification reminder, and No-plays follow-up emails from
+              the last 14 days; “Sent” means the email provider accepted the
+              message. {emailActivity.rows.length}{" "}
               {emailActivity.rows.length === 1 ? "record" : "records"} currently
               shown.
             </p>

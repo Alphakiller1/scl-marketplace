@@ -61,10 +61,12 @@ export function RecentEmailActivity({
   if (rows.length === 0) {
     return (
       <div className="border-border bg-card rounded-xl border p-6 text-center">
-        <p className="font-medium">No email activity in the last 14 days</p>
+        <p className="font-medium">
+          No automated email activity in the last 14 days
+        </p>
         <p className="text-muted-foreground mt-1 text-sm">
-          New capper emails and delivery failures will appear here
-          automatically.
+          Welcome emails, verification reminders, and no-plays follow-ups will
+          appear here automatically.
         </p>
       </div>
     );
@@ -74,7 +76,7 @@ export function RecentEmailActivity({
     <div
       className="border-border bg-card max-h-[42rem] overflow-y-auto rounded-xl border"
       tabIndex={0}
-      aria-label="Recent email activity from the last 14 days"
+      aria-label="Recent automated email activity from the last 14 days"
     >
       <div className="border-border bg-surface-2 text-muted-foreground sticky top-0 z-20 hidden grid-cols-[9rem_minmax(10rem,1.15fr)_minmax(9rem,1fr)_minmax(12rem,1.4fr)_6rem] gap-3 border-b px-4 py-2 text-xs font-medium tracking-wide uppercase md:grid">
         <span>Date/time</span>

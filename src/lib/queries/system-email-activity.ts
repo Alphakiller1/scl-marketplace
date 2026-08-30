@@ -2,28 +2,23 @@ import "server-only";
 
 import { EMAIL_TEMPLATES, isEmailTemplateSlug } from "@/lib/email-templates";
 import { prisma } from "@/lib/prisma";
-import { systemEmailActivityCutoff } from "@/lib/system-email-activity-policy";
-
-const SPECIAL_TYPE_LABELS: Record<string, string> = {
-  ADMIN_BROADCAST: "Admin announcement",
-  STOREFRONT_MESSAGE: "Storefront message",
-};
+import {
+  SYSTEM_EMAIL_ACTIVITY_TYPES,
+  systemEmailActivityCutoff,
+} from "@/lib/system-email-activity-policy";
 
 function emailTypeLabel(emailType: string): string {
   if (isEmailTemplateSlug(emailType)) return EMAIL_TEMPLATES[emailType].label;
-  return (
-    SPECIAL_TYPE_LABELS[emailType] ??
-    emailType
-      .replaceAll("_", " ")
-      .toLowerCase()
-      .replace(/^./, (letter) => letter.toUpperCase())
-  );
+  return emailType;
 }
 
 export async function getRecentSystemEmailActivity(now = new Date()) {
   try {
     const rows = await prisma.systemEmailActivity.findMany({
-      where: { createdAt: { gte: systemEmailActivityCutoff(now) } },
+      where: {
+        createdAt: { gte: systemEmailActivityCutoff(now) },
+        emailType: { in: [...SYSTEM_EMAIL_ACTIVITY_TYPES] },
+      },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       select: {
         id: true,
