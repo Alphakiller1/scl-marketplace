@@ -19,6 +19,7 @@ import {
 import { createAutomationVerificationToken } from "@/lib/tokens";
 import { prisma } from "@/lib/prisma";
 import { getEmailAutomationConfig } from "@/lib/queries/email-automations";
+import { pruneSystemEmailActivity } from "@/lib/system-email-activity";
 
 type Candidate = {
   id: string;
@@ -288,6 +289,7 @@ async function deliver(
 }
 
 export async function runEmailAutomations(now = new Date()) {
+  await pruneSystemEmailActivity(now);
   const config = await getEmailAutomationConfig();
   if (!config.storageReady) {
     throw new Error("Email automation tables are unavailable.");

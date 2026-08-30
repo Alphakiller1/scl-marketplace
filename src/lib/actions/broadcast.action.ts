@@ -150,6 +150,7 @@ export async function sendBroadcastAction(
       const results = await sendBroadcastBatch(
         batch.map((r) => ({
           to: r.email,
+          username: r.username,
           subject,
           html: renderBroadcastHtml({
             body,

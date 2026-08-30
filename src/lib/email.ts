@@ -7,6 +7,10 @@ import { renderEmailTemplate } from "@/lib/email-template-render";
 import type { EmailTemplateSlug } from "@/lib/email-templates";
 import { PASSWORD_POLICY_SUMMARY } from "@/lib/password-policy";
 import { providerLabel, SCL_AFFILIATE_EMAIL } from "@/lib/store-connection";
+import {
+  recordSystemEmailActivities,
+  recordSystemEmailActivity,
+} from "@/lib/system-email-activity";
 
 const apiKey = process.env.RESEND_API_KEY;
 const from = process.env.EMAIL_FROM ?? "no-reply@scl.local";
@@ -49,6 +53,7 @@ async function sendTemplatedEmail(input: {
   to: string;
   actionUrl: string;
   variables?: Record<string, string | null | undefined>;
+  recipientUsername?: string | null;
   footerHtml?: string;
   footerText?: string;
   /** Prefixes the dev log line when no mailer is configured. */
@@ -73,13 +78,20 @@ async function sendTemplatedEmail(input: {
     console.info(
       `[email:dev] ${input.devLabel} for ${input.to}: ${input.actionUrl}`,
     );
+    await recordSystemEmailActivity({
+      emailType: input.slug,
+      recipientEmail: input.to,
+      recipientUsername: input.recipientUsername,
+      status: "FAILED",
+      failureReason: "mailer not configured",
+    });
     return { delivered: false, link: input.actionUrl };
   }
 
   // Never throw: a provider failure (an unverified sender domain, say) must not
   // break the signup, reset, or verification it is attached to.
   try {
-    const { error } = await resend.emails.send(
+    const { data, error } = await resend.emails.send(
       {
         from,
         to: input.to,
@@ -96,11 +108,32 @@ async function sendTemplatedEmail(input: {
       console.error(
         `[email] ${input.devLabel} failed for ${input.to}: ${error.message}`,
       );
+      await recordSystemEmailActivity({
+        emailType: input.slug,
+        recipientEmail: input.to,
+        recipientUsername: input.recipientUsername,
+        status: "FAILED",
+        failureReason: error.message,
+      });
       return { delivered: false, link: input.actionUrl };
     }
+    await recordSystemEmailActivity({
+      emailType: input.slug,
+      recipientEmail: input.to,
+      recipientUsername: input.recipientUsername,
+      status: "SENT",
+      providerMessageId: data?.id,
+    });
     return { delivered: true, link: input.actionUrl };
   } catch (err) {
     console.error(`[email] ${input.devLabel} threw for ${input.to}:`, err);
+    await recordSystemEmailActivity({
+      emailType: input.slug,
+      recipientEmail: input.to,
+      recipientUsername: input.recipientUsername,
+      status: "FAILED",
+      failureReason: err instanceof Error ? err.message : "send threw",
+    });
     return { delivered: false, link: input.actionUrl };
   }
 }
@@ -136,6 +169,7 @@ export async function sendVerificationEmail(
     to: email,
     actionUrl: `${appUrl()}/verify?token=${token}`,
     variables: accountVariable(username),
+    recipientUsername: username,
     devLabel: "verification link",
   });
   return result.delivered
@@ -154,6 +188,7 @@ export async function sendVerificationReminderEmail(input: {
     to: input.email,
     actionUrl: `${appUrl()}/verify?token=${input.token}`,
     variables: accountVariable(input.username),
+    recipientUsername: input.username,
     devLabel: "verification reminder",
     idempotencyKey: input.idempotencyKey,
   });
@@ -171,6 +206,7 @@ export async function sendNoPlaysNudgeEmail(input: {
     to: input.email,
     actionUrl: `${appUrl()}/dashboard/picks/new`,
     variables: accountVariable(input.username),
+    recipientUsername: input.username,
     ...marketingFooter(input.unsubscribeUrl),
     devLabel: "no-plays follow-up",
     idempotencyKey: input.idempotencyKey,
@@ -188,6 +224,7 @@ export async function sendPasswordResetEmail(
     to: email,
     actionUrl: `${appUrl()}/reset-password?token=${token}`,
     variables: accountVariable(username),
+    recipientUsername: username,
     devLabel: "password reset link",
   });
   return result.delivered
@@ -237,6 +274,7 @@ export async function sendPasswordUpdateRequiredEmail(email: string) {
  */
 export async function sendWelcomeEmail(input: {
   email: string;
+  username?: string | null;
   unsubscribeUrl?: string;
 }) {
   // Matches the announcement footer: this is onboarding, but it is also the
@@ -246,6 +284,7 @@ export async function sendWelcomeEmail(input: {
     slug: "WELCOME",
     to: input.email,
     actionUrl: `${appUrl()}/login`,
+    recipientUsername: input.username,
     ...marketingFooter(input.unsubscribeUrl),
     devLabel: "welcome email",
   });
@@ -486,11 +525,16 @@ export async function sendStorefrontMessageNotificationEmail(input: {
       threadUrl: input.threadUrl,
       preview,
     });
+    await recordStorefrontNotificationActivity(
+      input,
+      false,
+      "mailer not configured",
+    );
     return { delivered: false as const };
   }
 
   try {
-    const { error } = await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from,
       to: input.to,
       subject,
@@ -514,13 +558,49 @@ export async function sendStorefrontMessageNotificationEmail(input: {
       console.error(
         `[email] storefront message notification failed: ${error.message}`,
       );
+      await recordStorefrontNotificationActivity(input, false, error.message);
       return { delivered: false as const };
     }
+    await recordStorefrontNotificationActivity(
+      input,
+      true,
+      undefined,
+      data?.id,
+    );
     return { delivered: true as const };
   } catch (error) {
     console.error("[email] storefront message notification threw:", error);
+    await recordStorefrontNotificationActivity(
+      input,
+      false,
+      error instanceof Error ? error.message : "send threw",
+    );
     return { delivered: false as const };
   }
+}
+
+async function recordStorefrontNotificationActivity(
+  input: {
+    to: string | string[];
+    recipientRole: "ADMIN" | "CAPPER";
+    capperUsername: string | null;
+  },
+  delivered: boolean,
+  failureReason?: string,
+  providerMessageId?: string,
+) {
+  if (input.recipientRole !== "CAPPER") return;
+  const recipients = Array.isArray(input.to) ? input.to : [input.to];
+  await recordSystemEmailActivities(
+    recipients.map((recipientEmail) => ({
+      emailType: "STOREFRONT_MESSAGE",
+      recipientEmail,
+      recipientUsername: input.capperUsername,
+      status: delivered ? ("SENT" as const) : ("FAILED" as const),
+      providerMessageId,
+      failureReason,
+    })),
+  );
 }
 
 export async function sendSupportEmail(input: {
@@ -578,6 +658,7 @@ export async function sendSupportEmail(input: {
 export async function sendBroadcastBatch(
   messages: readonly {
     to: string;
+    username?: string | null;
     subject: string;
     html: string;
   }[],
@@ -602,7 +683,9 @@ export async function sendBroadcastBatch(
   });
 
   if (sendable.length === 0) {
-    return messages.map((message) => blockedResult(message.to));
+    const results = messages.map((message) => blockedResult(message.to));
+    await recordBroadcastActivity(messages, results);
+    return results;
   }
 
   if (!resend) {
@@ -610,13 +693,15 @@ export async function sendBroadcastBatch(
       to: sendable.map((m) => m.to),
       subject: sendable[0]?.subject,
     });
-    return messages.map((m) => ({
+    const results = messages.map((m) => ({
       address: m.to,
       delivered: false,
       error: blockedAddresses.has(m.to)
         ? "reserved or placeholder email address"
         : "mailer not configured",
     }));
+    await recordBroadcastActivity(messages, results);
+    return results;
   }
 
   try {
@@ -633,30 +718,55 @@ export async function sendBroadcastBatch(
     );
     if (error) {
       console.error(`[email] broadcast batch failed: ${error.message}`);
-      return messages.map((m) => ({
+      const results = messages.map((m) => ({
         address: m.to,
         delivered: false,
         error: blockedAddresses.has(m.to)
           ? "reserved or placeholder email address"
           : error.message,
       }));
+      await recordBroadcastActivity(messages, results);
+      return results;
     }
-    return messages.map((m) =>
+    const results = messages.map((m) =>
       blockedAddresses.has(m.to)
         ? blockedResult(m.to)
         : { address: m.to, delivered: true },
     );
+    await recordBroadcastActivity(messages, results);
+    return results;
   } catch (err) {
     const message = err instanceof Error ? err.message : "send threw";
     console.error("[email] broadcast batch threw:", err);
-    return messages.map((m) => ({
+    const results = messages.map((m) => ({
       address: m.to,
       delivered: false,
       error: blockedAddresses.has(m.to)
         ? "reserved or placeholder email address"
         : message,
     }));
+    await recordBroadcastActivity(messages, results);
+    return results;
   }
+}
+
+async function recordBroadcastActivity(
+  messages: readonly { to: string; username?: string | null }[],
+  results: readonly { address: string; delivered: boolean; error?: string }[],
+) {
+  const messagesByAddress = new Map(
+    messages.map((message) => [message.to.toLowerCase(), message]),
+  );
+  await recordSystemEmailActivities(
+    results.map((result) => ({
+      emailType: "ADMIN_BROADCAST",
+      recipientEmail: result.address,
+      recipientUsername: messagesByAddress.get(result.address.toLowerCase())
+        ?.username,
+      status: result.delivered ? ("SENT" as const) : ("FAILED" as const),
+      failureReason: result.error,
+    })),
+  );
 }
 
 /** Body + optional unsubscribe footer, as HTML. Plain text in, escaped out. */

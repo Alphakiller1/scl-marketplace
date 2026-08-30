@@ -342,6 +342,30 @@ model EmailAutomationLock {
   updatedAt   DateTime @updatedAt
 }
 
+/// Short-lived delivery ledger for owner visibility. Recipient identity is a
+/// snapshot rather than a relation so an account rename or deletion cannot
+/// rewrite what was actually addressed. Rows are pruned after 14 days by the
+/// same best-effort writer that creates them.
+enum SystemEmailActivityStatus {
+  SENT
+  FAILED
+}
+
+model SystemEmailActivity {
+  id                String                    @id @default(cuid())
+  emailType         String
+  recipientUsername String?
+  recipientEmail    String
+  status            SystemEmailActivityStatus
+  providerMessageId String?
+  failureReason     String?
+  createdAt         DateTime                  @default(now())
+
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([recipientEmail, createdAt])
+}
+
 // ---------- Capper profile & packages ----------
 
 enum ProviderType {

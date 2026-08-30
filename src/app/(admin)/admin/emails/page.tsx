@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { History, Mail, Send, Workflow } from "lucide-react";
+import { History, ListChecks, Mail, Send, Workflow } from "lucide-react";
 
 import { AdminEmailAutomationControls } from "@/components/scl/admin-email-automation-controls";
 import { AdminEmailTemplateEditor } from "@/components/scl/admin-email-template-editor";
+import { RecentEmailActivity } from "@/components/scl/recent-email-activity";
 import { SectionHeader } from "@/components/scl/section";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -16,6 +17,7 @@ import {
   getEmailAutomationActivity,
   getEmailAutomationConfig,
 } from "@/lib/queries/email-automations";
+import { getRecentSystemEmailActivity } from "@/lib/queries/system-email-activity";
 
 export const metadata = { title: "Capper emails" };
 
@@ -27,6 +29,7 @@ export default async function AdminEmailsPage({
   const params = await searchParams;
   const requested = typeof params.template === "string" ? params.template : "";
   const slug = isEmailTemplateSlug(requested) ? requested : "WELCOME";
+  const now = new Date();
 
   const [
     { templates, storageReady },
@@ -34,12 +37,14 @@ export default async function AdminEmailsPage({
     automation,
     automationActivity,
     mailer,
+    emailActivity,
   ] = await Promise.all([
     getEmailTemplateWorkspace(),
     getEmailTemplateRevisions(slug),
     getEmailAutomationConfig(),
-    getEmailAutomationActivity(),
+    getEmailAutomationActivity(now),
     probeMailer(),
+    getRecentSystemEmailActivity(now),
   ]);
   const active = templates.find((template) => template.slug === slug);
   if (!active) return null;
@@ -246,6 +251,31 @@ export default async function AdminEmailsPage({
             No edits yet — cappers are receiving the copy built into the site.
           </p>
         )}
+      </section>
+
+      <section className="space-y-3" aria-labelledby="recent-email-title">
+        <div className="flex items-start gap-3">
+          <span className="bg-primary/10 text-primary rounded-lg p-2">
+            <ListChecks className="size-5" aria-hidden />
+          </span>
+          <div>
+            <h2 id="recent-email-title" className="text-lg font-semibold">
+              Recent Email Activity
+            </h2>
+            <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+              Newest first, grouped by Eastern date. Shows capper-facing emails
+              attempted during the last 14 days; “Sent” means the email provider
+              accepted the message. {emailActivity.rows.length}{" "}
+              {emailActivity.rows.length === 1 ? "record" : "records"} currently
+              shown.
+            </p>
+          </div>
+        </div>
+        <RecentEmailActivity
+          rows={emailActivity.rows}
+          storageReady={emailActivity.storageReady}
+          now={now}
+        />
       </section>
     </div>
   );
