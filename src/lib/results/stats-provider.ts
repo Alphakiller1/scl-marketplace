@@ -218,6 +218,16 @@ const STATS_BY_GROUP: Record<string, Record<string, string>> = {
     BB: "walks",
     K: "batterStrikeouts",
   },
+  passing: {
+    YDS: "passingYards",
+  },
+  rushing: {
+    YDS: "rushingYards",
+  },
+  receiving: {
+    REC: "receptions",
+    YDS: "receivingYards",
+  },
   // Basketball/football/hockey report one group; ESPN names it per sport.
   default: {
     PTS: "points",

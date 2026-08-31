@@ -31,6 +31,14 @@ export const LEGACY_SCHEDULED_SPORTS: ReadonlySet<OddsControlSport> = new Set([
   "NFL",
 ]);
 
+/** Expanded tiers that were already paid before owner presets existed. */
+const LEGACY_EXPANDED_SPORTS: ReadonlySet<OddsControlSport> = new Set([
+  "MLB",
+  "WNBA",
+  "TENNIS",
+  "SOCCER",
+]);
+
 export const SURFACE_MARKETS = [
   { key: "h2h", label: "Moneyline" },
   { key: "spreads", label: "Spreads" },
@@ -95,7 +103,8 @@ export function expandedMarketGroups(sport: string): OddsMarketGroup[] {
     {
       id: "player-props",
       label: "Player props",
-      description: "Supported basketball player markets and alternates.",
+      description:
+        "Supported football and basketball player markets and alternates.",
       markets: take(markets, (key) => key.startsWith("player_")),
     },
     {
@@ -146,7 +155,8 @@ export function defaultSportControl(sport: OddsControlSport) {
     sport,
     enabled,
     surfaceEnabled: enabled,
-    expandedEnabled: enabled && expanded.length > 0,
+    expandedEnabled:
+      enabled && LEGACY_EXPANDED_SPORTS.has(sport) && expanded.length > 0,
     surfaceMarkets: SURFACE_MARKETS.map((market) => market.key),
     expandedMarkets: expanded,
     leagues: [] as string[],
@@ -224,6 +234,133 @@ export function estimatedRunCredits(input: {
           ? 2
           : 1;
   return input.markets.length * competitionCount;
+}
+
+export type OddsStrategyForecastSport = {
+  sport: OddsControlSport;
+  enabled: boolean;
+  surfaceEnabled: boolean;
+  expandedEnabled: boolean;
+  surfaceMarkets: readonly string[];
+  expandedMarkets: readonly string[];
+  leagues: readonly string[];
+  surfaceCadenceMinutes: number;
+  expandedCadenceMinutes: number;
+  maxEventsPerRun: number;
+};
+
+export type OddsStrategyForecastInput = {
+  dailyCreditLimit: number;
+  weeklyCreditLimit: number;
+  monthlyCreditLimit: number;
+  perRunCreditLimit: number;
+  reserveCredits: number;
+  verificationEnabled: boolean;
+  verificationDailyCreditLimit: number;
+  sports: readonly OddsStrategyForecastSport[];
+};
+
+export type OddsStrategyForecast = {
+  boardCreditsPerDay: number;
+  verificationCreditsPerDay: number;
+  totalCreditsPerDay: number;
+  boardCreditsPerMonth: number;
+  verificationCreditsPerMonth: number;
+  totalCreditsPerMonth: number;
+  operatingBudget: number;
+  budgetRemaining: number;
+  largestRunCredits: number;
+  blockingReasons: string[];
+};
+
+/**
+ * Conservative 31-day ceiling for an owner strategy.
+ *
+ * It assumes every cadence slot runs and every expanded run reaches its event
+ * cap. Actual spend should be lower because fresh/populated boards and empty
+ * slates are skipped, but activation safety must not depend on those savings.
+ */
+export function oddsStrategyForecast(
+  input: OddsStrategyForecastInput,
+): OddsStrategyForecast {
+  let boardCreditsPerDay = 0;
+  let largestRunCredits = 0;
+
+  for (const sport of input.sports) {
+    if (!sport.enabled) continue;
+    for (const tier of ["surface", "expanded"] as const) {
+      const enabled =
+        tier === "surface" ? sport.surfaceEnabled : sport.expandedEnabled;
+      if (!enabled) continue;
+      const cadenceMinutes =
+        tier === "surface"
+          ? sport.surfaceCadenceMinutes
+          : sport.expandedCadenceMinutes;
+      const runCredits = estimatedRunCredits({
+        sport: sport.sport,
+        tier,
+        markets:
+          tier === "surface" ? sport.surfaceMarkets : sport.expandedMarkets,
+        leagues: sport.leagues,
+        maxEventsPerRun: sport.maxEventsPerRun,
+      });
+      largestRunCredits = Math.max(largestRunCredits, runCredits);
+      boardCreditsPerDay += runCredits * (1440 / cadenceMinutes);
+    }
+  }
+
+  boardCreditsPerDay = Math.ceil(boardCreditsPerDay);
+  const verificationCreditsPerDay = input.verificationEnabled
+    ? input.verificationDailyCreditLimit
+    : 0;
+  const totalCreditsPerDay = boardCreditsPerDay + verificationCreditsPerDay;
+  const boardCreditsPerMonth = boardCreditsPerDay * 31;
+  const verificationCreditsPerMonth = verificationCreditsPerDay * 31;
+  const totalCreditsPerMonth =
+    boardCreditsPerMonth + verificationCreditsPerMonth;
+  const operatingBudget = Math.max(
+    0,
+    input.monthlyCreditLimit - input.reserveCredits,
+  );
+  const blockingReasons: string[] = [];
+
+  if (input.reserveCredits <= 0) {
+    blockingReasons.push("Set a protected provider reserve.");
+  }
+  if (largestRunCredits > input.perRunCreditLimit) {
+    blockingReasons.push(
+      `Largest run (${largestRunCredits.toLocaleString()}) exceeds the per-run limit.`,
+    );
+  }
+  if (totalCreditsPerDay > input.dailyCreditLimit) {
+    blockingReasons.push(
+      `Daily maximum (${totalCreditsPerDay.toLocaleString()}) exceeds the daily limit.`,
+    );
+  }
+  const weeklyMaximum = totalCreditsPerDay * 7;
+  if (weeklyMaximum > input.weeklyCreditLimit) {
+    blockingReasons.push(
+      `Weekly maximum (${weeklyMaximum.toLocaleString()}) exceeds the weekly limit.`,
+    );
+  }
+  if (totalCreditsPerMonth > operatingBudget) {
+    blockingReasons.push(
+      `Monthly maximum (${totalCreditsPerMonth.toLocaleString()}) exceeds the spendable budget after reserve.`,
+    );
+  }
+
+  return {
+    boardCreditsPerDay,
+    verificationCreditsPerDay,
+    totalCreditsPerDay,
+    boardCreditsPerMonth,
+    verificationCreditsPerMonth,
+    totalCreditsPerMonth,
+    operatingBudget,
+    budgetRemaining: operatingBudget - totalCreditsPerMonth,
+    largestRunCredits,
+    blockingReasons,
+  };
 }
 
 export function creditLimitState(

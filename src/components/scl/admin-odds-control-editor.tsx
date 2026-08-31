@@ -13,7 +13,9 @@ import {
   ScanSearch,
   Save,
   ShieldCheck,
+  Sparkles,
   SlidersHorizontal,
+  WalletCards,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,10 +33,16 @@ import {
   CADENCE_OPTIONS,
   estimatedRunCredits,
   expandedMarketGroups,
+  oddsStrategyForecast,
   SOCCER_CONTROL_LEAGUES,
   SURFACE_MARKETS,
   type OddsControlSport,
 } from "@/lib/odds-control";
+import {
+  ODDS_CONTROL_PRESETS,
+  oddsControlPreset,
+  type OddsControlPresetId,
+} from "@/lib/odds-control-presets";
 import { formatEasternDateTime } from "@/lib/odds-control-reporting";
 import type { OddsControlSettingsInput } from "@/lib/schemas/odds-control.schema";
 import { cn } from "@/lib/utils";
@@ -152,6 +160,17 @@ export function AdminOddsControlEditor({
   const [sports, setSports] = useState(initialSports);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [pending, startTransition] = useTransition();
+  const forecast = oddsStrategyForecast({ ...config, sports });
+  const canActivate = forecast.blockingReasons.length === 0;
+  const budgetPercent =
+    forecast.operatingBudget > 0
+      ? Math.min(
+          100,
+          Math.round(
+            (forecast.totalCreditsPerMonth / forecast.operatingBudget) * 100,
+          ),
+        )
+      : 100;
 
   function updateSport(sport: OddsControlSport, update: Partial<SportDraft>) {
     setHasUnsavedChanges(true);
@@ -163,6 +182,26 @@ export function AdminOddsControlEditor({
   function updateConfig(update: Partial<typeof config>) {
     setHasUnsavedChanges(true);
     setConfig((current) => ({ ...current, ...update }));
+  }
+
+  function applyPreset(id: OddsControlPresetId) {
+    const preset = oddsControlPreset(id);
+    setConfig(preset.config);
+    setSports((current) =>
+      preset.sports.map((next) => {
+        const existing = current.find((row) => row.sport === next.sport);
+        return {
+          ...existing,
+          ...next,
+          nextSurfaceRunAt: existing?.nextSurfaceRunAt ?? null,
+          nextExpandedRunAt: existing?.nextExpandedRunAt ?? null,
+          lastSurfaceRunAt: existing?.lastSurfaceRunAt ?? null,
+          lastExpandedRunAt: existing?.lastExpandedRunAt ?? null,
+        };
+      }),
+    );
+    setHasUnsavedChanges(true);
+    toast.success(`${preset.name} strategy loaded in preview mode`);
   }
 
   function save() {
@@ -234,6 +273,144 @@ export function AdminOddsControlEditor({
       ) : null}
 
       <Card className="space-y-5 p-4 sm:p-6">
+        <div className="flex items-start gap-3">
+          <span className="bg-primary/10 text-primary grid size-10 shrink-0 place-items-center rounded-xl">
+            <Sparkles className="size-5" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-xl font-semibold">
+              Start with a safe strategy
+            </h2>
+            <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+              Load a tested ceiling, review the forecast, then activate it. A
+              preset never turns scheduling on automatically.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-3">
+          {ODDS_CONTROL_PRESETS.map((preset) => (
+            <article
+              key={preset.id}
+              className={cn(
+                "border-border bg-surface-2 flex flex-col rounded-xl border p-4",
+                preset.id === "balanced" && "border-primary/40 bg-primary/5",
+              )}
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="font-semibold">{preset.name}</h3>
+                {preset.id === "balanced" ? (
+                  <Badge variant="secondary">Recommended</Badge>
+                ) : null}
+              </div>
+              <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                {preset.description}
+              </p>
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <div>
+                  <p className="text-muted-foreground text-xs">Peak modeled</p>
+                  <p className="nums mt-0.5 font-semibold">
+                    {preset.monthlyCeiling.toLocaleString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Balance left</p>
+                  <p className="nums text-pos mt-0.5 font-semibold">
+                    {preset.minimumBalance.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant={preset.id === "balanced" ? "default" : "outline"}
+                className="mt-4 min-h-10 w-full"
+                disabled={pending || !storageReady}
+                onClick={() => applyPreset(preset.id)}
+              >
+                Load {preset.name}
+              </Button>
+            </article>
+          ))}
+        </div>
+
+        <div className="border-border bg-card grid gap-4 rounded-xl border p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <WalletCards className="text-primary size-4" aria-hidden />
+                <h3 className="text-sm font-semibold">
+                  Current strategy forecast
+                </h3>
+              </div>
+              <Badge
+                variant={canActivate ? "outline" : "destructive"}
+                className={cn(
+                  canActivate && "border-pos/30 bg-pos/10 text-pos",
+                )}
+              >
+                {canActivate ? "Safe to activate" : "Needs attention"}
+              </Badge>
+            </div>
+            <div className="bg-surface-3 mt-3 h-2 overflow-hidden rounded-full">
+              <div
+                className={cn(
+                  "h-full rounded-full transition-[width]",
+                  canActivate ? "bg-primary" : "bg-neg",
+                )}
+                style={{ width: budgetPercent + "%" }}
+                role="progressbar"
+                aria-label="Modeled monthly API usage"
+                aria-valuemin={0}
+                aria-valuemax={forecast.operatingBudget}
+                aria-valuenow={Math.min(
+                  forecast.totalCreditsPerMonth,
+                  forecast.operatingBudget,
+                )}
+              />
+            </div>
+            <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
+              Conservative 31-day maximum:{" "}
+              <span className="nums text-foreground font-semibold">
+                {forecast.totalCreditsPerMonth.toLocaleString()}
+              </span>{" "}
+              of{" "}
+              <span className="nums text-foreground font-semibold">
+                {forecast.operatingBudget.toLocaleString()}
+              </span>{" "}
+              spendable credits after the{" "}
+              {config.reserveCredits.toLocaleString()} reserve.
+            </p>
+            {forecast.blockingReasons.length ? (
+              <ul className="text-neg mt-2 space-y-1 text-xs" role="alert">
+                {forecast.blockingReasons.map((reason) => (
+                  <li key={reason}>• {reason}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-pos mt-2 text-xs font-medium">
+                Modeled headroom: {forecast.budgetRemaining.toLocaleString()}{" "}
+                credits.
+              </p>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-3 lg:min-w-64">
+            <div className="border-border bg-surface-2 rounded-lg border p-3">
+              <p className="text-muted-foreground text-xs">Boards / day</p>
+              <p className="nums mt-1 text-lg font-semibold">
+                {forecast.boardCreditsPerDay.toLocaleString()}
+              </p>
+            </div>
+            <div className="border-border bg-surface-2 rounded-lg border p-3">
+              <p className="text-muted-foreground text-xs">Largest run</p>
+              <p className="nums mt-1 text-lg font-semibold">
+                {forecast.largestRunCredits.toLocaleString()}
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="space-y-5 p-4 sm:p-6">
         <StepHeader
           step={1}
           icon={CalendarClock}
@@ -243,9 +420,16 @@ export function AdminOddsControlEditor({
         <div className="grid gap-3 md:grid-cols-2">
           <Toggle
             checked={config.managedSchedulingEnabled}
-            onChange={(managedSchedulingEnabled) =>
-              updateConfig({ managedSchedulingEnabled })
-            }
+            onChange={(managedSchedulingEnabled) => {
+              if (managedSchedulingEnabled && !canActivate) {
+                toast.error(
+                  forecast.blockingReasons[0] ??
+                    "Fix the strategy forecast before activation.",
+                );
+                return;
+              }
+              updateConfig({ managedSchedulingEnabled });
+            }}
             label="Owner-managed scheduling"
             description="When on, the dispatcher follows the sport and cadence settings below. When off, existing production cadence remains authoritative."
           />
@@ -363,6 +547,31 @@ export function AdminOddsControlEditor({
           schedules below are shown in Eastern Time and automatically follow
           daylight-saving changes.
         </p>
+        <div className="border-border bg-surface-2 grid gap-3 rounded-xl border p-3 sm:grid-cols-3">
+          <div>
+            <p className="text-muted-foreground text-xs">Spendable monthly</p>
+            <p className="nums mt-1 font-semibold">
+              {forecast.operatingBudget.toLocaleString()}
+            </p>
+          </div>
+          <div>
+            <p className="text-muted-foreground text-xs">Modeled maximum</p>
+            <p className="nums mt-1 font-semibold">
+              {forecast.totalCreditsPerMonth.toLocaleString()}
+            </p>
+          </div>
+          <div>
+            <p className="text-muted-foreground text-xs">Remaining cushion</p>
+            <p
+              className={cn(
+                "nums mt-1 font-semibold",
+                forecast.budgetRemaining >= 0 ? "text-pos" : "text-neg",
+              )}
+            >
+              {forecast.budgetRemaining.toLocaleString()}
+            </p>
+          </div>
+        </div>
       </Card>
 
       <Card id="verification" className="scroll-mt-36 space-y-5 p-4 sm:p-6">
@@ -588,7 +797,8 @@ export function AdminOddsControlEditor({
                         Standard board
                       </legend>
                       <p className="text-muted-foreground text-xs">
-                        Shared events and primary game lines. Estimated maximum:{" "}
+                        Shared events and primary game lines across SCL&apos;s
+                        14-day board window. Estimated maximum:{" "}
                         <span
                           className={cn(
                             "nums text-foreground font-semibold",
@@ -666,8 +876,8 @@ export function AdminOddsControlEditor({
                         Expanded markets
                       </legend>
                       <p className="text-muted-foreground text-xs">
-                        Alternates, props, and specialty markets. Estimated
-                        maximum:{" "}
+                        Per-event markets for games today and tomorrow.
+                        Estimated maximum:{" "}
                         <span
                           className={cn(
                             "nums text-foreground font-semibold",
@@ -968,7 +1178,12 @@ export function AdminOddsControlEditor({
         </div>
         <Button
           type="submit"
-          disabled={pending || !storageReady || !hasUnsavedChanges}
+          disabled={
+            pending ||
+            !storageReady ||
+            !hasUnsavedChanges ||
+            (config.managedSchedulingEnabled && !canActivate)
+          }
         >
           <Save className="size-4" aria-hidden />
           <span className="sm:hidden">{pending ? "Saving…" : "Save"}</span>

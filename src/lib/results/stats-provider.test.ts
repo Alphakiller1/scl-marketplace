@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { mapSummaryToBoxScore } from "@/lib/results/stats-provider";
+import {
+  mapSummaryToBoxScore,
+  mapSummaryToPlayerBox,
+} from "@/lib/results/stats-provider";
 
 // Shape mirrors ESPN's public event-summary response (verified against the live API).
 const ESPN_SUMMARY = {
@@ -131,5 +134,58 @@ test("mapSummaryToBoxScore returns null on missing/partial data (→ defer)", ()
       },
     }),
     null,
+  );
+});
+
+test("mapSummaryToPlayerBox keeps football yardage groups distinct", () => {
+  const box = mapSummaryToPlayerBox({
+    boxscore: {
+      players: [
+        {
+          team: { abbreviation: "BUF" },
+          statistics: [
+            {
+              type: "passing",
+              labels: ["YDS"],
+              athletes: [
+                {
+                  athlete: { displayName: "Josh Allen" },
+                  stats: ["287"],
+                },
+              ],
+            },
+            {
+              type: "rushing",
+              labels: ["YDS"],
+              athletes: [
+                {
+                  athlete: { displayName: "Josh Allen" },
+                  stats: ["42"],
+                },
+              ],
+            },
+            {
+              type: "receiving",
+              labels: ["REC", "YDS"],
+              athletes: [
+                {
+                  athlete: { displayName: "Khalil Shakir" },
+                  stats: ["7", "96"],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  });
+  assert.ok(box);
+  assert.deepEqual(
+    box.players.find((player) => player.name === "Josh Allen")?.stats,
+    { passingYards: 287, rushingYards: 42 },
+  );
+  assert.deepEqual(
+    box.players.find((player) => player.name === "Khalil Shakir")?.stats,
+    { receptions: 7, receivingYards: 96 },
   );
 });

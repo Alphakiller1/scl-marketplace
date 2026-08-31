@@ -286,11 +286,19 @@ test("WNBA expanded boards carry the full player card", () => {
   }
 });
 
-test("football is surface-level odds only", () => {
-  // h2h/spreads/totals already arrive on the shared slate, so the per-event
-  // call has nothing to add and is never billed.
-  assert.deepEqual(expandedBoardMarkets("NFL"), []);
-  assert.deepEqual(expandedBoardMarkets("NCAAF"), []);
+test("football expanded coverage exposes only safely gradable owner markets", () => {
+  const nfl = expandedBoardMarkets("NFL");
+  assert.ok(nfl.includes("alternate_spreads"));
+  assert.ok(nfl.includes("alternate_totals"));
+  assert.ok(nfl.includes("player_pass_yds"));
+  assert.ok(nfl.includes("player_pass_yds_alternate"));
+  assert.ok(nfl.includes("player_receptions"));
+  assert.ok(nfl.includes("player_receptions_alternate"));
+
+  assert.deepEqual(expandedBoardMarkets("NCAAF"), [
+    "alternate_spreads",
+    "alternate_totals",
+  ]);
 });
 
 test("expanded MLB and WNBA boards request the complete owner-required matrix", () => {

@@ -297,6 +297,10 @@ test("the player name is read off the front of the selection", () => {
 
 test("market labels map to the stat the board writes", () => {
   assert.equal(statKeyForMarket("Points"), "points");
+  assert.equal(statKeyForMarket("Passing Yds"), "passingYards");
+  assert.equal(statKeyForMarket("Rushing Yds"), "rushingYards");
+  assert.equal(statKeyForMarket("Receptions"), "receptions");
+  assert.equal(statKeyForMarket("Receiving Yds"), "receivingYards");
   assert.equal(statKeyForMarket("Outs"), "outs");
   assert.equal(statKeyForMarket("Strikeouts"), "strikeouts");
   assert.equal(statKeyForMarket("Total"), null);
@@ -309,6 +313,48 @@ test("market labels map to the stat the board writes", () => {
   assert.equal(statKeyForMarket("RBIs"), "rbis");
   assert.equal(statKeyForMarket("Runs Scored"), "runs");
   assert.equal(statKeyForMarket("Hits+Runs+RBIs"), "hitsRunsRbis");
+});
+
+test("NFL yardage props settle from mapped football box scores", () => {
+  const footballBox: PlayerBoxScore = {
+    players: [
+      {
+        name: "Josh Allen",
+        team: "BUF",
+        played: true,
+        stats: { passingYards: 287, rushingYards: 42 },
+      },
+      {
+        name: "Khalil Shakir",
+        team: "BUF",
+        played: true,
+        stats: { receptions: 7, receivingYards: 96 },
+      },
+    ],
+  };
+
+  assert.equal(
+    resolvePlayerProp(
+      {
+        market: "Passing Yds",
+        selection: "Josh Allen Over 275.5",
+        line: 275.5,
+      },
+      footballBox,
+    ),
+    "WIN",
+  );
+  assert.equal(
+    resolvePlayerProp(
+      {
+        market: "Receiving Yds",
+        selection: "Khalil Shakir Under 99.5",
+        line: 99.5,
+      },
+      footballBox,
+    ),
+    "WIN",
+  );
 });
 
 test("core MLB batter props settle from official batting stats", () => {

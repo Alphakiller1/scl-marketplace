@@ -205,9 +205,20 @@ export function expandedBoardMarkets(sclSport: string): string[] {
   // Surface h2h/spreads/totals already carry soccer's game lines; the per-event
   // call adds only Double Chance, which the bulk endpoint does not serve.
   if (sclSport === "SOCCER") return [DOUBLE_CHANCE_MARKET_KEY];
-  // Football is surface-level odds only (OWNER decision) — h2h/spreads/totals
-  // arrive on the shared slate, and nothing here would add a market it does not
-  // already have.
+  // Owners can safely expose the alternate full-game ladder for football and
+  // college basketball. NFL and NBA additionally have the player-stat mapping
+  // required for automatic grading; NCAAF/NCAAB deliberately remain alts-only.
+  if (["NCAAF", "NCAAB"].includes(sclSport)) {
+    return ["alternate_spreads", "alternate_totals"];
+  }
+  if (["NFL", "NBA"].includes(sclSport)) {
+    const props = PROP_MARKETS_BY_SPORT[sclSport] ?? [];
+    return [
+      "alternate_spreads",
+      "alternate_totals",
+      ...props.flatMap(propMarketKeysWithAlternates),
+    ];
+  }
   if (sclSport !== "MLB" && sclSport !== "WNBA") return [];
   const props = PROP_MARKETS_BY_SPORT[sclSport] ?? [];
   return [
@@ -575,9 +586,7 @@ export type PickSourceKind =
 
 /** Public trust tier — mirrors the Prisma `VerificationTier` enum. */
 export type VerificationTierValue =
-  | "AUTO_VERIFIED"
-  | "VERIFIED"
-  | "SELF_REPORTED";
+  "AUTO_VERIFIED" | "VERIFIED" | "SELF_REPORTED";
 
 export type PickIntegrityInput = {
   now: Date;

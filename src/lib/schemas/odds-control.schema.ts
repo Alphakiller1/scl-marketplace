@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   allowedExpandedMarkets,
   estimatedRunCredits,
+  oddsStrategyForecast,
   ODDS_CONTROL_SPORTS,
   SOCCER_CONTROL_LEAGUES,
   SURFACE_MARKETS,
@@ -214,6 +215,16 @@ export const oddsControlSettingsSchema = z
         path: ["sports"],
         message: "Each supported sport must appear exactly once.",
       });
+    }
+    if (value.managedSchedulingEnabled) {
+      const forecast = oddsStrategyForecast(value);
+      for (const reason of forecast.blockingReasons) {
+        context.addIssue({
+          code: "custom",
+          path: ["managedSchedulingEnabled"],
+          message: `Strategy cannot be activated: ${reason}`,
+        });
+      }
     }
   });
 

@@ -108,6 +108,10 @@ const MARKET_STAT_KEY: Record<string, string> = {
   "pts+reb": "pointsRebounds",
   "pts+ast": "pointsAssists",
   "reb+ast": "reboundsAssists",
+  "passing yds": "passingYards",
+  "rushing yds": "rushingYards",
+  receptions: "receptions",
+  "receiving yds": "receivingYards",
 };
 
 /**

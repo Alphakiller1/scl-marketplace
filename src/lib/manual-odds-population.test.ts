@@ -159,19 +159,19 @@ test("the reserve prices an expanded event with its catalog call included", () =
   // spend smaller, so a reserve built on it never starves the next sport.
   assert.equal(EVENT_MARKET_CATALOG_CREDIT_COST, 1);
   assert.equal(expandedEventCreditCost("MLB") > 40, true);
-  assert.equal(expandedEventCreditCost("NFL"), 0);
+  assert.equal(expandedEventCreditCost("NFL"), 10);
   assert.equal(expandedEventCreditCost("SOCCER"), 1);
 });
 
 test("the catalog is read for the sports whose request list can waste credits", () => {
-  // MLB asks for 58 markets and WNBA 36: most of a prop card goes unpriced on
-  // any given fixture, so one credit spent learning which keys are live saves
-  // many. Tennis asks for four and soccer for one, where the catalog can cost
-  // more than the markets it would skip.
+  // Large prop cards are rarely fully priced on one fixture, so one credit
+  // spent learning which keys are live saves more than it costs. Tennis asks
+  // for four and soccer for one, where the catalog can cost more than it saves.
   assert.ok(expandedBoardMarkets("MLB").length > CATALOG_WORTH_READING_MARKETS);
   assert.ok(
     expandedBoardMarkets("WNBA").length > CATALOG_WORTH_READING_MARKETS,
   );
+  assert.ok(expandedBoardMarkets("NFL").length > CATALOG_WORTH_READING_MARKETS);
   assert.ok(
     expandedBoardMarkets("TENNIS").length <= CATALOG_WORTH_READING_MARKETS,
   );
