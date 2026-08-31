@@ -337,10 +337,17 @@ export function compositeResultsProvider(
  * ESPN maps UFC cards (14d) but not PFL/Bellator. Tennis now has a free ATP/WTA
  * scoreboard backstop (matches live under tournament groupings); Odds API still
  * covers challengers ESPN drops. ESPN's CFL calendar is stale; Odds API covers
- * 3 days and CFL.ca covers the season. Dropping this layer (PR #550) left every
- * UFC moneyline PENDING forever.
+ * 3 days and CFL.ca covers the season. Soccer must also use the event-scoped
+ * Odds API fallback: SCL's board includes lower divisions and international
+ * competitions that have no ESPN league mapping, and excluding soccer here
+ * leaves every completed play from those competitions as event_not_found.
  */
-export const ODDS_SCORES_ONLY_SPORTS = ["MMA", "TENNIS", "CFL"] as const;
+export const ODDS_SCORES_ONLY_SPORTS = [
+  "MMA",
+  "TENNIS",
+  "CFL",
+  "SOCCER",
+] as const;
 
 /** Restrict a results provider to a fixed sport allowlist. */
 export function scoresProviderForSports(
@@ -382,7 +389,7 @@ function independentScoreBackstops(): ResultsProvider {
 
 /**
  * ESPN + official league feeds for mainstream sports, plus Odds API scores for
- * MMA/TENNIS/CFL where no working free backstop exists.
+ * MMA/TENNIS/CFL/SOCCER where no complete free backstop exists.
  *
  * Grading must stay up when the odds board burns quota on **pricing** fetches.
  * Closing-line capture and CLV backfill run on `/api/cron/odds-refresh` instead.
