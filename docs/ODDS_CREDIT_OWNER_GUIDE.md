@@ -1,56 +1,69 @@
-# SCL API Credit Dashboard — Owner Guide
+# SCL API Credit Dashboard — Quick Owner Manual
 
-Open **Admin → API Credits**. The page is organized into Usage, Guardrails,
-Sports & Markets, and Activity. Provider credentials are never displayed or
-sent to the browser.
+Open **Admin → API Credits**.
 
-## Read the dashboard
+## 1. Check usage before changing anything
 
-- **Used today/week/month** comes from provider response headers and includes
-  board, verification, results, and CLV purposes.
-- **Provider remaining** is the latest balance reported by the provider. A
-  balance older than 24 hours is labeled stale.
-- **Projected month** extends the current calendar-month burn rate through the
-  end of the month.
-- Orange points identify daily spikes against the prior seven-day average.
-- Market reporting is exact for requests recorded after the credit-control
-  migration. Historical aggregate usage is not guessed.
+- **Used today / week / month:** credits already consumed.
+- **Provider remaining:** credits reported by the odds provider.
+- **Projected month:** expected month-end use at the current pace.
+- **Credits by sport / purpose / market:** where credits are going.
+- **League pick demand:** unique active cappers and pick volume by league over
+  the last 30 days. Give priority to leagues with broad capper demand—not just
+  one capper posting many picks.
 
-## Change the strategy safely
+If the provider says **Exhausted**, optional odds pulls will not run even when
+the scheduler is enabled.
 
-1. Leave **Pause optional API pulls** on while editing.
-2. Set the daily, weekly, monthly, and per-run hard limits. The per-run limit
-   must not exceed the daily limit.
-3. Keep enough **Protected reserve** for results and pick verification.
-4. Open each sport and choose standard markets, expanded market groups,
-   leagues, event caps, and separate refresh cadences.
-5. Save the strategy. The Activity panel records the administrator and every
-   changed value.
-6. Use **Dry run** first. It validates the saved strategy and guardrails without
-   calling the provider or spending credits.
-7. When the dry run passes, turn off Pause and save. Use **Run now** only when an
-   immediate refresh is needed; otherwise the next scheduled time applies.
+## 2. Set safety limits
 
-All displayed schedules use Eastern Time and automatically change between EST
-and EDT. The scheduler itself stores instants in UTC to prevent daylight-saving
-ambiguity.
+Under **Credit guardrails**, set:
 
-## What stops spending
+- **Daily, weekly, and monthly limits:** maximum allowed use.
+- **Per-run limit:** maximum one job may reserve.
+- **Protected reserve:** credits held for results and pick verification.
+- **Warning threshold:** when the dashboard should warn owners.
 
-A run cannot start if its reservation would exceed the per-run, daily, weekly,
-or monthly limit; overlap an active reservation beyond those limits; or breach
-the current provider reserve. The provider circuit breaker also stops later
-calls when a live response reports insufficient credits. Blocked and failed
-runs remain visible in Activity with their reason.
+The system blocks a run before it exceeds a hard limit or protected reserve.
 
-Pausing optional population does not pause results settlement or pick
-verification. Those integrity operations retain access to the protected
-reserve.
+## 3. Choose coverage
 
-## Recommended rollout
+Open each sport under **Sports, markets & cadence**:
 
-Use a staging database and provider key first. Apply the migration, keep managed
-scheduling paused, save a small one-sport strategy, run a dry run, then perform
-one low-cost standard-board Run now. Confirm exact market usage, actual versus
-estimated cost, provider remaining, board freshness, and the audit change list
-before enabling the production scheduler.
+1. Turn the sport on or off.
+2. Enable **Standard** and/or **Expanded** coverage.
+3. Select only the markets SCL needs.
+4. Select leagues where available.
+5. Set the maximum events per run.
+6. Set separate refresh timing for Standard and Expanded coverage.
+
+More markets, leagues, events, and frequent refreshes use more credits.
+
+## 4. Activate safely
+
+1. Turn on **Owner-managed scheduling**.
+2. Keep **Pause optional API pulls** on while reviewing settings.
+3. Click **Save API strategy**.
+4. Open a sport and run **Dry run**. It checks the strategy without spending
+   credits.
+5. If the estimate is acceptable, turn Pause off and save again.
+6. Use **Run now** only when an immediate refresh is necessary.
+
+All schedules are displayed in Eastern Time and follow daylight-saving changes.
+
+## 5. Confirm the result
+
+Use **Activity & change history** to verify:
+
+- what ran and whether it completed, failed, or was blocked;
+- estimated versus actual credits;
+- markets, leagues, events processed, and skipped work;
+- who changed the strategy and what changed.
+
+## Recommended testing setup
+
+Start with one sport, Standard coverage, a small event cap, a conservative
+per-run limit, and a Dry run. Confirm the estimate and league demand before
+adding Expanded markets or shortening the refresh cadence.
+
+Pausing optional pulls does **not** stop results settlement or pick verification.
