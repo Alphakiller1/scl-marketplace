@@ -26,6 +26,19 @@ Under **Credit guardrails**, set:
 
 The system blocks a run before it exceeds a hard limit or protected reserve.
 
+### Verification controls
+
+Use **Verification controls** to manage live per-event price checks separately:
+
+- **Allow live verification requests:** master on/off switch for new checks.
+- **Daily verifications:** maximum number of provider-check attempts per day.
+- **Daily verify credits:** verification-only daily credit budget.
+- **Credits per verification:** blocks an unusually large single check.
+- **Reuse window:** how long a result can be reused; a longer window reduces repeat calls.
+
+These settings do not disable results grading. Expanded-board population is
+reported and controlled as Board usage, not Verification.
+
 ## 3. Choose coverage
 
 Open each sport under **Sports, markets & cadence**:

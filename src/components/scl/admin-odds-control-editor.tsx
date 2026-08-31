@@ -139,10 +139,12 @@ function scheduleLabel(value: string | null): string {
 export function AdminOddsControlEditor({
   initialConfig,
   initialSports,
+  verificationUsage,
   storageReady,
 }: {
   initialConfig: Omit<OddsControlSettingsInput, "sports">;
   initialSports: SportDraft[];
+  verificationUsage: { requestsToday: number; creditsToday: number };
   storageReady: boolean;
 }) {
   const router = useRouter();
@@ -363,10 +365,107 @@ export function AdminOddsControlEditor({
         </p>
       </Card>
 
+      <Card id="verification" className="scroll-mt-36 space-y-5 p-4 sm:p-6">
+        <StepHeader
+          step={3}
+          icon={ShieldCheck}
+          title="Verification controls"
+          description="Cap true per-event price checks independently from board population and grading."
+        />
+        <Toggle
+          checked={config.verificationEnabled}
+          onChange={(verificationEnabled) =>
+            updateConfig({ verificationEnabled })
+          }
+          label="Allow live verification requests"
+          description="Turn off to block new provider verification calls. Cached boards remain available and results grading continues."
+        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="border-border bg-surface-2 rounded-xl border p-3">
+            <p className="text-muted-foreground text-xs">
+              Verification attempts today
+            </p>
+            <p className="nums mt-1 text-xl font-semibold">
+              {verificationUsage.requestsToday.toLocaleString()} /{" "}
+              {config.verificationDailyRequestLimit.toLocaleString()}
+            </p>
+          </div>
+          <div className="border-border bg-surface-2 rounded-xl border p-3">
+            <p className="text-muted-foreground text-xs">
+              Verification credits today
+            </p>
+            <p className="nums mt-1 text-xl font-semibold">
+              {verificationUsage.creditsToday.toLocaleString()} /{" "}
+              {config.verificationDailyCreditLimit.toLocaleString()}
+            </p>
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            {
+              label: "Daily verifications",
+              key: "verificationDailyRequestLimit",
+              help: "Maximum provider-check attempts per UTC day",
+              min: 1,
+              max: 100000,
+            },
+            {
+              label: "Daily verify credits",
+              key: "verificationDailyCreditLimit",
+              help: "Credits reserved only for verification",
+              min: 1,
+              max: 1000000,
+            },
+            {
+              label: "Credits per verification",
+              key: "verificationMaxCreditsPerRequest",
+              help: "Maximum market keys in one check",
+              min: 1,
+              max: 100,
+            },
+            {
+              label: "Reuse window (minutes)",
+              key: "verificationCacheMinutes",
+              help: "Longer reuse lowers repeat provider calls",
+              min: 10,
+              max: 1440,
+            },
+          ].map(({ label, key, help, min, max }) => (
+            <div key={key} className="space-y-1.5">
+              <Label htmlFor={key}>{label}</Label>
+              <Input
+                id={key}
+                type="number"
+                min={min}
+                max={max}
+                value={config[key as keyof typeof config] as number}
+                onChange={(event) =>
+                  updateConfig({
+                    [key]: numberValue(
+                      event.target.value,
+                      config[key as keyof typeof config] as number,
+                    ),
+                  })
+                }
+              />
+              <p className="text-muted-foreground text-xs">{help}</p>
+            </div>
+          ))}
+        </div>
+        <div className="border-border bg-surface-2 rounded-xl border p-3 text-xs leading-relaxed">
+          <p className="font-medium">What these controls affect</p>
+          <p className="text-muted-foreground mt-1">
+            Verification means a live, per-event odds confirmation. Expanded
+            board refreshes are tracked and controlled under Board population;
+            results settlement and grading are never disabled here.
+          </p>
+        </div>
+      </Card>
+
       <section id="sports" className="scroll-mt-36 space-y-5">
         <Card className="space-y-5 p-4 sm:p-6">
           <StepHeader
-            step={3}
+            step={4}
             icon={SlidersHorizontal}
             title="Sports, markets & cadence"
             description="Open a sport to control its board, expanded markets, refresh schedule, and league scope."

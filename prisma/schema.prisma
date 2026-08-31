@@ -810,19 +810,24 @@ model OddsUsageMarketDaily {
 
 /// Owner-managed limits and the rollout switch for database-driven odds scheduling.
 model OddsControlConfig {
-  id                       String   @id @default("primary")
-  managedSchedulingEnabled Boolean  @default(false)
-  paused                   Boolean  @default(false)
-  dailyCreditLimit         Int      @default(2000)
-  weeklyCreditLimit        Int      @default(10000)
-  monthlyCreditLimit       Int      @default(20000)
-  perRunCreditLimit        Int      @default(2000)
-  warningPercent           Int      @default(70)
-  reserveCredits           Int      @default(1000)
-  timezone                 String   @default("America/New_York")
-  updatedById              String?
-  createdAt                DateTime @default(now())
-  updatedAt                DateTime @updatedAt
+  id                               String   @id @default("primary")
+  managedSchedulingEnabled         Boolean  @default(false)
+  paused                           Boolean  @default(false)
+  dailyCreditLimit                 Int      @default(2000)
+  weeklyCreditLimit                Int      @default(10000)
+  monthlyCreditLimit               Int      @default(20000)
+  perRunCreditLimit                Int      @default(2000)
+  warningPercent                   Int      @default(70)
+  reserveCredits                   Int      @default(1000)
+  verificationEnabled              Boolean  @default(true)
+  verificationDailyRequestLimit    Int      @default(250)
+  verificationDailyCreditLimit     Int      @default(500)
+  verificationMaxCreditsPerRequest Int      @default(20)
+  verificationCacheMinutes         Int      @default(30)
+  timezone                         String   @default("America/New_York")
+  updatedById                      String?
+  createdAt                        DateTime @default(now())
+  updatedAt                        DateTime @updatedAt
 
   updatedBy User? @relation("OddsControlUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 }

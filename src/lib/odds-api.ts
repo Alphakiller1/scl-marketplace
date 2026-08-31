@@ -36,6 +36,10 @@ import {
 } from "@/lib/tennis-tours";
 import { prisma } from "@/lib/prisma";
 import {
+  claimVerificationRequest,
+  completeVerificationRequest,
+} from "@/lib/odds-verification-control";
+import {
   dedupeOddsEvents,
   normalizeEventBoard,
   normalizeUpcomingEvent,
@@ -1027,6 +1031,30 @@ export async function fetchEventOddsForVerification(
     : verificationMarkets(sclSport);
   const markets = requested.join(",");
   const purpose = opts?.purpose ?? "verify";
+  const verificationClaim =
+    purpose === "verify"
+      ? await claimVerificationRequest({
+          sport: sclSport,
+          markets: requested,
+        }).catch((error) => {
+          console.error("[odds] verification controls unavailable", error);
+          return {
+            ok: false as const,
+            reason: "Verification controls are temporarily unavailable.",
+          };
+        })
+      : null;
+  if (verificationClaim && !verificationClaim.ok) {
+    console.warn(`[odds] verification blocked: ${verificationClaim.reason}`, {
+      sport: sclSport,
+      eventId,
+      estimatedCredits: requested.length,
+    });
+    return null;
+  }
+  const cacheSeconds = verificationClaim?.ok
+    ? verificationClaim.claim.cacheMinutes * 60
+    : VERIFY_TTL_SECONDS;
 
   const attempt = async (books: readonly string[] | undefined) => {
     const { response: res } = await fetchWithOddsKeyRollover(
@@ -1035,20 +1063,44 @@ export async function fetchEventOddsForVerification(
         `?apiKey=${apiKey}&${oddsScopeQuery(books)}&markets=${markets}&oddsFormat=american`,
       {
         next: {
-          revalidate: VERIFY_TTL_SECONDS,
+          revalidate: cacheSeconds,
           tags: [`odds-event:${eventId}`],
         },
       },
     );
-    if (!res) return null;
+    if (!res) {
+      if (verificationClaim?.ok) {
+        await completeVerificationRequest(verificationClaim.claim, {
+          ok: false,
+          credits: 0,
+          error: "No provider response.",
+        });
+      }
+      return null;
+    }
     logOddsUsage(res, `event ${eventId}`, purpose, sclSport, requested);
+    if (verificationClaim?.ok) {
+      const cost = Number(res.headers.get("x-requests-last"));
+      await completeVerificationRequest(verificationClaim.claim, {
+        ok: res.ok,
+        credits: Number.isFinite(cost) ? cost : 0,
+        error: res.ok ? undefined : `Provider returned HTTP ${res.status}.`,
+      });
+    }
     if (!res.ok) return null;
     return (await res.json()) as RawEventOdds;
   };
 
   try {
     return await attempt(undefined);
-  } catch {
+  } catch (error) {
+    if (verificationClaim?.ok) {
+      await completeVerificationRequest(verificationClaim.claim, {
+        ok: false,
+        credits: 0,
+        error: error instanceof Error ? error.message : String(error),
+      }).catch(() => undefined);
+    }
     return null;
   }
 }
@@ -1072,7 +1124,7 @@ export async function verifyPick(params: {
   const event = await fetchEventOddsForVerification(
     params.sclSport,
     params.eventId,
-    { books: params.books },
+    { books: params.books, markets: params.marketKeys },
   );
   if (!event) {
     return {
@@ -1116,7 +1168,7 @@ export async function fetchLiveLine(params: {
   const event = await fetchEventOddsForVerification(
     params.sclSport,
     params.eventId,
-    { books: params.books },
+    { books: params.books, markets: params.marketKeys },
   );
   if (!event) return { event: null, liveAmerican: null };
   const bookKeys = (params.books ?? []).filter(isBookKey);
@@ -1154,6 +1206,7 @@ export async function fetchEventBoard(
   const event = await fetchEventOddsForVerification(sclSport, eventId, {
     ...opts,
     markets,
+    purpose: "board",
   });
   if (!event) return [];
   return normalizeEventBoard(event, { ...opts, sport: sclSport });

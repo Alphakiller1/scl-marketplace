@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   allowedExpandedMarkets,
   canReserveOddsCredits,
+  DEFAULT_ODDS_CONTROL_CONFIG,
   defaultSportControl,
   estimatedRunCredits,
   expandedMarketGroups,
@@ -19,15 +20,7 @@ import {
 
 test("default owner controls validate against the supported market registry", () => {
   const parsed = oddsControlSettingsSchema.safeParse({
-    managedSchedulingEnabled: false,
-    paused: false,
-    dailyCreditLimit: 2_000,
-    weeklyCreditLimit: 10_000,
-    monthlyCreditLimit: 20_000,
-    perRunCreditLimit: 2_000,
-    warningPercent: 70,
-    reserveCredits: 1_000,
-    timezone: "America/New_York",
+    ...DEFAULT_ODDS_CONTROL_CONFIG,
     sports: ODDS_CONTROL_SPORTS.map((sport) => {
       const {
         nextSurfaceRunAt: _nextSurfaceRunAt,
@@ -199,15 +192,10 @@ test("invalid limits and unsupported markets fail closed", () => {
       : control;
   });
   const parsed = oddsControlSettingsSchema.safeParse({
+    ...DEFAULT_ODDS_CONTROL_CONFIG,
     managedSchedulingEnabled: true,
-    paused: false,
     dailyCreditLimit: 2_000,
     weeklyCreditLimit: 1_000,
-    monthlyCreditLimit: 20_000,
-    perRunCreditLimit: 2_000,
-    warningPercent: 70,
-    reserveCredits: 1_000,
-    timezone: "America/New_York",
     sports,
   });
   assert.equal(parsed.success, false);
@@ -231,15 +219,7 @@ test("tampered duplicate markets and league controls fail validation", () => {
     return control;
   });
   const parsed = oddsControlSettingsSchema.safeParse({
-    managedSchedulingEnabled: false,
-    paused: false,
-    dailyCreditLimit: 2_000,
-    weeklyCreditLimit: 10_000,
-    monthlyCreditLimit: 20_000,
-    perRunCreditLimit: 2_000,
-    warningPercent: 70,
-    reserveCredits: 1_000,
-    timezone: "America/New_York",
+    ...DEFAULT_ODDS_CONTROL_CONFIG,
     sports,
   });
   assert.equal(parsed.success, false);

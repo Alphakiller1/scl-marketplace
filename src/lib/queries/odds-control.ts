@@ -35,7 +35,20 @@ export async function oddsControlStorageReady(): Promise<boolean> {
         to_regclass('scl."OddsSportControl"') IS NOT NULL AND
         to_regclass('scl."OddsApiRun"') IS NOT NULL AND
         to_regclass('scl."OddsUsageMarketDaily"') IS NOT NULL AND
-        to_regclass('scl."OddsControlAuditEvent"') IS NOT NULL AS ready
+        to_regclass('scl."OddsControlAuditEvent"') IS NOT NULL AND
+        (
+          SELECT COUNT(*) = 5
+          FROM information_schema.columns
+          WHERE table_schema = 'scl'
+            AND table_name = 'OddsControlConfig'
+            AND column_name IN (
+              'verificationEnabled',
+              'verificationDailyRequestLimit',
+              'verificationDailyCreditLimit',
+              'verificationMaxCreditsPerRequest',
+              'verificationCacheMinutes'
+            )
+        ) AS ready
     `;
     return result?.ready === true;
   } catch {
@@ -77,6 +90,12 @@ export async function getOddsControlSettings() {
           perRunCreditLimit: config.perRunCreditLimit,
           warningPercent: config.warningPercent,
           reserveCredits: config.reserveCredits,
+          verificationEnabled: config.verificationEnabled,
+          verificationDailyRequestLimit: config.verificationDailyRequestLimit,
+          verificationDailyCreditLimit: config.verificationDailyCreditLimit,
+          verificationMaxCreditsPerRequest:
+            config.verificationMaxCreditsPerRequest,
+          verificationCacheMinutes: config.verificationCacheMinutes,
           timezone: "America/New_York" as const,
         }
       : { ...DEFAULT_ODDS_CONTROL_CONFIG },
@@ -140,6 +159,7 @@ export async function getOddsCreditDashboard() {
       bySport: [] as { sport: string; credits: number }[],
       byPurpose: [] as { purpose: string; credits: number; calls: number }[],
       byMarket: [] as { market: string; credits: number; calls: number }[],
+      verification: { requestsToday: 0, creditsToday: 0 },
       history: [] as {
         date: string;
         credits: number;
@@ -173,25 +193,31 @@ export async function getOddsCreditDashboard() {
     };
   }
 
-  const [usage, recentRuns, marketUsage, audit] = await Promise.all([
-    prisma.oddsUsageDaily.findMany({
-      where: { date: { gte: usageStart } },
-      orderBy: [{ date: "asc" }, { updatedAt: "asc" }],
-    }),
-    prisma.oddsApiRun.findMany({
-      orderBy: { startedAt: "desc" },
-      take: 50,
-    }),
-    prisma.oddsUsageMarketDaily.findMany({
-      where: { date: { gte: monthStart } },
-      orderBy: [{ credits: "desc" }, { market: "asc" }],
-    }),
-    prisma.oddsControlAuditEvent.findMany({
-      include: { actor: { select: { username: true, displayName: true } } },
-      orderBy: { createdAt: "desc" },
-      take: 30,
-    }),
-  ]);
+  const [usage, recentRuns, marketUsage, audit, verificationActivityToday] =
+    await Promise.all([
+      prisma.oddsUsageDaily.findMany({
+        where: { date: { gte: usageStart } },
+        orderBy: [{ date: "asc" }, { updatedAt: "asc" }],
+      }),
+      prisma.oddsApiRun.findMany({
+        orderBy: { startedAt: "desc" },
+        take: 50,
+      }),
+      prisma.oddsUsageMarketDaily.findMany({
+        where: { date: { gte: monthStart } },
+        orderBy: [{ credits: "desc" }, { market: "asc" }],
+      }),
+      prisma.oddsControlAuditEvent.findMany({
+        include: { actor: { select: { username: true, displayName: true } } },
+        orderBy: { createdAt: "desc" },
+        take: 30,
+      }),
+      prisma.oddsApiRun.aggregate({
+        where: { trigger: "VERIFICATION", startedAt: { gte: today } },
+        _count: { _all: true },
+        _sum: { credits: true },
+      }),
+    ]);
 
   const creditsSince = (start: Date) =>
     usage
@@ -291,6 +317,10 @@ export async function getOddsCreditDashboard() {
     byMarket: [...marketCredits.entries()]
       .map(([market, value]) => ({ market, ...value }))
       .sort((a, b) => b.credits - a.credits),
+    verification: {
+      requestsToday: verificationActivityToday._count._all,
+      creditsToday: verificationActivityToday._sum.credits ?? 0,
+    },
     history,
     recentRuns: recentRuns.map((run) => ({
       id: run.id,

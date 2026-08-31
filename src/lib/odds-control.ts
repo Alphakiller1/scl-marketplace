@@ -185,6 +185,11 @@ export const DEFAULT_ODDS_CONTROL_CONFIG = {
   perRunCreditLimit: 2_000,
   warningPercent: 70,
   reserveCredits: 1_000,
+  verificationEnabled: true,
+  verificationDailyRequestLimit: 250,
+  verificationDailyCreditLimit: 500,
+  verificationMaxCreditsPerRequest: 20,
+  verificationCacheMinutes: 30,
   timezone: "America/New_York",
 } as const;
 
@@ -231,6 +236,79 @@ export function creditLimitState(
 }
 
 export const PROVIDER_BALANCE_FRESH_MS = 24 * 60 * 60_000;
+
+export type VerificationPolicy = {
+  enabled: boolean;
+  dailyRequestLimit: number;
+  dailyCreditLimit: number;
+  maxCreditsPerRequest: number;
+  cacheMinutes: number;
+  overallDailyLimit: number;
+  overallWeeklyLimit: number;
+  overallMonthlyLimit: number;
+};
+
+export type VerificationPolicyState = {
+  requestsToday: number;
+  creditsToday: number;
+  allCreditsToday: number;
+  allCreditsWeek: number;
+  allCreditsMonth: number;
+  reservedCredits: number;
+  estimatedCredits: number;
+  providerRemaining: number | null;
+  providerBalanceUpdatedAt: Date | null;
+  now: Date;
+};
+
+export function verificationPolicyBlockReason(
+  policy: VerificationPolicy,
+  state: VerificationPolicyState,
+): string | null {
+  if (!policy.enabled) return "Owner-disabled verification.";
+  if (state.estimatedCredits > policy.maxCreditsPerRequest) {
+    return "Per-verification credit limit exceeded.";
+  }
+  if (state.requestsToday >= policy.dailyRequestLimit) {
+    return "Daily verification request limit reached.";
+  }
+  if (
+    state.creditsToday + state.reservedCredits + state.estimatedCredits >
+    policy.dailyCreditLimit
+  ) {
+    return "Daily verification credit limit reached.";
+  }
+  if (
+    state.allCreditsToday + state.reservedCredits + state.estimatedCredits >
+    policy.overallDailyLimit
+  ) {
+    return "Overall daily credit limit reached.";
+  }
+  if (
+    state.allCreditsWeek + state.reservedCredits + state.estimatedCredits >
+    policy.overallWeeklyLimit
+  ) {
+    return "Overall weekly credit limit reached.";
+  }
+  if (
+    state.allCreditsMonth + state.reservedCredits + state.estimatedCredits >
+    policy.overallMonthlyLimit
+  ) {
+    return "Overall monthly credit limit reached.";
+  }
+  const balanceIsCurrent =
+    state.providerBalanceUpdatedAt != null &&
+    state.providerBalanceUpdatedAt >=
+      new Date(state.now.getTime() - PROVIDER_BALANCE_FRESH_MS);
+  if (
+    balanceIsCurrent &&
+    state.providerRemaining != null &&
+    state.providerRemaining - state.reservedCredits - state.estimatedCredits < 0
+  ) {
+    return "Provider has insufficient remaining credits.";
+  }
+  return null;
+}
 
 export type OddsCreditReservationInput = {
   todayCredits: number;

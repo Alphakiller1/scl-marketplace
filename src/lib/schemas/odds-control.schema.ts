@@ -126,6 +126,11 @@ export const oddsControlSettingsSchema = z
     perRunCreditLimit: z.number().int().min(1).max(1_000_000),
     warningPercent: z.number().int().min(25).max(95),
     reserveCredits: z.number().int().min(0).max(1_000_000),
+    verificationEnabled: z.boolean(),
+    verificationDailyRequestLimit: z.number().int().min(1).max(100_000),
+    verificationDailyCreditLimit: z.number().int().min(1).max(1_000_000),
+    verificationMaxCreditsPerRequest: z.number().int().min(1).max(100),
+    verificationCacheMinutes: z.number().int().min(10).max(1440),
     timezone: z.literal("America/New_York"),
     sports: z.array(oddsSportControlSchema).length(ODDS_CONTROL_SPORTS.length),
   })
@@ -156,6 +161,25 @@ export const oddsControlSettingsSchema = z
         code: "custom",
         path: ["reserveCredits"],
         message: "Reserve must be below the monthly limit.",
+      });
+    }
+    if (value.verificationDailyCreditLimit > value.dailyCreditLimit) {
+      context.addIssue({
+        code: "custom",
+        path: ["verificationDailyCreditLimit"],
+        message:
+          "Verification's daily credit budget cannot exceed the overall daily limit.",
+      });
+    }
+    if (
+      value.verificationMaxCreditsPerRequest >
+      value.verificationDailyCreditLimit
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["verificationMaxCreditsPerRequest"],
+        message:
+          "The per-verification maximum cannot exceed its daily credit budget.",
       });
     }
     for (const sport of value.sports) {

@@ -481,6 +481,11 @@ export default async function AdminOddsPage() {
             <div>
               <h3 className="font-semibold">Credits by purpose</h3>
               <p className="text-muted-foreground text-xs">Current month</p>
+              <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                After this control release, Verification contains only live
+                per-event checks. Earlier entries may include expanded-board
+                population that was previously categorized as verification.
+              </p>
             </div>
             {data.byPurpose.length ? (
               <div className="divide-border divide-y">
@@ -586,6 +591,7 @@ export default async function AdminOddsPage() {
         <AdminOddsControlEditor
           initialConfig={settings.config}
           initialSports={settings.sports}
+          verificationUsage={data.verification}
           storageReady={settings.storageReady}
         />
       </section>
