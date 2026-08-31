@@ -360,7 +360,7 @@ export function universalConfigEntries(
       id: "default-daily-verifications",
       label: "Verifications per event, per day",
       value: `${DEFAULT_EVENT_BUYS_PER_DAY} per day`,
-      description: `How many times one event may be re-priced, counted from 8am ET. The schedule spends all ${DEFAULT_EVENT_BUYS_PER_DAY}: one the day before, one at 8am and one at 5pm. No league may hold more than ${HARD_MAX_EVENT_BUYS_PER_DAY}.`,
+      description: `How many times one event may be re-priced, counted from 8am ET. The schedule spends all ${DEFAULT_EVENT_BUYS_PER_DAY}: one the day before, one at 8am and one at 3pm. No league may hold more than ${HARD_MAX_EVENT_BUYS_PER_DAY}.`,
       overridable: true,
       overriddenBy: overriddenBy(
         (sport) => sport.dailyVerificationLimit !== DEFAULT_EVENT_BUYS_PER_DAY,

@@ -22,8 +22,8 @@ holds the provider keys, and it fires on time.
 | ------------ | -------- | ------- | -------- | ------------------------------------------------------- |
 | `0 12 * * *` | 08:00    | yes     | today    | **Verification 1 of 2** on the day's own slate          |
 | `0 15 * * *` | 11:00    | yes     | —        | Prices only                                             |
-| `0 18 * * *` | 14:00    | yes     | —        | Prices only                                             |
-| `0 21 * * *` | 17:00    | yes     | today    | **Verification 2 of 2**, once the prop cards are posted |
+| `0 19 * * *` | 15:00    | yes     | today    | **Verification 2 of 2**, once the prop cards are posted |
+| `0 21 * * *` | 17:00    | yes     | —        | Prices only, afternoon move                             |
 | `0 23 * * *` | 19:00    | yes     | —        | Prices only, as the evening slate starts                |
 | `0 3 * * *`  | 23:00    | yes     | tomorrow | The day-before build of tomorrow's slate                |
 
@@ -43,7 +43,7 @@ the entire provider bill.
   configured. The value is clamped in the form, in the Zod schema, in
   `resolveEventBuyLimit`, and by a `CHECK` constraint on the column.
 - **`DEFAULT_EVENT_BUYS_PER_DAY` is 3**, and the schedule above spends exactly
-  those three: one the day before, one at 08:00 ET, one at 17:00 ET.
+  those three: one the day before, one at 08:00 ET, one at 15:00 ET.
 - A league can be given its own allowance between 1 and 4 under **League
   coverage → Verifications per event, per day**.
 
@@ -55,7 +55,7 @@ moved.
 **The buy day starts at 08:00 ET, not midnight.** A midnight boundary would hand
 the 23:00 ET build its own allowance: three daytime buys plus an overnight one is
 four inside twenty-four hours, which is the behaviour being removed. Anchored at
-08:00, the day-before build and the following day's 08:00 and 17:00 runs share
+08:00, the day-before build and the following day's 08:00 and 15:00 runs share
 one budget.
 
 An owner forcing a rebuild can pass `ignoreBuyCap=1`; nothing scheduled does.
@@ -77,8 +77,8 @@ MLB asks for 58 markets per event, so a seven-game card cost ~400 credits a run
 and ~2,000 a day for one sport — 6,485 credits went on MLB alone on 2026-08-26.
 Five re-buys is not five times the coverage; it is the same board, five times.
 
-At 330 the buys land at 03:00, 11:00 and 18:00 UTC and the 15:00 and 21:00 runs
-skip boards that are still fresh. Prices still move morning, midday and evening,
+At 330 an expanded run only re-buys a board older than 5.5 hours, which the
+08:00 / 15:00 ET pair clears while the surface runs between them skip. Prices still move morning, midday and evening,
 every market and every fixture is still carried, and the deep-board spend drops
 about 40%. Nothing about coverage changes: `canSkipExpandedEvent` returns false
 for any board that is missing or only partly covered, so a fixture the books

@@ -11,11 +11,11 @@
       "schedule": "0 15 * * *"
     },
     {
-      "path": "/api/cron/odds-populate?sports=MLB,WNBA,TENNIS,SOCCER,NFL&expanded=0&surface=1",
-      "schedule": "0 18 * * *"
+      "path": "/api/cron/odds-populate?sports=MLB,WNBA,TENNIS,SOCCER,NFL&expanded=99&surface=1&skipPopulated=1&expandedMaxAgeMinutes=330&expandedDays=today",
+      "schedule": "0 19 * * *"
     },
     {
-      "path": "/api/cron/odds-populate?sports=MLB,WNBA,TENNIS,SOCCER,NFL&expanded=99&surface=1&skipPopulated=1&expandedMaxAgeMinutes=330&expandedDays=today",
+      "path": "/api/cron/odds-populate?sports=MLB,WNBA,TENNIS,SOCCER,NFL&expanded=0&surface=1",
       "schedule": "0 21 * * *"
     },
     {
