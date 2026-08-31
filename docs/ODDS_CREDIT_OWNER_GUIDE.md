@@ -85,6 +85,10 @@ Under **Change settings → Leagues**, open a league:
 4. Select competitions where available (soccer and tennis).
 5. Set the maximum events per run.
 6. Set separate refresh timing for Standard and Expanded coverage.
+7. **Verifications per event, per day** — how many times one event of this
+   league may be re-priced, counted from 8am ET. The default is 3, which is what
+   the schedule spends: one the day before, one at 8am and one at 5pm. **4 is
+   the ceiling and no league may go above it.**
 
 Anything you leave alone keeps the universal value. More markets, competitions,
 events and frequent refreshes use more credits — and every league draws from the

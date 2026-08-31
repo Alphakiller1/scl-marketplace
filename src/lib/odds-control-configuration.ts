@@ -6,6 +6,10 @@ import {
   LEGACY_SCHEDULED_SPORTS,
   type OddsControlSport,
 } from "@/lib/odds-control";
+import {
+  DEFAULT_EVENT_BUYS_PER_DAY,
+  HARD_MAX_EVENT_BUYS_PER_DAY,
+} from "@/lib/odds-event-buy-budget";
 import { SOCCER_LEAGUES } from "@/lib/soccer-leagues";
 
 /**
@@ -96,6 +100,7 @@ export type SportControlInput = {
   surfaceCadenceMinutes: number;
   expandedCadenceMinutes: number;
   maxEventsPerRun: number;
+  dailyVerificationLimit: number;
 };
 
 type OddsControlConfigInput = {
@@ -352,6 +357,16 @@ export function universalConfigEntries(
       ),
     }),
     universal({
+      id: "default-daily-verifications",
+      label: "Verifications per event, per day",
+      value: `${DEFAULT_EVENT_BUYS_PER_DAY} per day`,
+      description: `How many times one event may be re-priced, counted from 8am ET. The schedule spends all ${DEFAULT_EVENT_BUYS_PER_DAY}: one the day before, one at 8am and one at 5pm. No league may hold more than ${HARD_MAX_EVENT_BUYS_PER_DAY}.`,
+      overridable: true,
+      overriddenBy: overriddenBy(
+        (sport) => sport.dailyVerificationLimit !== DEFAULT_EVENT_BUYS_PER_DAY,
+      ),
+    }),
+    universal({
       id: "default-enabled",
       label: "Default coverage on activation",
       value: `${LEGACY_SCHEDULED_SPORTS.size} leagues on`,
@@ -431,6 +446,15 @@ export function leagueConfigEntries(
         sport.surfaceMarkets,
         BASELINE.surfaceMarkets,
       ),
+    }),
+    league({
+      id: "daily-verifications",
+      label: "Verifications per event, per day",
+      value: `${sport.dailyVerificationLimit} per day`,
+      description: `One ${sport.sport} event is re-priced at most this many times in a day, counted from 8am ET. ${HARD_MAX_EVENT_BUYS_PER_DAY} is the ceiling for any league.`,
+      universalValue: `${DEFAULT_EVENT_BUYS_PER_DAY} per day`,
+      overridesUniversal:
+        sport.dailyVerificationLimit !== DEFAULT_EVENT_BUYS_PER_DAY,
     }),
     league({
       id: "surface-cadence",

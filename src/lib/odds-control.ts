@@ -1,3 +1,4 @@
+import { DEFAULT_EVENT_BUYS_PER_DAY } from "@/lib/odds-event-buy-budget";
 import { expandedBoardMarkets, marketKeysForMarket } from "@/lib/odds-verify";
 import type { OddsSelection } from "@/lib/odds-board";
 import { SOCCER_LEAGUES } from "@/lib/soccer-leagues";
@@ -153,6 +154,7 @@ export function defaultSportControl(sport: OddsControlSport) {
     surfaceCadenceMinutes: 240,
     expandedCadenceMinutes: 360,
     maxEventsPerRun: sport === "SOCCER" ? 80 : 20,
+    dailyVerificationLimit: DEFAULT_EVENT_BUYS_PER_DAY,
     nextSurfaceRunAt: null as string | null,
     nextExpandedRunAt: null as string | null,
     lastSurfaceRunAt: null as string | null,

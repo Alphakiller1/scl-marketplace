@@ -3,9 +3,10 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
+  DEFAULT_EVENT_BUYS_PER_DAY,
   EVENT_BUY_DAY_START_HOUR_ET,
-  MAX_EVENT_BUYS_PER_DAY,
-  PLANNED_EVENT_BUYS_PER_DAY,
+  HARD_MAX_EVENT_BUYS_PER_DAY,
+  SAME_DAY_EXPANDED_RUNS,
 } from "@/lib/odds-event-buy-budget";
 import { REFRESH_MAX_GAP_MINUTES } from "@/lib/strategic-odds-policy";
 
@@ -198,36 +199,52 @@ test("Vercel runs the paid cadence through the day, expanded boards included", (
     "no cron builds tomorrow's board overnight",
   );
 
-  // The rule the bill turns on: a slate is bought at most MAX_EVENT_BUYS_PER_DAY
-  // times, and the buys on its OWN day happen after the 08:00 ET buy day opens.
-  // Six to eight buys per game per day is what took MLB verification to 83% of
-  // the provider bill, and cadence is the only place it can be prevented before
-  // the per-event cap has to refuse it.
+  // The rule the bill turns on. One build the day before, then 08:00 ET and
+  // 17:00 ET on the day itself — three, the default allowance, and never more
+  // than the hard ceiling. Six to eight buys per game per day is what took MLB
+  // verification to 83% of the provider bill.
+  const easternMinutes = (schedule: string) => {
+    const [minute, hour] = schedule.trim().split(/\s+/);
+    // UTC-4 in EDT.
+    return (Number(hour) * 60 + Number(minute) - 4 * 60 + 1440) % 1440;
+  };
+
   const expandedRuns = crons.filter((cron) =>
     cron.path.includes("expanded=99"),
   );
   assert.ok(
-    expandedRuns.length <= MAX_EVENT_BUYS_PER_DAY,
-    `${expandedRuns.length} expanded runs a day exceeds the ${MAX_EVENT_BUYS_PER_DAY}-buy cap`,
+    expandedRuns.length <= HARD_MAX_EVENT_BUYS_PER_DAY,
+    `${expandedRuns.length} expanded runs exceeds the hard ${HARD_MAX_EVENT_BUYS_PER_DAY}-buy ceiling`,
   );
+  assert.equal(
+    expandedRuns.length,
+    DEFAULT_EVENT_BUYS_PER_DAY,
+    "the schedule must spend exactly the default allowance",
+  );
+
   const todayRuns = expandedRuns.filter((cron) =>
     cron.path.includes("expandedDays=today"),
   );
-  assert.equal(
-    todayRuns.length,
-    PLANNED_EVENT_BUYS_PER_DAY,
-    "today's slate must be bought exactly twice",
+  assert.equal(todayRuns.length, SAME_DAY_EXPANDED_RUNS);
+  assert.deepEqual(
+    todayRuns
+      .map((cron) => easternMinutes(cron.schedule))
+      .sort((a, b) => a - b),
+    [8 * 60, 17 * 60],
+    "the two same-day verifications must run at 08:00 and 17:00 ET",
   );
   for (const cron of todayRuns) {
-    const [minute, hour] = cron.schedule.trim().split(/\s+/);
-    // UTC-4 in EDT; both planned buys must land after 08:00 ET.
-    const easternMinutes =
-      (Number(hour) * 60 + Number(minute) - 4 * 60 + 1440) % 1440;
     assert.ok(
-      easternMinutes >= EVENT_BUY_DAY_START_HOUR_ET * 60,
-      `an expanded buy at ${hour}:${minute} UTC lands before 08:00 ET`,
+      easternMinutes(cron.schedule) >= EVENT_BUY_DAY_START_HOUR_ET * 60,
+      "a same-day verification must not run before the buy day opens",
     );
   }
+
+  // Every sport rides the same runs, so no league can drift onto its own cadence.
+  for (const cron of expandedRuns) {
+    assert.match(cron.path, /sports=MLB,WNBA,TENNIS,SOCCER,NFL/);
+  }
+
   for (const cron of crons) {
     assert.match(cron.path, /sports=MLB,WNBA,TENNIS,SOCCER,NFL/);
     assert.match(cron.schedule, /^\S+ \S+ \* \* \*$/);

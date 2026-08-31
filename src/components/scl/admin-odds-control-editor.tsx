@@ -38,6 +38,10 @@ import {
   type OddsControlSport,
 } from "@/lib/odds-control";
 import { formatEasternDateTime } from "@/lib/odds-control-reporting";
+import {
+  DEFAULT_EVENT_BUYS_PER_DAY,
+  HARD_MAX_EVENT_BUYS_PER_DAY,
+} from "@/lib/odds-event-buy-budget";
 import type { OddsControlSettingsInput } from "@/lib/schemas/odds-control.schema";
 import { cn } from "@/lib/utils";
 
@@ -608,6 +612,43 @@ export function AdminOddsControlEditor({
                     label={`Enable ${sport.sport}`}
                     description="Master switch for this sport. Turning it off prevents both standard and expanded scheduled pulls."
                   />
+
+                  <div className="border-border grid gap-2 rounded-xl border p-4 sm:grid-cols-[minmax(0,1fr)_10rem] sm:items-center">
+                    <div>
+                      <Label htmlFor={`${sport.sport}-daily-verifications`}>
+                        Verifications per event, per day
+                      </Label>
+                      <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                        How many times one {sport.sport} event may be re-priced
+                        in a day, counted from 8am ET. The schedule spends{" "}
+                        {DEFAULT_EVENT_BUYS_PER_DAY}: one the day before, one at
+                        8am and one at 5pm. {HARD_MAX_EVENT_BUYS_PER_DAY} is the
+                        most any league may hold.
+                      </p>
+                    </div>
+                    <Input
+                      id={`${sport.sport}-daily-verifications`}
+                      type="number"
+                      min={1}
+                      max={HARD_MAX_EVENT_BUYS_PER_DAY}
+                      disabled={!sport.enabled}
+                      value={sport.dailyVerificationLimit}
+                      onChange={(event) =>
+                        updateSport(sport.sport, {
+                          dailyVerificationLimit: Math.max(
+                            1,
+                            Math.min(
+                              HARD_MAX_EVENT_BUYS_PER_DAY,
+                              numberValue(
+                                event.target.value,
+                                sport.dailyVerificationLimit,
+                              ),
+                            ),
+                          ),
+                        })
+                      }
+                    />
+                  </div>
 
                   <div className="grid gap-4 xl:grid-cols-2">
                     <fieldset

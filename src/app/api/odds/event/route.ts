@@ -39,7 +39,11 @@ export async function GET(request: Request) {
   const board =
     sport && eventId && (!policy || (policy.enabled && policy.expandedEnabled))
       ? policy
-        ? await loadCachedEventBoard(sport, eventId)
+        ? await loadCachedEventBoard(
+            sport,
+            eventId,
+            policy.dailyVerificationLimit,
+          )
         : await loadEventBoard(sport, eventId, { league })
       : {
           selections: [],

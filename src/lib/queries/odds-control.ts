@@ -111,6 +111,7 @@ export async function getOddsControlSettings() {
         surfaceCadenceMinutes: stored.surfaceCadenceMinutes,
         expandedCadenceMinutes: stored.expandedCadenceMinutes,
         maxEventsPerRun: stored.maxEventsPerRun,
+        dailyVerificationLimit: stored.dailyVerificationLimit,
         nextSurfaceRunAt: isoOrNull(stored.nextSurfaceRunAt),
         nextExpandedRunAt: isoOrNull(stored.nextExpandedRunAt),
         lastSurfaceRunAt: isoOrNull(stored.lastSurfaceRunAt),

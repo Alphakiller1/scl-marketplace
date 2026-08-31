@@ -59,6 +59,7 @@ export async function getManagedOddsSportControl(sport: string) {
           surfaceMarkets: policy.surfaceMarkets,
           expandedMarkets: policy.expandedMarkets,
           leagues: policy.leagues,
+          dailyVerificationLimit: policy.dailyVerificationLimit,
         }
       : {
           managed: true as const,
@@ -69,6 +70,7 @@ export async function getManagedOddsSportControl(sport: string) {
           surfaceMarkets: [] as string[],
           expandedMarkets: [] as string[],
           leagues: [] as string[],
+          dailyVerificationLimit: null as number | null,
         };
   } catch (error) {
     if (isMissingOddsControlStorageError(error)) return null;

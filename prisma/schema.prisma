@@ -848,6 +848,8 @@ model OddsSportControl {
   surfaceCadenceMinutes  Int       @default(240)
   expandedCadenceMinutes Int       @default(360)
   maxEventsPerRun        Int       @default(20)
+  /// Paid refreshes one event of this league may take in a buy day (max 4).
+  dailyVerificationLimit Int       @default(3)
   nextSurfaceRunAt       DateTime?
   nextExpandedRunAt      DateTime?
   lastSurfaceRunAt       DateTime?

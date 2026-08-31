@@ -12,20 +12,48 @@
  * to justify re-buying fifty markets, so the ceiling is a COUNT, not an age. An
  * age threshold cannot bound spend: every path that asks outside the window
  * pays again, and there is no limit on how many paths ask.
+ *
+ * The allowance is per league and per event: three a day by default, four at the
+ * absolute most, spent by the schedule as one build the day before plus 08:00
+ * and 17:00 ET on the day itself.
  */
 
 const EASTERN_ZONE = "America/New_York";
 
-/** Hard ceiling: an event's expanded board is bought at most this many times a day. */
-export const MAX_EVENT_BUYS_PER_DAY = 3;
+/**
+ * The ceiling no league may exceed, whatever it is configured for.
+ *
+ * A league can be given its own allowance, but not one above this — the cap
+ * exists to bound the bill, and an override that could raise it without limit
+ * would only move the problem behind one more setting.
+ */
+export const HARD_MAX_EVENT_BUYS_PER_DAY = 4;
+
+/** The allowance a league gets unless it has been given its own. */
+export const DEFAULT_EVENT_BUYS_PER_DAY = 3;
 
 /**
- * What the schedule actually plans for — two buys on the day's own slate.
- *
- * The third is headroom, spent by the overnight run that builds the next day's
- * board, or by an owner forcing a refresh. Nothing should reach three routinely.
+ * The three the schedule plans for: one the day before, one at 08:00 ET and one
+ * at 17:00 ET. Every sport runs on these same times.
  */
-export const PLANNED_EVENT_BUYS_PER_DAY = 2;
+export const SAME_DAY_EXPANDED_RUNS = 2;
+
+/**
+ * A league's allowance, clamped into range.
+ *
+ * Anything absent, unparseable or out of bounds falls back to the default
+ * rather than to "unlimited" — a bad value must never be the thing that lifts
+ * the cap.
+ */
+export function resolveEventBuyLimit(configured?: number | null): number {
+  if (configured == null || !Number.isFinite(configured)) {
+    return DEFAULT_EVENT_BUYS_PER_DAY;
+  }
+  return Math.max(
+    1,
+    Math.min(HARD_MAX_EVENT_BUYS_PER_DAY, Math.floor(configured)),
+  );
+}
 
 /**
  * The buy day starts at 08:00 ET, not midnight.
@@ -35,7 +63,7 @@ export const PLANNED_EVENT_BUYS_PER_DAY = 2;
  * run starts a new day and buys again — four in twenty-four hours, which is the
  * behaviour being removed. Starting the day at 08:00 puts the overnight build
  * and the following day's two buys in the same budget, so twenty-four hours
- * never contains more than {@link MAX_EVENT_BUYS_PER_DAY}.
+ * never contains more than the league's allowance.
  */
 export const EVENT_BUY_DAY_START_HOUR_ET = 8;
 
@@ -86,18 +114,21 @@ export function buysInBuyDay(
 export function eventBuyBudgetExhausted(
   buys: readonly number[] | undefined,
   now: number = Date.now(),
-  max: number = MAX_EVENT_BUYS_PER_DAY,
+  limit?: number | null,
 ): boolean {
-  return buysInBuyDay(buys, now).length >= max;
+  return buysInBuyDay(buys, now).length >= resolveEventBuyLimit(limit);
 }
 
 /** Buys left before this event stops being re-priced today. */
 export function remainingEventBuys(
   buys: readonly number[] | undefined,
   now: number = Date.now(),
-  max: number = MAX_EVENT_BUYS_PER_DAY,
+  limit?: number | null,
 ): number {
-  return Math.max(0, max - buysInBuyDay(buys, now).length);
+  return Math.max(
+    0,
+    resolveEventBuyLimit(limit) - buysInBuyDay(buys, now).length,
+  );
 }
 
 /**

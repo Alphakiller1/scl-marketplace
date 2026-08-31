@@ -15,9 +15,9 @@ import {
 } from "@/lib/odds-durable-cache";
 import {
   eventBuyBudgetExhausted,
-  MAX_EVENT_BUYS_PER_DAY,
   recordEventBuy,
   remainingEventBuys,
+  resolveEventBuyLimit,
 } from "@/lib/odds-event-buy-budget";
 import { freshestSnapshot } from "@/lib/odds-snapshot-freshness";
 import {
@@ -130,6 +130,7 @@ async function writeSnapshot(
 export async function loadCachedEventBoard(
   sport: string,
   eventId: string,
+  dailyBuyLimit?: number | null,
 ): Promise<CachedEventBoard> {
   const cached = await readSnapshot(sport.toUpperCase(), eventId);
   if (!cached) {
@@ -138,7 +139,7 @@ export async function loadCachedEventBoard(
       source: "cache_empty",
       stale: false,
       savedAt: null,
-      buysRemaining: MAX_EVENT_BUYS_PER_DAY,
+      buysRemaining: resolveEventBuyLimit(dailyBuyLimit),
     };
   }
   const stale = Date.now() - cached.savedAt > ODDS_EVENT_FRESH_SECONDS * 1_000;
@@ -147,7 +148,7 @@ export async function loadCachedEventBoard(
     source: stale ? "stale_cache_only" : "runtime_cache",
     stale,
     savedAt: cached.savedAt,
-    buysRemaining: remainingEventBuys(cached.buys),
+    buysRemaining: remainingEventBuys(cached.buys, Date.now(), dailyBuyLimit),
   };
 }
 
@@ -219,6 +220,11 @@ export async function loadEventBoard(
      * rebuild; every scheduled and on-demand path leaves it alone.
      */
     ignoreDailyBuyCap?: boolean;
+    /**
+     * This league's allowance. Omitted, the shared default applies — a caller
+     * that does not know the league's setting must not get an unlimited one.
+     */
+    dailyBuyLimit?: number | null;
   } = {},
 ): Promise<LoadedEventBoard> {
   const normalizedSport = sport.toUpperCase();
@@ -248,11 +254,14 @@ export async function loadEventBoard(
   // Returning the cached board is the right refusal: the prices are hours old at
   // worst, they are flagged stale, and the alternative is buying fifty markets
   // for a line that has barely moved.
-  if (!options.ignoreDailyBuyCap && eventBuyBudgetExhausted(cached?.buys)) {
+  if (
+    !options.ignoreDailyBuyCap &&
+    eventBuyBudgetExhausted(cached?.buys, Date.now(), options.dailyBuyLimit)
+  ) {
     console.info("[odds-event-cache] daily buy cap reached", {
       sport: normalizedSport,
       eventId,
-      cap: MAX_EVENT_BUYS_PER_DAY,
+      cap: resolveEventBuyLimit(options.dailyBuyLimit),
     });
     return {
       selections: cached?.selections ?? [],

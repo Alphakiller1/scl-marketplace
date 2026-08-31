@@ -42,6 +42,8 @@ import {
   SURFACE_MARKETS,
 } from "@/lib/odds-control";
 import { managedOddsSchedulingEnabled } from "@/lib/odds-control-runtime";
+import { isMissingOddsControlStorageError } from "@/lib/odds-control";
+import { prisma } from "@/lib/prisma";
 
 export const maxDuration = 300;
 
@@ -137,6 +139,25 @@ async function loadSurface(
     source: board.source,
     stale: board.stale,
   };
+}
+
+/**
+ * Per-league daily buy allowances, keyed by SCL sport.
+ *
+ * Missing storage or a missing row is not an absent limit — the caller falls
+ * back to the shared default, so a database that has never been configured is
+ * still capped.
+ */
+async function loadLeagueBuyLimits(): Promise<Map<string, number>> {
+  try {
+    const rows = await prisma.oddsSportControl.findMany({
+      select: { sport: true, dailyVerificationLimit: true },
+    });
+    return new Map(rows.map((row) => [row.sport, row.dailyVerificationLimit]));
+  } catch (error) {
+    if (!isMissingOddsControlStorageError(error)) throw error;
+    return new Map();
+  }
 }
 
 async function populate(req: NextRequest) {
@@ -251,6 +272,9 @@ async function runPopulate(req: NextRequest) {
   }
 
   if (expandedLimit > 0) {
+    // Each league's own daily allowance, read once for the whole run. A league
+    // with no saved row falls back to the shared default rather than to no cap.
+    const buyLimitsBySport = await loadLeagueBuyLimits();
     const slates = expandedOrder.map((sport) => ({
       sport,
       events: selectExpandedSlateEvents(
@@ -279,6 +303,9 @@ async function runPopulate(req: NextRequest) {
       let stale = 0;
       let unpriced = 0;
       let capped = 0;
+      // One lookup per sport rather than per event: the allowance is a league
+      // setting, and the inner loop runs once per fixture on the slate.
+      const buyLimit = buyLimitsBySport.get(sport) ?? null;
       const emptyRuns = new Map<string, number>();
       for (const event of events) {
         const competition = event.league ?? sport;
@@ -291,7 +318,7 @@ async function runPopulate(req: NextRequest) {
         // Checking here rather than only inside `loadEventBoard` is what lets a
         // run REPORT how many events it declined to re-buy — a cap that is
         // enforced but invisible looks exactly like a broken populate.
-        const cached = await loadCachedEventBoard(sport, event.id);
+        const cached = await loadCachedEventBoard(sport, event.id, buyLimit);
         if (!ignoreBuyCap && cached.buysRemaining <= 0) {
           capped += 1;
           populated += 1;
@@ -335,6 +362,7 @@ async function runPopulate(req: NextRequest) {
           league: event.league,
           markets: expandedMarkets.length ? expandedMarkets : undefined,
           ignoreDailyBuyCap: ignoreBuyCap,
+          dailyBuyLimit: buyLimit,
         });
         if (board.selections.length > 0) {
           populated += 1;

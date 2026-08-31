@@ -98,6 +98,7 @@ export async function saveOddsControlSettingsAction(
             expandedEnabled: sport.expandedEnabled,
             surfaceMarkets: sport.surfaceMarkets,
             expandedMarkets: sport.expandedMarkets,
+            dailyVerificationLimit: sport.dailyVerificationLimit,
             leagues: sport.leagues,
             surfaceCadenceMinutes: sport.surfaceCadenceMinutes,
             expandedCadenceMinutes: sport.expandedCadenceMinutes,

@@ -18,37 +18,47 @@ enables managed scheduling, the fixed cadence below remains authoritative.
 The paid cadence lives in **`vercel.json`**. It runs inside the deployment that
 holds the provider keys, and it fires on time.
 
-| UTC          | ET (EDT) | Surface | Expanded | Purpose                                                  |
-| ------------ | -------- | ------- | -------- | -------------------------------------------------------- |
-| `0 11 * * *` | 07:00    | yes     | —        | Prices only, before the 08:00 ET buy day opens           |
-| `0 15 * * *` | 11:00    | yes     | today    | **Buy 1 of 2** — build the day's expanded board          |
-| `0 18 * * *` | 14:00    | yes     | —        | Prices only, afternoon move                              |
-| `0 21 * * *` | 17:00    | yes     | today    | **Buy 2 of 2** — prop cards and alternate ladders are up |
-| `0 23 * * *` | 19:00    | yes     | —        | Prices only, as the evening slate starts                 |
-| `0 3 * * *`  | 23:00    | yes     | tomorrow | Build tomorrow's board                                   |
+| UTC          | ET (EDT) | Surface | Expanded | Purpose                                                 |
+| ------------ | -------- | ------- | -------- | ------------------------------------------------------- |
+| `0 12 * * *` | 08:00    | yes     | today    | **Verification 1 of 2** on the day's own slate          |
+| `0 15 * * *` | 11:00    | yes     | —        | Prices only                                             |
+| `0 18 * * *` | 14:00    | yes     | —        | Prices only                                             |
+| `0 21 * * *` | 17:00    | yes     | today    | **Verification 2 of 2**, once the prop cards are posted |
+| `0 23 * * *` | 19:00    | yes     | —        | Prices only, as the evening slate starts                |
+| `0 3 * * *`  | 23:00    | yes     | tomorrow | The day-before build of tomorrow's slate                |
 
-## An event is bought at most three times a day
+Every sport rides the same runs. There is no per-sport cadence, so no league can
+drift onto a schedule of its own.
 
-This is the rule the bill turns on, and it is enforced as a **count**, not an
-age. Measured 2026-08-30, a fifteen-game MLB slate was being bought 87–130 times
-a day — six to eight times per game at ~50 credits a call — which was 83% of the
-entire provider bill. Scheduled runs are only one source of those buys; a capper
-opening a matchup is another. No cadence setting can bound a number that other
-paths are free to add to.
+## No league exceeds four verifications a day
 
-So every paid refresh of an event board is logged on the board's own snapshot,
-and `MAX_EVENT_BUYS_PER_DAY` (3) refuses the next one. A refused buy returns the
-cached board flagged stale rather than an empty one — hours-old prices beat
-paying fifty markets for a line that has barely moved.
+The ceiling is enforced as a **count**, not an age, because an age threshold
+cannot bound spend: scheduled runs are one source of expanded buys, a capper
+opening a matchup is another, and each pays again the moment the freshness
+window lapses. Measured 2026-08-30, a fifteen-game MLB slate was being bought
+87–130 times a day — six to eight times per game at ~50 credits a call, 83% of
+the entire provider bill.
+
+- **`HARD_MAX_EVENT_BUYS_PER_DAY` is 4.** No league may exceed it, however it is
+  configured. The value is clamped in the form, in the Zod schema, in
+  `resolveEventBuyLimit`, and by a `CHECK` constraint on the column.
+- **`DEFAULT_EVENT_BUYS_PER_DAY` is 3**, and the schedule above spends exactly
+  those three: one the day before, one at 08:00 ET, one at 17:00 ET.
+- A league can be given its own allowance between 1 and 4 under **League
+  coverage → Verifications per event, per day**.
+
+Every paid refresh is logged on the event board's own snapshot and the next one
+is refused past the allowance. A refused buy returns the cached board flagged
+stale — hours-old prices beat paying fifty markets for a line that has barely
+moved.
 
 **The buy day starts at 08:00 ET, not midnight.** A midnight boundary would hand
 the 23:00 ET build its own allowance: three daytime buys plus an overnight one is
 four inside twenty-four hours, which is the behaviour being removed. Anchored at
-08:00, the overnight build and the following day's two buys share one budget.
+08:00, the day-before build and the following day's 08:00 and 17:00 runs share
+one budget.
 
-The two buys on a slate's own day both land after 08:00 ET, which is what the
-cadence above encodes and `odds-population-schedule.test.ts` asserts. An owner
-forcing a rebuild can pass `ignoreBuyCap=1`; nothing scheduled does.
+An owner forcing a rebuild can pass `ignoreBuyCap=1`; nothing scheduled does.
 
 Every expanded run carries `skipPopulated=1`, so an event whose card is already
 complete costs nothing — but "complete" alone is not enough to skip it.
