@@ -730,6 +730,7 @@ model Play {
   @@index([capperId])
   @@index([outcome])
   @@index([eventId])
+  @@index([status, createdAt])
 }
 
 model Parlay {

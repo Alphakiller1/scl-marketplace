@@ -11,6 +11,10 @@ import {
   identifyUsageSpikes,
   summarizeOddsRunDetails,
 } from "@/lib/odds-control-reporting";
+import {
+  LEAGUE_PICK_DEMAND_WINDOW_DAYS,
+  summarizeLeaguePickDemand,
+} from "@/lib/odds-demand";
 import { prisma } from "@/lib/prisma";
 
 function utcDay(date: Date): Date {
@@ -319,6 +323,57 @@ export async function getOddsCreditDashboard() {
       }),
     })),
   };
+}
+
+/** Admin-only demand signal for deciding which league boards deserve credits. */
+export async function getLeaguePickDemand(now = new Date()) {
+  const since = new Date(
+    now.getTime() - LEAGUE_PICK_DEMAND_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+  );
+  try {
+    const rows = await prisma.play.groupBy({
+      by: ["sport", "league", "capperId"],
+      where: {
+        createdAt: { gte: since },
+        status: "COMMITTED",
+        capper: {
+          user: {
+            role: "CAPPER",
+            accountStatus: "ACTIVE",
+            isTest: false,
+          },
+        },
+      },
+      _count: { _all: true },
+      _max: { createdAt: true },
+    });
+    return {
+      storageReady: true,
+      windowDays: LEAGUE_PICK_DEMAND_WINDOW_DAYS,
+      leagues: summarizeLeaguePickDemand(
+        rows.flatMap((row) =>
+          row._max.createdAt
+            ? [
+                {
+                  sport: row.sport,
+                  league: row.league,
+                  capperId: row.capperId,
+                  pickCount: row._count._all,
+                  lastPickAt: row._max.createdAt,
+                },
+              ]
+            : [],
+        ),
+      ),
+    };
+  } catch (error) {
+    console.error("[odds-control] league pick demand unavailable", error);
+    return {
+      storageReady: false,
+      windowDays: LEAGUE_PICK_DEMAND_WINDOW_DAYS,
+      leagues: [],
+    };
+  }
 }
 
 export type OddsCreditDashboard = Awaited<

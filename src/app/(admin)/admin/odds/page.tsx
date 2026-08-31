@@ -14,6 +14,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 
+import { AdminLeaguePickDemand } from "@/components/scl/admin-league-pick-demand";
 import { AdminOddsControlEditor } from "@/components/scl/admin-odds-control-editor";
 import { AdminOddsUsageChart } from "@/components/scl/admin-odds-usage-chart";
 import { SectionHeader } from "@/components/scl/section";
@@ -23,7 +24,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { creditLimitState } from "@/lib/odds-control";
 import { formatEasternDateTime } from "@/lib/odds-control-reporting";
-import { getOddsCreditDashboard } from "@/lib/queries/odds-control";
+import {
+  getLeaguePickDemand,
+  getOddsCreditDashboard,
+} from "@/lib/queries/odds-control";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "API credits" };
@@ -129,7 +133,10 @@ function RunStatus({ status }: { status: string }) {
 }
 
 export default async function AdminOddsPage() {
-  const data = await getOddsCreditDashboard();
+  const [data, leagueDemand] = await Promise.all([
+    getOddsCreditDashboard(),
+    getLeaguePickDemand(),
+  ]);
   const { settings } = data;
   const controlState = !settings.config.managedSchedulingEnabled
     ? "inactive"
@@ -540,6 +547,8 @@ export default async function AdminOddsPage() {
             )}
           </Card>
         </div>
+
+        <AdminLeaguePickDemand {...leagueDemand} />
 
         <Card className="space-y-3 p-4 sm:p-5">
           <h3 className="font-semibold">Board and provider health</h3>
