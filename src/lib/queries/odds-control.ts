@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  adjustedOddsRemaining,
   clampToPlanStart,
   CREDIT_WINDOW_DAYS,
   creditWindowStart,
@@ -276,7 +277,8 @@ export async function getOddsCreditDashboard() {
   const latestProviderUsage = [...usage]
     .reverse()
     .find((row) => row.remaining != null);
-  const latestRemaining = latestProviderUsage?.remaining;
+  // The account balance, not just the key that served the last response.
+  const latestRemaining = adjustedOddsRemaining(latestProviderUsage?.remaining);
 
   const sportCredits = new Map<string, number>();
   const purposeUsage = new Map<string, { credits: number; calls: number }>();
