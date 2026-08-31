@@ -231,7 +231,7 @@ test("owner scheduling is a signed, dormant-by-default dispatcher", () => {
     crons.some(
       (cron) =>
         cron.path === "/api/cron/odds-dispatch" &&
-        cron.schedule === "*/15 * * * *",
+        cron.schedule === "*/5 * * * *",
     ),
   );
   assert.match(dispatcher, /process\.env\.CRON_SECRET/);

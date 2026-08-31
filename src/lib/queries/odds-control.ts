@@ -36,6 +36,7 @@ export async function oddsControlStorageReady(): Promise<boolean> {
         to_regclass('scl."OddsApiRun"') IS NOT NULL AND
         to_regclass('scl."OddsUsageMarketDaily"') IS NOT NULL AND
         to_regclass('scl."OddsControlAuditEvent"') IS NOT NULL AND
+        to_regclass('scl."OddsVerificationSchedule"') IS NOT NULL AND
         (
           SELECT COUNT(*) = 5
           FROM information_schema.columns
@@ -404,6 +405,32 @@ export async function getLeaguePickDemand(now = new Date()) {
       leagues: [],
     };
   }
+}
+
+export async function getVerificationSchedules() {
+  if (!(await oddsControlStorageReady())) return [];
+  const rows = await prisma.oddsVerificationSchedule.findMany({
+    orderBy: [{ enabled: "desc" }, { nextRunAt: "asc" }, { createdAt: "desc" }],
+    take: 50,
+  });
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    sport: row.sport,
+    scope: row.scope,
+    league: row.league,
+    coverage: row.coverage,
+    markets: row.markets,
+    maxEvents: row.maxEvents,
+    recurrence: row.recurrence,
+    daysOfWeek: row.daysOfWeek,
+    timeOfDayMinutes: row.timeOfDayMinutes,
+    runAt: isoOrNull(row.runAt),
+    nextRunAt: isoOrNull(row.nextRunAt),
+    lastRunAt: isoOrNull(row.lastRunAt),
+    lastStatus: row.lastStatus,
+    enabled: row.enabled,
+  }));
 }
 
 export type OddsCreditDashboard = Awaited<

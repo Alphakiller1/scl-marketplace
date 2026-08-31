@@ -17,6 +17,7 @@ import {
 import { AdminLeaguePickDemand } from "@/components/scl/admin-league-pick-demand";
 import { AdminOddsControlEditor } from "@/components/scl/admin-odds-control-editor";
 import { AdminOddsUsageChart } from "@/components/scl/admin-odds-usage-chart";
+import { AdminVerificationSchedules } from "@/components/scl/admin-verification-schedules";
 import { SectionHeader } from "@/components/scl/section";
 import { EmptyState } from "@/components/scl/states";
 import { StatBlock } from "@/components/scl/stat";
@@ -27,6 +28,7 @@ import { formatEasternDateTime } from "@/lib/odds-control-reporting";
 import {
   getLeaguePickDemand,
   getOddsCreditDashboard,
+  getVerificationSchedules,
 } from "@/lib/queries/odds-control";
 import { cn } from "@/lib/utils";
 
@@ -133,9 +135,10 @@ function RunStatus({ status }: { status: string }) {
 }
 
 export default async function AdminOddsPage() {
-  const [data, leagueDemand] = await Promise.all([
+  const [data, leagueDemand, verificationSchedules] = await Promise.all([
     getOddsCreditDashboard(),
     getLeaguePickDemand(),
+    getVerificationSchedules(),
   ]);
   const { settings } = data;
   const controlState = !settings.config.managedSchedulingEnabled
@@ -192,6 +195,7 @@ export default async function AdminOddsPage() {
           ["Usage", "#usage"],
           ["Guardrails", "#controls"],
           ["Sports & markets", "#sports"],
+          ["Verify schedule", "#verification-schedules"],
           ["Activity", "#activity"],
         ].map(([label, href]) => (
           <a
@@ -592,6 +596,16 @@ export default async function AdminOddsPage() {
           initialConfig={settings.config}
           initialSports={settings.sports}
           verificationUsage={data.verification}
+          storageReady={settings.storageReady}
+        />
+        <AdminVerificationSchedules
+          sports={settings.sports}
+          schedules={verificationSchedules}
+          verificationLimits={{
+            dailyCredits: settings.config.verificationDailyCreditLimit,
+            maxCreditsPerRequest:
+              settings.config.verificationMaxCreditsPerRequest,
+          }}
           storageReady={settings.storageReady}
         />
       </section>

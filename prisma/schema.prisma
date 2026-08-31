@@ -57,31 +57,32 @@ model User {
   createdAt                DateTime      @default(now())
   updatedAt                DateTime      @updatedAt
 
-  accounts               Account[]
-  sessions               Session[]
-  capperProfile          CapperProfile?
-  termsAcceptances       TermsAcceptance[]
-  gradingActions         GradingAudit[]            @relation("GradedBy")
-  parlayGradeActions     ParlayGradingAudit[]      @relation("ParlayGradedBy")
-  passwordResetToken     PasswordResetToken?
-  statusChanges          AccountStatusAudit[]      @relation("AccountStatusSubject")
-  statusActions          AccountStatusAudit[]      @relation("AccountStatusActor")
-  storefrontReviews      StorefrontReviewEvent[]   @relation("StorefrontReviewActor")
-  storefrontReviewed     StoreConnection[]         @relation("StoreConnectionReviewedBy")
-  policyUpdates          PolicyDocument[]          @relation("PolicyUpdatedBy")
-  policyRevisions        PolicyDocumentRevision[]  @relation("PolicyRevisionEditedBy")
-  emailTemplates         EmailTemplate[]           @relation("EmailTemplateUpdatedBy")
-  emailTemplateEdits     EmailTemplateRevision[]   @relation("EmailTemplateRevisionEditedBy")
-  emailAutomationUpdates EmailAutomationConfig[]   @relation("EmailAutomationConfigUpdatedBy")
-  automatedEmails        EmailAutomationDelivery[] @relation("EmailAutomationRecipient")
-  packageAudits          PackageAuditEvent[]       @relation("PackageAuditActor")
-  storefrontMessages     StorefrontMessage[]       @relation("StorefrontMessageSender")
-  broadcastsSent         AdminBroadcast[]          @relation("AdminBroadcastSender")
-  broadcastsReceived     AdminBroadcastRecipient[] @relation("AdminBroadcastRecipientUser")
-  oddsControlUpdates     OddsControlConfig[]       @relation("OddsControlUpdatedBy")
-  oddsSportUpdates       OddsSportControl[]        @relation("OddsSportControlUpdatedBy")
-  oddsControlAudits      OddsControlAuditEvent[]   @relation("OddsControlAuditActor")
-  oddsRunsTriggered      OddsApiRun[]              @relation("OddsApiRunTriggeredBy")
+  accounts                  Account[]
+  sessions                  Session[]
+  capperProfile             CapperProfile?
+  termsAcceptances          TermsAcceptance[]
+  gradingActions            GradingAudit[]             @relation("GradedBy")
+  parlayGradeActions        ParlayGradingAudit[]       @relation("ParlayGradedBy")
+  passwordResetToken        PasswordResetToken?
+  statusChanges             AccountStatusAudit[]       @relation("AccountStatusSubject")
+  statusActions             AccountStatusAudit[]       @relation("AccountStatusActor")
+  storefrontReviews         StorefrontReviewEvent[]    @relation("StorefrontReviewActor")
+  storefrontReviewed        StoreConnection[]          @relation("StoreConnectionReviewedBy")
+  policyUpdates             PolicyDocument[]           @relation("PolicyUpdatedBy")
+  policyRevisions           PolicyDocumentRevision[]   @relation("PolicyRevisionEditedBy")
+  emailTemplates            EmailTemplate[]            @relation("EmailTemplateUpdatedBy")
+  emailTemplateEdits        EmailTemplateRevision[]    @relation("EmailTemplateRevisionEditedBy")
+  emailAutomationUpdates    EmailAutomationConfig[]    @relation("EmailAutomationConfigUpdatedBy")
+  automatedEmails           EmailAutomationDelivery[]  @relation("EmailAutomationRecipient")
+  packageAudits             PackageAuditEvent[]        @relation("PackageAuditActor")
+  storefrontMessages        StorefrontMessage[]        @relation("StorefrontMessageSender")
+  broadcastsSent            AdminBroadcast[]           @relation("AdminBroadcastSender")
+  broadcastsReceived        AdminBroadcastRecipient[]  @relation("AdminBroadcastRecipientUser")
+  oddsControlUpdates        OddsControlConfig[]        @relation("OddsControlUpdatedBy")
+  oddsSportUpdates          OddsSportControl[]         @relation("OddsSportControlUpdatedBy")
+  oddsControlAudits         OddsControlAuditEvent[]    @relation("OddsControlAuditActor")
+  oddsRunsTriggered         OddsApiRun[]               @relation("OddsApiRunTriggeredBy")
+  oddsVerificationSchedules OddsVerificationSchedule[] @relation("OddsVerificationScheduleUpdatedBy")
 
   @@unique([email, username])
 }
@@ -899,6 +900,34 @@ model OddsControlAuditEvent {
 
   @@index([createdAt])
   @@index([actorId, createdAt])
+}
+
+/// Owner-created one-time or recurring verification work read by the fixed dispatcher.
+model OddsVerificationSchedule {
+  id               String    @id @default(cuid())
+  name             String
+  sport            String
+  scope            String
+  league           String?
+  coverage         String
+  markets          String[]  @default([])
+  maxEvents        Int       @default(20)
+  recurrence       String
+  daysOfWeek       Int[]     @default([])
+  timeOfDayMinutes Int?
+  runAt            DateTime?
+  nextRunAt        DateTime?
+  lastRunAt        DateTime?
+  lastStatus       String?
+  enabled          Boolean   @default(true)
+  updatedById      String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  updatedBy User? @relation("OddsVerificationScheduleUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([enabled, nextRunAt])
+  @@index([sport, league])
 }
 
 /// Deployment-independent last-good odds snapshots used by the pick maker.

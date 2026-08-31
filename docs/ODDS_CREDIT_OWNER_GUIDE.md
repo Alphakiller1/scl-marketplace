@@ -39,6 +39,21 @@ Use **Verification controls** to manage live per-event price checks separately:
 These settings do not disable results grading. Expanded-board population is
 reported and controlled as Board usage, not Verification.
 
+### Schedule slate or league verification
+
+In **Slate & league verification schedules**:
+
+1. Name the schedule and choose a sport.
+2. Choose **Whole slate**, or **One league** for soccer and tennis.
+3. Select standard lines, the sport's currently configured markets, or all supported markets.
+4. Set the maximum events. Use `99` when the intent is the entire available slate.
+5. Choose **Run once** with an Eastern date/time, or **Repeat weekly** with weekdays and an Eastern time.
+6. Review the maximum-credit preview, then create the schedule.
+
+Due schedules run within five minutes of their selected time. Pause or resume a
+recurring schedule from the saved-schedule list. The verification-specific and
+overall credit limits can block a run before it spends credits.
+
 ## 3. Choose coverage
 
 Open each sport under **Sports, markets & cadence**:
