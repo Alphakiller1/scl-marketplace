@@ -2,7 +2,12 @@ import "server-only";
 
 import { Prisma } from "@prisma/client";
 
-import { oddsReservationBlockReason } from "@/lib/odds-control";
+import {
+  CREDIT_WINDOW_DAYS,
+  creditWindowStart,
+  oddsReservationBlockReason,
+  utcDayStart,
+} from "@/lib/odds-control";
 import { prisma } from "@/lib/prisma";
 import {
   nextRecurringVerificationAt,
@@ -18,12 +23,6 @@ export type ClaimedVerificationScheduleRun = {
   maxEvents: number;
   estimatedCredits: number;
 };
-
-function utcDay(date: Date): Date {
-  const day = new Date(date);
-  day.setUTCHours(0, 0, 0, 0);
-  return day;
-}
 
 export async function claimDueVerificationSchedule(
   now = new Date(),
@@ -55,11 +54,9 @@ export async function claimDueVerificationSchedule(
               error: "Scheduled verification lease expired.",
             },
           });
-          const today = utcDay(now);
-          const week = utcDay(new Date(now.getTime() - 6 * 86_400_000));
-          const month = new Date(
-            Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
-          );
+          const today = utcDayStart(now);
+          const week = creditWindowStart(now, CREDIT_WINDOW_DAYS.week);
+          const month = creditWindowStart(now, CREDIT_WINDOW_DAYS.month);
           const [
             todayUsage,
             weekUsage,

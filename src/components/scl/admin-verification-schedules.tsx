@@ -21,7 +21,10 @@ import {
 } from "@/lib/odds-control";
 import { formatEasternDateTime } from "@/lib/odds-control-reporting";
 import { verificationMarkets } from "@/lib/odds-verify";
-import type { VerificationScheduleInput } from "@/lib/schemas/verification-schedule.schema";
+import {
+  ALL_SLATE_EVENTS,
+  type VerificationScheduleInput,
+} from "@/lib/schemas/verification-schedule.schema";
 import { scheduledVerificationEstimate } from "@/lib/verification-schedule";
 import { cn } from "@/lib/utils";
 
@@ -50,6 +53,18 @@ type Schedule = {
 };
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/** Saved rows store the enum; the list reads in the same words as the form. */
+const COVERAGE_LABEL: Record<string, string> = {
+  SURFACE: "game lines only",
+  CONFIGURED: "configured markets",
+  ALL: "every supported market",
+};
+
+const RECURRENCE_LABEL: Record<string, string> = {
+  ONCE: "one time",
+  RECURRING: "weekly",
+};
 
 export function AdminVerificationSchedules({
   sports,
@@ -157,12 +172,13 @@ export function AdminVerificationSchedules({
           <CalendarClock className="size-4" aria-hidden />
         </span>
         <div>
-          <h3 className="text-lg font-semibold">
-            Slate & league verification schedules
-          </h3>
+          <h3 className="text-lg font-semibold">Scheduled verification runs</h3>
           <p className="text-muted-foreground mt-1 text-sm">
-            Queue one verification or repeat it by Eastern time. The dispatcher
-            runs due work within five minutes.
+            A verification run re-prices events from the provider so cappers see
+            current lines. Each run spends credits, so schedule them for the
+            slates that matter — a Sunday NFL card, a fight night — rather than
+            leaving one running all week. Times are Eastern, and the dispatcher
+            picks up due work within five minutes.
           </p>
         </div>
       </div>
@@ -203,31 +219,56 @@ export function AdminVerificationSchedules({
             ))}
           </select>
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="verification-schedule-scope">Scope</Label>
-          <select
-            id="verification-schedule-scope"
-            className="border-input bg-background h-10 w-full rounded-md border px-3 text-sm"
-            value={draft.scope}
-            onChange={(event) =>
-              setDraft({
-                ...draft,
-                scope: event.target.value as "SLATE" | "LEAGUE",
-                league: "",
-              })
-            }
-          >
-            <option value="SLATE">Whole slate</option>
-            <option value="LEAGUE" disabled={!leagueCapable}>
-              One league {leagueCapable ? "" : "(soccer/tennis)"}
-            </option>
-          </select>
-        </div>
+        {/*
+          Only soccer and tennis are split into competitions the provider
+          prices separately. For every other sport the choice has exactly one
+          answer, so offering it — and disabling the option that does not
+          apply — asked owners to decide something that was never a decision.
+        */}
+        {leagueCapable ? (
+          <div className="space-y-1.5">
+            <Label htmlFor="verification-schedule-scope">Which events</Label>
+            <select
+              id="verification-schedule-scope"
+              className="border-input bg-background h-10 w-full rounded-md border px-3 text-sm"
+              value={draft.scope}
+              onChange={(event) =>
+                setDraft({
+                  ...draft,
+                  scope: event.target.value as "SLATE" | "LEAGUE",
+                  league: "",
+                })
+              }
+            >
+              <option value="SLATE">
+                Every {draft.sport === "SOCCER" ? "competition" : "tournament"}
+              </option>
+              <option value="LEAGUE">
+                One {draft.sport === "SOCCER" ? "competition" : "tournament"}{" "}
+                only
+              </option>
+            </select>
+            <p className="text-muted-foreground text-xs">
+              {draft.sport === "SOCCER" ? "Competitions" : "Tournaments"} are
+              billed separately, so narrowing to one is the cheapest run.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            <span className="text-sm font-medium">Which events</span>
+            <p className="border-border bg-surface-2 flex h-10 items-center rounded-md border px-3 text-sm">
+              Every {draft.sport} event
+            </p>
+            <p className="text-muted-foreground text-xs">
+              {draft.sport} is priced as one league.
+            </p>
+          </div>
+        )}
 
         {draft.scope === "LEAGUE" ? (
           <div className="space-y-1.5 md:col-span-2">
             <Label htmlFor="verification-schedule-league">
-              League or tournament
+              {draft.sport === "SOCCER" ? "Competition" : "Tournament"}
             </Label>
             {draft.sport === "SOCCER" ? (
               <select
@@ -238,7 +279,7 @@ export function AdminVerificationSchedules({
                   setDraft({ ...draft, league: event.target.value })
                 }
               >
-                <option value="">Choose league</option>
+                <option value="">Choose a competition</option>
                 {SOCCER_CONTROL_LEAGUES.map((row) => (
                   <option key={row.key} value={row.key}>
                     {row.label}
@@ -270,7 +311,9 @@ export function AdminVerificationSchedules({
         ) : null}
 
         <div className="space-y-1.5">
-          <Label htmlFor="verification-schedule-coverage">Coverage</Label>
+          <Label htmlFor="verification-schedule-coverage">
+            Markets to price
+          </Label>
           <select
             id="verification-schedule-coverage"
             className="border-input bg-background h-10 w-full rounded-md border px-3 text-sm"
@@ -283,35 +326,72 @@ export function AdminVerificationSchedules({
               })
             }
           >
-            <option value="SURFACE">Standard lines</option>
-            <option value="CONFIGURED">Current configured markets</option>
-            <option value="ALL">All supported markets</option>
+            <option value="SURFACE">Game lines only</option>
+            <option value="CONFIGURED">
+              Whatever {draft.sport} is set to pull
+            </option>
+            <option value="ALL">Every market SCL supports</option>
           </select>
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="verification-schedule-events">Maximum events</Label>
-          <Input
-            id="verification-schedule-events"
-            type="number"
-            min={1}
-            max={99}
-            value={draft.maxEvents}
-            onChange={(event) =>
-              setDraft({
-                ...draft,
-                maxEvents: Math.max(
-                  1,
-                  Math.min(99, Number(event.target.value) || 1),
-                ),
-              })
-            }
-          />
           <p className="text-muted-foreground text-xs">
-            Use 99 for the entire available slate.
+            {draft.coverage === "SURFACE"
+              ? "Moneyline, spread and total — three credits per event."
+              : draft.coverage === "CONFIGURED"
+                ? `The markets selected for ${draft.sport} under League coverage.`
+                : "Every prop, alternate and period market. The most expensive option."}
           </p>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="verification-schedule-recurrence">Frequency</Label>
+          <Label htmlFor="verification-schedule-event-mode">
+            How many events
+          </Label>
+          <select
+            id="verification-schedule-event-mode"
+            className="border-input bg-background h-10 w-full rounded-md border px-3 text-sm"
+            value={draft.maxEvents >= ALL_SLATE_EVENTS ? "ALL" : "LIMIT"}
+            onChange={(event) =>
+              setDraft({
+                ...draft,
+                maxEvents: event.target.value === "ALL" ? ALL_SLATE_EVENTS : 20,
+              })
+            }
+          >
+            <option value="ALL">All events on the slate</option>
+            <option value="LIMIT">Up to a set number</option>
+          </select>
+          {draft.maxEvents >= ALL_SLATE_EVENTS ? (
+            <p className="text-muted-foreground text-xs">
+              Every event the slate holds when the run fires.
+            </p>
+          ) : (
+            <>
+              <Input
+                id="verification-schedule-events"
+                type="number"
+                aria-label="Maximum events to verify"
+                min={1}
+                max={ALL_SLATE_EVENTS - 1}
+                value={draft.maxEvents}
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    maxEvents: Math.max(
+                      1,
+                      Math.min(
+                        ALL_SLATE_EVENTS - 1,
+                        Number(event.target.value) || 1,
+                      ),
+                    ),
+                  })
+                }
+              />
+              <p className="text-muted-foreground text-xs">
+                Events are taken in kickoff order, soonest first.
+              </p>
+            </>
+          )}
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="verification-schedule-recurrence">When it runs</Label>
           <select
             id="verification-schedule-recurrence"
             className="border-input bg-background h-10 w-full rounded-md border px-3 text-sm"
@@ -323,13 +403,18 @@ export function AdminVerificationSchedules({
               })
             }
           >
-            <option value="ONCE">Run once</option>
-            <option value="RECURRING">Repeat weekly</option>
+            <option value="ONCE">One time, on a date I pick</option>
+            <option value="RECURRING">Every week, on days I pick</option>
           </select>
+          <p className="text-muted-foreground text-xs">
+            {draft.recurrence === "ONCE"
+              ? "Runs at the date and time below, then deletes itself from the queue."
+              : "Repeats at the same Eastern time on each day you select. Pick all seven for a daily run."}
+          </p>
         </div>
         {draft.recurrence === "ONCE" ? (
           <div className="space-y-1.5">
-            <Label htmlFor="verification-schedule-date">Eastern date</Label>
+            <Label htmlFor="verification-schedule-date">Date to run</Label>
             <Input
               id="verification-schedule-date"
               type="date"
@@ -341,7 +426,9 @@ export function AdminVerificationSchedules({
           </div>
         ) : null}
         <div className="space-y-1.5">
-          <Label htmlFor="verification-schedule-time">Eastern time</Label>
+          <Label htmlFor="verification-schedule-time">
+            Time to run (Eastern)
+          </Label>
           <Input
             id="verification-schedule-time"
             type="time"
@@ -355,7 +442,9 @@ export function AdminVerificationSchedules({
 
       {draft.recurrence === "RECURRING" ? (
         <fieldset className="space-y-2">
-          <legend className="text-sm font-medium">Repeat on</legend>
+          <legend className="text-sm font-medium">
+            Days of the week to repeat on
+          </legend>
           <div className="flex flex-wrap gap-2">
             {DAYS.map((day, index) => {
               const selected = draft.daysOfWeek.includes(index);
@@ -396,8 +485,11 @@ export function AdminVerificationSchedules({
             Up to {estimate.toLocaleString()} credits per run
           </p>
           <p className="text-muted-foreground text-xs">
-            {supportedMarkets.length} markets × {draft.maxEvents} events, plus
-            event discovery. All guardrails still apply.
+            {supportedMarkets.length} markets ×{" "}
+            {draft.maxEvents >= ALL_SLATE_EVENTS
+              ? "every event on the slate"
+              : `${draft.maxEvents} events`}
+            , plus event discovery. All guardrails still apply.
           </p>
           {overPerRequest ? (
             <p className="text-neg mt-1 text-xs">
@@ -442,9 +534,15 @@ export function AdminVerificationSchedules({
               <div className="min-w-0">
                 <p className="font-medium">{schedule.name}</p>
                 <p className="text-muted-foreground mt-1 text-xs">
-                  {schedule.sport} · {schedule.league ?? "Whole slate"} ·{" "}
-                  {schedule.coverage.toLowerCase()} · max {schedule.maxEvents}{" "}
-                  events
+                  {schedule.sport} ·{" "}
+                  {schedule.league ?? `every ${schedule.sport} event`} ·{" "}
+                  {COVERAGE_LABEL[schedule.coverage] ??
+                    schedule.coverage.toLowerCase()}{" "}
+                  ·{" "}
+                  {schedule.maxEvents >= ALL_SLATE_EVENTS
+                    ? "all events"
+                    : `up to ${schedule.maxEvents} events`}{" "}
+                  · {RECURRENCE_LABEL[schedule.recurrence] ?? "scheduled"}
                 </p>
                 <p className="text-muted-foreground mt-1 text-xs">
                   Next: {formatEasternDateTime(schedule.nextRunAt)} · Last:{" "}

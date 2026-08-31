@@ -2,6 +2,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
+import {
+  DEFAULT_EVENT_BUYS_PER_DAY,
+  EVENT_BUY_DAY_START_HOUR_ET,
+  HARD_MAX_EVENT_BUYS_PER_DAY,
+  SAME_DAY_EXPANDED_RUNS,
+} from "@/lib/odds-event-buy-budget";
 import { REFRESH_MAX_GAP_MINUTES } from "@/lib/strategic-odds-policy";
 
 /**
@@ -189,9 +195,56 @@ test("Vercel runs the paid cadence through the day, expanded boards included", (
     "no cron warms today's expanded boards",
   );
   assert.ok(
-    crons.some((cron) => cron.path.includes("expandedDays=today,tomorrow")),
+    crons.some((cron) => cron.path.includes("expandedDays=tomorrow")),
     "no cron builds tomorrow's board overnight",
   );
+
+  // The rule the bill turns on. One build the day before, then 08:00 ET and
+  // 17:00 ET on the day itself — three, the default allowance, and never more
+  // than the hard ceiling. Six to eight buys per game per day is what took MLB
+  // verification to 83% of the provider bill.
+  const easternMinutes = (schedule: string) => {
+    const [minute, hour] = schedule.trim().split(/\s+/);
+    // UTC-4 in EDT.
+    return (Number(hour) * 60 + Number(minute) - 4 * 60 + 1440) % 1440;
+  };
+
+  const expandedRuns = crons.filter((cron) =>
+    cron.path.includes("expanded=99"),
+  );
+  assert.ok(
+    expandedRuns.length <= HARD_MAX_EVENT_BUYS_PER_DAY,
+    `${expandedRuns.length} expanded runs exceeds the hard ${HARD_MAX_EVENT_BUYS_PER_DAY}-buy ceiling`,
+  );
+  assert.equal(
+    expandedRuns.length,
+    DEFAULT_EVENT_BUYS_PER_DAY,
+    "the schedule must spend exactly the default allowance",
+  );
+
+  const todayRuns = expandedRuns.filter((cron) =>
+    cron.path.includes("expandedDays=today"),
+  );
+  assert.equal(todayRuns.length, SAME_DAY_EXPANDED_RUNS);
+  assert.deepEqual(
+    todayRuns
+      .map((cron) => easternMinutes(cron.schedule))
+      .sort((a, b) => a - b),
+    [8 * 60, 17 * 60],
+    "the two same-day verifications must run at 08:00 and 17:00 ET",
+  );
+  for (const cron of todayRuns) {
+    assert.ok(
+      easternMinutes(cron.schedule) >= EVENT_BUY_DAY_START_HOUR_ET * 60,
+      "a same-day verification must not run before the buy day opens",
+    );
+  }
+
+  // Every sport rides the same runs, so no league can drift onto its own cadence.
+  for (const cron of expandedRuns) {
+    assert.match(cron.path, /sports=MLB,WNBA,TENNIS,SOCCER,NFL/);
+  }
+
   for (const cron of crons) {
     assert.match(cron.path, /sports=MLB,WNBA,TENNIS,SOCCER,NFL/);
     assert.match(cron.schedule, /^\S+ \S+ \* \* \*$/);

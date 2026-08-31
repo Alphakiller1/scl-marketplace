@@ -7,6 +7,7 @@ import {
 } from "@/lib/odds-event-board-cache";
 import { selectionAllowedForMarkets } from "@/lib/odds-control";
 import { getManagedOddsSportControl } from "@/lib/odds-control-runtime";
+import { leagueBuyLimit } from "@/lib/odds-league-buy-limits";
 import { getCurrentUser } from "@/lib/session";
 
 /**
@@ -39,7 +40,11 @@ export async function GET(request: Request) {
   const board =
     sport && eventId && (!policy || (policy.enabled && policy.expandedEnabled))
       ? policy
-        ? await loadCachedEventBoard(sport, eventId)
+        ? await loadCachedEventBoard(
+            sport,
+            eventId,
+            await leagueBuyLimit(sport),
+          )
         : await loadEventBoard(sport, eventId, { league })
       : {
           selections: [],

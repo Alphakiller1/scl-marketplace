@@ -13,6 +13,12 @@ import {
   readDurableOddsSnapshot,
   writeDurableOddsSnapshot,
 } from "@/lib/odds-durable-cache";
+import {
+  eventBuyBudgetExhausted,
+  recordEventBuy,
+  remainingEventBuys,
+  resolveEventBuyLimit,
+} from "@/lib/odds-event-buy-budget";
 import { freshestSnapshot } from "@/lib/odds-snapshot-freshness";
 import {
   mergeEventBoardSelections,
@@ -31,7 +37,8 @@ export type LoadedEventBoard = {
     | "stale_circuit_break"
     | "stale_provider_failure"
     | "circuit_break_empty"
-    | "provider_empty";
+    | "provider_empty"
+    | "daily_buy_cap";
   stale: boolean;
   savedAt: number | null;
 };
@@ -41,6 +48,8 @@ export type CachedEventBoard = {
   source: "runtime_cache" | "stale_cache_only" | "cache_empty";
   stale: boolean;
   savedAt: number | null;
+  /** Paid refreshes this event has left today — 0 means it will not be re-bought. */
+  buysRemaining: number;
 };
 
 const inFlight = new Map<string, Promise<LoadedEventBoard>>();
@@ -81,6 +90,7 @@ async function writeSnapshot(
   sport: string,
   eventId: string,
   selections: OddsSelection[],
+  buys: readonly number[] = [],
 ): Promise<EventBoardSnapshot> {
   const snapshot: EventBoardSnapshot = {
     version: 1,
@@ -88,6 +98,7 @@ async function writeSnapshot(
     eventId,
     selections,
     savedAt: Date.now(),
+    buys: [...buys],
   };
   await writeDurableOddsSnapshot(
     cacheKey(sport, eventId),
@@ -119,6 +130,7 @@ async function writeSnapshot(
 export async function loadCachedEventBoard(
   sport: string,
   eventId: string,
+  dailyBuyLimit?: number | null,
 ): Promise<CachedEventBoard> {
   const cached = await readSnapshot(sport.toUpperCase(), eventId);
   if (!cached) {
@@ -127,6 +139,7 @@ export async function loadCachedEventBoard(
       source: "cache_empty",
       stale: false,
       savedAt: null,
+      buysRemaining: resolveEventBuyLimit(dailyBuyLimit),
     };
   }
   const stale = Date.now() - cached.savedAt > ODDS_EVENT_FRESH_SECONDS * 1_000;
@@ -135,6 +148,7 @@ export async function loadCachedEventBoard(
     source: stale ? "stale_cache_only" : "runtime_cache",
     stale,
     savedAt: cached.savedAt,
+    buysRemaining: remainingEventBuys(cached.buys, Date.now(), dailyBuyLimit),
   };
 }
 
@@ -145,6 +159,9 @@ async function refreshEventBoard(
   league?: string | null,
   markets?: readonly string[],
 ): Promise<LoadedEventBoard> {
+  // Stamped before the call, so a slow provider response cannot roll the buy
+  // into the next buy day and hand the event a fresh allowance.
+  const boughtAt = Date.now();
   let selections: OddsSelection[] = [];
   try {
     selections = await fetchEventBoard(sport, eventId, { league, markets });
@@ -161,7 +178,12 @@ async function refreshEventBoard(
       selections,
     );
     const retainedCachedRows = merged.length > selections.length;
-    const saved = await writeSnapshot(sport, eventId, merged);
+    const saved = await writeSnapshot(
+      sport,
+      eventId,
+      merged,
+      recordEventBuy(cached?.buys, boughtAt),
+    );
     return {
       selections: merged,
       source: "provider",
@@ -193,6 +215,16 @@ export async function loadEventBoard(
     forceRefresh?: boolean;
     league?: string | null;
     markets?: readonly string[];
+    /**
+     * Spend past the daily buy cap. Reserved for an owner explicitly forcing a
+     * rebuild; every scheduled and on-demand path leaves it alone.
+     */
+    ignoreDailyBuyCap?: boolean;
+    /**
+     * This league's allowance. Omitted, the shared default applies — a caller
+     * that does not know the league's setting must not get an unlimited one.
+     */
+    dailyBuyLimit?: number | null;
   } = {},
 ): Promise<LoadedEventBoard> {
   const normalizedSport = sport.toUpperCase();
@@ -210,6 +242,32 @@ export async function loadEventBoard(
       source: "runtime_cache",
       stale: false,
       savedAt: cached.savedAt,
+    };
+  }
+
+  // The daily buy cap sits ABOVE the freshness window and above forceRefresh,
+  // because it is the only limit that bounds total spend on one event.
+  // `forceRefresh` means "ignore the freshness window" — the coverage warm loop
+  // sets it on every event it touches, so if the cap deferred to it the cap
+  // would not exist on the one path that spends the most.
+  //
+  // Returning the cached board is the right refusal: the prices are hours old at
+  // worst, they are flagged stale, and the alternative is buying fifty markets
+  // for a line that has barely moved.
+  if (
+    !options.ignoreDailyBuyCap &&
+    eventBuyBudgetExhausted(cached?.buys, Date.now(), options.dailyBuyLimit)
+  ) {
+    console.info("[odds-event-cache] daily buy cap reached", {
+      sport: normalizedSport,
+      eventId,
+      cap: resolveEventBuyLimit(options.dailyBuyLimit),
+    });
+    return {
+      selections: cached?.selections ?? [],
+      source: "daily_buy_cap",
+      stale: true,
+      savedAt: cached?.savedAt ?? null,
     };
   }
 

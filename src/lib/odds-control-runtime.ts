@@ -4,9 +4,12 @@ import { Prisma } from "@prisma/client";
 
 import {
   canReserveOddsCredits,
+  CREDIT_WINDOW_DAYS,
+  creditWindowStart,
   estimatedRunCredits,
   isMissingOddsControlStorageError,
   oddsReservationBlockReason,
+  utcDayStart,
   type OddsControlTier,
 } from "@/lib/odds-control";
 import { prisma } from "@/lib/prisma";
@@ -43,8 +46,20 @@ export async function getManagedOddsSportControl(sport: string) {
       select: { managedSchedulingEnabled: true, paused: true },
     });
     if (!config?.managedSchedulingEnabled) return null;
+    // Explicit select: this runs on the on-demand event board that pick entry
+    // depends on, so it must not name a column a pending migration has not
+    // added yet. The daily allowance is read separately, where a missing column
+    // degrades to the default instead of failing the request.
     const policy = await prisma.oddsSportControl.findUnique({
       where: { sport: sport.trim().toUpperCase() },
+      select: {
+        enabled: true,
+        surfaceEnabled: true,
+        expandedEnabled: true,
+        surfaceMarkets: true,
+        expandedMarkets: true,
+        leagues: true,
+      },
     });
     return policy
       ? {
@@ -71,12 +86,6 @@ export async function getManagedOddsSportControl(sport: string) {
     if (isMissingOddsControlStorageError(error)) return null;
     throw error;
   }
-}
-
-function utcDay(date: Date): Date {
-  const value = new Date(date);
-  value.setUTCHours(0, 0, 0, 0);
-  return value;
 }
 
 function nextRunAt(now: Date, cadenceMinutes: number): Date {
@@ -154,11 +163,9 @@ export async function claimDueOddsRuns(
           candidates.sort((a, b) => a.dueAt.getTime() - b.dueAt.getTime());
           if (!candidates.length) return { state: "idle" as const, runs: [] };
 
-          const dayStart = utcDay(now);
-          const weekStart = utcDay(new Date(now.getTime() - 6 * 86_400_000));
-          const monthStart = new Date(
-            Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
-          );
+          const dayStart = utcDayStart(now);
+          const weekStart = creditWindowStart(now, CREDIT_WINDOW_DAYS.week);
+          const monthStart = creditWindowStart(now, CREDIT_WINDOW_DAYS.month);
           const [today, week, month, active, latestUsage] = await Promise.all([
             tx.oddsUsageDaily.aggregate({
               where: { date: { gte: dayStart } },
@@ -341,11 +348,9 @@ export async function claimManualOddsRun(input: {
             };
           }
 
-          const dayStart = utcDay(now);
-          const weekStart = utcDay(new Date(now.getTime() - 6 * 86_400_000));
-          const monthStart = new Date(
-            Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
-          );
+          const dayStart = utcDayStart(now);
+          const weekStart = creditWindowStart(now, CREDIT_WINDOW_DAYS.week);
+          const monthStart = creditWindowStart(now, CREDIT_WINDOW_DAYS.month);
           const [today, week, month, active, latestUsage] = await Promise.all([
             tx.oddsUsageDaily.aggregate({
               where: { date: { gte: dayStart } },

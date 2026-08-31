@@ -1,3 +1,4 @@
+import { DEFAULT_EVENT_BUYS_PER_DAY } from "@/lib/odds-event-buy-budget";
 import { expandedBoardMarkets, marketKeysForMarket } from "@/lib/odds-verify";
 import type { OddsSelection } from "@/lib/odds-board";
 import { SOCCER_LEAGUES } from "@/lib/soccer-leagues";
@@ -153,6 +154,7 @@ export function defaultSportControl(sport: OddsControlSport) {
     surfaceCadenceMinutes: 240,
     expandedCadenceMinutes: 360,
     maxEventsPerRun: sport === "SOCCER" ? 80 : 20,
+    dailyVerificationLimit: DEFAULT_EVENT_BUYS_PER_DAY,
     nextSurfaceRunAt: null as string | null,
     nextExpandedRunAt: null as string | null,
     lastSurfaceRunAt: null as string | null,
@@ -176,12 +178,75 @@ export function isMissingOddsControlStorageError(error: unknown): boolean {
   );
 }
 
+/**
+ * The two rolling credit windows, in days.
+ *
+ * Both are ROLLING, and the longer one used to be a calendar month. A calendar
+ * window makes the guardrail weakest exactly when it matters: spend the whole
+ * budget on the 28th and the limit resets three days later, so a run rate that
+ * cannot be afforded is refused for three days and then waved through. A
+ * trailing window carries the overspend with it until it ages out.
+ *
+ * Every caller — the dashboard readout AND the reservation check that blocks a
+ * run — must derive its window from here. When display and enforcement compute
+ * their own windows they disagree, and the screen reports headroom that the
+ * blocker does not believe in.
+ */
+export const CREDIT_WINDOW_DAYS = {
+  day: 1,
+  week: 7,
+  month: 30,
+} as const;
+
+/** Midnight UTC on the day `date` falls in. */
+export function utcDayStart(date: Date): Date {
+  const value = new Date(date);
+  value.setUTCHours(0, 0, 0, 0);
+  return value;
+}
+
+/**
+ * First UTC day inside a rolling window of `days` that ends today.
+ *
+ * Inclusive of today, so a 7-day window is today plus the six days before it.
+ */
+export function creditWindowStart(now: Date, days: number): Date {
+  return utcDayStart(new Date(now.getTime() - (days - 1) * 86_400_000));
+}
+
+/**
+ * The day the 100,000-credit provider plan started.
+ *
+ * Everything before it was spent on a different, smaller plan that ran to
+ * exhaustion — the board went dark, the scheduled refresh was switched off by
+ * hand, and the usage that survives from those weeks is a record of an outage,
+ * not of how the platform spends now. Mixed into a thirty-day window it drags
+ * every average, every per-sport share and the month-end projection toward a
+ * plan that no longer exists.
+ *
+ * So the dashboard floors every usage window here. Reads never reach behind it,
+ * and the screen says which date it is counting from rather than implying a
+ * full thirty days it does not have.
+ */
+export const ODDS_PLAN_START_ISO = "2026-08-25";
+
+/** Midnight UTC on the first day of the current provider plan. */
+export function oddsPlanStart(): Date {
+  return new Date(`${ODDS_PLAN_START_ISO}T00:00:00.000Z`);
+}
+
+/** A window start, never earlier than the plan it is reporting on. */
+export function clampToPlanStart(start: Date): Date {
+  const planStart = oddsPlanStart();
+  return start < planStart ? planStart : start;
+}
+
 export const DEFAULT_ODDS_CONTROL_CONFIG = {
   managedSchedulingEnabled: false,
   paused: false,
   dailyCreditLimit: 2_000,
-  weeklyCreditLimit: 10_000,
-  monthlyCreditLimit: 20_000,
+  weeklyCreditLimit: 25_000,
+  monthlyCreditLimit: 100_000,
   perRunCreditLimit: 2_000,
   warningPercent: 70,
   reserveCredits: 1_000,
@@ -288,13 +353,13 @@ export function verificationPolicyBlockReason(
     state.allCreditsWeek + state.reservedCredits + state.estimatedCredits >
     policy.overallWeeklyLimit
   ) {
-    return "Overall weekly credit limit reached.";
+    return "Overall 7-day credit limit reached.";
   }
   if (
     state.allCreditsMonth + state.reservedCredits + state.estimatedCredits >
     policy.overallMonthlyLimit
   ) {
-    return "Overall monthly credit limit reached.";
+    return "Overall 30-day credit limit reached.";
   }
   const balanceIsCurrent =
     state.providerBalanceUpdatedAt != null &&
@@ -357,13 +422,13 @@ export function oddsReservationBlockReason(
     input.weekCredits + reservedCredits + estimatedCredits >
     input.weeklyLimit
   ) {
-    return "Weekly limit exceeded.";
+    return "7-day limit exceeded.";
   }
   if (
     input.monthCredits + reservedCredits + estimatedCredits >
     input.monthlyLimit
   ) {
-    return "Monthly limit exceeded.";
+    return "30-day limit exceeded.";
   }
   if (!providerAllows) return "Protected provider reserve would be breached.";
   return null;

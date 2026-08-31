@@ -7,6 +7,7 @@ import {
   SOCCER_CONTROL_LEAGUES,
   SURFACE_MARKETS,
 } from "@/lib/odds-control";
+import { HARD_MAX_EVENT_BUYS_PER_DAY } from "@/lib/odds-event-buy-budget";
 
 const sportEnum = z.enum(ODDS_CONTROL_SPORTS);
 const surfaceKeys = new Set(SURFACE_MARKETS.map((market) => market.key));
@@ -30,6 +31,13 @@ export const oddsSportControlSchema = z
     surfaceCadenceMinutes: z.number().int().min(15).max(1440),
     expandedCadenceMinutes: z.number().int().min(15).max(1440),
     maxEventsPerRun: z.number().int().min(1).max(99),
+    // Clamped at the schema edge as well as in the UI: the ceiling is the whole
+    // point of the setting, so it cannot rely on the form to enforce it.
+    dailyVerificationLimit: z
+      .number()
+      .int()
+      .min(1)
+      .max(HARD_MAX_EVENT_BUYS_PER_DAY),
   })
   .superRefine((value, context) => {
     const invalidSurface = value.surfaceMarkets.find(
