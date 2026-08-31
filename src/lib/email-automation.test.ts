@@ -191,6 +191,11 @@ describe("email automation wiring", () => {
     assert.match(controls, /Unsaved changes — nothing is live yet/);
     assert.match(controls, /All automation settings are saved/);
     assert.match(controls, /mailerBlocksEnable/);
+    assert.match(page, /formatEasternDateTime\(run\.startedAt\)/);
+    assert.match(
+      controls,
+      /formatEasternDateTime\(initial\.verificationReminderActivatedAt\)/,
+    );
     assert.match(layout, /Email Cappers/);
   });
 

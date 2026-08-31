@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { saveEmailAutomationConfigAction } from "@/lib/actions/email-automation.action";
+import { formatEasternDateTime } from "@/lib/odds-control-reporting";
 import { cn } from "@/lib/utils";
 
 type RuleProps = {
@@ -280,9 +281,7 @@ export function AdminEmailAutomationControls({
           delayAnchor="Measured from signup."
           activationLabel={
             initial.verificationReminderActivatedAt
-              ? new Date(
-                  initial.verificationReminderActivatedAt,
-                ).toLocaleString()
+              ? formatEasternDateTime(initial.verificationReminderActivatedAt)
               : null
           }
           onEnabledChange={setVerificationEnabled}
@@ -300,7 +299,7 @@ export function AdminEmailAutomationControls({
           delayAnchor="Measured from email verification."
           activationLabel={
             initial.noPlaysNudgeActivatedAt
-              ? new Date(initial.noPlaysNudgeActivatedAt).toLocaleString()
+              ? formatEasternDateTime(initial.noPlaysNudgeActivatedAt)
               : null
           }
           onEnabledChange={setNoPlaysEnabled}

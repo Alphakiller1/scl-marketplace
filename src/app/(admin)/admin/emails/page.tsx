@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { probeMailer } from "@/lib/email-deliverability";
 import { EMAIL_TEMPLATES, isEmailTemplateSlug } from "@/lib/email-templates";
+import { formatEasternDateTime } from "@/lib/odds-control-reporting";
 import {
   getEmailTemplateRevisions,
   getEmailTemplateWorkspace,
@@ -154,7 +155,9 @@ export default async function AdminEmailsPage({
               variables: [...EMAIL_TEMPLATES[slug].variables],
             }}
             persisted={active.persisted}
-            updatedAtLabel={active.updatedAt?.toLocaleString() ?? null}
+            updatedAtLabel={
+              active.updatedAt ? formatEasternDateTime(active.updatedAt) : null
+            }
             storageReady={storageReady}
           />
         </Card>
@@ -188,7 +191,7 @@ export default async function AdminEmailsPage({
                   </p>
                 </div>
                 <p className="text-muted-foreground text-xs">
-                  {run.startedAt.toLocaleString()}
+                  {formatEasternDateTime(run.startedAt)}
                 </p>
               </article>
             ))}
@@ -216,7 +219,7 @@ export default async function AdminEmailsPage({
                   <p className="text-muted-foreground mt-0.5 text-xs">
                     {failure.lastError ?? "Provider rejected the message."}
                     {failure.failedAt
-                      ? ` · ${failure.failedAt.toLocaleString()}`
+                      ? ` · ${formatEasternDateTime(failure.failedAt)}`
                       : ""}
                   </p>
                 </div>
@@ -244,7 +247,7 @@ export default async function AdminEmailsPage({
                   </p>
                 </div>
                 <p className="text-muted-foreground text-xs sm:text-right">
-                  {revision.createdAt.toLocaleString()}
+                  {formatEasternDateTime(revision.createdAt)}
                 </p>
               </article>
             ))}
