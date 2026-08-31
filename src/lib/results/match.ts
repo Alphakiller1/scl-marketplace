@@ -117,6 +117,7 @@ const WEAK_NICKNAMES = new Set([
   "fc",
   "united",
   "city",
+  "town",
   "stars",
   // Two MLB clubs end in "Sox", so the last-token fallback matched BOTH sides of
   // a White Sox @ Red Sox game and the matcher correctly refused to pick one.
@@ -247,6 +248,13 @@ const SAME_FIXTURE_WINDOW_MS = 4 * 60 * 60 * 1000;
 const BOUND_CROSS_PROVIDER_WINDOW_MS = 90 * 60 * 1000;
 
 /**
+ * A postponed soccer fixture can move to the next day without preserving its
+ * provider event id. Permit that wider join only when the board stored BOTH
+ * clubs. A selection naming one club is not enough evidence for this window.
+ */
+const SOCCER_RESCHEDULE_WINDOW_MS = 36 * 60 * 60 * 1000;
+
+/**
  * A UFC card runs much longer than a baseball game, and ESPN often stamps every
  * prelim with the card start. 90 minutes / 4 hours left those fights unmatched
  * against Odds API commence times on the same night.
@@ -362,6 +370,20 @@ export function findGame(
         ),
       );
       if (bound) return bound;
+
+      if (play.sport.trim().toUpperCase() === "SOCCER") {
+        const rescheduled = sole(
+          bySport.filter(
+            (game) =>
+              game.startsAt != null &&
+              Math.abs(
+                game.startsAt.getTime() - play.eventStartsAt!.getTime(),
+              ) <= SOCCER_RESCHEDULE_WINDOW_MS &&
+              teamsAreOpponents(fixture.a, fixture.b, game),
+          ),
+        );
+        if (rescheduled) return rescheduled;
+      }
     }
 
     const namedTeam = sameSlot.filter((game) => {
