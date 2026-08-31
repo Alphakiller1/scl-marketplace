@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { marketKeysForMarket, verificationMarkets } from "@/lib/odds-verify";
-import { findGame, type GradablePlay } from "@/lib/results/match";
+import {
+  findGame,
+  resolveOutcome,
+  type GradablePlay,
+} from "@/lib/results/match";
 import type { SettledGame } from "@/lib/results/settled-game";
 
 /**
@@ -143,6 +147,84 @@ test("cross-provider matching refuses an ambiguous doubleheader", () => {
     ],
   );
   assert.equal(found, null);
+});
+
+test("an event-bound soccer play follows an exact fixture postponed by one day", () => {
+  const found = findGame(
+    play({
+      sport: "SOCCER",
+      selection: "Aalesund",
+      eventId: "old-provider-id",
+      eventLabel: "Aalesund @ Viking",
+      homeTeam: "Viking",
+      awayTeam: "Aalesund",
+      eventStartsAt: new Date("2026-08-29T16:00:00.000Z"),
+    }),
+    [
+      {
+        sport: "SOCCER",
+        home: "Viking",
+        away: "Aalesund",
+        homeScore: 2,
+        awayScore: 1,
+        completed: true,
+        eventId: "new-provider-id",
+        startsAt: new Date("2026-08-30T15:00:00.000Z"),
+      },
+    ],
+  );
+  assert.equal(found?.eventId, "new-provider-id");
+});
+
+test("the soccer reschedule window requires both stored clubs", () => {
+  const found = findGame(
+    play({
+      sport: "SOCCER",
+      selection: "Molde",
+      eventId: "old-provider-id",
+      eventLabel: null,
+      homeTeam: null,
+      awayTeam: null,
+      eventStartsAt: new Date("2026-08-29T14:00:00.000Z"),
+    }),
+    [
+      {
+        sport: "SOCCER",
+        home: "Valerenga",
+        away: "Molde",
+        homeScore: 3,
+        awayScore: 4,
+        completed: true,
+        eventId: "new-provider-id",
+        startsAt: new Date("2026-08-30T15:00:00.000Z"),
+      },
+    ],
+  );
+  assert.equal(found, null);
+});
+
+test("generic Town suffix does not make both soccer clubs match the pick", () => {
+  const outcome = resolveOutcome(
+    play({
+      sport: "SOCCER",
+      market: "Moneyline",
+      selection: "Grimsby Town",
+      side: "Grimsby Town",
+      eventId: "grimsby-fleetwood",
+    }),
+    [
+      {
+        sport: "SOCCER",
+        home: "Grimsby Town",
+        away: "Fleetwood Town",
+        homeScore: 2,
+        awayScore: 2,
+        completed: true,
+        eventId: "grimsby-fleetwood",
+      },
+    ],
+  );
+  assert.equal(outcome, "LOSS");
 });
 
 test("a finished doubleheader opener cannot settle a bound nightcap", () => {
