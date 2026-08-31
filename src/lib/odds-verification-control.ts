@@ -3,8 +3,11 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 
 import {
+  CREDIT_WINDOW_DAYS,
+  creditWindowStart,
   DEFAULT_ODDS_CONTROL_CONFIG,
   isMissingOddsControlStorageError,
+  utcDayStart,
   verificationPolicyBlockReason,
   type VerificationPolicy,
 } from "@/lib/odds-control";
@@ -28,12 +31,6 @@ function defaultPolicy(): VerificationPolicy {
     overallWeeklyLimit: DEFAULT_ODDS_CONTROL_CONFIG.weeklyCreditLimit,
     overallMonthlyLimit: DEFAULT_ODDS_CONTROL_CONFIG.monthlyCreditLimit,
   };
-}
-
-function utcDay(date: Date): Date {
-  const day = new Date(date);
-  day.setUTCHours(0, 0, 0, 0);
-  return day;
 }
 
 /**
@@ -68,11 +65,9 @@ export async function claimVerificationRequest(input: {
                 overallMonthlyLimit: config.monthlyCreditLimit,
               }
             : defaultPolicy();
-          const today = utcDay(now);
-          const week = utcDay(new Date(now.getTime() - 6 * 86_400_000));
-          const month = new Date(
-            Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
-          );
+          const today = utcDayStart(now);
+          const week = creditWindowStart(now, CREDIT_WINDOW_DAYS.week);
+          const month = creditWindowStart(now, CREDIT_WINDOW_DAYS.month);
           await tx.oddsApiRun.updateMany({
             where: {
               trigger: "VERIFICATION",

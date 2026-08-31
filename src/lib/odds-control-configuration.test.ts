@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import test from "node:test";
 
 import {
@@ -191,5 +193,35 @@ test("a 30-day window carries overspend across a month boundary", () => {
     creditWindowStart(twoDaysLater, CREDIT_WINDOW_DAYS.week) <=
       utcDayStart(spentOn),
     "and inside the 7-day window too",
+  );
+});
+
+test("no credit path computes its own calendar-month window", () => {
+  // Display and enforcement must agree on what "last 30 days" means. They drifted
+  // once because five call sites each built their own window, and a calendar
+  // month among them would silently forgive overspend at a month boundary.
+  const creditWindowFiles = [
+    "src/lib/queries/odds-control.ts",
+    "src/lib/odds-control-runtime.ts",
+    "src/lib/odds-verification-control.ts",
+    "src/lib/verification-schedule-runtime.ts",
+  ];
+  const offenders: string[] = [];
+  for (const file of creditWindowFiles) {
+    const source = readFileSync(resolve(process.cwd(), file), "utf8");
+    source.split("\n").forEach((line, index) => {
+      if (/getUTCMonth\(\)\s*,\s*1\s*\)/.test(line)) {
+        offenders.push(`${file}:${index + 1}`);
+      }
+      // A hand-rolled rolling window is the same drift risk as a calendar one.
+      if (/utcDay\w*\(\s*new Date\(\s*now\.getTime\(\) -/.test(line)) {
+        offenders.push(`${file}:${index + 1} (hand-rolled window)`);
+      }
+    });
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    `derive credit windows from creditWindowStart(): ${offenders.join(", ")}`,
   );
 });
