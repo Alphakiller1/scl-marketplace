@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/session";
@@ -78,6 +78,9 @@ export async function updateAccountStatusAction(
   });
   if (!result.ok) return result;
 
+  // Leaderboard and Discover use a tagged cross-request cache. Page
+  // revalidation alone can leave a disabled capper in those cached results.
+  revalidateTag("leaderboard", { expire: 0 });
   revalidatePath("/admin/cappers");
   revalidatePath(`/admin/cappers/${parsed.data.userId}`);
   revalidatePath("/dashboard");

@@ -65,7 +65,7 @@ export function LeaderboardSnapshot({
             Leaderboard Snapshot
           </h2>
           <p className="text-muted-foreground mt-1 text-xs leading-snug sm:mt-1.5 sm:text-sm sm:leading-relaxed">
-            90-Day Board Standings — Ranked By ROI
+            Last 14 Days — Ranked By ROI
           </p>
           <p className="text-muted-foreground mt-1 text-[0.68rem] leading-snug">
             Rankings update after game results are graded.
@@ -75,7 +75,7 @@ export function LeaderboardSnapshot({
           </p>
         </div>
         <Link
-          href="/leaderboard?window=90d&sort=roi&dir=desc"
+          href="/leaderboard?window=14d&sort=roi&dir=desc"
           className="scl-link inline-flex min-h-10 shrink-0 items-center gap-1 text-sm font-medium"
         >
           View Full Leaderboard

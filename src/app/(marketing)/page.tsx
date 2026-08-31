@@ -95,11 +95,11 @@ async function HomeHero() {
   // carried over from the previous platform are unclaimed by design (no
   // password until they claim the handle), so gating on account verification
   // hid the entire imported roster and left the hero board empty.
-  // Last 90 days, matching the Top Cappers snapshot below. An all-time hero
-  // board next to a 90-day one told two different stories about who is hot.
+  // Rolling 14 days, matching the Top Cappers board below. Keeping both home
+  // rankings on one cache key avoids two full leaderboard scans per render.
   const { cappers, failed } = await getLeaderboardResult({
     verifiedOnly: false,
-    window: "90d",
+    window: "14d",
   });
   const snapshot = sortLeaderboard(cappers, "roi")
     .slice(0, 10)
@@ -126,9 +126,9 @@ async function HomeLiveStrip() {
 async function HomeTopBoard() {
   // ONE window, not three. Rotating 90d/30d/7d meant three full leaderboard
   // scans per render of the home page, which is what made this section slow to
-  // load — the snapshot is a 90-day view, so it costs a 90-day query.
+  // load. The hero and this board now share the same rolling 14-day query.
   const [leaderboard, featured] = await Promise.all([
-    getLeaderboardResult({ verifiedOnly: false, window: "90d" }),
+    getLeaderboardResult({ verifiedOnly: false, window: "14d" }),
     getFeaturedGradedPlay(),
   ]);
 
@@ -153,7 +153,7 @@ async function HomeTopBoard() {
           <TopCappersLive
             cappers={topCappers}
             failed={leaderboard.failed}
-            activeWindow="90d"
+            activeWindow="14d"
           />
         </div>
         <div className="min-w-0 space-y-5 px-3 py-4 sm:space-y-7 sm:px-5 sm:py-6 lg:pl-6">
