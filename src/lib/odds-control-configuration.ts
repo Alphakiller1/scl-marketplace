@@ -213,25 +213,26 @@ export function universalConfigEntries(
     }),
     universal({
       id: "daily-limit",
-      label: "Daily credit limit",
+      label: "Credit limit, per day",
       value: credits(config.dailyCreditLimit),
       description:
-        "One shared pool per calendar day. The first league to reach it stops the rest of them too.",
+        "One shared pool per UTC day. The first league to reach it stops the rest of them too.",
       overridable: false,
     }),
     universal({
       id: "weekly-limit",
-      label: "Weekly credit limit",
+      label: "Credit limit, per 7 days",
       value: credits(config.weeklyCreditLimit),
-      description: "Shared across all leagues over a rolling seven days.",
+      description:
+        "Shared across all leagues over the last 7 UTC days including today. The window rolls, so a heavy day keeps counting for a week.",
       overridable: false,
     }),
     universal({
       id: "monthly-limit",
-      label: "Monthly credit limit",
+      label: "Credit limit, per 30 days",
       value: credits(config.monthlyCreditLimit),
       description:
-        "Shared across all leagues for the calendar month, and the number the projection is measured against.",
+        "Shared across all leagues over the last 30 UTC days, and the number the projection is measured against. Rolling, not a calendar month — overspend does not get forgiven on the 1st.",
       overridable: false,
     }),
     universal({
@@ -268,14 +269,14 @@ export function universalConfigEntries(
     }),
     universal({
       id: "verification-daily-requests",
-      label: "Daily verification attempts",
+      label: "Verification attempts, per day",
       value: config.verificationDailyRequestLimit.toLocaleString(),
-      description: "Maximum per-event checks across all leagues in a day.",
+      description: "Maximum per-event checks across all leagues in a UTC day.",
       overridable: false,
     }),
     universal({
       id: "verification-daily-credits",
-      label: "Daily verification credits",
+      label: "Verification credits, per day",
       value: credits(config.verificationDailyCreditLimit),
       description:
         "A verification-only budget inside the daily limit, so board population cannot spend the credits picks need.",

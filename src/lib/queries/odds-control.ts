@@ -1,9 +1,12 @@
 import "server-only";
 
 import {
+  CREDIT_WINDOW_DAYS,
+  creditWindowStart,
   DEFAULT_ODDS_CONTROL_CONFIG,
   defaultSportControl,
   ODDS_CONTROL_SPORTS,
+  utcDayStart,
   type OddsControlSport,
 } from "@/lib/odds-control";
 import {
@@ -16,12 +19,6 @@ import {
   summarizeLeaguePickDemand,
 } from "@/lib/odds-demand";
 import { prisma } from "@/lib/prisma";
-
-function utcDay(date: Date): Date {
-  const day = new Date(date);
-  day.setUTCHours(0, 0, 0, 0);
-  return day;
-}
 
 function isoOrNull(value: Date | null): string | null {
   return value?.toISOString() ?? null;
@@ -129,12 +126,10 @@ export async function getOddsControlSettings() {
 export async function getOddsCreditDashboard() {
   const settings = await getOddsControlSettings();
   const now = new Date();
-  const today = utcDay(now);
-  const weekStart = utcDay(new Date(now.getTime() - 6 * 86_400_000));
-  const monthStart = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
-  );
-  const historyStart = utcDay(new Date(now.getTime() - 29 * 86_400_000));
+  const today = utcDayStart(now);
+  const weekStart = creditWindowStart(now, CREDIT_WINDOW_DAYS.week);
+  const monthStart = creditWindowStart(now, CREDIT_WINDOW_DAYS.month);
+  const historyStart = creditWindowStart(now, 30);
   const usageStart = monthStart < historyStart ? monthStart : historyStart;
 
   if (!settings.storageReady) {
@@ -228,10 +223,21 @@ export async function getOddsCreditDashboard() {
   const weekCredits = creditsSince(weekStart);
   const monthCredits = creditsSince(monthStart);
   const monthlyLimit = settings.config.monthlyCreditLimit;
-  const elapsedDays = now.getUTCDate();
-  const daysInMonth = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0),
-  ).getUTCDate();
+  // Days of usage the rolling window actually covers. Once the ledger is older
+  // than the window this is the full 30 and the projection equals the trailing
+  // total, which is the right answer for a rolling window — no run-rate
+  // guesswork survives into a period that has already been measured.
+  const earliestUsage = usage.find((row) => row.date >= monthStart)?.date;
+  const observedDays = Math.min(
+    CREDIT_WINDOW_DAYS.month,
+    Math.max(
+      1,
+      earliestUsage
+        ? Math.round((today.getTime() - earliestUsage.getTime()) / 86_400_000) +
+            1
+        : 1,
+    ),
+  );
   const latestProviderUsage = [...usage]
     .reverse()
     .find((row) => row.remaining != null);
@@ -298,7 +304,9 @@ export async function getOddsCreditDashboard() {
       month: monthCredits,
       remaining: latestRemaining ?? null,
       percentUsed: monthlyLimit > 0 ? (monthCredits / monthlyLimit) * 100 : 0,
-      projectedMonth: Math.round((monthCredits / elapsedDays) * daysInMonth),
+      projectedMonth: Math.round(
+        (monthCredits / observedDays) * CREDIT_WINDOW_DAYS.month,
+      ),
       provider: {
         state: providerState,
         capacity: latestProviderUsage?.capacity ?? null,

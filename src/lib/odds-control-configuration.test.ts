@@ -8,9 +8,12 @@ import {
   universalConfigEntries,
 } from "@/lib/odds-control-configuration";
 import {
+  CREDIT_WINDOW_DAYS,
+  creditWindowStart,
   DEFAULT_ODDS_CONTROL_CONFIG,
   defaultSportControl,
   ODDS_CONTROL_SPORTS,
+  utcDayStart,
 } from "@/lib/odds-control";
 
 const config = { ...DEFAULT_ODDS_CONTROL_CONFIG };
@@ -134,5 +137,59 @@ test("the registry counts leagues that are actually on, and sorts them first", (
   assert.deepEqual(
     registry.leagues.slice(0, enabled.length).map((league) => league.enabled),
     enabled.map(() => true),
+  );
+});
+
+test("the shipped ceilings match the 100,000 provider plan", () => {
+  assert.equal(DEFAULT_ODDS_CONTROL_CONFIG.weeklyCreditLimit, 25_000);
+  assert.equal(DEFAULT_ODDS_CONTROL_CONFIG.monthlyCreditLimit, 100_000);
+
+  const entries = universalConfigEntries(config, defaults);
+  assert.equal(
+    entries.find((row) => row.id === "weekly-limit")?.value,
+    "25,000 credits",
+  );
+  assert.equal(
+    entries.find((row) => row.id === "monthly-limit")?.value,
+    "100,000 credits",
+  );
+});
+
+test("both credit windows roll, and include today", () => {
+  assert.equal(CREDIT_WINDOW_DAYS.week, 7);
+  assert.equal(CREDIT_WINDOW_DAYS.month, 30);
+
+  // Mid-month, so a calendar-month window would start on the 1st and a rolling
+  // one would not — the whole point of the change.
+  const now = new Date("2026-08-20T15:30:00.000Z");
+  assert.equal(
+    creditWindowStart(now, CREDIT_WINDOW_DAYS.week).toISOString(),
+    "2026-08-14T00:00:00.000Z",
+  );
+  assert.equal(
+    creditWindowStart(now, CREDIT_WINDOW_DAYS.month).toISOString(),
+    "2026-07-22T00:00:00.000Z",
+  );
+  assert.equal(
+    utcDayStart(now).toISOString(),
+    "2026-08-20T00:00:00.000Z",
+    "the daily window is the UTC day containing now",
+  );
+});
+
+test("a 30-day window carries overspend across a month boundary", () => {
+  // The failure a calendar month allowed: blow the budget on the 30th and the
+  // limit forgives it on the 1st. Rolling windows must still see it.
+  const spentOn = new Date("2026-08-30T12:00:00.000Z");
+  const twoDaysLater = new Date("2026-09-01T12:00:00.000Z");
+  assert.ok(
+    creditWindowStart(twoDaysLater, CREDIT_WINDOW_DAYS.month) <=
+      utcDayStart(spentOn),
+    "August 30 must still fall inside the window on September 1",
+  );
+  assert.ok(
+    creditWindowStart(twoDaysLater, CREDIT_WINDOW_DAYS.week) <=
+      utcDayStart(spentOn),
+    "and inside the 7-day window too",
   );
 });

@@ -815,8 +815,10 @@ model OddsControlConfig {
   managedSchedulingEnabled         Boolean  @default(false)
   paused                           Boolean  @default(false)
   dailyCreditLimit                 Int      @default(2000)
-  weeklyCreditLimit                Int      @default(10000)
-  monthlyCreditLimit               Int      @default(20000)
+  /// Rolling 7-day credit ceiling, shared by every league.
+  weeklyCreditLimit                Int      @default(25000)
+  /// Rolling 30-day credit ceiling, shared by every league.
+  monthlyCreditLimit               Int      @default(100000)
   perRunCreditLimit                Int      @default(2000)
   warningPercent                   Int      @default(70)
   reserveCredits                   Int      @default(1000)

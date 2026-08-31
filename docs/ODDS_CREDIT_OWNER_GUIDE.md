@@ -18,7 +18,7 @@ changes.
 
 **The credit limits and the protected reserve are the exception.** They are one
 shared pool of credits and one provider balance, so they are universal and no
-league can raise its own. The first league to reach the daily limit stops every
+league can raise its own. The first league to reach the per-day limit stops every
 other league for the rest of the day.
 
 A few values are marked _Set in code_. They explain a league's cost — for
@@ -45,11 +45,11 @@ to open each league to find out what is set:
 ## 2. Check status and usage
 
 The status band at the top carries provider remaining, when the balance was last
-observed, how many leagues are enabled, and the projected month.
+observed, how many leagues are enabled, and the projected 30-day total.
 
-**Usage & budget** measures what that configuration actually spent: used
-today/week/month, projected month, the 30-day chart, and credits by league, by
-purpose and by market.
+**Usage & budget** measures what that configuration actually spent: used today,
+last 7 days and last 30 days, the projected 30-day total, the 30-day chart, and
+credits by league, by purpose and by market.
 
 If the provider says **Exhausted**, optional odds pulls will not run even when
 the scheduler is enabled.
@@ -60,8 +60,13 @@ Under **Change settings → Universal**:
 
 - **Scheduling authority:** whether this dashboard controls API pulls at all,
   and the pause switch that stops every league at once.
-- **Credit guardrails:** daily, weekly, monthly and per-run limits, the
-  protected reserve, and the warning threshold.
+- **Credit guardrails:** the per-day, per-7-day and per-30-day ceilings, the
+  per-run limit, the protected reserve, and the warning threshold. Both longer
+  windows **roll** — per-7-days means the last 7 UTC days including today, and
+  per-30-days the last 30. They are not a calendar week or month, so a heavy day
+  keeps counting against you until it ages out rather than being forgiven on the
+  1st. Shipped values are **2,000 / 25,000 / 100,000**, matching the 100,000
+  provider plan.
 - **Verification controls:** the master switch for live per-event price checks,
   the daily attempt and credit budgets, the per-check ceiling, and the reuse
   window. A longer reuse window is the single largest lever on verification

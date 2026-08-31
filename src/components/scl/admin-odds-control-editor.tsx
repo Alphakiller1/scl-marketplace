@@ -327,21 +327,21 @@ export function AdminOddsControlEditor({
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
             {[
               {
-                label: "Daily limit",
+                label: "Per day",
                 key: "dailyCreditLimit",
-                help: "Max per calendar day",
+                help: "Max in one UTC day",
                 min: 1,
               },
               {
-                label: "Weekly limit",
+                label: "Per 7 days",
                 key: "weeklyCreditLimit",
-                help: "Max per rolling 7 days",
+                help: "Max across any rolling 7 days",
                 min: 1,
               },
               {
-                label: "Monthly limit",
+                label: "Per 30 days",
                 key: "monthlyCreditLimit",
-                help: "Max per calendar month",
+                help: "Max across any rolling 30 days",
                 min: 1,
               },
               {
@@ -385,10 +385,12 @@ export function AdminOddsControlEditor({
             ))}
           </div>
           <p className="border-border text-muted-foreground border-t pt-4 text-xs">
-            Hard limits count completed usage plus credits reserved by active
-            runs. New managed runs are blocked before they can exceed a limit.
-            All schedules below are shown in Eastern Time and automatically
-            follow daylight-saving changes.
+            Both windows roll: the 7-day and 30-day limits cover the last 7 and
+            30 UTC days including today, not a calendar week or month, so
+            overspend keeps counting against you until it ages out. Limits count
+            completed usage plus credits reserved by active runs, and a managed
+            run is blocked before it can exceed one. Schedules below are shown
+            in Eastern Time and follow daylight-saving changes.
           </p>
         </Card>
 
@@ -430,14 +432,14 @@ export function AdminOddsControlEditor({
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
               {
-                label: "Daily verifications",
+                label: "Verifications per day",
                 key: "verificationDailyRequestLimit",
-                help: "Maximum provider-check attempts per UTC day",
+                help: "Maximum provider-check attempts in one UTC day",
                 min: 1,
                 max: 100000,
               },
               {
-                label: "Daily verify credits",
+                label: "Verify credits per day",
                 key: "verificationDailyCreditLimit",
                 help: "Credits reserved only for verification",
                 min: 1,

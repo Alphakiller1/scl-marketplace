@@ -143,17 +143,17 @@ export default async function AdminOddsPage() {
       : "active";
   const limitWarnings = [
     {
-      label: "Daily",
+      label: "Per day",
       used: data.summary.today,
       limit: settings.config.dailyCreditLimit,
     },
     {
-      label: "Weekly",
+      label: "Per 7 days",
       used: data.summary.week,
       limit: settings.config.weeklyCreditLimit,
     },
     {
-      label: "Monthly",
+      label: "Per 30 days",
       used: data.summary.month,
       limit: settings.config.monthlyCreditLimit,
     },
@@ -282,7 +282,7 @@ export default async function AdminOddsPage() {
                   }`,
                 },
                 {
-                  label: "Projected month",
+                  label: "Projected 30 days",
                   value: credits(data.summary.projectedMonth),
                   sub: `limit ${credits(settings.config.monthlyCreditLimit)}`,
                 },
@@ -407,21 +407,21 @@ export default async function AdminOddsPage() {
           </Card>
           <Card className="p-4">
             <StatBlock
-              label="Used this week"
+              label="Used, last 7 days"
               value={credits(data.summary.week)}
-              sub="rolling 7 days"
+              sub="rolling window"
             />
           </Card>
           <Card className="p-4">
             <StatBlock
-              label="Used this month"
+              label="Used, last 30 days"
               value={credits(data.summary.month)}
               sub={`${data.summary.percentUsed.toFixed(1)}% of limit`}
             />
           </Card>
           <Card className="p-4">
             <StatBlock
-              label="Projected month"
+              label="Projected 30 days"
               value={credits(data.summary.projectedMonth)}
               sub={`limit ${credits(settings.config.monthlyCreditLimit)}`}
             />
@@ -461,24 +461,24 @@ export default async function AdminOddsPage() {
             <div>
               <h3 className="font-semibold">Budget guardrails</h3>
               <p className="text-muted-foreground mt-1 text-xs">
-                Universal limits, shared by every league. The dispatcher blocks
-                new managed runs at 100%.
+                Universal, shared by every league, and both windows roll. The
+                dispatcher blocks new managed runs at 100%.
               </p>
             </div>
             <BudgetMeter
-              label="Daily"
+              label="Per day"
               used={data.summary.today}
               limit={settings.config.dailyCreditLimit}
               warningPercent={settings.config.warningPercent}
             />
             <BudgetMeter
-              label="Weekly"
+              label="Per 7 days"
               used={data.summary.week}
               limit={settings.config.weeklyCreditLimit}
               warningPercent={settings.config.warningPercent}
             />
             <BudgetMeter
-              label="Monthly"
+              label="Per 30 days"
               used={data.summary.month}
               limit={settings.config.monthlyCreditLimit}
               warningPercent={settings.config.warningPercent}
@@ -490,7 +490,7 @@ export default async function AdminOddsPage() {
           <Card className="space-y-4 p-4 sm:p-5">
             <div>
               <h3 className="font-semibold">Credits by league</h3>
-              <p className="text-muted-foreground text-xs">Current month</p>
+              <p className="text-muted-foreground text-xs">Last 30 days</p>
             </div>
             {data.bySport.length ? (
               <div className="divide-border divide-y">
@@ -519,7 +519,7 @@ export default async function AdminOddsPage() {
           <Card className="space-y-4 p-4 sm:p-5">
             <div>
               <h3 className="font-semibold">Credits by purpose</h3>
-              <p className="text-muted-foreground text-xs">Current month</p>
+              <p className="text-muted-foreground text-xs">Last 30 days</p>
               <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
                 After this control release, Verification contains only live
                 per-event checks. Earlier entries may include expanded-board
@@ -559,7 +559,8 @@ export default async function AdminOddsPage() {
             <div>
               <h3 className="font-semibold">Credits by market</h3>
               <p className="text-muted-foreground text-xs">
-                Exact response-level attribution for newly recorded calls
+                Last 30 days, for calls recorded since market attribution
+                shipped
               </p>
             </div>
             {data.byMarket.length ? (
