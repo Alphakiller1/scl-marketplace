@@ -622,7 +622,7 @@ export function AdminOddsControlEditor({
                         How many times one {sport.sport} event may be re-priced
                         in a day, counted from 8am ET. The schedule spends{" "}
                         {DEFAULT_EVENT_BUYS_PER_DAY}: one the day before, one at
-                        8am and one at 5pm. {HARD_MAX_EVENT_BUYS_PER_DAY} is the
+                        8am and one at 3pm. {HARD_MAX_EVENT_BUYS_PER_DAY} is the
                         most any league may hold.
                       </p>
                     </div>

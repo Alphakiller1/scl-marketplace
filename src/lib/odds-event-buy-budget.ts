@@ -15,7 +15,7 @@
  *
  * The allowance is per league and per event: three a day by default, four at the
  * absolute most, spent by the schedule as one build the day before plus 08:00
- * and 17:00 ET on the day itself.
+ * and 15:00 ET on the day itself.
  */
 
 const EASTERN_ZONE = "America/New_York";
@@ -34,7 +34,7 @@ export const DEFAULT_EVENT_BUYS_PER_DAY = 3;
 
 /**
  * The three the schedule plans for: one the day before, one at 08:00 ET and one
- * at 17:00 ET. Every sport runs on these same times.
+ * at 15:00 ET. Every sport runs on these same times.
  */
 export const SAME_DAY_EXPANDED_RUNS = 2;
 

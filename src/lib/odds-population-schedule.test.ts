@@ -200,7 +200,7 @@ test("Vercel runs the paid cadence through the day, expanded boards included", (
   );
 
   // The rule the bill turns on. One build the day before, then 08:00 ET and
-  // 17:00 ET on the day itself — three, the default allowance, and never more
+  // 15:00 ET on the day itself — three, the default allowance, and never more
   // than the hard ceiling. Six to eight buys per game per day is what took MLB
   // verification to 83% of the provider bill.
   const easternMinutes = (schedule: string) => {
@@ -230,8 +230,8 @@ test("Vercel runs the paid cadence through the day, expanded boards included", (
     todayRuns
       .map((cron) => easternMinutes(cron.schedule))
       .sort((a, b) => a - b),
-    [8 * 60, 17 * 60],
-    "the two same-day verifications must run at 08:00 and 17:00 ET",
+    [8 * 60, 15 * 60],
+    "the two same-day verifications must run at 08:00 and 15:00 ET",
   );
   for (const cron of todayRuns) {
     assert.ok(

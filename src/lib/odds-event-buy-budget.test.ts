@@ -60,16 +60,16 @@ test("a league given its own allowance is held to it, not to the default", () =>
 });
 
 test("the schedule's three buys fit the default, and a fourth needs the ceiling", () => {
-  // 23:00 ET the day before, then 08:00 and 17:00 ET — the exact pattern.
+  // 23:00 ET the day before, then 08:00 and 15:00 ET — the exact pattern.
   const dayBefore = et(20, 23);
   const morning = et(21, 8);
-  const evening = et(21, 17);
+  const evening = et(21, 15);
   assert.equal(buyDayKey(dayBefore), "2026-08-20");
   assert.equal(buyDayKey(morning), "2026-08-21");
   assert.equal(buyDayKey(evening), "2026-08-21");
 
   // The 20th's budget holds its own two plus the day-before build: exactly three.
-  const twentieth = [et(20, 8), et(20, 17), dayBefore];
+  const twentieth = [et(20, 8), et(20, 15), dayBefore];
   assert.equal(remainingEventBuys(twentieth, dayBefore), 0);
   assert.equal(eventBuyBudgetExhausted(twentieth, dayBefore), true);
   // A league raised to the ceiling would still have one in hand.

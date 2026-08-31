@@ -87,7 +87,7 @@ Under **Change settings → Leagues**, open a league:
 6. Set separate refresh timing for Standard and Expanded coverage.
 7. **Verifications per event, per day** — how many times one event of this
    league may be re-priced, counted from 8am ET. The default is 3, which is what
-   the schedule spends: one the day before, one at 8am and one at 5pm. **4 is
+   the schedule spends: one the day before, one at 8am and one at 3pm. **4 is
    the ceiling and no league may go above it.**
 
 Anything you leave alone keeps the universal value. More markets, competitions,
