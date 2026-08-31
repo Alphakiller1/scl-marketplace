@@ -2,16 +2,6 @@
 
 Open **Admin → API Credits**.
 
-## Start with an owner playbook
-
-- **Efficient 80K:** modeled at 80,972 credits, leaving 19,028.
-- **Demand-balanced 88K (recommended):** modeled at 88,040, leaving 11,960.
-- **Maximum coverage 95K:** modeled at 94,736, leaving the protected 5,264 cushion.
-
-Every card shows Standard and Expanded cadence by sport. Load a playbook in
-preview mode, adjust it if needed, then select **Export current playbook** to
-download the forecast, sport schedules, markets, leagues, and guardrails.
-
 ## What to check first
 
 1. Review **Used today, week, and month**, **Provider remaining**, and the monthly projection.

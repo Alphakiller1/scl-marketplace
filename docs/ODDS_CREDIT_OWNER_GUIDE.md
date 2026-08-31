@@ -2,26 +2,6 @@
 
 Open **Admin → API Credits**.
 
-## Choose an 80K–95K owner playbook
-
-The dashboard includes three preview-only starting points. Their 31-day
-forecasts assume every cadence slot runs and every expanded pull reaches its
-event cap, so actual usage may be lower when fresh boards are skipped.
-
-| Playbook             | Modeled monthly usage | Allocation left | Best use                                     |
-| -------------------- | --------------------: | --------------: | -------------------------------------------- |
-| Efficient 80K        |                80,972 |          19,028 | Broad access with the most recovery room     |
-| Demand-balanced 88K  |                88,040 |          11,960 | Recommended balance of freshness and reserve |
-| Maximum coverage 95K |                94,736 |           5,264 | Highest safe cadence with tight monitoring   |
-
-Each playbook card shows separate Standard and Expanded cadence for every
-enabled sport. Loading a playbook does not activate or save it.
-
-Use **Export current playbook** to download a Markdown file containing the
-current forecast, every sport cadence, markets, leagues, guardrails,
-verification policy, and activation checklist. Export after any edits if the
-owners need a record of the exact plan under review.
-
 ## 1. Check usage before changing anything
 
 - **Used today / week / month:** credits already consumed.

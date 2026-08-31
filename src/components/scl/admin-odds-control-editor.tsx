@@ -8,13 +8,11 @@ import {
   Check,
   ChevronDown,
   CircleDollarSign,
-  Download,
   Gauge,
   Play,
   ScanSearch,
   Save,
   ShieldCheck,
-  Sparkles,
   SlidersHorizontal,
   WalletCards,
 } from "lucide-react";
@@ -39,12 +37,6 @@ import {
   SURFACE_MARKETS,
   type OddsControlSport,
 } from "@/lib/odds-control";
-import { buildOddsOwnerPlaybook } from "@/lib/odds-control-playbook";
-import {
-  ODDS_CONTROL_PRESETS,
-  oddsControlPreset,
-  type OddsControlPresetId,
-} from "@/lib/odds-control-presets";
 import { formatEasternDateTime } from "@/lib/odds-control-reporting";
 import type { OddsControlSettingsInput } from "@/lib/schemas/odds-control.schema";
 import { cn } from "@/lib/utils";
@@ -186,42 +178,6 @@ export function AdminOddsControlEditor({
     setConfig((current) => ({ ...current, ...update }));
   }
 
-  function applyPreset(id: OddsControlPresetId) {
-    const preset = oddsControlPreset(id);
-    setConfig(preset.config);
-    setSports((current) =>
-      preset.sports.map((next) => {
-        const existing = current.find((row) => row.sport === next.sport);
-        return {
-          ...existing,
-          ...next,
-          nextSurfaceRunAt: existing?.nextSurfaceRunAt ?? null,
-          nextExpandedRunAt: existing?.nextExpandedRunAt ?? null,
-          lastSurfaceRunAt: existing?.lastSurfaceRunAt ?? null,
-          lastExpandedRunAt: existing?.lastExpandedRunAt ?? null,
-        };
-      }),
-    );
-    setHasUnsavedChanges(true);
-    toast.success(`${preset.name} strategy loaded in preview mode`);
-  }
-
-  function exportPlaybook() {
-    const markdown = buildOddsOwnerPlaybook({ ...config, sports });
-    const blob = new Blob([markdown], {
-      type: "text/markdown;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `scl-api-credit-playbook-${new Date().toISOString().slice(0, 10)}.md`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-    toast.success("Owner playbook downloaded");
-  }
-
   function save() {
     startTransition(async () => {
       const result = await saveOddsControlSettingsAction({
@@ -290,102 +246,7 @@ export function AdminOddsControlEditor({
         </div>
       ) : null}
 
-      <Card className="space-y-5 p-4 sm:p-6">
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-          <div className="flex items-start gap-3">
-            <span className="bg-primary/10 text-primary grid size-10 shrink-0 place-items-center rounded-xl">
-              <Sparkles className="size-5" aria-hidden />
-            </span>
-            <div className="min-w-0">
-              <h2 className="text-xl font-semibold">
-                Choose an owner playbook
-              </h2>
-              <p className="text-muted-foreground mt-1 max-w-2xl text-sm leading-relaxed">
-                Each option models 80K–95K monthly usage and preserves at least
-                5K of the 100K provider allocation. Load in preview, review the
-                sport cadences, then activate.
-              </p>
-            </div>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-10 shrink-0"
-            onClick={exportPlaybook}
-          >
-            <Download className="size-4" aria-hidden />
-            Export current playbook
-          </Button>
-        </div>
-
-        <div className="grid gap-3 lg:grid-cols-3">
-          {ODDS_CONTROL_PRESETS.map((preset) => (
-            <article
-              key={preset.id}
-              className={cn(
-                "border-border bg-surface-2 flex flex-col rounded-xl border p-4",
-                preset.id === "balanced" && "border-primary/40 bg-primary/5",
-              )}
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="font-semibold">{preset.name}</h3>
-                {preset.id === "balanced" ? (
-                  <Badge variant="secondary">Recommended</Badge>
-                ) : null}
-              </div>
-              <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-                {preset.description}
-              </p>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <div>
-                  <p className="text-muted-foreground text-xs">Modeled usage</p>
-                  <p className="nums mt-0.5 font-semibold">
-                    {preset.monthlyCeiling.toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-xs">
-                    Allocation left
-                  </p>
-                  <p className="nums text-pos mt-0.5 font-semibold">
-                    {preset.minimumBalance.toLocaleString()}
-                  </p>
-                </div>
-              </div>
-              <div className="border-border mt-4 space-y-2 border-t pt-3">
-                <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-                  Cadence by sport
-                </p>
-                {preset.sports
-                  .filter((sport) => sport.enabled)
-                  .map((sport) => (
-                    <div
-                      key={sport.sport}
-                      className="flex items-start justify-between gap-3 text-xs"
-                    >
-                      <span className="font-semibold">{sport.sport}</span>
-                      <span className="text-muted-foreground text-right leading-relaxed">
-                        Standard {cadenceLabel(sport.surfaceCadenceMinutes)}
-                        {sport.expandedEnabled
-                          ? ` · Expanded ${cadenceLabel(sport.expandedCadenceMinutes)}`
-                          : " · Expanded off"}
-                      </span>
-                    </div>
-                  ))}
-              </div>
-              <Button
-                type="button"
-                variant={preset.id === "balanced" ? "default" : "outline"}
-                className="mt-4 min-h-10 w-full"
-                disabled={pending || !storageReady}
-                onClick={() => applyPreset(preset.id)}
-              >
-                Load {preset.name}
-              </Button>
-            </article>
-          ))}
-        </div>
-
+      <Card className="p-4 sm:p-6">
         <div className="border-border bg-card grid gap-4 rounded-xl border p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center justify-between gap-2">
