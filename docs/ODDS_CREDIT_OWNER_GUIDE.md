@@ -90,15 +90,21 @@ Anything you leave alone keeps the universal value. More markets, competitions,
 events and frequent refreshes use more credits — and every league draws from the
 same pool.
 
-### Schedule slate or league verification
+### Scheduled verification runs
 
-In **Slate & league verification**:
+A verification run re-prices events from the provider so cappers see current
+lines. Each run spends credits.
 
 1. Name the schedule and choose a sport.
-2. Choose **Whole slate**, or **One league** for soccer and tennis.
-3. Select standard lines, the sport's currently configured markets, or all supported markets.
-4. Set the maximum events. Use `99` when the intent is the entire available slate.
-5. Choose **Run once** with an Eastern date/time, or **Repeat weekly** with weekdays and an Eastern time.
+2. **Which events** — only soccer and tennis ask, because only they are split
+   into separately billed competitions. Every other sport is one league, and the
+   field says so instead of offering a choice with one answer.
+3. **Markets to price** — game lines only (three credits an event), whatever
+   that sport is configured to pull, or every market SCL supports.
+4. **How many events** — _All events on the slate_, or a set number. Events are
+   taken in kickoff order, soonest first.
+5. **When it runs** — _One time, on a date I pick_, or _Every week, on days I
+   pick_. Select all seven days for a daily run.
 6. Review the maximum-credit preview, then create the schedule.
 
 Due schedules run within five minutes of their selected time. Pause or resume a
