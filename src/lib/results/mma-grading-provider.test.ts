@@ -15,10 +15,10 @@ const mapper = read("src/lib/results/espn-scoreboard-map.ts");
 const match = read("src/lib/results/match.ts");
 const grader = read("src/lib/results/auto-grade.ts");
 
-test("production grader fetches Odds API scores for MMA/UFC", () => {
+test("production grader fetches Odds API scores for sports without complete free coverage", () => {
   assert.match(
     provider,
-    /ODDS_SCORES_ONLY_SPORTS = \["MMA", "TENNIS", "CFL"\]/,
+    /ODDS_SCORES_ONLY_SPORTS = \[[\s\S]*"MMA",[\s\S]*"TENNIS",[\s\S]*"CFL",[\s\S]*"SOCCER",[\s\S]*\]/,
   );
   assert.match(provider, /oddsApiResultsProvider\(\)/);
   assert.match(
