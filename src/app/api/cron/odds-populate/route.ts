@@ -42,8 +42,7 @@ import {
   SURFACE_MARKETS,
 } from "@/lib/odds-control";
 import { managedOddsSchedulingEnabled } from "@/lib/odds-control-runtime";
-import { isMissingOddsControlStorageError } from "@/lib/odds-control";
-import { prisma } from "@/lib/prisma";
+import { loadLeagueBuyLimits } from "@/lib/odds-league-buy-limits";
 
 export const maxDuration = 300;
 
@@ -139,25 +138,6 @@ async function loadSurface(
     source: board.source,
     stale: board.stale,
   };
-}
-
-/**
- * Per-league daily buy allowances, keyed by SCL sport.
- *
- * Missing storage or a missing row is not an absent limit — the caller falls
- * back to the shared default, so a database that has never been configured is
- * still capped.
- */
-async function loadLeagueBuyLimits(): Promise<Map<string, number>> {
-  try {
-    const rows = await prisma.oddsSportControl.findMany({
-      select: { sport: true, dailyVerificationLimit: true },
-    });
-    return new Map(rows.map((row) => [row.sport, row.dailyVerificationLimit]));
-  } catch (error) {
-    if (!isMissingOddsControlStorageError(error)) throw error;
-    return new Map();
-  }
 }
 
 async function populate(req: NextRequest) {

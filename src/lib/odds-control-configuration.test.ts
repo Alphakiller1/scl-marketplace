@@ -14,7 +14,9 @@ import {
   creditWindowStart,
   DEFAULT_ODDS_CONTROL_CONFIG,
   defaultSportControl,
+  clampToPlanStart,
   ODDS_CONTROL_SPORTS,
+  oddsPlanStart,
   utcDayStart,
 } from "@/lib/odds-control";
 
@@ -223,5 +225,33 @@ test("no credit path computes its own calendar-month window", () => {
     offenders,
     [],
     `derive credit windows from creditWindowStart(): ${offenders.join(", ")}`,
+  );
+});
+
+test("usage windows never reach behind the current provider plan", () => {
+  // Pre-25-Aug usage was spent on a 20,000 key that ran to exhaustion. Averaging
+  // an outage into today's burn rate understates it, so every window is floored.
+  const planStart = oddsPlanStart();
+  assert.equal(planStart.toISOString(), "2026-08-25T00:00:00.000Z");
+
+  const duringPlan = new Date("2026-08-31T12:00:00.000Z");
+  const thirtyDaysBack = creditWindowStart(
+    duringPlan,
+    CREDIT_WINDOW_DAYS.month,
+  );
+  assert.ok(thirtyDaysBack < planStart, "the raw window predates the plan");
+  assert.equal(
+    clampToPlanStart(thirtyDaysBack).toISOString(),
+    planStart.toISOString(),
+  );
+
+  // Once the plan is older than the window, the floor stops applying and a
+  // rolling thirty days is a genuine rolling thirty days again.
+  const later = new Date("2026-11-01T12:00:00.000Z");
+  const laterWindow = creditWindowStart(later, CREDIT_WINDOW_DAYS.month);
+  assert.ok(laterWindow > planStart);
+  assert.equal(
+    clampToPlanStart(laterWindow).toISOString(),
+    laterWindow.toISOString(),
   );
 });

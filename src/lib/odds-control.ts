@@ -214,6 +214,33 @@ export function creditWindowStart(now: Date, days: number): Date {
   return utcDayStart(new Date(now.getTime() - (days - 1) * 86_400_000));
 }
 
+/**
+ * The day the 100,000-credit provider plan started.
+ *
+ * Everything before it was spent on a different, smaller plan that ran to
+ * exhaustion — the board went dark, the scheduled refresh was switched off by
+ * hand, and the usage that survives from those weeks is a record of an outage,
+ * not of how the platform spends now. Mixed into a thirty-day window it drags
+ * every average, every per-sport share and the month-end projection toward a
+ * plan that no longer exists.
+ *
+ * So the dashboard floors every usage window here. Reads never reach behind it,
+ * and the screen says which date it is counting from rather than implying a
+ * full thirty days it does not have.
+ */
+export const ODDS_PLAN_START_ISO = "2026-08-25";
+
+/** Midnight UTC on the first day of the current provider plan. */
+export function oddsPlanStart(): Date {
+  return new Date(`${ODDS_PLAN_START_ISO}T00:00:00.000Z`);
+}
+
+/** A window start, never earlier than the plan it is reporting on. */
+export function clampToPlanStart(start: Date): Date {
+  const planStart = oddsPlanStart();
+  return start < planStart ? planStart : start;
+}
+
 export const DEFAULT_ODDS_CONTROL_CONFIG = {
   managedSchedulingEnabled: false,
   paused: false,

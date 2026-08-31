@@ -46,8 +46,20 @@ export async function getManagedOddsSportControl(sport: string) {
       select: { managedSchedulingEnabled: true, paused: true },
     });
     if (!config?.managedSchedulingEnabled) return null;
+    // Explicit select: this runs on the on-demand event board that pick entry
+    // depends on, so it must not name a column a pending migration has not
+    // added yet. The daily allowance is read separately, where a missing column
+    // degrades to the default instead of failing the request.
     const policy = await prisma.oddsSportControl.findUnique({
       where: { sport: sport.trim().toUpperCase() },
+      select: {
+        enabled: true,
+        surfaceEnabled: true,
+        expandedEnabled: true,
+        surfaceMarkets: true,
+        expandedMarkets: true,
+        leagues: true,
+      },
     });
     return policy
       ? {
@@ -59,7 +71,6 @@ export async function getManagedOddsSportControl(sport: string) {
           surfaceMarkets: policy.surfaceMarkets,
           expandedMarkets: policy.expandedMarkets,
           leagues: policy.leagues,
-          dailyVerificationLimit: policy.dailyVerificationLimit,
         }
       : {
           managed: true as const,
@@ -70,7 +81,6 @@ export async function getManagedOddsSportControl(sport: string) {
           surfaceMarkets: [] as string[],
           expandedMarkets: [] as string[],
           leagues: [] as string[],
-          dailyVerificationLimit: null as number | null,
         };
   } catch (error) {
     if (isMissingOddsControlStorageError(error)) return null;

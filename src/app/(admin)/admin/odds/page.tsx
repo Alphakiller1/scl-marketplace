@@ -166,6 +166,19 @@ export default async function AdminOddsPage() {
       ) !== "ok",
   );
   const spikes = data.history.filter((point) => point.spike);
+  // Everything on this screen counts from the day the 100,000 plan started; the
+  // spent 20,000 key before it is excluded rather than averaged in.
+  const planStart = new Date(
+    `${data.summary.planStartIso}T00:00:00.000Z`,
+  ).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+  const windowNote =
+    data.summary.observedDays > 0 && data.summary.observedDays < 30
+      ? `${data.summary.observedDays} days on plan`
+      : "last 30 days";
 
   return (
     <div className="space-y-10">
@@ -284,7 +297,7 @@ export default async function AdminOddsPage() {
                 {
                   label: "Projected 30 days",
                   value: credits(data.summary.projectedMonth),
-                  sub: `limit ${credits(settings.config.monthlyCreditLimit)}`,
+                  sub: `since ${planStart} · limit ${credits(settings.config.monthlyCreditLimit)}`,
                 },
               ].map((fact) => (
                 <article
@@ -394,7 +407,7 @@ export default async function AdminOddsPage() {
         <SectionHeader
           icon={Gauge}
           title="Usage & budget"
-          subtitle="What the configuration above has actually spent"
+          subtitle={`What the configuration above has actually spent, counted from the start of the 100,000-credit plan on ${planStart}`}
         />
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -414,7 +427,7 @@ export default async function AdminOddsPage() {
           </Card>
           <Card className="p-4">
             <StatBlock
-              label="Used, last 30 days"
+              label={`Used, ${windowNote}`}
               value={credits(data.summary.month)}
               sub={`${data.summary.percentUsed.toFixed(1)}% of limit`}
             />
@@ -423,7 +436,7 @@ export default async function AdminOddsPage() {
             <StatBlock
               label="Projected 30 days"
               value={credits(data.summary.projectedMonth)}
-              sub={`limit ${credits(settings.config.monthlyCreditLimit)}`}
+              sub={`at the ${windowNote} rate · limit ${credits(settings.config.monthlyCreditLimit)}`}
             />
           </Card>
         </div>
@@ -432,8 +445,8 @@ export default async function AdminOddsPage() {
           <Card className="space-y-5 p-4 sm:p-5">
             <SectionHeader
               icon={Activity}
-              title="30-day usage"
-              subtitle="Board, verification, results, and CLV calls"
+              title="Usage on this plan"
+              subtitle={`Board, verification, results and CLV calls since ${planStart}`}
             />
             <AdminOddsUsageChart history={data.history} />
             {spikes.length ? (
@@ -490,7 +503,7 @@ export default async function AdminOddsPage() {
           <Card className="space-y-4 p-4 sm:p-5">
             <div>
               <h3 className="font-semibold">Credits by league</h3>
-              <p className="text-muted-foreground text-xs">Last 30 days</p>
+              <p className="text-muted-foreground text-xs">Since {planStart}</p>
             </div>
             {data.bySport.length ? (
               <div className="divide-border divide-y">
@@ -519,7 +532,7 @@ export default async function AdminOddsPage() {
           <Card className="space-y-4 p-4 sm:p-5">
             <div>
               <h3 className="font-semibold">Credits by purpose</h3>
-              <p className="text-muted-foreground text-xs">Last 30 days</p>
+              <p className="text-muted-foreground text-xs">Since {planStart}</p>
               <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
                 After this control release, Verification contains only live
                 per-event checks. Earlier entries may include expanded-board
