@@ -88,6 +88,8 @@ type ExpandedRow = {
   stale: number;
   /** Fixtures skipped because their competition priced none of these markets. */
   unpriced: number;
+  /** Fixtures left alone because they have spent today's buy allowance. */
+  capped: number;
 };
 
 /**
@@ -217,6 +219,11 @@ async function runPopulate(req: NextRequest) {
   // How stale an already-complete expanded board may be before this run pays to
   // move it. Tunable from the cron URL so the deep-board spend can be traded
   // against the credit budget without a deploy.
+  // An owner forcing a rebuild can spend past the per-event daily cap. It is a
+  // query flag rather than the default because the cap is the thing standing
+  // between a fifteen-game slate and eight re-buys a day.
+  const ignoreBuyCap = req.nextUrl.searchParams.get("ignoreBuyCap") === "1";
+
   const expandedMaxAgeMinutes = parseExpandedMaxAgeMinutes(
     req.nextUrl.searchParams.get("expandedMaxAgeMinutes"),
   );
@@ -271,6 +278,7 @@ async function runPopulate(req: NextRequest) {
       let selections = 0;
       let stale = 0;
       let unpriced = 0;
+      let capped = 0;
       const emptyRuns = new Map<string, number>();
       for (const event of events) {
         const competition = event.league ?? sport;
@@ -278,8 +286,19 @@ async function runPopulate(req: NextRequest) {
           unpriced += 1;
           continue;
         }
+        // Read the cache first whether or not `skipPopulated` is set: it is
+        // free, and it carries the buy log the daily cap is decided from.
+        // Checking here rather than only inside `loadEventBoard` is what lets a
+        // run REPORT how many events it declined to re-buy — a cap that is
+        // enforced but invisible looks exactly like a broken populate.
+        const cached = await loadCachedEventBoard(sport, event.id);
+        if (!ignoreBuyCap && cached.buysRemaining <= 0) {
+          capped += 1;
+          populated += 1;
+          selections += cached.selections.length;
+          continue;
+        }
         if (skipPopulated) {
-          const cached = await loadCachedEventBoard(sport, event.id);
           const coverage = summarizeEventMarketCoverage(
             event,
             cached.selections,
@@ -315,6 +334,7 @@ async function runPopulate(req: NextRequest) {
           forceRefresh: true,
           league: event.league,
           markets: expandedMarkets.length ? expandedMarkets : undefined,
+          ignoreDailyBuyCap: ignoreBuyCap,
         });
         if (board.selections.length > 0) {
           populated += 1;
@@ -334,6 +354,7 @@ async function runPopulate(req: NextRequest) {
         selections,
         stale,
         unpriced,
+        capped,
       };
     }
   }

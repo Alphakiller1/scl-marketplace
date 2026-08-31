@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
+import {
+  EVENT_BUY_DAY_START_HOUR_ET,
+  MAX_EVENT_BUYS_PER_DAY,
+  PLANNED_EVENT_BUYS_PER_DAY,
+} from "@/lib/odds-event-buy-budget";
 import { REFRESH_MAX_GAP_MINUTES } from "@/lib/strategic-odds-policy";
 
 /**
@@ -189,9 +194,40 @@ test("Vercel runs the paid cadence through the day, expanded boards included", (
     "no cron warms today's expanded boards",
   );
   assert.ok(
-    crons.some((cron) => cron.path.includes("expandedDays=today,tomorrow")),
+    crons.some((cron) => cron.path.includes("expandedDays=tomorrow")),
     "no cron builds tomorrow's board overnight",
   );
+
+  // The rule the bill turns on: a slate is bought at most MAX_EVENT_BUYS_PER_DAY
+  // times, and the buys on its OWN day happen after the 08:00 ET buy day opens.
+  // Six to eight buys per game per day is what took MLB verification to 83% of
+  // the provider bill, and cadence is the only place it can be prevented before
+  // the per-event cap has to refuse it.
+  const expandedRuns = crons.filter((cron) =>
+    cron.path.includes("expanded=99"),
+  );
+  assert.ok(
+    expandedRuns.length <= MAX_EVENT_BUYS_PER_DAY,
+    `${expandedRuns.length} expanded runs a day exceeds the ${MAX_EVENT_BUYS_PER_DAY}-buy cap`,
+  );
+  const todayRuns = expandedRuns.filter((cron) =>
+    cron.path.includes("expandedDays=today"),
+  );
+  assert.equal(
+    todayRuns.length,
+    PLANNED_EVENT_BUYS_PER_DAY,
+    "today's slate must be bought exactly twice",
+  );
+  for (const cron of todayRuns) {
+    const [minute, hour] = cron.schedule.trim().split(/\s+/);
+    // UTC-4 in EDT; both planned buys must land after 08:00 ET.
+    const easternMinutes =
+      (Number(hour) * 60 + Number(minute) - 4 * 60 + 1440) % 1440;
+    assert.ok(
+      easternMinutes >= EVENT_BUY_DAY_START_HOUR_ET * 60,
+      `an expanded buy at ${hour}:${minute} UTC lands before 08:00 ET`,
+    );
+  }
   for (const cron of crons) {
     assert.match(cron.path, /sports=MLB,WNBA,TENNIS,SOCCER,NFL/);
     assert.match(cron.schedule, /^\S+ \S+ \* \* \*$/);

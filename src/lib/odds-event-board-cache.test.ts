@@ -24,10 +24,30 @@ test("accepts a populated last-good event board for the exact event", () => {
     selections: [selection],
     savedAt: Date.now(),
   };
-  assert.deepEqual(
-    parseEventBoardSnapshot(snapshot, "MLB", "event-1"),
-    snapshot,
+  // A snapshot written before the daily buy cap shipped has no buy log. It must
+  // still parse — rejecting it would throw away a cached board that cost real
+  // credits — and it reads as an untouched allowance.
+  assert.deepEqual(parseEventBoardSnapshot(snapshot, "MLB", "event-1"), {
+    ...snapshot,
+    buys: [],
+  });
+});
+
+test("the buy log round-trips, and junk entries are dropped", () => {
+  const now = Date.now();
+  const parsed = parseEventBoardSnapshot(
+    {
+      version: 1,
+      sport: "MLB",
+      eventId: "event-1",
+      selections: [selection],
+      savedAt: now,
+      buys: [now - 3_600_000, "not-a-time", null, Number.NaN, now],
+    },
+    "MLB",
+    "event-1",
   );
+  assert.deepEqual(parsed?.buys, [now - 3_600_000, now]);
 });
 
 test("rejects empty, malformed, or cross-event snapshots", () => {

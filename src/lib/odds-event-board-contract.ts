@@ -6,6 +6,15 @@ export type EventBoardSnapshot = {
   eventId: string;
   selections: OddsSelection[];
   savedAt: number;
+  /**
+   * Epoch millis of each paid refresh of this event inside the current buy day.
+   *
+   * Optional, and absent on every snapshot written before the daily buy cap
+   * shipped. A missing log reads as "no buys recorded yet", which lets the cap
+   * start counting from the next refresh instead of rejecting the snapshot and
+   * throwing away a cached board that cost real credits.
+   */
+  buys?: number[];
 };
 
 function selectionIdentity(selection: OddsSelection): string {
@@ -62,5 +71,13 @@ export function parseEventBoardSnapshot(
   ) {
     return null;
   }
-  return row as EventBoardSnapshot;
+  const snapshot = row as EventBoardSnapshot;
+  return {
+    ...snapshot,
+    buys: Array.isArray(row.buys)
+      ? row.buys.filter(
+          (at): at is number => typeof at === "number" && Number.isFinite(at),
+        )
+      : [],
+  };
 }
