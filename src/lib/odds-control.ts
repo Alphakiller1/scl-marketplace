@@ -241,6 +241,29 @@ export function clampToPlanStart(start: Date): Date {
   return start < planStart ? planStart : start;
 }
 
+/**
+ * Additional purchased credits not reflected in the active key's own balance.
+ *
+ * The dashboard's headline balance comes from `x-requests-remaining`, which the
+ * provider returns for whichever key served the last response. That is one key's
+ * figure, not the account's — credits bought as a top-up, or sitting on another
+ * key in the `ODDS_API_KEYS` rollover list, are real and spendable but never
+ * appear in it. Left uncorrected the screen under-reports what is actually
+ * available and the runway looks shorter than it is.
+ *
+ * Set to 0 when the top-up has been consumed or the provider begins reporting
+ * the full account balance directly.
+ */
+export const ODDS_CREDIT_BALANCE_ADJUSTMENT = 10_000;
+
+/** The account's spendable balance: the active key's figure plus any top-up. */
+export function adjustedOddsRemaining(
+  keyRemaining: number | null | undefined,
+): number | null {
+  if (keyRemaining == null) return null;
+  return keyRemaining + ODDS_CREDIT_BALANCE_ADJUSTMENT;
+}
+
 export const DEFAULT_ODDS_CONTROL_CONFIG = {
   managedSchedulingEnabled: false,
   paused: false,

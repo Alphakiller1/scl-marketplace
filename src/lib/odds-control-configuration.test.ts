@@ -10,12 +10,14 @@ import {
   universalConfigEntries,
 } from "@/lib/odds-control-configuration";
 import {
+  adjustedOddsRemaining,
   CREDIT_WINDOW_DAYS,
   creditWindowStart,
   DEFAULT_ODDS_CONTROL_CONFIG,
   defaultSportControl,
   clampToPlanStart,
   ODDS_CONTROL_SPORTS,
+  ODDS_CREDIT_BALANCE_ADJUSTMENT,
   oddsPlanStart,
   utcDayStart,
 } from "@/lib/odds-control";
@@ -254,4 +256,16 @@ test("usage windows never reach behind the current provider plan", () => {
     clampToPlanStart(laterWindow).toISOString(),
     laterWindow.toISOString(),
   );
+});
+
+test("the reported balance includes purchased credits the active key cannot see", () => {
+  // `x-requests-remaining` is one key's figure. Credits bought as a top-up, or
+  // held on another key in the rollover list, are spendable but absent from it.
+  assert.equal(ODDS_CREDIT_BALANCE_ADJUSTMENT, 10_000);
+  assert.equal(adjustedOddsRemaining(69_796), 79_796);
+  assert.equal(adjustedOddsRemaining(0), 10_000);
+
+  // An unknown balance stays unknown — the adjustment must not invent one.
+  assert.equal(adjustedOddsRemaining(null), null);
+  assert.equal(adjustedOddsRemaining(undefined), null);
 });
