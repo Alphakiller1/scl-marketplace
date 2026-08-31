@@ -1,19 +1,19 @@
 import {
   Activity,
   AlertTriangle,
-  BarChart3,
   CalendarClock,
   CheckCircle2,
   CircleDollarSign,
   Gauge,
   History,
+  ListChecks,
   PauseCircle,
   Power,
   Settings2,
-  ShieldCheck,
   SlidersHorizontal,
 } from "lucide-react";
 
+import { AdminActiveConfiguration } from "@/components/scl/admin-active-configuration";
 import { AdminLeaguePickDemand } from "@/components/scl/admin-league-pick-demand";
 import { AdminOddsControlEditor } from "@/components/scl/admin-odds-control-editor";
 import { AdminOddsUsageChart } from "@/components/scl/admin-odds-usage-chart";
@@ -24,6 +24,7 @@ import { StatBlock } from "@/components/scl/stat";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { creditLimitState } from "@/lib/odds-control";
+import { activeConfiguration } from "@/lib/odds-control-configuration";
 import { formatEasternDateTime } from "@/lib/odds-control-reporting";
 import {
   getLeaguePickDemand,
@@ -35,27 +36,20 @@ import { cn } from "@/lib/utils";
 export const metadata = { title: "API credits" };
 export const maxDuration = 300;
 
-const CAPABILITIES = [
-  {
-    icon: BarChart3,
-    title: "Monitor spend",
-    description: "See credit use, allocation, and projected burn.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Set hard limits",
-    description: "Cap daily, weekly, and monthly API usage.",
-  },
-  {
-    icon: SlidersHorizontal,
-    title: "Choose coverage",
-    description: "Select sports, leagues, and market tiers.",
-  },
-  {
-    icon: CalendarClock,
-    title: "Control cadence",
-    description: "Schedule each sport and coverage tier.",
-  },
+/**
+ * The screen is organised by the two scopes a setting can have, because that is
+ * the only thing that decides what a change affects: universal settings apply
+ * to every league, and a league setting replaces one of them for that league
+ * alone. Configuration is stated before it is edited, and both come before the
+ * usage that measures them.
+ */
+const SECTIONS = [
+  ["Configuration", "#configuration"],
+  ["Universal", "#universal"],
+  ["Leagues", "#leagues"],
+  ["Verify schedule", "#verification-schedules"],
+  ["Usage", "#usage"],
+  ["Activity", "#activity"],
 ] as const;
 
 function credits(value: number): string {
@@ -141,6 +135,7 @@ export default async function AdminOddsPage() {
     getVerificationSchedules(),
   ]);
   const { settings } = data;
+  const configuration = activeConfiguration(settings.config, settings.sports);
   const controlState = !settings.config.managedSchedulingEnabled
     ? "inactive"
     : settings.config.paused
@@ -183,7 +178,8 @@ export default async function AdminOddsPage() {
         </h1>
         <p className="text-muted-foreground max-w-3xl text-sm sm:text-base">
           Decide what SCL pulls, how often it refreshes, and how much it can
-          spend—without changing backend code.
+          spend—without changing backend code. Settings are either universal, or
+          held by one league that overrides the universal value for itself.
         </p>
       </header>
 
@@ -191,13 +187,7 @@ export default async function AdminOddsPage() {
         aria-label="API credit dashboard sections"
         className="border-border bg-card sticky top-[calc(4rem+env(safe-area-inset-top))] z-20 flex [scrollbar-width:none] gap-1 overflow-x-auto rounded-xl border px-2 py-2 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
       >
-        {[
-          ["Usage", "#usage"],
-          ["Guardrails", "#controls"],
-          ["Sports & markets", "#sports"],
-          ["Verify schedule", "#verification-schedules"],
-          ["Activity", "#activity"],
-        ].map(([label, href]) => (
+        {SECTIONS.map(([label, href]) => (
           <a
             key={href}
             href={href}
@@ -210,7 +200,7 @@ export default async function AdminOddsPage() {
 
       <section aria-labelledby="control-status-heading">
         <Card className="overflow-hidden p-0">
-          <div className="grid lg:grid-cols-[minmax(18rem,0.8fr)_minmax(0,1.6fr)]">
+          <div className="grid lg:grid-cols-[minmax(18rem,0.9fr)_minmax(0,1.5fr)]">
             <div className="border-border space-y-4 border-b p-5 sm:p-6 lg:border-r lg:border-b-0">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-2">
@@ -249,9 +239,9 @@ export default async function AdminOddsPage() {
               </div>
               <p className="text-muted-foreground text-sm leading-6">
                 {controlState === "active"
-                  ? "The dispatcher is enforcing the limits, coverage, and schedules configured below."
+                  ? "The dispatcher is enforcing the universal limits and the per-league coverage configured below."
                   : controlState === "paused"
-                    ? "Owner-managed scheduling remains enabled, but new managed API runs are stopped."
+                    ? "Owner-managed scheduling remains enabled, but new managed API runs are stopped for every league."
                     : "Saved settings are in preview only. Enable owner-managed scheduling when the strategy is ready."}
               </p>
               <Badge
@@ -263,59 +253,151 @@ export default async function AdminOddsPage() {
             </div>
 
             <div className="grid sm:grid-cols-2">
-              {CAPABILITIES.map((capability) => {
-                const Icon = capability.icon;
-                return (
-                  <article
-                    key={capability.title}
-                    className="border-border border-b p-5 last:border-b-0 sm:[&:nth-child(odd)]:border-r sm:[&:nth-last-child(-n+2)]:border-b-0"
-                  >
-                    <Icon className="text-primary mb-3 size-5" aria-hidden />
-                    <h3 className="font-semibold">{capability.title}</h3>
-                    <p className="text-muted-foreground mt-1 text-sm">
-                      {capability.description}
-                    </p>
-                  </article>
-                );
-              })}
+              {[
+                {
+                  label: "Provider remaining",
+                  value:
+                    data.summary.remaining == null
+                      ? "Unknown"
+                      : credits(data.summary.remaining),
+                  sub: marketLabel(data.summary.provider.state),
+                },
+                {
+                  label: "Provider checked",
+                  value:
+                    data.summary.provider.ageMinutes != null
+                      ? data.summary.provider.ageMinutes < 1
+                        ? "Just now"
+                        : `${data.summary.provider.ageMinutes} min ago`
+                      : "Never",
+                  sub: data.summary.provider.updatedAt
+                    ? formatEasternDateTime(data.summary.provider.updatedAt)
+                    : "No provider observation",
+                },
+                {
+                  label: "Leagues enabled",
+                  value: `${configuration.counts.leaguesEnabled} / ${configuration.counts.leaguesTotal}`,
+                  sub: `${configuration.counts.overrides} league override${
+                    configuration.counts.overrides === 1 ? "" : "s"
+                  }`,
+                },
+                {
+                  label: "Projected month",
+                  value: credits(data.summary.projectedMonth),
+                  sub: `limit ${credits(settings.config.monthlyCreditLimit)}`,
+                },
+              ].map((fact) => (
+                <article
+                  key={fact.label}
+                  className="border-border border-b p-5 last:border-b-0 sm:[&:nth-child(odd)]:border-r sm:[&:nth-last-child(-n+2)]:border-b-0"
+                >
+                  <StatBlock
+                    label={fact.label}
+                    value={fact.value}
+                    sub={fact.sub}
+                  />
+                </article>
+              ))}
             </div>
           </div>
         </Card>
+      </section>
+
+      {limitWarnings.length ? (
+        <div
+          className="border-primary/30 bg-primary/10 rounded-xl border p-4 text-sm"
+          role="alert"
+        >
+          <div className="flex gap-3">
+            <AlertTriangle
+              className="text-primary mt-0.5 size-5 shrink-0"
+              aria-hidden
+            />
+            <div>
+              <p className="font-semibold">Credit limit needs attention</p>
+              <p className="text-muted-foreground mt-1">
+                {limitWarnings
+                  .map(
+                    (window) =>
+                      `${window.label}: ${credits(window.used)} of ${credits(window.limit)}`,
+                  )
+                  .join(" · ")}
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {data.summary.provider.state !== "healthy" ? (
+        <div
+          className="border-primary/30 bg-primary/10 rounded-xl border p-4 text-sm"
+          role="status"
+        >
+          <p className="font-semibold">
+            Provider status: {marketLabel(data.summary.provider.state)}
+          </p>
+          <p className="text-muted-foreground mt-1">
+            {data.summary.provider.state === "stale"
+              ? "The provider balance is over 24 hours old. The dashboard will treat it as unknown until the next response."
+              : data.summary.provider.state === "reserve"
+                ? "Remaining provider credits are at or below the protected reserve; optional runs will stop."
+                : data.summary.provider.state === "exhausted"
+                  ? "The provider reports no credits remaining; optional runs are stopped."
+                  : "No provider response has been recorded yet."}
+          </p>
+        </div>
+      ) : null}
+
+      <section id="configuration" className="scroll-mt-36 space-y-5">
+        <SectionHeader
+          icon={ListChecks}
+          title="Active configuration"
+          subtitle="Every setting in force right now, and whether it applies to all leagues or to one"
+        />
+        <AdminActiveConfiguration configuration={configuration} />
+        <AdminLeaguePickDemand {...leagueDemand} />
+      </section>
+
+      <section className="scroll-mt-36 space-y-5">
+        <SectionHeader
+          icon={Settings2}
+          title="Change settings"
+          subtitle="Universal settings first, then the leagues that override them"
+        />
+        <AdminOddsControlEditor
+          initialConfig={settings.config}
+          initialSports={settings.sports}
+          verificationUsage={data.verification}
+          storageReady={settings.storageReady}
+        />
+      </section>
+
+      <section className="scroll-mt-36 space-y-5">
+        <SectionHeader
+          icon={CalendarClock}
+          title="Slate & league verification"
+          subtitle="One-off and repeating verification runs, scoped to a whole sport or a single league"
+        />
+        <AdminVerificationSchedules
+          sports={settings.sports}
+          schedules={verificationSchedules}
+          verificationLimits={{
+            dailyCredits: settings.config.verificationDailyCreditLimit,
+            maxCreditsPerRequest:
+              settings.config.verificationMaxCreditsPerRequest,
+          }}
+          storageReady={settings.storageReady}
+        />
       </section>
 
       <section id="usage" className="scroll-mt-36 space-y-5">
         <SectionHeader
           icon={Gauge}
           title="Usage & budget"
-          subtitle="Current consumption, limits, and the expected month-end burn"
+          subtitle="What the configuration above has actually spent"
         />
 
-        {limitWarnings.length ? (
-          <div
-            className="border-primary/30 bg-primary/10 rounded-xl border p-4 text-sm"
-            role="alert"
-          >
-            <div className="flex gap-3">
-              <AlertTriangle
-                className="text-primary mt-0.5 size-5 shrink-0"
-                aria-hidden
-              />
-              <div>
-                <p className="font-semibold">Credit limit needs attention</p>
-                <p className="text-muted-foreground mt-1">
-                  {limitWarnings
-                    .map(
-                      (window) =>
-                        `${window.label}: ${credits(window.used)} of ${credits(window.limit)}`,
-                    )
-                    .join(" · ")}
-                </p>
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Card className="p-4">
             <StatBlock
               label="Used today"
@@ -339,60 +421,12 @@ export default async function AdminOddsPage() {
           </Card>
           <Card className="p-4">
             <StatBlock
-              label="Provider remaining"
-              value={
-                data.summary.remaining == null
-                  ? "Unknown"
-                  : credits(data.summary.remaining)
-              }
-              sub={marketLabel(data.summary.provider.state)}
-            />
-          </Card>
-          <Card className="p-4">
-            <StatBlock
               label="Projected month"
               value={credits(data.summary.projectedMonth)}
               sub={`limit ${credits(settings.config.monthlyCreditLimit)}`}
             />
           </Card>
-          <Card className="p-4">
-            <StatBlock
-              label="Provider checked"
-              value={
-                data.summary.provider.ageMinutes != null
-                  ? data.summary.provider.ageMinutes < 1
-                    ? "Just now"
-                    : `${data.summary.provider.ageMinutes} min ago`
-                  : "Never"
-              }
-              sub={
-                data.summary.provider.updatedAt
-                  ? formatEasternDateTime(data.summary.provider.updatedAt)
-                  : "No provider observation"
-              }
-            />
-          </Card>
         </div>
-
-        {data.summary.provider.state !== "healthy" ? (
-          <div
-            className="border-primary/30 bg-primary/10 rounded-xl border p-4 text-sm"
-            role="status"
-          >
-            <p className="font-semibold">
-              Provider status: {marketLabel(data.summary.provider.state)}
-            </p>
-            <p className="text-muted-foreground mt-1">
-              {data.summary.provider.state === "stale"
-                ? "The provider balance is over 24 hours old. The dashboard will treat it as unknown until the next response."
-                : data.summary.provider.state === "reserve"
-                  ? "Remaining provider credits are at or below the protected reserve; optional runs will stop."
-                  : data.summary.provider.state === "exhausted"
-                    ? "The provider reports no credits remaining; optional runs are stopped."
-                    : "No provider response has been recorded yet."}
-            </p>
-          </div>
-        ) : null}
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.55fr)]">
           <Card className="space-y-5 p-4 sm:p-5">
@@ -427,7 +461,8 @@ export default async function AdminOddsPage() {
             <div>
               <h3 className="font-semibold">Budget guardrails</h3>
               <p className="text-muted-foreground mt-1 text-xs">
-                The dispatcher blocks new managed runs at 100%.
+                Universal limits, shared by every league. The dispatcher blocks
+                new managed runs at 100%.
               </p>
             </div>
             <BudgetMeter
@@ -454,7 +489,7 @@ export default async function AdminOddsPage() {
         <div className="grid gap-4 lg:grid-cols-3">
           <Card className="space-y-4 p-4 sm:p-5">
             <div>
-              <h3 className="font-semibold">Credits by sport</h3>
+              <h3 className="font-semibold">Credits by league</h3>
               <p className="text-muted-foreground text-xs">Current month</p>
             </div>
             {data.bySport.length ? (
@@ -474,7 +509,7 @@ export default async function AdminOddsPage() {
             ) : (
               <EmptyState
                 icon={CircleDollarSign}
-                title="No sport usage yet"
+                title="No league usage yet"
                 description="Credit usage will appear after API runs are recorded."
                 headingLevel="h3"
               />
@@ -557,8 +592,6 @@ export default async function AdminOddsPage() {
           </Card>
         </div>
 
-        <AdminLeaguePickDemand {...leagueDemand} />
-
         <Card className="space-y-3 p-4 sm:p-5">
           <h3 className="font-semibold">Board and provider health</h3>
           <div className="grid gap-3 text-sm sm:grid-cols-3">
@@ -569,7 +602,7 @@ export default async function AdminOddsPage() {
               </p>
             </div>
             <div className="border-border bg-surface-2 rounded-lg border p-3">
-              <p className="text-muted-foreground text-xs">Sports refreshed</p>
+              <p className="text-muted-foreground text-xs">Leagues refreshed</p>
               <p className="nums mt-1 font-semibold">
                 {data.summary.provider.refreshedSports}
               </p>
@@ -584,30 +617,6 @@ export default async function AdminOddsPage() {
             </div>
           </div>
         </Card>
-      </section>
-
-      <section id="controls" className="scroll-mt-36 space-y-5">
-        <SectionHeader
-          icon={Settings2}
-          title="Owner strategy"
-          subtitle="Set authority, guardrails, coverage, and refresh cadence"
-        />
-        <AdminOddsControlEditor
-          initialConfig={settings.config}
-          initialSports={settings.sports}
-          verificationUsage={data.verification}
-          storageReady={settings.storageReady}
-        />
-        <AdminVerificationSchedules
-          sports={settings.sports}
-          schedules={verificationSchedules}
-          verificationLimits={{
-            dailyCredits: settings.config.verificationDailyCreditLimit,
-            maxCreditsPerRequest:
-              settings.config.verificationMaxCreditsPerRequest,
-          }}
-          storageReady={settings.storageReady}
-        />
       </section>
 
       <section id="activity" className="scroll-mt-36 space-y-5">

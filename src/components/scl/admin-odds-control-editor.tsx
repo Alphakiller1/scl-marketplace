@@ -9,11 +9,13 @@ import {
   ChevronDown,
   CircleDollarSign,
   Gauge,
+  Globe,
   Play,
   ScanSearch,
   Save,
   ShieldCheck,
   SlidersHorizontal,
+  Trophy,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -93,26 +95,50 @@ function Toggle({
   );
 }
 
-function StepHeader({
-  step,
+/**
+ * Setting groups are a hierarchy, not a sequence, so each one is marked with
+ * the scope it belongs to rather than a step number: a globe for settings that
+ * apply to every league, a trophy for settings one league can hold on its own.
+ */
+function GroupHeader({
+  scope,
   icon: Icon,
   title,
   description,
 }: {
-  step: number;
+  scope: "universal" | "league";
   icon: typeof Gauge;
   title: string;
   description: string;
 }) {
+  const ScopeIcon = scope === "universal" ? Globe : Trophy;
   return (
     <div className="flex items-start gap-3">
-      <span className="bg-primary text-primary-foreground nums grid size-8 shrink-0 place-items-center rounded-full text-sm font-semibold">
-        {step}
+      <span
+        className={cn(
+          "grid size-8 shrink-0 place-items-center rounded-full",
+          scope === "universal"
+            ? "bg-surface-2 text-muted-foreground"
+            : "bg-primary/10 text-primary",
+        )}
+      >
+        <ScopeIcon className="size-4" aria-hidden />
       </span>
       <div className="min-w-0">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Icon className="text-primary size-4" aria-hidden />
           <h3 className="text-lg font-semibold">{title}</h3>
+          <Badge
+            variant="outline"
+            className={cn(
+              "font-medium",
+              scope === "universal"
+                ? "text-muted-foreground"
+                : "border-primary/40 bg-primary/10 text-primary",
+            )}
+          >
+            {scope === "universal" ? "All leagues" : "Per league"}
+          </Badge>
         </div>
         <p className="text-muted-foreground mt-1 text-sm">{description}</p>
       </div>
@@ -233,242 +259,244 @@ export function AdminOddsControlEditor({
         </div>
       ) : null}
 
-      <Card className="space-y-5 p-4 sm:p-6">
-        <StepHeader
-          step={1}
-          icon={CalendarClock}
-          title="Scheduling authority"
-          description="Choose whether this dashboard controls API pulls, then pause them when needed."
-        />
-        <div className="grid gap-3 md:grid-cols-2">
-          <Toggle
-            checked={config.managedSchedulingEnabled}
-            onChange={(managedSchedulingEnabled) =>
-              updateConfig({ managedSchedulingEnabled })
-            }
-            label="Owner-managed scheduling"
-            description="When on, the dispatcher follows the sport and cadence settings below. When off, existing production cadence remains authoritative."
-          />
-          <Toggle
-            checked={config.paused}
-            onChange={(paused) => updateConfig({ paused })}
-            label="Pause optional API pulls"
-            description="Stops scheduled board refreshes. Protected results and verification activity continue."
-          />
-        </div>
-        <div
-          className={cn(
-            "flex items-center gap-3 rounded-xl border p-3 text-sm",
-            config.managedSchedulingEnabled && !config.paused
-              ? "border-live/30 bg-live/10"
-              : "border-border bg-surface-2",
-          )}
-          role="status"
-        >
-          <span
-            className={cn(
-              "grid size-7 shrink-0 place-items-center rounded-full",
-              config.managedSchedulingEnabled && !config.paused
-                ? "bg-live text-background"
-                : "bg-muted text-muted-foreground",
-            )}
-            aria-hidden
-          >
-            {config.managedSchedulingEnabled && !config.paused ? (
-              <Check className="size-4" />
-            ) : (
-              <CalendarClock className="size-4" />
-            )}
-          </span>
-          <span className="font-medium">
-            {!config.managedSchedulingEnabled
-              ? "Preview only: these settings will not control API calls."
-              : config.paused
-                ? "Paused: new optional managed pulls will not run."
-                : "Active after save: the dispatcher will enforce this strategy."}
-          </span>
-        </div>
-      </Card>
-
-      <Card className="space-y-5 p-4 sm:p-6">
-        <StepHeader
-          step={2}
-          icon={ShieldCheck}
-          title="Credit guardrails"
-          description="Set the maximum spend for each window and keep a protected reserve."
-        />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
-          {[
-            {
-              label: "Daily limit",
-              key: "dailyCreditLimit",
-              help: "Max per calendar day",
-              min: 1,
-            },
-            {
-              label: "Weekly limit",
-              key: "weeklyCreditLimit",
-              help: "Max per rolling 7 days",
-              min: 1,
-            },
-            {
-              label: "Monthly limit",
-              key: "monthlyCreditLimit",
-              help: "Max per calendar month",
-              min: 1,
-            },
-            {
-              label: "Per-run limit",
-              key: "perRunCreditLimit",
-              help: "Maximum reserved by one run",
-              min: 1,
-            },
-            {
-              label: "Protected reserve",
-              key: "reserveCredits",
-              help: "Held for critical calls",
-              min: 0,
-            },
-            {
-              label: "Warning threshold",
-              key: "warningPercent",
-              help: "Percent of each limit",
-              min: 1,
-            },
-          ].map(({ label, key, help, min }) => (
-            <div key={key} className="space-y-1.5">
-              <Label htmlFor={key}>{label}</Label>
-              <Input
-                id={key}
-                type="number"
-                min={min}
-                max={key === "warningPercent" ? 100 : undefined}
-                value={config[key as keyof typeof config] as number}
-                onChange={(event) =>
-                  updateConfig({
-                    [key]: numberValue(
-                      event.target.value,
-                      config[key as keyof typeof config] as number,
-                    ),
-                  })
-                }
-              />
-              <p className="text-muted-foreground text-xs">{help}</p>
-            </div>
-          ))}
-        </div>
-        <p className="border-border text-muted-foreground border-t pt-4 text-xs">
-          Hard limits count completed usage plus credits reserved by active
-          runs. New managed runs are blocked before they can exceed a limit. All
-          schedules below are shown in Eastern Time and automatically follow
-          daylight-saving changes.
-        </p>
-      </Card>
-
-      <Card id="verification" className="scroll-mt-36 space-y-5 p-4 sm:p-6">
-        <StepHeader
-          step={3}
-          icon={ShieldCheck}
-          title="Verification controls"
-          description="Cap true per-event price checks independently from board population and grading."
-        />
-        <Toggle
-          checked={config.verificationEnabled}
-          onChange={(verificationEnabled) =>
-            updateConfig({ verificationEnabled })
-          }
-          label="Allow live verification requests"
-          description="Turn off to block new provider verification calls. Cached boards remain available and results grading continues."
-        />
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="border-border bg-surface-2 rounded-xl border p-3">
-            <p className="text-muted-foreground text-xs">
-              Verification attempts today
-            </p>
-            <p className="nums mt-1 text-xl font-semibold">
-              {verificationUsage.requestsToday.toLocaleString()} /{" "}
-              {config.verificationDailyRequestLimit.toLocaleString()}
-            </p>
-          </div>
-          <div className="border-border bg-surface-2 rounded-xl border p-3">
-            <p className="text-muted-foreground text-xs">
-              Verification credits today
-            </p>
-            <p className="nums mt-1 text-xl font-semibold">
-              {verificationUsage.creditsToday.toLocaleString()} /{" "}
-              {config.verificationDailyCreditLimit.toLocaleString()}
-            </p>
-          </div>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            {
-              label: "Daily verifications",
-              key: "verificationDailyRequestLimit",
-              help: "Maximum provider-check attempts per UTC day",
-              min: 1,
-              max: 100000,
-            },
-            {
-              label: "Daily verify credits",
-              key: "verificationDailyCreditLimit",
-              help: "Credits reserved only for verification",
-              min: 1,
-              max: 1000000,
-            },
-            {
-              label: "Credits per verification",
-              key: "verificationMaxCreditsPerRequest",
-              help: "Maximum market keys in one check",
-              min: 1,
-              max: 100,
-            },
-            {
-              label: "Reuse window (minutes)",
-              key: "verificationCacheMinutes",
-              help: "Longer reuse lowers repeat provider calls",
-              min: 10,
-              max: 1440,
-            },
-          ].map(({ label, key, help, min, max }) => (
-            <div key={key} className="space-y-1.5">
-              <Label htmlFor={key}>{label}</Label>
-              <Input
-                id={key}
-                type="number"
-                min={min}
-                max={max}
-                value={config[key as keyof typeof config] as number}
-                onChange={(event) =>
-                  updateConfig({
-                    [key]: numberValue(
-                      event.target.value,
-                      config[key as keyof typeof config] as number,
-                    ),
-                  })
-                }
-              />
-              <p className="text-muted-foreground text-xs">{help}</p>
-            </div>
-          ))}
-        </div>
-        <div className="border-border bg-surface-2 rounded-xl border p-3 text-xs leading-relaxed">
-          <p className="font-medium">What these controls affect</p>
-          <p className="text-muted-foreground mt-1">
-            Verification means a live, per-event odds confirmation. Expanded
-            board refreshes are tracked and controlled under Board population;
-            results settlement and grading are never disabled here.
-          </p>
-        </div>
-      </Card>
-
-      <section id="sports" className="scroll-mt-36 space-y-5">
+      <section id="universal" className="scroll-mt-36 space-y-5">
         <Card className="space-y-5 p-4 sm:p-6">
-          <StepHeader
-            step={4}
+          <GroupHeader
+            scope="universal"
+            icon={CalendarClock}
+            title="Scheduling authority"
+            description="Whether this dashboard controls API pulls at all, and the switch that pauses every league at once."
+          />
+          <div className="grid gap-3 md:grid-cols-2">
+            <Toggle
+              checked={config.managedSchedulingEnabled}
+              onChange={(managedSchedulingEnabled) =>
+                updateConfig({ managedSchedulingEnabled })
+              }
+              label="Owner-managed scheduling"
+              description="When on, the dispatcher follows the sport and cadence settings below. When off, existing production cadence remains authoritative."
+            />
+            <Toggle
+              checked={config.paused}
+              onChange={(paused) => updateConfig({ paused })}
+              label="Pause optional API pulls"
+              description="Stops scheduled board refreshes. Protected results and verification activity continue."
+            />
+          </div>
+          <div
+            className={cn(
+              "flex items-center gap-3 rounded-xl border p-3 text-sm",
+              config.managedSchedulingEnabled && !config.paused
+                ? "border-live/30 bg-live/10"
+                : "border-border bg-surface-2",
+            )}
+            role="status"
+          >
+            <span
+              className={cn(
+                "grid size-7 shrink-0 place-items-center rounded-full",
+                config.managedSchedulingEnabled && !config.paused
+                  ? "bg-live text-background"
+                  : "bg-muted text-muted-foreground",
+              )}
+              aria-hidden
+            >
+              {config.managedSchedulingEnabled && !config.paused ? (
+                <Check className="size-4" />
+              ) : (
+                <CalendarClock className="size-4" />
+              )}
+            </span>
+            <span className="font-medium">
+              {!config.managedSchedulingEnabled
+                ? "Preview only: these settings will not control API calls."
+                : config.paused
+                  ? "Paused: new optional managed pulls will not run."
+                  : "Active after save: the dispatcher will enforce this strategy."}
+            </span>
+          </div>
+        </Card>
+
+        <Card className="space-y-5 p-4 sm:p-6">
+          <GroupHeader
+            scope="universal"
+            icon={ShieldCheck}
+            title="Credit guardrails"
+            description="One shared pool of credits and one protected reserve. These cannot be set per league — the first league to reach a limit stops the rest."
+          />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+            {[
+              {
+                label: "Daily limit",
+                key: "dailyCreditLimit",
+                help: "Max per calendar day",
+                min: 1,
+              },
+              {
+                label: "Weekly limit",
+                key: "weeklyCreditLimit",
+                help: "Max per rolling 7 days",
+                min: 1,
+              },
+              {
+                label: "Monthly limit",
+                key: "monthlyCreditLimit",
+                help: "Max per calendar month",
+                min: 1,
+              },
+              {
+                label: "Per-run limit",
+                key: "perRunCreditLimit",
+                help: "Maximum reserved by one run",
+                min: 1,
+              },
+              {
+                label: "Protected reserve",
+                key: "reserveCredits",
+                help: "Held for critical calls",
+                min: 0,
+              },
+              {
+                label: "Warning threshold",
+                key: "warningPercent",
+                help: "Percent of each limit",
+                min: 1,
+              },
+            ].map(({ label, key, help, min }) => (
+              <div key={key} className="space-y-1.5">
+                <Label htmlFor={key}>{label}</Label>
+                <Input
+                  id={key}
+                  type="number"
+                  min={min}
+                  max={key === "warningPercent" ? 100 : undefined}
+                  value={config[key as keyof typeof config] as number}
+                  onChange={(event) =>
+                    updateConfig({
+                      [key]: numberValue(
+                        event.target.value,
+                        config[key as keyof typeof config] as number,
+                      ),
+                    })
+                  }
+                />
+                <p className="text-muted-foreground text-xs">{help}</p>
+              </div>
+            ))}
+          </div>
+          <p className="border-border text-muted-foreground border-t pt-4 text-xs">
+            Hard limits count completed usage plus credits reserved by active
+            runs. New managed runs are blocked before they can exceed a limit.
+            All schedules below are shown in Eastern Time and automatically
+            follow daylight-saving changes.
+          </p>
+        </Card>
+
+        <Card id="verification" className="scroll-mt-36 space-y-5 p-4 sm:p-6">
+          <GroupHeader
+            scope="universal"
+            icon={ShieldCheck}
+            title="Verification controls"
+            description="Caps live per-event price checks across every league, separately from board population and grading."
+          />
+          <Toggle
+            checked={config.verificationEnabled}
+            onChange={(verificationEnabled) =>
+              updateConfig({ verificationEnabled })
+            }
+            label="Allow live verification requests"
+            description="Turn off to block new provider verification calls. Cached boards remain available and results grading continues."
+          />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="border-border bg-surface-2 rounded-xl border p-3">
+              <p className="text-muted-foreground text-xs">
+                Verification attempts today
+              </p>
+              <p className="nums mt-1 text-xl font-semibold">
+                {verificationUsage.requestsToday.toLocaleString()} /{" "}
+                {config.verificationDailyRequestLimit.toLocaleString()}
+              </p>
+            </div>
+            <div className="border-border bg-surface-2 rounded-xl border p-3">
+              <p className="text-muted-foreground text-xs">
+                Verification credits today
+              </p>
+              <p className="nums mt-1 text-xl font-semibold">
+                {verificationUsage.creditsToday.toLocaleString()} /{" "}
+                {config.verificationDailyCreditLimit.toLocaleString()}
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                label: "Daily verifications",
+                key: "verificationDailyRequestLimit",
+                help: "Maximum provider-check attempts per UTC day",
+                min: 1,
+                max: 100000,
+              },
+              {
+                label: "Daily verify credits",
+                key: "verificationDailyCreditLimit",
+                help: "Credits reserved only for verification",
+                min: 1,
+                max: 1000000,
+              },
+              {
+                label: "Credits per verification",
+                key: "verificationMaxCreditsPerRequest",
+                help: "Maximum market keys in one check",
+                min: 1,
+                max: 100,
+              },
+              {
+                label: "Reuse window (minutes)",
+                key: "verificationCacheMinutes",
+                help: "Longer reuse lowers repeat provider calls",
+                min: 10,
+                max: 1440,
+              },
+            ].map(({ label, key, help, min, max }) => (
+              <div key={key} className="space-y-1.5">
+                <Label htmlFor={key}>{label}</Label>
+                <Input
+                  id={key}
+                  type="number"
+                  min={min}
+                  max={max}
+                  value={config[key as keyof typeof config] as number}
+                  onChange={(event) =>
+                    updateConfig({
+                      [key]: numberValue(
+                        event.target.value,
+                        config[key as keyof typeof config] as number,
+                      ),
+                    })
+                  }
+                />
+                <p className="text-muted-foreground text-xs">{help}</p>
+              </div>
+            ))}
+          </div>
+          <div className="border-border bg-surface-2 rounded-xl border p-3 text-xs leading-relaxed">
+            <p className="font-medium">What these controls affect</p>
+            <p className="text-muted-foreground mt-1">
+              Verification means a live, per-event odds confirmation. Expanded
+              board refreshes are tracked and controlled under Board population;
+              results settlement and grading are never disabled here.
+            </p>
+          </div>
+        </Card>
+      </section>
+
+      <section id="leagues" className="scroll-mt-36 space-y-5">
+        <Card className="space-y-5 p-4 sm:p-6">
+          <GroupHeader
+            scope="league"
             icon={SlidersHorizontal}
-            title="Sports, markets & cadence"
-            description="Open a sport to control its board, expanded markets, refresh schedule, and league scope."
+            title="League coverage & cadence"
+            description="Open a league to set its markets, refresh timing, event cap and competition scope. Anything left alone keeps the universal value above."
           />
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="border-border bg-surface-2 rounded-xl border p-3">
