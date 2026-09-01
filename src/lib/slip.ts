@@ -3,6 +3,11 @@
  * Pure functions so React state / context can own the slip array.
  */
 
+import {
+  isTeamTotalMarket,
+  parseTeamTotalSelection,
+} from "@/lib/team-total-markets";
+
 export type SlipPick = {
   eventId: string;
   eventLabel?: string;
@@ -36,11 +41,7 @@ export type SlipSelection = SlipPick & {
 export type SlipMode = "singles" | "parlay";
 
 export type SlipConflictKind =
-  | "duplicate"
-  | "moneyline"
-  | "spread"
-  | "total"
-  | "player_prop";
+  "duplicate" | "moneyline" | "spread" | "total" | "team_total" | "player_prop";
 
 export type SlipConflict = {
   kind: SlipConflictKind;
@@ -63,12 +64,18 @@ function isGameMarket(market: string): market is GameMarket {
 }
 
 /**
- * Stable identity for an exact board line (event, market, player, side, point, price, book).
+ * Stable identity for an exact board line (event, market, selection, player,
+ * side, point, price, book).
+ *
+ * `selection` is essential for team totals: the club is stored in text such as
+ * "Yankees Over 4.5", while both clubs otherwise share the same market, side,
+ * line and can even share the same price at the same book.
  * Used for selected-chip sync and exact-duplicate detection.
  */
 export function pickKey(p: {
   eventId: string;
   market: string;
+  selection?: string;
   side: string;
   line?: number;
   oddsAmerican: number;
@@ -78,6 +85,7 @@ export function pickKey(p: {
   return [
     p.eventId,
     p.market,
+    p.selection ?? "",
     p.player ?? "",
     p.side,
     p.line ?? "",
@@ -92,16 +100,25 @@ export function pickKey(p: {
  * - Game moneyline → one side per event
  * - Game spread (incl. alternate) → one spread per event
  * - Game total (incl. alternate) → one total per event
+ * - Team total → one total per event + club
  * - Player prop → one side/line per event + market + player
  *   (different players in the same prop market stay allowed)
  */
 export function conflictKey(p: {
   eventId: string;
   market: string;
+  selection?: string;
   player?: string;
 }): string {
   if (isGameMarket(p.market)) {
     return `${p.eventId}|${GAME_MARKETS[p.market]}`;
+  }
+  if (isTeamTotalMarket(p.market)) {
+    const team = parseTeamTotalSelection(p.selection ?? "")?.team;
+    // Current board selections are canonical and always parse. Retain the
+    // conservative event-level bucket for malformed legacy input rather than
+    // accidentally allowing two totals for an unknown club.
+    return `${p.eventId}|team_total|${team?.trim().toLowerCase() ?? ""}`;
   }
   // Props (and any other non-game market): collide on event + market + player.
   return `${p.eventId}|prop|${p.market}|${p.player ?? ""}`;
@@ -113,6 +130,7 @@ function conflictKindFor(
   if (market === "Moneyline") return "moneyline";
   if (market === "Spread") return "spread";
   if (market === "Total") return "total";
+  if (isTeamTotalMarket(market)) return "team_total";
   return "player_prop";
 }
 
@@ -127,6 +145,8 @@ function conflictMessage(
       return "This parlay already has a Spread for this game.";
     case "total":
       return "This parlay already has a Total for this game.";
+    case "team_total":
+      return "This parlay already has a Team Total for this team.";
     case "player_prop":
       return `This parlay already has a ${market} pick for this player.`;
   }

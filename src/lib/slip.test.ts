@@ -170,6 +170,81 @@ test("different players same prop market allowed", () => {
   assert.equal(canAddLeg([a], b), true);
 });
 
+test("different teams' totals from the same sportsbook can share a parlay", () => {
+  const yankees = leg({
+    market: "Team Total",
+    selection: "New York Yankees Over 4.5",
+    side: "Over",
+    line: 4.5,
+    oddsAmerican: -110,
+    book: "draftkings",
+  });
+  const redSox = leg({
+    market: "Team Total",
+    selection: "Boston Red Sox Over 4.5",
+    side: "Over",
+    line: 4.5,
+    oddsAmerican: -110,
+    book: "draftkings",
+  });
+
+  assert.notEqual(pickKey(yankees), pickKey(redSox));
+  assert.notEqual(conflictKey(yankees), conflictKey(redSox));
+  assert.equal(findConflict([yankees], redSox), null);
+  assert.equal(canAddLeg([yankees], redSox), true);
+  assert.deepEqual(findInternalParlayConflicts([yankees, redSox]), []);
+});
+
+test("alternate team totals for the same team remain a parlay conflict", () => {
+  const main = leg({
+    market: "Team Total",
+    selection: "New York Yankees Over 4.5",
+    side: "Over",
+    line: 4.5,
+    oddsAmerican: -110,
+    book: "draftkings",
+  });
+  const alternate = leg({
+    market: "Team Total",
+    selection: "New York Yankees Under 5.5",
+    side: "Under",
+    line: 5.5,
+    oddsAmerican: -105,
+    book: "draftkings",
+  });
+
+  assert.equal(conflictKey(main), conflictKey(alternate));
+  const conflict = findConflict([main], alternate);
+  assert.equal(conflict?.kind, "team_total");
+  assert.equal(
+    conflict?.message,
+    "This parlay already has a Team Total for this team.",
+  );
+  assert.equal(canAddLeg([main], alternate), false);
+});
+
+test("team-total identity distinguishes clubs even when book and price differ", () => {
+  const yankees = leg({
+    market: "Team Total",
+    selection: "New York Yankees Over 4.5",
+    side: "Over",
+    line: 4.5,
+    oddsAmerican: -115,
+    book: "draftkings",
+  });
+  const redSox = leg({
+    market: "Team Total",
+    selection: "Boston Red Sox Over 4.5",
+    side: "Over",
+    line: 4.5,
+    oddsAmerican: -105,
+    book: "fanduel",
+  });
+
+  assert.equal(findConflict([yankees], redSox), null);
+  assert.equal(canAddLeg([yankees], redSox), true);
+});
+
 test("different games same market allowed", () => {
   const game1 = leg({
     eventId: "evt-1",
