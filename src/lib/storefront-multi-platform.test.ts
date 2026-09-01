@@ -80,7 +80,7 @@ test("Whop connection copy explains the capper experience", () => {
     /checkout, subscriptions, and payments stay on \$\{label\}\./,
   );
   assert.match(source, /Continue to Connect Whop/);
-  assert.match(source, /Connect Whop API/);
+  assert.match(source, /Authorize SCL on Whop/);
   assert.match(source, /SCL_WHOP_AFFILIATE_PAGE_URL/);
   assert.match(source, /href="\/api\/whop\/connect"/);
   assert.doesNotMatch(
@@ -188,14 +188,26 @@ test("Whop setup instructions focus on the capper workflow", () => {
 
   // The API authorization step is unrelated to the manual affiliate invite and
   // stays at the end of the list.
-  assert.match(normalized, /4\. Connect Whop to SCL through the API/);
+  assert.match(normalized, /4\. Connect your Whop storefront to SCL/);
   assert.match(
     normalized,
-    /This authorizes an API connection; nothing is installed on Whop or your device/,
+    /Make sure you are signed in to the Whop account that manages the business where you sell your picks/,
   );
   assert.match(
     normalized,
-    /Hiding a mapped product on Whop also takes its SCL offer down/,
+    /Keep product names, descriptions, and visibility synchronized between Whop and SCL/,
+  );
+  assert.match(
+    normalized,
+    /SCL cannot change your Whop prices, issue refunds, manage payouts, or move funds/,
+  );
+  assert.match(
+    normalized,
+    /automatically begin importing your eligible Whop products under <strong>Your Whop packages<\/strong>/,
+  );
+  assert.match(
+    normalized,
+    /Imported packages remain hidden from the public until SCL reviews and publishes them/,
   );
 
   // Old wrong turns that must not come back.

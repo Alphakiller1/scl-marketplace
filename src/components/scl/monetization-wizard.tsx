@@ -581,24 +581,68 @@ export function MonetizationWizard({
                 </li>
                 <li className="border-border rounded-lg border p-3">
                   <p className="font-semibold">
-                    4. Connect Whop to SCL through the API
+                    4. Connect your Whop storefront to SCL
                   </p>
                   <p className="text-muted-foreground mt-1">
-                    Use the button below from SCL, sign in to the correct Whop
-                    business, and authorize secure API access so SCL can sync
-                    your packages. This authorizes an API connection; nothing is
-                    installed on Whop or your device. Hiding a mapped product on
-                    Whop also takes its SCL offer down. Prices remain controlled
-                    in Whop.
+                    Select <strong>Authorize SCL on Whop</strong> below to
+                    connect your Whop business to Sports Cappers Leaderboard and
+                    allow SCL to sync your Whop products.
                   </p>
+                  <div className="mt-3 space-y-3">
+                    <div>
+                      <p className="font-semibold">Before approving:</p>
+                      <ul className="text-muted-foreground mt-1 list-disc space-y-1 pl-5 leading-relaxed">
+                        <li>
+                          Make sure you are signed in to the Whop account that
+                          manages the business where you sell your picks.
+                        </li>
+                        <li>
+                          If Whop asks you to choose a business, select the
+                          business containing the products you want to display
+                          on SCL.
+                        </li>
+                        <li>
+                          Review the access requested by Sports Cappers
+                          Leaderboard.
+                        </li>
+                        <li>Approve the required permissions.</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="font-semibold">SCL uses this access to:</p>
+                      <ul className="text-muted-foreground mt-1 list-disc space-y-1 pl-5 leading-relaxed">
+                        <li>Read your Whop products.</li>
+                        <li>Read your product prices and billing schedules.</li>
+                        <li>
+                          Keep product names, descriptions, and visibility
+                          synchronized between Whop and SCL.
+                        </li>
+                      </ul>
+                    </div>
+                    <p className="border-border bg-surface-2 rounded-lg border p-3 text-xs leading-relaxed">
+                      SCL cannot change your Whop prices, issue refunds, manage
+                      payouts, or move funds. Whop remains the source of truth
+                      for pricing, billing, checkout, and payments.
+                    </p>
+                  </div>
                   <Button
-                    variant="outline"
-                    className="mt-2 min-h-10"
+                    className="mt-3 min-h-10"
                     render={<a href="/api/whop/connect" />}
                     nativeButton={false}
                   >
-                    Connect Whop API
+                    Authorize SCL on Whop
                   </Button>
+                  <div className="mt-3 space-y-2 text-xs leading-relaxed">
+                    <p className="text-muted-foreground">
+                      After you approve the connection, Whop will return you to
+                      SCL. SCL will automatically begin importing your eligible
+                      Whop products under <strong>Your Whop packages</strong>.
+                    </p>
+                    <p className="font-medium">
+                      Imported packages remain hidden from the public until SCL
+                      reviews and publishes them.
+                    </p>
+                  </div>
                 </li>
               </ol>
             </div>
