@@ -14,6 +14,7 @@ import {
   segmentShortLabel,
 } from "@/lib/period-markets";
 import {
+  boardPriceIsPlausible,
   impliedProbFromAmerican,
   propMarketLabel,
   type RawEventOdds,
@@ -25,6 +26,7 @@ import {
 } from "@/lib/soccer-markets";
 import {
   isTeamTotalMarket,
+  parseTeamTotalSelection,
   TEAM_TOTAL_LABEL,
   TEAM_TOTAL_MARKET_KEYS,
   teamTotalSelectionText,
@@ -117,13 +119,75 @@ export type BoardSelectionClaim = {
   player?: string;
   oddsAmerican: number;
   book?: string | null;
+  /**
+   * The board's selection text for this claim ("Milwaukee Brewers Over 2.5").
+   * Only a team total needs it — see {@link sameTeamTotalClub}.
+   */
+  selection?: string;
 };
 
 function sameOptionalText(a?: string, b?: string): boolean {
   return (a ?? "").trim().toLowerCase() === (b ?? "").trim().toLowerCase();
 }
 
-/** Exact server-side confirmation of a line previously rendered by the SCL board. */
+/**
+ * Does the claim name the same club as the board row?
+ *
+ * Only team totals need asking. A team total prices ONE club's runs but stores
+ * the club in its selection text alone: `market`, `side` (plain Over/Under),
+ * `line` and `player` (empty) are IDENTICAL for both clubs at the same rung. So
+ * every other field here can match the opponent's row, and a Brewers claim could
+ * be confirmed against the Cubs line — the same cross-club mix-up that once
+ * re-priced a Red Sox pick at the opponent's number (see `team-total-markets`).
+ *
+ * A label neither side can parse falls through as a match rather than rejecting
+ * a valid pick; identity there is no weaker than it was before this check.
+ */
+function sameTeamTotalClub(
+  selection: OddsSelection,
+  claim: BoardSelectionClaim,
+): boolean {
+  if (!isTeamTotalMarket(selection.market)) return true;
+  const boardClub = parseTeamTotalSelection(selection.selection)?.team;
+  const claimedClub = parseTeamTotalSelection(claim.selection ?? "")?.team;
+  if (!boardClub || !claimedClub) return true;
+  return sameOptionalText(boardClub, claimedClub);
+}
+
+/** Every covered book's price on this row — the set a claim is bounded against. */
+function availableBoardPrices(selection: OddsSelection): number[] {
+  const prices = Object.values(selection.bookPrices ?? {}).filter(
+    (price): price is number => typeof price === "number",
+  );
+  return prices.length > 0 ? prices : [selection.oddsAmerican];
+}
+
+/**
+ * Server-side confirmation of a line previously rendered by the SCL board.
+ *
+ * IDENTITY is exact: market, side, line, player, and — for a team total — the
+ * club. PRICE is bounded, not matched.
+ *
+ * It used to be matched, and that quietly broke pick entry. The board's cached
+ * price for a selection is overwritten in place on every refresh (identity in
+ * `mergeEventBoardSelections` excludes the price), and the event board refreshes
+ * on a ten-minute window, so the number a capper tapped is routinely gone by the
+ * time they submit. Replaying 248 real legs logged over 48 hours against the
+ * cached rows they were captured from, exact matching confirmed 12.9% of them.
+ * Singles survive that — `createPlays` reports per line and still writes the
+ * good ones — but a parlay is all-or-nothing, so one drifted leg killed the
+ * whole slip. It also contradicted this path's own stated contract, which is
+ * that submission never re-prices a selected line.
+ *
+ * So the question asked here is SCL's documented one (`odds-verify`): not "is
+ * this still the price?" but "could this price plausibly have been obtained?" —
+ * the one-sided {@link boardPriceIsPlausible} bound. Fraud is always claiming a
+ * price BETTER than was available, so a claim that pays no more than the best
+ * covered book is accepted however far the market has since moved, and claiming
+ * a worse price stays free. Replayed over those 248 legs the bound refuses none,
+ * and it is tighter than the flat probability band on the longshots where
+ * inflating a price actually pays.
+ */
 export function matchesBoardSelection(
   selection: OddsSelection,
   claim: BoardSelectionClaim,
@@ -132,17 +196,12 @@ export function matchesBoardSelection(
   if (!sameOptionalText(selection.side, claim.side)) return false;
   if (!sameOptionalText(selection.player, claim.player)) return false;
   if ((selection.line ?? null) !== (claim.line ?? null)) return false;
+  if (!sameTeamTotalClub(selection, claim)) return false;
 
-  if (claim.book) {
-    const bookPrice = getOddsForBook(selection, claim.book);
-    if (bookPrice !== null) return bookPrice === claim.oddsAmerican;
-    return (
-      selection.book === claim.book &&
-      selection.oddsAmerican === claim.oddsAmerican
-    );
-  }
-
-  return selection.oddsAmerican === claim.oddsAmerican;
+  return boardPriceIsPlausible({
+    claimedAmerican: claim.oddsAmerican,
+    availableAmerican: availableBoardPrices(selection),
+  });
 }
 
 /**

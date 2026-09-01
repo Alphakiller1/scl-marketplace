@@ -11,6 +11,7 @@ import {
   preferredThenAll,
   resolveBoardBooks,
   type OddsEvent,
+  type OddsSelection,
 } from "@/lib/odds-board";
 import { PICK_BOARD_BOOKS } from "@/lib/books";
 import type { RawEventOdds } from "@/lib/odds-verify";
@@ -139,7 +140,10 @@ test("getOddsForBook on selection is honest null (no silent substitute)", () => 
   assert.equal(getOddsForBook(spread, "betmgm"), null);
 });
 
-test("matchesBoardSelection confirms the exact market, line, book, and price", () => {
+// The board row here is Lakers -3.5, priced draftkings -110 / fanduel -105.
+// Best available is -105 (decimal 1.952), so the 8% payout bound accepts any
+// claim paying up to ~2.109 decimal (about +111) and refuses anything longer.
+function lakersSpread() {
   const spread = normalizeEventBoard(EVENT).find(
     (selection) =>
       selection.market === "Spread" &&
@@ -147,8 +151,12 @@ test("matchesBoardSelection confirms the exact market, line, book, and price", (
       selection.line === -3.5,
   );
   assert.ok(spread);
+  return spread;
+}
+
+test("matchesBoardSelection confirms the exact market, line and side", () => {
   assert.equal(
-    matchesBoardSelection(spread, {
+    matchesBoardSelection(lakersSpread(), {
       market: "Spread",
       side: "Lakers",
       line: -3.5,
@@ -158,17 +166,7 @@ test("matchesBoardSelection confirms the exact market, line, book, and price", (
     true,
   );
   assert.equal(
-    matchesBoardSelection(spread, {
-      market: "Spread",
-      side: "Lakers",
-      line: -3.5,
-      oddsAmerican: -104,
-      book: "fanduel",
-    }),
-    false,
-  );
-  assert.equal(
-    matchesBoardSelection(spread, {
+    matchesBoardSelection(lakersSpread(), {
       market: "Spread",
       side: "Lakers",
       line: -4.5,
@@ -177,6 +175,96 @@ test("matchesBoardSelection confirms the exact market, line, book, and price", (
     }),
     false,
   );
+  assert.equal(
+    matchesBoardSelection(lakersSpread(), {
+      market: "Spread",
+      side: "Celtics",
+      line: -3.5,
+      oddsAmerican: -105,
+      book: "fanduel",
+    }),
+    false,
+  );
+});
+
+test("a price that drifted after capture still confirms", () => {
+  // The whole point: the board refreshes under the capper while they build a
+  // slip, and a parlay is all-or-nothing. Ordinary movement in either direction
+  // is accepted — a shade better, and much worse.
+  for (const oddsAmerican of [-104, -120, -130, -250, 100]) {
+    assert.equal(
+      matchesBoardSelection(lakersSpread(), {
+        market: "Spread",
+        side: "Lakers",
+        line: -3.5,
+        oddsAmerican,
+        book: "fanduel",
+      }),
+      true,
+      `expected ${oddsAmerican} to confirm`,
+    );
+  }
+});
+
+test("a price better than every covered book beyond tolerance is refused", () => {
+  // The one-sided fraud bound survives: inflating the captured price is the only
+  // way to inflate a record, and it is still caught.
+  for (const oddsAmerican of [150, 250, 900]) {
+    assert.equal(
+      matchesBoardSelection(lakersSpread(), {
+        market: "Spread",
+        side: "Lakers",
+        line: -3.5,
+        oddsAmerican,
+        book: "fanduel",
+      }),
+      false,
+      `expected ${oddsAmerican} to be refused`,
+    );
+  }
+});
+
+test("a team total confirms against its own club, never the opponent's", () => {
+  // Both clubs' rows carry the same market, side, line and (empty) player, so
+  // the club in the selection text is the ONLY thing telling them apart.
+  const brewers: OddsSelection = {
+    label: "Milwaukee Brewers Over 2.5",
+    market: "Team Total",
+    selection: "Milwaukee Brewers Over 2.5",
+    side: "Over",
+    line: 2.5,
+    oddsAmerican: -210,
+    book: "draftkings",
+    bookPrices: { draftkings: -210 },
+  };
+  const claim = {
+    market: "Team Total",
+    side: "Over",
+    line: 2.5,
+    oddsAmerican: -210,
+    book: "draftkings",
+  };
+
+  assert.equal(
+    matchesBoardSelection(brewers, {
+      ...claim,
+      selection: "Milwaukee Brewers Over 2.5",
+    }),
+    true,
+  );
+  assert.equal(
+    matchesBoardSelection(brewers, {
+      ...claim,
+      selection: "Chicago Cubs Over 2.5",
+    }),
+    false,
+  );
+  // An unparseable or absent label is no weaker than before the club check.
+  assert.equal(
+    matchesBoardSelection(brewers, { ...claim, selection: "Brewers TT O2.5" }),
+    true,
+  );
+  assert.equal(matchesBoardSelection(brewers, claim), true);
 });
 
 test("preferredThenAll falls back when preferred books miss the market", () => {

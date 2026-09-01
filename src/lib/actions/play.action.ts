@@ -204,6 +204,8 @@ async function preparePlayLine(
     side: d.side,
     line: d.line,
     player: d.player,
+    // A team total names its club here and nowhere else.
+    selection: d.selection,
     oddsAmerican: d.oddsAmerican,
     book: captureBook,
   });

@@ -113,6 +113,8 @@ export async function createParlay(
       side: l.side,
       line: l.line,
       player: l.player,
+      // A team total names its club here and nowhere else.
+      selection: l.selection,
       oddsAmerican: l.oddsAmerican,
       book: captureBook,
     });
