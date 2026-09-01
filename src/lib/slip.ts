@@ -3,6 +3,11 @@
  * Pure functions so React state / context can own the slip array.
  */
 
+import {
+  isTeamTotalMarket,
+  parseTeamTotalSelection,
+} from "@/lib/team-total-markets";
+
 export type SlipPick = {
   eventId: string;
   eventLabel?: string;
@@ -40,6 +45,7 @@ export type SlipConflictKind =
   | "moneyline"
   | "spread"
   | "total"
+  | "team_total"
   | "player_prop";
 
 export type SlipConflict = {
@@ -87,21 +93,56 @@ export function pickKey(p: {
 }
 
 /**
+ * Which club a team-total leg belongs to.
+ *
+ * A team total stores the club in its selection text ("Milwaukee Brewers Over
+ * 2.5") and leaves `side` as plain Over/Under — the club appears nowhere else on
+ * the pick. Anything that does not parse buckets on its own raw selection, so an
+ * unrecognised label collides only with an identical one.
+ */
+function teamTotalClub(p: { side: string; selection?: string }): string {
+  const selection = p.selection?.trim() ?? "";
+  return (
+    parseTeamTotalSelection(selection)?.team.toLowerCase() ??
+    selection.toLowerCase()
+  );
+}
+
+/**
  * Conflict bucket for a pick — same key means only one may live on the slip.
  *
  * - Game moneyline → one side per event
  * - Game spread (incl. alternate) → one spread per event
  * - Game total (incl. alternate) → one total per event
+ * - Team total → one exact club + side + rung per event
+ *   (other clubs and other rungs of the ladder stay allowed)
  * - Player prop → one side/line per event + market + player
  *   (different players in the same prop market stay allowed)
  */
 export function conflictKey(p: {
   eventId: string;
   market: string;
+  side: string;
+  line?: number;
   player?: string;
+  selection?: string;
 }): string {
   if (isGameMarket(p.market)) {
     return `${p.eventId}|${GAME_MARKETS[p.market]}`;
+  }
+  // Team totals price ONE club's runs, so two of them in a game are two
+  // different bets — "Brewers Over 2.5" and "Cubs Over 3.5" are no more
+  // correlated than any other pair of legs, and stacking rungs of one club's
+  // alternate ladder is a parlay cappers ask for by name.
+  //
+  // They fell into the prop bucket below, which keys on `player`. A team total
+  // has no player, so every team-total leg in an event collapsed onto
+  // `evt|prop|Team Total|` and the second one was refused — with a message
+  // about "this player", who does not exist. Bucketing on the club, side and
+  // rung keeps the one guard that is real (the same rung twice, e.g. tapped at
+  // two books) and permits the rest.
+  if (isTeamTotalMarket(p.market)) {
+    return `${p.eventId}|team_total|${teamTotalClub(p)}|${p.side.trim().toLowerCase()}|${p.line ?? ""}`;
   }
   // Props (and any other non-game market): collide on event + market + player.
   return `${p.eventId}|prop|${p.market}|${p.player ?? ""}`;
@@ -113,6 +154,7 @@ function conflictKindFor(
   if (market === "Moneyline") return "moneyline";
   if (market === "Spread") return "spread";
   if (market === "Total") return "total";
+  if (isTeamTotalMarket(market)) return "team_total";
   return "player_prop";
 }
 
@@ -127,6 +169,8 @@ function conflictMessage(
       return "This parlay already has a Spread for this game.";
     case "total":
       return "This parlay already has a Total for this game.";
+    case "team_total":
+      return "This parlay already has that exact Team Total line. Other clubs and other rungs are fine.";
     case "player_prop":
       return `This parlay already has a ${market} pick for this player.`;
   }

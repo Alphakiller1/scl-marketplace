@@ -341,3 +341,80 @@ test("selectedKeysFromSelections mirrors pickKey set", () => {
   assert.equal(keys.size, 1);
   assert.equal(keys.has(pickKey(a)), true);
 });
+
+// ── Team totals ───────────────────────────────────────────────────────────────
+// A team total prices ONE club's runs and carries no `player`, so it used to
+// fall into the player-prop bucket and collapse every team-total leg in a game
+// onto a single key — the second one was refused, citing a player that does not
+// exist. These lock in that the ladder is stackable.
+
+const teamTotal = (
+  selection: string,
+  side: "Over" | "Under",
+  line: number,
+  extra: Partial<SlipPick> = {},
+): SlipPick => leg({ market: "Team Total", selection, side, line, ...extra });
+
+test("team totals for different clubs in one game are allowed", () => {
+  const brewers = teamTotal("Milwaukee Brewers Over 2.5", "Over", 2.5);
+  const cubs = teamTotal("Chicago Cubs Over 3.5", "Over", 3.5, {
+    oddsAmerican: -280,
+  });
+  assert.notEqual(conflictKey(brewers), conflictKey(cubs));
+  assert.equal(findConflict([brewers], cubs), null);
+  assert.equal(canAddLeg([brewers], cubs), true);
+  assert.equal(findInternalParlayConflicts([brewers, cubs]).length, 0);
+});
+
+test("alternate team-total rungs for the same club stack in one parlay", () => {
+  const main = teamTotal("Milwaukee Brewers Over 2.5", "Over", 2.5, {
+    oddsAmerican: -350,
+  });
+  const alt = teamTotal("Milwaukee Brewers Over 3.5", "Over", 3.5, {
+    oddsAmerican: -150,
+  });
+  const alt2 = teamTotal("Milwaukee Brewers Over 4.5", "Over", 4.5, {
+    oddsAmerican: 130,
+  });
+  assert.equal(canAddLeg([main], alt), true);
+  assert.equal(canAddLeg([main, alt], alt2), true);
+  assert.equal(findInternalParlayConflicts([main, alt, alt2]).length, 0);
+});
+
+test("a team total does not collide with the game total on the same event", () => {
+  const gameTotal = leg({ market: "Total", side: "Over", line: 8.5 });
+  const clubTotal = teamTotal("Milwaukee Brewers Over 2.5", "Over", 2.5);
+  assert.notEqual(conflictKey(gameTotal), conflictKey(clubTotal));
+  assert.equal(canAddLeg([gameTotal], clubTotal), true);
+});
+
+test("opposite sides of one club on different rungs stay allowed", () => {
+  // "exactly three runs" is a real capper construction, not a dead leg.
+  const over = teamTotal("Milwaukee Brewers Over 2.5", "Over", 2.5);
+  const under = teamTotal("Milwaukee Brewers Under 3.5", "Under", 3.5);
+  assert.equal(canAddLeg([over], under), true);
+});
+
+test("the same team-total rung tapped at two books is still one bucket", () => {
+  const draftKings = teamTotal("Milwaukee Brewers Over 2.5", "Over", 2.5, {
+    book: "draftkings",
+    oddsAmerican: -350,
+  });
+  const fanDuel = teamTotal("Milwaukee Brewers Over 2.5", "Over", 2.5, {
+    book: "fanduel",
+    oddsAmerican: -330,
+  });
+  assert.equal(conflictKey(draftKings), conflictKey(fanDuel));
+  const conflict = findConflict([draftKings], fanDuel);
+  assert.ok(conflict);
+  assert.equal(conflict.kind, "team_total");
+  assert.match(conflict.message, /Team Total/i);
+  assert.doesNotMatch(conflict.message, /player/i);
+});
+
+test("an unparseable team-total label buckets on itself, not on every club", () => {
+  const a = teamTotal("Brewers TT O2.5", "Over", 2.5);
+  const b = teamTotal("Cubs TT O3.5", "Over", 3.5);
+  assert.notEqual(conflictKey(a), conflictKey(b));
+  assert.equal(canAddLeg([a], b), true);
+});
