@@ -41,7 +41,12 @@ export type SlipSelection = SlipPick & {
 export type SlipMode = "singles" | "parlay";
 
 export type SlipConflictKind =
-  "duplicate" | "moneyline" | "spread" | "total" | "team_total" | "player_prop";
+  | "duplicate"
+  | "moneyline"
+  | "spread"
+  | "total"
+  | "team_total"
+  | "player_prop";
 
 export type SlipConflict = {
   kind: SlipConflictKind;
@@ -64,18 +69,12 @@ function isGameMarket(market: string): market is GameMarket {
 }
 
 /**
- * Stable identity for an exact board line (event, market, selection, player,
- * side, point, price, book).
- *
- * `selection` is essential for team totals: the club is stored in text such as
- * "Yankees Over 4.5", while both clubs otherwise share the same market, side,
- * line and can even share the same price at the same book.
+ * Stable identity for an exact board line (event, market, player, side, point, price, book).
  * Used for selected-chip sync and exact-duplicate detection.
  */
 export function pickKey(p: {
   eventId: string;
   market: string;
-  selection?: string;
   side: string;
   line?: number;
   oddsAmerican: number;
@@ -85,7 +84,6 @@ export function pickKey(p: {
   return [
     p.eventId,
     p.market,
-    p.selection ?? "",
     p.player ?? "",
     p.side,
     p.line ?? "",
@@ -95,30 +93,56 @@ export function pickKey(p: {
 }
 
 /**
+ * Which club a team-total leg belongs to.
+ *
+ * A team total stores the club in its selection text ("Milwaukee Brewers Over
+ * 2.5") and leaves `side` as plain Over/Under — the club appears nowhere else on
+ * the pick. Anything that does not parse buckets on its own raw selection, so an
+ * unrecognised label collides only with an identical one.
+ */
+function teamTotalClub(p: { side: string; selection?: string }): string {
+  const selection = p.selection?.trim() ?? "";
+  return (
+    parseTeamTotalSelection(selection)?.team.toLowerCase() ??
+    selection.toLowerCase()
+  );
+}
+
+/**
  * Conflict bucket for a pick — same key means only one may live on the slip.
  *
  * - Game moneyline → one side per event
  * - Game spread (incl. alternate) → one spread per event
  * - Game total (incl. alternate) → one total per event
- * - Team total → one total per event + club
+ * - Team total → one exact club + side + rung per event
+ *   (other clubs and other rungs of the ladder stay allowed)
  * - Player prop → one side/line per event + market + player
  *   (different players in the same prop market stay allowed)
  */
 export function conflictKey(p: {
   eventId: string;
   market: string;
-  selection?: string;
+  side: string;
+  line?: number;
   player?: string;
+  selection?: string;
 }): string {
   if (isGameMarket(p.market)) {
     return `${p.eventId}|${GAME_MARKETS[p.market]}`;
   }
+  // Team totals price ONE club's runs, so two of them in a game are two
+  // different bets — "Brewers Over 2.5" and "Cubs Over 3.5" are no more
+  // correlated than any other pair of legs, and stacking rungs of one club's
+  // alternate ladder is a parlay cappers ask for by name.
+  //
+  // They fell into the prop bucket below, which keys on `player`. A team total
+  // has no player, so every team-total leg in an event collapsed onto
+  // `evt|prop|Team Total|` and the second one was refused — with a message
+  // about "this player", who does not exist. Bucketing on the club, side and
+  // rung keeps the one guard that is real (the same rung twice, e.g. tapped at
+  // two books) and permits the rest.
   if (isTeamTotalMarket(p.market)) {
-    const team = parseTeamTotalSelection(p.selection ?? "")?.team;
-    // Current board selections are canonical and always parse. Retain the
-    // conservative event-level bucket for malformed legacy input rather than
-    // accidentally allowing two totals for an unknown club.
-    return `${p.eventId}|team_total|${team?.trim().toLowerCase() ?? ""}`;
+    return `${p.eventId}|team_total|${teamTotalClub(p)}|${p.side.trim().toLowerCase()}|${p.line ?? ""}`;
   }
   // Props (and any other non-game market): collide on event + market + player.
   return `${p.eventId}|prop|${p.market}|${p.player ?? ""}`;
@@ -146,7 +170,7 @@ function conflictMessage(
     case "total":
       return "This parlay already has a Total for this game.";
     case "team_total":
-      return "This parlay already has a Team Total for this team.";
+      return "This parlay already has that exact Team Total line. Other clubs and other rungs are fine.";
     case "player_prop":
       return `This parlay already has a ${market} pick for this player.`;
   }
