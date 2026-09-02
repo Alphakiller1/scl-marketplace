@@ -19,6 +19,7 @@ import {
   verifyOdds,
   type RawEventOdds,
   type VerifyResult,
+  boardPriceIsPlausible,
 } from "@/lib/odds-verify";
 
 test("impliedProbFromAmerican matches known values", () => {
@@ -578,5 +579,75 @@ test("getOddsForBook returns honest null when that book has no line", () => {
       line: -3.5,
     }),
     -110,
+  );
+});
+
+// ── board-confirmation bound ─────────────────────────────────────────────────
+
+test("boardPriceIsPlausible accepts a worse price however far the market moved", () => {
+  // Claiming less than the board offers can only understate a record.
+  for (const claimedAmerican of [-110, -140, -300, -2000]) {
+    assert.equal(
+      boardPriceIsPlausible({
+        claimedAmerican,
+        availableAmerican: [-105, -110],
+      }),
+      true,
+      `expected ${claimedAmerican} to be plausible`,
+    );
+  }
+});
+
+test("boardPriceIsPlausible bounds payout, not probability points", () => {
+  // Best -105 → decimal 1.9524; 8% ceiling is 2.1086 (about +111).
+  assert.equal(
+    boardPriceIsPlausible({
+      claimedAmerican: 105,
+      availableAmerican: [-105, -110],
+    }),
+    true,
+  );
+  assert.equal(
+    boardPriceIsPlausible({
+      claimedAmerican: 150,
+      availableAmerican: [-105, -110],
+    }),
+    false,
+  );
+});
+
+test("boardPriceIsPlausible is tighter than the flat band on longshots", () => {
+  // A +900 board price: the flat 2-point band would admit +1150 (25% more
+  // payout) — exactly where inflating a price is worth the most. This does not.
+  assert.equal(
+    boardPriceIsPlausible({ claimedAmerican: 970, availableAmerican: [900] }),
+    true,
+  );
+  assert.equal(
+    boardPriceIsPlausible({ claimedAmerican: 1150, availableAmerican: [900] }),
+    false,
+  );
+  assert.equal(
+    verifyOdds({ claimedAmerican: 1150, availableAmerican: [900] }).status,
+    "verified",
+  );
+});
+
+test("boardPriceIsPlausible admits the real drift that broke parlays", () => {
+  // Production leg: Jackson Chourio Over 0.5 captured at -325, board best since
+  // moved to -449. The widest genuine drift in the replayed sample (6.95%).
+  assert.equal(
+    boardPriceIsPlausible({
+      claimedAmerican: -325,
+      availableAmerican: [-449, -400],
+    }),
+    true,
+  );
+});
+
+test("boardPriceIsPlausible refuses a claim with nothing to bound it against", () => {
+  assert.equal(
+    boardPriceIsPlausible({ claimedAmerican: -110, availableAmerican: [] }),
+    false,
   );
 });

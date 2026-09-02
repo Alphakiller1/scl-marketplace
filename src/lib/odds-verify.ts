@@ -357,6 +357,48 @@ export function medianAmerican(prices: number[]): number | null {
     : sorted[mid];
 }
 
+/**
+ * Board-confirmation tolerance, as a fraction of PAYOUT.
+ *
+ * {@link verifyOdds} bounds a live-fetched verification in probability points,
+ * which is right when the reference was fetched seconds ago. Board confirmation
+ * asks a different question — "could SCL's board have shown this price?" — of a
+ * cached reference that is minutes to hours old, so it needs a band wide enough
+ * for ordinary movement and shaped by what the inflation is actually worth.
+ *
+ * A flat probability band is the wrong shape for that: two points is ~2.5% of
+ * payout at −450 but ~25% at +900, so it pinches honest favorites while waving
+ * through the longshot inflation that pays best. Bounding payout instead is 8%
+ * everywhere — TIGHTER than the flat band above roughly +300, looser below it.
+ *
+ * 8% is measured, not chosen: replayed against 248 real legs and the cached
+ * board rows they were captured from, it refuses none, and the widest genuine
+ * drift observed was 6.95%.
+ */
+export const BOARD_PAYOUT_TOLERANCE = 0.08;
+
+/**
+ * Is a captured price plausibly one the board offered, allowing for drift?
+ *
+ * One-sided, like {@link verifyOdds}: a claim that pays LESS than the board's
+ * best is always fine (nobody inflates a record downward); a claim that pays
+ * more than `payoutTolerance` above it is refused.
+ */
+export function boardPriceIsPlausible(params: {
+  claimedAmerican: number;
+  availableAmerican: number[];
+  payoutTolerance?: number;
+}): boolean {
+  const tolerance = params.payoutTolerance ?? BOARD_PAYOUT_TOLERANCE;
+  const best = bestAvailableAmerican(params.availableAmerican);
+  if (best === null) return false;
+  const claimedImplied = impliedProbFromAmerican(params.claimedAmerican);
+  if (!(claimedImplied > 0)) return false;
+  // Decimal payout is 1/implied, so "claimed pays no more than tolerance above
+  // the best board price" is bestImplied / claimedImplied <= 1 + tolerance.
+  return impliedProbFromAmerican(best) / claimedImplied <= 1 + tolerance;
+}
+
 export type VerifyResult =
   | {
       status: "verified";
