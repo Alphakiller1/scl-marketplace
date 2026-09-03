@@ -25,7 +25,7 @@ import {
   propMarketShortLabel,
   splitMarketPreview,
 } from "@/lib/prop-board";
-import { filterBySlateDay, type SlateDay } from "@/lib/slate";
+import { etTimeLabel, filterBySlateDay, type SlateDay } from "@/lib/slate";
 import { getTeamIdentity, type TeamIdentity } from "@/lib/teams";
 import type { OddsEvent, OddsSelection } from "@/lib/odds-board";
 import { dedupeOddsEvents, isExtremeAmericanOdds } from "@/lib/odds-board";
@@ -416,10 +416,7 @@ function EventRow({
     typeof awayMl === "number" && typeof homeMl === "number" && awayMl < homeMl;
   const homeFav =
     typeof awayMl === "number" && typeof homeMl === "number" && homeMl < awayMl;
-  const timeLabel = new Date(event.commenceTime).toLocaleTimeString(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  const timeLabel = etTimeLabel(event.commenceTime);
 
   return (
     <button

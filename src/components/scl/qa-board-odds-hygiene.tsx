@@ -12,6 +12,7 @@ import {
   type OddsEvent,
   type OddsSelection,
 } from "@/lib/odds-board";
+import { etTimeLabel } from "@/lib/slate";
 import { getTeamIdentity } from "@/lib/teams";
 import { cn } from "@/lib/utils";
 
@@ -142,10 +143,7 @@ const EXTREME_CHIPS: OddsSelection[] = [
 function EventRow({ event }: { event: OddsEvent }) {
   const away = getTeamIdentity(event.away, event.sport);
   const home = getTeamIdentity(event.home, event.sport);
-  const timeLabel = new Date(event.commenceTime).toLocaleTimeString(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  const timeLabel = etTimeLabel(event.commenceTime);
   return (
     <li className="border-border bg-card flex items-center gap-3 rounded-[14px] border px-3 py-2.5">
       <span className="flex shrink-0 items-center -space-x-1.5" aria-hidden>
