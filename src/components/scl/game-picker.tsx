@@ -22,6 +22,7 @@ import {
 } from "@/lib/game-picker";
 import { loadOddsSlate } from "@/lib/odds-slate-client";
 import {
+  etTimeLabel,
   filterBySlateDay,
   slateGroupKey,
   slateGroupLabel,
@@ -496,10 +497,7 @@ function GameRow({
 }) {
   const away = getTeamIdentity(event.away, event.sport);
   const home = getTeamIdentity(event.home, event.sport);
-  const timeLabel = new Date(event.commenceTime).toLocaleTimeString(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  const timeLabel = etTimeLabel(event.commenceTime);
 
   return (
     <button

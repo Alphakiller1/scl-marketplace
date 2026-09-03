@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
+import { readdirSync, readFileSync } from "node:fs";
+import { join, relative, sep } from "node:path";
 import { test } from "node:test";
 
 import {
+  etTimeLabel,
   filterBySlateDay,
   localDateKey,
   nearTermEvents,
@@ -75,4 +78,50 @@ test("slateDateLabel gives a date for today and a range for upcoming", () => {
   assert.ok(slateDateLabel("today", now).length > 0);
   const upcoming = slateDateLabel("upcoming", now);
   assert.ok(upcoming.includes("–"), `expected a range, got ${upcoming}`);
+});
+
+test("etTimeLabel renders Eastern, not the viewer's zone", () => {
+  // Real slate, 2026-09-03: White Sox @ Astros starts 18:10Z = 2:10 PM ET.
+  // Rendered in the viewer's zone it read 1:10 PM from Central and was still
+  // labelled "ET" — every game on the pick board looked an hour early.
+  assert.equal(etTimeLabel("2026-09-03T18:10:00Z"), "2:10 PM");
+  assert.equal(etTimeLabel("2026-09-03T23:15:00Z"), "7:15 PM");
+  // Standard time, so the offset is -05:00 rather than -04:00.
+  assert.equal(etTimeLabel("2026-01-15T18:10:00Z"), "1:10 PM");
+  assert.equal(etTimeLabel("not-a-date"), "—");
+});
+
+test("no clock is formatted in the viewer's zone", () => {
+  // Three board components formatted kickoffs with a bare toLocaleTimeString
+  // and printed "ET" beside the result, so every capper outside Eastern read
+  // their own local time under a false label. A fourth, unused copy sat in
+  // lib/format.ts waiting to be picked up. Clock times go through a
+  // zone-pinned formatter — etTimeLabel here, or an Intl.DateTimeFormat that
+  // names its timeZone — so a wall-clock time never means two things.
+  const root = process.cwd();
+  const offenders: string[] = [];
+
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+      } else if (
+        /\.tsx?$/.test(entry.name) &&
+        !/\.test\.tsx?$/.test(entry.name)
+      ) {
+        const rel = relative(root, full).split(sep).join("/");
+        readFileSync(full, "utf8")
+          .split("\n")
+          .forEach((line, i) => {
+            if (line.includes(".toLocaleTimeString(")) {
+              offenders.push(`${rel}:${i + 1} ${line.trim()}`);
+            }
+          });
+      }
+    }
+  };
+  walk(join(root, "src"));
+
+  assert.deepEqual(offenders, []);
 });

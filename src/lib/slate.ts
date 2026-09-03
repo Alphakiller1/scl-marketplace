@@ -80,6 +80,27 @@ export function filterBySlateDay<T extends { commenceTime: string }>(
   });
 }
 
+const ET_TIME_FORMAT = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York",
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+});
+
+/**
+ * Kickoff time in Eastern, for the board rows that label it "ET".
+ *
+ * `toLocaleTimeString` with no `timeZone` formats in the *viewer's* zone, so a
+ * capper outside Eastern read a true local time under a false ET label — from
+ * Central every game on the pick board showed an hour before it actually
+ * started. Eastern is the platform's canonical zone (grading windows, ledgers
+ * and receipts all render in it), so the label was right and the value wrong.
+ */
+export function etTimeLabel(commenceTime: string): string {
+  const at = new Date(commenceTime);
+  return Number.isNaN(at.getTime()) ? "—" : ET_TIME_FORMAT.format(at);
+}
+
 /** Local day key for grouping upcoming events under date headings. */
 export function slateGroupKey(commenceTime: string): string {
   return localDateKey(new Date(commenceTime));
