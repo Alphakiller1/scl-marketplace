@@ -1,9 +1,12 @@
 import "server-only";
 
-import type { Outcome } from "@prisma/client";
 import { cache } from "react";
 
 import { cachedQuery } from "@/lib/cached-query";
+import {
+  leaderboardSlateInstant,
+  parlayLeaderboardSlateInstant,
+} from "@/lib/leaderboard";
 import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
 import { UNIT_MIN } from "@/lib/constants";
 import { withTransientDatabaseRetry } from "@/lib/database-retry";
@@ -12,6 +15,7 @@ import {
   assembleLegacySportTable,
   filterPlaysAfterLegacySnapshot,
   mergeCareerSportRecords,
+  toLegacySportRecordView,
   type LegacySportRecordView,
 } from "@/lib/legacy-sport-records";
 import type { CapperSummary } from "@/lib/mock";
@@ -19,6 +23,15 @@ import {
   buildProfileChartSeries,
   type ProfileChartSeries,
 } from "@/lib/profile-chart-window";
+import {
+  PROFILE_PERF_WINDOWS,
+  buildProfileWindowStats,
+  profilePerfWindowFilter,
+  selectDefaultProfileWindow,
+  type ProfilePerfWindow,
+  type ProfilePosition,
+  type ProfileWindowStats,
+} from "@/lib/profile-performance-windows";
 import { prisma } from "@/lib/prisma";
 import { hasQaNoteMarker, isValidPublicStake } from "@/lib/public-eligibility";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
@@ -26,13 +39,15 @@ import { publicPickEmbargoState } from "@/lib/public-pick-embargo";
 import { getPublicCapperEvidenceByIds } from "@/lib/queries/leaderboard";
 import { parlayToRecordView } from "@/lib/parlay-record";
 import type { PlayView } from "@/lib/queries/plays";
-import { computeStatsBySport } from "@/lib/stats";
+import { computeStatsBySport, type SportStats } from "@/lib/stats";
 import {
   hasClvColumns,
   hasNotesPublicColumn,
 } from "@/lib/results/schema-features";
 import {
   getAllTimeLegacyBaseline,
+  getYtdLegacyBaseline,
+  legacySnapshotCapturedAt,
   profileLegacyRecordWhere,
 } from "@/lib/legacy-all-time";
 import { resolveLegacyHandleAlias } from "@/lib/legacy-handle-aliases";
@@ -48,6 +63,14 @@ export type PublicCapper = {
   historyNextCursor: string | null;
   /** Career by sport: old-site year pages + plays logged after the export. */
   legacyBySport: LegacySportRecordView[];
+  /** Record, win%, ROI, units, sample and CLV for every scope. */
+  windowStats: Record<ProfilePerfWindow, ProfileWindowStats>;
+  /** Sport breakdown per scope, ready to render. */
+  windowSportBreakdown: Record<ProfilePerfWindow, LegacySportRecordView[]>;
+  /** CLV distribution per scope. */
+  clvTrackerByWindow: Record<ProfilePerfWindow, ClvTrackerSummary>;
+  /** Scope the profile opens on: best qualifying form, per the sample gate. */
+  defaultWindow: ProfilePerfWindow;
 };
 
 export type PublicProfileHistoryPage = {
@@ -59,6 +82,29 @@ const PROFILE_HISTORY_PAGE_SIZE = 10;
 const PROFILE_HISTORY_FETCH_SIZE = PROFILE_HISTORY_PAGE_SIZE * 3;
 const PROFILE_HISTORY_MAX_BATCHES = 16;
 const PROFILE_CHART_QUERY_LIMIT = 5_000;
+
+/**
+ * Legs pulled per parlay, to place the ticket on a slate day.
+ *
+ * `createParlaySchema` caps a parlay at 12 legs, so this covers every ticket
+ * the app can create. It is a bound rather than "all legs": without one, a
+ * capper with thousands of parlays drags tens of thousands of leg rows through
+ * the shared pool on a public page.
+ */
+const PARLAY_LEG_SCAN_LIMIT = 12;
+
+/** Points per sport-filtered series; the all-sports series keeps the default. */
+const PROFILE_SPORT_CHART_POINTS = 70;
+
+/** Empty CLV distributions, so a failed CLV read still returns every scope. */
+function emptyClvTrackerByWindow(): Record<
+  ProfilePerfWindow,
+  ClvTrackerSummary
+> {
+  return Object.fromEntries(
+    PROFILE_PERF_WINDOWS.map(({ key }) => [key, summarizeClvTracker([])]),
+  ) as Record<ProfilePerfWindow, ClvTrackerSummary>;
+}
 
 /**
  * Bounded public receipt page. A parlay is ONE position of record: its legs are
@@ -356,6 +402,7 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
   let playsError = false;
   let avgClv: number | null = null;
   let clvTracker = summarizeClvTracker([]);
+  const clvTrackerByWindow = emptyClvTrackerByWindow();
   let chartSeries: ProfileChartSeries | undefined;
   let chartSeriesBySport: Record<string, ProfileChartSeries> = {};
   let historyNextCursor: string | null = null;
@@ -391,6 +438,7 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
       take: PROFILE_CHART_QUERY_LIMIT,
       select: {
         createdAt: true,
+        eventStartsAt: true,
         outcome: true,
         units: true,
         profitUnits: true,
@@ -412,10 +460,12 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
         units: true,
         profitUnits: true,
         // Parlay has no sport column — attribute to the first leg for
-        // sport-filtered charts; All-window ignores sport.
+        // sport-filtered charts; All-window ignores sport. Every leg's event
+        // time comes back too: the ticket sits on the day its last bound leg
+        // was played, which is when it could settle.
         legs: {
-          select: { sport: true },
-          take: 1,
+          select: { sport: true, eventStartsAt: true },
+          take: PARLAY_LEG_SCAN_LIMIT,
           orderBy: { id: "asc" },
         },
       },
@@ -434,7 +484,12 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
         parlayId: null,
         units: { gte: UNIT_MIN },
       },
-      select: { clvPts: true, notes: true },
+      select: {
+        clvPts: true,
+        notes: true,
+        createdAt: true,
+        eventStartsAt: true,
+      },
     });
   });
   // Sport table: CURRENT_YEAR + prior years. Headline carry still comes
@@ -466,13 +521,15 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
     playsError = true;
   }
 
-  let chartRows: {
-    createdAt: Date;
-    outcome: Outcome;
-    profitUnits: number | null;
-    units: number;
-    sport: string;
-  }[] = [];
+  // The carried export drives which scopes may show more than SCL receipts.
+  const legacyRows =
+    legacyResult.status === "fulfilled" ? legacyResult.value : [];
+  const allTimeBaseline = getAllTimeLegacyBaseline(legacyRows);
+  const ytdBaseline = getYtdLegacyBaseline(legacyRows);
+  const legacySnapshotAt = legacySnapshotCapturedAt(legacyRows);
+  const scopedNow = new Date();
+
+  let chartRows: ProfilePosition[] = [];
   if (chartResult.status === "fulfilled") {
     const [straightRows, parlayRows] = chartResult.value;
     const straightChart = straightRows
@@ -481,42 +538,54 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
         const stake = stakeFromStored(row.units, row.profitUnits);
         return {
           createdAt: row.createdAt,
+          // The board's own rule, not a second copy of it: two
+          // implementations of "which day is this pick on" would drift, and
+          // the profile agreeing with the leaderboard is the whole point.
+          slateAt: leaderboardSlateInstant(row),
           outcome: row.outcome,
           profitUnits: stake.profitUnits,
           units: stake.units,
           sport: row.sport,
-        };
+        } satisfies ProfilePosition;
       });
     const parlayChart = parlayRows.map((row) => {
       const stake = stakeFromStored(row.units, row.profitUnits);
       return {
         createdAt: row.createdAt,
+        // Same rule the board uses: the last bound leg decides the day.
+        slateAt: parlayLeaderboardSlateInstant(row),
         outcome: row.outcome,
         profitUnits: stake.profitUnits,
         units: stake.units,
         sport: row.legs[0]?.sport ?? "MULTI",
-      };
+      } satisfies ProfilePosition;
     });
     chartRows = [...straightChart, ...parlayChart].sort(
-      (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+      (a, b) => a.slateAt.getTime() - b.slateAt.getTime(),
     );
-    const chartNow = new Date();
-    // All-window chart End must match Evidence Brief units (legacy + SCL).
-    // Sport-filtered series stay receipt-only — legacy baseline is all-sports.
-    const legacyBaseline = capper.legacyBaselineUnits ?? 0;
-    chartSeries = buildProfileChartSeries(
-      chartRows,
-      chartNow,
-      120,
-      legacyBaseline,
-    );
+
+    // Each scope's chart End must match the units its metric row reports, so
+    // both are built from these same positions and the same baselines.
+    chartSeries = buildProfileChartSeries(chartRows, scopedNow, 120, {
+      allUnits: allTimeBaseline?.units ?? capper.legacyBaselineUnits ?? 0,
+      ytdUnits: ytdBaseline?.units ?? 0,
+      legacySnapshotAt,
+    });
+    // Sport-filtered series stay receipt-only — legacy baselines are all-sports.
+    //
+    // Coarser than the headline series on purpose. Going from four scopes to
+    // seven multiplied this payload by 1.75 (88 KB -> 154 KB worst case for a
+    // capper across eight sports), on a public page that was already the
+    // slowest to hydrate. At this resolution a full-width trend line still
+    // gets a point every ~14px, and the budget stays where it was.
     const sports = [...new Set(chartRows.map((row) => row.sport))];
     chartSeriesBySport = Object.fromEntries(
       sports.map((sport) => [
         sport,
         buildProfileChartSeries(
           chartRows.filter((row) => row.sport === sport),
-          chartNow,
+          scopedNow,
+          PROFILE_SPORT_CHART_POINTS,
         ),
       ]),
     );
@@ -527,15 +596,43 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
     );
   }
 
+  const windowStats = buildProfileWindowStats({
+    positions: chartRows,
+    now: scopedNow,
+    allTimeBaseline,
+    ytdBaseline,
+    legacySnapshotAt,
+  });
+  const defaultWindow = selectDefaultProfileWindow(windowStats);
+
   if (clvResult.status === "fulfilled" && clvResult.value) {
-    const points = clvResult.value
+    const clvRows = clvResult.value
       .filter((row) => !hasQaNoteMarker(row.notes))
-      .map((row) => (row.clvPts == null ? null : Number(row.clvPts)))
+      .map((row) => ({
+        slateAt: row.eventStartsAt ?? row.createdAt,
+        clvPts: row.clvPts == null ? null : Number(row.clvPts),
+      }))
       .filter(
-        (value): value is number => value != null && Number.isFinite(value),
+        (row): row is { slateAt: Date; clvPts: number } =>
+          row.clvPts != null && Number.isFinite(row.clvPts),
       );
-    clvTracker = summarizeClvTracker(points);
+    clvTracker = summarizeClvTracker(clvRows.map((row) => row.clvPts));
     avgClv = clvTracker.avgClv;
+
+    // CLV sits in the same metric row, so it has to answer to the same scope.
+    // It comes from its own query (verified tier only), which is why it is
+    // overlaid here rather than carried on the positions.
+    for (const key of Object.keys(windowStats) as ProfilePerfWindow[]) {
+      const inWindow = profilePerfWindowFilter(key, scopedNow);
+      const scoped = clvRows.filter((row) => inWindow(row.slateAt));
+      windowStats[key].clvSampleCount = scoped.length;
+      windowStats[key].avgClv = scoped.length
+        ? scoped.reduce((sum, row) => sum + row.clvPts, 0) / scoped.length
+        : null;
+      clvTrackerByWindow[key] = summarizeClvTracker(
+        scoped.map((row) => row.clvPts),
+      );
+    }
   } else if (clvResult.status === "rejected") {
     console.error(
       "[getPublicCapperByHandle] CLV unavailable:",
@@ -567,6 +664,44 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
     sclBySport: sclForTable,
   });
 
+  // Career table stays the All Time view. Every rolling scope is receipt-only:
+  // the carried rows are frozen aggregates with no per-pick dates.
+  const sclToView = (rows: SportStats[]): LegacySportRecordView[] =>
+    rows.map((row) =>
+      toLegacySportRecordView({
+        sport: row.sport,
+        wins: row.wins,
+        losses: row.losses,
+        pushes: row.pushes,
+        unitsRisked: row.stakedUnits,
+        unitsNet: row.units,
+      }),
+    );
+
+  // YTD keeps the old site's own by-sport year page beside the receipts logged
+  // since the export, matching how its headline figure is built.
+  const ytdAssembled = assembleLegacySportTable(
+    legacyRows.filter((row) => row.scope === "CURRENT_YEAR"),
+  );
+  const ytdBySport = ytdBaseline
+    ? mergeCareerSportRecords({
+        legacyBySport: ytdAssembled.bySport,
+        allBaseline: null,
+        sclBySport: windowStats.ytd.bySport,
+      })
+    : sclToView(windowStats.ytd.bySport);
+
+  const windowSportBreakdown = Object.fromEntries(
+    (Object.keys(windowStats) as ProfilePerfWindow[]).map((key) => [
+      key,
+      key === "all"
+        ? legacyBySport
+        : key === "ytd"
+          ? ytdBySport
+          : sclToView(windowStats[key].bySport),
+    ]),
+  ) as Record<ProfilePerfWindow, LegacySportRecordView[]>;
+
   return {
     capper,
     plays,
@@ -577,6 +712,10 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
     chartSeriesBySport,
     historyNextCursor,
     legacyBySport,
+    windowStats,
+    windowSportBreakdown,
+    clvTrackerByWindow,
+    defaultWindow,
   };
 });
 
@@ -601,7 +740,7 @@ const getCachedPublicCapperByHandle = cachedQuery(
   async (handle: string) => loadPublicCapperByHandle(handle),
   // v2 intentionally abandons partial profile payloads cached before metadata
   // stopped launching a competing full hydration on cold requests.
-  ["public-capper-by-handle-v6"],
+  ["public-capper-by-handle-v7"],
   { revalidate: 60, tags: ["leaderboard"] },
 );
 

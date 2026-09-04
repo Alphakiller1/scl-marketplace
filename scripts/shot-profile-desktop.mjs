@@ -184,13 +184,13 @@ for (const theme of ["dark", "light"]) {
     }
 
     if (theme === "dark" && width === 1440) {
-      const chartWindow = page.getByRole("button", { name: "3M" });
-      await chartWindow.click();
-      if ((await chartWindow.getAttribute("aria-pressed")) !== "true") {
-        console.error("FAIL dark 1440: chart window did not change");
+      const scope = page.getByRole("button", { name: "Last 30 Days" });
+      await scope.click();
+      if ((await scope.getAttribute("aria-pressed")) !== "true") {
+        console.error("FAIL dark 1440: performance scope did not change");
         failed = true;
       }
-      await page.getByRole("button", { name: "All" }).click();
+      await page.getByRole("button", { name: "All Time" }).click();
 
       const inspect = page.locator(
         '[data-profile-history-ledger] button[aria-label^="Inspect receipt"]',

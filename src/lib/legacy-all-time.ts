@@ -81,6 +81,33 @@ export function getAllTimeLegacyBaseline(
   );
 }
 
+/**
+ * The old site's own year-to-date total.
+ *
+ * `CURRENT_YEAR` already contains the imported pick rows, so any caller folding
+ * this into a YTD figure must drop the plays logged at or before
+ * `legacySnapshotCapturedAt` or it counts that overlap twice.
+ */
+export function getYtdLegacyBaseline(
+  rows: Array<{
+    scope: LegacyRecordScope;
+    sport?: string;
+    wins: number;
+    losses: number;
+    pushes: number;
+    unitsRisked: unknown;
+    unitsNet: unknown;
+  }>,
+): StatsBaseline | null {
+  return statsBaselineFromLegacyRows(
+    rows.filter(
+      (row) =>
+        row.scope === "CURRENT_YEAR" &&
+        (row.sport ?? LEGACY_RECORD_ALL_SPORTS) === LEGACY_RECORD_ALL_SPORTS,
+    ),
+  );
+}
+
 /** Export instant on the current-year snapshot — imported slips sit at or before this. */
 export function legacySnapshotCapturedAt(
   rows: Array<{
