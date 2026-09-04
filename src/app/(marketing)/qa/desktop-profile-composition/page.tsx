@@ -6,7 +6,14 @@ import { EvidenceBrief } from "@/components/scl/evidence-brief";
 import { ProfileTopPackages } from "@/components/scl/profile-top-packages";
 import type { CapperSummary } from "@/lib/mock";
 import type { PackageEvidence } from "@/lib/package-register";
+import { toLegacySportRecordView } from "@/lib/legacy-sport-records";
 import { buildProfileChartSeries } from "@/lib/profile-chart-window";
+import {
+  buildProfileWindowStats,
+  selectDefaultProfileWindow,
+  type ProfilePerfWindow,
+  type ProfilePosition,
+} from "@/lib/profile-performance-windows";
 import type { PlayView } from "@/lib/queries/plays";
 
 /**
@@ -94,10 +101,39 @@ export default function DesktopProfileCompositionQaPage() {
     verifiedShare: null,
     provisional: false,
   };
-  const packageChart = buildProfileChartSeries(
-    plays,
-    new Date(Date.UTC(2026, 6, 18)),
-  );
+  // Anchored so the gate renders the same section on every run, whatever the
+  // real date is. Without a fixed `now` the scope bar would drift out of the
+  // fixture's own slate week and the shot would stop being comparable.
+  const qaNow = new Date(Date.UTC(2026, 6, 18));
+  const packageChart = buildProfileChartSeries(plays, qaNow);
+
+  const positions: ProfilePosition[] = plays.map((play) => ({
+    slateAt: play.eventStartsAt ?? play.createdAt,
+    createdAt: play.createdAt,
+    outcome: play.outcome,
+    units: play.units,
+    profitUnits: play.profitUnits,
+    sport: play.sport,
+    clvPts: play.clvPts,
+  }));
+  const windowStats = buildProfileWindowStats({ positions, now: qaNow });
+  const defaultWindow = selectDefaultProfileWindow(windowStats);
+  const chartSeries = buildProfileChartSeries(positions, qaNow);
+  const windowSportBreakdown = Object.fromEntries(
+    (Object.keys(windowStats) as ProfilePerfWindow[]).map((key) => [
+      key,
+      windowStats[key].bySport.map((row) =>
+        toLegacySportRecordView({
+          sport: row.sport,
+          wins: row.wins,
+          losses: row.losses,
+          pushes: row.pushes,
+          unitsRisked: row.stakedUnits,
+          unitsNet: row.units,
+        }),
+      ),
+    ]),
+  ) as Record<ProfilePerfWindow, ReturnType<typeof toLegacySportRecordView>[]>;
 
   return (
     <div className="overflow-x-hidden pb-6 sm:pb-8" data-visual-mode="proof">
@@ -114,6 +150,10 @@ export default function DesktopProfileCompositionQaPage() {
           capper={capper}
           plays={plays}
           avgClv={1.2}
+          chartSeries={chartSeries}
+          windowStats={windowStats}
+          windowSportBreakdown={windowSportBreakdown}
+          defaultWindow={defaultWindow}
           packageInsights={[
             {
               id: packages[0].id,

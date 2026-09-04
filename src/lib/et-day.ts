@@ -48,3 +48,16 @@ export function etDayBounds(
   const end = startOfEtYmd(endYmd);
   return { start, end };
 }
+
+/**
+ * UTC instant when the current Eastern calendar year began.
+ *
+ * YTD is a reporting scope, and every other public scope on this platform is
+ * anchored to ET (see `etDayBounds`). Anchoring to UTC instead would pull the
+ * evening of Dec 31 ET into the new year, so a pick logged during New Year's
+ * Eve games would land in the wrong YTD.
+ */
+export function etYearStart(now = new Date()): Date {
+  const year = etYmd(now).slice(0, 4);
+  return startOfEtYmd(`${year}-01-01`);
+}

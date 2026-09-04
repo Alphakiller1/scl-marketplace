@@ -1,4 +1,19 @@
-export type ProfileChartWindow = "3m" | "6m" | "12m" | "all";
+import {
+  PROFILE_PERF_WINDOWS,
+  profilePerfWindowFilter,
+  type ProfilePerfWindow,
+} from "@/lib/profile-performance-windows";
+
+/**
+ * The chart shares the performance section's scopes.
+ *
+ * It used to carry its own 3M / 6M / 12M selector, which meant the graph and
+ * the metric row beside it could describe different sets of picks at the same
+ * time. One scope now drives both.
+ */
+export type ProfileChartWindow = ProfilePerfWindow;
+
+export const PROFILE_CHART_WINDOWS = PROFILE_PERF_WINDOWS;
 
 export type ProfileChartPoint = { n: number; units: number };
 export type ProfileChartSeries = Record<
@@ -6,22 +21,21 @@ export type ProfileChartSeries = Record<
   { points: ProfileChartPoint[]; gradedCount: number }
 >;
 
-export const PROFILE_CHART_WINDOWS: ReadonlyArray<{
-  value: ProfileChartWindow;
-  label: string;
-  months: number | null;
-}> = [
-  { value: "3m", label: "3M", months: 3 },
-  { value: "6m", label: "6M", months: 6 },
-  { value: "12m", label: "12M", months: 12 },
-  { value: "all", label: "All", months: null },
-];
-
+/**
+ * `slateAt` places the position on a scope (event start where the pick is
+ * bound to a game). Callers without it fall back to log time, which is what
+ * the package charts do.
+ */
 type DatedProfit = {
+  slateAt?: Date | null;
   createdAt: Date;
   outcome: string;
   profitUnits: number | null;
 };
+
+function slateOf(play: DatedProfit): Date {
+  return play.slateAt ?? play.createdAt;
+}
 
 /**
  * Return settled, numeric profit units oldest-first for a profile chart scope.
@@ -32,56 +46,79 @@ export function profileProfitUnitsForWindow(
   window: ProfileChartWindow,
   asOf: Date,
 ): number[] {
-  const months = PROFILE_CHART_WINDOWS.find(
-    (candidate) => candidate.value === window,
-  )?.months;
-  const cutoff = months == null ? null : subtractUtcMonths(asOf, months);
-
-  return [...plays]
+  const inWindow = profilePerfWindowFilter(window, asOf);
+  return plays
     .filter(
       (play) =>
         play.outcome !== "PENDING" &&
         play.profitUnits != null &&
         Number.isFinite(play.profitUnits) &&
-        (cutoff == null || play.createdAt.getTime() >= cutoff.getTime()) &&
-        play.createdAt.getTime() <= asOf.getTime(),
+        inWindow(slateOf(play)),
     )
-    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+    .sort((a, b) => slateOf(a).getTime() - slateOf(b).getTime())
     .map((play) => play.profitUnits as number);
+}
+
+export type ProfileChartBaseline = {
+  /** All-time legacy net: PRE_IMPORT plus prior complete years. */
+  allUnits?: number;
+  /** The old site's year-to-date net. */
+  ytdUnits?: number;
+  /** Plays at or before this instant are already inside `ytdUnits`. */
+  legacySnapshotAt?: Date | null;
+};
+
+function round2(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+function openingBalance(value: number | undefined): number {
+  return value != null && Number.isFinite(value) && value !== 0
+    ? round2(value)
+    : 0;
 }
 
 /**
  * Build bounded client payloads while retaining truthful counts and endpoints.
  *
- * `baselineUnits` is the all-time legacy net — applied only to the
- * All window so chart End matches Evidence Brief / leaderboard totals. Trailing
- * windows (3m/6m/12m) stay SCL-receipt-only; folding a frozen export into a
- * rolling window would invent form the source never had.
+ * A scope's final point has to equal the units the metric row reports for that
+ * same scope, so the carried legacy balance opens the two scopes that hold it:
+ * `all` from the all-time carry, `ytd` from the old site's year-to-date page.
+ * Because that YTD aggregate already contains the imported pick rows, plays at
+ * or before `legacySnapshotAt` are dropped from the YTD line rather than drawn
+ * on top of it.
+ *
+ * Every rolling scope stays SCL-receipt-only: folding a frozen export into a
+ * trailing window would invent form the source never had.
  */
 export function buildProfileChartSeries(
   plays: DatedProfit[],
   asOf: Date,
   maxPoints = 120,
-  baselineUnits = 0,
+  baseline: ProfileChartBaseline = {},
 ): ProfileChartSeries {
-  const baseline =
-    Number.isFinite(baselineUnits) && baselineUnits !== 0
-      ? Math.round((baselineUnits + Number.EPSILON) * 100) / 100
-      : 0;
+  const allOpening = openingBalance(baseline.allUnits);
+  const ytdOpening = openingBalance(baseline.ytdUnits);
+  const snapshot = baseline.legacySnapshotAt ?? null;
+
   return Object.fromEntries(
-    PROFILE_CHART_WINDOWS.map(({ value }) => {
-      const profits = profileProfitUnitsForWindow(plays, value, asOf);
-      // Legacy totals are an all-time carried-over snapshot — only fold into All.
-      let running = value === "all" ? baseline : 0;
+    PROFILE_CHART_WINDOWS.map(({ key }) => {
+      const scoped =
+        key === "ytd" && ytdOpening !== 0 && snapshot
+          ? plays.filter(
+              (play) => play.createdAt.getTime() > snapshot.getTime(),
+            )
+          : plays;
+
+      const profits = profileProfitUnitsForWindow(scoped, key, asOf);
+      let running = key === "all" ? allOpening : key === "ytd" ? ytdOpening : 0;
       const points = profits.map((profit, index) => {
         running += profit;
-        return {
-          n: index + 1,
-          units: Math.round((running + Number.EPSILON) * 100) / 100,
-        };
+        return { n: index + 1, units: round2(running) };
       });
+
       return [
-        value,
+        key,
         {
           points: downsampleCumulative(points, maxPoints),
           // gradedCount stays receipt-derived — baseline results have no picks.
@@ -103,16 +140,4 @@ function downsampleCumulative(
     indexes.add(Math.round(index * step));
   }
   return [...indexes].sort((a, b) => a - b).map((index) => points[index]!);
-}
-
-function subtractUtcMonths(date: Date, months: number): Date {
-  const copy = new Date(date.getTime());
-  const day = copy.getUTCDate();
-  copy.setUTCDate(1);
-  copy.setUTCMonth(copy.getUTCMonth() - months);
-  const lastDay = new Date(
-    Date.UTC(copy.getUTCFullYear(), copy.getUTCMonth() + 1, 0),
-  ).getUTCDate();
-  copy.setUTCDate(Math.min(day, lastDay));
-  return copy;
 }

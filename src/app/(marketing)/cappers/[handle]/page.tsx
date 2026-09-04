@@ -41,6 +41,10 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
     chartSeriesBySport,
     historyNextCursor,
     legacyBySport,
+    windowStats,
+    windowSportBreakdown,
+    clvTrackerByWindow,
+    defaultWindow,
   } = data;
   await refreshWhopStorefrontIfStale({ capperId: capper.id });
   // Keep one profile's heavier reads sequential so it does not consume the
@@ -82,6 +86,10 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
           totalCount={rankedPackages.length}
         />
         <EvidenceBrief
+          // Route params change without remounting, so without this a reader
+          // moving between profiles keeps the previous capper's scope instead
+          // of landing on this one's best qualifying period.
+          key={capper.handle}
           capper={profileCapper}
           plays={plays}
           playsError={playsError}
@@ -91,6 +99,10 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
           chartSeriesBySport={chartSeriesBySport}
           packageInsights={packageInsights}
           legacyBySport={legacyBySport}
+          windowStats={windowStats}
+          windowSportBreakdown={windowSportBreakdown}
+          clvTrackerByWindow={clvTrackerByWindow}
+          defaultWindow={defaultWindow}
           historyNextCursor={historyNextCursor}
           emptyName={identity.primary}
         />

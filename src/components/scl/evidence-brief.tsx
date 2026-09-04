@@ -52,11 +52,15 @@ import {
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
 import { toHeadshotLeague } from "@/lib/player-headshots";
 import {
-  PROFILE_CHART_WINDOWS,
   buildProfileChartSeries,
   type ProfileChartSeries,
-  type ProfileChartWindow,
 } from "@/lib/profile-chart-window";
+import {
+  PROFILE_PERF_VISIBLE_WINDOWS,
+  profilePerfWindowLabel,
+  type ProfilePerfWindow,
+  type ProfileWindowStats,
+} from "@/lib/profile-performance-windows";
 import {
   deriveProofReceiptState,
   formatClvPts,
@@ -215,6 +219,10 @@ export function EvidenceBrief({
   chartSeriesBySport = {},
   packageInsights = [],
   legacyBySport = [],
+  windowStats,
+  windowSportBreakdown,
+  clvTrackerByWindow,
+  defaultWindow = "all",
   historyNextCursor,
   emptyName,
   className,
@@ -229,12 +237,18 @@ export function EvidenceBrief({
   packageInsights?: ProfilePackageInsight[];
   /** Per-sport all-time legacy totals (full-record view only). */
   legacyBySport?: LegacySportRecordView[];
+  /** Record / win% / ROI / units / sample / CLV for every scope. */
+  windowStats?: Record<ProfilePerfWindow, ProfileWindowStats>;
+  /** Sport breakdown per scope. */
+  windowSportBreakdown?: Record<ProfilePerfWindow, LegacySportRecordView[]>;
+  /** CLV distribution per scope. */
+  clvTrackerByWindow?: Record<ProfilePerfWindow, ClvTrackerSummary>;
+  /** Scope the section opens on - best qualifying form. */
+  defaultWindow?: ProfilePerfWindow;
   historyNextCursor?: string | null;
   emptyName: string;
   className?: string;
 }) {
-  const graded = capper.settledPicks ?? 0;
-  const provisional = isProvisional(graded);
   const eligiblePlays = useMemo(
     () => plays.filter((play) => isValidPublicStake(play.units)),
     [plays],
@@ -249,28 +263,24 @@ export function EvidenceBrief({
   }, [clvTrackerProp, eligiblePlays]);
 
   const displayAvgClv = clvTracker.avgClv ?? avgClv ?? null;
-  const clvScale = perfScale("clv", displayAvgClv, {
-    gradedCount: clvTracker.snapshotCount,
-  });
-
   // Package filtering is off until the capper opt-in flow exists: every offer
   // shared one unattributed record, so the selector only ever redrew the same
   // numbers under a different label. `packageInsights` still arrives from the
   // profile query so restoring the control is a UI change alone.
   const selectedPackageId = "all";
   const [chartSport, setChartSport] = useState("ALL");
-  const [chartWindow, setChartWindow] = useState<ProfileChartWindow>("all");
+  // One scope drives the whole section: metric row, sport breakdown and chart.
+  const [perfWindow, setPerfWindow] =
+    useState<ProfilePerfWindow>(defaultWindow);
 
   const chartSeries = useMemo(
     () =>
       chartSeriesProp ??
-      buildProfileChartSeries(
-        eligiblePlays,
-        new Date(),
-        120,
-        // All-window only; sport filters stay receipt-only (see builder).
-        selectedPackageId === "all" ? (capper.legacyBaselineUnits ?? 0) : 0,
-      ),
+      buildProfileChartSeries(eligiblePlays, new Date(), 120, {
+        // All Time only; sport filters stay receipt-only (see builder).
+        allUnits:
+          selectedPackageId === "all" ? (capper.legacyBaselineUnits ?? 0) : 0,
+      }),
     [
       chartSeriesProp,
       eligiblePlays,
@@ -281,9 +291,16 @@ export function EvidenceBrief({
   const activePackage = packageInsights.find(
     (pkg) => pkg.id === selectedPackageId,
   );
+  const scopedStats = activePackage
+    ? null
+    : (windowStats?.[perfWindow] ?? null);
+  // Offering a sport the capper did not play in this scope would hand the
+  // reader an empty chart and no way to tell why.
   const availableSports = activePackage
     ? activePackage.sports
-    : Object.keys(chartSeriesBySport).sort();
+    : scopedStats
+      ? scopedStats.bySport.map((row) => row.sport).sort()
+      : Object.keys(chartSeriesBySport).sort();
   const effectiveSport = availableSports.includes(chartSport)
     ? chartSport
     : "ALL";
@@ -295,11 +312,25 @@ export function EvidenceBrief({
     : effectiveSport === "ALL"
       ? chartSeries
       : (chartSeriesBySport[effectiveSport] ?? chartSeries);
-  const cumulative = activeChartSeries[chartWindow];
+  // Never index straight into the series: a payload built before a scope
+  // existed would throw here, and a crashed subtree still returns HTTP 200.
+  const cumulative = activeChartSeries[perfWindow] ??
+    chartSeries[perfWindow] ?? { points: [], gradedCount: 0 };
   const activeMetrics = evidenceMetrics(
     capper,
     activePackage ? activePackage.evidence : undefined,
+    scopedStats,
   );
+  const scopedAvgClv = scopedStats ? scopedStats.avgClv : displayAvgClv;
+  const scopedClvScale = perfScale("clv", scopedAvgClv, {
+    gradedCount: scopedStats
+      ? scopedStats.clvSampleCount
+      : clvTracker.snapshotCount,
+  });
+  const scopedClvTracker = clvTrackerByWindow?.[perfWindow] ?? clvTracker;
+  const scopedSportRecords =
+    windowSportBreakdown?.[perfWindow] ??
+    (perfWindow === "all" ? legacyBySport : []);
   const historyLedgerKey = `${capper.handle}:${historyNextCursor ?? "end"}:${eligiblePlays
     .map(
       (play) =>
@@ -314,14 +345,16 @@ export function EvidenceBrief({
           Evidence Brief
         </h2>
         <div className="flex flex-wrap items-center gap-2">
-          {provisional ? <ProvisionalRecordHelp iconOnly /> : null}
+          {isProvisional(activeMetrics.graded) ? (
+            <ProvisionalRecordHelp iconOnly />
+          ) : null}
         </div>
       </div>
       <div className="mt-3 space-y-3">
         <MetricRow
           metrics={activeMetrics}
-          avgClv={activePackage ? null : displayAvgClv}
-          clvScale={clvScale}
+          avgClv={activePackage ? null : scopedAvgClv}
+          clvScale={scopedClvScale}
         />
         <SampleMaturityMeter graded={activeMetrics.graded} showLegend />
         <p className="text-muted-foreground text-xs leading-relaxed">
@@ -336,9 +369,23 @@ export function EvidenceBrief({
   return (
     <div className={cn("space-y-5 sm:space-y-6", className)}>
       <div data-profile-evidence-grid className="space-y-5 sm:space-y-6">
+        {!activePackage && windowStats ? (
+          <PerformanceScopeBar
+            active={perfWindow}
+            onSelect={setPerfWindow}
+            graded={activeMetrics.graded}
+            isDefault={perfWindow === defaultWindow}
+          />
+        ) : null}
         {evidenceRecord}
-        {!activePackage && legacyBySport.length > 0 ? (
-          <LegacySportBreakdown records={legacyBySport} />
+        {!activePackage && scopedSportRecords.length > 0 ? (
+          <LegacySportBreakdown
+            records={scopedSportRecords}
+            carriesLegacy={scopedStats ? scopedStats.carriesLegacy : true}
+            scopeLabel={
+              scopedStats ? profilePerfWindowLabel(perfWindow) : undefined
+            }
+          />
         ) : null}
         <section
           data-profile-performance-trend
@@ -353,8 +400,11 @@ export function EvidenceBrief({
               <p className="text-muted-foreground mt-0.5 text-xs leading-snug">
                 {activePackage
                   ? `Cumulative units from receipts assigned to ${activePackage.title}.`
-                  : chartWindow === "all" &&
-                      (capper.legacyBaselineUnits ?? 0) !== 0
+                  : effectiveSport === "ALL" &&
+                      (scopedStats
+                        ? scopedStats.carriesLegacy
+                        : perfWindow === "all" &&
+                          (capper.legacyBaselineUnits ?? 0) !== 0)
                     ? "Cumulative units from public graded positions (singles and parlays), starting from the carried-over legacy balance so End matches the Evidence Brief total."
                     : "Cumulative units from public graded positions (singles and parlays)."}
               </p>
@@ -378,31 +428,6 @@ export function EvidenceBrief({
                   </select>
                 </label>
               ) : null}
-              <div
-                className="border-border bg-surface-2 inline-flex min-h-10 items-center rounded-[var(--scl-radius-chip)] border p-0.5"
-                role="group"
-                aria-label="Performance chart window"
-              >
-                {PROFILE_CHART_WINDOWS.map((window) => {
-                  const active = chartWindow === window.value;
-                  return (
-                    <button
-                      key={window.value}
-                      type="button"
-                      className={cn(
-                        "scl-data min-h-10 min-w-10 rounded-full px-2 text-[0.68rem] leading-none font-semibold tabular-nums",
-                        active
-                          ? "bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
-                          : "text-muted-foreground hover:text-foreground",
-                      )}
-                      aria-pressed={active}
-                      onClick={() => setChartWindow(window.value)}
-                    >
-                      {window.label}
-                    </button>
-                  );
-                })}
-              </div>
             </div>
           </div>
           <CumulativeUnitsChart
@@ -410,11 +435,16 @@ export function EvidenceBrief({
             gradedCount={cumulative.gradedCount}
             startsFromLegacyBalance={
               !activePackage &&
-              chartWindow === "all" &&
-              (capper.legacyBaselineUnits ?? 0) !== 0
+              effectiveSport === "ALL" &&
+              (scopedStats
+                ? scopedStats.carriesLegacy
+                : perfWindow === "all" &&
+                  (capper.legacyBaselineUnits ?? 0) !== 0)
             }
           />
-          {!activePackage ? <ClvTrackerPanel summary={clvTracker} /> : null}
+          {!activePackage ? (
+            <ClvTrackerPanel summary={scopedClvTracker} />
+          ) : null}
         </section>
       </div>
 
@@ -739,8 +769,25 @@ type EvidenceMetrics = {
 function evidenceMetrics(
   capper: CapperSummary,
   evidence: PackageEvidence | null | undefined,
+  scoped?: ProfileWindowStats | null,
 ): EvidenceMetrics {
   if (evidence === undefined) {
+    if (scoped) {
+      const { stats } = scoped;
+      const decided = stats.wins + stats.losses;
+      // Honest empties over invented zeroes: a scope with no settled result
+      // has no win rate, ROI or unit total to report.
+      return {
+        record:
+          stats.settled > 0
+            ? { w: stats.wins, l: stats.losses, p: stats.pushes }
+            : null,
+        winPct: decided > 0 ? stats.winPct : null,
+        roi: stats.settled > 0 ? stats.roi : null,
+        units: stats.settled > 0 ? stats.units : null,
+        graded: stats.settled,
+      };
+    }
     return {
       record: capper.record,
       winPct: capper.winPct,
@@ -759,6 +806,83 @@ function evidenceMetrics(
     units: evidence?.units ?? null,
     graded: evidence?.settledPicks ?? 0,
   };
+}
+
+/**
+ * The one control for the whole performance section.
+ *
+ * The active scope is spelled out beside the chips rather than left to a
+ * highlighted pill: a profile that opens on a capper's best qualifying stretch
+ * has to say which stretch that is, or a 7-day run reads as a career record.
+ */
+function PerformanceScopeBar({
+  active,
+  onSelect,
+  graded,
+  isDefault,
+}: {
+  active: ProfilePerfWindow;
+  onSelect: (window: ProfilePerfWindow) => void;
+  graded: number;
+  isDefault: boolean;
+}) {
+  return (
+    <section
+      data-profile-scope-bar
+      aria-label="Performance timeframe"
+      className="border-border min-w-0 border-b pb-3"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div className="min-w-0">
+          <h2 className="scl-eyebrow text-[color:var(--scl-muted-label)]">
+            Performance
+          </h2>
+          <p className="text-muted-foreground mt-0.5 text-xs leading-snug">
+            <span className="text-foreground font-semibold">
+              {profilePerfWindowLabel(active)}
+            </span>
+            <span aria-hidden> · </span>
+            <span className="tabular-nums">{graded.toLocaleString()}</span>{" "}
+            graded
+            {isDefault ? (
+              <>
+                <span aria-hidden> · </span>
+                <span>best qualifying period</span>
+              </>
+            ) : null}
+          </p>
+        </div>
+        <div className="-mx-1 max-w-full overflow-x-auto px-1 py-0.5">
+          <div
+            className="border-border bg-surface-2 inline-flex min-h-10 items-center gap-0.5 rounded-[var(--scl-radius-chip)] border p-0.5"
+            role="group"
+            aria-label="Performance timeframe"
+          >
+            {PROFILE_PERF_VISIBLE_WINDOWS.map((window) => {
+              const selected = active === window.key;
+              return (
+                <button
+                  key={window.key}
+                  type="button"
+                  className={cn(
+                    "scl-data min-h-10 min-w-10 rounded-full px-2.5 text-[0.68rem] leading-none font-semibold whitespace-nowrap tabular-nums",
+                    selected
+                      ? "bg-[color:var(--scl-blue)] text-[color:var(--scl-blue-ink)]"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                  aria-pressed={selected}
+                  aria-label={window.longLabel}
+                  onClick={() => onSelect(window.key)}
+                >
+                  {window.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 function MetricRow({

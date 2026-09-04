@@ -41,5 +41,8 @@ test("profile metadata does not start a second full profile hydration", () => {
 test("profile cache does not reuse pre-serialization partial payloads", () => {
   const capperSource = source("src/lib/queries/capper.ts");
 
-  assert.match(capperSource, /\["public-capper-by-handle-v6"\]/);
+  // v7 adds the per-scope payload (windowStats, windowSportBreakdown,
+  // clvTrackerByWindow, defaultWindow). A cached v6 entry deserializes without
+  // them, so the section would render with no scope to select.
+  assert.match(capperSource, /\["public-capper-by-handle-v7"\]/);
 });
