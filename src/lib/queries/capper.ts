@@ -460,9 +460,9 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
         units: true,
         profitUnits: true,
         // Parlay has no sport column — attribute to the first leg for
-        // sport-filtered charts; All-window ignores sport. Every leg's event
-        // time comes back too: the ticket sits on the day its last bound leg
-        // was played, which is when it could settle.
+        // sport-filtered charts; All-window ignores sport. Leg event times
+        // come back too: the ticket sits on the day its last bound leg was
+        // played, which is when it could settle.
         legs: {
           select: { sport: true, eventStartsAt: true },
           take: PARLAY_LEG_SCAN_LIMIT,
@@ -609,7 +609,7 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
     const clvRows = clvResult.value
       .filter((row) => !hasQaNoteMarker(row.notes))
       .map((row) => ({
-        slateAt: row.eventStartsAt ?? row.createdAt,
+        slateAt: leaderboardSlateInstant(row),
         clvPts: row.clvPts == null ? null : Number(row.clvPts),
       }))
       .filter(
