@@ -31,10 +31,19 @@ test("signed PKCE state round-trips and rejects tampering", () => {
   const serialized = serializeWhopPkceCookie(pkce, "test-secret");
 
   assert.deepEqual(parseWhopPkceCookie(serialized, "test-secret"), pkce);
-  assert.equal(
-    parseWhopPkceCookie(`${serialized.slice(0, -1)}x`, "test-secret"),
-    null,
-  );
+
+  // Tamper the FIRST character of the signature, not the last.
+  //
+  // The signature is a 32-byte HMAC in base64url — 43 characters, where the
+  // final character carries only four significant bits and its low two bits
+  // are padding. Several different last characters therefore decode to the
+  // same bytes and still verify, so `slice(0, -1) + "x"` failed this test on
+  // roughly 6% of runs for no reason. Every bit of the first character counts.
+  const [payload, signature] = serialized.split(".");
+  const flipped = signature!.startsWith("A") ? "B" : "A";
+  const tampered = `${payload}.${flipped}${signature!.slice(1)}`;
+  assert.notEqual(tampered, serialized);
+  assert.equal(parseWhopPkceCookie(tampered, "test-secret"), null);
   assert.equal(parseWhopPkceCookie(serialized, "wrong-secret"), null);
 });
 
