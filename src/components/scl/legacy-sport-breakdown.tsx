@@ -53,22 +53,10 @@ function compareLegacyRows(
 export function LegacySportBreakdown({
   records,
   className,
-  surface = "profile",
-  carriesLegacy = true,
   scopeLabel,
 }: {
   records: LegacySportRecordView[];
   className?: string;
-  surface?: "profile" | "dashboard";
-  /**
-   * Whether the carried pre-import aggregate is inside these rows. False on
-   * the profile's rolling scopes, which are receipt-only: the legacy export is
-   * a frozen total with no per-pick dates, so it cannot sit in a trailing
-   * window. Saying otherwise would describe a table that does not exist. The
-   * false branch stays neutral rather than explaining the exclusion, because
-   * most cappers never had a carried record to exclude.
-   */
-  carriesLegacy?: boolean;
   /** Scope these rows describe, when the caller is showing one. */
   scopeLabel?: string;
 }) {
@@ -84,9 +72,6 @@ export function LegacySportBreakdown({
   const totalSettled = records.reduce((sum, row) => sum + row.settled, 0);
   const sortLabel =
     SORT_OPTIONS.find((option) => option.value === sort)?.label ?? "Units";
-  const matchLabel =
-    surface === "dashboard" ? "scoreboard" : "Evidence Brief sample";
-
   return (
     <section
       data-profile-legacy-sports
@@ -104,15 +89,8 @@ export function LegacySportBreakdown({
             </h2>
           </div>
           <p className="text-muted-foreground mt-1 max-w-2xl text-xs leading-relaxed">
-            Settled record in each sport
-            {scopeLabel ? ` for ${scopeLabel}` : ""}
-            {carriesLegacy
-              ? " — including results carried over from the previous SCL platform — "
-              : " — logged on SCL — "}
-            so this table matches the {matchLabel}. Sorted by{" "}
-            {sortLabel.toLowerCase()}. Each figure is colored from its own value
-            — a winning ROI stays green even when units are flat. Sample size
-            lives on the Early meter, not on every number.
+            Verified record in each sport
+            {scopeLabel ? ` for ${scopeLabel}` : ""}.
           </p>
         </div>
         <div className="flex flex-col items-stretch gap-2 sm:items-end">

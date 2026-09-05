@@ -208,13 +208,13 @@ test("with nothing qualifying, the profile opens on the widest scope with result
   for (const { key } of PROFILE_PERF_WINDOWS) {
     assert.ok(!byWindow[key].qualifies, `${key} should not qualify`);
   }
-  // Widest scope that is actually offered, now that All Time is off the bar.
-  assert.equal(selectDefaultProfileWindow(byWindow), "ytd");
+  // Widest scope that is actually offered.
+  assert.equal(selectDefaultProfileWindow(byWindow), "all");
 });
 
 test("a capper with no settled results still resolves to a real scope", () => {
   const byWindow = buildProfileWindowStats({ positions: [], now });
-  assert.equal(selectDefaultProfileWindow(byWindow), "ytd");
+  assert.equal(selectDefaultProfileWindow(byWindow), "all");
 });
 
 test("ties prefer the wider scope, which carries more evidence", () => {
@@ -225,8 +225,8 @@ test("ties prefer the wider scope, which carries more evidence", () => {
     now,
   });
 
-  assert.equal(byWindow["7d"].stats.roi, byWindow.ytd.stats.roi);
-  assert.equal(selectDefaultProfileWindow(byWindow), "ytd");
+  assert.equal(byWindow["7d"].stats.roi, byWindow.all.stats.roi);
+  assert.equal(selectDefaultProfileWindow(byWindow), "all");
 });
 
 test("the sport breakdown is scoped to the selected window", () => {
@@ -254,28 +254,30 @@ test("the sport breakdown is scoped to the selected window", () => {
 test("the scope bar offers exactly the periods the owners asked for", () => {
   assert.deepEqual(
     PROFILE_PERF_VISIBLE_WINDOWS.map((entry) => entry.key),
-    ["1d", "7d", "14d", "30d", "60d", "ytd"],
+    ["1d", "7d", "14d", "30d", "60d", "ytd", "all"],
   );
-  assert.deepEqual([...PROFILE_PERF_HIDDEN_WINDOWS], ["90d", "all"]);
+  assert.deepEqual([...PROFILE_PERF_HIDDEN_WINDOWS], ["90d"]);
 });
 
 test("a hidden scope is still computed but can never become the default", () => {
   const byWindow = buildProfileWindowStats({
     positions: [
-      // Last year: only All Time can see it, and it is excellent.
-      ...wins(100, "2025-06-01T18:00:00.000Z"),
-      // This year, but outside every rolling scope: mediocre.
-      ...wins(6, "2026-02-01T18:00:00.000Z"),
-      ...losses(6, "2026-02-01T18:00:00.000Z"),
+      // ~75 days back: inside 90D, outside every offered trailing scope.
+      ...wins(12, "2026-06-21T18:00:00.000Z"),
+      // February: inside YTD and All Time, outside 90D. Drags both down.
+      ...losses(30, "2026-02-16T18:00:00.000Z"),
     ],
     now,
   });
 
-  // All Time is built, and on the numbers alone it would win the slot outright.
-  assert.equal(byWindow.all.graded, 112);
-  assert.ok(byWindow.all.qualifies);
-  assert.ok(byWindow.all.stats.roi > byWindow.ytd.stats.roi);
+  // 90D is built, and on the numbers it is the outright best scope.
+  assert.equal(byWindow["90d"].graded, 12);
+  assert.ok(byWindow["90d"].qualifies);
+  assert.ok(byWindow["90d"].stats.roi > byWindow.ytd.stats.roi);
+  assert.ok(byWindow["90d"].stats.roi > byWindow.all.stats.roi);
 
   // It is not offered, so it cannot be what the profile opens on.
-  assert.equal(selectDefaultProfileWindow(byWindow), "ytd");
+  const selected = selectDefaultProfileWindow(byWindow);
+  assert.notEqual(selected, "90d");
+  assert.equal(selected, "all");
 });
