@@ -23,6 +23,7 @@ export type ProfilePerfWindow =
   | "7d"
   | "14d"
   | "30d"
+  | "60d"
   | "90d"
   | "ytd"
   | "all";
@@ -32,6 +33,7 @@ export const PROFILE_PERF_WINDOWS = [
   { key: "7d", label: "7D", longLabel: "Last 7 Days" },
   { key: "14d", label: "14D", longLabel: "Last 14 Days" },
   { key: "30d", label: "30D", longLabel: "Last 30 Days" },
+  { key: "60d", label: "60D", longLabel: "Last 60 Days" },
   { key: "90d", label: "90D", longLabel: "Last 90 Days" },
   { key: "ytd", label: "YTD", longLabel: "Year to Date" },
   { key: "all", label: "All", longLabel: "All Time" },
@@ -46,21 +48,22 @@ export const PROFILE_PERF_WINDOWS = [
  *
  * A hidden scope is still built by `buildProfileWindowStats`, so restoring one
  * is a change to this list alone - no query, payload or UI work. It is also
- * excluded from `selectDefaultProfileWindow` by default, so a profile never
- * opens on a scope the reader has no way to leave.
+ * excluded from `selectDefaultProfileWindow`, so a profile never opens on a
+ * scope the reader has no way to leave.
  *
- * YTD is hidden at the owners' request. Its machinery is kept because the
- * scope is genuinely tricky - the legacy CURRENT_YEAR aggregate is the old
- * site's own year-to-date page and already contains the imported pick rows, so
- * the double-count guard behind it would have to be rebuilt from scratch.
+ * The owners' bar is Yesterday / 7D / 14D / 30D / 60D / YTD, so 90D and All
+ * Time are hidden.
  *
- * All Time is deliberately NOT hidden: it is the only scope that can carry the
- * pre-import record, since the YEAR_2025 / YEAR_2024 rows are frozen
- * aggregates with no per-pick dates and cannot sit in a rolling window.
- * Dropping it would strand two years of record a capper actually earned.
+ * All Time being off the bar has a cost worth remembering: it is the only
+ * scope that can carry the pre-import record. `PRE_IMPORT` / `YEAR_2025` /
+ * `YEAR_2024` are frozen aggregates with no per-pick dates, so they cannot sit
+ * in a rolling window, and YTD only carries `CURRENT_YEAR`. Measured against
+ * the live roster, 16 of 60 cappers have graded picks that are unreachable on
+ * their profile without it - 6,088 in total.
  */
 export const PROFILE_PERF_HIDDEN_WINDOWS: readonly ProfilePerfWindow[] = [
-  "ytd",
+  "90d",
+  "all",
 ];
 
 export const PROFILE_PERF_VISIBLE_WINDOWS = PROFILE_PERF_WINDOWS.filter(
@@ -268,6 +271,7 @@ const WIDEST_FIRST: readonly ProfilePerfWindow[] = [
   "all",
   "ytd",
   "90d",
+  "60d",
   "30d",
   "14d",
   "7d",
@@ -313,5 +317,6 @@ export function selectDefaultProfileWindow(
     (key) => (byWindow[key]?.graded ?? 0) > 0,
   );
 
-  return fallback ?? (eligible.includes("all") ? "all" : eligible[0]!);
+  const widestVisible = WIDEST_FIRST.find((key) => eligible.includes(key));
+  return fallback ?? widestVisible ?? eligible[0]!;
 }

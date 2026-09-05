@@ -190,7 +190,7 @@ for (const theme of ["dark", "light"]) {
         console.error("FAIL dark 1440: performance scope did not change");
         failed = true;
       }
-      await page.getByRole("button", { name: "All Time" }).click();
+      await page.getByRole("button", { name: "Year to Date" }).click();
 
       const inspect = page.locator(
         '[data-profile-history-ledger] button[aria-label^="Inspect receipt"]',
