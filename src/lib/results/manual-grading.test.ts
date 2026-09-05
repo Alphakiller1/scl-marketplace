@@ -9,6 +9,8 @@ import {
 const NOW = new Date("2026-08-22T18:00:00Z");
 const FINISHED = new Date("2026-08-17T15:00:00Z"); // days before NOW
 const LIVE = new Date("2026-08-22T17:30:00Z"); // 30 min ago
+/** Over, but still inside the scores lookback — auto-grading may yet settle it. */
+const RECENT = new Date("2026-08-21T15:00:00Z");
 
 describe("needsManualGrading", () => {
   // The exact play that sat five days: a tennis games spread the grader
@@ -33,15 +35,28 @@ describe("needsManualGrading", () => {
     );
   });
 
-  // A tennis moneyline grades itself — it must never reach the queue, or the
-  // queue fills with work nobody needs to do and stops being read.
-  it("leaves a tennis moneyline alone", () => {
+  // A tennis moneyline grades itself — while it still can. Listing one the
+  // grader may yet settle fills the queue with work nobody needs to do.
+  it("leaves a tennis moneyline alone while it can still auto-grade", () => {
+    assert.equal(
+      needsManualGrading(
+        { sport: "TENNIS", market: "Moneyline", eventStartsAt: RECENT },
+        NOW,
+      ),
+      false,
+    );
+  });
+
+  // Once the scores window closes, no run will ever settle it: every later
+  // run skips it as aged_out, reports SUCCESS, and nothing counts it. Six US
+  // Open moneylines sat that way holding three parlays unsettled.
+  it("claims a gradeable market that aged out without ever matching", () => {
     assert.equal(
       needsManualGrading(
         { sport: "TENNIS", market: "Moneyline", eventStartsAt: FINISHED },
         NOW,
       ),
-      false,
+      true,
     );
   });
 
@@ -60,11 +75,24 @@ describe("needsManualGrading", () => {
     for (const sport of ["MLB", "NFL", "SOCCER", "WNBA", "MMA"]) {
       assert.equal(
         needsManualGrading(
-          { sport, market: "Spread", eventStartsAt: FINISHED },
+          { sport, market: "Spread", eventStartsAt: RECENT },
           NOW,
         ),
         false,
         `${sport} spreads auto-grade`,
+      );
+    }
+  });
+
+  it("claims any sport once its scores window has closed", () => {
+    for (const sport of ["MLB", "NFL", "SOCCER", "WNBA", "MMA"]) {
+      assert.equal(
+        needsManualGrading(
+          { sport, market: "Spread", eventStartsAt: FINISHED },
+          NOW,
+        ),
+        true,
+        `${sport} aged out and can no longer settle itself`,
       );
     }
   });
@@ -87,6 +115,16 @@ describe("manualGradingReason", () => {
     assert.match(
       manualGradingReason({ sport: "TENNIS", market: "Spread" }),
       /per-set game score/,
+    );
+  });
+
+  it("says so when the scores window closed on a gradeable market", () => {
+    assert.match(
+      manualGradingReason(
+        { sport: "TENNIS", market: "Moneyline", eventStartsAt: FINISHED },
+        NOW,
+      ),
+      /scores window closed/,
     );
   });
 

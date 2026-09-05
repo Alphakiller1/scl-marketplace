@@ -228,3 +228,37 @@ test("the next day's game in the series is not borrowed", () => {
   });
   assert.equal(espnIdForFixture(oddsApi, [oddsApi, nextDay]), null);
 });
+
+/**
+ * ESPN's tour scoreboards overlap at a combined event.
+ *
+ * The ATP and WTA cards each carry the entire US Open draw, so flattening both
+ * returned every match twice — 870 rows for 435 matches. `findGame` takes a
+ * sole candidate and returns null on ambiguity, so a completed moneyline the
+ * feed reported perfectly well matched nothing, and aged out permanently.
+ */
+test("two tour cards carrying the same match collapse to one row", () => {
+  const atpCopy: SettledGame = {
+    sport: "TENNIS",
+    home: "Alexander Zverev",
+    away: "Lorenzo Sonego",
+    homeScore: 1,
+    awayScore: 0,
+    completed: true,
+    eventId: "espn:182660",
+    espnEventId: "182660",
+    startsAt: new Date("2026-09-02T01:00:00.000Z"),
+    homePeriods: [6, 3, 6, 7, 6],
+    awayPeriods: [4, 6, 7, 5, 4],
+    regulationPeriods: 5,
+  };
+  // The same competition, as the other tour's card reports it. ESPN disagrees
+  // with itself about the format, which is why keeping both rows is worse than
+  // ambiguous — it is contradictory.
+  const wtaCopy: SettledGame = { ...atpCopy, regulationPeriods: 3 };
+
+  const merged = mergeSettledGames([atpCopy], [wtaCopy]);
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0]!.eventId, "espn:182660");
+  assert.equal(merged[0]!.regulationPeriods, 5);
+});
