@@ -269,6 +269,37 @@ const MMA_FIXTURE_WINDOW_MS = 12 * 60 * 60 * 1000;
  */
 const TENNIS_BOUND_WINDOW_MS = SAME_FIXTURE_WINDOW_MS;
 
+/**
+ * Order of play moves a tennis match by DAYS, not hours.
+ *
+ * A slam schedules by court and session, not by clock: a match listed for
+ * Monday is played when the courts free up, and rain pushes a whole day into
+ * the next. Measured against the US Open board on 2026-09-05, three stuck
+ * plays were out by 21h, 22h and 34h, and every one of them existed on ESPN,
+ * completed, the whole time. The 4h fixture window filtered the real match out
+ * of the candidate pool, so they read as `event_not_found` for three days and
+ * then became permanently `aged_out`.
+ *
+ * Same shape as the soccer reschedule window, and gated the same way: both
+ * competitors must be known and exactly one candidate may match, so a wider
+ * clock cannot pull in a different round. A given pairing happens once in a
+ * draw.
+ */
+const TENNIS_RESCHEDULE_WINDOW_MS = 72 * 60 * 60 * 1000;
+
+/**
+ * How far a rescheduled fixture may move and still be joinable, per sport.
+ *
+ * Undefined for sports whose fixtures do not move: the tight window is the
+ * only safe join there.
+ */
+function rescheduleWindowMs(sport: string): number | undefined {
+  const key = sport.trim().toUpperCase();
+  if (key === "SOCCER") return SOCCER_RESCHEDULE_WINDOW_MS;
+  if (key === "TENNIS") return TENNIS_RESCHEDULE_WINDOW_MS;
+  return undefined;
+}
+
 function fixtureWindowMs(sport: string): number {
   return sport.trim().toUpperCase() === "MMA"
     ? MMA_FIXTURE_WINDOW_MS
@@ -371,14 +402,15 @@ export function findGame(
       );
       if (bound) return bound;
 
-      if (play.sport.trim().toUpperCase() === "SOCCER") {
+      const rescheduleWindow = rescheduleWindowMs(play.sport);
+      if (rescheduleWindow != null) {
         const rescheduled = sole(
           bySport.filter(
             (game) =>
               game.startsAt != null &&
               Math.abs(
                 game.startsAt.getTime() - play.eventStartsAt!.getTime(),
-              ) <= SOCCER_RESCHEDULE_WINDOW_MS &&
+              ) <= rescheduleWindow &&
               teamsAreOpponents(fixture.a, fixture.b, game),
           ),
         );

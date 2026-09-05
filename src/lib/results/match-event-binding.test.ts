@@ -329,3 +329,157 @@ test("a bound UFC fight matches ESPN hours after the card start", () => {
   );
   assert.equal(found?.eventId, "espn:401905000");
 });
+
+/**
+ * Order of play at a slam moves matches by days.
+ *
+ * These three are the real US Open plays that sat ungraded on 2026-09-05: the
+ * board's scheduled commence against the start ESPN actually stamped. Every one
+ * existed on ESPN, completed, the whole time — the 4h fixture window filtered
+ * it out, so they read `event_not_found` until they aged out permanently.
+ */
+const US_OPEN_DRIFT = [
+  {
+    label: "Zverev, out by 34h",
+    a: "Lorenzo Sonego",
+    b: "Alexander Zverev",
+    booked: "2026-08-31T15:00:00.000Z",
+    played: "2026-09-02T01:00:00.000Z",
+  },
+  {
+    label: "van de Zandschulp, out by 22h and cased differently",
+    a: "Botic van de Zandschulp",
+    b: "Jan Choinski",
+    espnA: "Botic Van De Zandschulp",
+    booked: "2026-09-01T19:00:00.000Z",
+    played: "2026-09-02T16:40:00.000Z",
+  },
+  {
+    label: "de Minaur, out by 21h",
+    a: "Alex de Minaur",
+    b: "Andrea Guerrieri",
+    booked: "2026-09-01T21:00:00.000Z",
+    played: "2026-09-02T18:10:00.000Z",
+  },
+] as const;
+
+for (const drift of US_OPEN_DRIFT) {
+  test(`a rescheduled tennis match still grades — ${drift.label}`, () => {
+    const found = findGame(
+      play({
+        sport: "TENNIS",
+        market: "Moneyline",
+        selection: drift.b,
+        eventId: "odds-api-hex-id",
+        eventLabel: `${drift.a} @ ${drift.b}`,
+        eventStartsAt: new Date(drift.booked),
+      }),
+      [
+        {
+          sport: "TENNIS",
+          home: drift.b,
+          away: "espnA" in drift ? drift.espnA : drift.a,
+          homeScore: 3,
+          awayScore: 1,
+          completed: true,
+          eventId: "espn-numeric-id",
+          startsAt: new Date(drift.played),
+        },
+      ],
+    );
+    assert.equal(found?.eventId, "espn-numeric-id");
+  });
+}
+
+test("a tennis reschedule join still needs both players", () => {
+  // Only the picked player is stored, so the wider clock is not permitted —
+  // exactly the guard the soccer window carries.
+  const found = findGame(
+    play({
+      sport: "TENNIS",
+      market: "Moneyline",
+      selection: "Alexander Zverev",
+      eventId: "odds-api-hex-id",
+      eventLabel: null,
+      homeTeam: null,
+      awayTeam: null,
+      eventStartsAt: new Date("2026-08-31T15:00:00.000Z"),
+    }),
+    [
+      {
+        sport: "TENNIS",
+        home: "Alexander Zverev",
+        away: "Lorenzo Sonego",
+        homeScore: 3,
+        awayScore: 0,
+        completed: true,
+        eventId: "espn-numeric-id",
+        startsAt: new Date("2026-09-02T01:00:00.000Z"),
+      },
+    ],
+  );
+  assert.equal(found, null);
+});
+
+test("a later round does not settle an earlier one", () => {
+  // Zverev plays Sonego then Halys inside the window. The stored pairing is
+  // what separates them; without it the wider clock would be a coin flip.
+  const halys: SettledGame = {
+    sport: "TENNIS",
+    home: "Alexander Zverev",
+    away: "Quentin Halys",
+    homeScore: 3,
+    awayScore: 1,
+    completed: true,
+    eventId: "espn-r3",
+    startsAt: new Date("2026-09-04T01:40:00.000Z"),
+  };
+  const sonego: SettledGame = {
+    sport: "TENNIS",
+    home: "Alexander Zverev",
+    away: "Lorenzo Sonego",
+    homeScore: 3,
+    awayScore: 0,
+    completed: true,
+    eventId: "espn-r2",
+    startsAt: new Date("2026-09-02T01:00:00.000Z"),
+  };
+  const found = findGame(
+    play({
+      sport: "TENNIS",
+      market: "Moneyline",
+      selection: "Alexander Zverev",
+      eventId: "odds-api-hex-id",
+      eventLabel: "Lorenzo Sonego @ Alexander Zverev",
+      eventStartsAt: new Date("2026-08-31T15:00:00.000Z"),
+    }),
+    [halys, sonego],
+  );
+  assert.equal(found?.eventId, "espn-r2");
+});
+
+test("a tennis match beyond the reschedule window is not joined", () => {
+  const found = findGame(
+    play({
+      sport: "TENNIS",
+      market: "Moneyline",
+      selection: "Alexander Zverev",
+      eventId: "odds-api-hex-id",
+      eventLabel: "Lorenzo Sonego @ Alexander Zverev",
+      eventStartsAt: new Date("2026-08-28T15:00:00.000Z"),
+    }),
+    [
+      {
+        sport: "TENNIS",
+        home: "Alexander Zverev",
+        away: "Lorenzo Sonego",
+        homeScore: 3,
+        awayScore: 0,
+        completed: true,
+        eventId: "espn-too-far",
+        startsAt: new Date("2026-09-02T01:00:00.000Z"),
+      },
+    ],
+  );
+  assert.equal(found, null);
+});

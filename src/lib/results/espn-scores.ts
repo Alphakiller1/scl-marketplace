@@ -6,7 +6,10 @@ import {
 } from "@/lib/results/espn-scoreboard-map";
 import { espnSoccerLeagueSlug } from "@/lib/results/espn-soccer-leagues";
 import { mapEspnTennisScoreboard } from "@/lib/results/espn-tennis-map";
-import type { SettledGame } from "@/lib/results/settled-game";
+import {
+  mergeSettledGames,
+  type SettledGame,
+} from "@/lib/results/settled-game";
 
 /** Days of ESPN scoreboard history to pull when Odds API lookback is exhausted. */
 export const ESPN_HISTORICAL_SCOREBOARD_DAYS = 14;
@@ -148,7 +151,19 @@ export function espnHistoricalResultsProvider(
       if (requests.length === 0) return [];
 
       const batches = await Promise.all(requests);
-      return batches.flat();
+      // ESPN scoreboards overlap, so flattening produces duplicates.
+      //
+      // At a combined event the ATP and WTA cards each carry the ENTIRE draw,
+      // so every US Open match came back twice. Two copies of one match are not
+      // two candidates: `findGame` takes a sole match and returns null on
+      // ambiguity, so six completed moneylines went unmatched while both feeds
+      // carried the result — then aged out permanently. Merging is also how the
+      // copies' differing `regulationPeriods` collapse to one row instead of
+      // two conflicting ones.
+      return batches.reduce<SettledGame[]>(
+        (merged, batch) => mergeSettledGames(merged, batch),
+        [],
+      );
     },
   };
 }

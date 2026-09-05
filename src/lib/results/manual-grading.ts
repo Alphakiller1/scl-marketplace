@@ -1,4 +1,5 @@
 import { expectedFinalAt } from "@/lib/results/grading-window";
+import { isAgedOut } from "@/lib/results/skip-reason";
 import { isAutoGradeBlocked } from "@/lib/results/match";
 
 /**
@@ -23,6 +24,14 @@ import { isAutoGradeBlocked } from "@/lib/results/match";
  * a retirement, a walkover, a decider the feed reports in a format the grader
  * will not read. Fewer plays, same reason for the queue to exist.
  *
+ * The queue also owns aged-out plays, for the same reason one step removed. A
+ * gradeable market that never found its event is retried every run until the
+ * scores window closes, and from then on it is skipped as `aged_out` forever —
+ * a SUCCESS run, a HEALTHY pipeline, and a play that can never settle. Six US
+ * Open moneylines sat that way on 2026-09-05, holding three parlays unsettled,
+ * counted by nothing: the health report skips parlay legs (`units` 0) and this
+ * queue used to skip anything whose market was auto-gradeable in principle.
+ *
  * Pure — no network, no server-only, unit-testable.
  */
 
@@ -37,20 +46,32 @@ export type ManualGradingCandidate = {
  *
  * The expected-final check matters: before it, the play is simply live, and a
  * queue that lists in-progress games trains people to ignore it.
+ *
+ * Two ways a play gets here: a market the grader refuses on principle, or any
+ * market whose scores window has closed. The second needs no expected-final
+ * check — the lookback cliff is days past the end of every fixture.
  */
 export function needsManualGrading(
   play: ManualGradingCandidate,
   now: Date,
 ): boolean {
-  if (!isAutoGradeBlocked(play)) return false;
   if (play.eventStartsAt == null) return false;
-  return expectedFinalAt(play.sport, play.eventStartsAt) <= now;
+  if (isAutoGradeBlocked(play)) {
+    return expectedFinalAt(play.sport, play.eventStartsAt) <= now;
+  }
+  return isAgedOut(play.eventStartsAt, now);
 }
 
 /** Why a human has to settle it, for the admin queue and the cron summary. */
 export function manualGradingReason(
-  play: Pick<ManualGradingCandidate, "sport" | "market">,
+  play: Pick<ManualGradingCandidate, "sport" | "market"> & {
+    eventStartsAt?: Date | null;
+  },
+  now = new Date(),
 ): string {
+  if (!isAutoGradeBlocked(play) && isAgedOut(play.eventStartsAt, now)) {
+    return `${play.market} never matched an event before the scores window closed — settle it by hand`;
+  }
   if (play.sport.trim().toUpperCase() === "TENNIS") {
     return `${play.market} needs the per-set game score — the feed reported none for this match`;
   }
