@@ -188,16 +188,15 @@ test("the default is ranked on ROI so volume alone cannot win the slot", () => {
     now,
   });
 
-  // All Time holds far more units than the recent scopes, at a worse rate.
-  assert.ok(byWindow.all.stats.units > byWindow["90d"].stats.units);
-  assert.ok(byWindow.all.stats.roi < byWindow["90d"].stats.roi);
+  // YTD holds far more units than the recent scopes, at a worse rate.
+  assert.ok(byWindow.ytd.stats.units > byWindow["60d"].stats.units);
+  assert.ok(byWindow.ytd.stats.roi < byWindow["60d"].stats.roi);
 
-  // Ranking on units would hand the slot to All Time. Ranking on ROI does not.
+  // Ranking on units would hand the slot to the widest scope. ROI does not.
   const selected = selectDefaultProfileWindow(byWindow);
-  assert.notEqual(selected, "all");
   assert.notEqual(selected, "ytd");
-  // 90D is the widest scope holding only the strong recent run.
-  assert.equal(selected, "90d");
+  // 60D is the widest offered scope holding only the strong recent run.
+  assert.equal(selected, "60d");
 });
 
 test("with nothing qualifying, the profile opens on the widest scope with results", () => {
@@ -209,12 +208,13 @@ test("with nothing qualifying, the profile opens on the widest scope with result
   for (const { key } of PROFILE_PERF_WINDOWS) {
     assert.ok(!byWindow[key].qualifies, `${key} should not qualify`);
   }
-  assert.equal(selectDefaultProfileWindow(byWindow), "all");
+  // Widest scope that is actually offered, now that All Time is off the bar.
+  assert.equal(selectDefaultProfileWindow(byWindow), "ytd");
 });
 
 test("a capper with no settled results still resolves to a real scope", () => {
   const byWindow = buildProfileWindowStats({ positions: [], now });
-  assert.equal(selectDefaultProfileWindow(byWindow), "all");
+  assert.equal(selectDefaultProfileWindow(byWindow), "ytd");
 });
 
 test("ties prefer the wider scope, which carries more evidence", () => {
@@ -225,8 +225,8 @@ test("ties prefer the wider scope, which carries more evidence", () => {
     now,
   });
 
-  assert.equal(byWindow["7d"].stats.roi, byWindow.all.stats.roi);
-  assert.equal(selectDefaultProfileWindow(byWindow), "all");
+  assert.equal(byWindow["7d"].stats.roi, byWindow.ytd.stats.roi);
+  assert.equal(selectDefaultProfileWindow(byWindow), "ytd");
 });
 
 test("the sport breakdown is scoped to the selected window", () => {
@@ -254,27 +254,28 @@ test("the sport breakdown is scoped to the selected window", () => {
 test("the scope bar offers exactly the periods the owners asked for", () => {
   assert.deepEqual(
     PROFILE_PERF_VISIBLE_WINDOWS.map((entry) => entry.key),
-    ["1d", "7d", "14d", "30d", "90d", "all"],
+    ["1d", "7d", "14d", "30d", "60d", "ytd"],
   );
-  assert.deepEqual([...PROFILE_PERF_HIDDEN_WINDOWS], ["ytd"]);
+  assert.deepEqual([...PROFILE_PERF_HIDDEN_WINDOWS], ["90d", "all"]);
 });
 
 test("a hidden scope is still computed but can never become the default", () => {
   const byWindow = buildProfileWindowStats({
     positions: [
-      // Inside YTD and All Time, outside every rolling scope.
-      ...wins(12, "2026-02-01T18:00:00.000Z"),
-      // Last year: drags All Time down but is outside YTD.
-      ...losses(30, "2025-06-01T18:00:00.000Z"),
+      // Last year: only All Time can see it, and it is excellent.
+      ...wins(100, "2025-06-01T18:00:00.000Z"),
+      // This year, but outside every rolling scope: mediocre.
+      ...wins(6, "2026-02-01T18:00:00.000Z"),
+      ...losses(6, "2026-02-01T18:00:00.000Z"),
     ],
     now,
   });
 
-  // YTD is built, and on the numbers alone it would win the slot outright.
-  assert.equal(byWindow.ytd.graded, 12);
-  assert.ok(byWindow.ytd.qualifies);
-  assert.ok(byWindow.ytd.stats.roi > byWindow.all.stats.roi);
+  // All Time is built, and on the numbers alone it would win the slot outright.
+  assert.equal(byWindow.all.graded, 112);
+  assert.ok(byWindow.all.qualifies);
+  assert.ok(byWindow.all.stats.roi > byWindow.ytd.stats.roi);
 
   // It is not offered, so it cannot be what the profile opens on.
-  assert.equal(selectDefaultProfileWindow(byWindow), "all");
+  assert.equal(selectDefaultProfileWindow(byWindow), "ytd");
 });

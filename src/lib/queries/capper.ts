@@ -740,7 +740,7 @@ const getCachedPublicCapperByHandle = cachedQuery(
   async (handle: string) => loadPublicCapperByHandle(handle),
   // v2 intentionally abandons partial profile payloads cached before metadata
   // stopped launching a competing full hydration on cold requests.
-  ["public-capper-by-handle-v7"],
+  ["public-capper-by-handle-v8"],
   { revalidate: 60, tags: ["leaderboard"] },
 );
 

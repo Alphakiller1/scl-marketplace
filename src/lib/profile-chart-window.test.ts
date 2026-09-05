@@ -33,7 +33,7 @@ function play(
 test("the chart uses the performance section's scopes, not its own", () => {
   assert.deepEqual(
     PROFILE_CHART_WINDOWS.map((entry) => entry.key),
-    ["1d", "7d", "14d", "30d", "90d", "ytd", "all"],
+    ["1d", "7d", "14d", "30d", "60d", "90d", "ytd", "all"],
   );
 });
 
