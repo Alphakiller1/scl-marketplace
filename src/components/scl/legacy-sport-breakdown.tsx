@@ -7,7 +7,6 @@ import { SportTag } from "@/components/scl/badges";
 import { formatPct, formatRecord, formatRoi, formatUnits } from "@/lib/format";
 import type { LegacySportRecordView } from "@/lib/legacy-sport-records";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
-import { isProvisional, maturityLabel } from "@/lib/sample";
 import { cn } from "@/lib/utils";
 
 type SortKey = "units" | "roi" | "winPct" | "settled";
@@ -53,22 +52,10 @@ function compareLegacyRows(
 export function LegacySportBreakdown({
   records,
   className,
-  surface = "profile",
-  carriesLegacy = true,
   scopeLabel,
 }: {
   records: LegacySportRecordView[];
   className?: string;
-  surface?: "profile" | "dashboard";
-  /**
-   * Whether the carried pre-import aggregate is inside these rows. False on
-   * the profile's rolling scopes, which are receipt-only: the legacy export is
-   * a frozen total with no per-pick dates, so it cannot sit in a trailing
-   * window. Saying otherwise would describe a table that does not exist. The
-   * false branch stays neutral rather than explaining the exclusion, because
-   * most cappers never had a carried record to exclude.
-   */
-  carriesLegacy?: boolean;
   /** Scope these rows describe, when the caller is showing one. */
   scopeLabel?: string;
 }) {
@@ -84,9 +71,6 @@ export function LegacySportBreakdown({
   const totalSettled = records.reduce((sum, row) => sum + row.settled, 0);
   const sortLabel =
     SORT_OPTIONS.find((option) => option.value === sort)?.label ?? "Units";
-  const matchLabel =
-    surface === "dashboard" ? "scoreboard" : "Evidence Brief sample";
-
   return (
     <section
       data-profile-legacy-sports
@@ -104,15 +88,8 @@ export function LegacySportBreakdown({
             </h2>
           </div>
           <p className="text-muted-foreground mt-1 max-w-2xl text-xs leading-relaxed">
-            Settled record in each sport
-            {scopeLabel ? ` for ${scopeLabel}` : ""}
-            {carriesLegacy
-              ? " — including results carried over from the previous SCL platform — "
-              : " — logged on SCL — "}
-            so this table matches the {matchLabel}. Sorted by{" "}
-            {sortLabel.toLowerCase()}. Each figure is colored from its own value
-            — a winning ROI stays green even when units are flat. Sample size
-            lives on the Early meter, not on every number.
+            Verified record in each sport
+            {scopeLabel ? ` for ${scopeLabel}` : ""}.
           </p>
         </div>
         <div className="flex flex-col items-stretch gap-2 sm:items-end">
@@ -206,18 +183,12 @@ function LegacySportDesktopRow({ row }: { row: LegacySportRecordView }) {
   const winScale = perfScale("winPct", row.winPct, {
     gradedCount: row.settled,
   });
-  const early = isProvisional(row.settled);
 
   return (
     <tr className="border-border border-b last:border-b-0">
       <td className="min-w-0 px-3 py-3 align-middle">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <SportTag sport={row.sport} forceLabel />
-          {early ? (
-            <span className="scl-eyebrow text-[color:var(--scl-perf-mid-text)]">
-              {maturityLabel(row.settled)}
-            </span>
-          ) : null}
         </div>
       </td>
       <td className="scl-data px-3 py-3 text-right text-sm font-semibold tabular-nums">
@@ -272,18 +243,12 @@ function LegacySportMobileCard({ row }: { row: LegacySportRecordView }) {
   const winScale = perfScale("winPct", row.winPct, {
     gradedCount: row.settled,
   });
-  const early = isProvisional(row.settled);
 
   return (
     <article className="min-w-0">
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <SportTag sport={row.sport} forceLabel />
-          {early ? (
-            <span className="scl-eyebrow text-[color:var(--scl-perf-mid-text)]">
-              {maturityLabel(row.settled)}
-            </span>
-          ) : null}
         </div>
         <p
           className={cn(

@@ -51,19 +51,17 @@ export const PROFILE_PERF_WINDOWS = [
  * excluded from `selectDefaultProfileWindow`, so a profile never opens on a
  * scope the reader has no way to leave.
  *
- * The owners' bar is Yesterday / 7D / 14D / 30D / 60D / YTD, so 90D and All
- * Time are hidden.
+ * The owners' bar is Yesterday / 7D / 14D / 30D / 60D / YTD / All Time, so 90D
+ * is the only scope withheld.
  *
- * All Time being off the bar has a cost worth remembering: it is the only
- * scope that can carry the pre-import record. `PRE_IMPORT` / `YEAR_2025` /
- * `YEAR_2024` are frozen aggregates with no per-pick dates, so they cannot sit
- * in a rolling window, and YTD only carries `CURRENT_YEAR`. Measured against
- * the live roster, 16 of 60 cappers have graded picks that are unreachable on
- * their profile without it - 6,088 in total.
+ * All Time earns its place: it is the only scope that can carry the pre-import
+ * record. `PRE_IMPORT` / `YEAR_2025` / `YEAR_2024` are frozen aggregates with
+ * no per-pick dates, so no rolling window holds them and YTD reaches back only
+ * to January. Without it, 16 of 60 cappers on the live roster had graded picks
+ * that appeared nowhere on their profile - 6,088 in total.
  */
 export const PROFILE_PERF_HIDDEN_WINDOWS: readonly ProfilePerfWindow[] = [
   "90d",
-  "all",
 ];
 
 export const PROFILE_PERF_VISIBLE_WINDOWS = PROFILE_PERF_WINDOWS.filter(

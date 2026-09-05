@@ -136,7 +136,7 @@ export default async function DashboardPage() {
           style={{ animationDelay: "80ms" }}
           aria-label="Record by sport"
         >
-          <LegacySportBreakdown records={bySport} surface="dashboard" />
+          <LegacySportBreakdown records={bySport} />
         </section>
       ) : null}
 

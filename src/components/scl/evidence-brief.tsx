@@ -31,7 +31,6 @@ import {
   UnitStat,
   WinRateStat,
 } from "@/components/scl/stat";
-import { SampleMaturityMeter } from "@/components/scl/sample-maturity-meter";
 import { EmptyState } from "@/components/scl/states";
 import { loadPublicProfileHistory } from "@/app/actions/public-profile-history";
 import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
@@ -328,6 +327,11 @@ export function EvidenceBrief({
       : clvTracker.snapshotCount,
   });
   const scopedClvTracker = clvTrackerByWindow?.[perfWindow] ?? clvTracker;
+  const sportFilterLabel =
+    effectiveSport === "ALL"
+      ? "All sports"
+      : (SPORTS.find((entry) => entry.key === effectiveSport)?.label ??
+        effectiveSport);
   const scopedSportRecords =
     windowSportBreakdown?.[perfWindow] ??
     (perfWindow === "all" ? legacyBySport : []);
@@ -350,18 +354,12 @@ export function EvidenceBrief({
           ) : null}
         </div>
       </div>
-      <div className="mt-3 space-y-3">
+      <div className="mt-3">
         <MetricRow
           metrics={activeMetrics}
           avgClv={activePackage ? null : scopedAvgClv}
           clvScale={scopedClvScale}
         />
-        <SampleMaturityMeter graded={activeMetrics.graded} showLegend />
-        <p className="text-muted-foreground text-xs leading-relaxed">
-          Receipt IDs uniquely identify each timestamped submission. CLV appears
-          only when SCL captures a verified market close; unavailable values
-          remain em dashes rather than estimates.
-        </p>
       </div>
     </section>
   );
@@ -374,14 +372,12 @@ export function EvidenceBrief({
             active={perfWindow}
             onSelect={setPerfWindow}
             graded={activeMetrics.graded}
-            isDefault={perfWindow === defaultWindow}
           />
         ) : null}
         {evidenceRecord}
         {!activePackage && scopedSportRecords.length > 0 ? (
           <LegacySportBreakdown
             records={scopedSportRecords}
-            carriesLegacy={scopedStats ? scopedStats.carriesLegacy : true}
             scopeLabel={
               scopedStats ? profilePerfWindowLabel(perfWindow) : undefined
             }
@@ -399,14 +395,8 @@ export function EvidenceBrief({
               </h2>
               <p className="text-muted-foreground mt-0.5 text-xs leading-snug">
                 {activePackage
-                  ? `Cumulative units from receipts assigned to ${activePackage.title}.`
-                  : effectiveSport === "ALL" &&
-                      (scopedStats
-                        ? scopedStats.carriesLegacy
-                        : perfWindow === "all" &&
-                          (capper.legacyBaselineUnits ?? 0) !== 0)
-                    ? "Cumulative units from public graded positions (singles and parlays), starting from the carried-over legacy balance so End matches the Evidence Brief total."
-                    : "Cumulative units from public graded positions (singles and parlays)."}
+                  ? `Cumulative units — receipts assigned to ${activePackage.title}.`
+                  : `Cumulative units — ${profilePerfWindowLabel(perfWindow)} · ${sportFilterLabel}.`}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -812,19 +802,17 @@ function evidenceMetrics(
  * The one control for the whole performance section.
  *
  * The active scope is spelled out beside the chips rather than left to a
- * highlighted pill: a profile that opens on a capper's best qualifying stretch
- * has to say which stretch that is, or a 7-day run reads as a career record.
+ * highlighted pill alone: a profile that opens on a capper's best qualifying
+ * stretch has to name that stretch, or a 7-day run reads as a career record.
  */
 function PerformanceScopeBar({
   active,
   onSelect,
   graded,
-  isDefault,
 }: {
   active: ProfilePerfWindow;
   onSelect: (window: ProfilePerfWindow) => void;
   graded: number;
-  isDefault: boolean;
 }) {
   return (
     <section
@@ -844,12 +832,6 @@ function PerformanceScopeBar({
             <span aria-hidden> · </span>
             <span className="tabular-nums">{graded.toLocaleString()}</span>{" "}
             graded
-            {isDefault ? (
-              <>
-                <span aria-hidden> · </span>
-                <span>best qualifying period</span>
-              </>
-            ) : null}
           </p>
         </div>
         <div className="-mx-1 max-w-full overflow-x-auto px-1 py-0.5">

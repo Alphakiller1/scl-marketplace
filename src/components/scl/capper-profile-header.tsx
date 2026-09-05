@@ -2,11 +2,7 @@ import Link from "next/link";
 
 import type { CapperSummary } from "@/lib/mock";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
-import {
-  LegacyBadge,
-  SportTag,
-  VerificationBadge,
-} from "@/components/scl/badges";
+import { SportTag, VerificationBadge } from "@/components/scl/badges";
 import { RankMovementIndicator } from "@/components/scl/indicators";
 import { RankBadge, BUILDING_RECORD_LABEL } from "@/components/scl/rank-badge";
 import { ProfileActionGroup } from "@/components/scl/profile-action-group";
@@ -70,9 +66,6 @@ export function CapperProfileHeader({ capper }: { capper: CapperSummary }) {
                 </h1>
                 {capper.verified ? (
                   <VerificationBadge size="sm" withLabel />
-                ) : null}
-                {capper.isLegacy ? (
-                  <LegacyBadge carriedResults={capper.legacyCarriedResults} />
                 ) : null}
               </div>
               {identity.secondary ? (
