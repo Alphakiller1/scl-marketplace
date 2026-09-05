@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   adjustedOddsRemaining,
+  accountRemainingCredits,
   clampToPlanStart,
   CREDIT_WINDOW_DAYS,
   creditWindowStart,
@@ -274,11 +275,15 @@ export async function getOddsCreditDashboard() {
         : 1,
     ),
   );
+  // Freshness is still "when did the provider last answer", whichever key it
+  // was; only the BALANCE must not come from that row.
   const latestProviderUsage = [...usage]
     .reverse()
     .find((row) => row.remaining != null);
-  // The account balance, not just the key that served the last response.
-  const latestRemaining = adjustedOddsRemaining(latestProviderUsage?.remaining);
+  // NOT the last row: every cold isolate probes the head of the rollover list
+  // first, so a spent key there writes a near-zero reading more recently than
+  // the key actually serving traffic. See `accountRemainingCredits`.
+  const latestRemaining = adjustedOddsRemaining(accountRemainingCredits(usage));
 
   const sportCredits = new Map<string, number>();
   const purposeUsage = new Map<string, { credits: number; calls: number }>();

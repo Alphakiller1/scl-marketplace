@@ -242,21 +242,92 @@ export function clampToPlanStart(start: Date): Date {
 }
 
 /**
- * Additional purchased credits not reflected in the active key's own balance.
+ * Credits the provider does not report on the key that served a response.
  *
- * The dashboard's headline balance comes from `x-requests-remaining`, which the
- * provider returns for whichever key served the last response. That is one key's
- * figure, not the account's — credits bought as a top-up, or sitting on another
- * key in the `ODDS_API_KEYS` rollover list, are real and spendable but never
- * appear in it. Left uncorrected the screen under-reports what is actually
- * available and the runway looks shorter than it is.
+ * Was 10,000, to stand in for a top-up sitting on another key in the
+ * `ODDS_API_KEYS` rollover list. That constant then outlived the top-up and
+ * became pure inflation: with the active key reading 1, the dashboard printed
+ * "10,001 remaining" while the account actually held ~84,000 on another key —
+ * wrong in both directions at once, and the number owners were making spend
+ * decisions from.
  *
- * Set to 0 when the top-up has been consumed or the provider begins reporting
- * the full account balance directly.
+ * The rollover balance is now summed from observed usage instead (see
+ * `accountRemainingCredits`), so nothing needs to be guessed here. Keep at 0
+ * unless the provider starts hiding real credits again.
  */
-export const ODDS_CREDIT_BALANCE_ADJUSTMENT = 10_000;
+export const ODDS_CREDIT_BALANCE_ADJUSTMENT = 0;
 
-/** The account's spendable balance: the active key's figure plus any top-up. */
+/**
+ * The account's spendable balance across every rollover key.
+ *
+ * `x-requests-remaining` describes ONE key, and the usage table records no key
+ * identity, so the account total has to be reconstructed from the readings.
+ *
+ * Two faults produced the "10k" the dashboard showed against a real ~84,000:
+ *
+ *  - a flat +10,000 was added to stand in for credits on another key, and
+ *    outlived the top-up it represented;
+ *  - the balance was read from the LATEST row. `fetchWithOddsKeyRollover`
+ *    starts every serverless isolate at `ODDS_API_KEYS[0]` and only advances
+ *    once a key refuses, so a spent key at the head of the list is probed by
+ *    each cold isolate — its near-zero reading is therefore the most recent
+ *    one, over and over, whatever the key actually serving traffic holds.
+ *
+ * So: split the latest day's readings into keys, take each key's CURRENT
+ * balance, and sum. A key is a run of readings of similar magnitude — a
+ * healthy key burns down gradually, while a different key is a step change.
+ * Two readings belong to different keys when they differ by more than half the
+ * larger AND by more than {@link KEY_SPLIT_FLOOR} credits; the floor stops a
+ * nearly-dead key's 12 -> 1 from reading as two keys.
+ *
+ * Heuristic, and deliberately so: the exact fix is to record which key served
+ * each response (`fetchWithOddsKeyRollover` already returns `keyIndex`), which
+ * needs a column on `OddsUsageDaily`.
+ */
+const KEY_SPLIT_FLOOR = 100;
+
+export function accountRemainingCredits(
+  usage: readonly {
+    date: Date;
+    updatedAt: Date;
+    remaining: number | null;
+  }[],
+): number | null {
+  const seen = usage.filter(
+    (row): row is { date: Date; updatedAt: Date; remaining: number } =>
+      row.remaining != null,
+  );
+  if (seen.length === 0) return null;
+
+  const latestDay = seen.reduce(
+    (latest, row) => Math.max(latest, row.date.getTime()),
+    0,
+  );
+  const today = [...seen]
+    .filter((row) => row.date.getTime() === latestDay)
+    .sort((a, b) => b.remaining - a.remaining);
+
+  const keys: { min: number; current: (typeof today)[number] }[] = [];
+  for (const row of today) {
+    const open = keys[keys.length - 1];
+    const isNewKey =
+      !open ||
+      open.min - row.remaining > Math.max(KEY_SPLIT_FLOOR, open.min * 0.5);
+    if (isNewKey) {
+      keys.push({ min: row.remaining, current: row });
+      continue;
+    }
+    open.min = Math.min(open.min, row.remaining);
+    // A key's balance is its most recent reading, not its high-water mark.
+    if (row.updatedAt.getTime() >= open.current.updatedAt.getTime()) {
+      open.current = row;
+    }
+  }
+
+  return keys.reduce((total, key) => total + key.current.remaining, 0);
+}
+
+/** The account's spendable balance: the observed key figure plus any top-up. */
 export function adjustedOddsRemaining(
   keyRemaining: number | null | undefined,
 ): number | null {
