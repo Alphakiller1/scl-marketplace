@@ -7,7 +7,6 @@ import { SportTag } from "@/components/scl/badges";
 import { formatPct, formatRecord, formatRoi, formatUnits } from "@/lib/format";
 import type { LegacySportRecordView } from "@/lib/legacy-sport-records";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
-import { isProvisional, maturityLabel } from "@/lib/sample";
 import { cn } from "@/lib/utils";
 
 type SortKey = "units" | "roi" | "winPct" | "settled";
@@ -184,18 +183,12 @@ function LegacySportDesktopRow({ row }: { row: LegacySportRecordView }) {
   const winScale = perfScale("winPct", row.winPct, {
     gradedCount: row.settled,
   });
-  const early = isProvisional(row.settled);
 
   return (
     <tr className="border-border border-b last:border-b-0">
       <td className="min-w-0 px-3 py-3 align-middle">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <SportTag sport={row.sport} forceLabel />
-          {early ? (
-            <span className="scl-eyebrow text-[color:var(--scl-perf-mid-text)]">
-              {maturityLabel(row.settled)}
-            </span>
-          ) : null}
         </div>
       </td>
       <td className="scl-data px-3 py-3 text-right text-sm font-semibold tabular-nums">
@@ -250,18 +243,12 @@ function LegacySportMobileCard({ row }: { row: LegacySportRecordView }) {
   const winScale = perfScale("winPct", row.winPct, {
     gradedCount: row.settled,
   });
-  const early = isProvisional(row.settled);
 
   return (
     <article className="min-w-0">
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <SportTag sport={row.sport} forceLabel />
-          {early ? (
-            <span className="scl-eyebrow text-[color:var(--scl-perf-mid-text)]">
-              {maturityLabel(row.settled)}
-            </span>
-          ) : null}
         </div>
         <p
           className={cn(
