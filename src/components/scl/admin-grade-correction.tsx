@@ -151,12 +151,8 @@ export function AdminGradeCorrection(props: AdminGradeCorrectionProps) {
           units: props.units,
         })
       : parlayPreview!;
-  const hasPendingLeg =
-    props.kind === "parlay" &&
-    props.legs.some((leg) => !isGradeableOutcome(legOutcomes[leg.id]));
   const reasonReady = reason.trim().length >= CORRECTION_REASON_MIN;
-  const canSubmit =
-    preview.changed && reasonReady && confirmed && !hasPendingLeg && !pending;
+  const canSubmit = preview.changed && reasonReady && confirmed && !pending;
 
   async function applyCorrection() {
     if (!canSubmit) return;
@@ -278,9 +274,7 @@ export function AdminGradeCorrection(props: AdminGradeCorrectionProps) {
                     className={SELECT_CLASS}
                   >
                     {leg.outcome === "PENDING" ? (
-                      <option value="PENDING" disabled>
-                        Pending — select result
-                      </option>
+                      <option value="PENDING">Leave pending</option>
                     ) : null}
                     {GRADEABLE_OUTCOMES.map((outcome) => (
                       <option key={outcome} value={outcome}>
@@ -301,7 +295,8 @@ export function AdminGradeCorrection(props: AdminGradeCorrectionProps) {
         <p className="text-muted-foreground text-xs">
           {parlayPreview.changedLegCount} changed{" "}
           {parlayPreview.changedLegCount === 1 ? "leg" : "legs"}; parent
-          settlement is recalculated from every leg.
+          settlement is recalculated from every leg. Unfinished legs can stay
+          pending; the ticket settles when all legs have results.
         </p>
       ) : null}
 

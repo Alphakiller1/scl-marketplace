@@ -185,90 +185,99 @@ test("manual straight saves derive profit, audit the admin, and reject concurren
 });
 
 test("manual stale parlay settlement locks the ticket and recomputes parent profit and odds", async () => {
-  const file = "src/lib/actions/parlay.action.ts";
-  const ticket = {
-    id: "ticket",
-    units: 2,
-    outcome: "PENDING",
-    profitUnits: null,
-    capper: single.capper,
-    legs: [
-      { id: "leg", oddsAmerican: -200, outcome: "PENDING" },
-      { id: "won", oddsAmerican: 100, outcome: "WIN" },
-    ],
-  };
-  let locked = false;
-  let parentAudit = 0;
-  let legAudit = 0;
-  const action = loadTestModule<typeof Parlay>(file, {
-    ...importsFor(file),
-    "next/cache": { revalidatePath: () => {} },
-    "@/lib/grading": grading,
-    "@/lib/grading-correction": correction,
-    "@/lib/schemas/parlay.schema": parlaySchema,
-    "@/lib/session": { requireAdmin: async () => ({ id: "owner-admin" }) },
-    "@/lib/results/settlement-lock": {
-      lockParlaySettlement: async () => {
-        locked = true;
+  for (const unfinished of [false, true]) {
+    const file = "src/lib/actions/parlay.action.ts";
+    const ticket = {
+      id: "ticket",
+      units: 2,
+      outcome: "PENDING",
+      profitUnits: null,
+      capper: single.capper,
+      legs: [
+        { id: "leg", oddsAmerican: -200, outcome: "PENDING" },
+        {
+          id: "other",
+          oddsAmerican: 100,
+          outcome: unfinished ? "PENDING" : "WIN",
+        },
+      ],
+    };
+    let locked = false;
+    let parentAudit = 0;
+    let legAudit = 0;
+    const action = loadTestModule<typeof Parlay>(file, {
+      ...importsFor(file),
+      "next/cache": { revalidatePath: () => {} },
+      "@/lib/grading": grading,
+      "@/lib/grading-correction": correction,
+      "@/lib/schemas/parlay.schema": parlaySchema,
+      "@/lib/session": { requireAdmin: async () => ({ id: "owner-admin" }) },
+      "@/lib/results/settlement-lock": {
+        lockParlaySettlement: async () => {
+          locked = true;
+        },
       },
-    },
-    "@/lib/prisma": {
-      prisma: {
-        parlay: { findUnique: async () => ticket },
-        $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
-          fn({
-            parlay: {
-              findUnique: async () => {
-                assert.ok(locked);
-                return ticket;
+      "@/lib/prisma": {
+        prisma: {
+          parlay: { findUnique: async () => ticket },
+          $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+            fn({
+              parlay: {
+                findUnique: async () => {
+                  assert.ok(locked);
+                  return ticket;
+                },
+                update: async ({
+                  data,
+                }: {
+                  data: {
+                    outcome: string;
+                    profitUnits: number;
+                    combinedOddsAmerican: number;
+                  };
+                }) => {
+                  assert.equal(data.outcome, unfinished ? "PENDING" : "WIN");
+                  assert.equal(data.profitUnits, unfinished ? null : 4);
+                  assert.equal(
+                    data.combinedOddsAmerican,
+                    unfinished ? null : 200,
+                  );
+                },
               },
-              update: async ({
-                data,
-              }: {
-                data: {
-                  outcome: string;
-                  profitUnits: number;
-                  combinedOddsAmerican: number;
-                };
-              }) => {
-                assert.equal(data.outcome, "WIN");
-                assert.equal(data.profitUnits, 4);
-                assert.equal(data.combinedOddsAmerican, 200);
+              play: {
+                update: async ({
+                  data,
+                }: {
+                  data: { outcome: string; profitUnits?: unknown };
+                }) => {
+                  assert.equal(data.outcome, "WIN");
+                  assert.equal(data.profitUnits, undefined);
+                },
               },
-            },
-            play: {
-              update: async ({
-                data,
-              }: {
-                data: { outcome: string; profitUnits?: unknown };
-              }) => {
-                assert.equal(data.outcome, "WIN");
-                assert.equal(data.profitUnits, undefined);
+              gradingAudit: {
+                create: async () => {
+                  legAudit++;
+                },
               },
-            },
-            gradingAudit: {
-              create: async () => {
-                legAudit++;
+              parlayGradingAudit: {
+                create: async () => {
+                  parentAudit++;
+                },
               },
-            },
-            parlayGradingAudit: {
-              create: async () => {
-                parentAudit++;
-              },
-            },
-          }),
+            }),
+        },
       },
-    },
-  });
-  const result = await action.gradeParlayAction({
-    parlayId: "ticket",
-    legs: [{ playId: "leg", outcome: "WIN", expectedOutcome: "PENDING" }],
-    reason: "Verified final score",
-    expectedOutcome: "PENDING",
-    expectedProfitUnits: null,
-    confirmedPublicImpact: true,
-  });
-  assert.equal(result.ok, true);
-  assert.equal(legAudit, 1);
-  assert.equal(parentAudit, 1);
+    });
+    const result = await action.gradeParlayAction({
+      parlayId: "ticket",
+      legs: [{ playId: "leg", outcome: "WIN", expectedOutcome: "PENDING" }],
+      reason: "Verified final score",
+      expectedOutcome: "PENDING",
+      expectedProfitUnits: null,
+      confirmedPublicImpact: true,
+    });
+    assert.equal(result.ok, true);
+    assert.equal(legAudit, 1);
+    assert.equal(parentAudit, 1);
+  }
 });

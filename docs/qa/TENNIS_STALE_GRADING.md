@@ -5,6 +5,7 @@ Related investigation: #635. No database migration is required.
 ## Failures and fixes
 
 - Both grading queues linked parlay legs to `/admin/plays/straight/<leg-id>`, where the straight-only query returned no record. Queue links now open the parent ticket. Old links redirect after an admin check.
+- The correction form required a result for every leg. It now permits grading one stale leg while leaving unfinished legs pending; the parent remains pending until all results are available. Reason, impact confirmation, and stale-data guards still apply.
 - Settlement review used public publication filters. An existing committed record could become inaccessible because its capper or stake no longer qualified for public display. Operational review now requires a live admin session and a committed straight play or committed parlay, independently of public eligibility. Public ledger filters are unchanged.
 - ESPN's current tennis cards disappear when a tournament changes. The grader now sends pending tennis fixture dates to the historical provider, including older fixtures and legacy creation-date fallbacks. Current and dated cards are deduplicated; request concurrency, per-request timeout and total history time are bounded.
 - At combined tournaments ESPN copies the requested tour's format onto both draws. Women's singles and men's qualifying are normalized to best-of-three; the provider selects each singles draw from its own tour, retaining men's main-draw best-of-five. Retirements and walkovers are not treated as normal finals.
