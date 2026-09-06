@@ -51,6 +51,7 @@ async function main() {
         selection: "Test fixture",
         oddsAmerican: -200,
       },
+      select: { id: true },
     });
     const holding = deferred();
     const release = deferred();
@@ -61,6 +62,7 @@ async function main() {
       await tx.play.update({
         where: { id: leg.id },
         data: { outcome: "VOID" },
+        select: { id: true },
       });
       await tx.parlay.update({
         where: { id: ticket.id },
@@ -81,7 +83,7 @@ async function main() {
       secondAcquired = true;
       const fresh = await tx.parlay.findUniqueOrThrow({
         where: { id: ticket.id },
-        include: { legs: true },
+        select: { outcome: true, legs: { select: { outcome: true } } },
       });
       assert.equal(fresh.outcome, "VOID");
       assert.equal(fresh.legs[0]!.outcome, "VOID");
