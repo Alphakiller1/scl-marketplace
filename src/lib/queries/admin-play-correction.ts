@@ -3,10 +3,7 @@ import "server-only";
 import type { GradingSource, Outcome, VerificationTier } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import {
-  buildPublishedParlayWhere,
-  buildPublishedStraightPlayWhere,
-} from "@/lib/queries/published-play-where";
+import { requireAdmin } from "@/lib/session";
 
 export type AdminSettlementAudit = {
   id: string;
@@ -105,9 +102,10 @@ function normalizeAudit(audit: {
 export async function getAdminStraightCorrectionRecord(
   id: string,
 ): Promise<AdminStraightCorrectionRecord | null> {
-  const publicationWhere = await buildPublishedStraightPlayWhere();
+  await requireAdmin();
+  // Operational review must remain available when public eligibility changes.
   const play = await prisma.play.findFirst({
-    where: { AND: [publicationWhere, { id }] },
+    where: { id, parlayId: null, status: "COMMITTED" },
     select: {
       id: true,
       sport: true,
@@ -181,9 +179,9 @@ export async function getAdminStraightCorrectionRecord(
 export async function getAdminParlayCorrectionRecord(
   id: string,
 ): Promise<AdminParlayCorrectionRecord | null> {
-  const publicationWhere = await buildPublishedParlayWhere();
+  await requireAdmin();
   const parlay = await prisma.parlay.findFirst({
-    where: { AND: [publicationWhere, { id }] },
+    where: { id, legs: { some: {}, every: { status: "COMMITTED" } } },
     select: {
       id: true,
       combinedOddsAmerican: true,

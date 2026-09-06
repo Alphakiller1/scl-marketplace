@@ -13,6 +13,7 @@ import { AutoGradeButton } from "@/components/scl/auto-grade-button";
 import { SportTag } from "@/components/scl/badges";
 import { SectionHeader } from "@/components/scl/section";
 import { getGradingHealthReport } from "@/lib/grading-health";
+import { adminGradingHref } from "@/lib/admin-grading-link";
 import {
   getRecentCronRuns,
   getRecentGradingAudits,
@@ -113,15 +114,15 @@ export default async function AdminGradingPage() {
               Needs manual grading — {manualQueue.length}
             </p>
             <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-              Auto-grading will never settle these. They are excluded from the
-              health signal so one ungradeable market cannot hold the pipeline
-              at UNHEALTHY — which is why they need their own queue.
+              These plays need review because results are missing or require
+              manual settlement. Automatic retries continue. Parlay legs open
+              their full ticket so you can review every leg before saving.
             </p>
             <ul className="divide-border border-border mt-2 max-h-64 divide-y overflow-auto rounded-lg border bg-[color:var(--scl-ink-800)] text-sm">
               {manualQueue.map((p) => (
                 <li key={p.id}>
                   <Link
-                    href={`/admin/plays/straight/${p.id}`}
+                    href={adminGradingHref(p)}
                     className="hover:bg-surface-2/60 focus-visible:ring-ring flex flex-col gap-1 px-3 py-2 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
                   >
                     <p className="flex flex-wrap items-center gap-2 font-medium break-words">
@@ -153,7 +154,7 @@ export default async function AdminGradingPage() {
             {stuck.map((p) => (
               <li key={p.id}>
                 <Link
-                  href={`/admin/plays/straight/${p.id}`}
+                  href={adminGradingHref(p)}
                   className="hover:bg-surface-2/60 focus-visible:ring-ring flex flex-col gap-1 px-3 py-2 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
                 >
                   <p className="flex flex-wrap items-center gap-2 font-medium break-words">

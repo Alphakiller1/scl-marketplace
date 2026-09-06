@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { History, Layers, LifeBuoy, ListChecks, Zap } from "lucide-react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { AdminGradeCorrection } from "@/components/scl/admin-grade-correction";
 import { AdminSettlementAudit } from "@/components/scl/admin-settlement-audit";
 import { PickTierBadge, SportTag, StatusBadge } from "@/components/scl/badges";
 import { SectionHeader } from "@/components/scl/section";
 import { formatOdds, formatUnits } from "@/lib/format";
+import { adminGradingHref } from "@/lib/admin-grading-link";
+import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/session";
 import {
   getAdminParlayCorrectionRecord,
   getAdminStraightCorrectionRecord,
@@ -34,6 +37,17 @@ export default async function AdminPlayCorrectionPage({
 }) {
   const { kind, id } = await params;
   if (kind !== "straight" && kind !== "parlay") notFound();
+  await requireAdmin();
+
+  // Repair bookmarks and already-open queue links generated before legs were
+  // routed to their parent ticket. Authorize before looking up any play.
+  if (kind === "straight") {
+    const play = await prisma.play.findUnique({
+      where: { id },
+      select: { id: true, parlayId: true },
+    });
+    if (play?.parlayId) redirect(adminGradingHref(play));
+  }
 
   const record =
     kind === "straight"
@@ -179,9 +193,9 @@ export default async function AdminPlayCorrectionPage({
           <div>
             <h2 className="font-semibold">Awaiting auto-grade</h2>
             <p className="text-muted-foreground mt-1 text-sm">
-              Auto-grading settles this play at the next cron run (every 15
-              min). No action is needed — use the override below only if it gets
-              stuck.
+              Automatic grading retries pending plays when final results are
+              available. If this play is stale or needs a book-specific ruling,
+              review the result and use the override below.
             </p>
           </div>
         </section>
@@ -191,7 +205,7 @@ export default async function AdminPlayCorrectionPage({
         <SectionHeader
           icon={LifeBuoy}
           title="Admin override — backup only"
-          subtitle="Auto-grading is the source of truth and settles every play automatically. Use this only to force a stuck play or correct a mis-grade; every override is logged with a required reason."
+          subtitle="Use this to settle a stale play or correct a mis-grade. Review the result before saving; every change is logged with a required reason."
         />
         {record.kind === "straight" ? (
           <AdminGradeCorrection

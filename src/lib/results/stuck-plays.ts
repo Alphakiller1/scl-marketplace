@@ -30,7 +30,7 @@ export async function listAgedOutPendingPlays(
   take = 50,
 ): Promise<StuckPlayRow[]> {
   const rows = await prisma.play.findMany({
-    where: { outcome: "PENDING" },
+    where: { outcome: "PENDING", status: "COMMITTED" },
     select: {
       id: true,
       sport: true,

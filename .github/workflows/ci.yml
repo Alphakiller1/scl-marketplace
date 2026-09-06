@@ -45,6 +45,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Grading regression tests
+        run: npx tsx --test src/lib/admin-grading*.test.ts src/lib/grading*.test.ts src/lib/schemas/grading-correction.schema.test.ts src/lib/results/*.test.ts
+
       - name: Build
         run: npm run build
 
@@ -88,3 +91,6 @@ jobs:
 
       - name: Run Milestone 3 marketplace smoke
         run: npx tsx scripts/smoke-m3-marketplace.ts
+
+      - name: Grading concurrency smoke
+        run: npx tsx scripts/smoke-grading-locks.ts
