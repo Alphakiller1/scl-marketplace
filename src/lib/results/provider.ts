@@ -40,6 +40,8 @@ export type ResultsQueryScope = {
    * silently requested nothing.
    */
   tennisTours?: readonly string[];
+  /** Scheduled UTC dates of pending tennis fixtures, including old tournaments. */
+  tennisEventDates?: readonly string[];
 };
 
 /**

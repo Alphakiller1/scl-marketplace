@@ -6,6 +6,7 @@ import {
 } from "@/lib/results/espn-scoreboard-map";
 import { espnSoccerLeagueSlug } from "@/lib/results/espn-soccer-leagues";
 import { mapEspnTennisScoreboard } from "@/lib/results/espn-tennis-map";
+import type { ResultsQueryScope } from "@/lib/results/provider";
 import {
   mergeSettledGames,
   type SettledGame,
@@ -75,12 +76,18 @@ async function fetchEspnScoreboardDay(
   }
 }
 
-async function fetchEspnTennisTour(tour: string): Promise<SettledGame[]> {
-  const url = `https://site.api.espn.com/apis/site/v2/sports/tennis/${tour}/scoreboard`;
+async function fetchEspnTennisTour(
+  tour: "atp" | "wta",
+  day?: string,
+): Promise<SettledGame[]> {
+  const url =
+    `https://site.api.espn.com/apis/site/v2/sports/tennis/${tour}/scoreboard` +
+    (day ? `?dates=${day}` : "");
   try {
     const res = await fetch(url, {
       cache: "no-store",
       headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) {
       console.error(`[results] espn tennis ${tour} HTTP ${res.status}`);
@@ -89,7 +96,7 @@ async function fetchEspnTennisTour(tour: string): Promise<SettledGame[]> {
     const json = (await res.json()) as Parameters<
       typeof mapEspnTennisScoreboard
     >[0];
-    return mapEspnTennisScoreboard(json);
+    return mapEspnTennisScoreboard(json, tour);
   } catch (err) {
     console.error(`[results] espn tennis ${tour}:`, err);
     return [];
@@ -108,7 +115,7 @@ export function espnHistoricalResultsProvider(
   fetchSettled(): Promise<SettledGame[]>;
   fetchSettledForSports(
     sports: string[],
-    scope?: { soccerLeagues?: readonly string[] },
+    scope?: ResultsQueryScope,
   ): Promise<SettledGame[]>;
 } {
   const dates: string[] = [];
@@ -122,15 +129,18 @@ export function espnHistoricalResultsProvider(
     async fetchSettled() {
       return this.fetchSettledForSports(Object.keys(ESPN_SPORT_PATH));
     },
-    async fetchSettledForSports(
-      sports: string[],
-      scope?: { soccerLeagues?: readonly string[] },
-    ) {
+    async fetchSettledForSports(sports: string[], scope?: ResultsQueryScope) {
       const distinct = [...new Set(sports)];
       const standardSports = distinct.filter((s) => ESPN_SPORT_PATH[s]);
       const soccerLeagues = [
         ...new Set(scope?.soccerLeagues?.filter(Boolean) ?? []),
       ].filter((league) => espnSoccerLeagueSlug(league));
+      // Current cards disappear when a tournament rolls over. Ask for the
+      // pending fixtures' dates too, even beyond the default lookback. Dated
+      // tennis cards contain the full tournament, including rescheduled rounds.
+      const tennisDates = [...new Set(scope?.tennisEventDates ?? dates)].filter(
+        (day) => /^\d{8}$/.test(day) && day <= yyyymmddUtc(now),
+      );
       const requests = [
         ...standardSports.flatMap((sport) =>
           dates.map((day) => fetchEspnScoreboardDay(sport, day)),
@@ -140,26 +150,38 @@ export function espnHistoricalResultsProvider(
               dates.map((day) => fetchEspnScoreboardDay("SOCCER", day, league)),
             )
           : []),
-        // Tennis is not in ESPN_SPORT_PATH: the dated league scoreboard is a
-        // tournament card. One current ATP + WTA fetch already includes every
-        // completed match on those events (Fils/Cobolli SF was on the undated
-        // Cincinnati card). League tags are not required — unlike Odds API.
-        ...(distinct.includes("TENNIS")
-          ? ESPN_TENNIS_TOURS.map((tour) => fetchEspnTennisTour(tour))
-          : []),
       ];
-      if (requests.length === 0) return [];
-
       const batches = await Promise.all(requests);
+      if (distinct.includes("TENNIS")) {
+        const tennisRequests = [undefined, ...tennisDates].flatMap((day) =>
+          ESPN_TENNIS_TOURS.map((tour) => ({ tour, day })),
+        );
+        const deadline = Date.now() + 60_000;
+        // Bound fan-out and individual request duration during backlog recovery.
+        for (let i = 0; i < tennisRequests.length; i += 4) {
+          if (Date.now() >= deadline) {
+            console.warn("[results] tennis history time budget reached", {
+              remainingRequests: tennisRequests.length - i,
+            });
+            break;
+          }
+          batches.push(
+            ...(await Promise.all(
+              tennisRequests
+                .slice(i, i + 4)
+                .map(({ tour, day }) => fetchEspnTennisTour(tour, day)),
+            )),
+          );
+        }
+      }
       // ESPN scoreboards overlap, so flattening produces duplicates.
       //
       // At a combined event the ATP and WTA cards each carry the ENTIRE draw,
       // so every US Open match came back twice. Two copies of one match are not
       // two candidates: `findGame` takes a sole match and returns null on
       // ambiguity, so six completed moneylines went unmatched while both feeds
-      // carried the result — then aged out permanently. Merging is also how the
-      // copies' differing `regulationPeriods` collapse to one row instead of
-      // two conflicting ones.
+      // carried the result — then aged out permanently. Draw format is corrected
+      // by the tennis mapper before deduplication; merging alone cannot fix it.
       return batches.reduce<SettledGame[]>(
         (merged, batch) => mergeSettledGames(merged, batch),
         [],

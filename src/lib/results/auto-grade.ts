@@ -51,6 +51,7 @@ import type {
   ResultsQueryScope,
 } from "@/lib/results/provider";
 import { hasClvColumns } from "@/lib/results/schema-features";
+import { lockParlaySettlement } from "@/lib/results/settlement-lock";
 import { fetchWnbaOfficialPeriodBoxScore } from "@/lib/results/wnba-official";
 import {
   classifySkipReason,
@@ -94,7 +95,12 @@ type PlayerBoxCache = Map<string, Promise<PlayerBoxScore | null>>;
 type FixtureCache = Map<string, Promise<RecoveredFixture | null>>;
 
 function resultsQueryScopeFor(
-  plays: readonly { sport: string; league?: string | null }[],
+  plays: readonly {
+    sport: string;
+    league?: string | null;
+    eventStartsAt?: Date | null;
+    createdAt?: Date;
+  }[],
 ): ResultsQueryScope {
   const tagsFor = (sport: string) => [
     ...new Set(
@@ -107,6 +113,18 @@ function resultsQueryScopeFor(
   return {
     soccerLeagues: tagsFor("SOCCER"),
     tennisTours: tagsFor("TENNIS"),
+    tennisEventDates: [
+      ...new Set(
+        plays
+          .filter((play) => play.sport === "TENNIS")
+          .flatMap((play) => {
+            const when = play.eventStartsAt ?? play.createdAt;
+            return when
+              ? [when.toISOString().slice(0, 10).replaceAll("-", "")]
+              : [];
+          }),
+      ),
+    ],
   };
 }
 
@@ -566,9 +584,9 @@ async function gradeStraightPlays(
     const clvPts = clvReady
       ? clvPtsForGrade(play.oddsAmerican, play.closingOddsAmerican)
       : null;
-    await prisma.$transaction([
-      prisma.play.update({
-        where: { id: play.id },
+    const applied = await prisma.$transaction(async (tx) => {
+      const updated = await tx.play.updateMany({
+        where: { id: play.id, outcome: "PENDING" },
         data: {
           outcome,
           profitUnits,
@@ -576,9 +594,9 @@ async function gradeStraightPlays(
           ...(resolved.fixture ?? {}),
           ...(clvPts != null ? { clvPts } : {}),
         },
-        select: { id: true },
-      }),
-      prisma.gradingAudit.create({
+      });
+      if (updated.count !== 1) return false;
+      await tx.gradingAudit.create({
         data: {
           playId: play.id,
           previousOutcome: "PENDING",
@@ -589,9 +607,10 @@ async function gradeStraightPlays(
           gradedById: null,
           reason: `Auto-graded from ${provider.name} settled results`,
         },
-      }),
-    ]);
-    graded++;
+      });
+      return true;
+    });
+    if (applied) graded++;
   }
 
   const skipped = Object.values(skippedByReason).reduce((a, b) => a + b, 0);
@@ -612,6 +631,7 @@ async function gradeParlayLegs(
       where: { outcome: "PENDING", parlayId: { not: null } },
       select: {
         id: true,
+        parlayId: true,
         sport: true,
         market: true,
         selection: true,
@@ -671,18 +691,19 @@ async function gradeParlayLegs(
       continue;
     }
     const outcome = resolved.outcome;
-    await prisma.$transaction([
-      prisma.play.update({
-        where: { id: play.id },
+    const applied = await prisma.$transaction(async (tx) => {
+      await lockParlaySettlement(tx, play.parlayId!);
+      const updated = await tx.play.updateMany({
+        where: { id: play.id, outcome: "PENDING" },
         data: {
           outcome,
           profitUnits: 0,
           gradedAt: new Date(),
           ...(resolved.fixture ?? {}),
         },
-        select: { id: true },
-      }),
-      prisma.gradingAudit.create({
+      });
+      if (updated.count !== 1) return false;
+      await tx.gradingAudit.create({
         data: {
           playId: play.id,
           previousOutcome: "PENDING",
@@ -693,9 +714,10 @@ async function gradeParlayLegs(
           gradedById: null,
           reason: `Auto-graded parlay leg from ${provider.name} settled results`,
         },
-      }),
-    ]);
-    graded++;
+      });
+      return true;
+    });
+    if (applied) graded++;
   }
 
   const skipped = Object.values(skippedByReason).reduce((a, b) => a + b, 0);
@@ -735,17 +757,29 @@ async function gradePendingParlays(): Promise<number> {
     if (parlay.legs.length === 0) continue;
     if (parlay.legs.some((l) => l.outcome === "PENDING")) continue;
 
-    const settlement = settleParlay(
-      parlay.legs.map((l) => ({
-        outcome: l.outcome,
-        oddsAmerican: l.oddsAmerican,
-      })),
-      Number(parlay.units),
-    );
-    if (settlement.outcome === "PENDING") continue;
+    const applied = await prisma.$transaction(async (tx) => {
+      await lockParlaySettlement(tx, parlay.id);
+      const fresh = await tx.parlay.findUnique({
+        where: { id: parlay.id },
+        select: {
+          outcome: true,
+          profitUnits: true,
+          units: true,
+          legs: { select: { outcome: true, oddsAmerican: true } },
+        },
+      });
+      if (!fresh || fresh.outcome !== "PENDING" || fresh.legs.length === 0)
+        return false;
+      const settlement = settleParlay(
+        fresh.legs.map((l) => ({
+          outcome: l.outcome,
+          oddsAmerican: l.oddsAmerican,
+        })),
+        Number(fresh.units),
+      );
+      if (settlement.outcome === "PENDING") return false;
 
-    await prisma.$transaction([
-      prisma.parlay.update({
+      await tx.parlay.update({
         where: { id: parlay.id },
         data: {
           outcome: settlement.outcome,
@@ -753,21 +787,22 @@ async function gradePendingParlays(): Promise<number> {
           combinedOddsAmerican: settlement.effectiveOddsAmerican,
           gradedAt: new Date(),
         },
-      }),
-      prisma.parlayGradingAudit.create({
+      });
+      await tx.parlayGradingAudit.create({
         data: {
           parlayId: parlay.id,
-          previousOutcome: parlay.outcome,
+          previousOutcome: fresh.outcome,
           newOutcome: settlement.outcome,
-          previousProfitUnits: parlay.profitUnits,
+          previousProfitUnits: fresh.profitUnits,
           newProfitUnits: settlement.profitUnits,
           source: "AUTO",
           gradedById: null,
           reason: "Auto-settled from graded parlay legs",
         },
-      }),
-    ]);
-    graded++;
+      });
+      return true;
+    });
+    if (applied) graded++;
   }
 
   return graded;
@@ -839,7 +874,7 @@ async function autoGradePendingRound(
       outcome: "PENDING",
       OR: [{ eventStartsAt: null }, { eventStartsAt: { lte: now } }],
     },
-    select: { sport: true, league: true },
+    select: { sport: true, league: true, eventStartsAt: true, createdAt: true },
     take: GRADE_BATCH_SIZE * 2,
   });
   const sports = [...new Set(targets.map((play) => play.sport))];

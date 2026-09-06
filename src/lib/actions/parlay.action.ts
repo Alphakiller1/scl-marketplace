@@ -21,6 +21,7 @@ import {
   type GradeParlayInput,
 } from "@/lib/schemas/parlay.schema";
 import { getCurrentAccount, requireAdmin } from "@/lib/session";
+import { lockParlaySettlement } from "@/lib/results/settlement-lock";
 import { isVerifiedTier, type ParlayReceipt } from "@/lib/verification";
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -345,6 +346,7 @@ export async function gradeParlayAction(
 
   const source = parlay.outcome === "PENDING" ? "MANUAL" : "ADMIN_OVERRIDE";
   const applied = await prisma.$transaction(async (tx) => {
+    await lockParlaySettlement(tx, parlay.id);
     const fresh = await tx.parlay.findUnique({
       where: { id: parlay.id },
       select: {
@@ -393,6 +395,7 @@ export async function gradeParlayAction(
       data: {
         outcome: settlement.outcome,
         profitUnits: settlement.profitUnits,
+        combinedOddsAmerican: settlement.effectiveOddsAmerican,
         gradedAt: settlement.outcome === "PENDING" ? null : new Date(),
       },
     });

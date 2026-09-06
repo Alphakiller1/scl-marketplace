@@ -130,16 +130,20 @@ export async function gradePlayAction(
       return false;
     }
 
-    await tx.play.update({
-      where: { id: play.id },
+    const updated = await tx.play.updateMany({
+      where: {
+        id: play.id,
+        outcome: play.outcome,
+        profitUnits: play.profitUnits,
+      },
       data: {
         outcome,
         profitUnits,
         gradedAt: new Date(),
         ...(clvPts != null ? { clvPts } : {}),
       },
-      select: { id: true },
     });
+    if (updated.count !== 1) return false;
     await tx.gradingAudit.create({
       data: {
         playId: play.id,
