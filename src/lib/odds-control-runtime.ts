@@ -184,7 +184,13 @@ export async function claimDueOddsRuns(
               _sum: { reservedCredits: true },
             }),
             tx.oddsUsageDaily.findFirst({
-              where: { remaining: { not: null } },
+              // Positive only. The provider writes -1 when a response carried
+              // no `x-requests-remaining` header, which means "balance unknown"
+              // — but the reserve guard reads it as a balance, so an unknown
+              // one blocked every run in the account while 73,746 credits sat
+              // unspent. Unknown must not read as almost-empty. A genuinely low
+              // balance still reads low and still blocks.
+              where: { remaining: { gt: 0 } },
               orderBy: { updatedAt: "desc" },
               select: { remaining: true, updatedAt: true },
             }),
@@ -369,7 +375,13 @@ export async function claimManualOddsRun(input: {
               _sum: { reservedCredits: true },
             }),
             tx.oddsUsageDaily.findFirst({
-              where: { remaining: { not: null } },
+              // Positive only. The provider writes -1 when a response carried
+              // no `x-requests-remaining` header, which means "balance unknown"
+              // — but the reserve guard reads it as a balance, so an unknown
+              // one blocked every run in the account while 73,746 credits sat
+              // unspent. Unknown must not read as almost-empty. A genuinely low
+              // balance still reads low and still blocks.
+              where: { remaining: { gt: 0 } },
               orderBy: { updatedAt: "desc" },
               select: { remaining: true, updatedAt: true },
             }),
