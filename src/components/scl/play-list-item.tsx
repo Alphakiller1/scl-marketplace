@@ -231,6 +231,21 @@ export function PlayListItem({
 }
 
 /** A parlay as one record row: leg list + combined odds, stake, and settled result. */
+/**
+ * A leg as it reads on the shared receipt.
+ *
+ * Only legs that cannot name their own game get the fixture appended: a
+ * moneyline already reads "Milwaukee Brewers", while "Over 5.5" says nothing at
+ * all — which is what made a shared parlay unreadable to the person receiving
+ * it. Qualifying every leg would half again the length of an eight-leg card to
+ * repeat what the selection already says.
+ */
+function legTitle(leg: ParlayView["legs"][number]): string {
+  if (teamIdentityFromSide(leg.side, leg.sport)) return leg.selection;
+  const matchup = matchupLabel(leg);
+  return matchup ? `${leg.selection} (${matchup})` : leg.selection;
+}
+
 export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
   const [open, setOpen] = useState(false);
   const hasResult = parlay.profitUnits != null;
@@ -307,12 +322,24 @@ export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
               ) : team ? (
                 <TeamMark team={team} size="sm" className="mt-0.5" />
               ) : null}
-              <p className="min-w-0 flex-1 text-sm font-medium break-words">
-                {leg.selection}
-                <StatValue tone="data" className="ml-1.5">
-                  {formatOdds(leg.oddsAmerican)}
-                </StatValue>
-              </p>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium break-words">
+                  {leg.selection}
+                  <StatValue tone="data" className="ml-1.5">
+                    {formatOdds(leg.oddsAmerican)}
+                  </StatValue>
+                </p>
+                {/*
+                  A moneyline leg names its own team, but "Over 5.5" does not,
+                  and neither does a player prop. Cappers reading back a settled
+                  parlay could not tell which game a total belonged to.
+                */}
+                {matchupLabel(leg) ? (
+                  <p className="text-muted-foreground mt-0.5 truncate text-xs">
+                    {matchupLabel(leg)}
+                  </p>
+                ) : null}
+              </div>
             </li>
           );
         })}
@@ -353,7 +380,7 @@ export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
             share your verified record.
           </p>
           <ProofReceipt
-            selectionTitle={`${parlay.legs.length}-Leg Parlay\n${parlay.legs.map((leg) => leg.selection).join(" · ")}`}
+            selectionTitle={`${parlay.legs.length}-Leg Parlay\n${parlay.legs.map(legTitle).join(" · ")}`}
             eventLine={
               legBooks.length > 1
                 ? "Legs captured from multiple sportsbooks"

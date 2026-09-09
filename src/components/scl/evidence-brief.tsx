@@ -190,8 +190,13 @@ function playToProofReceipt(
               <span className="text-foreground font-medium">
                 {leg.selection}
               </span>
+              {/*
+                The market alone ("Total") does not say which game. A public
+                record has to be readable by someone who was not there when the
+                pick was made, so the fixture rides with every leg.
+              */}
               <span className="text-muted-foreground mt-0.5 block text-[0.65rem]">
-                {leg.market}
+                {[leg.market, matchupLabel(leg)].filter(Boolean).join(" · ")}
               </span>
             </span>
             <span className="scl-data text-muted-foreground shrink-0 tabular-nums">

@@ -83,6 +83,18 @@ export type ParlayLegView = {
   oddsAmerican: number;
   side: string | null;
   book: string | null;
+  /**
+   * The fixture, so a leg can say which game it belongs to.
+   *
+   * A moneyline leg names its own team, but "Over 5.5" and "Frances Tiafoe
+   * Over 2.5" do not — and cappers reading back their own settled parlays
+   * could not tell which game a total belonged to. Carried as the raw fields
+   * rather than a formatted string so `matchupLabel` stays the one place that
+   * decides how a fixture reads.
+   */
+  eventLabel: string | null;
+  homeTeam: string | null;
+  awayTeam: string | null;
 };
 
 /** A capper's parlay as a single position of record, with its legs. */
@@ -290,6 +302,9 @@ export async function getCapperParlays(
           verificationTier: true,
           eventStartsAt: true,
           book: true,
+          eventLabel: true,
+          homeTeam: true,
+          awayTeam: true,
         },
       },
     },
@@ -318,6 +333,9 @@ export async function getCapperParlays(
         oddsAmerican: l.oddsAmerican,
         side: l.side,
         book: l.book,
+        eventLabel: l.eventLabel,
+        homeTeam: l.homeTeam,
+        awayTeam: l.awayTeam,
       })),
     };
   });

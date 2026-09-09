@@ -23,6 +23,10 @@ export type ParlayRecordLeg = {
   book: string | null;
   verificationTier: VerificationTier;
   eventStartsAt: Date | null;
+  /** The fixture — a total or a prop does not name its own game. */
+  eventLabel: string | null;
+  homeTeam: string | null;
+  awayTeam: string | null;
 };
 
 export type ParlayRecordRow = {
@@ -57,6 +61,9 @@ export function parlayToRecordView(parlay: ParlayRecordRow): PlayView {
     oddsAmerican: l.oddsAmerican,
     side: l.side,
     book: l.book,
+    eventLabel: l.eventLabel,
+    homeTeam: l.homeTeam,
+    awayTeam: l.awayTeam,
   }));
   return {
     id: parlay.id,
