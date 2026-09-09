@@ -56,10 +56,21 @@ jobs:
           QUERY=""
           if [ "${DRY_RUN:-false}" = "true" ]; then QUERY="?dryRun=1"; fi
           if [ "${FORCE:-false}" = "true" ]; then QUERY="${QUERY:+$QUERY&}${QUERY:-?}force=1"; fi
-          echo "POST ${BASE}/api/admin/enable-managed-odds${QUERY}"
-          HTTP=$(curl -sS -o /tmp/enable.json -w "%{http_code}" \
-            -X POST "${BASE}/api/admin/enable-managed-odds${QUERY}" \
-            -H "Authorization: Bearer ${CRON_SECRET}")
+          URL="${BASE}/api/admin/enable-managed-odds${QUERY}"
+          echo "POST ${URL}"
+          # On a push trigger this starts the moment the merge lands, which is
+          # before Vercel has finished building the deployment that CONTAINS the
+          # route — the first run failed on exactly that, a 404 seconds after
+          # merge. Wait for the deploy rather than failing the handover over a
+          # race. 404 is the only retryable status: it means "not deployed yet",
+          # where 401 or 500 are real faults worth failing on immediately.
+          for attempt in $(seq 1 20); do
+            HTTP=$(curl -sS -o /tmp/enable.json -w "%{http_code}" \
+              -X POST "$URL" -H "Authorization: Bearer ${CRON_SECRET}")
+            if [ "$HTTP" != "404" ]; then break; fi
+            echo "attempt ${attempt}: route not deployed yet (404), waiting 15s"
+            sleep 15
+          done
           cat /tmp/enable.json
           echo
           if [ "$HTTP" != "200" ]; then
