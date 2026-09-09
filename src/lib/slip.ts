@@ -264,6 +264,7 @@ export function toSlipSelection(
     selection: pick.selection,
     oddsAmerican: pick.oddsAmerican,
     eventId: pick.eventId,
+    eventLabel: pick.eventLabel,
     eventStartsAt: pick.eventStartsAt,
     side: pick.side,
     line: pick.line,
