@@ -92,6 +92,14 @@ function nextRunAt(now: Date, cadenceMinutes: number): Date {
   return new Date(now.getTime() + cadenceMinutes * 60_000);
 }
 
+/**
+ * How soon a run refused on credits is offered again.
+ *
+ * Short enough that headroom opening up is picked up the same hour, long
+ * enough that a hard-blocked account is not re-evaluated every tick.
+ */
+const BLOCKED_RETRY_MINUTES = 20;
+
 export async function claimDueOddsRuns(
   now = new Date(),
   maxClaims = 2,
@@ -231,7 +239,16 @@ export async function claimDueOddsRuns(
               providerReserve: config.reserveCredits,
               now,
             });
-            const next = nextRunAt(now, cadenceMinutes);
+            // A run refused on credits has not been done, so it must not
+            // consume its slot: advancing a 240-minute cadence on a block cost
+            // four hours of a stale board the first time this ran, off one
+            // transient refusal. Blocked work comes back on a short retry
+            // instead, which is still bounded — the guard re-decides every
+            // time, so a genuinely exhausted budget just refuses again for a
+            // few credits' worth of nothing.
+            const next = allowed
+              ? nextRunAt(now, cadenceMinutes)
+              : nextRunAt(now, BLOCKED_RETRY_MINUTES);
             const scheduleUpdate =
               candidate.tier === "surface"
                 ? { nextSurfaceRunAt: next, lastSurfaceRunAt: now }
