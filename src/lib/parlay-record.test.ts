@@ -19,6 +19,9 @@ function leg(over: Partial<ParlayRecordRow["legs"][number]> = {}) {
     book: "draftkings",
     verificationTier: "VERIFIED" as const,
     eventStartsAt: new Date("2026-08-20T23:05:00.000Z"),
+    eventLabel: "New York Mets @ New York Yankees",
+    homeTeam: "New York Yankees",
+    awayTeam: "New York Mets",
     ...over,
   };
 }
