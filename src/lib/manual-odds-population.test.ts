@@ -159,7 +159,10 @@ test("the reserve prices an expanded event with its catalog call included", () =
   // spend smaller, so a reserve built on it never starves the next sport.
   assert.equal(EVENT_MARKET_CATALOG_CREDIT_COST, 1);
   assert.equal(expandedEventCreditCost("MLB") > 40, true);
-  assert.equal(expandedEventCreditCost("NFL"), 0);
+  // Football's expanded event is its four prop markets and their alternate
+  // ladders — eight keys, and no game ladder. It sits one key below
+  // CATALOG_WORTH_READING_MARKETS, so all eight are asked for directly.
+  assert.equal(expandedEventCreditCost("NFL"), 8);
   assert.equal(expandedEventCreditCost("SOCCER"), 1);
 });
 

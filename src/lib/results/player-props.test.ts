@@ -14,6 +14,7 @@ import {
   inningsToOuts,
   mapSummaryToPlayerBox,
 } from "@/lib/results/stats-provider";
+import { PROP_MARKET_LABEL } from "@/lib/odds-verify";
 
 test("legacy player props inspect only nearby settled ESPN events", () => {
   const startsAt = new Date("2026-08-10T23:00:00Z");
@@ -523,4 +524,167 @@ test("basketball three-pointers read the made half of made-attempted", () => {
   assert.equal(p?.stats.threes, 0);
   assert.equal(p?.stats.rebounds, 3);
   assert.equal(p?.stats.assists, 2);
+});
+
+test("football box scores read yards from the group that earned them", () => {
+  // ESPN's football summary names its groups rather than typing them, and
+  // labels all three yardage columns "YDS" — the shape this mapper has to
+  // survive. Trimmed from a real `football/nfl/summary` response.
+  const summary = {
+    boxscore: {
+      players: [
+        {
+          team: { displayName: "Seattle Seahawks" },
+          statistics: [
+            {
+              name: "passing",
+              labels: ["C/ATT", "YDS", "AVG", "TD", "INT", "SACKS", "QBR"],
+              athletes: [
+                {
+                  athlete: { displayName: "Sam Darnold" },
+                  stats: ["18/24", "241", "10.0", "2", "0", "1-7", "78.4"],
+                },
+              ],
+            },
+            {
+              name: "rushing",
+              labels: ["CAR", "YDS", "AVG", "TD", "LONG"],
+              athletes: [
+                {
+                  athlete: { displayName: "Kenneth Walker III" },
+                  stats: ["17", "83", "4.9", "1", "22"],
+                },
+                // The quarterback appears in two groups; each yardage column
+                // must land on its own key rather than overwrite the other.
+                {
+                  athlete: { displayName: "Sam Darnold" },
+                  stats: ["3", "12", "4.0", "0", "8"],
+                },
+              ],
+            },
+            {
+              name: "receiving",
+              labels: ["REC", "YDS", "AVG", "TD", "LONG", "TGTS"],
+              athletes: [
+                {
+                  athlete: { displayName: "Jaxon Smith-Njigba" },
+                  stats: ["7", "132", "18.9", "1", "44", "9"],
+                },
+              ],
+            },
+            {
+              // The trap: "REC" here is fumbles RECOVERED. Read off the default
+              // map it silently overwrote the receiver's catches.
+              name: "fumbles",
+              labels: ["FUM", "LOST", "REC"],
+              athletes: [
+                {
+                  athlete: { displayName: "Jaxon Smith-Njigba" },
+                  stats: ["1", "0", "1"],
+                },
+              ],
+            },
+            {
+              // Same shape, one column over: "PTS" is the kicker's scoring.
+              name: "kicking",
+              labels: ["FG", "PCT", "LONG", "XP", "PTS"],
+              athletes: [
+                {
+                  athlete: { displayName: "Jason Myers" },
+                  stats: ["2/2", "100.0", "48", "3/3", "9"],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  };
+
+  const mapped = mapSummaryToPlayerBox(summary);
+  assert.ok(mapped);
+  const darnold = mapped.players.find((p) => p.name === "Sam Darnold");
+  assert.equal(darnold?.stats.passingYards, 241);
+  assert.equal(darnold?.stats.rushingYards, 12);
+
+  const walker = mapped.players.find((p) => p.name === "Kenneth Walker III");
+  assert.equal(walker?.stats.rushingYards, 83);
+  assert.equal(walker?.stats.passingYards, undefined);
+
+  const jsn = mapped.players.find((p) => p.name === "Jaxon Smith-Njigba");
+  assert.equal(jsn?.stats.receivingYards, 132);
+  // Seven catches, one fumble recovery. The fumbles group must not touch it.
+  assert.equal(jsn?.stats.receptions, 7);
+
+  const myers = mapped.players.find((p) => p.name === "Jason Myers");
+  assert.equal(myers?.stats.points, undefined);
+});
+
+test("board-written football props settle against the box score", () => {
+  const box: PlayerBoxScore = {
+    players: [
+      {
+        name: "Sam Darnold",
+        team: "Seattle Seahawks",
+        played: true,
+        stats: { passingYards: 241, rushingYards: 12 },
+      },
+      {
+        name: "Jaxon Smith-Njigba",
+        team: "Seattle Seahawks",
+        played: true,
+        stats: { receptions: 7, receivingYards: 132 },
+      },
+    ],
+  };
+
+  assert.equal(
+    resolvePlayerProp(
+      {
+        market: "Passing Yds",
+        selection: "Sam Darnold Over 225.5",
+        side: "over",
+        line: 225.5,
+      },
+      box,
+    ),
+    "WIN",
+  );
+  assert.equal(
+    resolvePlayerProp(
+      {
+        market: "Receiving Yds",
+        selection: "Jaxon Smith-Njigba Under 99.5",
+        side: "under",
+        line: 99.5,
+      },
+      box,
+    ),
+    "LOSS",
+  );
+  assert.equal(
+    resolvePlayerProp(
+      {
+        market: "Receptions",
+        selection: "Jaxon Smith-Njigba Over 5.5",
+        side: "over",
+        line: 5.5,
+      },
+      box,
+    ),
+    "WIN",
+  );
+});
+
+test("every prop label the board can write has a stat key", () => {
+  // The gap this closes: `isDeferredProp` recognises a prop by its LABEL, so an
+  // unmapped label defers correctly and then never grades — the play sits
+  // PENDING for as long as the label has no key. Any new market added to
+  // PROP_MARKET_LABEL must arrive with its stat key.
+  for (const label of Object.values(PROP_MARKET_LABEL)) {
+    assert.ok(
+      statKeyForMarket(label),
+      `${label} has no stat key, so a play on it can never auto-grade`,
+    );
+  }
 });
