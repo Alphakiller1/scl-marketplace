@@ -96,7 +96,10 @@ export function expandedMarketGroups(sport: string): OddsMarketGroup[] {
     {
       id: "player-props",
       label: "Player props",
-      description: "Supported basketball player markets and alternates.",
+      description:
+        normalizedSport === "NFL"
+          ? "Passing, rushing and receiving lines, with alternate ladders."
+          : "Supported basketball player markets and alternates.",
       markets: take(markets, (key) => key.startsWith("player_")),
     },
     {

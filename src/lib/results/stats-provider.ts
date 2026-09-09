@@ -218,7 +218,27 @@ const STATS_BY_GROUP: Record<string, Record<string, string>> = {
     BB: "walks",
     K: "batterStrikeouts",
   },
-  // Basketball/football/hockey report one group; ESPN names it per sport.
+  // Football splits its box score the way baseball does, and for the same
+  // reason: "YDS" is the passer's, the runner's and the receiver's number in
+  // three different groups, so it can only ever be read from a named one.
+  passing: {
+    YDS: "passingYards",
+  },
+  rushing: {
+    YDS: "rushingYards",
+  },
+  receiving: {
+    REC: "receptions",
+    YDS: "receivingYards",
+  },
+  // Football groups SCL grades nothing from, listed to keep them OFF the
+  // default map rather than to read them: fumbles labels its recoveries "REC"
+  // and kicking labels the kicker's points "PTS", so falling through to the
+  // basketball map would overwrite a receiver's catches with fumble recoveries
+  // and invent a points line for the kicker.
+  fumbles: {},
+  kicking: {},
+  // Basketball and hockey report one unnamed group.
   default: {
     PTS: "points",
     REB: "rebounds",
@@ -227,9 +247,20 @@ const STATS_BY_GROUP: Record<string, Record<string, string>> = {
     BLK: "blocks",
     TO: "turnovers",
     SOG: "shotsOnGoal",
-    REC: "receptions",
   },
 };
+
+/**
+ * The group's own name, whatever ESPN calls the field.
+ *
+ * Baseball writes `type` ("batting"/"pitching"); football writes `name`
+ * ("passing"/"rushing"/"receiving") and no `type` at all; basketball writes
+ * neither. Reading only `type` sent every football group to the default map —
+ * which is how a receiver's catches were being read out of the fumbles line.
+ */
+function statGroupKey(group: EspnStatGroup): string {
+  return (group.type ?? group.name ?? "").trim().toLowerCase();
+}
 
 type EspnAthleteRow = {
   athlete?: { displayName?: string };
@@ -237,6 +268,8 @@ type EspnAthleteRow = {
 };
 type EspnStatGroup = {
   type?: string;
+  /** Football's group label; baseball uses `type` and basketball neither. */
+  name?: string;
   labels?: string[];
   athletes?: EspnAthleteRow[];
 };
@@ -273,7 +306,7 @@ export function mapSummaryToPlayerBox(data: unknown): PlayerBoxScore | null {
       team.team?.displayName ?? team.team?.abbreviation ?? "unknown";
     for (const group of team.statistics ?? []) {
       const labels = group.labels ?? [];
-      const map = STATS_BY_GROUP[group.type ?? ""] ?? STATS_BY_GROUP.default;
+      const map = STATS_BY_GROUP[statGroupKey(group)] ?? STATS_BY_GROUP.default;
 
       for (const row of group.athletes ?? []) {
         const name = row.athlete?.displayName;

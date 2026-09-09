@@ -108,6 +108,17 @@ const MARKET_STAT_KEY: Record<string, string> = {
   "pts+reb": "pointsRebounds",
   "pts+ast": "pointsAssists",
   "reb+ast": "reboundsAssists",
+  // Football. Without these four the labels the board writes have no stat key,
+  // so every NFL prop deferred as a prop (isDeferredProp reads the label) and
+  // then sat PENDING forever, because the resolver had nothing to compare the
+  // line against.
+  "passing yds": "passingYards",
+  "rushing yds": "rushingYards",
+  "receiving yds": "receivingYards",
+  receptions: "receptions",
+  // Hockey, mapped for the same reason and already parsed out of the box score
+  // as `shotsOnGoal`.
+  "shots on goal": "shotsOnGoal",
 };
 
 /**

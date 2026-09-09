@@ -205,9 +205,17 @@ export function expandedBoardMarkets(sclSport: string): string[] {
   // Surface h2h/spreads/totals already carry soccer's game lines; the per-event
   // call adds only Double Chance, which the bulk endpoint does not serve.
   if (sclSport === "SOCCER") return [DOUBLE_CHANCE_MARKET_KEY];
-  // Football is surface-level odds only (OWNER decision) — h2h/spreads/totals
-  // arrive on the shared slate, and nothing here would add a market it does not
-  // already have.
+  // Football carries its player props and nothing else. The owner decision that
+  // kept football surface-level was about the cost of the expanded GAME ladder
+  // — alternates, team totals, halves, priced across a sixteen-game slate — and
+  // that ladder stays off. Props are the one football market a capper cannot
+  // express with h2h/spreads/totals, so they are the one thing worth the credits
+  // here: four keys plus their alternate ladders, per event a capper opens.
+  if (sclSport === "NFL") {
+    return (PROP_MARKETS_BY_SPORT.NFL ?? []).flatMap(
+      propMarketKeysWithAlternates,
+    );
+  }
   if (sclSport !== "MLB" && sclSport !== "WNBA") return [];
   const props = PROP_MARKETS_BY_SPORT[sclSport] ?? [];
   return [

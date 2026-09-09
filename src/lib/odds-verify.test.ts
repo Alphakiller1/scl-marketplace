@@ -188,6 +188,38 @@ test("expandedBoardMarkets omits already-loaded featured lines", () => {
   assert.ok(mlb.includes("pitcher_strikeouts_alternate"));
 });
 
+test("expanded football boards carry props and no game ladder", () => {
+  const nfl = expandedBoardMarkets("NFL");
+  assert.deepEqual(nfl, [
+    "player_pass_yds",
+    "player_pass_yds_alternate",
+    "player_rush_yds",
+    "player_rush_yds_alternate",
+    "player_receptions",
+    "player_receptions_alternate",
+    "player_reception_yds",
+    "player_reception_yds_alternate",
+  ]);
+  // The owner decision that keeps football's expanded GAME ladder off stands:
+  // alternates, team totals and halves are what made a sixteen-game slate
+  // expensive, and none of them are worth a credit on a board that already
+  // carries the featured three.
+  for (const key of [
+    "h2h",
+    "spreads",
+    "totals",
+    "alternate_spreads",
+    "alternate_totals",
+    "team_totals",
+    "spreads_h1",
+    "totals_h2",
+  ]) {
+    assert.ok(!nfl.includes(key), `NFL should not request ${key}`);
+  }
+  // NCAAF prices the same props but has no graded stat feed behind them yet.
+  assert.deepEqual(expandedBoardMarkets("NCAAF"), []);
+});
+
 test("expanded tennis boards request featured and alternate full-match lines", () => {
   assert.deepEqual(expandedBoardMarkets("TENNIS"), [
     "spreads",
@@ -285,13 +317,6 @@ test("WNBA expanded boards carry the full player card", () => {
       `WNBA should request ${key}_alternate`,
     );
   }
-});
-
-test("football is surface-level odds only", () => {
-  // h2h/spreads/totals already arrive on the shared slate, so the per-event
-  // call has nothing to add and is never billed.
-  assert.deepEqual(expandedBoardMarkets("NFL"), []);
-  assert.deepEqual(expandedBoardMarkets("NCAAF"), []);
 });
 
 test("expanded MLB and WNBA boards request the complete owner-required matrix", () => {
