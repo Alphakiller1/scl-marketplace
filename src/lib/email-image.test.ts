@@ -272,6 +272,15 @@ describe("replaceEmailImageToken", () => {
       `[image:${WIDE}|Set]\n\n[image:${NARROW}|Keep]`,
     );
   });
+
+  // `String.replace` reads these as substitution patterns when the replacement
+  // is a string, which would mangle a perfectly ordinary price in a description.
+  it("writes a dollar sign literally", () => {
+    assert.equal(
+      replaceEmailImageToken(`[image:${WIDE}]`, WIDE, "$5 off $& more $' $`"),
+      `[image:${WIDE}|$5 off $& more $' $\`]`,
+    );
+  });
 });
 
 describe("removeEmailImageToken", () => {
