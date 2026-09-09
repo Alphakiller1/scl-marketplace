@@ -18,6 +18,7 @@ import {
   clampToPlanStart,
   ODDS_CONTROL_SPORTS,
   ODDS_CREDIT_BALANCE_ADJUSTMENT,
+  accountRemainingCredits,
   oddsPlanStart,
   utcDayStart,
 } from "@/lib/odds-control";
@@ -261,11 +262,111 @@ test("usage windows never reach behind the current provider plan", () => {
 test("the reported balance includes purchased credits the active key cannot see", () => {
   // `x-requests-remaining` is one key's figure. Credits bought as a top-up, or
   // held on another key in the rollover list, are spendable but absent from it.
-  assert.equal(ODDS_CREDIT_BALANCE_ADJUSTMENT, 10_000);
-  assert.equal(adjustedOddsRemaining(69_796), 79_796);
-  assert.equal(adjustedOddsRemaining(0), 10_000);
+  // The adjustment was a stand-in for credits on another rollover key. It
+  // outlived the top-up and printed 10,001 while the account held ~84,000.
+  assert.equal(ODDS_CREDIT_BALANCE_ADJUSTMENT, 0);
+  assert.equal(adjustedOddsRemaining(69_796), 69_796);
+  assert.equal(adjustedOddsRemaining(0), 0);
 
   // An unknown balance stays unknown — the adjustment must not invent one.
   assert.equal(adjustedOddsRemaining(null), null);
   assert.equal(adjustedOddsRemaining(undefined), null);
+});
+
+test("the balance ignores a spent key at the head of the rollover list", () => {
+  // Real shape of one day on production: a healthy key burning down, plus the
+  // exhausted ODDS_API_KEYS[0] that every cold isolate probes first. Reading
+  // the most recent row reported 1 credit for an account holding 84,019.
+  const day = new Date("2026-09-05T00:00:00.000Z");
+  const at = (hhmm: string) => new Date(`2026-09-05T${hhmm}:00.000Z`);
+  const usage = [
+    { date: day, updatedAt: at("17:47"), remaining: 84211 },
+    { date: day, updatedAt: at("19:01"), remaining: 84074 },
+    { date: day, updatedAt: at("20:11"), remaining: 84019 },
+    { date: day, updatedAt: at("21:00"), remaining: 12 },
+    { date: day, updatedAt: at("21:09"), remaining: 1 },
+  ];
+  // Both keys' CURRENT balances, summed: 84,019 live + 1 on the spent key at
+  // the head of the rollover list. Not the high-water mark, and not the spent
+  // key alone just because it answered most recently.
+  assert.equal(accountRemainingCredits(usage), 84_020);
+});
+
+test("only the most recent day of observations counts", () => {
+  assert.equal(
+    accountRemainingCredits([
+      {
+        date: new Date("2026-09-03T00:00:00.000Z"),
+        updatedAt: new Date("2026-09-03T23:00:00.000Z"),
+        remaining: 90_290,
+      },
+      {
+        date: new Date("2026-09-05T00:00:00.000Z"),
+        updatedAt: new Date("2026-09-05T20:11:00.000Z"),
+        remaining: 84_019,
+      },
+      {
+        date: new Date("2026-09-05T00:00:00.000Z"),
+        updatedAt: new Date("2026-09-05T21:09:00.000Z"),
+        remaining: 1,
+      },
+    ]),
+    84_020,
+  );
+});
+
+test("two healthy keys are summed, not picked between", () => {
+  // The case the old code could never report: a top-up key alongside the
+  // main one. Reading either single key understates the account by the other.
+  const day = new Date("2026-09-05T00:00:00.000Z");
+  assert.equal(
+    accountRemainingCredits([
+      {
+        date: day,
+        updatedAt: new Date("2026-09-05T20:00:00.000Z"),
+        remaining: 84_019,
+      },
+      {
+        date: day,
+        updatedAt: new Date("2026-09-05T21:00:00.000Z"),
+        remaining: 20_000,
+      },
+    ]),
+    104_019,
+  );
+});
+
+test("a dying key's own readings do not count twice", () => {
+  // 12 -> 1 is one key running out, not two keys. A purely proportional split
+  // would treat that 92% drop as a second key and double-count it.
+  const day = new Date("2026-09-05T00:00:00.000Z");
+  assert.equal(
+    accountRemainingCredits([
+      {
+        date: day,
+        updatedAt: new Date("2026-09-05T21:00:00.000Z"),
+        remaining: 12,
+      },
+      {
+        date: day,
+        updatedAt: new Date("2026-09-05T21:09:00.000Z"),
+        remaining: 1,
+      },
+    ]),
+    1,
+  );
+});
+
+test("no observation at all reports unknown, not zero", () => {
+  assert.equal(accountRemainingCredits([]), null);
+  assert.equal(
+    accountRemainingCredits([
+      {
+        date: new Date("2026-09-05T00:00:00.000Z"),
+        updatedAt: new Date("2026-09-05T21:09:00.000Z"),
+        remaining: null,
+      },
+    ]),
+    null,
+  );
 });
