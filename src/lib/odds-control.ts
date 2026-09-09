@@ -247,18 +247,17 @@ export function clampToPlanStart(start: Date): Date {
 /**
  * Credits the provider does not report on the key that served a response.
  *
- * Was 10,000, to stand in for a top-up sitting on another key in the
- * `ODDS_API_KEYS` rollover list. That constant then outlived the top-up and
- * became pure inflation: with the active key reading 1, the dashboard printed
- * "10,001 remaining" while the account actually held ~84,000 on another key —
- * wrong in both directions at once, and the number owners were making spend
- * decisions from.
+ * `x-requests-remaining` describes ONE key. Credits bought as a top-up, or
+ * sitting on another key in the `ODDS_API_KEYS` rollover list, are real and
+ * spendable but never appear in it, so the screen would under-report what is
+ * available and the runway would look shorter than it is.
  *
- * The rollover balance is now summed from observed usage instead (see
- * `accountRemainingCredits`), so nothing needs to be guessed here. Keep at 0
- * unless the provider starts hiding real credits again.
+ * Retained at the owners' instruction. `accountRemainingCredits` reconstructs
+ * the per-key balances from observed usage and this rides on top of that, so
+ * the two compose: raising the figure by a known top-up the readings cannot
+ * see. Set to 0 only when the owners confirm the top-up is spent.
  */
-export const ODDS_CREDIT_BALANCE_ADJUSTMENT = 0;
+export const ODDS_CREDIT_BALANCE_ADJUSTMENT = 10_000;
 
 /**
  * The account's spendable balance across every rollover key.

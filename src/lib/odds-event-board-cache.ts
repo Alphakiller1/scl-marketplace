@@ -158,13 +158,18 @@ async function refreshEventBoard(
   cached: EventBoardSnapshot | null,
   league?: string | null,
   markets?: readonly string[],
+  commenceTime?: string | null,
 ): Promise<LoadedEventBoard> {
   // Stamped before the call, so a slow provider response cannot roll the buy
   // into the next buy day and hand the event a fresh allowance.
   const boughtAt = Date.now();
   let selections: OddsSelection[] = [];
   try {
-    selections = await fetchEventBoard(sport, eventId, { league, markets });
+    selections = await fetchEventBoard(sport, eventId, {
+      league,
+      markets,
+      commenceTime,
+    });
   } catch (error) {
     console.warn("[odds-event-cache] provider refresh failed", {
       sport,
@@ -225,6 +230,11 @@ export async function loadEventBoard(
      * that does not know the league's setting must not get an unlimited one.
      */
     dailyBuyLimit?: number | null;
+    /**
+     * Kickoff. Supplied by the scheduled sweep so the one-buy timing rule
+     * applies; an on-demand open leaves it off and takes whatever is priced.
+     */
+    commenceTime?: string | null;
   } = {},
 ): Promise<LoadedEventBoard> {
   const normalizedSport = sport.toUpperCase();
@@ -306,6 +316,7 @@ export async function loadEventBoard(
     cached,
     options.league,
     options.markets,
+    options.commenceTime,
   ).finally(() => inFlight.delete(key));
   inFlight.set(key, pending);
   return pending;

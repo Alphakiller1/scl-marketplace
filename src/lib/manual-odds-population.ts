@@ -61,6 +61,111 @@ export function parseExpandedSlateDays(value: string): ExpandedSlateDay[] {
  */
 export const FULL_SLATE_EXPANDED_SPORTS = new Set(["SOCCER"]);
 
+/**
+ * How long before kickoff an event's deep board is worth paying attention to.
+ *
+ * The allowance is one buy per event (see `DEFAULT_EVENT_BUYS_PER_DAY`), so WHEN
+ * that buy lands decides what the board carries for the rest of the day. Books
+ * do not open the deep card when the fixture appears — player props and quarter
+ * lines arrive hours later, and often only the featured props arrive first. A
+ * buy taken too early spends the day's one allowance on a thin board that can
+ * never be topped up; a buy taken too late leaves cappers nothing to log.
+ *
+ * So the window opens where the market plausibly exists and closes at
+ * {@link EXPANDED_LAST_CALL_HOURS}, which is the deadline for having something
+ * on the board rather than the moment to buy.
+ *
+ * Football is given the widest opening because its slate is known days out and
+ * the books price it early; measured 2026-09-09, the four featured NFL prop
+ * markets were live 20 hours before a Wednesday night kickoff.
+ */
+export const EXPANDED_WINDOW_OPEN_HOURS: Record<string, number> = {
+  NFL: 36,
+  NCAAF: 36,
+  CFL: 36,
+  MLB: 20,
+  WNBA: 20,
+  NBA: 20,
+  NCAAB: 20,
+  NHL: 20,
+  TENNIS: 20,
+  SOCCER: 20,
+};
+
+const DEFAULT_WINDOW_OPEN_HOURS = 24;
+
+/**
+ * The last moment a deep board may be bought.
+ *
+ * Not a target — a floor. Whatever is priced at this point is what cappers get,
+ * because three hours is the least notice worth calling an offer: enough to see
+ * the board, build a slip and post it before the line is dead.
+ */
+export const EXPANDED_LAST_CALL_HOURS = 3;
+
+/**
+ * How much of the wanted card must be priced before the one buy is spent.
+ *
+ * Below last call this holds the allowance back rather than settling for a
+ * fraction of the card. Two thirds rather than everything: a book that never
+ * prices one alternate ladder must not be able to hold the whole board hostage
+ * until last call.
+ */
+export const EXPANDED_MIN_COVERAGE = 2 / 3;
+
+export function expandedWindowOpenHours(sport: string): number {
+  return (
+    EXPANDED_WINDOW_OPEN_HOURS[sport.trim().toUpperCase()] ??
+    DEFAULT_WINDOW_OPEN_HOURS
+  );
+}
+
+/** Hours until kickoff; negative once it has started. */
+export function hoursToKickoff(commenceTime: string, now: number): number {
+  return (Date.parse(commenceTime) - now) / 3_600_000;
+}
+
+/** Is this event inside the window where its deep board is worth a look? */
+export function withinExpandedBuyWindow(
+  commenceTime: string,
+  sport: string,
+  now: number = Date.now(),
+): boolean {
+  const hours = hoursToKickoff(commenceTime, now);
+  if (!Number.isFinite(hours) || hours <= 0) return false;
+  return hours <= expandedWindowOpenHours(sport);
+}
+
+/** Past the point where holding out for a fuller card costs more than it gains. */
+export function pastExpandedLastCall(
+  commenceTime: string,
+  now: number = Date.now(),
+): boolean {
+  const hours = hoursToKickoff(commenceTime, now);
+  return Number.isFinite(hours) && hours <= EXPANDED_LAST_CALL_HOURS;
+}
+
+/**
+ * Spend the event's one buy, or wait for the rest of the card to open?
+ *
+ * `priced` is what the market catalog says a covered book is actually pricing,
+ * which is the only honest read on whether the card has opened — the catalog
+ * costs one credit and, crucially, spends no allowance, so waiting is cheap and
+ * repeatable.
+ */
+export function shouldSpendExpandedBuy(input: {
+  priced: number;
+  wanted: number;
+  commenceTime: string;
+  now?: number;
+}): boolean {
+  const now = input.now ?? Date.now();
+  if (input.priced <= 0) return false;
+  if (pastExpandedLastCall(input.commenceTime, now)) return true;
+  if (input.wanted <= 0) return false;
+  return input.priced / input.wanted >= EXPANDED_MIN_COVERAGE;
+}
+
 /** True when every future fixture on the board should be expanded. */
 export function expandsFullSlate(sport: string): boolean {
   return FULL_SLATE_EXPANDED_SPORTS.has(sport.trim().toUpperCase());
@@ -86,9 +191,16 @@ export function selectExpandedSlateEvents(
     tomorrow.setDate(tomorrow.getDate() + 1);
     allowed.add(etDay(tomorrow));
   }
-  return future.filter((event) =>
-    allowed.has(etDay(new Date(event.commenceTime))),
-  );
+  return future.filter((event) => {
+    if (!allowed.has(etDay(new Date(event.commenceTime)))) return false;
+    // The slate day says which games are in scope; the window says whether the
+    // book has plausibly opened their deep card yet. A 20:20 kickoff is "today"
+    // from 08:00, but nothing worth one of these buys exists at breakfast.
+    return (
+      !sport ||
+      withinExpandedBuyWindow(event.commenceTime, sport, now.getTime())
+    );
+  });
 }
 
 /**

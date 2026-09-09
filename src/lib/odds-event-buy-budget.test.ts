@@ -24,9 +24,12 @@ function et(day: number, hour: number, minute = 0): number {
   return Date.UTC(2026, 7, day, hour + 4, minute);
 }
 
-test("no league may exceed four a day, and three is the default", () => {
+test("no league may exceed four a day, and one is the default", () => {
   assert.equal(HARD_MAX_EVENT_BUYS_PER_DAY, 4);
-  assert.equal(DEFAULT_EVENT_BUYS_PER_DAY, 3);
+  // Owner decision: an event's deep board is bought once and not updated after.
+  // Workable only because a pass that finds the card unopened reads the catalog
+  // for one credit and spends no allowance — see shouldSpendExpandedBuy.
+  assert.equal(DEFAULT_EVENT_BUYS_PER_DAY, 1);
   assert.equal(SAME_DAY_EXPANDED_RUNS, 2);
   assert.ok(DEFAULT_EVENT_BUYS_PER_DAY < HARD_MAX_EVENT_BUYS_PER_DAY);
 });
@@ -51,15 +54,15 @@ test("a league given its own allowance is held to it, not to the default", () =>
   // Two spent: a league on the tightest allowance is already done.
   assert.equal(eventBuyBudgetExhausted(buys, et(20, 13), 2), true);
   assert.equal(remainingEventBuys(buys, et(20, 13), 2), 0);
-  // The default still has one left, and the ceiling two.
-  assert.equal(remainingEventBuys(buys, et(20, 13)), 1);
+  // The default is one, so it went over on the first of these.
+  assert.equal(remainingEventBuys(buys, et(20, 13)), 0);
   assert.equal(
     remainingEventBuys(buys, et(20, 13), HARD_MAX_EVENT_BUYS_PER_DAY),
     2,
   );
 });
 
-test("the schedule's three buys fit the default, and a fourth needs the ceiling", () => {
+test("a raised league still fits the old three-buy pattern", () => {
   // 23:00 ET the day before, then 08:00 and 15:00 ET — the exact pattern.
   const dayBefore = et(20, 23);
   const morning = et(21, 8);
@@ -68,10 +71,12 @@ test("the schedule's three buys fit the default, and a fourth needs the ceiling"
   assert.equal(buyDayKey(morning), "2026-08-21");
   assert.equal(buyDayKey(evening), "2026-08-21");
 
-  // The 20th's budget holds its own two plus the day-before build: exactly three.
+  // The 20th's budget holds its own two plus the day-before build: three, which
+  // now needs a league raised above the default of one.
   const twentieth = [et(20, 8), et(20, 15), dayBefore];
   assert.equal(remainingEventBuys(twentieth, dayBefore), 0);
   assert.equal(eventBuyBudgetExhausted(twentieth, dayBefore), true);
+  assert.equal(eventBuyBudgetExhausted([dayBefore], dayBefore), true);
   // A league raised to the ceiling would still have one in hand.
   assert.equal(
     eventBuyBudgetExhausted(twentieth, dayBefore, HARD_MAX_EVENT_BUYS_PER_DAY),
@@ -89,7 +94,7 @@ test("the buy day opens at 08:00 ET, so an overnight run shares the day before's
   assert.equal(buyDayKey(et(21, 1, 0)), "2026-08-20");
 });
 
-test("no twenty-four hours can contain more than three buys", () => {
+test("no twenty-four hours can contain more than a raised league's three buys", () => {
   // The exact pattern the schedule produces: an overnight build for tomorrow,
   // then two daytime buys on that slate. A midnight-anchored day would have put
   // the 23:00 build in its own budget and allowed a fourth.
@@ -102,21 +107,26 @@ test("no twenty-four hours can contain more than three buys", () => {
   assert.equal(buyDayKey(eveningBuy), "2026-08-21");
 
   const afterAll = [overnightBuild, morningBuy, eveningBuy];
-  // Within the 21st's budget only two have been spent, so one remains.
-  assert.equal(remainingEventBuys(afterAll, eveningBuy), 1);
-  assert.equal(eventBuyBudgetExhausted(afterAll, eveningBuy), false);
+  // Within the 21st's budget two have been spent, so a league raised to three
+  // has one left and one on the default is long done.
+  assert.equal(remainingEventBuys(afterAll, eveningBuy, 3), 1);
+  assert.equal(eventBuyBudgetExhausted(afterAll, eveningBuy, 3), false);
+  assert.equal(eventBuyBudgetExhausted(afterAll, eveningBuy), true);
 
   // The next overnight build takes the third and closes the 21st out.
   const nextBuild = et(21, 23, 0);
   const spent = recordEventBuy(afterAll, nextBuild);
-  assert.equal(eventBuyBudgetExhausted(spent, nextBuild), true);
+  assert.equal(eventBuyBudgetExhausted(spent, nextBuild, 3), true);
 });
 
-test("a fourth buy in one day is refused on the default allowance", () => {
+test("a second buy in one day is refused on the default allowance", () => {
   const buys = [et(20, 9), et(20, 12), et(20, 17)];
   assert.equal(buysInBuyDay(buys, et(20, 18)).length, 3);
   assert.equal(remainingEventBuys(buys, et(20, 18)), 0);
   assert.equal(eventBuyBudgetExhausted(buys, et(20, 18)), true);
+  // One is the whole allowance now.
+  assert.equal(eventBuyBudgetExhausted([et(20, 9)], et(20, 10)), true);
+  assert.equal(remainingEventBuys([], et(20, 10)), 1);
 });
 
 test("a fifth buy is refused even on the highest allowance a league can hold", () => {
@@ -158,7 +168,9 @@ test("a timestamp in the future cannot buy back an allowance", () => {
   // Clock skew between isolates must not read as "not spent yet".
   const buys = [et(20, 9), et(20, 12), et(20, 23)];
   assert.equal(buysInBuyDay(buys, et(20, 13)).length, 2);
-  assert.equal(remainingEventBuys(buys, et(20, 13)), 1);
+  // Read against a raised allowance, so what is being asserted is that the
+  // 23:00 stamp was excluded rather than that the default happens to be spent.
+  assert.equal(remainingEventBuys(buys, et(20, 13), 3), 1);
 });
 
 test("the cap survives the daylight-saving boundary", () => {

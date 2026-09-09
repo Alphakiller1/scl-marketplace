@@ -4,6 +4,12 @@ import test from "node:test";
 import type { OddsEvent } from "@/lib/odds-board";
 import { expandedBoardMarkets } from "@/lib/odds-verify";
 import {
+  DEFAULT_EVENT_BUYS_PER_DAY,
+  HARD_MAX_EVENT_BUYS_PER_DAY,
+} from "@/lib/odds-event-buy-budget";
+import {
+  shouldSpendExpandedBuy,
+  withinExpandedBuyWindow,
   CATALOG_WORTH_READING_MARKETS,
   DEFAULT_EXPANDED_MAX_AGE_MINUTES,
   EVENT_MARKET_CATALOG_CREDIT_COST,
@@ -159,10 +165,17 @@ test("the reserve prices an expanded event with its catalog call included", () =
   // spend smaller, so a reserve built on it never starves the next sport.
   assert.equal(EVENT_MARKET_CATALOG_CREDIT_COST, 1);
   assert.equal(expandedEventCreditCost("MLB") > 40, true);
-  // Football's expanded event is its four prop markets and their alternate
-  // ladders — eight keys, and no game ladder. It sits one key below
-  // CATALOG_WORTH_READING_MARKETS, so all eight are asked for directly.
-  assert.equal(expandedEventCreditCost("NFL"), 8);
+  // Football's expanded event is halves plus nine prop markets and their
+  // alternate ladders. Well past CATALOG_WORTH_READING_MARKETS, so the catalog
+  // is read first and only the keys a book actually prices are billed.
+  const nflCost = expandedEventCreditCost("NFL");
+  assert.ok(
+    nflCost > CATALOG_WORTH_READING_MARKETS,
+    `NFL asks for ${nflCost} keys, which should be worth a catalog read`,
+  );
+  // Still an order of magnitude under MLB's, which is the point of leaving the
+  // football game ladder off.
+  assert.ok(nflCost < expandedEventCreditCost("MLB"));
   assert.equal(expandedEventCreditCost("SOCCER"), 1);
 });
 
@@ -319,4 +332,73 @@ test("expandsFullSlate is keyed on cost shape and is case-insensitive", () => {
   assert.equal(expandsFullSlate(" Soccer "), true);
   assert.equal(expandsFullSlate("MLB"), false);
   assert.equal(expandsFullSlate("TENNIS"), false);
+});
+
+test("the deep board is only looked at once the book has plausibly opened it", () => {
+  const now = Date.parse("2026-09-09T12:00:00Z");
+  const inHours = (h: number) => new Date(now + h * 3_600_000).toISOString();
+
+  // Football's slate is known days out and priced early.
+  assert.equal(withinExpandedBuyWindow(inHours(30), "NFL", now), true);
+  assert.equal(withinExpandedBuyWindow(inHours(40), "NFL", now), false);
+  // Baseball opens later, so the same 30 hours is too early to pay attention.
+  assert.equal(withinExpandedBuyWindow(inHours(30), "MLB", now), false);
+  assert.equal(withinExpandedBuyWindow(inHours(6), "MLB", now), true);
+  // A game already under way is never worth a buy.
+  assert.equal(withinExpandedBuyWindow(inHours(-1), "NFL", now), false);
+});
+
+test("the one buy waits for the card to open, but never past last call", () => {
+  const now = Date.parse("2026-09-09T12:00:00Z");
+  const inHours = (h: number) => new Date(now + h * 3_600_000).toISOString();
+
+  // Eight hours out with a third of the card priced: hold. The catalog read
+  // cost a credit and spent no allowance, so the next pass can still buy.
+  assert.equal(
+    shouldSpendExpandedBuy({
+      priced: 6,
+      wanted: 18,
+      commenceTime: inHours(8),
+      now,
+    }),
+    false,
+  );
+  // Same eight hours, card now mostly open: spend it.
+  assert.equal(
+    shouldSpendExpandedBuy({
+      priced: 14,
+      wanted: 18,
+      commenceTime: inHours(8),
+      now,
+    }),
+    true,
+  );
+  // Two hours out, still thin: cappers need something to log more than they
+  // need every alternate ladder.
+  assert.equal(
+    shouldSpendExpandedBuy({
+      priced: 6,
+      wanted: 18,
+      commenceTime: inHours(2),
+      now,
+    }),
+    true,
+  );
+  // Nothing priced is never worth the odds call, at any hour.
+  assert.equal(
+    shouldSpendExpandedBuy({
+      priced: 0,
+      wanted: 18,
+      commenceTime: inHours(1),
+      now,
+    }),
+    false,
+  );
+});
+
+test("an event is bought once a day by default", () => {
+  // The owner decision: one deep board per event per buy day. It holds only
+  // because a pass that finds nothing priced spends no allowance.
+  assert.equal(DEFAULT_EVENT_BUYS_PER_DAY, 1);
+  assert.ok(DEFAULT_EVENT_BUYS_PER_DAY <= HARD_MAX_EVENT_BUYS_PER_DAY);
 });

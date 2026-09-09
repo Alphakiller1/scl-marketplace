@@ -131,11 +131,21 @@ export const PROP_MARKETS_BY_SPORT: Record<string, readonly string[]> = {
     "player_rebounds_assists",
   ],
   NCAAB: ["player_points"],
+  // The card the owners asked for, in the order a book lists it: the passer,
+  // then the runner, then the receiver, then the kicker. Anytime TD is absent
+  // deliberately — it is a Yes/No market with no `point`, and the board discards
+  // a selection without a line, so requesting it would bill on every event and
+  // render nothing. It needs lineless support on the board and in grading first.
   NFL: [
     "player_pass_yds",
+    "player_pass_attempts",
+    "player_pass_tds",
     "player_rush_yds",
+    "player_rush_attempts",
     "player_receptions",
     "player_reception_yds",
+    "player_rush_reception_yds",
+    "player_field_goals",
   ],
   NCAAF: ["player_pass_yds", "player_rush_yds"],
   NHL: ["player_points", "player_shots_on_goal"],
@@ -212,9 +222,16 @@ export function expandedBoardMarkets(sclSport: string): string[] {
   // express with h2h/spreads/totals, so they are the one thing worth the credits
   // here: four keys plus their alternate ladders, per event a capper opens.
   if (sclSport === "NFL") {
-    return (PROP_MARKETS_BY_SPORT.NFL ?? []).flatMap(
-      propMarketKeysWithAlternates,
-    );
+    // Halves ride along because the owners asked for them and they already
+    // grade: `resolvePeriodPlay` settles a half off the ESPN quarter
+    // line-scores. Alternates, team totals and the rest of the game ladder stay
+    // off — that was the cost decision, and nothing here reopens it.
+    return [
+      ...periodMarketKeysForSport(sclSport),
+      ...(PROP_MARKETS_BY_SPORT.NFL ?? []).flatMap(
+        propMarketKeysWithAlternates,
+      ),
+    ];
   }
   if (sclSport !== "MLB" && sclSport !== "WNBA") return [];
   const props = PROP_MARKETS_BY_SPORT[sclSport] ?? [];
@@ -268,9 +285,14 @@ export const PROP_MARKET_LABEL: Record<string, string> = {
   player_steals: "Steals",
   player_turnovers: "Turnovers",
   player_pass_yds: "Passing Yds",
+  player_pass_attempts: "Pass Attempts",
+  player_pass_tds: "Passing TDs",
   player_rush_yds: "Rushing Yds",
+  player_rush_attempts: "Rush Attempts",
   player_receptions: "Receptions",
   player_reception_yds: "Receiving Yds",
+  player_rush_reception_yds: "Rush+Rec Yds",
+  player_field_goals: "FG Made",
   player_shots_on_goal: "Shots On Goal",
 };
 

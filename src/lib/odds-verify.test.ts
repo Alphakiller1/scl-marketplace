@@ -190,16 +190,35 @@ test("expandedBoardMarkets omits already-loaded featured lines", () => {
 
 test("expanded football boards carry props and no game ladder", () => {
   const nfl = expandedBoardMarkets("NFL");
-  assert.deepEqual(nfl, [
+  // The card the owners asked for: halves, then the passer/runner/receiver/
+  // kicker props, each with its alternate ladder.
+  for (const key of [
+    "h2h_h1",
+    "spreads_h1",
+    "totals_h1",
+    "h2h_h2",
+    "spreads_h2",
+    "totals_h2",
     "player_pass_yds",
-    "player_pass_yds_alternate",
+    "player_pass_attempts",
+    "player_pass_tds",
     "player_rush_yds",
-    "player_rush_yds_alternate",
+    "player_rush_attempts",
     "player_receptions",
-    "player_receptions_alternate",
     "player_reception_yds",
+    "player_rush_reception_yds",
+    "player_field_goals",
+  ]) {
+    assert.ok(nfl.includes(key), `NFL should request ${key}`);
+  }
+  for (const key of [
+    "player_pass_yds_alternate",
+    "player_rush_yds_alternate",
+    "player_receptions_alternate",
     "player_reception_yds_alternate",
-  ]);
+  ]) {
+    assert.ok(nfl.includes(key), `NFL should request the ${key} ladder`);
+  }
   // The owner decision that keeps football's expanded GAME ladder off stands:
   // alternates, team totals and halves are what made a sixteen-game slate
   // expensive, and none of them are worth a credit on a board that already
@@ -211,8 +230,7 @@ test("expanded football boards carry props and no game ladder", () => {
     "alternate_spreads",
     "alternate_totals",
     "team_totals",
-    "spreads_h1",
-    "totals_h2",
+    "alternate_team_totals",
   ]) {
     assert.ok(!nfl.includes(key), `NFL should not request ${key}`);
   }

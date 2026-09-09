@@ -688,3 +688,110 @@ test("every prop label the board can write has a stat key", () => {
     );
   }
 });
+
+test("the football card reads every column the owners asked for", () => {
+  // Column shapes taken from a real `football/nfl/summary`: "C/ATT" and "FG"
+  // both pack two numbers into one cell, and the market wants a different half
+  // of each — attempts from the passer, makes from the kicker.
+  const summary = {
+    boxscore: {
+      players: [
+        {
+          team: { displayName: "Seattle Seahawks" },
+          statistics: [
+            {
+              name: "passing",
+              labels: ["C/ATT", "YDS", "AVG", "TD", "INT"],
+              athletes: [
+                {
+                  athlete: { displayName: "Sam Darnold" },
+                  stats: ["20/30", "249", "8.3", "3", "0"],
+                },
+              ],
+            },
+            {
+              name: "rushing",
+              labels: ["CAR", "YDS", "AVG", "TD", "LONG"],
+              athletes: [
+                {
+                  athlete: { displayName: "Zach Charbonnet" },
+                  stats: ["7", "46", "6.6", "1", "18"],
+                },
+              ],
+            },
+            {
+              name: "receiving",
+              labels: ["REC", "YDS", "AVG", "TD", "LONG"],
+              athletes: [
+                {
+                  athlete: { displayName: "Zach Charbonnet" },
+                  stats: ["2", "20", "10.0", "0", "14"],
+                },
+                {
+                  athlete: { displayName: "Rashid Shaheed" },
+                  stats: ["4", "67", "16.8", "0", "31"],
+                },
+              ],
+            },
+            {
+              name: "kicking",
+              labels: ["FG", "PCT", "LONG", "XP", "PTS"],
+              athletes: [
+                {
+                  athlete: { displayName: "Jason Myers" },
+                  stats: ["3/3", "100.0", "48", "2/2", "11"],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  };
+
+  const box = mapSummaryToPlayerBox(summary);
+  assert.ok(box);
+  const darnold = box.players.find((p) => p.name === "Sam Darnold");
+  assert.equal(darnold?.stats.passAttempts, 30);
+  assert.equal(darnold?.stats.passingTds, 3);
+  assert.equal(darnold?.stats.passingYards, 249);
+
+  const charbonnet = box.players.find((p) => p.name === "Zach Charbonnet");
+  assert.equal(charbonnet?.stats.rushAttempts, 7);
+  assert.equal(charbonnet?.stats.rushingYards, 46);
+  assert.equal(charbonnet?.stats.receivingYards, 20);
+
+  const myers = box.players.find((p) => p.name === "Jason Myers");
+  assert.equal(myers?.stats.fieldGoalsMade, 3);
+  // The kicker's "PTS" must not read as a basketball points line.
+  assert.equal(myers?.stats.points, undefined);
+
+  // Rush+Rec sums both halves for a back who did both...
+  assert.equal(
+    resolvePlayerProp(
+      {
+        market: "Rush+Rec Yds",
+        selection: "Zach Charbonnet Over 50.5",
+        side: "over",
+        line: 50.5,
+      },
+      box,
+    ),
+    "WIN",
+  );
+  // ...and treats the missing half as zero for a receiver who never ran, who is
+  // exactly the player this market is written about. Deferring here would leave
+  // every wideout's Rush+Rec prop pending forever.
+  assert.equal(
+    resolvePlayerProp(
+      {
+        market: "Rush+Rec Yds",
+        selection: "Rashid Shaheed Over 50.5",
+        side: "over",
+        line: 50.5,
+      },
+      box,
+    ),
+    "WIN",
+  );
+});

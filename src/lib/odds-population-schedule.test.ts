@@ -187,7 +187,7 @@ test("Vercel runs the paid cadence through the day, expanded boards included", (
   ).crons.filter((cron) => cron.path.startsWith("/api/cron/odds-populate"));
 
   assert.ok(
-    crons.length >= 5,
+    crons.length >= 3,
     `expected an intraday cadence, found ${crons.length} populate crons`,
   );
   assert.ok(
@@ -195,14 +195,15 @@ test("Vercel runs the paid cadence through the day, expanded boards included", (
     "no cron warms today's expanded boards",
   );
   assert.ok(
-    crons.some((cron) => cron.path.includes("expandedDays=tomorrow")),
+    crons.some((cron) => /expandedDays=[^&]*tomorrow/.test(cron.path)),
     "no cron builds tomorrow's board overnight",
   );
 
-  // The rule the bill turns on. One build the day before, then 08:00 ET and
-  // 15:00 ET on the day itself — three, the default allowance, and never more
-  // than the hard ceiling. Six to eight buys per game per day is what took MLB
-  // verification to 83% of the provider bill.
+  // Passes are no longer buys, and that separation is the whole design. The
+  // allowance is one board per event per day; these runs are the attempts to
+  // find the moment a book opens the deep card, and an attempt that finds it
+  // shut reads the catalog for a credit and spends nothing. So the cron count
+  // is bounded by usefulness, and the BILL is bounded by the buy budget.
   const easternMinutes = (schedule: string) => {
     const [minute, hour] = schedule.trim().split(/\s+/);
     // UTC-4 in EDT.
@@ -213,25 +214,31 @@ test("Vercel runs the paid cadence through the day, expanded boards included", (
     cron.path.includes("expanded=99"),
   );
   assert.ok(
-    expandedRuns.length <= HARD_MAX_EVENT_BUYS_PER_DAY,
-    `${expandedRuns.length} expanded runs exceeds the hard ${HARD_MAX_EVENT_BUYS_PER_DAY}-buy ceiling`,
-  );
-  assert.equal(
-    expandedRuns.length,
-    DEFAULT_EVENT_BUYS_PER_DAY,
-    "the schedule must spend exactly the default allowance",
+    expandedRuns.length > DEFAULT_EVENT_BUYS_PER_DAY,
+    "there must be more passes than buys, or a card that opens late is missed",
   );
 
   const todayRuns = expandedRuns.filter((cron) =>
     cron.path.includes("expandedDays=today"),
   );
-  assert.equal(todayRuns.length, SAME_DAY_EXPANDED_RUNS);
-  assert.deepEqual(
-    todayRuns
-      .map((cron) => easternMinutes(cron.schedule))
-      .sort((a, b) => a - b),
-    [8 * 60, 15 * 60],
-    "the two same-day verifications must run at 08:00 and 15:00 ET",
+  assert.ok(
+    todayRuns.length >= SAME_DAY_EXPANDED_RUNS,
+    "too few same-day passes to catch a market opening",
+  );
+  const sameDay = todayRuns
+    .map((cron) => easternMinutes(cron.schedule))
+    .filter((minute) => minute >= EVENT_BUY_DAY_START_HOUR_ET * 60)
+    .sort((a, b) => a - b);
+  assert.ok(
+    sameDay.includes(8 * 60) && sameDay.includes(15 * 60),
+    "the 08:00 and 15:00 ET same-day passes must both be scheduled",
+  );
+  // Night games price their props latest, so the day's final pass has to fall
+  // after the afternoon one and still leave EXPANDED_LAST_CALL_HOURS of notice
+  // before a 20:20 ET kickoff.
+  assert.ok(
+    Math.max(...sameDay) >= 19 * 60,
+    "no late pass for games whose props open in the evening",
   );
   for (const cron of todayRuns) {
     assert.ok(

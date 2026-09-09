@@ -116,6 +116,11 @@ const MARKET_STAT_KEY: Record<string, string> = {
   "rushing yds": "rushingYards",
   "receiving yds": "receivingYards",
   receptions: "receptions",
+  "pass attempts": "passAttempts",
+  "passing tds": "passingTds",
+  "rush attempts": "rushAttempts",
+  "rush+rec yds": "rushReceivingYards",
+  "fg made": "fieldGoalsMade",
   // Hockey, mapped for the same reason and already parsed out of the box score
   // as `shotsOnGoal`.
   "shots on goal": "shotsOnGoal",
@@ -134,7 +139,23 @@ const DERIVED_STATS: Record<string, readonly string[]> = {
   pointsAssists: ["points", "assists"],
   reboundsAssists: ["rebounds", "assists"],
   hitsRunsRbis: ["hits", "runs", "rbis"],
+  rushReceivingYards: ["rushingYards", "receivingYards"],
 };
+
+/**
+ * Components a box score omits for a player who simply did not do that thing.
+ *
+ * Basketball reports one row per player, so a missing rebounds column means the
+ * feed is incomplete and the honest answer is to defer. Football reports a row
+ * per GROUP: a running back with no catches has no receiving row at all, and a
+ * receiver who never took a handoff has no rushing row. Deferring there would
+ * leave every Rush+Rec prop pending for exactly the players the market is
+ * written about.
+ *
+ * Absent therefore means zero for these, but only for a player the box score
+ * says appeared — `resolvePlayerProp` voids a player who did not.
+ */
+const ZERO_WHEN_ABSENT = new Set(["rushingYards", "receivingYards"]);
 
 /**
  * The athlete's number for a stat key, or null to defer.
@@ -157,7 +178,10 @@ function statValue(
   let sum = 0;
   for (const component of components) {
     const value = stats[component];
-    if (typeof value !== "number" || !Number.isFinite(value)) return null;
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      if (ZERO_WHEN_ABSENT.has(component)) continue;
+      return null;
+    }
     sum += value;
   }
   return sum;

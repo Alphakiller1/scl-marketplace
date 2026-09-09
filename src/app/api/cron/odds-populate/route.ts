@@ -343,6 +343,9 @@ async function runPopulate(req: NextRequest) {
           markets: expandedMarkets.length ? expandedMarkets : undefined,
           ignoreDailyBuyCap: ignoreBuyCap,
           dailyBuyLimit: buyLimit,
+          // The scheduled sweep is the path the one-buy allowance is spent on,
+          // so it is the path that has to wait for the card to open.
+          commenceTime: event.commenceTime,
         });
         if (board.selections.length > 0) {
           populated += 1;
