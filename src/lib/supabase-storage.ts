@@ -2,13 +2,18 @@ import "server-only";
 
 import {
   supabaseCredentialMismatch,
+  supabaseEmailMediaBucket,
   supabaseProfileMediaBucket,
   supabaseProjectUrl,
   supabaseServiceRoleKey,
   usesSupabasePlatformSecretKey,
 } from "@/lib/supabase-config";
 
-export type ProfileMediaStorage = {
+/**
+ * A resolved Supabase Storage target. Two buckets use this: capper profile media
+ * and images an admin drops into an email.
+ */
+export type SupabaseBucket = {
   bucket: string;
   projectUrl: string;
   serviceRoleKey: string;
@@ -29,7 +34,7 @@ function storageAuthHeaders(serviceRoleKey: string): HeadersInit {
 }
 
 async function storageRequest(
-  storage: ProfileMediaStorage,
+  storage: SupabaseBucket,
   path: string,
   init: RequestInit = {},
 ): Promise<Response> {
@@ -46,14 +51,21 @@ async function storageRequest(
   });
 }
 
-export function getProfileMediaStorage(): ProfileMediaStorage | null {
+function resolveBucket(bucket: string): SupabaseBucket | null {
   const projectUrl = supabaseProjectUrl();
   const serviceRoleKey = supabaseServiceRoleKey();
-  const bucket = supabaseProfileMediaBucket();
 
   if (!projectUrl || !serviceRoleKey) return null;
 
   return { bucket, projectUrl, serviceRoleKey };
+}
+
+export function getProfileMediaStorage(): SupabaseBucket | null {
+  return resolveBucket(supabaseProfileMediaBucket());
+}
+
+export function getEmailMediaStorage(): SupabaseBucket | null {
+  return resolveBucket(supabaseEmailMediaBucket());
 }
 
 function bucketExistsResponse(status: number): boolean {
@@ -65,12 +77,12 @@ function bucketMissingResponse(status: number): boolean {
 }
 
 async function listBucketNames(
-  storage: ProfileMediaStorage,
+  storage: SupabaseBucket,
 ): Promise<string[] | null> {
   const response = await storageRequest(storage, "/bucket");
   if (!response.ok) {
     console.error(
-      "[profile-media] bucket list failed:",
+      "[storage] bucket list failed:",
       response.status,
       await response.text(),
     );
@@ -83,8 +95,8 @@ async function listBucketNames(
     .filter((name): name is string => Boolean(name));
 }
 
-async function createProfileMediaBucket(
-  storage: ProfileMediaStorage,
+async function createStorageBucket(
+  storage: SupabaseBucket,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const response = await storageRequest(storage, "/bucket", {
     method: "POST",
@@ -100,7 +112,7 @@ async function createProfileMediaBucket(
   const body = await response.text();
   if (/already exists/i.test(body)) return { ok: true };
 
-  console.error("[profile-media] bucket create failed:", response.status, body);
+  console.error("[storage] bucket create failed:", response.status, body);
 
   // "Create the bucket" is the wrong instruction when the bucket exists and the
   // credentials simply name two different projects — that advice sent one
@@ -123,18 +135,18 @@ async function createProfileMediaBucket(
     return {
       ok: false,
       error:
-        "Profile media credentials were rejected. Check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY belong to the same Supabase project.",
+        "Storage credentials were rejected. Check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY belong to the same Supabase project.",
     };
   }
 
   return {
     ok: false,
-    error: `Profile media storage is unavailable (${response.status}). In Supabase → Storage, create a public bucket named ${storage.bucket}.`,
+    error: `Storage is unavailable (${response.status}). In Supabase → Storage, create a public bucket named ${storage.bucket}.`,
   };
 }
 
-export async function ensureProfileMediaBucket(
-  storage: ProfileMediaStorage,
+export async function ensureStorageBucket(
+  storage: SupabaseBucket,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const lookup = await storageRequest(
     storage,
@@ -144,7 +156,7 @@ export async function ensureProfileMediaBucket(
 
   if (!bucketMissingResponse(lookup.status)) {
     console.error(
-      "[profile-media] bucket lookup failed:",
+      "[storage] bucket lookup failed:",
       lookup.status,
       await lookup.text(),
     );
@@ -153,11 +165,11 @@ export async function ensureProfileMediaBucket(
   const names = await listBucketNames(storage);
   if (names?.includes(storage.bucket)) return { ok: true };
 
-  return createProfileMediaBucket(storage);
+  return createStorageBucket(storage);
 }
 
-export async function uploadProfileMediaObject(
-  storage: ProfileMediaStorage,
+export async function uploadStorageObject(
+  storage: SupabaseBucket,
   path: string,
   body: Buffer,
   contentType: string,
@@ -179,7 +191,7 @@ export async function uploadProfileMediaObject(
   if (response.ok) return { ok: true };
 
   const message = await response.text();
-  console.error("[profile-media] upload failed:", response.status, message);
+  console.error("[storage] upload failed:", response.status, message);
 
   // Say so before blaming the key or the bucket: a cross-project pair fails as
   // either one, and both misreadings send you looking in the wrong project.
@@ -196,25 +208,47 @@ export async function uploadProfileMediaObject(
     return {
       ok: false,
       error:
-        "Profile media credentials were rejected. Use the Supabase Secret key (sb_secret_…) or legacy service_role key in SUPABASE_SERVICE_ROLE_KEY.",
+        "Storage credentials were rejected. Use the Supabase Secret key (sb_secret_…) or legacy service_role key in SUPABASE_SERVICE_ROLE_KEY.",
     };
   }
   if (response.status === 404 || normalized.includes("bucket not found")) {
     return {
       ok: false,
-      error:
-        "Profile media bucket not found. In Supabase → Storage, create a public bucket named scl-profile-media.",
+      error: `Storage bucket not found. In Supabase → Storage, create a public bucket named ${storage.bucket}.`,
     };
   }
 
   return { ok: false, error: "We couldn't upload that image." };
 }
 
-export function profileMediaPublicUrl(
-  storage: ProfileMediaStorage,
+export function storagePublicUrl(
+  storage: SupabaseBucket,
   path: string,
 ): string {
   return `${storageBaseUrl(storage.projectUrl)}/storage/v1/object/public/${encodeURIComponent(storage.bucket)}/${path}`;
+}
+
+/**
+ * Is this object actually fetchable by an anonymous client?
+ *
+ * A HEAD on the *public* URL rather than the admin API on purpose: it exercises
+ * the exact request a recipient's mail client will make, so a bucket that has
+ * quietly stopped being public fails here rather than in 136 inboxes.
+ */
+export async function storageObjectIsPublic(
+  storage: SupabaseBucket,
+  path: string,
+): Promise<boolean> {
+  try {
+    const response = await fetch(storagePublicUrl(storage, path), {
+      method: "HEAD",
+      cache: "no-store",
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("[storage] public HEAD failed:", path, error);
+    return false;
+  }
 }
 
 /** Live probe used by /api/health — env vars alone are not enough. */
@@ -232,7 +266,7 @@ export async function probeProfileMediaStorage(): Promise<{
     };
   }
 
-  const ready = await ensureProfileMediaBucket(storage);
+  const ready = await ensureStorageBucket(storage);
   return {
     configured: true,
     bucketReady: ready.ok,

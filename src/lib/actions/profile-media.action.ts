@@ -11,10 +11,10 @@ import {
   type ProfileMediaKind,
 } from "@/lib/schemas/profile-media.schema";
 import {
-  ensureProfileMediaBucket,
+  ensureStorageBucket,
   getProfileMediaStorage,
-  profileMediaPublicUrl,
-  uploadProfileMediaObject,
+  storagePublicUrl,
+  uploadStorageObject,
 } from "@/lib/supabase-storage";
 import { optimizeProfileMediaImage } from "@/lib/profile-media-process";
 
@@ -76,7 +76,7 @@ async function saveProfileMedia(
     };
   }
 
-  const bucketReady = await ensureProfileMediaBucket(storage);
+  const bucketReady = await ensureStorageBucket(storage);
   if (!bucketReady.ok) return bucketReady;
 
   const { file, kind } = parsed.data;
@@ -96,7 +96,7 @@ async function saveProfileMedia(
   }
 
   const path = `${account.id}/${kind}.webp`;
-  const uploadResult = await uploadProfileMediaObject(
+  const uploadResult = await uploadStorageObject(
     storage,
     path,
     optimizedImage,
@@ -104,7 +104,7 @@ async function saveProfileMedia(
   );
   if (!uploadResult.ok) return uploadResult;
 
-  const versionedPublicUrl = `${profileMediaPublicUrl(storage, path)}?v=${Date.now()}`;
+  const versionedPublicUrl = `${storagePublicUrl(storage, path)}?v=${Date.now()}`;
 
   let profile: { user: { username: string | null } };
   try {
