@@ -261,12 +261,12 @@ test("usage windows never reach behind the current provider plan", () => {
 
 test("the reported balance includes purchased credits the active key cannot see", () => {
   // `x-requests-remaining` is one key's figure. Credits bought as a top-up, or
-  // held on another key in the rollover list, are spendable but absent from it.
-  // The adjustment was a stand-in for credits on another rollover key. It
-  // outlived the top-up and printed 10,001 while the account held ~84,000.
-  assert.equal(ODDS_CREDIT_BALANCE_ADJUSTMENT, 0);
-  assert.equal(adjustedOddsRemaining(69_796), 69_796);
-  assert.equal(adjustedOddsRemaining(0), 0);
+  // held on another key in the rollover list, are spendable but absent from it,
+  // so the adjustment is carried on top of the reconstructed per-key balance.
+  // Retained at the owners' instruction; drop it only when the top-up is spent.
+  assert.equal(ODDS_CREDIT_BALANCE_ADJUSTMENT, 10_000);
+  assert.equal(adjustedOddsRemaining(69_796), 79_796);
+  assert.equal(adjustedOddsRemaining(0), 10_000);
 
   // An unknown balance stays unknown — the adjustment must not invent one.
   assert.equal(adjustedOddsRemaining(null), null);

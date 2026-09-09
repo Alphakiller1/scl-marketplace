@@ -48,6 +48,7 @@ import {
   type OddsEvent,
   type OddsSelection,
 } from "@/lib/odds-board";
+import { shouldSpendExpandedBuy } from "@/lib/manual-odds-population";
 import {
   VERIFY_REGIONS,
   VERIFY_TTL_SECONDS,
@@ -1192,7 +1193,20 @@ export async function fetchLiveLine(params: {
 export async function fetchEventBoard(
   sclSport: string,
   eventId: string,
-  opts?: OddsBoardOpts & { league?: string | null },
+  opts?: OddsBoardOpts & {
+    league?: string | null;
+    /**
+     * Kickoff, when the caller wants the one-buy timing rule applied.
+     *
+     * With one buy per event a day, a board bought while only part of the card
+     * is open IS the board for the rest of the day. So the buy is held back
+     * until the catalog shows most of what was asked for — or until last call,
+     * after which whatever is priced beats nothing. The catalog read that
+     * decides this costs a credit and spends no allowance, so a withheld pass
+     * is cheap and the next one can still buy.
+     */
+    commenceTime?: string | null;
+  },
 ): Promise<OddsSelection[]> {
   const wanted = opts?.markets?.length
     ? [...new Set(opts.markets)]
@@ -1203,6 +1217,16 @@ export async function fetchEventBoard(
   // pricing this fixture's expanded card. The odds call would bill for all of
   // them and return nothing, so it is not worth making.
   if (markets.length === 0) return [];
+  if (
+    opts?.commenceTime &&
+    !shouldSpendExpandedBuy({
+      priced: markets.length,
+      wanted: wanted.length,
+      commenceTime: opts.commenceTime,
+    })
+  ) {
+    return [];
+  }
   const event = await fetchEventOddsForVerification(sclSport, eventId, {
     ...opts,
     markets,

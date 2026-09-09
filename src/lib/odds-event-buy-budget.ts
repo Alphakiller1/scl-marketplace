@@ -13,9 +13,17 @@
  * age threshold cannot bound spend: every path that asks outside the window
  * pays again, and there is no limit on how many paths ask.
  *
- * The allowance is per league and per event: three a day by default, four at the
- * absolute most, spent by the schedule as one build the day before plus 08:00
- * and 15:00 ET on the day itself.
+ * The allowance is per league and per event: ONE a day by default, four at the
+ * absolute most for a league deliberately raised.
+ *
+ * One is an owner decision, and it only works because a buy is recorded when
+ * the provider actually returns selections — see `refreshEventBoard`, which
+ * calls `recordEventBuy` inside `if (selections.length > 0)`. A pass over an
+ * event whose props no book has opened yet reads the market catalog, gets
+ * nothing, and costs a single credit WITHOUT spending the allowance. So the
+ * schedule may sweep an event repeatedly while it waits for the market to open
+ * and still buy the deep board exactly once, when there is finally something
+ * to buy. See `expandedBuyWindow` for the timing that depends on this.
  */
 
 const EASTERN_ZONE = "America/New_York";
@@ -30,11 +38,14 @@ const EASTERN_ZONE = "America/New_York";
 export const HARD_MAX_EVENT_BUYS_PER_DAY = 4;
 
 /** The allowance a league gets unless it has been given its own. */
-export const DEFAULT_EVENT_BUYS_PER_DAY = 3;
+export const DEFAULT_EVENT_BUYS_PER_DAY = 1;
 
 /**
- * The three the schedule plans for: one the day before, one at 08:00 ET and one
- * at 15:00 ET. Every sport runs on these same times.
+ * Same-day expanded passes the schedule plans for.
+ *
+ * These are PASSES, not buys. With the allowance at one, the extra passes exist
+ * to find the moment a book opens the deep market — each costs a catalog credit
+ * and stops there until there is a board worth buying.
  */
 export const SAME_DAY_EXPANDED_RUNS = 2;
 

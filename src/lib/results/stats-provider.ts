@@ -223,21 +223,27 @@ const STATS_BY_GROUP: Record<string, Record<string, string>> = {
   // three different groups, so it can only ever be read from a named one.
   passing: {
     YDS: "passingYards",
+    // The passer's own TD column. Named apart from the receiver's because the
+    // same touchdown appears on both lines and they are different markets.
+    TD: "passingTds",
   },
   rushing: {
     YDS: "rushingYards",
+    CAR: "rushAttempts",
+    TD: "rushingTds",
   },
   receiving: {
     REC: "receptions",
     YDS: "receivingYards",
+    TD: "receivingTds",
   },
-  // Football groups SCL grades nothing from, listed to keep them OFF the
-  // default map rather than to read them: fumbles labels its recoveries "REC"
-  // and kicking labels the kicker's points "PTS", so falling through to the
-  // basketball map would overwrite a receiver's catches with fumble recoveries
-  // and invent a points line for the kicker.
-  fumbles: {},
+  // "FG" is read below as made-of-attempts; "PTS" here is the kicker's scoring
+  // and must not reach the basketball map, which would file it as a points
+  // line for a player who never took a shot.
   kicking: {},
+  // Fumbles labels its recoveries "REC". Falling through to the default map
+  // would overwrite a receiver's catches with the number of fumbles he fell on.
+  fumbles: {},
   // Basketball and hockey report one unnamed group.
   default: {
     PTS: "points",
@@ -287,10 +293,16 @@ export function inningsToOuts(ip: string): number | null {
   return Number(m[1]) * 3 + thirds;
 }
 
-/** "2-5" (made-attempted) → 2. */
+/** "2-5" or "2/5" (made of attempted) → 2. */
 function madeOfAttempts(value: string): number | null {
-  const m = /^(\d+)-(\d+)$/.exec(value.trim());
+  const m = /^(\d+)[-/](\d+)$/.exec(value.trim());
   return m ? Number(m[1]) : null;
+}
+
+/** "18/24" (completions of attempts) → 24. */
+function attemptsOfMade(value: string): number | null {
+  const m = /^(\d+)[-/](\d+)$/.exec(value.trim());
+  return m ? Number(m[2]) : null;
 }
 
 /** Pure mapper (unit-testable) — ESPN summary JSON → player stat lines. */
@@ -306,7 +318,8 @@ export function mapSummaryToPlayerBox(data: unknown): PlayerBoxScore | null {
       team.team?.displayName ?? team.team?.abbreviation ?? "unknown";
     for (const group of team.statistics ?? []) {
       const labels = group.labels ?? [];
-      const map = STATS_BY_GROUP[statGroupKey(group)] ?? STATS_BY_GROUP.default;
+      const groupKey = statGroupKey(group);
+      const map = STATS_BY_GROUP[groupKey] ?? STATS_BY_GROUP.default;
 
       for (const row of group.athletes ?? []) {
         const name = row.athlete?.displayName;
@@ -338,6 +351,19 @@ export function mapSummaryToPlayerBox(data: unknown): PlayerBoxScore | null {
           if (label === "3PT") {
             const made = madeOfAttempts(text);
             if (made != null) entry.stats.threes = made;
+            return;
+          }
+          // Football writes two numbers in one column. "C/ATT" is completions
+          // over attempts and the market is on attempts, the second; "FG" is
+          // made over attempted and the market is on made, the first.
+          if (label === "C/ATT" && groupKey === "passing") {
+            const attempts = attemptsOfMade(text);
+            if (attempts != null) entry.stats.passAttempts = attempts;
+            return;
+          }
+          if (label === "FG" && groupKey === "kicking") {
+            const made = madeOfAttempts(text);
+            if (made != null) entry.stats.fieldGoalsMade = made;
             return;
           }
           const key = map[label];
