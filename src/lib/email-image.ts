@@ -194,7 +194,12 @@ export function replaceEmailImageToken(
   id: string,
   alt: string,
 ): string {
-  return text.replace(tokenPatternFor(id), formatEmailImageToken(id, alt));
+  const token = formatEmailImageToken(id, alt);
+  // A replacer function, not a replacement string: `String.replace` reads `$&`,
+  // "$`" and `$'` in a string replacement as substitution patterns, so a
+  // description like "$5 off — $& more" would come back mangled. A function's
+  // return value is taken literally.
+  return text.replace(tokenPatternFor(id), () => token);
 }
 
 /** Remove every reference to one image, and the blank lines it left behind. */
