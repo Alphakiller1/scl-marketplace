@@ -236,6 +236,17 @@ export function BetSlip({
                       text={s.selection}
                       className="scl-display text-sm font-bold tracking-[0.02em] break-words uppercase"
                     />
+                    {/*
+                      A moneyline names its own team; "Over 5.5" and a player
+                      prop name nothing. Without the fixture a capper building a
+                      slip across several games cannot tell which total belongs
+                      to which one — and neither can anyone reading it back.
+                    */}
+                    {s.eventLabel ? (
+                      <p className="text-muted-foreground mt-0.5 truncate text-xs">
+                        {s.eventLabel}
+                      </p>
+                    ) : null}
                     <p className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
                       <span>{s.market}</span>
                       {s.sport ? (

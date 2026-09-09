@@ -139,9 +139,19 @@ export function PlayListItem({
         ) : team ? (
           <TeamMark team={team} size="sm" className="mt-0.5" />
         ) : null}
-        <p className="min-w-0 flex-1 font-semibold break-words">
-          {play.selection}
-        </p>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold break-words">{play.selection}</p>
+          {/*
+            The selection alone is not the pick. "Over 8.5" and a player prop
+            name no game, so a record row has to carry the fixture or it cannot
+            be read back by the capper, let alone by anyone judging the record.
+          */}
+          {matchup ? (
+            <p className="text-muted-foreground mt-0.5 truncate text-xs">
+              {matchup}
+            </p>
+          ) : null}
+        </div>
       </div>
       <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
