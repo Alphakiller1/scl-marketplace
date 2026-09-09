@@ -1,0 +1,67 @@
+name: Enable owner-managed odds scheduling
+
+# Hands odds population from the fixed vercel.json cron list to the owner's
+# control plane, which has been inert since it shipped
+# (`managedSchedulingEnabled` false => `claimDueOddsRuns` returns "disabled",
+# so `OddsApiRun` has never recorded a run).
+#
+# Runs from a GitHub runner because that is where the production transaction
+# pooler is reachable — the same route seed-admin.yml already uses. It fires on
+# merge to main so the handover happens with the deploy rather than waiting on
+# a manual dispatch, and can be re-dispatched afterwards.
+#
+# Safe to re-run: the script's audit row is its own guard, so every run after
+# the first is a no-op that leaves whatever the owners have since set in the
+# dashboard untouched. `force` overrides that; use it only to deliberately
+# overwrite their current settings.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/enable-managed-odds.ts"
+      - ".github/workflows/enable-managed-odds.yml"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Print the plan without writing
+        type: boolean
+        default: false
+      force:
+        description: Re-apply even though it already ran (overwrites owner settings)
+        type: boolean
+        default: false
+
+jobs:
+  enable:
+    environment: production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Confirm owner database connection
+        env:
+          OWNER_DATABASE_URL: ${{ secrets.OWNER_DATABASE_URL }}
+        run: |
+          if [ -z "$OWNER_DATABASE_URL" ]; then
+            echo "OWNER_DATABASE_URL must contain the production SCL transaction-pooler URL."
+            exit 1
+          fi
+
+      - name: Enable managed scheduling
+        run: |
+          npx tsx scripts/enable-managed-odds.ts \
+            ${{ inputs.dry_run && '--dry-run' || '' }} \
+            ${{ inputs.force && '--force' || '' }}
+        env:
+          DATABASE_URL: ${{ secrets.OWNER_DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          VERCEL_ENV: production
