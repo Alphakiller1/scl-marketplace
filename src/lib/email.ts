@@ -3,6 +3,7 @@ import type { StoreProvider } from "@prisma/client";
 
 import { hasDeliverableEmail } from "@/lib/account-claim";
 import { escapeHtml } from "@/lib/email-escape";
+import { renderEmailBodyHtml } from "@/lib/email-image";
 import { renderEmailTemplate } from "@/lib/email-template-render";
 import type { EmailTemplateSlug } from "@/lib/email-templates";
 import { PASSWORD_POLICY_SUMMARY } from "@/lib/password-policy";
@@ -769,17 +770,26 @@ async function recordBroadcastActivity(
   );
 }
 
-/** Body + optional unsubscribe footer, as HTML. Plain text in, escaped out. */
+/**
+ * Body + optional unsubscribe footer, as HTML. Plain text in, escaped out —
+ * plus any images the owner dropped into the message, rendered where they put
+ * them (see `email-image.ts`).
+ */
 export function renderBroadcastHtml(input: {
   body: string;
   unsubscribeUrl?: string;
+  /**
+   * Resolves an inserted image's handle to a public URL. Required rather than
+   * optional so a new call site cannot silently drop the owner's pictures; pass
+   * `() => null` when there is no image hosting to render against.
+   *
+   * Injected because the real resolver reaches Supabase Storage, which is
+   * `server-only` — an import this module cannot take without breaking the unit
+   * tests that render mail with no server around them.
+   */
+  imageUrl: (id: string) => string | null;
 }): string {
-  const paragraphs = input.body
-    .split(/\n{2,}/)
-    .map((block) => escapeHtml(block.trim()).replace(/\n/g, "<br />"))
-    .filter(Boolean)
-    .map((block) => `<p style="line-height:1.6">${block}</p>`)
-    .join("");
+  const paragraphs = renderEmailBodyHtml(input.body, input.imageUrl);
 
   // Only roster mail carries this. A direct admin-to-capper message is
   // operational, and offering to unsubscribe from it would be misleading.

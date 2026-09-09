@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+import {
+  exceedsUploadImageSizeLimit,
+  resolveUploadImageMimeType,
+  uploadImageFileSchema,
+  type AllowedUploadImageType,
+} from "@/lib/schemas/upload-image";
+
 export const PROFILE_MEDIA_LIMITS = {
   // Phone camera rolls routinely exceed 2 MB before Sharp compresses to WebP.
   // The Server Action body cap is 6 MB (see next.config.ts); keep both kinds under
@@ -9,26 +16,6 @@ export const PROFILE_MEDIA_LIMITS = {
 } as const;
 
 export type ProfileMediaKind = "avatar" | "banner";
-
-const allowedImageTypes = [
-  "image/jpeg",
-  "image/jpg",
-  "image/png",
-  "image/webp",
-  "image/heic",
-  "image/heif",
-] as const;
-
-type AllowedImageType = (typeof allowedImageTypes)[number];
-
-const extensionToMime: Record<string, AllowedImageType> = {
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  png: "image/png",
-  webp: "image/webp",
-  heic: "image/heic",
-  heif: "image/heif",
-};
 
 export function profileMediaSizeLimitMessage(kind: ProfileMediaKind): string {
   return kind === "avatar"
@@ -44,44 +31,20 @@ export function exceedsProfileMediaSizeLimit(
   byteSize: number,
   kind: ProfileMediaKind,
 ): boolean {
-  if (!Number.isFinite(byteSize) || byteSize <= 0) return false;
-  return byteSize > PROFILE_MEDIA_LIMITS[kind];
-}
-
-function isUploadedImageFile(value: unknown): value is File {
-  if (typeof value !== "object" || value === null) return false;
-  const file = value as File;
-  return (
-    typeof file.size === "number" &&
-    typeof file.name === "string" &&
-    typeof file.arrayBuffer === "function"
-  );
+  return exceedsUploadImageSizeLimit(byteSize, PROFILE_MEDIA_LIMITS[kind]);
 }
 
 /** Some mobile browsers send an empty or generic MIME type for valid images. */
 export function resolveProfileMediaMimeType(
   file: File,
-): AllowedImageType | null {
-  const declared = file.type.trim().toLowerCase();
-  if (declared === "image/jpg") return "image/jpeg";
-  if (allowedImageTypes.includes(declared as AllowedImageType)) {
-    return declared as AllowedImageType;
-  }
-
-  const extension = file.name.split(".").pop()?.toLowerCase();
-  if (!extension) return null;
-  return extensionToMime[extension] ?? null;
+): AllowedUploadImageType | null {
+  return resolveUploadImageMimeType(file);
 }
-
-const uploadFileSchema = z.custom<File>(
-  isUploadedImageFile,
-  "Choose an image to upload.",
-);
 
 export const profileMediaSchema = z
   .object({
     kind: z.enum(["avatar", "banner"]),
-    file: uploadFileSchema,
+    file: uploadImageFileSchema,
   })
   .superRefine(({ kind, file }, ctx) => {
     if (!resolveProfileMediaMimeType(file)) {

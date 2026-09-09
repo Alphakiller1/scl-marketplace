@@ -7,6 +7,10 @@ import { requireAdmin } from "@/lib/session";
 import { afterResponse } from "@/lib/after-response";
 import { appUrl } from "@/lib/app-url";
 import { renderBroadcastHtml, sendBroadcastBatch } from "@/lib/email";
+import {
+  emailImageUrlResolver,
+  verifyEmailImagesDeliverable,
+} from "@/lib/email-media";
 import { mailerConfigured } from "@/lib/email-verification-policy";
 import {
   BROADCAST_MAX_RECIPIENTS,
@@ -99,6 +103,12 @@ export async function sendBroadcastAction(
     };
   }
 
+  // Before anyone is mailed: every inserted image must actually be fetchable.
+  // The send is one-way, so a picture that 404s is a broken frame in every inbox
+  // permanently — this is the last moment the answer can still change anything.
+  const imagesOk = await verifyEmailImagesDeliverable(body);
+  if (!imagesOk.ok) return imagesOk;
+
   const recipients = await loadRecipients(audience, userId);
   if (recipients.length === 0) {
     return { ok: false, error: "That audience has nobody in it." };
@@ -141,6 +151,9 @@ export async function sendBroadcastAction(
 
   const secret = process.env.AUTH_SECRET ?? "";
   const isMass = audience !== "SINGLE_CAPPER";
+  // Resolved once, outside the loop: every recipient must be sent the same
+  // pictures, from the same bucket.
+  const imageUrl = emailImageUrlResolver();
 
   afterResponse(async () => {
     let delivered = 0;
@@ -154,6 +167,7 @@ export async function sendBroadcastAction(
           subject,
           html: renderBroadcastHtml({
             body,
+            imageUrl,
             unsubscribeUrl:
               isMass && secret
                 ? `${appUrl()}/unsubscribe?token=${signUnsubscribeToken(r.userId, secret)}`

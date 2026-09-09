@@ -46,6 +46,16 @@ export function supabaseProfileMediaBucket(): string {
   );
 }
 
+/**
+ * Images an admin drops into an email. A separate bucket from profile media
+ * because the retention rules differ: a capper's avatar can be replaced or
+ * removed, while a picture already sitting in 136 inboxes must stay reachable
+ * for as long as those emails exist.
+ */
+export function supabaseEmailMediaBucket(): string {
+  return trimmed(process.env.SUPABASE_EMAIL_MEDIA_BUCKET) ?? "scl-email-media";
+}
+
 /** New Supabase platform secret keys must not be sent as Bearer JWTs. */
 export function usesSupabasePlatformSecretKey(key: string): boolean {
   return key.startsWith("sb_secret_");
