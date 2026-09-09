@@ -5,63 +5,64 @@ name: Enable owner-managed odds scheduling
 # (`managedSchedulingEnabled` false => `claimDueOddsRuns` returns "disabled",
 # so `OddsApiRun` has never recorded a run).
 #
-# Runs from a GitHub runner because that is where the production transaction
-# pooler is reachable — the same route seed-admin.yml already uses. It fires on
-# merge to main so the handover happens with the deploy rather than waiting on
-# a manual dispatch, and can be re-dispatched afterwards.
+# Curls the deployment rather than touching the database directly, for the same
+# reason db-patch-store-workflow.yml does: no GitHub runner can reach the
+# Supabase host, and the repository DATABASE_URL secret points at a different
+# project. Vercel reaches the real one.
 #
-# Safe to re-run: the script's audit row is its own guard, so every run after
-# the first is a no-op that leaves whatever the owners have since set in the
-# dashboard untouched. `force` overrides that; use it only to deliberately
-# overwrite their current settings.
+# Fires on merge so the handover happens with the deploy, and can be
+# re-dispatched afterwards. Safe to re-run: the endpoint's audit row is its own
+# guard, so every call after the first changes nothing and leaves whatever the
+# owners have since set in the dashboard alone. `force` overrides that.
 
 on:
   push:
     branches: [main]
     paths:
-      - "scripts/enable-managed-odds.ts"
+      - "src/app/api/admin/enable-managed-odds/route.ts"
       - ".github/workflows/enable-managed-odds.yml"
   workflow_dispatch:
     inputs:
       dry_run:
-        description: Print the plan without writing
+        description: Report the plan without writing
         type: boolean
         default: false
       force:
         description: Re-apply even though it already ran (overwrites owner settings)
         type: boolean
         default: false
+      base_url:
+        description: Override the target origin
+        required: false
+        type: string
 
 jobs:
   enable:
-    environment: production
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Confirm owner database connection
+      - name: Enable managed scheduling via Vercel
         env:
-          OWNER_DATABASE_URL: ${{ secrets.OWNER_DATABASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BASE_URL: ${{ github.event.inputs.base_url }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+          FORCE: ${{ github.event.inputs.force }}
         run: |
-          if [ -z "$OWNER_DATABASE_URL" ]; then
-            echo "OWNER_DATABASE_URL must contain the production SCL transaction-pooler URL."
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "::error::CRON_SECRET secret is not configured." >&2
             exit 1
           fi
-
-      - name: Enable managed scheduling
-        run: |
-          npx tsx scripts/enable-managed-odds.ts \
-            ${{ inputs.dry_run && '--dry-run' || '' }} \
-            ${{ inputs.force && '--force' || '' }}
-        env:
-          DATABASE_URL: ${{ secrets.OWNER_DATABASE_URL }}
-          DIRECT_URL: ${{ secrets.DIRECT_URL }}
-          VERCEL_ENV: production
+          BASE="${BASE_URL:-https://sportscappersleaderboard.com}"
+          QUERY=""
+          if [ "${DRY_RUN:-false}" = "true" ]; then QUERY="?dryRun=1"; fi
+          if [ "${FORCE:-false}" = "true" ]; then QUERY="${QUERY:+$QUERY&}${QUERY:-?}force=1"; fi
+          echo "POST ${BASE}/api/admin/enable-managed-odds${QUERY}"
+          HTTP=$(curl -sS -o /tmp/enable.json -w "%{http_code}" \
+            -X POST "${BASE}/api/admin/enable-managed-odds${QUERY}" \
+            -H "Authorization: Bearer ${CRON_SECRET}")
+          cat /tmp/enable.json
+          echo
+          if [ "$HTTP" != "200" ]; then
+            echo "::error::endpoint returned HTTP ${HTTP}" >&2
+            exit 1
+          fi
