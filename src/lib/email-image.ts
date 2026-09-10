@@ -110,6 +110,19 @@ export function emailImageObjectPath(id: string): string | null {
 }
 
 /**
+ * Public URL for an image, given the bucket's public base.
+ *
+ * The whole URL is derivable from the handle, which is why an owner can reopen a
+ * saved template weeks later and still see its pictures: nothing has to remember
+ * where an image went, because the marker already says.
+ */
+export function emailImageUrlFrom(baseUrl: string, id: string): string | null {
+  const path = emailImageObjectPath(id);
+  if (!path) return null;
+  return `${baseUrl.replace(/\/+$/, "")}/${path}`;
+}
+
+/**
  * Fold a description down to what the token grammar can carry: one line, no `]`
  * or `|` to close the token early, and short enough to stay a description.
  */
@@ -257,6 +270,17 @@ export function parseEmailBodyBlocks(body: string): EmailBodyBlock[] {
   return blocks;
 }
 
+/**
+ * Does this text contain an image marker at all?
+ *
+ * Matches the loose token shape, not a valid handle, so a stale or half-typed
+ * marker still routes through the image path and gets dropped there rather than
+ * being rendered as literal `[image:…]` text.
+ */
+export function hasEmailImageMarker(text: string): boolean {
+  return new RegExp(IMAGE_TOKEN_PATTERN.source).test(text);
+}
+
 /** Every image this message references, in order, without duplicates. */
 export function collectEmailImageIds(body: string): string[] {
   const ids: string[] = [];
@@ -285,19 +309,37 @@ export function renderEmailBodyHtml(
 
       const src = imageUrl(block.id);
       if (!src) return "";
-      // `width` is for Outlook's Word engine, which ignores `max-width`; the
-      // style then lets every other client shrink it on a narrow phone.
-      // `display:block` kills the descender gap under an inline image, and
-      // `border:0` stops Outlook drawing a frame around it.
-      return [
-        `<p style="margin:0 0 16px">`,
-        `<img src="${escapeHtml(src)}"`,
-        ` alt="${escapeHtml(block.alt)}"`,
-        ` width="${block.displayWidth}"`,
-        ` style="display:block;width:100%;max-width:${block.displayWidth}px;height:auto;border:0;border-radius:8px" />`,
-        `</p>`,
-      ].join("");
+      return renderEmailImageHtml(block, src);
     })
     .filter(Boolean)
     .join("");
+}
+
+/**
+ * The `<img>` an inbox receives. One implementation, so a picture in an
+ * automated template and a picture in a mass email are laid out identically.
+ *
+ * `width` is for Outlook's Word engine, which ignores `max-width`; the style
+ * then lets every other client shrink it on a narrow phone. `display:block`
+ * kills the descender gap under an inline image, and `border:0` stops Outlook
+ * drawing a frame around it.
+ */
+export function renderEmailImageHtml(
+  block: { alt: string; displayWidth: number },
+  src: string,
+): string {
+  return [
+    `<p style="margin:0 0 16px">`,
+    `<img src="${escapeHtml(src)}"`,
+    ` alt="${escapeHtml(block.alt)}"`,
+    ` width="${block.displayWidth}"`,
+    ` style="display:block;width:100%;max-width:${block.displayWidth}px;height:auto;border:0;border-radius:8px" />`,
+    `</p>`,
+  ].join("");
+}
+
+/** How an image reads in the plain-text twin, where there is no picture. */
+export function emailImageTextFallback(alt: string): string {
+  const description = sanitizeEmailImageAlt(alt);
+  return description ? `[Image: ${description}]` : "[Image]";
 }

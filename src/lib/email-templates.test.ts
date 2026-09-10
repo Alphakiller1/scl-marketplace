@@ -180,3 +180,75 @@ describe("the template registry", () => {
     }
   });
 });
+
+describe("images in an automated template", () => {
+  const ID = "9f2c7a41b8e0d3f1-1120";
+  const NARROW = "9f2c7a41b8e0d3f1-300";
+  const url = (id: string) => `https://cdn.test/broadcasts/${id}.jpg`;
+
+  it("renders the picture where the owner put it, and describes it in the text part", () => {
+    const { html, text } = renderEmailTemplate({
+      body: `Welcome aboard.
+
+[image:${ID}|Week 1 slate]
+
+{{button}}`,
+      actionLabel: "Log a play",
+      actionUrl: "https://scl.test/dashboard",
+      imageUrl: url,
+    });
+
+    assert.match(html, new RegExp(`src="${url(ID)}"`));
+    assert.match(html, /alt="Week 1 slate"/);
+    assert.match(html, /width="560"/);
+    // Order matters: the picture belongs between the copy and the button.
+    assert.ok(html.indexOf("Welcome aboard") < html.indexOf("<img"));
+    assert.ok(html.indexOf("<img") < html.indexOf("Log a play"));
+
+    // The plain-text twin has no picture, so it must say what was there.
+    assert.match(text, /\[Image: Week 1 slate\]/);
+    assert.equal(text.includes("[image:"), false);
+  });
+
+  it("never enlarges a narrow image", () => {
+    const { html } = renderEmailTemplate({
+      body: `[image:${NARROW}|Logo]`,
+      actionLabel: "Go",
+      actionUrl: "https://scl.test",
+      imageUrl: url,
+    });
+    assert.match(html, /width="300"/);
+    assert.match(html, /max-width:300px/);
+  });
+
+  // A template saved before hosting was configured, or an image since removed.
+  it("drops an unresolvable image rather than emitting a broken tag", () => {
+    const { html, text } = renderEmailTemplate({
+      body: `Hi
+
+[image:${ID}|Slate]
+
+Bye`,
+      actionLabel: "Go",
+      actionUrl: "https://scl.test",
+      imageUrl: () => null,
+    });
+    assert.equal(html.includes("<img"), false);
+    assert.match(html, /Hi/);
+    assert.match(html, /Bye/);
+    assert.match(text, /\[Image: Slate\]/);
+  });
+
+  it("keeps a stale marker out of the sent mail entirely", () => {
+    const { html, text } = renderEmailTemplate({
+      body: "Before [image:gone] after",
+      actionLabel: "Go",
+      actionUrl: "https://scl.test",
+      imageUrl: url,
+    });
+    assert.equal(html.includes("[image:"), false);
+    assert.equal(text.includes("[image:"), false);
+    assert.match(html, /Before/);
+    assert.match(html, /after/);
+  });
+});

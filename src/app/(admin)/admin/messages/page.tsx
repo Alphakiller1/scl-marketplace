@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { SectionHeader } from "@/components/scl/section";
 import { BroadcastComposer } from "@/components/scl/broadcast-composer";
 import { requireAdmin } from "@/lib/session";
+import { emailImageBaseUrl } from "@/lib/email-image-url";
 
 export const metadata = { title: "Mass email" };
 
@@ -53,6 +54,7 @@ export default async function AdminMessagesPage() {
       />
 
       <BroadcastComposer
+        imageBaseUrl={emailImageBaseUrl()}
         cappers={cappers.map((c) => ({
           id: c.id,
           label: c.username ? `@${c.username}` : c.email,

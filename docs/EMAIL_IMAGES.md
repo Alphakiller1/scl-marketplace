@@ -1,16 +1,27 @@
 # Images in owner emails
 
-Owners can drop pictures into the messages they send cappers from
-**Admin → Mass Email** (`/admin/messages`). This covers the mass email composer —
-the automated lifecycle templates in `/admin/emails` are still text plus a button.
+Owners can drop pictures into **every email they can write**:
+
+- **Admin → Mass Email** (`/admin/messages`) — the one-off blast.
+- **Admin → Capper Emails** (`/admin/emails`) — the automated lifecycle
+  templates (welcome, verification, password reset, follow-ups).
+
+Both mount the same control, `EmailBodyField`, so "add an image" looks and
+behaves identically in either place.
 
 ## Using it
 
-Three ways to add an image, all equivalent:
+Four ways to add an image, all equivalent:
 
 - **Add image** — opens a file picker.
 - **Drag** a file onto the message box.
-- **Paste** a screenshot straight from the clipboard.
+- **Paste** a screenshot from the clipboard.
+- **Paste a picture copied from a web page**, a doc, or Canva — those put no file
+  on the clipboard at all, only HTML with a remote `<img src>`, so SCL fetches it
+  for you.
+
+If a paste carries something we cannot use, it now says so. Silently doing
+nothing is what the first version did, and it read as "paste is broken".
 
 The picture is inserted at the cursor, as its own block, and shows up in the
 message as a marker:
@@ -32,7 +43,12 @@ by default for senders a reader has not written to before, so for a good number
 of recipients that description is all they see. It is pre-filled from the
 filename; a better one is worth the ten seconds.
 
-Limits: **6 images per email**, **5 MB per file**, JPG / PNG / WebP / HEIC in.
+In an automated template the picture also gets a plain-text stand-in —
+`[Image: Week 1 slate]` — because those emails send a text part alongside the
+HTML, and a reader on the text part should know something was there.
+
+Limits: **6 images per email**, **5 MB per file** (10 MB for a fetched link),
+JPG / PNG / WebP / HEIC in.
 
 ## What happens to a file
 
@@ -56,6 +72,16 @@ so replacing an object in place would silently rewrite mail sent weeks ago. For
 the same reason, images are never deleted from the bucket: removing one from a
 draft only removes the marker.
 
+## Fetching a pasted link
+
+A pasted web image means the server opens a URL the user chose, which is the
+shape of an SSRF. `src/lib/remote-image-fetch.ts` carries the guards: http(s)
+only, hostnames resolved with every returned address checked against the private
+ranges, each redirect hop re-validated by hand, a content-type check, a 10 MB
+ceiling and a 10s timeout. The range table is unit-tested in
+`remote-image-fetch.test.ts` — including `169.254.169.254`. The action is
+admin-only on top of all that.
+
 ## Before a send goes out
 
 A mass email cannot be recalled, so `sendBroadcastAction` refuses the send if:
@@ -67,6 +93,10 @@ A mass email cannot be recalled, so `sendBroadcastAction` refuses the send if:
 That last check is made against the same public URL a recipient's mail client
 will fetch, which is the only way to catch a bucket that has quietly stopped
 being public before the mail is in 136 inboxes rather than after.
+
+`saveEmailTemplateAction` runs the same check, and for a stronger reason: an
+automated template is not a one-off, so a picture that 404s would break every
+future send of that email until somebody noticed.
 
 A marker whose handle is not recognised is dropped from the rendered mail rather
 than sent as literal `[image:...]` text.
@@ -95,12 +125,16 @@ leaves one small probe object in the bucket and prints its path.
 
 ## Code map
 
-| File                                        | Role                                                                                         |
-| ------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `src/lib/email-image.ts`                    | Marker grammar, parsing, HTML rendering. Pure; the mailer and the composer preview share it. |
-| `src/lib/email-image-process.ts`            | Sharp pipeline (rotate, resize, flatten, JPEG).                                              |
-| `src/lib/email-media.ts`                    | Handle → public URL, and the pre-send reachability gate.                                     |
-| `src/lib/actions/email-image.action.ts`     | Admin-only upload.                                                                           |
-| `src/components/scl/broadcast-composer.tsx` | Composer: insert at cursor, drag, paste.                                                     |
-| `src/components/scl/email-image-tray.tsx`   | Uploaded images, alt text, remove/place.                                                     |
-| `src/components/scl/email-body-preview.tsx` | The message as an inbox lays it out.                                                         |
+| File                                                 | Role                                                                                                                                |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/email-image.ts`                             | Marker grammar, parsing, HTML rendering. Pure; the mailer and the composer preview share it.                                        |
+| `src/lib/email-image-process.ts`                     | Sharp pipeline (rotate, resize, flatten, JPEG).                                                                                     |
+| `src/lib/email-image-url.ts`                         | Handle → public URL, and the pre-send reachability gate. No secret needed, which is why automated templates can resolve images too. |
+| `src/lib/email-image-client.ts`                      | Getting a file out of a paste or a drop, whichever way the browser supplied it.                                                     |
+| `src/lib/remote-image-fetch.ts`                      | Fetching a pasted web image, with the SSRF guards.                                                                                  |
+| `src/lib/actions/email-image.action.ts`              | Admin-only upload.                                                                                                                  |
+| `src/components/scl/email-body-field.tsx`            | The shared message box: insert at cursor, drag, paste, tray, preview. Used by both surfaces.                                        |
+| `src/components/scl/broadcast-composer.tsx`          | Mass email: audience, subject, send gate.                                                                                           |
+| `src/components/scl/admin-email-template-editor.tsx` | Automated templates.                                                                                                                |
+| `src/components/scl/email-image-tray.tsx`            | Uploaded images, alt text, remove/place.                                                                                            |
+| `src/components/scl/email-body-preview.tsx`          | The message as an inbox lays it out.                                                                                                |

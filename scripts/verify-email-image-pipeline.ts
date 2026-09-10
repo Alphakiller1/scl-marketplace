@@ -26,7 +26,7 @@ import { optimizeEmailImage } from "../src/lib/email-image-process";
 import {
   emailImageUrlResolver,
   verifyEmailImagesDeliverable,
-} from "../src/lib/email-media";
+} from "../src/lib/email-image-url";
 import {
   ensureStorageBucket,
   getEmailMediaStorage,

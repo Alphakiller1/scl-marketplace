@@ -5,6 +5,9 @@ import {
   altTextFromFileName,
   buildEmailImageId,
   collectEmailImageIds,
+  emailImageTextFallback,
+  emailImageUrlFrom,
+  hasEmailImageMarker,
   EMAIL_IMAGE_ALT_MAX_LENGTH,
   EMAIL_IMAGE_MAX_DISPLAY_WIDTH,
   emailImageDisplayWidth,
@@ -307,5 +310,57 @@ describe("removeEmailImageToken", () => {
       WIDE,
     );
     assert.equal(out, `[image:${NARROW}|Keep]`);
+  });
+});
+
+describe("hasEmailImageMarker", () => {
+  it("sees a valid marker", () => {
+    assert.equal(hasEmailImageMarker(`a [image:${WIDE}|x] b`), true);
+  });
+
+  // Loose on purpose: a stale marker must route through the image path so it is
+  // dropped, rather than shipping to the roster as literal text.
+  it("sees a stale marker too", () => {
+    assert.equal(hasEmailImageMarker("[image:gone]"), true);
+  });
+
+  it("is false for ordinary text", () => {
+    assert.equal(hasEmailImageMarker("no pictures [here] at all"), false);
+  });
+});
+
+describe("emailImageUrlFrom", () => {
+  const base =
+    "https://ref.supabase.co/storage/v1/object/public/scl-email-media";
+
+  it("rebuilds the URL from the marker alone", () => {
+    assert.equal(
+      emailImageUrlFrom(base, WIDE),
+      `${base}/broadcasts/${WIDE}.jpg`,
+    );
+  });
+
+  it("tolerates a trailing slash on the base", () => {
+    assert.equal(
+      emailImageUrlFrom(`${base}/`, WIDE),
+      `${base}/broadcasts/${WIDE}.jpg`,
+    );
+  });
+
+  it("refuses a handle it did not mint", () => {
+    assert.equal(emailImageUrlFrom(base, "../../secret"), null);
+  });
+});
+
+describe("emailImageTextFallback", () => {
+  it("gives the plain-text twin the description", () => {
+    assert.equal(
+      emailImageTextFallback("Week 1 slate"),
+      "[Image: Week 1 slate]",
+    );
+  });
+
+  it("still says something when there is no description", () => {
+    assert.equal(emailImageTextFallback("   "), "[Image]");
   });
 });
