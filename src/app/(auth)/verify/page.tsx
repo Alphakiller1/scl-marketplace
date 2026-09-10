@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { after } from "next/server";
-import { CheckCircle2, MailWarning, XCircle } from "lucide-react";
+import { CheckCircle2, MailWarning } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { AuthHeader, AuthStatusNotice } from "@/components/scl/auth-header";
@@ -68,40 +68,57 @@ export default async function VerifyPage({
     });
   }
 
+  // `consumeVerificationToken` DELETES the token and answers only the caller
+  // that deleted it, so the overwhelmingly common way to land here without a
+  // claim is opening a link that already worked — a second tap, the reminder
+  // mail's copy of it, or the same link on a second device. Telling that person
+  // "Verification failed" and offering "Return to signup" is wrong twice over:
+  // their account is verified and active, and the advice invites a duplicate
+  // account. A verified capper reported exactly this and believed he was
+  // locked out.
+  //
+  // The three unclaimed cases — already used, expired, never valid — are not
+  // distinguishable here once the row is gone, so the copy covers all three
+  // honestly and routes to the two actions that can help: log in, or get a
+  // fresh link. Neither is destructive if the guess is wrong.
   return (
     <>
       <AuthHeader
-        icon={verified ? CheckCircle2 : XCircle}
+        icon={verified ? CheckCircle2 : MailWarning}
         eyebrow="Email Verification"
-        title={verified ? "Account activated" : "Link unavailable"}
+        title={verified ? "Account activated" : "This link is no longer active"}
         description={
           verified
             ? "Your email is verified and your capper workspace is ready."
-            : "This verification link is invalid, expired, or already used."
+            : "Verification links work once. If you have already used this one, your account is verified and you can simply log in."
         }
       />
       <AuthStatusNotice
-        tone={verified ? "success" : "error"}
-        title={verified ? "Verification complete" : "Verification failed"}
+        tone={verified ? "success" : "info"}
+        title={verified ? "Verification complete" : "Already verified?"}
         description={
           verified
             ? "Continue to login, then complete your public identity."
-            : "Create a new account or contact SCL support if this continues."
+            : "Log in below. If the link expired before you opened it, send yourself a new one."
         }
       />
       <Button
-        render={
-          <Link
-            href={
-              verified ? "/login?callbackUrl=/dashboard/profile" : "/signup"
-            }
-          />
-        }
+        render={<Link href="/login?callbackUrl=/dashboard/profile" />}
         nativeButton={false}
         className="mt-5 min-h-10 w-full"
       >
-        {verified ? "Continue to log in" : "Return to signup"}
+        {verified ? "Continue to log in" : "Log in"}
       </Button>
+      {verified ? null : (
+        <Button
+          render={<Link href="/resend-verification" />}
+          nativeButton={false}
+          variant="outline"
+          className="mt-2 min-h-10 w-full"
+        >
+          Send a new verification link
+        </Button>
+      )}
     </>
   );
 }
