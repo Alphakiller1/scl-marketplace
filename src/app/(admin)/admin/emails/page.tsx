@@ -8,6 +8,7 @@ import { SectionHeader } from "@/components/scl/section";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { probeMailer } from "@/lib/email-deliverability";
+import { emailImageBaseUrl } from "@/lib/email-image-url";
 import { EMAIL_TEMPLATES, isEmailTemplateSlug } from "@/lib/email-templates";
 import { formatEasternDateTime } from "@/lib/odds-control-reporting";
 import {
@@ -138,6 +139,7 @@ export default async function AdminEmailsPage({
           <AdminEmailTemplateEditor
             key={slug}
             slug={slug}
+            imageBaseUrl={emailImageBaseUrl()}
             templates={templates.map((template) => ({
               slug: template.slug,
               label: EMAIL_TEMPLATES[template.slug].label,

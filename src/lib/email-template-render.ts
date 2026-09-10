@@ -13,6 +13,13 @@
  */
 
 import { escapeHtml } from "@/lib/email-escape";
+import {
+  emailImageTextFallback,
+  hasEmailImageMarker,
+  parseEmailBodyBlocks,
+  renderEmailImageHtml,
+} from "@/lib/email-image";
+import { emailImageUrlResolver } from "@/lib/email-image-url";
 
 export type RenderedEmail = { html: string; text: string };
 
@@ -48,17 +55,46 @@ export function renderEmailTemplate(input: {
   /** Appended below the footnote — the announcements opt-out, where one applies. */
   footerHtml?: string;
   footerText?: string;
+  /**
+   * Resolves an owner-dropped image to its public URL. Defaults to the
+   * configured bucket; tests pass their own to render without an environment.
+   */
+  imageUrl?: (id: string) => string | null;
 }): RenderedEmail {
   const resolved = applyVariables(input.body, input.variables ?? {});
 
   const htmlBlocks: string[] = [];
   const textBlocks: string[] = [];
 
+  const imageUrl = input.imageUrl ?? emailImageUrlResolver();
+
   for (const raw of resolved.split(/\n{2,}/)) {
     const block = raw.trim();
     // A variable that resolved to nothing (no handle on the account) leaves an
     // empty block behind; dropping it here is what keeps the gap from showing.
     if (!block) continue;
+
+    // An owner-dropped picture. Handled before the heading and button rules so a
+    // marker sharing a block with text still comes out as its own image, and so
+    // the text twin gets the description rather than a stray marker.
+    if (hasEmailImageMarker(block)) {
+      for (const piece of parseEmailBodyBlocks(block)) {
+        if (piece.kind === "image") {
+          const src = imageUrl(piece.id);
+          if (src) htmlBlocks.push(renderEmailImageHtml(piece, src));
+          textBlocks.push(emailImageTextFallback(piece.alt));
+          continue;
+        }
+        const lines = piece.text
+          .split("\n")
+          .map((line) => escapeHtml(line.trim()));
+        htmlBlocks.push(
+          `<p style="line-height:1.6;margin:0 0 12px">${lines.join("<br />")}</p>`,
+        );
+        textBlocks.push(piece.text);
+      }
+      continue;
+    }
 
     if (block === "{{button}}") {
       htmlBlocks.push(buttonHtml(input.actionLabel, input.actionUrl));

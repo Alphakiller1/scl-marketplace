@@ -10,7 +10,7 @@ import { renderBroadcastHtml, sendBroadcastBatch } from "@/lib/email";
 import {
   emailImageUrlResolver,
   verifyEmailImagesDeliverable,
-} from "@/lib/email-media";
+} from "@/lib/email-image-url";
 import { mailerConfigured } from "@/lib/email-verification-policy";
 import {
   BROADCAST_MAX_RECIPIENTS,

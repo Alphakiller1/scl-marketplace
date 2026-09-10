@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { EmailBodyField } from "@/components/scl/email-body-field";
 import {
   saveEmailTemplateAction,
   sendEmailTemplatePreviewAction,
@@ -31,6 +32,7 @@ export function AdminEmailTemplateEditor({
   persisted,
   updatedAtLabel,
   storageReady,
+  imageBaseUrl,
 }: {
   slug: EmailTemplateSlug;
   templates: { slug: EmailTemplateSlug; label: string; persisted: boolean }[];
@@ -42,6 +44,8 @@ export function AdminEmailTemplateEditor({
   persisted: boolean;
   updatedAtLabel: string | null;
   storageReady: boolean;
+  /** Public base for the email image bucket, or null when unconfigured. */
+  imageBaseUrl: string | null;
 }) {
   const router = useRouter();
   const [subject, setSubject] = useState(initial.subject);
@@ -128,25 +132,31 @@ export function AdminEmailTemplateEditor({
 
       <div className="space-y-2">
         <Label htmlFor="template-body">Body</Label>
-        <textarea
+        <EmailBodyField
           id="template-body"
           value={body}
-          onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
-            setBody(event.target.value)
-          }
+          onChange={setBody}
+          imageBaseUrl={imageBaseUrl}
           rows={18}
           maxLength={20_000}
-          required
+          disabled={pending}
           className={cn(
-            "border-input bg-background placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 min-h-80 w-full resize-y rounded-lg border px-3 py-3 font-mono text-sm leading-relaxed outline-none focus-visible:ring-3",
+            "border-input bg-background placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 min-h-80 resize-y font-mono",
             missingButton && "border-destructive",
           )}
+          help={
+            <div className="text-muted-foreground space-y-1 text-xs leading-relaxed">
+              <p>
+                Blank line starts a new paragraph. A line beginning with{" "}
+                <code className="bg-surface-2 rounded px-1">#</code> is a
+                heading, and each{" "}
+                <code className="bg-surface-2 rounded px-1">[image:…]</code>{" "}
+                marks where a picture goes.
+              </p>
+            </div>
+          }
         />
         <div className="text-muted-foreground space-y-1 text-xs leading-relaxed">
-          <p>
-            Blank line starts a new paragraph. A line beginning with{" "}
-            <code className="bg-surface-2 rounded px-1">#</code> is a heading.
-          </p>
           <p>
             <code className="bg-surface-2 rounded px-1">{"{{button}}"}</code> on
             its own line is where the button goes. SCL fills in the link, so it

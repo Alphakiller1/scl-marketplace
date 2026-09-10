@@ -13,6 +13,7 @@ export type ComposerImage = {
   id: string;
   url: string;
   alt: string;
+  /** Stored width in px. 0 when the row was restored from saved text. */
   width: number;
   /** Name of the file the owner picked, for identifying it in the tray. */
   fileName: string;
@@ -72,7 +73,7 @@ export function EmailImageTray({
         <p className="text-muted-foreground text-xs">
           {atLimit
             ? `That's the limit of ${EMAIL_IMAGE_MAX_PER_EMAIL} images.`
-            : "Or drag one onto the message, or paste it."}
+            : "Or drag a file onto the message, or paste a screenshot or a picture copied from a web page."}
         </p>
       </div>
 
@@ -116,8 +117,12 @@ export function EmailImageTray({
                     <span className="text-neg">
                       Not placed in the message yet.
                     </span>
-                  ) : (
+                  ) : image.width > 0 ? (
                     `${image.width}px wide · ${image.fileName}`
+                  ) : (
+                    // Restored from the saved text rather than uploaded just now,
+                    // so its stored width is not known here.
+                    image.fileName
                   )}
                 </p>
               </div>

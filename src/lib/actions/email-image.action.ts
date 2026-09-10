@@ -9,6 +9,7 @@ import {
 } from "@/lib/email-image";
 import { optimizeEmailImage } from "@/lib/email-image-process";
 import { emailImageUploadSchema } from "@/lib/schemas/email-image.schema";
+import { fetchRemoteImage } from "@/lib/remote-image-fetch";
 import { requireAdmin } from "@/lib/session";
 import {
   ensureStorageBucket,
@@ -22,7 +23,7 @@ export type EmailImageUploadResult =
   | { ok: false; error: string };
 
 /**
- * Host one image for an admin email and hand back the handle to drop into the
+ * Host one image for an owner's email and hand back the handle to drop into the
  * message.
  *
  * Uploaded objects are never overwritten or reused: each upload mints a fresh
@@ -34,7 +35,23 @@ export async function uploadEmailImageAction(
   formData: FormData,
 ): Promise<EmailImageUploadResult> {
   try {
-    return await storeEmailImage(formData);
+    await requireAdmin();
+
+    const parsed = emailImageUploadSchema.safeParse({
+      file: formData.get("file"),
+    });
+    if (!parsed.success) {
+      return {
+        ok: false,
+        error: parsed.error.issues[0]?.message ?? "Choose a valid image.",
+      };
+    }
+
+    const { file } = parsed.data;
+    return await storeEmailImage(
+      Buffer.from(await file.arrayBuffer()),
+      file.name,
+    );
   } catch (error) {
     console.error("[email-image] upload failed:", error);
     return {
@@ -44,21 +61,44 @@ export async function uploadEmailImageAction(
   }
 }
 
-async function storeEmailImage(
-  formData: FormData,
+/**
+ * Bring in a picture the owner pasted as a link.
+ *
+ * Copying an image out of a web page or a doc puts no file on the clipboard —
+ * only HTML with a remote `<img src>`. Without this, that paste does nothing,
+ * which is precisely what owners reported as "it won't let me paste".
+ *
+ * The URL is user-chosen, so `fetchRemoteImage` carries the SSRF guards; this
+ * only decides who may ask.
+ */
+export async function importEmailImageFromUrlAction(
+  url: string,
 ): Promise<EmailImageUploadResult> {
-  await requireAdmin();
+  try {
+    await requireAdmin();
 
-  const parsed = emailImageUploadSchema.safeParse({
-    file: formData.get("file"),
-  });
-  if (!parsed.success) {
+    if (typeof url !== "string" || url.length > 2048) {
+      return { ok: false, error: "That link can't be used." };
+    }
+
+    const fetched = await fetchRemoteImage(url);
+    if (!fetched.ok) return { ok: false, error: fetched.error };
+
+    return await storeEmailImage(fetched.data, fetched.fileName);
+  } catch (error) {
+    console.error("[email-image] url import failed:", error);
     return {
       ok: false,
-      error: parsed.error.issues[0]?.message ?? "Choose a valid image.",
+      error: "We couldn't bring that image in. Save it and drag it in instead.",
     };
   }
+}
 
+/** Process, store, and mint a handle. Shared by both ways an image arrives. */
+async function storeEmailImage(
+  input: Buffer,
+  fileName: string,
+): Promise<EmailImageUploadResult> {
   const storage = getEmailMediaStorage();
   if (!storage) {
     return {
@@ -71,11 +111,9 @@ async function storeEmailImage(
   const bucketReady = await ensureStorageBucket(storage);
   if (!bucketReady.ok) return bucketReady;
 
-  const { file } = parsed.data;
-
   let processed: { data: Buffer; width: number };
   try {
-    processed = await optimizeEmailImage(Buffer.from(await file.arrayBuffer()));
+    processed = await optimizeEmailImage(input);
   } catch (error) {
     console.error("[email-image] processing failed:", error);
     return {
@@ -107,7 +145,7 @@ async function storeEmailImage(
     // A filename beats an empty alt attribute: blocked images are the default in
     // several inboxes, and alt text is all those readers get. The owner edits it
     // in the composer tray from there.
-    alt: altTextFromFileName(file.name),
+    alt: altTextFromFileName(fileName),
     width: processed.width,
   };
 }

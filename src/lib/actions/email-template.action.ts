@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { verifyEmailImagesDeliverable } from "@/lib/email-image-url";
 import { defaultEmailTemplate } from "@/lib/email-templates";
 import { prisma } from "@/lib/prisma";
 import {
@@ -26,6 +27,13 @@ export async function saveEmailTemplateAction(
   }
 
   const next = parsed.data;
+
+  // An automated template is not a one-off: a picture that 404s here breaks
+  // every future send of this email, silently, for as long as nobody notices.
+  // Cheaper to refuse the save than to discover it in a capper's inbox.
+  const imagesOk = await verifyEmailImagesDeliverable(next.body);
+  if (!imagesOk.ok) return imagesOk;
+
   try {
     const stored = await prisma.emailTemplate.findUnique({
       where: { slug: next.slug },
