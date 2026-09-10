@@ -64,6 +64,7 @@ export function parlayToRecordView(parlay: ParlayRecordRow): PlayView {
     eventLabel: l.eventLabel,
     homeTeam: l.homeTeam,
     awayTeam: l.awayTeam,
+    eventStartsAt: l.eventStartsAt,
   }));
   return {
     id: parlay.id,
