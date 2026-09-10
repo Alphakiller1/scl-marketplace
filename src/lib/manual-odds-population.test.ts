@@ -90,13 +90,18 @@ test("a partial refresh retains future last-good fixtures", () => {
 });
 
 test("expanded order includes tennis and ignores sports without event markets", () => {
-  // NFL is surface-level odds only, so it never joins the expanded pass; soccer
-  // does, for Double Chance, and sorts last because it is the sport whose
+  // This list is the gate as well as the order: a sport missing from it never
+  // has an expanded board bought, whatever its config says. NFL was absent for
+  // a day after its props shipped, so every scheduled run finished with an
+  // empty `expanded` block and spent nothing. It now sorts second — behind
+  // MLB, which is the expensive card, and ahead of soccer, whose single
   // expanded market can be dropped without leaving a fixture unbettable.
   assert.deepEqual(
     parseExpandedSportOrder(null, ["NFL", "WNBA", "MLB", "SOCCER"]),
-    ["MLB", "WNBA", "SOCCER"],
+    ["MLB", "NFL", "WNBA", "SOCCER"],
   );
+  // A sport with no expanded markets at all is still dropped.
+  assert.deepEqual(parseExpandedSportOrder(null, ["NCAAF", "MMA"]), []);
   assert.deepEqual(parseExpandedSportOrder("WNBA,MLB", ["MLB", "WNBA"]), [
     "WNBA",
     "MLB",

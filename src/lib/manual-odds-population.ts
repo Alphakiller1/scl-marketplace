@@ -4,14 +4,26 @@ import { expandedBoardMarkets } from "@/lib/odds-verify";
 /**
  * Owner priority for sports with per-event expanded boards.
  *
+ * This list is also the GATE, not just the order: `parseExpandedSportOrder`
+ * drops any requested sport missing from it, so a sport absent here never has
+ * its expanded board bought at all, however it is configured elsewhere. NFL
+ * props shipped with markets defined, the sport enabled and the schedule due,
+ * and still bought nothing for a day — every run completed with `expanded: {}`
+ * and zero credits, because the sport fell out here before the loop began.
+ *
  * MLB first and soccer last is a budget decision, not a taste one: a full MLB
  * card at full markets costs more than a whole top-up key, so whatever runs
  * after it only gets what the reserve held back. Soccer's expanded call adds a
  * single market (Double Chance) across eighty fixtures, so it is the one that
  * can be cut to a partial slate without leaving a game unbettable.
+ *
+ * NFL sits second: its card is a fraction of MLB's and its slate is one or two
+ * games on a weekday, so it is cheap to satisfy — and with baseball ending and
+ * football starting it is the one the owners are asked about.
  */
 export const DEFAULT_EXPANDED_SPORT_ORDER = [
   "MLB",
+  "NFL",
   "WNBA",
   "TENNIS",
   "SOCCER",
