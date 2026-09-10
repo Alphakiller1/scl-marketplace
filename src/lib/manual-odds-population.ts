@@ -166,16 +166,33 @@ export function pastExpandedLastCall(
  * repeatable.
  */
 export function shouldSpendExpandedBuy(input: {
-  priced: number;
-  wanted: number;
+  priced: readonly string[];
+  wanted: readonly string[];
   commenceTime: string;
   now?: number;
 }): boolean {
   const now = input.now ?? Date.now();
-  if (input.priced <= 0) return false;
+  if (input.priced.length === 0) return false;
   if (pastExpandedLastCall(input.commenceTime, now)) return true;
-  if (input.wanted <= 0) return false;
-  return input.priced / input.wanted >= EXPANDED_MIN_COVERAGE;
+
+  // Coverage is judged on the FEATURED card only. Two thirds of everything
+  // requested sounds right until you count what is requested: NFL asks for 28
+  // keys, and 13 of them are alternate ladders that plenty of books never post.
+  // Measured against the full list, a fixture with every headline market open
+  // still scores under the threshold, so the buy waits for last call and the
+  // board sits empty all day for markets that were available by breakfast.
+  const core = (keys: readonly string[]) => keys.filter((k) => !isAlternate(k));
+  const wantedCore = core(input.wanted);
+  const pricedCore = core(input.priced);
+  if (wantedCore.length === 0) {
+    return input.priced.length / input.wanted.length >= EXPANDED_MIN_COVERAGE;
+  }
+  return pricedCore.length / wantedCore.length >= EXPANDED_MIN_COVERAGE;
+}
+
+/** The Odds API spells alternate ladders both ways depending on the market family. */
+function isAlternate(key: string): boolean {
+  return key.startsWith("alternate_") || key.endsWith("_alternate");
 }
 
 /** True when every future fixture on the board should be expanded. */

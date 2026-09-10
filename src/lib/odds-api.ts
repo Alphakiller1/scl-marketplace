@@ -1220,8 +1220,8 @@ export async function fetchEventBoard(
   if (
     opts?.commenceTime &&
     !shouldSpendExpandedBuy({
-      priced: markets.length,
-      wanted: wanted.length,
+      priced: markets,
+      wanted,
       commenceTime: opts.commenceTime,
     })
   ) {
