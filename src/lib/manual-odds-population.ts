@@ -4,14 +4,26 @@ import { expandedBoardMarkets } from "@/lib/odds-verify";
 /**
  * Owner priority for sports with per-event expanded boards.
  *
+ * This list is also the GATE, not just the order: `parseExpandedSportOrder`
+ * drops any requested sport missing from it, so a sport absent here never has
+ * its expanded board bought at all, however it is configured elsewhere. NFL
+ * props shipped with markets defined, the sport enabled and the schedule due,
+ * and still bought nothing for a day — every run completed with `expanded: {}`
+ * and zero credits, because the sport fell out here before the loop began.
+ *
  * MLB first and soccer last is a budget decision, not a taste one: a full MLB
  * card at full markets costs more than a whole top-up key, so whatever runs
  * after it only gets what the reserve held back. Soccer's expanded call adds a
  * single market (Double Chance) across eighty fixtures, so it is the one that
  * can be cut to a partial slate without leaving a game unbettable.
+ *
+ * NFL sits second: its card is a fraction of MLB's and its slate is one or two
+ * games on a weekday, so it is cheap to satisfy — and with baseball ending and
+ * football starting it is the one the owners are asked about.
  */
 export const DEFAULT_EXPANDED_SPORT_ORDER = [
   "MLB",
+  "NFL",
   "WNBA",
   "TENNIS",
   "SOCCER",
@@ -154,16 +166,33 @@ export function pastExpandedLastCall(
  * repeatable.
  */
 export function shouldSpendExpandedBuy(input: {
-  priced: number;
-  wanted: number;
+  priced: readonly string[];
+  wanted: readonly string[];
   commenceTime: string;
   now?: number;
 }): boolean {
   const now = input.now ?? Date.now();
-  if (input.priced <= 0) return false;
+  if (input.priced.length === 0) return false;
   if (pastExpandedLastCall(input.commenceTime, now)) return true;
-  if (input.wanted <= 0) return false;
-  return input.priced / input.wanted >= EXPANDED_MIN_COVERAGE;
+
+  // Coverage is judged on the FEATURED card only. Two thirds of everything
+  // requested sounds right until you count what is requested: NFL asks for 28
+  // keys, and 13 of them are alternate ladders that plenty of books never post.
+  // Measured against the full list, a fixture with every headline market open
+  // still scores under the threshold, so the buy waits for last call and the
+  // board sits empty all day for markets that were available by breakfast.
+  const core = (keys: readonly string[]) => keys.filter((k) => !isAlternate(k));
+  const wantedCore = core(input.wanted);
+  const pricedCore = core(input.priced);
+  if (wantedCore.length === 0) {
+    return input.priced.length / input.wanted.length >= EXPANDED_MIN_COVERAGE;
+  }
+  return pricedCore.length / wantedCore.length >= EXPANDED_MIN_COVERAGE;
+}
+
+/** The Odds API spells alternate ladders both ways depending on the market family. */
+function isAlternate(key: string): boolean {
+  return key.startsWith("alternate_") || key.endsWith("_alternate");
 }
 
 /** True when every future fixture on the board should be expanded. */

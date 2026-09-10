@@ -3,6 +3,7 @@ import test from "node:test";
 
 import type { OddsEvent } from "@/lib/odds-board";
 import { expandedBoardMarkets } from "@/lib/odds-verify";
+import { ODDS_CONTROL_SPORTS } from "@/lib/odds-control";
 import {
   DEFAULT_EVENT_BUYS_PER_DAY,
   HARD_MAX_EVENT_BUYS_PER_DAY,
@@ -10,6 +11,7 @@ import {
 import {
   shouldSpendExpandedBuy,
   withinExpandedBuyWindow,
+  DEFAULT_EXPANDED_SPORT_ORDER,
   CATALOG_WORTH_READING_MARKETS,
   DEFAULT_EXPANDED_MAX_AGE_MINUTES,
   EVENT_MARKET_CATALOG_CREDIT_COST,
@@ -90,13 +92,18 @@ test("a partial refresh retains future last-good fixtures", () => {
 });
 
 test("expanded order includes tennis and ignores sports without event markets", () => {
-  // NFL is surface-level odds only, so it never joins the expanded pass; soccer
-  // does, for Double Chance, and sorts last because it is the sport whose
+  // This list is the gate as well as the order: a sport missing from it never
+  // has an expanded board bought, whatever its config says. NFL was absent for
+  // a day after its props shipped, so every scheduled run finished with an
+  // empty `expanded` block and spent nothing. It now sorts second — behind
+  // MLB, which is the expensive card, and ahead of soccer, whose single
   // expanded market can be dropped without leaving a fixture unbettable.
   assert.deepEqual(
     parseExpandedSportOrder(null, ["NFL", "WNBA", "MLB", "SOCCER"]),
-    ["MLB", "WNBA", "SOCCER"],
+    ["MLB", "NFL", "WNBA", "SOCCER"],
   );
+  // A sport with no expanded markets at all is still dropped.
+  assert.deepEqual(parseExpandedSportOrder(null, ["NCAAF", "MMA"]), []);
   assert.deepEqual(parseExpandedSportOrder("WNBA,MLB", ["MLB", "WNBA"]), [
     "WNBA",
     "MLB",
@@ -351,23 +358,41 @@ test("the deep board is only looked at once the book has plausibly opened it", (
 test("the one buy waits for the card to open, but never past last call", () => {
   const now = Date.parse("2026-09-09T12:00:00Z");
   const inHours = (h: number) => new Date(now + h * 3_600_000).toISOString();
+  const featured = [
+    "h2h_h1",
+    "totals_h1",
+    "player_pass_yds",
+    "player_rush_yds",
+    "player_receptions",
+    "player_reception_yds",
+  ];
+  const ladders = featured.map((key) =>
+    key.startsWith("h2h") || key.startsWith("totals")
+      ? `alternate_${key}`
+      : `${key}_alternate`,
+  );
+  const wanted = [...featured, ...ladders];
 
-  // Eight hours out with a third of the card priced: hold. The catalog read
-  // cost a credit and spent no allowance, so the next pass can still buy.
+  // Two featured of six, eight hours out: hold. The catalog read cost a credit
+  // and spent no allowance, so the next pass can still buy.
   assert.equal(
     shouldSpendExpandedBuy({
-      priced: 6,
-      wanted: 18,
+      priced: featured.slice(0, 2),
+      wanted,
       commenceTime: inHours(8),
       now,
     }),
     false,
   );
-  // Same eight hours, card now mostly open: spend it.
+  // The whole featured card open and NOT ONE alternate ladder posted. Judged
+  // against everything requested this is half, and the buy would wait for last
+  // call while every headline market sat there available — the board empty all
+  // day for markets open by breakfast. Judged on the featured card it is full
+  // coverage, and it buys.
   assert.equal(
     shouldSpendExpandedBuy({
-      priced: 14,
-      wanted: 18,
+      priced: featured,
+      wanted,
       commenceTime: inHours(8),
       now,
     }),
@@ -377,8 +402,8 @@ test("the one buy waits for the card to open, but never past last call", () => {
   // need every alternate ladder.
   assert.equal(
     shouldSpendExpandedBuy({
-      priced: 6,
-      wanted: 18,
+      priced: featured.slice(0, 1),
+      wanted,
       commenceTime: inHours(2),
       now,
     }),
@@ -387,13 +412,29 @@ test("the one buy waits for the card to open, but never past last call", () => {
   // Nothing priced is never worth the odds call, at any hour.
   assert.equal(
     shouldSpendExpandedBuy({
-      priced: 0,
-      wanted: 18,
+      priced: [],
+      wanted,
       commenceTime: inHours(1),
       now,
     }),
     false,
   );
+});
+
+test("every sport with an expanded card is in the pass that buys it", () => {
+  // The invariant this whole file exists to protect. DEFAULT_EXPANDED_SPORT_ORDER
+  // is the gate: a sport missing from it never has its expanded board bought,
+  // however complete its markets and config are. NFL shipped props, was enabled,
+  // had all 28 keys configured and a schedule that fired every six hours — and
+  // bought nothing for a day, because it was absent from this one list and no
+  // test compared the two.
+  for (const sport of ODDS_CONTROL_SPORTS) {
+    if (expandedBoardMarkets(sport).length === 0) continue;
+    assert.ok(
+      (DEFAULT_EXPANDED_SPORT_ORDER as readonly string[]).includes(sport),
+      `${sport} has an expanded card but is missing from DEFAULT_EXPANDED_SPORT_ORDER, so nothing will ever buy it`,
+    );
+  }
 });
 
 test("an event is bought once a day by default", () => {
