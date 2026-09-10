@@ -9,6 +9,7 @@ import {
   type LegacySportRecordView,
 } from "@/lib/legacy-sport-records";
 import { stakeFromStored } from "@/lib/extreme-stake";
+import { slateDateForParlay, slateDateForPlay } from "@/lib/pick-slate";
 import {
   getAllTimeLegacyBaseline,
   profileLegacyRecordWhere,
@@ -95,6 +96,8 @@ export type ParlayLegView = {
   eventLabel: string | null;
   homeTeam: string | null;
   awayTeam: string | null;
+  /** Needed to date the ticket by its last game — see `slateDateForParlay`. */
+  eventStartsAt: Date | null;
 };
 
 /** A capper's parlay as a single position of record, with its legs. */
@@ -112,12 +115,26 @@ export type ParlayView = {
   legs: ParlayLegView[];
 };
 
-/** A record entry is either a straight play or a parlay; both share a createdAt for ordering. */
+/** A record entry is either a straight play or a parlay. */
 export type RecordEntry =
   | ({ kind: "play" } & PlayView)
   | ({ kind: "parlay" } & ParlayView);
 
-/** Merge plays + parlays into one most-recent-first record list (pure; no DB). */
+/**
+ * The day a record entry belongs to: the slate it was played on, falling back to
+ * when it was logged. One definition, shared with the leaderboard — see
+ * `pick-slate.ts` for why they have to agree.
+ */
+export function recordEntrySlateDate(entry: RecordEntry): Date {
+  return entry.kind === "parlay"
+    ? slateDateForParlay(
+        entry.legs.map((leg) => leg.eventStartsAt),
+        entry.createdAt,
+      )
+    : slateDateForPlay(entry.eventStartsAt, entry.createdAt);
+}
+
+/** Merge plays + parlays into one list, newest slate first (pure; no DB). */
 export function mergeRecordEntries(
   plays: PlayView[],
   parlays: ParlayView[],
@@ -126,7 +143,10 @@ export function mergeRecordEntries(
     ...plays.map((p) => ({ kind: "play" as const, ...p })),
     ...parlays.map((p) => ({ kind: "parlay" as const, ...p })),
   ];
-  return entries.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  return entries.sort(
+    (a, b) =>
+      recordEntrySlateDate(b).getTime() - recordEntrySlateDate(a).getTime(),
+  );
 }
 
 export type CapperLegacyRecords = {
@@ -336,6 +356,7 @@ export async function getCapperParlays(
         eventLabel: l.eventLabel,
         homeTeam: l.homeTeam,
         awayTeam: l.awayTeam,
+        eventStartsAt: l.eventStartsAt,
       })),
     };
   });

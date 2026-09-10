@@ -6,6 +6,7 @@ import {
   getCapperParlays,
   getCapperPlays,
   mergeRecordEntries,
+  recordEntrySlateDate,
 } from "@/lib/queries/plays";
 import { NewPickButton } from "@/components/scl/new-pick-button";
 import { EmptyState } from "@/components/scl/states";
@@ -19,7 +20,14 @@ type PickSort = "recent" | "roi" | "winPct" | "units";
 
 function sortEntries(entries: RecordEntry[], sort: PickSort) {
   return [...entries].sort((a, b) => {
-    if (sort === "recent") return b.createdAt.getTime() - a.createdAt.getTime();
+    // Slate day, not log time: a pick belongs to the day its game was played,
+    // which is what the leaderboard windows on. Ordering these two differently is
+    // what made a capper's history and his 1D line look like they disagreed.
+    if (sort === "recent") {
+      return (
+        recordEntrySlateDate(b).getTime() - recordEntrySlateDate(a).getTime()
+      );
+    }
     if (sort === "units") return (b.profitUnits ?? 0) - (a.profitUnits ?? 0);
     if (sort === "roi") {
       return (b.profitUnits ?? 0) / b.units - (a.profitUnits ?? 0) / a.units;
@@ -31,7 +39,7 @@ function sortEntries(entries: RecordEntry[], sort: PickSort) {
 }
 
 const SORT_OPTIONS: { key: PickSort; label: string }[] = [
-  { key: "recent", label: "Most recent" },
+  { key: "recent", label: "Latest slate" },
   { key: "roi", label: "ROI" },
   { key: "winPct", label: "Win rate" },
   { key: "units", label: "Units won" },
