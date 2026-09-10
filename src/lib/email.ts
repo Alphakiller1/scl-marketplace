@@ -400,13 +400,48 @@ export async function sendNewSignupNotificationEmail(input: {
       console.error(
         `[email] signup notification failed for @${handle}: ${error.message}`,
       );
+      await recordSignupNotificationActivity(recipients, handle, {
+        status: "FAILED",
+        failureReason: error.message,
+      });
       return { delivered: false as const };
     }
+    await recordSignupNotificationActivity(recipients, handle, {
+      status: "SENT",
+    });
     return { delivered: true as const };
   } catch (error) {
     console.error(`[email] signup notification threw for @${handle}:`, error);
+    await recordSignupNotificationActivity(recipients, handle, {
+      status: "FAILED",
+      failureReason: error instanceof Error ? error.message : String(error),
+    });
     return { delivered: false as const };
   }
+}
+
+/**
+ * One ledger row per owner recipient, so "did we get told about this capper?"
+ * is answerable per mailbox rather than as a single opaque yes.
+ *
+ * `recipientUsername` is the NEW CAPPER, not the owner — the row is looked up
+ * by the capper being reported on, which is how support actually asks the
+ * question.
+ */
+async function recordSignupNotificationActivity(
+  recipients: readonly string[],
+  handle: string,
+  outcome: { status: "SENT" | "FAILED"; failureReason?: string },
+) {
+  await recordSystemEmailActivities(
+    recipients.map((recipientEmail) => ({
+      emailType: "NEW_SIGNUP_NOTIFICATION",
+      recipientEmail,
+      recipientUsername: handle,
+      status: outcome.status,
+      failureReason: outcome.failureReason ?? null,
+    })),
+  );
 }
 
 /** Comma-separated in ADMIN_NOTIFICATION_EMAIL_TO; falls back to SCL affiliate ops. */

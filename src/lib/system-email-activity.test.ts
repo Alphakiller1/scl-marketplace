@@ -44,16 +44,26 @@ describe("system email activity retention", () => {
 describe("system email activity flow", () => {
   it("allows only SCL lifecycle automations into the activity ledger", () => {
     const email = read("src/lib/email.ts");
+    // The account lifecycle end to end. VERIFICATION was previously excluded as
+    // "security mail", which left the ledger logging the reminder but not the
+    // mail it reminds you about — so when a capper reported never receiving his
+    // link there was no row for it, for him or anyone, and a provider failure
+    // could not be told apart from a spam folder or a send that never happened.
+    // The ledger stores type, recipient, status and message id; it never stores
+    // the token or the body, so this carries no credential.
     assert.deepEqual(SYSTEM_EMAIL_ACTIVITY_TYPES, [
       "WELCOME",
+      "VERIFICATION",
       "VERIFY_EMAIL_REMINDER",
       "NO_PLAYS_NUDGE",
+      "NEW_SIGNUP_NOTIFICATION",
     ]);
     for (const type of SYSTEM_EMAIL_ACTIVITY_TYPES) {
       assert.equal(isSystemEmailActivityType(type), true);
     }
+    // The real boundary that stays: a password reset is a credential-bearing
+    // security mail, and broadcasts and storefront threads are not lifecycle.
     for (const excluded of [
-      "VERIFICATION",
       "PASSWORD_RESET",
       "ADMIN_BROADCAST",
       "STOREFRONT_MESSAGE",
