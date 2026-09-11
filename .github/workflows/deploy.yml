@@ -193,9 +193,10 @@ jobs:
             exit 1
           fi
 
-          # Eight cache-busted rounds load the public data stories concurrently.
-          # Explicit health markers prevent a 200 page with empty fallback data
-          # from passing the deployment gate.
+          # Eight cache-busted rounds load public data stories sequentially
+          # (Fluid pool is 5 connections). Each round retries a degraded page
+          # so one ISR/pool miss does not fail the gate. Explicit health
+          # markers prevent a 200 page with empty fallback data from passing.
           node scripts/verify-production-release.mjs \
             "$PRODUCTION_URL" "$EXPECTED_SHA" 8 2000
 
