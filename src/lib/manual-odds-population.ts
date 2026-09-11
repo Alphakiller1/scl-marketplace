@@ -403,6 +403,65 @@ export function canSkipExpandedEvent(
   return now - savedAt <= maxAgeMinutes * 60_000;
 }
 
+/**
+ * How soon a catch-up pass runs once a fixture with no board at all is found.
+ *
+ * Short, because the thing it is chasing is a fixture the provider published
+ * late and the slate is already running: on 2026-09-11 the Cubs matinee reached
+ * the MLB board between the 06:15 and 12:15 surface runs, and the expanded tier
+ * was not due again until 18:45 — twenty-four minutes after first pitch.
+ */
+export const EXPANDED_CATCHUP_MINUTES = 15;
+
+/**
+ * The floor under two expanded passes for one sport.
+ *
+ * A fixture whose deep card no book has opened stays uncovered however often we
+ * look, so without a floor every surface run would queue another pass behind
+ * the last one. Thirty minutes bounds that to something the buy allowance and
+ * the catalog credit can both absorb: a pass over an unopened event costs one
+ * credit and spends no allowance (see `DEFAULT_EVENT_BUYS_PER_DAY`), so
+ * repeating it is cheap — but it is not free, and it is not urgent.
+ */
+export const EXPANDED_CATCHUP_MIN_GAP_MINUTES = 30;
+
+/**
+ * When should the expanded tier next run, given fixtures it has never covered?
+ *
+ * The expanded pass iterates the slate held by the CACHED surface board, and
+ * the two tiers keep independent cadences — MLB surface every 6 hours, expanded
+ * every 12. A fixture the provider lists after the expanded pass has run is
+ * therefore not held, skipped or capped by that pass; it is never seen at all,
+ * and the run reports a clean sweep of the fixtures it did see. Nothing brings
+ * the tier back before the full cadence, so the board stays empty through first
+ * pitch.
+ *
+ * Returning a time only ever moves the next run EARLIER. A schedule that is
+ * already due sooner is left alone, so this can never defer work.
+ */
+export function expandedCatchUpRunAt(input: {
+  uncovered: number;
+  scheduledAt: Date | null;
+  lastRunAt: Date | null;
+  now?: Date;
+}): Date | null {
+  if (input.uncovered <= 0) return null;
+  const now = input.now ?? new Date();
+  // The floor is measured from the last pass, not from now: a run that just
+  // finished and still left fixtures uncovered must not immediately queue
+  // another one.
+  const floor = input.lastRunAt
+    ? input.lastRunAt.getTime() + EXPANDED_CATCHUP_MIN_GAP_MINUTES * 60_000
+    : now.getTime();
+  const at = new Date(
+    Math.max(now.getTime() + EXPANDED_CATCHUP_MINUTES * 60_000, floor),
+  );
+  if (input.scheduledAt && input.scheduledAt.getTime() <= at.getTime()) {
+    return null;
+  }
+  return at;
+}
+
 /** One sport's surface board as the populate route saw it. */
 export type SurfaceOutcome = { source: string; stale: boolean };
 

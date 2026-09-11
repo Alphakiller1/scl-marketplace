@@ -11,6 +11,7 @@ import type { OddsSelection } from "@/lib/odds-board";
 import { shouldCircuitBreak } from "@/lib/odds-budget";
 import {
   readDurableOddsSnapshot,
+  readDurableOddsSnapshotKeys,
   writeDurableOddsSnapshot,
 } from "@/lib/odds-durable-cache";
 import {
@@ -127,6 +128,27 @@ async function writeSnapshot(
 }
 
 /** Read one expanded event board without refreshing or spending provider credits. */
+/**
+ * Which of these fixtures has never had an expanded board bought.
+ *
+ * The expanded pass iterates the slate the CACHED surface board held when it
+ * started, and the provider only lists a fixture once a book has priced it. So
+ * a game published after the pass — a Cubs matinee, a Dodgers game added over
+ * breakfast — is not skipped, held or capped: it is never seen, and the run
+ * reports a clean sweep of everything it did see. Asking the store which
+ * fixtures have no board is the only way to notice from the outside.
+ */
+export async function eventsMissingBoard(
+  sport: string,
+  eventIds: readonly string[],
+): Promise<string[]> {
+  const upper = sport.toUpperCase();
+  const present = await readDurableOddsSnapshotKeys(
+    eventIds.map((eventId) => cacheKey(upper, eventId)),
+  );
+  return eventIds.filter((eventId) => !present.has(cacheKey(upper, eventId)));
+}
+
 export async function loadCachedEventBoard(
   sport: string,
   eventId: string,
