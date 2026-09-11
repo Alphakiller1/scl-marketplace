@@ -12,6 +12,7 @@ import {
   utcDayStart,
   type OddsControlTier,
 } from "@/lib/odds-control";
+import { expandedCatchUpRunAt } from "@/lib/manual-odds-population";
 import { prisma } from "@/lib/prisma";
 
 export type ClaimedOddsRun = {
@@ -85,6 +86,74 @@ export async function getManagedOddsSportControl(sport: string) {
   } catch (error) {
     if (isMissingOddsControlStorageError(error)) return null;
     throw error;
+  }
+}
+
+/**
+ * Bring the expanded tier back for fixtures that have never had a board.
+ *
+ * The expanded pass reads the slate off the CACHED surface board, so a fixture
+ * the provider lists after that pass has run is invisible to it — not held, not
+ * skipped, not capped, just absent — and the run reports a clean sweep. On
+ * 2026-09-11 the MLB expanded pass at 06:45 UTC saw the 12 games the 06:15
+ * surface run had found and bought all 12. The 12:15 surface run found 15. The
+ * three that arrived in between (Pirates at Cubs, Dodgers at Marlins, Rangers
+ * at Diamondbacks) carried no alternates and no props all day, because the
+ * expanded cadence is 720 minutes and the next pass was due at 18:45 — after
+ * the Cubs game had started.
+ *
+ * So coverage, not just the clock, decides when the tier is due. This only ever
+ * moves the next run earlier, and never inside the catch-up floor.
+ */
+export async function scheduleExpandedCatchUp(
+  sport: string,
+  uncovered: number,
+  now = new Date(),
+): Promise<Date | null> {
+  if (uncovered <= 0) return null;
+  try {
+    const policy = await prisma.oddsSportControl.findUnique({
+      where: { sport: sport.trim().toUpperCase() },
+      select: {
+        id: true,
+        enabled: true,
+        expandedEnabled: true,
+        expandedMarkets: true,
+        nextExpandedRunAt: true,
+        lastExpandedRunAt: true,
+      },
+    });
+    // A sport whose expanded tier is off or has no markets has nothing to come
+    // back for; pulling its schedule forward would only queue a no-op run.
+    if (!policy?.enabled || !policy.expandedEnabled) return null;
+    if (policy.expandedMarkets.length === 0) return null;
+
+    const at = expandedCatchUpRunAt({
+      uncovered,
+      scheduledAt: policy.nextExpandedRunAt,
+      lastRunAt: policy.lastExpandedRunAt,
+      now,
+    });
+    if (!at) return null;
+    await prisma.oddsSportControl.update({
+      where: { id: policy.id },
+      data: { nextExpandedRunAt: at },
+    });
+    console.info("[odds-control] expanded catch-up scheduled", {
+      sport,
+      uncovered,
+      at: at.toISOString(),
+    });
+    return at;
+  } catch (error) {
+    // Never fail a populate over the schedule nudge — the board it just wrote
+    // is worth more than the pass it was trying to queue.
+    if (isMissingOddsControlStorageError(error)) return null;
+    console.warn("[odds-control] expanded catch-up failed", {
+      sport,
+      reason: error instanceof Error ? error.message : String(error),
+    });
+    return null;
   }
 }
 

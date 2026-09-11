@@ -17,6 +17,9 @@ import {
   EVENT_MARKET_CATALOG_CREDIT_COST,
   canSkipExpandedEvent,
   eventMarketCatalogKeys,
+  expandedCatchUpRunAt,
+  EXPANDED_CATCHUP_MINUTES,
+  EXPANDED_CATCHUP_MIN_GAP_MINUTES,
   expandedEventCreditCost,
   expandsFullSlate,
   intersectExpandedMarkets,
@@ -442,4 +445,92 @@ test("an event is bought once a day by default", () => {
   // because a pass that finds nothing priced spends no allowance.
   assert.equal(DEFAULT_EVENT_BUYS_PER_DAY, 1);
   assert.ok(DEFAULT_EVENT_BUYS_PER_DAY <= HARD_MAX_EVENT_BUYS_PER_DAY);
+});
+
+// The 2026-09-11 MLB slate. The expanded pass at 06:45 UTC was handed the 12
+// fixtures the 06:15 surface run had found and bought all 12 — a clean run by
+// every number it reports. The 12:15 surface run found 15. Three games
+// (Pirates at Cubs, Dodgers at Marlins, Rangers at Diamondbacks) had no
+// alternates and no props all day, because the next expanded pass was not due
+// until 18:45 and the Cubs first pitch was 18:21.
+test("fixtures with no board at all bring the expanded pass forward", () => {
+  const now = new Date("2026-09-11T12:15:00.000Z");
+  const at = expandedCatchUpRunAt({
+    uncovered: 3,
+    scheduledAt: new Date("2026-09-11T18:45:00.000Z"),
+    lastRunAt: new Date("2026-09-11T06:45:00.000Z"),
+    now,
+  });
+  assert.ok(at, "three uncovered fixtures must not wait for the full cadence");
+  assert.equal(at.getTime(), now.getTime() + EXPANDED_CATCHUP_MINUTES * 60_000);
+  // Early enough that the 18:21 matinee is still bettable.
+  assert.ok(at.getTime() < Date.parse("2026-09-11T18:21:00.000Z"));
+});
+
+test("a fully covered slate leaves the schedule alone", () => {
+  assert.equal(
+    expandedCatchUpRunAt({
+      uncovered: 0,
+      scheduledAt: new Date("2026-09-11T18:45:00.000Z"),
+      lastRunAt: new Date("2026-09-11T06:45:00.000Z"),
+      now: new Date("2026-09-11T12:15:00.000Z"),
+    }),
+    null,
+  );
+});
+
+test("a pass that just ran does not immediately queue another", () => {
+  const now = new Date("2026-09-11T12:15:00.000Z");
+  // The run finished a minute ago and still left a fixture uncovered, because
+  // no book has opened its deep card. Looking again costs a catalog credit, so
+  // the retry is cheap — but it waits out the floor rather than spinning.
+  const at = expandedCatchUpRunAt({
+    uncovered: 1,
+    scheduledAt: new Date("2026-09-12T00:15:00.000Z"),
+    lastRunAt: new Date("2026-09-11T12:14:00.000Z"),
+    now,
+  });
+  assert.ok(at);
+  assert.equal(
+    at.getTime(),
+    Date.parse("2026-09-11T12:14:00.000Z") +
+      EXPANDED_CATCHUP_MIN_GAP_MINUTES * 60_000,
+  );
+});
+
+test("a catch-up never defers a run that is already due sooner", () => {
+  const now = new Date("2026-09-11T12:15:00.000Z");
+  // Due in five minutes. Rescheduling to now+15 would push the board further
+  // away than leaving it alone, which is the one thing this must never do.
+  assert.equal(
+    expandedCatchUpRunAt({
+      uncovered: 3,
+      scheduledAt: new Date("2026-09-11T12:20:00.000Z"),
+      lastRunAt: new Date("2026-09-11T06:45:00.000Z"),
+      now,
+    }),
+    null,
+  );
+  // Overdue is likewise left alone.
+  assert.equal(
+    expandedCatchUpRunAt({
+      uncovered: 3,
+      scheduledAt: new Date("2026-09-11T11:00:00.000Z"),
+      lastRunAt: new Date("2026-09-11T06:45:00.000Z"),
+      now,
+    }),
+    null,
+  );
+});
+
+test("a sport that has never run expanded still gets a catch-up", () => {
+  const now = new Date("2026-09-11T12:15:00.000Z");
+  const at = expandedCatchUpRunAt({
+    uncovered: 2,
+    scheduledAt: null,
+    lastRunAt: null,
+    now,
+  });
+  assert.ok(at);
+  assert.equal(at.getTime(), now.getTime() + EXPANDED_CATCHUP_MINUTES * 60_000);
 });

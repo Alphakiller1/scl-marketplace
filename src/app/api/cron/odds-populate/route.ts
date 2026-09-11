@@ -20,6 +20,7 @@ import {
   updateOddsBoardSegment,
 } from "@/lib/odds-board-cache";
 import {
+  eventsMissingBoard,
   loadCachedEventBoard,
   loadEventBoard,
 } from "@/lib/odds-event-board-cache";
@@ -27,6 +28,7 @@ import { summarizeEventMarketCoverage } from "@/lib/odds-market-coverage";
 import {
   canSkipExpandedEvent,
   expandedEventCreditCost,
+  expandsFullSlate,
   laterExpandedCreditReserve,
   parseExpandedMaxAgeMinutes,
   parseExpandedSlateDays,
@@ -41,7 +43,10 @@ import {
   ODDS_CONTROL_SPORTS,
   SURFACE_MARKETS,
 } from "@/lib/odds-control";
-import { managedOddsSchedulingEnabled } from "@/lib/odds-control-runtime";
+import {
+  managedOddsSchedulingEnabled,
+  scheduleExpandedCatchUp,
+} from "@/lib/odds-control-runtime";
 import { loadLeagueBuyLimits } from "@/lib/odds-league-buy-limits";
 
 export const maxDuration = 300;
@@ -179,13 +184,13 @@ async function populate(req: NextRequest) {
   }
 
   try {
-    return await runPopulate(req);
+    return await runPopulate(req, managedSchedulingEnabled);
   } finally {
     if (override) setOddsCircuitBreakSuspended(false);
   }
 }
 
-async function runPopulate(req: NextRequest) {
+async function runPopulate(req: NextRequest, managedScheduling: boolean) {
   resetLastOddsApiRunCost();
   const sports = requestedSports(req);
   const requestedSurfaceMarkets = selectedValues(req, "x-scl-surface-markets");
@@ -377,6 +382,46 @@ async function runPopulate(req: NextRequest) {
     });
   }
 
+  // Which fixtures on the CURRENT slate have no expanded board at all.
+  //
+  // This is the question the run report never asked. A pass reports what it
+  // held, skipped, capped and bought out of the slate it was handed; it cannot
+  // report a fixture that was not on that slate, and a fixture the provider
+  // publishes between two passes is exactly that. Counting from the store
+  // instead of from the loop is what makes a half-covered board visible, and
+  // what tells the scheduler to come back.
+  const uncovered: Record<string, number> = {};
+  const catchUp: Record<string, string> = {};
+  for (const sport of expandedOrder) {
+    const slate = selectExpandedSlateEvents(
+      boardEvents.get(sport) ?? [],
+      expandedDays,
+      new Date(),
+      sport,
+    );
+    if (slate.length === 0) continue;
+    const missing = await eventsMissingBoard(
+      sport,
+      slate.map((event) => event.id),
+    );
+    if (missing.length === 0) continue;
+    uncovered[sport] = missing.length;
+    // Only the managed scheduler owns `nextExpandedRunAt`. Under the fixed
+    // `vercel.json` cadence there is no schedule row to move, and the next
+    // listed run comes round soon enough on its own.
+    if (!managedScheduling) continue;
+    // Report the gap for every sport, but only CHASE it where an empty board
+    // means something went wrong. A full-slate sport is the counter-example:
+    // soccer expands the whole multi-day board for a single market that plenty
+    // of competitions never post at all, so "no board" is its steady state, not
+    // a miss — `UNPRICED_COMPETITION_LIMIT` exists for exactly that shape. A
+    // board that will never exist would otherwise re-queue a pass every half
+    // hour for as long as the fixture is on the board.
+    if (expandsFullSlate(sport)) continue;
+    const at = await scheduleExpandedCatchUp(sport, missing.length);
+    if (at) catchUp[sport] = at.toISOString();
+  }
+
   const surfaceReady = (sport: string) =>
     !sports.includes(sport) || (surface[sport]?.events ?? 0) > 0;
 
@@ -425,6 +470,8 @@ async function runPopulate(req: NextRequest) {
     creditsUsed: getLastOddsApiRunCost(),
     surface,
     expanded,
+    uncovered,
+    catchUp,
     provider,
     requestsRemaining: remaining,
   });
