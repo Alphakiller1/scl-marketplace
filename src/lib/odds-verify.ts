@@ -233,6 +233,12 @@ export function expandedBoardMarkets(sclSport: string): string[] {
       ),
     ];
   }
+  // NCAAF keeps its featured h2h/spreads/totals on the shared slate. Owners can
+  // opt into only the two full-game alternate ladders from the API Credit
+  // Dashboard; player props stay off until their grading feed is supported.
+  if (sclSport === "NCAAF") {
+    return ["alternate_spreads", "alternate_totals"];
+  }
   if (sclSport !== "MLB" && sclSport !== "WNBA") return [];
   const props = PROP_MARKETS_BY_SPORT[sclSport] ?? [];
   return [

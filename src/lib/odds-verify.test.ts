@@ -234,8 +234,12 @@ test("expanded football boards carry props and no game ladder", () => {
   ]) {
     assert.ok(!nfl.includes(key), `NFL should not request ${key}`);
   }
-  // NCAAF prices the same props but has no graded stat feed behind them yet.
-  assert.deepEqual(expandedBoardMarkets("NCAAF"), []);
+  // NCAAF player props still stay out because no graded stat feed supports
+  // them, but the owner-selected full-game alternate ladders are safe.
+  assert.deepEqual(expandedBoardMarkets("NCAAF"), [
+    "alternate_spreads",
+    "alternate_totals",
+  ]);
 });
 
 test("expanded tennis boards request featured and alternate full-match lines", () => {
