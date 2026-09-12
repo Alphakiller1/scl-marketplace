@@ -94,7 +94,7 @@ test("a partial refresh retains future last-good fixtures", () => {
   );
 });
 
-test("expanded order includes tennis and ignores sports without event markets", () => {
+test("expanded order includes NCAAF and ignores sports without event markets", () => {
   // This list is the gate as well as the order: a sport missing from it never
   // has an expanded board bought, whatever its config says. NFL was absent for
   // a day after its props shipped, so every scheduled run finished with an
@@ -105,8 +105,9 @@ test("expanded order includes tennis and ignores sports without event markets", 
     parseExpandedSportOrder(null, ["NFL", "WNBA", "MLB", "SOCCER"]),
     ["MLB", "NFL", "WNBA", "SOCCER"],
   );
-  // A sport with no expanded markets at all is still dropped.
-  assert.deepEqual(parseExpandedSportOrder(null, ["NCAAF", "MMA"]), []);
+  // NCAAF now has its two alternate game-line markets; a sport with no
+  // expanded markets at all is still dropped.
+  assert.deepEqual(parseExpandedSportOrder(null, ["NCAAF", "MMA"]), ["NCAAF"]);
   assert.deepEqual(parseExpandedSportOrder("WNBA,MLB", ["MLB", "WNBA"]), [
     "WNBA",
     "MLB",

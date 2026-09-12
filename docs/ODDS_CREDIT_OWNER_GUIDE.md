@@ -94,6 +94,11 @@ Anything you leave alone keeps the universal value. More markets, competitions,
 events and frequent refreshes use more credits — and every league draws from the
 same pool.
 
+For **NCAAF alternate spreads and totals**, enable NCAAF, enable **Expanded**
+coverage, and select **Alternate game lines**. Save the strategy, run **Dry run
+expanded**, review the estimate, and only then use **Run expanded now** or allow
+the saved expanded cadence to run.
+
 ### Scheduled verification runs
 
 A verification run re-prices events from the provider so cappers see current

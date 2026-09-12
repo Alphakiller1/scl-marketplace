@@ -59,6 +59,24 @@ test("expanded groups cover every supported market exactly through their union",
   }
 });
 
+test("NCAAF dashboard exposes only the requested alternate spreads and totals", () => {
+  assert.deepEqual(expandedMarketGroups("NCAAF"), [
+    {
+      id: "alternate-game-lines",
+      label: "Alternate game lines",
+      description: "Alternate spreads and totals for the full game.",
+      markets: ["alternate_spreads", "alternate_totals"],
+    },
+  ]);
+
+  const defaults = defaultSportControl("NCAAF");
+  assert.equal(defaults.expandedEnabled, false);
+  assert.deepEqual(defaults.expandedMarkets, [
+    "alternate_spreads",
+    "alternate_totals",
+  ]);
+});
+
 test("cost preview is a conservative upper bound for surface and expanded runs", () => {
   assert.equal(
     estimatedRunCredits({

@@ -132,6 +132,7 @@ Owner decision, and the shape of the credit bill. Depth is set in
 | WNBA            | 36               | Points/rebounds/assists/threes, blocks/steals/turnovers, the combo card, halves, team totals, alt ladders   |
 | Tennis          | 4                | Game spread and total plus their alternate ladders. Set markets stay out until set-score grading is trusted |
 | Soccer          | 1                | Double Chance — the one soccer bet the three surface markets cannot express                                 |
+| NCAAF           | 2                | Full-game alternate spread and total ladders, selectable through the owner API Credit Dashboard             |
 | Everything else | 0                | Surface only: `h2h` / spreads / totals from the shared slate                                                |
 
 ### Keeping the bill down
@@ -143,7 +144,7 @@ posts. Two things stop that:
 - **Catalog first.** `/events/{id}/markets` costs one credit and names the keys
   a covered book is actually pricing; only those are requested. Used where the
   request list is long enough to pay for itself (MLB, WNBA) and skipped where it
-  is not (tennis's four keys, soccer's one) — see
+  is not (tennis's four keys, NCAAF's two, soccer's one) — see
   `CATALOG_WORTH_READING_MARKETS`.
 - **Unpriced competitions are dropped mid-run.** Books post non-surface markets
   by competition, not by fixture. After two fixtures in a competition come back

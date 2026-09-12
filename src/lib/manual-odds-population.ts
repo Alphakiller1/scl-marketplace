@@ -17,13 +17,14 @@ import { expandedBoardMarkets } from "@/lib/odds-verify";
  * single market (Double Chance) across eighty fixtures, so it is the one that
  * can be cut to a partial slate without leaving a game unbettable.
  *
- * NFL sits second: its card is a fraction of MLB's and its slate is one or two
- * games on a weekday, so it is cheap to satisfy — and with baseball ending and
- * football starting it is the one the owners are asked about.
+ * NFL sits second, followed by NCAAF: their cards are cheaper than MLB's, and
+ * NCAAF requests only two full-game alternate ladders. Disabled league controls
+ * still skip either sport before credits are reserved.
  */
 export const DEFAULT_EXPANDED_SPORT_ORDER = [
   "MLB",
   "NFL",
+  "NCAAF",
   "WNBA",
   "TENNIS",
   "SOCCER",
