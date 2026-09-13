@@ -367,7 +367,9 @@ export async function createPlay(input: PlayInput): Promise<PlayResult> {
   const writeResult = await prisma.$transaction(async (tx) => {
     // Serialize each capper's straight writes so concurrent tabs cannot both
     // pass the combined-exposure check before either row exists.
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${`straight-exposure:${profile.id}`}))`;
+    // Put the void-returning lock function in FROM so Prisma only has to
+    // deserialize the supported integer projection.
+    await tx.$queryRaw`SELECT 1 AS "locked" FROM pg_advisory_xact_lock(hashtext(${`straight-exposure:${profile.id}`}))`;
     const exposureError = await validateStraightLimits(
       tx,
       profile.id,
@@ -491,7 +493,9 @@ export async function createPlays(
   // Validate and write the full batch under the same capper-scoped lock. This
   // makes the 10u combined limit deterministic even across concurrent tabs.
   const writeResult = await prisma.$transaction(async (tx) => {
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${`straight-exposure:${profile.id}`}))`;
+    // Put the void-returning lock function in FROM so Prisma only has to
+    // deserialize the supported integer projection.
+    await tx.$queryRaw`SELECT 1 AS "locked" FROM pg_advisory_xact_lock(hashtext(${`straight-exposure:${profile.id}`}))`;
     const exposureError = await validateStraightLimits(
       tx,
       profile.id,
