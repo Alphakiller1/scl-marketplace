@@ -59,7 +59,12 @@ export function verifyDeepHealth(health, expectedRelease) {
   );
 }
 
-export function verifyPageMarker(html, story, countAttribute) {
+export function verifyPageMarker(
+  html,
+  story,
+  countAttribute,
+  { allowEmpty = false } = {},
+) {
   invariant(
     html.includes(`data-scl-verification="${story}"`),
     `${story} verification marker is missing`,
@@ -70,7 +75,9 @@ export function verifyPageMarker(html, story, countAttribute) {
   );
   const match = html.match(new RegExp(`${countAttribute}="(\\d+)"`));
   invariant(match, `${story} count marker is missing`);
-  invariant(Number(match[1]) > 0, `${story} rendered an empty data set`);
+  if (!allowEmpty) {
+    invariant(Number(match[1]) > 0, `${story} rendered an empty data set`);
+  }
 }
 
 async function fetchText(url, headers = {}) {
@@ -127,7 +134,11 @@ export async function verifyProductionRelease({
     verifyPageMarker(picks, "picks", "data-pick-count");
     verifyPageMarker(packages, "packages", "data-package-count");
     verifyPageMarker(leaderboard, "leaderboard", "data-capper-count");
-    verifyPageMarker(home, "home-leaderboard", "data-capper-count");
+    // Honors legitimately has no winner until a capper meets its minimum,
+    // so the homepage marker may report zero without masking a failed page.
+    verifyPageMarker(home, "home-honors", "data-honor-count", {
+      allowEmpty: true,
+    });
 
     console.info(
       JSON.stringify({

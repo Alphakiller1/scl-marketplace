@@ -89,7 +89,12 @@ async function HomeHero() {
   return (
     <CompetitionHero
       board={
-        <div className="dark scl-elevated border-border rounded-[var(--scl-radius-card)] border bg-[color:var(--scl-ink-800)] p-4 sm:p-5">
+        <div
+          className="dark scl-elevated border-border rounded-[var(--scl-radius-card)] border bg-[color:var(--scl-ink-800)] p-4 sm:p-5"
+          data-scl-verification="home-honors"
+          data-data-status="ok"
+          data-honor-count={awards.length}
+        >
           <HonorsSpotlight awards={awards.slice(0, 3)} />
         </div>
       }
