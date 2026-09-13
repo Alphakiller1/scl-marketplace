@@ -83,4 +83,21 @@ test("page verification rejects silent HTTP 200 fallback content", () => {
       ),
     /degraded/,
   );
+  assert.doesNotThrow(() =>
+    verifyPageMarker(
+      '<section data-scl-verification="home-honors" data-data-status="ok" data-honor-count="0">',
+      "home-honors",
+      "data-honor-count",
+      { allowEmpty: true },
+    ),
+  );
+  assert.throws(
+    () =>
+      verifyPageMarker(
+        '<section data-scl-verification="home-honors" data-data-status="ok" data-honor-count="0">',
+        "home-honors",
+        "data-honor-count",
+      ),
+    /empty data set/,
+  );
 });
