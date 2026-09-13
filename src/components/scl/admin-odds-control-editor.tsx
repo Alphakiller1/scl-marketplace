@@ -32,6 +32,7 @@ import {
 import {
   CADENCE_OPTIONS,
   estimatedRunCredits,
+  expandedMarketLabel,
   expandedMarketGroups,
   SOCCER_CONTROL_LEAGUES,
   SURFACE_MARKETS,
@@ -760,7 +761,7 @@ export function AdminOddsControlEditor({
                         label="Pull expanded markets"
                         description={
                           groups.length
-                            ? "Adds only the market groups selected below."
+                            ? "Adds only the individual markets selected below."
                             : "Expanded markets are not supported for this sport."
                         }
                       />
@@ -769,31 +770,62 @@ export function AdminOddsControlEditor({
                           const checked = group.markets.every((market) =>
                             sport.expandedMarkets.includes(market),
                           );
+                          const disabled =
+                            !sport.enabled || !sport.expandedEnabled;
                           return (
-                            <Toggle
+                            <div
                               key={group.id}
-                              checked={checked}
-                              disabled={
-                                !sport.enabled || !sport.expandedEnabled
-                              }
-                              onChange={(enabled) => {
-                                const groupMarkets = new Set(group.markets);
-                                updateSport(sport.sport, {
-                                  expandedMarkets: enabled
-                                    ? [
-                                        ...new Set([
-                                          ...sport.expandedMarkets,
-                                          ...group.markets,
-                                        ]),
-                                      ]
-                                    : sport.expandedMarkets.filter(
-                                        (market) => !groupMarkets.has(market),
-                                      ),
-                                });
-                              }}
-                              label={`${group.label} (${group.markets.length})`}
-                              description={group.description}
-                            />
+                              className="border-border space-y-2 rounded-xl border p-2"
+                            >
+                              <Toggle
+                                checked={checked}
+                                disabled={disabled}
+                                onChange={(enabled) => {
+                                  const groupMarkets = new Set(group.markets);
+                                  updateSport(sport.sport, {
+                                    expandedMarkets: enabled
+                                      ? [
+                                          ...new Set([
+                                            ...sport.expandedMarkets,
+                                            ...group.markets,
+                                          ]),
+                                        ]
+                                      : sport.expandedMarkets.filter(
+                                          (market) => !groupMarkets.has(market),
+                                        ),
+                                  });
+                                }}
+                                label={`${group.label} — select all (${group.markets.length})`}
+                                description={group.description}
+                              />
+                              <div className="grid gap-2 sm:grid-cols-2">
+                                {group.markets.map((market) => (
+                                  <Toggle
+                                    key={market}
+                                    checked={sport.expandedMarkets.includes(
+                                      market,
+                                    )}
+                                    disabled={disabled}
+                                    onChange={(enabled) =>
+                                      updateSport(sport.sport, {
+                                        expandedMarkets: enabled
+                                          ? [
+                                              ...new Set([
+                                                ...sport.expandedMarkets,
+                                                market,
+                                              ]),
+                                            ]
+                                          : sport.expandedMarkets.filter(
+                                              (current) => current !== market,
+                                            ),
+                                      })
+                                    }
+                                    label={expandedMarketLabel(market)}
+                                    description={`API market: ${market}`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
                           );
                         })}
                       </div>

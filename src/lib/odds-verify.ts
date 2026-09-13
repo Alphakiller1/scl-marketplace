@@ -55,7 +55,7 @@ export const CORE_MARKETS = [
  * cappers actually post, not every market The Odds API sells (each extra market is credits).
  *
  * Listed as FEATURED keys only; {@link propMarketKeysWithAlternates} appends the `_alternate`
- * variant of each when the board and verification request them.
+ * variant when the provider offers a line ladder for that market.
  */
 export const PRIMARY_MLB_PROP_MARKETS = [
   "pitcher_earned_runs",
@@ -132,10 +132,7 @@ export const PROP_MARKETS_BY_SPORT: Record<string, readonly string[]> = {
   ],
   NCAAB: ["player_points"],
   // The card the owners asked for, in the order a book lists it: the passer,
-  // then the runner, then the receiver, then the kicker. Anytime TD is absent
-  // deliberately — it is a Yes/No market with no `point`, and the board discards
-  // a selection without a line, so requesting it would bill on every event and
-  // render nothing. It needs lineless support on the board and in grading first.
+  // then the runner, then the receiver, then the kicker and scoring markets.
   NFL: [
     "player_pass_yds",
     "player_pass_attempts",
@@ -146,10 +143,20 @@ export const PROP_MARKETS_BY_SPORT: Record<string, readonly string[]> = {
     "player_reception_yds",
     "player_rush_reception_yds",
     "player_field_goals",
+    "player_anytime_td",
   ],
   NCAAF: ["player_pass_yds", "player_rush_yds"],
   NHL: ["player_points", "player_shots_on_goal"],
 };
+
+/** Yes/No props that have a player description but no numeric `point`. */
+export const LINELESS_PROP_MARKETS: ReadonlySet<string> = new Set([
+  "player_anytime_td",
+]);
+
+export function isLinelessPropMarketKey(marketKey: string): boolean {
+  return LINELESS_PROP_MARKETS.has(marketKey.trim());
+}
 
 /**
  * A curated prop key plus its alternate variant.
@@ -161,6 +168,7 @@ export const PROP_MARKETS_BY_SPORT: Record<string, readonly string[]> = {
  * `alternate_totals`; props were the gap.
  */
 export function propMarketKeysWithAlternates(propKey: string): string[] {
+  if (isLinelessPropMarketKey(propKey)) return [propKey];
   return [propKey, `${propKey}_alternate`];
 }
 
@@ -299,6 +307,7 @@ export const PROP_MARKET_LABEL: Record<string, string> = {
   player_reception_yds: "Receiving Yds",
   player_rush_reception_yds: "Rush+Rec Yds",
   player_field_goals: "FG Made",
+  player_anytime_td: "Anytime Touchdown",
   player_shots_on_goal: "Shots On Goal",
 };
 

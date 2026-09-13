@@ -56,6 +56,21 @@ test("board-entered player props defer instead of grading as a game total", () =
   assert.equal(resolveOutcome(ionescu, [game]), null);
 });
 
+test("lineless Anytime Touchdown remains in the prop grading path", () => {
+  const anytimeTd: GradablePlay = {
+    id: "nfl-anytime-touchdown",
+    sport: "NFL",
+    market: "Anytime Touchdown",
+    selection: "Justin Jefferson Anytime Touchdown",
+    side: "Yes",
+    oddsAmerican: 120,
+    units: 1,
+  };
+
+  assert.equal(isDeferredProp(anytimeTd), true);
+  assert.equal(resolveOutcome(anytimeTd, []), null);
+});
+
 test("team totals are not graded as game totals", () => {
   const teamTotal: GradablePlay = {
     id: "p3",

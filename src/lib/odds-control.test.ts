@@ -7,12 +7,14 @@ import {
   DEFAULT_ODDS_CONTROL_CONFIG,
   defaultSportControl,
   estimatedRunCredits,
+  expandedMarketLabel,
   expandedMarketGroups,
   isMissingOddsControlStorageError,
   LEGACY_SCHEDULED_SPORTS,
   ODDS_CONTROL_SPORTS,
   selectionAllowedForMarkets,
 } from "@/lib/odds-control";
+import { propMarketKeysWithAlternates } from "@/lib/odds-verify";
 import {
   oddsControlSettingsSchema,
   oddsRunRequestSchema,
@@ -75,6 +77,32 @@ test("NCAAF dashboard exposes only the requested alternate spreads and totals", 
     "alternate_spreads",
     "alternate_totals",
   ]);
+});
+
+test("NFL exposes Anytime Touchdown as its own safe owner-controlled market", () => {
+  const playerProps = expandedMarketGroups("NFL").find(
+    (group) => group.id === "player-props",
+  );
+  assert.ok(playerProps);
+  assert.ok(playerProps.markets.includes("player_anytime_td"));
+  assert.equal(expandedMarketLabel("player_anytime_td"), "Anytime Touchdown");
+  assert.deepEqual(propMarketKeysWithAlternates("player_anytime_td"), [
+    "player_anytime_td",
+  ]);
+});
+
+test("every supported market has a non-technical dashboard label", () => {
+  for (const sport of ODDS_CONTROL_SPORTS) {
+    for (const market of allowedExpandedMarkets(sport)) {
+      const label = expandedMarketLabel(market);
+      assert.ok(label.length > 0);
+      assert.equal(
+        label.includes("_"),
+        false,
+        `${market} leaked into its label`,
+      );
+    }
+  }
 });
 
 test("cost preview is a conservative upper bound for surface and expanded runs", () => {
