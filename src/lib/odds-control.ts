@@ -1,6 +1,11 @@
 import { DEFAULT_EVENT_BUYS_PER_DAY } from "@/lib/odds-event-buy-budget";
-import { expandedBoardMarkets, marketKeysForMarket } from "@/lib/odds-verify";
+import {
+  expandedBoardMarkets,
+  marketKeysForMarket,
+  propMarketLabel,
+} from "@/lib/odds-verify";
 import type { OddsSelection } from "@/lib/odds-board";
+import { PERIOD_MARKET_LABEL } from "@/lib/period-markets";
 import { SOCCER_LEAGUES } from "@/lib/soccer-leagues";
 
 export const ODDS_CONTROL_SPORTS = [
@@ -76,9 +81,7 @@ export function expandedMarketGroups(sport: string): OddsMarketGroup[] {
       description: "First innings, first half, and other supported segments.",
       markets: take(
         markets,
-        (key) =>
-          /_(1st|3rd|5th|7th)_innings$/.test(key) ||
-          /_(1st|2nd)_half$/.test(key),
+        (key) => /_(1st|3rd|5th|7th)_innings$/.test(key) || /_h[12]$/.test(key),
       ),
     },
     {
@@ -98,7 +101,7 @@ export function expandedMarketGroups(sport: string): OddsMarketGroup[] {
       label: "Player props",
       description:
         normalizedSport === "NFL"
-          ? "Passing, rushing and receiving lines, with alternate ladders."
+          ? "Passing, rushing, receiving, kicking, and touchdown markets."
           : "Supported basketball player markets and alternates.",
       markets: take(markets, (key) => key.startsWith("player_")),
     },
@@ -137,6 +140,37 @@ export function expandedMarketGroups(sport: string): OddsMarketGroup[] {
     });
   }
   return groups.filter((group) => group.markets.length > 0);
+}
+
+/** Friendly owner-facing label for one independently controlled API market. */
+export function expandedMarketLabel(marketKey: string): string {
+  const prop = propMarketLabel(marketKey);
+  if (prop) {
+    return marketKey.endsWith("_alternate") ? `${prop} — alternate` : prop;
+  }
+  const period = PERIOD_MARKET_LABEL[marketKey];
+  if (period) {
+    return marketKey.startsWith("alternate_")
+      ? `${period} — alternate`
+      : period;
+  }
+  const labels: Record<string, string> = {
+    spreads: "Spreads",
+    totals: "Totals",
+    alternate_spreads: "Alternate spreads",
+    alternate_totals: "Alternate totals",
+    team_totals: "Team totals",
+    alternate_team_totals: "Team totals — alternate",
+    double_chance: "Double chance",
+  };
+  return (
+    labels[marketKey] ??
+    marketKey
+      .split("_")
+      .filter(Boolean)
+      .map((word) => word[0]?.toUpperCase() + word.slice(1))
+      .join(" ")
+  );
 }
 
 export function allowedExpandedMarkets(sport: string): string[] {

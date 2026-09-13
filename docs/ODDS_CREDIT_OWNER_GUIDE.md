@@ -81,7 +81,9 @@ Under **Change settings → Leagues**, open a league:
 
 1. Turn the league on or off.
 2. Enable **Standard** and/or **Expanded** coverage.
-3. Select only the markets SCL needs.
+3. Select only the markets SCL needs. Each expanded market has its own switch;
+   the group switch is a shortcut that selects or clears every market in that
+   group.
 4. Select competitions where available (soccer and tennis).
 5. Set the maximum events per run.
 6. Set separate refresh timing for Standard and Expanded coverage.
@@ -98,6 +100,12 @@ For **NCAAF alternate spreads and totals**, enable NCAAF, enable **Expanded**
 coverage, and select **Alternate game lines**. Save the strategy, run **Dry run
 expanded**, review the estimate, and only then use **Run expanded now** or allow
 the saved expanded cadence to run.
+
+For **NFL Anytime Touchdown**, enable NFL, enable **Expanded** coverage, open
+**Player props**, and turn on **Anytime Touchdown**. The group-level **select
+all** switch remains available, but is not required. Save the strategy and run
+**Dry run expanded** before the first paid run. Anytime Touchdown is intentionally
+off for an existing saved strategy until an owner selects and saves it.
 
 ### Scheduled verification runs
 

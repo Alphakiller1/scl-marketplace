@@ -121,6 +121,9 @@ const MARKET_STAT_KEY: Record<string, string> = {
   "rush attempts": "rushAttempts",
   "rush+rec yds": "rushReceivingYards",
   "fg made": "fieldGoalsMade",
+  // Lineless Yes/No market. The mapping keeps the market in the prop registry;
+  // a missing numeric line makes resolvePlayerProp defer it for manual grading.
+  "anytime touchdown": "touchdownsScored",
   // Hockey, mapped for the same reason and already parsed out of the box score
   // as `shotsOnGoal`.
   "shots on goal": "shotsOnGoal",

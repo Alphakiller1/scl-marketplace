@@ -16,6 +16,7 @@ import {
 import {
   boardPriceIsPlausible,
   impliedProbFromAmerican,
+  isLinelessPropMarketKey,
   propMarketLabel,
   type RawEventOdds,
 } from "@/lib/odds-verify";
@@ -564,9 +565,10 @@ export function normalizeEventBoard(
         } else {
           if (!propLabel) continue;
           const player = (o.description ?? "").trim();
-          if (!player || line === undefined) continue;
+          const isLineless = isLinelessPropMarketKey(m.key);
+          if (!player || (!isLineless && line === undefined)) continue;
           add(
-            `p|${propLabel}|${player.toLowerCase()}|${o.name.toLowerCase()}|${line}`,
+            `p|${propLabel}|${player.toLowerCase()}|${o.name.toLowerCase()}|${line ?? ""}`,
             () => ({
               market: propLabel,
               side: o.name,
@@ -635,7 +637,10 @@ export function normalizeEventBoard(
         ...(oddsCapturedAt ? { oddsCapturedAt } : {}),
       });
     } else if (g.player) {
-      const text = `${g.player} ${g.side} ${g.line}`;
+      const text =
+        g.line == null
+          ? `${g.player} ${g.market}`
+          : `${g.player} ${g.side} ${g.line}`;
       selections.push({
         label: text,
         market: g.market,

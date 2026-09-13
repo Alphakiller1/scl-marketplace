@@ -497,6 +497,39 @@ test("alternate prop markets reach the board instead of being dropped", () => {
   assert.ok(strikeouts.every((s) => s.player === "Hunter Greene"));
 });
 
+test("lineless NFL Anytime Touchdown reaches the board as a player prop", () => {
+  const event: RawEventOdds = {
+    id: "nfl-anytime-touchdown",
+    bookmakers: [
+      {
+        key: "draftkings",
+        markets: [
+          {
+            key: "player_anytime_td",
+            outcomes: [
+              {
+                name: "Yes",
+                description: "Justin Jefferson",
+                price: 120,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  const anytimeTd = normalizeEventBoard(event).find(
+    (selection) => selection.market === "Anytime Touchdown",
+  );
+  assert.ok(anytimeTd);
+  assert.equal(anytimeTd.selection, "Justin Jefferson Anytime Touchdown");
+  assert.equal(anytimeTd.side, "Yes");
+  assert.equal(anytimeTd.player, "Justin Jefferson");
+  assert.equal(anytimeTd.line, undefined);
+  assert.equal(anytimeTd.oddsAmerican, 120);
+});
+
 test("MLB periods and props plus WNBA halves and props all reach selection rows", () => {
   const event: RawEventOdds = {
     id: "required-expanded-markets",
