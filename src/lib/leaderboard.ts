@@ -4,6 +4,7 @@ import { LEADERBOARD_SORTS, SPORT_KEYS } from "@/lib/constants";
 import { etDayBounds } from "@/lib/et-day";
 import type { CapperSummary } from "@/lib/mock";
 import { hasSignal } from "@/lib/sample";
+import { CROSS_SPORTS } from "@/lib/parlay-sport";
 
 /** Compact Rank-mode time scopes (year kept for URL back-compat only). */
 export const LEADERBOARD_WINDOWS = [
@@ -11,6 +12,7 @@ export const LEADERBOARD_WINDOWS = [
   { key: "7d", label: "7D", longLabel: "Past 7 Days" },
   { key: "14d", label: "14D", longLabel: "Past 14 Days" },
   { key: "30d", label: "30D", longLabel: "Past 30 Days" },
+  { key: "month", label: "Month", longLabel: "Current Calendar Month" },
   { key: "90d", label: "90D", longLabel: "Past 90 Days" },
   { key: "all", label: "All", longLabel: "All Time" },
   { key: "year", label: "Year", longLabel: "This Year" },
@@ -18,7 +20,7 @@ export const LEADERBOARD_WINDOWS = [
 
 /** Windows shown in the compact scope bar (excludes year). */
 export const LEADERBOARD_SCOPE_WINDOWS = LEADERBOARD_WINDOWS.filter(
-  (w) => w.key !== "year",
+  (w) => w.key !== "year" && w.key !== "month",
 );
 
 export const LEADERBOARD_MIN_PICKS = [0, 10, 25, 50] as const;
@@ -58,7 +60,9 @@ export function parseLeaderboardFilters(
 
   return {
     sport:
-      requestedSport && SPORT_KEYS.includes(requestedSport as never)
+      requestedSport &&
+      (SPORT_KEYS.includes(requestedSport as never) ||
+        requestedSport === CROSS_SPORTS)
         ? requestedSport
         : "ALL",
     window:
@@ -126,6 +130,9 @@ export function leaderboardWindowStart(
   if (window === "all") return null;
   if (window === "year") {
     return new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
+  }
+  if (window === "month") {
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   }
 
   const days = Number(window.replace("d", ""));

@@ -217,6 +217,46 @@ model PolicyDocumentRevision {
   @@index([editedById])
 }
 
+/// Owner-editable public copy for the SCL Honors rules page.
+model HonorsContent {
+  id          String   @id @default("honors")
+  title       String
+  body        String
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+}
+
+/// Durable award snapshots. Current leaderboards remain live, while these rows
+/// keep completed awards available in profile Trophy Cases and share cards.
+model HonorAwardGrant {
+  id              String   @id
+  name            String
+  abbreviation    String
+  icon            String
+  period          String
+  sport           String
+  metric          String
+  minimumPicks    Int
+  visibleFrom     DateTime
+  visibleUntil    DateTime
+  capperId        String
+  winnerName      String
+  winnerHandle    String
+  winnerAvatarUrl String?
+  wins            Int
+  losses          Int
+  pushes          Int
+  units           Decimal  @db.Decimal(16, 2)
+  roi             Decimal  @db.Decimal(10, 4)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  capper CapperProfile @relation(fields: [capperId], references: [id], onDelete: Cascade)
+
+  @@index([capperId, visibleFrom])
+  @@index([visibleFrom, visibleUntil])
+}
+
 /// Owner-editable copy for capper-facing email. Slug is a plain string keyed to
 /// the code registry in `src/lib/email-templates.ts` — adding a template needs a
 /// sender in code anyway, so an enum would only add a migration to that work.
@@ -428,6 +468,7 @@ model CapperProfile {
   storeConnections StoreConnection[]
   legacyRecords    LegacyRecord[]
   packageAudits    PackageAuditEvent[]
+  honorAwardGrants HonorAwardGrant[]
 
   @@index([providerType])
 }
@@ -686,7 +727,11 @@ model Play {
   selectedOddsAmerican Int?
   /// True when the capper explicitly accepted a beyond-tolerance odds move (M5).
   oddsMovedAccepted    Boolean   @default(false)
-  units                Decimal   @db.Decimal(16, 2) // 0.25–100,000,000 (enforced in Zod, see src/lib/constants.ts)
+  units                Decimal   @db.Decimal(16, 2) // 0.01–10 standard; 20 only for Supermax (enforced in Zod)
+  /// One owner-approved 20u straight bet per capper per Eastern calendar day.
+  isSupermax           Boolean   @default(false)
+  /// Eastern day key; nullable unique pair is the race-safe daily guard.
+  supermaxDay          DateTime? @db.Date
   /// Odds API bookmaker key captured at submit (src/lib/books.ts). Null = pre-book era / unknown.
   book                 String?
   outcome              Outcome   @default(PENDING)
@@ -728,10 +773,12 @@ model Play {
   audits       GradingAudit[]
   packageLinks PlayPackage[]
 
+  @@unique([capperId, supermaxDay])
   @@index([capperId])
   @@index([outcome])
   @@index([eventId])
   @@index([status, createdAt])
+  @@index([capperId, isSupermax, createdAt])
 }
 
 model Parlay {

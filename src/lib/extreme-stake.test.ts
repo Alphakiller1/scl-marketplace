@@ -8,7 +8,7 @@ import {
   normalizeExtremeStake,
 } from "@/lib/extreme-stake";
 
-test("999u is an extreme stake and clamps to the 5u prediction max", () => {
+test("999u is an extreme stake and clamps to the 10u prediction max", () => {
   assert.equal(isExtremeStake(999), true);
   assert.equal(isExtremeStake(EXTREME_STAKE_UNITS), true);
   assert.equal(isExtremeStake(5), false);
@@ -16,14 +16,14 @@ test("999u is an extreme stake and clamps to the 5u prediction max", () => {
 
   const loss = normalizeExtremeStake({ units: 999, profitUnits: -999 });
   assert.equal(loss.units, PREDICTION_UNIT_MAX);
-  assert.equal(loss.profitUnits, -5);
+  assert.equal(loss.profitUnits, -10);
 
   const win = normalizeExtremeStake({ units: 999, profitUnits: 908.18 });
-  assert.equal(win.units, 5);
-  assert.equal(win.profitUnits, 4.55);
+  assert.equal(win.units, 10);
+  assert.equal(win.profitUnits, 9.09);
 
   const pending = normalizeExtremeStake({ units: 999, profitUnits: null });
-  assert.equal(pending.units, 5);
+  assert.equal(pending.units, 10);
   assert.equal(pending.profitUnits, null);
 
   const ordinary = normalizeExtremeStake({ units: 2.5, profitUnits: 2.27 });

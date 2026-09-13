@@ -11,6 +11,7 @@ import {
 import { toast } from "sonner";
 
 import type { OddsPick } from "@/components/scl/game-picker";
+import { SUPERMAX_UNITS } from "@/lib/constants";
 import { clampPredictionUnits } from "@/lib/prediction-units";
 import {
   findConflict,
@@ -42,6 +43,7 @@ type SlipStoreValue = {
   setSelectionUnits: (id: string, units: number) => void;
   setSelectionNotes: (id: string, notes: string) => void;
   setSelectionNotesPublic: (id: string, value: boolean) => void;
+  setSelectionSupermax: (id: string, value: boolean) => void;
   addPick: (pick: OddsPick) => void;
   removeSelection: (id: string) => void;
   clearSlip: () => void;
@@ -199,6 +201,29 @@ export function SlipStoreProvider({
     [],
   );
 
+  const setSelectionSupermax = useCallback(
+    (id: string, isSupermax: boolean) => {
+      setSelections((curr) =>
+        curr.map((selection) =>
+          selection.id === id
+            ? {
+                ...selection,
+                isSupermax,
+                units: isSupermax ? SUPERMAX_UNITS : DEFAULT_UNITS,
+              }
+            : selection.isSupermax
+              ? {
+                  ...selection,
+                  isSupermax: false,
+                  units: DEFAULT_UNITS,
+                }
+              : selection,
+        ),
+      );
+    },
+    [],
+  );
+
   const value = useMemo<SlipStoreValue>(
     () => ({
       mode,
@@ -212,6 +237,7 @@ export function SlipStoreProvider({
       setSelectionUnits,
       setSelectionNotes,
       setSelectionNotesPublic,
+      setSelectionSupermax,
       addPick,
       removeSelection,
       clearSlip,
@@ -230,6 +256,7 @@ export function SlipStoreProvider({
       setSelectionUnits,
       setSelectionNotes,
       setSelectionNotesPublic,
+      setSelectionSupermax,
       addPick,
       removeSelection,
       clearSlip,

@@ -26,16 +26,16 @@ export const SPORTS = [
 export type SportKey = (typeof SPORTS)[number]["key"];
 export const SPORT_KEYS = SPORTS.map((s) => s.key) as SportKey[];
 
-// Historical/public records can contain quarter-unit stakes from the legacy
-// platform. Keep that eligibility threshold separate from the owner-controlled
-// range for NEW predictions so changing the entry rule never hides old picks.
-export const UNIT_MIN = 0.25;
-
 /** Owner-controlled stake range for every new straight and parlay prediction. */
-export const PREDICTION_UNIT_MIN = 1;
-export const PREDICTION_UNIT_MAX = 5;
+export const PREDICTION_UNIT_MIN = 0.01;
+export const PREDICTION_UNIT_MAX = 10;
+export const SUPERMAX_UNITS = 20;
 export const PREDICTION_UNIT_STEP = 0.01;
-export const UNIT_QUICK_CHIPS = [1, 2, 3, 4, 5] as const;
+export const UNIT_QUICK_CHIPS = [0.5, 1, 2, 5, 10] as const;
+
+// Public stats must recognize every valid new stake. Keep the alias for the
+// existing query and display guards that also use it to reject zero/invalid rows.
+export const UNIT_MIN = PREDICTION_UNIT_MIN;
 
 // Leaderboard timeframes (days; null = season/year handled separately).
 export const LEADERBOARD_TIMEFRAMES = [

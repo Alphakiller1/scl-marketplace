@@ -59,7 +59,7 @@ export function isExcludedFromPublicPublication(user: {
   return isTestHandle(user.username) || isTestEmail(user.email);
 }
 
-/** True when stake meets the public minimum (0.25U). */
+/** True when stake meets the public minimum for a valid tracked pick. */
 export function isValidPublicStake(units: number): boolean {
   return units >= UNIT_MIN;
 }

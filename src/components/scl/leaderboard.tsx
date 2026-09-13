@@ -401,6 +401,30 @@ function LeaderboardTableRow({
           {sports.map((sport) => (
             <SportTag key={sport} sport={sport} markOnly className="shrink-0" />
           ))}
+          {capper.honors?.length ? (
+            <span
+              className="text-muted-foreground px-1 text-[0.65rem] font-semibold"
+              title={`${capper.honors.length} SCL Honors awards`}
+            >
+              🏆 ×{capper.honors.length}
+            </span>
+          ) : null}
+          {capper.honors?.map((award) => (
+            <Link
+              key={award.id}
+              href={`/honors/${award.id}`}
+              title={award.name}
+              aria-label={`${award.name}: ${award.abbreviation}`}
+              className="border-border bg-surface-2 inline-flex min-h-8 items-center rounded-full border px-2 text-[0.65rem] font-bold tabular-nums"
+            >
+              {!award.abbreviation.startsWith(award.icon) ? (
+                <span className="mr-1" aria-hidden>
+                  {award.icon}
+                </span>
+              ) : null}
+              {award.abbreviation}
+            </Link>
+          ))}
         </div>
       </td>
       <td className="px-1.5 py-2 text-right align-middle">
@@ -530,6 +554,31 @@ export function LeaderboardMobileCard({
               {formatRecord(capper.record.w, capper.record.l, capper.record.p)}
             </span>
           </div>
+          {capper.honors?.length ? (
+            <div
+              className="mt-2 flex flex-wrap gap-1"
+              aria-label={`${capper.honors.length} SCL Honors awards`}
+            >
+              <span className="text-muted-foreground inline-flex min-h-8 items-center px-1 text-[0.65rem] font-semibold">
+                🏆 ×{capper.honors.length}
+              </span>
+              {capper.honors.map((award) => (
+                <Link
+                  key={award.id}
+                  href={`/honors/${award.id}`}
+                  title={award.name}
+                  className="border-border bg-surface-2 inline-flex min-h-8 items-center rounded-full border px-2 text-[0.65rem] font-bold tabular-nums"
+                >
+                  {!award.abbreviation.startsWith(award.icon) ? (
+                    <span className="mr-1" aria-hidden>
+                      {award.icon}
+                    </span>
+                  ) : null}
+                  {award.abbreviation}
+                </Link>
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
       <div className="border-border grid grid-cols-3 gap-2 border-t pt-3">

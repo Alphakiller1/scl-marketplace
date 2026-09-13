@@ -101,11 +101,11 @@ test("earliestLegStart ignores legs with no start and returns null when none hav
   assert.equal(earliestLegStart([]), null);
 });
 
-test("sport is attributed to the first leg so sport filters still read truthfully", () => {
+test("a mixed-sport parlay is attributed once to Cross-Sports", () => {
   const view = parlayToRecordView(
     parlay({ legs: [leg({ sport: "WNBA" }), leg({ id: "leg-2" })] }),
   );
-  assert.equal(view.sport, "WNBA");
+  assert.equal(view.sport, "CROSS_SPORTS");
   // A parlay spans games, so it claims no single event label or book.
   assert.equal(view.eventLabel, null);
   assert.equal(view.book, null);

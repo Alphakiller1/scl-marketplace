@@ -27,23 +27,23 @@ const legs = [
   },
 ];
 
-test("straight and parlay predictions accept 1–5 units with hundredths", () => {
-  for (const units of [1, 1.25, 3.75, 4.4, 5]) {
+test("straight and parlay predictions accept 0.01–10 units with hundredths", () => {
+  for (const units of [0.01, 1, 1.25, 4.4, 10]) {
     assert.equal(playSchema.safeParse({ ...play, units }).success, true);
     assert.equal(createParlaySchema.safeParse({ units, legs }).success, true);
   }
 });
 
-test("server schemas reject stakes outside 1–5 or beyond two decimals", () => {
-  for (const units of [0.99, 5.01, 1.001, 4.401]) {
+test("server schemas reject stakes outside 0.01–10 or beyond two decimals", () => {
+  for (const units of [0, 10.01, 1.001, 4.401]) {
     assert.equal(playSchema.safeParse({ ...play, units }).success, false);
     assert.equal(createParlaySchema.safeParse({ units, legs }).success, false);
   }
 });
 
 test("controlled stake inputs clamp to the owner range and precision", () => {
-  assert.equal(clampPredictionUnits(0.5), 1);
+  assert.equal(clampPredictionUnits(0), 0.01);
   assert.equal(clampPredictionUnits(1.25), 1.25);
   assert.equal(clampPredictionUnits(4.401), 4.4);
-  assert.equal(clampPredictionUnits(8), 5);
+  assert.equal(clampPredictionUnits(11), 10);
 });
