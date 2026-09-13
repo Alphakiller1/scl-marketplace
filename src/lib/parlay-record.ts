@@ -9,6 +9,7 @@ import type { Outcome, VerificationTier } from "@prisma/client";
 
 import type { ParlayLegView, PlayView } from "@/lib/queries/plays";
 import { isVerifiedTier } from "@/lib/verification";
+import { parlayReportingSport } from "@/lib/parlay-sport";
 
 /** Market label a parlay carries when it appears in a list of positions. */
 export const PARLAY_MARKET_LABEL = "Parlay";
@@ -68,9 +69,8 @@ export function parlayToRecordView(parlay: ParlayRecordRow): PlayView {
   }));
   return {
     id: parlay.id,
-    // Parlay has no sport column; attribute to the first leg so sport filters
-    // and league marks still have something truthful to read.
-    sport: legs[0]?.sport ?? "",
+    // A ticket owns exactly one reporting bucket; mixed tickets are Cross-Sports.
+    sport: parlayReportingSport(legs),
     league: null,
     market: PARLAY_MARKET_LABEL,
     selection: `${legs.length}-leg parlay`,

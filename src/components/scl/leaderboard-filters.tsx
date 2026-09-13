@@ -136,6 +136,7 @@ function ScopeForm({
             className={cn(FIELD_CLASS, "min-w-[7.5rem]")}
           >
             <option value="ALL">All sports</option>
+            <option value="CROSS_SPORTS">Cross-Sports</option>
             {SPORTS.map((sport) => (
               <option key={sport.key} value={sport.key}>
                 {sport.label}

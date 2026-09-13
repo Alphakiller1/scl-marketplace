@@ -1,4 +1,5 @@
 import "server-only";
+import { parlayReportingSport } from "@/lib/parlay-sport";
 
 import { cache } from "react";
 
@@ -462,8 +463,8 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
         outcome: true,
         units: true,
         profitUnits: true,
-        // Parlay has no sport column — attribute to the first leg for
-        // sport-filtered charts; All-window ignores sport. Leg event times
+        // Parlay has no sport column — its full leg set determines one
+        // single-sport or Cross-Sports reporting bucket. Leg event times
         // come back too: the ticket sits on the day its last bound leg was
         // played, which is when it could settle.
         legs: {
@@ -560,7 +561,7 @@ const loadPublicCapperByHandle = cache(async function loadPublicCapperByHandle(
         outcome: row.outcome,
         profitUnits: stake.profitUnits,
         units: stake.units,
-        sport: row.legs[0]?.sport ?? "MULTI",
+        sport: parlayReportingSport(row.legs),
       } satisfies ProfilePosition;
     });
     chartRows = [...straightChart, ...parlayChart].sort(

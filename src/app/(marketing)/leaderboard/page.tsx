@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import {
   BuildingRecordSection,
@@ -9,6 +10,8 @@ import { LeaderboardOverview } from "@/components/scl/leaderboard-overview";
 import { LeaderboardRankingRail } from "@/components/scl/leaderboard-ranking-rail";
 import { parseLeaderboardFilters } from "@/lib/leaderboard";
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
+import { getCurrentHonors } from "@/lib/queries/honors";
+import { awardsForCapper } from "@/lib/honors";
 
 export const metadata: Metadata = {
   title: "Leaderboard",
@@ -25,7 +28,14 @@ export default async function LeaderboardPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const filters = parseLeaderboardFilters(await searchParams);
-  const { cappers, unranked, failed } = await getLeaderboardResult(filters);
+  const [{ cappers, unranked, failed }, honors] = await Promise.all([
+    getLeaderboardResult(filters),
+    getCurrentHonors(),
+  ]);
+  const decoratedCappers = cappers.map((capper) => ({
+    ...capper,
+    honors: awardsForCapper(honors, capper.id),
+  }));
 
   return (
     <div
@@ -36,13 +46,21 @@ export default async function LeaderboardPage({
       data-capper-count={cappers.length + unranked.length}
     >
       <LeaderboardOverview />
+      <div className="mb-3 flex flex-wrap gap-3 text-sm font-semibold">
+        <Link className="scl-link min-h-10 py-2" href="/leaderboard/supermax">
+          Supermax leaderboard
+        </Link>
+        <Link className="scl-link min-h-10 py-2" href="/honors">
+          SCL Honors
+        </Link>
+      </div>
       <LeaderboardFilters filters={filters} />
 
       {/* Wide desktop: ~10/2 — main board + ~236px explanation rail */}
       <div className="mt-3 grid gap-4 lg:mt-4 lg:grid-cols-[minmax(0,1fr)_14.75rem] lg:gap-5">
         <section aria-label="Ranked cappers" className="min-w-0">
           <Leaderboard
-            cappers={cappers}
+            cappers={decoratedCappers}
             filters={filters}
             showExpand
             rankByPosition

@@ -13,6 +13,7 @@ import {
   mergeCareerSportRecords,
 } from "@/lib/legacy-sport-records";
 import { buildPerformanceTrend } from "@/lib/leaderboard";
+import { parlayReportingSport } from "@/lib/parlay-sport";
 import { NewPickButton } from "@/components/scl/new-pick-button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/scl/states";
@@ -63,7 +64,7 @@ export default async function DashboardPage() {
         createdAt: play.createdAt,
       })),
       ...parlays.map((parlay) => ({
-        sport: parlay.legs[0]?.sport ?? "MULTI",
+        sport: parlayReportingSport(parlay.legs),
         outcome: parlay.outcome,
         units: parlay.units,
         profitUnits: parlay.profitUnits,

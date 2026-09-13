@@ -2,7 +2,7 @@ import { PREDICTION_UNIT_MAX, PREDICTION_UNIT_MIN } from "@/lib/constants";
 
 const UNIT_SCALE = 100;
 
-/** New predictions accept 1.00–5.00 units with at most two decimal places. */
+/** New standard predictions accept 0.01–10.00 units with at most two decimals. */
 export function isValidPredictionUnits(units: number): boolean {
   if (
     !Number.isFinite(units) ||

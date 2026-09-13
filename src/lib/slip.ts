@@ -36,6 +36,8 @@ export type SlipSelection = SlipPick & {
   /** Analysis belongs to this straight pick, never to the whole singles batch. */
   notes: string;
   notesPublic: boolean;
+  /** Daily 20u straight-bet designation. */
+  isSupermax: boolean;
 };
 
 export type SlipMode = "singles" | "parlay";
@@ -274,6 +276,7 @@ export function toSlipSelection(
     capturedAt,
     notes: "",
     notesPublic: true,
+    isSupermax: false,
   };
 }
 

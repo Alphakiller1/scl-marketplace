@@ -33,6 +33,7 @@ import {
 } from "@/lib/capper-activity";
 import { hasClvColumns } from "@/lib/results/schema-features";
 import { activePublicPackageWhere } from "@/lib/public-packages";
+import { parlayReportingSport } from "@/lib/parlay-sport";
 import {
   allTimeLegacyRecordWhere,
   carriedResultsFromLegacyRows,
@@ -169,15 +170,13 @@ async function fetchRankableProfiles(
           },
         },
       },
-      // Parlays are positions of record alongside straight plays. A parlay matches a
-      // sport filter when any leg is that sport.
+      // Parlays are positions of record alongside straight plays. Reporting
+      // assigns single-sport parlays to that sport and mixed parlays to one
+      // Cross-Sports bucket below.
       parlays: {
         where: {
           ...parlayWindow,
           units: { gte: UNIT_MIN },
-          ...(filters.sport !== "ALL"
-            ? { legs: { some: { sport: filters.sport } } }
-            : undefined),
         },
         select: {
           outcome: true,
@@ -187,7 +186,7 @@ async function fetchRankableProfiles(
           gradedAt: true,
           legs: {
             select: { sport: true },
-            take: 1,
+            take: 12,
             orderBy: { id: "asc" },
           },
         },
@@ -297,6 +296,7 @@ function summarize(
   p: ProfileRow,
   applyBaseline: boolean,
   lifetimeGradedPositions?: LifetimeGradedByCapper,
+  filterSport = "ALL",
 ): CapperSummary | null {
   const username = p.user.username;
   if (!username) return null;
@@ -311,6 +311,7 @@ function summarize(
     ...plays.map((pl) => {
       const stake = stakeFromStored(pl.units, pl.profitUnits);
       return {
+        sport: pl.sport,
         outcome: pl.outcome,
         units: stake.units,
         profitUnits: stake.profitUnits,
@@ -318,16 +319,23 @@ function summarize(
         gradedAt: pl.gradedAt,
       };
     }),
-    ...p.parlays.map((pa) => {
-      const stake = stakeFromStored(pa.units, pa.profitUnits);
-      return {
-        outcome: pa.outcome,
-        units: stake.units,
-        profitUnits: stake.profitUnits,
-        createdAt: pa.createdAt,
-        gradedAt: pa.gradedAt,
-      };
-    }),
+    ...p.parlays
+      .filter((pa) =>
+        filterSport === "ALL"
+          ? true
+          : parlayReportingSport(pa.legs) === filterSport,
+      )
+      .map((pa) => {
+        const stake = stakeFromStored(pa.units, pa.profitUnits);
+        return {
+          sport: parlayReportingSport(pa.legs),
+          outcome: pa.outcome,
+          units: stake.units,
+          profitUnits: stake.profitUnits,
+          createdAt: pa.createdAt,
+          gradedAt: pa.gradedAt,
+        };
+      }),
   ].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
   const legacyBaseline = baselineFor(p, applyBaseline);
@@ -352,11 +360,16 @@ function summarize(
     positions.map((x) => ({ outcome: x.outcome, profitUnits: x.profitUnits })),
   );
 
-  const settled = positions
-    .filter(
-      (x) =>
-        x.outcome === "WIN" || x.outcome === "LOSS" || x.outcome === "PUSH",
-    )
+  const settledPositions = positions.filter(
+    (position) =>
+      position.outcome === "WIN" ||
+      position.outcome === "LOSS" ||
+      position.outcome === "PUSH",
+  );
+  const relevantSports = [
+    ...new Set(settledPositions.map((position) => position.sport)),
+  ];
+  const settled = settledPositions
     .sort(
       (a, b) =>
         (a.gradedAt ?? a.createdAt).getTime() -
@@ -399,10 +412,7 @@ function summarize(
     avatarUrl: p.avatarUrl ?? undefined,
     bannerUrl: p.bannerUrl ?? undefined,
     verified: p.user.emailVerified != null,
-    topSport: topSport(
-      plays.map((x) => x.sport),
-      p.sports[0],
-    ),
+    topSport: topSport(relevantSports, p.sports[0]),
     rank: 0, // assigned after sort
     rankDelta: 0, // no historical snapshot yet — honest neutral
     record: { w: stats.wins, l: stats.losses, p: stats.pushes },
@@ -422,7 +432,13 @@ function summarize(
     headline: p.headline ?? undefined,
     bio: p.bio ?? undefined,
     specialties: p.specialties.length ? p.specialties : undefined,
-    sports: p.sports.length ? p.sports : undefined,
+    // The leaderboard's sport chips describe the settled positions in the
+    // selected period, including the single Cross-Sports parlay bucket.
+    sports: relevantSports.length
+      ? relevantSports
+      : p.sports.length
+        ? p.sports
+        : undefined,
     books: p.books.length ? p.books : undefined,
     storefront: resolveStorefrontIdentity({
       username,
@@ -504,7 +520,7 @@ export async function getPublicCapperEvidenceByIds(
             ...profile.parlays.map((parlay) => {
               const stake = stakeFromStored(parlay.units, parlay.profitUnits);
               return {
-                sport: parlay.legs[0]?.sport ?? "MULTI",
+                sport: parlayReportingSport(parlay.legs),
                 outcome: parlay.outcome,
                 units: stake.units,
                 profitUnits: stake.profitUnits,
@@ -549,7 +565,9 @@ async function loadLeaderboardResult(filters: LeaderboardFilters): Promise<{
   }
 
   const cappers = profiles
-    .map((p) => summarize(p, filters.window === "all", lifetimeGraded))
+    .map((p) =>
+      summarize(p, filters.window === "all", lifetimeGraded, filters.sport),
+    )
     .filter((c): c is CapperSummary => c !== null);
 
   const { ranked, unranked } = partitionLeaderboard(cappers, filters);

@@ -59,6 +59,7 @@ export function BetSlip({
     setSelectionUnits,
     setSelectionNotes,
     setSelectionNotesPublic,
+    setSelectionSupermax,
     removeSelection,
     resolveConflictReplace,
     resolveConflictCancel,
@@ -293,6 +294,7 @@ export function BetSlip({
                         min={PREDICTION_UNIT_MIN}
                         max={PREDICTION_UNIT_MAX}
                         value={s.units}
+                        disabled={s.isSupermax}
                         onChange={(e) => {
                           const n = Number(e.target.value);
                           if (Number.isFinite(n)) setSelectionUnits(s.id, n);
@@ -308,13 +310,25 @@ export function BetSlip({
                       </StatValue>
                     </div>
                   </div>
-                  <StakeQuickChips
-                    value={s.units}
-                    onChange={(u) => setSelectionUnits(s.id, u)}
-                  />
+                  {!s.isSupermax ? (
+                    <StakeQuickChips
+                      value={s.units}
+                      onChange={(u) => setSelectionUnits(s.id, u)}
+                    />
+                  ) : null}
+                  <label className="border-border bg-surface-2 flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm font-semibold">
+                    <input
+                      type="checkbox"
+                      checked={s.isSupermax}
+                      onChange={(event) =>
+                        setSelectionSupermax(s.id, event.target.checked)
+                      }
+                      className="size-4"
+                    />
+                    Daily Supermax · 20u
+                  </label>
                   <p className="text-muted-foreground text-xs">
-                    Enter 1–5 units. Decimals up to two places are allowed, such
-                    as 1.25, 3.75, or 4.40.
+                    Enter 0.01–10 units, or designate one 20u Supermax per day.
                   </p>
                   <details className="border-border mt-3 rounded-lg border bg-[color:var(--scl-ink-900)] p-3">
                     <summary className="cursor-pointer text-sm font-semibold">
@@ -376,8 +390,7 @@ export function BetSlip({
           />
           <StakeQuickChips value={parlayUnits} onChange={setParlayUnits} />
           <p className="text-muted-foreground text-xs">
-            Enter 1–5 units. Decimals up to two places are allowed, such as
-            1.25, 3.75, or 4.40. Stake lives on the parlay; legs are components.
+            Enter 0.01–10 units. Supermax is available for straight bets only.
           </p>
         </div>
       ) : null}

@@ -11,6 +11,12 @@ export function SiteFooter() {
         </p>
         <nav className="flex flex-wrap gap-x-5 gap-y-1">
           <Link
+            href="/honors"
+            className="hover:text-foreground inline-flex min-h-10 items-center"
+          >
+            SCL Honors
+          </Link>
+          <Link
             href="/verification"
             className="hover:text-foreground inline-flex min-h-10 items-center"
           >

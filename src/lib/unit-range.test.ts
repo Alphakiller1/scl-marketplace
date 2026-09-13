@@ -24,22 +24,41 @@ const leg = (side: string) => ({
   book: "draftkings",
 });
 
-test("the owner-approved maximum is exactly 5 units", () => {
-  assert.equal(playSchema.safeParse(play).success, true);
+test("the owner-approved standard range is 0.01 through 10 units", () => {
+  assert.equal(playSchema.safeParse({ ...play, units: 0.01 }).success, true);
+  assert.equal(playSchema.safeParse({ ...play, units: 10 }).success, true);
   assert.equal(
     createParlaySchema.safeParse({
-      units: 5,
+      units: 10,
       legs: [leg("Lakers"), leg("Celtics")],
     }).success,
     true,
   );
 });
 
-test("stakes above 5 units are rejected at the server boundary", () => {
-  assert.equal(playSchema.safeParse({ ...play, units: 5.01 }).success, false);
+test("standard stakes above 10 units are rejected at the server boundary", () => {
+  assert.equal(playSchema.safeParse({ ...play, units: 10.01 }).success, false);
   assert.equal(
     createParlaySchema.safeParse({
-      units: 5.01,
+      units: 10.01,
+      legs: [leg("Lakers"), leg("Celtics")],
+    }).success,
+    false,
+  );
+});
+
+test("Supermax is a straight-only exact 20u designation", () => {
+  assert.equal(
+    playSchema.safeParse({ ...play, units: 20, isSupermax: true }).success,
+    true,
+  );
+  assert.equal(
+    playSchema.safeParse({ ...play, units: 19.99, isSupermax: true }).success,
+    false,
+  );
+  assert.equal(
+    createParlaySchema.safeParse({
+      units: 20,
       legs: [leg("Lakers"), leg("Celtics")],
     }).success,
     false,

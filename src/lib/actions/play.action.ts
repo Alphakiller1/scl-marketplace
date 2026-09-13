@@ -11,6 +11,7 @@ import {
 } from "@/lib/bulk-plays";
 import { isBookKey } from "@/lib/books";
 import { moveKey } from "@/lib/odds-movement";
+import { etDayBounds } from "@/lib/et-day";
 import {
   capperDefaultPackageIds,
   resolvePackageAttribution,
@@ -26,6 +27,11 @@ import {
 } from "@/lib/results/schema-features";
 import { playSchema, type PlayInput } from "@/lib/schemas/play.schema";
 import { getCurrentAccount } from "@/lib/session";
+import {
+  straightExposureError,
+  straightExposureEventIds,
+} from "@/lib/straight-exposure";
+import type { Prisma } from "@prisma/client";
 import type { BulkSinglesReceipt, StraightReceipt } from "@/lib/verification";
 
 type ReadyPlayData = {
@@ -37,6 +43,8 @@ type ReadyPlayData = {
   selectedOddsAmerican: number;
   oddsMovedAccepted: boolean;
   units: number;
+  isSupermax: boolean;
+  supermaxDay: Date | null;
   notes: string | null;
   notesPublic: boolean;
   needsReview: boolean;
@@ -102,6 +110,8 @@ type ReadyWrite = {
     selectedOddsAmerican: number;
     oddsMovedAccepted: boolean;
     units: number;
+    isSupermax: boolean;
+    supermaxDay: Date | null;
     notes: string | null;
     notesPublic: boolean;
     needsReview: boolean;
@@ -119,6 +129,45 @@ type ReadyWrite = {
   };
   receiptBase: Omit<StraightReceipt, "capturedAt">;
 };
+
+/** Enforces daily Supermax uniqueness and the lifetime 10u duplicate-straight cap. */
+async function validateStraightLimits(
+  tx: Prisma.TransactionClient,
+  capperId: string,
+  writes: ReadyWrite[],
+  now: Date,
+): Promise<string | null> {
+  const { start, end } = etDayBounds(0, now);
+  const eventIds = straightExposureEventIds(writes.map((write) => write.data));
+  const existing = await tx.play.findMany({
+    where: {
+      capperId,
+      parlayId: null,
+      OR: [
+        // Daily rows enforce the one-Supermax policy even when it is on a
+        // different event from the incoming straight.
+        { createdAt: { gte: start, lt: end } },
+        // Duplicate exposure follows the event, not the submission date. A
+        // future event may receive picks on more than one calendar day.
+        ...(eventIds.length > 0 ? [{ eventId: { in: eventIds } }] : []),
+      ],
+    },
+    select: {
+      eventId: true,
+      market: true,
+      selection: true,
+      side: true,
+      line: true,
+      units: true,
+      isSupermax: true,
+    },
+  });
+
+  return straightExposureError(
+    existing.map((play) => ({ ...play, units: Number(play.units) })),
+    writes.map((write) => write.data),
+  );
+}
 
 /**
  * Shared per-line validation body (createPlay / createPlays).
@@ -251,6 +300,8 @@ async function preparePlayLine(
         selectedOddsAmerican: d.oddsAmerican,
         oddsMovedAccepted: false,
         units: d.units,
+        isSupermax: d.isSupermax,
+        supermaxDay: d.isSupermax ? etDayBounds(0, opts.now).start : null,
         notes: d.notes ?? null,
         notesPublic: d.notesPublic ?? true,
         needsReview: isExtremeAmericanOdds(d.oddsAmerican),
@@ -313,17 +364,32 @@ export async function createPlay(input: PlayInput): Promise<PlayResult> {
     };
   }
 
-  const play = await prisma.play.create({
-    data: {
-      capperId: profile.id,
-      ...(await playCreateData(prep.ready.data)),
-      source: "MANUAL",
-      packageLinks: {
-        create: packageIds.map((packageId) => ({ packageId })),
+  const writeResult = await prisma.$transaction(async (tx) => {
+    // Serialize each capper's straight writes so concurrent tabs cannot both
+    // pass the combined-exposure check before either row exists.
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${`straight-exposure:${profile.id}`}))`;
+    const exposureError = await validateStraightLimits(
+      tx,
+      profile.id,
+      [prep.ready],
+      now,
+    );
+    if (exposureError) return { ok: false as const, error: exposureError };
+
+    const play = await tx.play.create({
+      data: {
+        capperId: profile.id,
+        ...(await playCreateData(prep.ready.data)),
+        source: "MANUAL",
+        packageLinks: {
+          create: packageIds.map((packageId) => ({ packageId })),
+        },
       },
-    },
-    select: { createdAt: true },
+      select: { createdAt: true },
+    });
+    return { ok: true as const, createdAt: play.createdAt };
   });
+  if (!writeResult.ok) return writeResult;
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/picks");
@@ -331,7 +397,7 @@ export async function createPlay(input: PlayInput): Promise<PlayResult> {
     ok: true,
     receipt: {
       ...prep.ready.receiptBase,
-      capturedAt: play.createdAt.toISOString(),
+      capturedAt: writeResult.createdAt.toISOString(),
     },
   };
 }
@@ -422,41 +488,57 @@ export async function createPlays(
     ? await capperDefaultPackageIds(profile.id)
     : [];
 
-  // Write every valid pre-game line independently.
-  const readyByKey = new Map(readyWrites.map((r) => [r.moveKey, r]));
-  const writtenReceipts: StraightReceipt[] = [];
-  const writtenMoveKeys: string[] = [];
-  for (const row of shaped.ready) {
-    const ready = readyByKey.get(row.moveKey);
-    if (!ready) continue;
-    const play = await prisma.play.create({
-      data: {
-        capperId: profile.id,
-        ...(await playCreateData(ready.data)),
-        source: "MANUAL",
-        packageLinks: {
-          create: (ready.packageIds.length > 0
-            ? ready.packageIds
-            : defaultPackageIds
-          ).map((packageId) => ({ packageId })),
+  // Validate and write the full batch under the same capper-scoped lock. This
+  // makes the 10u combined limit deterministic even across concurrent tabs.
+  const writeResult = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${`straight-exposure:${profile.id}`}))`;
+    const exposureError = await validateStraightLimits(
+      tx,
+      profile.id,
+      readyWrites,
+      now,
+    );
+    if (exposureError) return { ok: false as const, error: exposureError };
+
+    const readyByKey = new Map(
+      readyWrites.map((ready) => [ready.moveKey, ready]),
+    );
+    const writtenReceipts: StraightReceipt[] = [];
+    const writtenMoveKeys: string[] = [];
+    for (const row of shaped.ready) {
+      const ready = readyByKey.get(row.moveKey);
+      if (!ready) continue;
+      const play = await tx.play.create({
+        data: {
+          capperId: profile.id,
+          ...(await playCreateData(ready.data)),
+          source: "MANUAL",
+          packageLinks: {
+            create: (ready.packageIds.length > 0
+              ? ready.packageIds
+              : defaultPackageIds
+            ).map((packageId) => ({ packageId })),
+          },
         },
-      },
-      select: { createdAt: true },
-    });
-    writtenMoveKeys.push(ready.moveKey);
-    writtenReceipts.push({
-      ...ready.receiptBase,
-      capturedAt: play.createdAt.toISOString(),
-    });
-  }
+        select: { createdAt: true },
+      });
+      writtenMoveKeys.push(ready.moveKey);
+      writtenReceipts.push({
+        ...ready.receiptBase,
+        capturedAt: play.createdAt.toISOString(),
+      });
+    }
+    return { ok: true as const, writtenReceipts, writtenMoveKeys };
+  });
+  if (!writeResult.ok) return writeResult;
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/picks");
 
   const receipt = buildBulkSinglesReceipt({
-    picks: writtenReceipts,
+    picks: writeResult.writtenReceipts,
     attemptedCount: inputs.length,
-    writtenMoveKeys,
+    writtenMoveKeys: writeResult.writtenMoveKeys,
     failed: shaped.failed,
   });
 

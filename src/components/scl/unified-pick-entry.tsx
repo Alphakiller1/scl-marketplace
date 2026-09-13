@@ -53,6 +53,7 @@ function selectionToPlayInput(
     selection: s.selection,
     oddsAmerican: s.oddsAmerican,
     units: s.units,
+    isSupermax: s.isSupermax,
     notes: notes?.trim() || undefined,
     notesPublic,
     packageIds,

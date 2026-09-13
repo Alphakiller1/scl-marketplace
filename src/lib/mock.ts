@@ -5,6 +5,7 @@
  */
 
 import type { VerificationTier } from "@/lib/verification";
+import type { HonorAward } from "@/lib/honors";
 
 export type FormResult = "W" | "L" | "P";
 export type PickStatus =
@@ -42,6 +43,7 @@ export type CapperSummary = {
   streak: number; // + win streak, - loss streak
   recentForm: FormResult[]; // most recent last
   trophies: string[];
+  honors?: HonorAward[];
   /** Graded positions inside the active filter window — drives every figure. */
   settledPicks?: number;
   /**
