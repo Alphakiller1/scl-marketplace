@@ -7,6 +7,7 @@ import { profitUnitsEqual } from "@/lib/grading-correction";
 import { isBookKey } from "@/lib/books";
 import { confirmedBoardEvent } from "@/lib/board-selection-confirmation";
 import { decidePickIntegrity } from "@/lib/odds-verify";
+import { etDayBounds } from "@/lib/et-day";
 import {
   americanToDecimal,
   combineDecimalOdds,
@@ -22,6 +23,11 @@ import {
 } from "@/lib/schemas/parlay.schema";
 import { getCurrentAccount, requireAdmin } from "@/lib/session";
 import { lockParlaySettlement } from "@/lib/results/settlement-lock";
+import {
+  hasSupermaxForDay,
+  lockCapperPickSubmission,
+  SUPERMAX_DAILY_ERROR,
+} from "@/lib/supermax-submission";
 import { isVerifiedTier, type ParlayReceipt } from "@/lib/verification";
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -165,53 +171,65 @@ export async function createParlay(
   ];
   const parlayBook = legBooks.length === 1 ? legBooks[0]! : null;
 
-  const parlay = await prisma.parlay.create({
-    data: {
-      capperId: profile.id,
-      units: d.units,
-      combinedOddsAmerican,
-      packageLinks: {
-        create: packageIds.map((packageId) => ({ packageId })),
+  const supermaxDay = d.isSupermax ? etDayBounds(0, now).start : null;
+  const writeResult = await prisma.$transaction(async (tx) => {
+    await lockCapperPickSubmission(tx, profile.id);
+    if (supermaxDay && (await hasSupermaxForDay(tx, profile.id, supermaxDay))) {
+      return { ok: false as const, error: SUPERMAX_DAILY_ERROR };
+    }
+
+    const parlay = await tx.parlay.create({
+      data: {
+        capperId: profile.id,
+        units: d.units,
+        isSupermax: d.isSupermax,
+        supermaxDay,
+        combinedOddsAmerican,
+        packageLinks: {
+          create: packageIds.map((packageId) => ({ packageId })),
+        },
+        legs: {
+          create: decided.map(
+            ({
+              leg: l,
+              eventStartsAt,
+              oddsAmerican,
+              selectedOddsAmerican,
+              oddsMovedAccepted,
+              homeTeam,
+              awayTeam,
+              ...v
+            }) => ({
+              capperId: profile.id,
+              sport: l.sport,
+              league: l.league ?? null,
+              market: l.market,
+              selection: l.selection,
+              oddsAmerican,
+              selectedOddsAmerican,
+              oddsMovedAccepted,
+              units: 0, // parent is the one overall/Supermax record; legs are components
+              eventId: l.eventId,
+              eventLabel: `${awayTeam} @ ${homeTeam}`,
+              homeTeam,
+              awayTeam,
+              eventStartsAt,
+              side: l.side,
+              line: l.line ?? null,
+              book: l.book && isBookKey(l.book) ? l.book : null,
+              source: "MANUAL",
+              loggedPreGame: v.loggedPreGame,
+              oddsVerified: v.oddsVerified,
+              verificationTier: v.tier,
+            }),
+          ),
+        },
       },
-      legs: {
-        create: decided.map(
-          ({
-            leg: l,
-            eventStartsAt,
-            oddsAmerican,
-            selectedOddsAmerican,
-            oddsMovedAccepted,
-            homeTeam,
-            awayTeam,
-            ...v
-          }) => ({
-            capperId: profile.id,
-            sport: l.sport,
-            league: l.league ?? null,
-            market: l.market,
-            selection: l.selection,
-            oddsAmerican,
-            selectedOddsAmerican,
-            oddsMovedAccepted,
-            units: 0, // the parlay carries the stake; legs are components
-            eventId: l.eventId,
-            eventLabel: `${awayTeam} @ ${homeTeam}`,
-            homeTeam,
-            awayTeam,
-            eventStartsAt,
-            side: l.side,
-            line: l.line ?? null,
-            book: l.book && isBookKey(l.book) ? l.book : null,
-            source: "MANUAL",
-            loggedPreGame: v.loggedPreGame,
-            oddsVerified: v.oddsVerified,
-            verificationTier: v.tier,
-          }),
-        ),
-      },
-    },
-    select: { createdAt: true },
+      select: { createdAt: true },
+    });
+    return { ok: true as const, createdAt: parlay.createdAt };
   });
+  if (!writeResult.ok) return writeResult;
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/picks");
@@ -221,7 +239,7 @@ export async function createParlay(
       kind: "parlay",
       legCount: decided.length,
       combinedOddsAmerican,
-      capturedAt: parlay.createdAt.toISOString(),
+      capturedAt: writeResult.createdAt.toISOString(),
       allLoggedPreGame,
       verifiedLegCount,
       tiers,

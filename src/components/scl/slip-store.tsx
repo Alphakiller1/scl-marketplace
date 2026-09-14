@@ -35,11 +35,13 @@ type SlipStoreValue = {
   mode: SlipMode;
   selections: SlipSelection[];
   parlayUnits: number;
+  parlayIsSupermax: boolean;
   selectedKeys: Set<string>;
   pendingConflict: PendingConflict | null;
   internalConflicts: ReturnType<typeof findInternalParlayConflicts>;
   setMode: (mode: SlipMode) => void;
   setParlayUnits: (units: number) => void;
+  setParlaySupermax: (value: boolean) => void;
   setSelectionUnits: (id: string, units: number) => void;
   setSelectionNotes: (id: string, notes: string) => void;
   setSelectionNotesPublic: (id: string, value: boolean) => void;
@@ -63,6 +65,7 @@ export function SlipStoreProvider({
   const [mode, setModeState] = useState<SlipMode>(initialMode);
   const [selections, setSelections] = useState<SlipSelection[]>([]);
   const [parlayUnits, setParlayUnitsState] = useState(DEFAULT_UNITS);
+  const [parlayIsSupermax, setParlayIsSupermax] = useState(false);
   const [pendingConflict, setPendingConflict] =
     useState<PendingConflict | null>(null);
   const [unitsDropWarned, setUnitsDropWarned] = useState(false);
@@ -108,14 +111,17 @@ export function SlipStoreProvider({
 
       if (mode === "parlay" && next === "singles") {
         setSelections((curr) =>
-          seedSinglesUnitsFromParlayStake(curr, parlayUnits),
+          seedSinglesUnitsFromParlayStake(
+            curr,
+            parlayIsSupermax ? DEFAULT_UNITS : parlayUnits,
+          ),
         );
       }
 
       setPendingConflict(null);
       setModeState(next);
     },
-    [mode, parlayUnits, selections, unitsDropWarned],
+    [mode, parlayIsSupermax, parlayUnits, selections, unitsDropWarned],
   );
 
   const addPick = useCallback(
@@ -172,7 +178,14 @@ export function SlipStoreProvider({
 
   const clearSlip = useCallback(() => {
     setSelections([]);
+    setParlayUnitsState(DEFAULT_UNITS);
+    setParlayIsSupermax(false);
     setPendingConflict(null);
+  }, []);
+
+  const setParlaySupermax = useCallback((isSupermax: boolean) => {
+    setParlayIsSupermax(isSupermax);
+    setParlayUnitsState(isSupermax ? SUPERMAX_UNITS : DEFAULT_UNITS);
   }, []);
 
   const setSelectionUnits = useCallback((id: string, units: number) => {
@@ -229,11 +242,13 @@ export function SlipStoreProvider({
       mode,
       selections,
       parlayUnits,
+      parlayIsSupermax,
       selectedKeys,
       pendingConflict,
       internalConflicts,
       setMode,
       setParlayUnits,
+      setParlaySupermax,
       setSelectionUnits,
       setSelectionNotes,
       setSelectionNotesPublic,
@@ -248,11 +263,13 @@ export function SlipStoreProvider({
       mode,
       selections,
       parlayUnits,
+      parlayIsSupermax,
       selectedKeys,
       pendingConflict,
       internalConflicts,
       setMode,
       setParlayUnits,
+      setParlaySupermax,
       setSelectionUnits,
       setSelectionNotes,
       setSelectionNotesPublic,

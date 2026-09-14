@@ -31,6 +31,11 @@ import {
   straightExposureError,
   straightExposureEventIds,
 } from "@/lib/straight-exposure";
+import {
+  hasSupermaxForDay,
+  lockCapperPickSubmission,
+  SUPERMAX_DAILY_ERROR,
+} from "@/lib/supermax-submission";
 import type { Prisma } from "@prisma/client";
 import type { BulkSinglesReceipt, StraightReceipt } from "@/lib/verification";
 
@@ -138,6 +143,12 @@ async function validateStraightLimits(
   now: Date,
 ): Promise<string | null> {
   const { start, end } = etDayBounds(0, now);
+  if (
+    writes.some((write) => write.data.isSupermax) &&
+    (await hasSupermaxForDay(tx, capperId, start))
+  ) {
+    return SUPERMAX_DAILY_ERROR;
+  }
   const eventIds = straightExposureEventIds(writes.map((write) => write.data));
   const existing = await tx.play.findMany({
     where: {
@@ -365,11 +376,9 @@ export async function createPlay(input: PlayInput): Promise<PlayResult> {
   }
 
   const writeResult = await prisma.$transaction(async (tx) => {
-    // Serialize each capper's straight writes so concurrent tabs cannot both
-    // pass the combined-exposure check before either row exists.
-    // Put the void-returning lock function in FROM so Prisma only has to
-    // deserialize the supported integer projection.
-    await tx.$queryRaw`SELECT 1 AS "locked" FROM pg_advisory_xact_lock(hashtext(${`straight-exposure:${profile.id}`}))`;
+    // Serialize straight and parlay writes so both daily Supermax uniqueness
+    // and combined straight exposure remain deterministic across tabs.
+    await lockCapperPickSubmission(tx, profile.id);
     const exposureError = await validateStraightLimits(
       tx,
       profile.id,
@@ -493,9 +502,7 @@ export async function createPlays(
   // Validate and write the full batch under the same capper-scoped lock. This
   // makes the 10u combined limit deterministic even across concurrent tabs.
   const writeResult = await prisma.$transaction(async (tx) => {
-    // Put the void-returning lock function in FROM so Prisma only has to
-    // deserialize the supported integer projection.
-    await tx.$queryRaw`SELECT 1 AS "locked" FROM pg_advisory_xact_lock(hashtext(${`straight-exposure:${profile.id}`}))`;
+    await lockCapperPickSubmission(tx, profile.id);
     const exposureError = await validateStraightLimits(
       tx,
       profile.id,

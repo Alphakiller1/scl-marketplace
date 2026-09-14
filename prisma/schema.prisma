@@ -728,7 +728,7 @@ model Play {
   /// True when the capper explicitly accepted a beyond-tolerance odds move (M5).
   oddsMovedAccepted    Boolean   @default(false)
   units                Decimal   @db.Decimal(16, 2) // 0.01–10 standard; 20 only for Supermax (enforced in Zod)
-  /// One owner-approved 20u straight bet per capper per Eastern calendar day.
+  /// One owner-approved 20u straight or parlay bet per capper per Eastern calendar day.
   isSupermax           Boolean   @default(false)
   /// Eastern day key; nullable unique pair is the race-safe daily guard.
   supermaxDay          DateTime? @db.Date
@@ -785,7 +785,11 @@ model Parlay {
   id                   String    @id @default(cuid())
   capperId             String
   combinedOddsAmerican Int?
-  units                Decimal   @db.Decimal(16, 2)
+  units                Decimal   @db.Decimal(16, 2) // 0.01–10 standard; 20 only for Supermax (enforced in Zod)
+  /// A 20u daily Supermax. The shared straight/parlay guard is enforced transactionally.
+  isSupermax           Boolean   @default(false)
+  /// Eastern day key; nullable unique pair protects concurrent parlay submissions.
+  supermaxDay          DateTime? @db.Date
   outcome              Outcome   @default(PENDING)
   profitUnits          Decimal?  @db.Decimal(16, 2)
   createdAt            DateTime  @default(now())
@@ -796,7 +800,9 @@ model Parlay {
   audits       ParlayGradingAudit[]
   packageLinks ParlayPackage[]
 
+  @@unique([capperId, supermaxDay])
   @@index([capperId])
+  @@index([capperId, isSupermax, createdAt])
 }
 
 /// Immutable attribution between a straight pick and the offers it was sold in.

@@ -39,7 +39,7 @@ export function straightExposureError(
     (incoming.some((play) => play.isSupermax) &&
       existing.some((play) => play.isSupermax))
   ) {
-    return "Only one 20u Supermax straight bet is allowed per day.";
+    return "Only one 20u Supermax bet is allowed per day.";
   }
 
   const totals = new Map<string, number>();

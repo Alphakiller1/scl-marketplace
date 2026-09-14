@@ -18,6 +18,7 @@ import {
   PREDICTION_UNIT_MAX,
   PREDICTION_UNIT_MIN,
   PREDICTION_UNIT_STEP,
+  SUPERMAX_UNITS,
 } from "@/lib/constants";
 import { formatOdds } from "@/lib/format";
 import {
@@ -52,10 +53,12 @@ export function BetSlip({
     mode,
     selections,
     parlayUnits,
+    parlayIsSupermax,
     pendingConflict,
     internalConflicts,
     setMode,
     setParlayUnits,
+    setParlaySupermax,
     setSelectionUnits,
     setSelectionNotes,
     setSelectionNotesPublic,
@@ -381,16 +384,29 @@ export function BetSlip({
             type="number"
             step={PREDICTION_UNIT_STEP}
             min={PREDICTION_UNIT_MIN}
-            max={PREDICTION_UNIT_MAX}
+            max={parlayIsSupermax ? SUPERMAX_UNITS : PREDICTION_UNIT_MAX}
             value={parlayUnits}
+            disabled={parlayIsSupermax}
             onChange={(e) => {
               const n = Number(e.target.value);
               if (Number.isFinite(n)) setParlayUnits(n);
             }}
           />
-          <StakeQuickChips value={parlayUnits} onChange={setParlayUnits} />
+          {!parlayIsSupermax ? (
+            <StakeQuickChips value={parlayUnits} onChange={setParlayUnits} />
+          ) : null}
+          <label className="border-border bg-surface-2 flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm font-semibold">
+            <input
+              type="checkbox"
+              checked={parlayIsSupermax}
+              onChange={(event) => setParlaySupermax(event.target.checked)}
+              className="size-4"
+            />
+            Daily Supermax parlay · 20u
+          </label>
           <p className="text-muted-foreground text-xs">
-            Enter 0.01–10 units. Supermax is available for straight bets only.
+            Enter 0.01–10 units, or designate this parlay as your one 20u
+            Supermax for the day.
           </p>
         </div>
       ) : null}
