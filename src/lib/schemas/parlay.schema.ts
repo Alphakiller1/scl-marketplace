@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   PREDICTION_UNIT_MAX,
   PREDICTION_UNIT_MIN,
+  SUPERMAX_UNITS,
   SPORT_KEYS,
 } from "@/lib/constants";
 import { isValidPredictionUnits } from "@/lib/prediction-units";
@@ -60,14 +61,30 @@ export const parlayLegSchema = z.object({
 });
 
 /** A parlay carries the stake; its legs are components (units live on the parlay). */
-export const createParlaySchema = z.object({
-  units: unitsField,
-  packageIds: z.array(z.string().min(1)).max(10).optional().default([]),
-  legs: z
-    .array(parlayLegSchema)
-    .min(2, "A parlay needs at least 2 legs")
-    .max(12, "Up to 12 legs"),
-});
+export const createParlaySchema = z
+  .object({
+    units: z.coerce.number(),
+    isSupermax: z.boolean().optional().default(false),
+    packageIds: z.array(z.string().min(1)).max(10).optional().default([]),
+    legs: z
+      .array(parlayLegSchema)
+      .min(2, "A parlay needs at least 2 legs")
+      .max(12, "Up to 12 legs"),
+  })
+  .superRefine((value, context) => {
+    const valid = value.isSupermax
+      ? value.units === SUPERMAX_UNITS
+      : unitsField.safeParse(value.units).success;
+    if (!valid) {
+      context.addIssue({
+        code: "custom",
+        path: ["units"],
+        message: value.isSupermax
+          ? `A Supermax must be exactly ${SUPERMAX_UNITS} units`
+          : `Units must be between ${PREDICTION_UNIT_MIN} and ${PREDICTION_UNIT_MAX}`,
+      });
+    }
+  });
 
 export const gradeParlaySchema = z
   .object({

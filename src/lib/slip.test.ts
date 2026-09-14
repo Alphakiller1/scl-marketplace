@@ -324,6 +324,25 @@ test("seedSinglesUnitsFromParlayStake copies parlay stake onto every row", () =>
   assert.equal(seeded[0]!.selection, "Lakers");
 });
 
+test("mode-switch seeding preserves a straight Supermax stake", () => {
+  const standard = toSlipSelection(
+    {
+      eventId: "evt-1",
+      market: "Moneyline",
+      selection: "Lakers",
+      side: "Lakers",
+      oddsAmerican: -140,
+      eventStartsAt: "2026-07-14T23:00:00.000Z",
+      sport: "NBA",
+    },
+    1,
+  );
+  const supermax = { ...standard, units: 20, isSupermax: true };
+  const [seeded] = seedSinglesUnitsFromParlayStake([supermax], 1.5);
+  assert.equal(seeded?.units, 20);
+  assert.equal(seeded?.isSupermax, true);
+});
+
 test("selectedKeysFromSelections mirrors pickKey set", () => {
   const a = toSlipSelection(
     {

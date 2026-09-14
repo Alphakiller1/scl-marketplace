@@ -36,7 +36,7 @@ export type SlipSelection = SlipPick & {
   /** Analysis belongs to this straight pick, never to the whole singles batch. */
   notes: string;
   notesPublic: boolean;
-  /** Daily 20u straight-bet designation. */
+  /** Daily 20u designation when this selection is submitted as a straight. */
   isSupermax: boolean;
 };
 
@@ -313,5 +313,10 @@ export function seedSinglesUnitsFromParlayStake(
   selections: readonly SlipSelection[],
   parlayUnits: number,
 ): SlipSelection[] {
-  return selections.map((s) => ({ ...s, units: parlayUnits }));
+  return selections.map((s) => ({
+    ...s,
+    // A hidden Singles Supermax survives a temporary mode switch and must
+    // retain its exact 20u stake when the capper switches back.
+    units: s.isSupermax ? s.units : parlayUnits,
+  }));
 }

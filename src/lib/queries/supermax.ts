@@ -23,7 +23,10 @@ export const getSupermaxLeaderboard = cache(
             accountStatus: "ACTIVE",
             ...excludeTest,
           },
-          plays: { some: { isSupermax: true, parlayId: null } },
+          OR: [
+            { plays: { some: { isSupermax: true, parlayId: null } } },
+            { parlays: { some: { isSupermax: true } } },
+          ],
         },
         select: {
           id: true,
@@ -38,6 +41,14 @@ export const getSupermaxLeaderboard = cache(
               notes: true,
             },
           },
+          parlays: {
+            where: { isSupermax: true },
+            select: {
+              outcome: true,
+              units: true,
+              profitUnits: true,
+            },
+          },
         },
       });
       return profiles
@@ -46,15 +57,22 @@ export const getSupermaxLeaderboard = cache(
           const eligiblePlays = profile.plays.filter(
             (play) => !hasQaNoteMarker(play.notes),
           );
-          if (eligiblePlays.length === 0) return [];
-          const stats = computeCapperStats(
-            eligiblePlays.map((play) => ({
+          const positions = [
+            ...eligiblePlays.map((play) => ({
               outcome: play.outcome,
               units: Number(play.units),
               profitUnits:
                 play.profitUnits == null ? null : Number(play.profitUnits),
             })),
-          );
+            ...profile.parlays.map((parlay) => ({
+              outcome: parlay.outcome,
+              units: Number(parlay.units),
+              profitUnits:
+                parlay.profitUnits == null ? null : Number(parlay.profitUnits),
+            })),
+          ];
+          if (positions.length === 0) return [];
+          const stats = computeCapperStats(positions);
           return [
             {
               capperId: profile.id,
@@ -75,17 +93,23 @@ export const getSupermaxLeaderboard = cache(
 export async function getCapperSupermaxStats(
   capperId: string,
 ): Promise<CapperStats> {
-  const rows = await prisma.play.findMany({
-    where: { capperId, parlayId: null, isSupermax: true },
-    select: { outcome: true, units: true, profitUnits: true, notes: true },
-  });
+  const [plays, parlays] = await Promise.all([
+    prisma.play.findMany({
+      where: { capperId, parlayId: null, isSupermax: true },
+      select: { outcome: true, units: true, profitUnits: true, notes: true },
+    }),
+    prisma.parlay.findMany({
+      where: { capperId, isSupermax: true },
+      select: { outcome: true, units: true, profitUnits: true },
+    }),
+  ]);
   return computeCapperStats(
-    rows
-      .filter((row) => !hasQaNoteMarker(row.notes))
-      .map((row) => ({
+    [...plays.filter((row) => !hasQaNoteMarker(row.notes)), ...parlays].map(
+      (row) => ({
         outcome: row.outcome,
         units: Number(row.units),
         profitUnits: row.profitUnits == null ? null : Number(row.profitUnits),
-      })),
+      }),
+    ),
   );
 }

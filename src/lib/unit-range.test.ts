@@ -47,13 +47,29 @@ test("standard stakes above 10 units are rejected at the server boundary", () =>
   );
 });
 
-test("Supermax is a straight-only exact 20u designation", () => {
+test("Supermax is an exact 20u straight or parlay designation", () => {
   assert.equal(
     playSchema.safeParse({ ...play, units: 20, isSupermax: true }).success,
     true,
   );
   assert.equal(
     playSchema.safeParse({ ...play, units: 19.99, isSupermax: true }).success,
+    false,
+  );
+  assert.equal(
+    createParlaySchema.safeParse({
+      units: 20,
+      isSupermax: true,
+      legs: [leg("Lakers"), leg("Celtics")],
+    }).success,
+    true,
+  );
+  assert.equal(
+    createParlaySchema.safeParse({
+      units: 19.99,
+      isSupermax: true,
+      legs: [leg("Lakers"), leg("Celtics")],
+    }).success,
     false,
   );
   assert.equal(

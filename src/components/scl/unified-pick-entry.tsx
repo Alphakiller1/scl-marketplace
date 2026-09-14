@@ -73,6 +73,7 @@ function UnifiedPickEntryInner() {
     setMode,
     selections,
     parlayUnits,
+    parlayIsSupermax,
     selectedKeys,
     addPick,
     clearSlip,
@@ -159,6 +160,7 @@ function UnifiedPickEntryInner() {
       if (selections.length < 2) return;
       const res = await createParlay({
         units: parlayUnits,
+        isSupermax: parlayIsSupermax,
         packageIds: [],
         legs: selections.map((s) => toSlipLeg(s)),
       });
