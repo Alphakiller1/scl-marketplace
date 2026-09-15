@@ -8,10 +8,14 @@ import {
   eventBuyBudgetExhausted,
   EVENT_BUY_DAY_START_HOUR_ET,
   HARD_MAX_EVENT_BUYS_PER_DAY,
+  MAX_TOPUPS_PER_BUY_DAY,
+  nextTopUpAt,
   recordEventBuy,
+  recordTopUp,
   remainingEventBuys,
   resolveEventBuyLimit,
   SAME_DAY_EXPANDED_RUNS,
+  TOPUP_MIN_INTERVAL_MINUTES,
 } from "@/lib/odds-event-buy-budget";
 
 /**
@@ -180,4 +184,38 @@ test("the cap survives the daylight-saving boundary", () => {
   assert.equal(buyDayKey(beforeOpen), "2026-10-31");
   const afterOpen = Date.parse("2026-11-01T14:00:00.000Z"); // 09:00 EST
   assert.equal(buyDayKey(afterOpen), "2026-11-01");
+});
+
+// ── team-total top-ups ───────────────────────────────────────────────────────
+// A top-up asks for the ladder alone and is not a buy, so it has its own
+// spacing and ceiling — the ceiling is for the game whose ladder never comes.
+test("a game with no top-ups may be topped up now", () => {
+  const now = et(15, 9);
+  assert.equal(nextTopUpAt([], now), now);
+  assert.equal(nextTopUpAt(undefined, now), now);
+});
+
+test("top-ups of one game are spaced an hour apart", () => {
+  assert.equal(
+    nextTopUpAt([et(15, 9)], et(15, 9, 10)),
+    et(15, 9) + TOPUP_MIN_INTERVAL_MINUTES * 60_000,
+  );
+  // Past the spacing, the game is due immediately.
+  assert.equal(nextTopUpAt([et(15, 8)], et(15, 9, 30)), et(15, 9, 30));
+});
+
+test("a game whose ladder never comes stops being asked for the day", () => {
+  const attempts = Array.from({ length: MAX_TOPUPS_PER_BUY_DAY }, (_, index) =>
+    et(15, 8 + index),
+  );
+  assert.equal(nextTopUpAt(attempts, et(15, 17)), null);
+  // The next buy day starts at 08:00 ET with a fresh set of tries.
+  assert.equal(nextTopUpAt(attempts, et(16, 8)), et(16, 8));
+});
+
+test("the top-up log keeps only the current buy day", () => {
+  assert.deepEqual(recordTopUp([et(14, 12), et(15, 9)], et(15, 10)), [
+    et(15, 9),
+    et(15, 10),
+  ]);
 });

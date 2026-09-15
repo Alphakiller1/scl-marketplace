@@ -9,7 +9,10 @@ import {
 } from "@/lib/odds-verify";
 import { isDoubleChanceMarket } from "@/lib/soccer-markets";
 import {
+  ALTERNATE_TEAM_TOTAL_MARKET_KEY,
   isTeamTotalMarket,
+  MIN_TEAM_TOTAL_LADDER_LINES,
+  parseTeamTotalSelection,
   TEAM_TOTAL_MARKET_KEYS,
 } from "@/lib/team-total-markets";
 
@@ -28,8 +31,9 @@ function requestsTeamTotals(sport: string): boolean {
 const PROP_LABELS = new Set(
   Object.values(PROP_MARKET_LABEL).map((label) => label.toLowerCase()),
 );
-/** The featured team-total market prices one line per club — no more. */
-const FEATURED_TEAM_TOTAL_LINES = 2;
+/** Gap labels the team-total rule writes, and the top-up keys off. */
+export const TEAM_TOTALS_GAP = "team totals";
+export const ALTERNATE_TEAM_TOTALS_GAP = "alternate team totals";
 
 const HALF_SPORTS = new Set(["CFL", "NFL", "NCAAF", "NBA", "NCAAB", "WNBA"]);
 
@@ -51,6 +55,10 @@ export type EventMarketCoverage = {
   /** Distinct team-total LINES. The featured market yields at most one per
    *  club, so anything above that is the alternate ladder. */
   teamTotalLines: number;
+  /** Clubs carrying their OWN ladder — at least
+   *  {@link MIN_TEAM_TOTAL_LADDER_LINES} distinct lines. A game is covered only
+   *  when both clubs do. */
+  teamTotalLadderClubs: number;
   /** Soccer only — the three Double Chance combinations. */
   doubleChance: number;
   f3: number;
@@ -76,6 +84,7 @@ export function summarizeEventMarketCoverage(
   let alternateTotals = 0;
   let teamTotals = 0;
   const teamTotalLines = new Set<number>();
+  const teamTotalLinesByClub = new Map<string, Set<number>>();
   let doubleChance = 0;
   let f3 = 0;
   let f5 = 0;
@@ -102,8 +111,16 @@ export function summarizeEventMarketCoverage(
     }
     if (isTeamTotalMarket(selection.market)) {
       teamTotals++;
-      if (typeof selection.line === "number")
+      if (typeof selection.line === "number") {
         teamTotalLines.add(selection.line);
+        const club = parseTeamTotalSelection(selection.selection)?.team;
+        if (club) {
+          const key = club.toLowerCase();
+          const lines = teamTotalLinesByClub.get(key) ?? new Set<number>();
+          lines.add(selection.line);
+          teamTotalLinesByClub.set(key, lines);
+        }
+      }
     }
     if (isDoubleChanceMarket(selection.market)) doubleChance++;
     if (period?.innings === 3) f3++;
@@ -155,20 +172,23 @@ export function summarizeEventMarketCoverage(
   // warmer never returned to fill them. Every other expanded market has a rule
   // here; team totals were the one gap, which made them the one market that
   // could stay permanently thin no matter how often the refresh ran.
+  const teamTotalLadderClubs = [...teamTotalLinesByClub.values()].filter(
+    (lines) => lines.size >= MIN_TEAM_TOTAL_LADDER_LINES,
+  ).length;
   if (requestsTeamTotals(sport)) {
     if (teamTotals === 0) {
-      missing.push("team totals");
-    } else if (teamTotalLines.size <= FEATURED_TEAM_TOTAL_LINES) {
-      // Counting team totals as present the moment ONE exists is what hid
-      // this: the featured `team_totals` market returns a single line per
-      // club, so a game with four selections and no ladder at all read as
-      // fully covered. `skipPopulated` then skipped it on every later run,
-      // so the alternate rungs never arrived even once books posted them —
-      // ten of fifteen MLB games sat that way while four had thirteen lines.
-      //
-      // Two lines is the most the featured market can produce (one per
-      // club), so at or below it the alternate ladder is absent, not thin.
-      missing.push("alternate team totals");
+      missing.push(TEAM_TOTALS_GAP);
+    } else if (teamTotalLadderClubs < 2) {
+      // The ladder is judged PER CLUB. The rule this replaces counted distinct
+      // lines across the whole game and called anything above two a ladder,
+      // on the theory that the featured market prices one line per club. The
+      // books do not agree on that one line: on 2026-09-15 FanDuel and
+      // DraftKings hung the Phillies at 4.5, Fanatics at 7.5, and the Nationals
+      // sat at 2.5 — three distinct lines, so "covered" — with no ladder for
+      // either club. Seven of fifteen games looked like that, every later pass
+      // skipped them, and no Over 2.5 for the Phillies, Dodgers or Rays ever
+      // reached the board. See MIN_TEAM_TOTAL_LADDER_LINES for the threshold.
+      missing.push(ALTERNATE_TEAM_TOTALS_GAP);
     }
   }
   if (sport === "MLB") {
@@ -194,6 +214,7 @@ export function summarizeEventMarketCoverage(
     alternateTotals,
     teamTotals,
     teamTotalLines: teamTotalLines.size,
+    teamTotalLadderClubs,
     doubleChance,
     f3,
     f5,
@@ -232,3 +253,24 @@ export function buildOddsCoverageReport(games: EventMarketCoverage[]) {
 }
 
 export type OddsCoverageReport = ReturnType<typeof buildOddsCoverageReport>;
+
+/**
+ * The team-total keys a top-up should buy — when team totals are the ONLY gap.
+ *
+ * Anything else missing means the board needs a real refresh, and a refresh
+ * requests team totals along with everything else, so a separate top-up would
+ * pay for them twice. Null rather than an empty list, so "nothing to top up"
+ * cannot be mistaken for "top up nothing".
+ */
+export function teamTotalGapMarkets(
+  missing: readonly string[],
+): string[] | null {
+  if (missing.length === 0) return null;
+  const onlyTeamTotals = missing.every(
+    (gap) => gap === TEAM_TOTALS_GAP || gap === ALTERNATE_TEAM_TOTALS_GAP,
+  );
+  if (!onlyTeamTotals) return null;
+  return missing.includes(TEAM_TOTALS_GAP)
+    ? [...TEAM_TOTAL_MARKET_KEYS]
+    : [ALTERNATE_TEAM_TOTAL_MARKET_KEY];
+}

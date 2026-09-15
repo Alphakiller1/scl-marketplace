@@ -16,6 +16,8 @@ export async function executeClaimedOddsRun(
   tier: string;
   ok: boolean;
   credits: number;
+  /** The populate route's own report, when it answered with one. */
+  details?: Record<string, unknown>;
 }> {
   const secret = process.env.CRON_SECRET?.trim();
   if (!secret) {
@@ -46,6 +48,10 @@ export async function executeClaimedOddsRun(
   target.searchParams.set("expandedDays", "today,tomorrow");
   target.searchParams.set("skipPopulated", "1");
   target.searchParams.set("expandedMaxAgeMinutes", String(run.cadenceMinutes));
+  if (run.topUp) {
+    target.searchParams.set("topUp", "teamTotals");
+    if (run.topUp.force) target.searchParams.set("topUpForce", "1");
+  }
   const headers = new Headers({
     authorization: `Bearer ${secret}`,
     "x-scl-managed-run": "1",
@@ -95,7 +101,14 @@ export async function executeClaimedOddsRun(
         ? undefined
         : (payload.error ?? `Population returned HTTP ${response.status}.`),
     });
-    return { id: run.id, sport: run.sport, tier: run.tier, ok, credits };
+    return {
+      id: run.id,
+      sport: run.sport,
+      tier: run.tier,
+      ok,
+      credits,
+      details: payload,
+    };
   } catch (error) {
     await failOddsRun(run.id, error);
     return {

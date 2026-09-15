@@ -5,6 +5,7 @@ import type { OddsEvent, OddsSelection } from "@/lib/odds-board";
 import {
   buildOddsCoverageReport,
   summarizeEventMarketCoverage,
+  teamTotalGapMarkets,
 } from "@/lib/odds-market-coverage";
 
 const event: OddsEvent = {
@@ -40,11 +41,8 @@ test("MLB coverage distinguishes every requested expanded market family", () => 
       selection("Earned Runs", { player: "Pitcher", line: 2.5 }),
       selection("Hits", { player: "Batter", line: 1.5 }),
       selection("Total Bases", { player: "Batter", line: 1.5 }),
-      // A real ladder, not one rung: the featured market alone tops out at
-      // one line per club, and coverage now requires the alternates.
-      selection("Team Total", { line: 3.5 }),
-      selection("Team Total", { line: 4.5 }),
-      selection("Team Total", { line: 5.5 }),
+      // A real ladder for BOTH clubs: coverage judges each club's own lines.
+      ...teamTotalSelections([2.5, 3.5, 4.5, 5.5]),
       selection("1st 3 Innings Total", { line: 2.5 }),
       selection("1st 5 Innings Spread", { line: 1.5 }),
       selection("1st 7 Innings Moneyline"),
@@ -64,8 +62,9 @@ test("MLB coverage distinguishes every requested expanded market family", () => 
   assert.equal(coverage.alternateGameLines, 2);
   assert.equal(coverage.alternateSpreads, 1);
   assert.equal(coverage.alternateTotals, 1);
-  assert.equal(coverage.teamTotals, 3);
-  assert.equal(coverage.teamTotalLines, 3);
+  assert.equal(coverage.teamTotals, 16);
+  assert.equal(coverage.teamTotalLines, 4);
+  assert.equal(coverage.teamTotalLadderClubs, 2);
   assert.deepEqual(coverage.missing, []);
 });
 
@@ -187,17 +186,22 @@ function mlbEvent(): Parameters<typeof summarizeEventMarketCoverage>[0] {
   };
 }
 
-function teamTotalSelections(lines: number[]) {
-  return lines.flatMap((line) =>
-    (["Over", "Under"] as const).map((side) => ({
-      label: `Royals ${side} ${line}`,
-      market: "Team Total",
-      selection: `Kansas City Royals ${side} ${line}`,
-      side,
-      line,
-      featured: false,
-      oddsAmerican: -110,
-    })),
+function teamTotalSelections(
+  lines: number[],
+  clubs: readonly string[] = ["Kansas City Royals", "Detroit Tigers"],
+): OddsSelection[] {
+  return clubs.flatMap((club) =>
+    lines.flatMap((line) =>
+      (["Over", "Under"] as const).map((side) => ({
+        label: `${club} ${side} ${line}`,
+        market: "Team Total",
+        selection: `${club} ${side} ${line}`,
+        side,
+        line,
+        featured: false,
+        oddsAmerican: -110,
+      })),
+    ),
   );
 }
 
@@ -248,4 +252,59 @@ test("no team totals at all still reports the base gap, not the ladder", () => {
   );
   assert.ok(coverage.missing.includes("team totals"));
   assert.equal(coverage.missing.includes("alternate team totals"), false);
+});
+
+// ── the ladder is judged per club ────────────────────────────────────────────
+// 2026-09-15: seven of fifteen MLB boards carried only featured team totals.
+// The rule counted distinct lines across BOTH clubs, so books hanging the
+// featured line at different numbers pushed the count past two and read as a
+// ladder — and every later pass skipped the board.
+test("Phillies at Nationals: three featured lines across two clubs is no ladder", () => {
+  const selections = [
+    ...teamTotalSelections([4.5, 7.5], ["Philadelphia Phillies"]),
+    ...teamTotalSelections([2.5], ["Washington Nationals"]),
+  ];
+  const coverage = summarizeEventMarketCoverage(
+    mlbEvent(),
+    selections,
+    "runtime_cache",
+    false,
+  );
+  assert.equal(
+    coverage.teamTotalLines,
+    3,
+    "the board-wide count the old rule called a ladder",
+  );
+  assert.equal(coverage.teamTotalLadderClubs, 0);
+  assert.ok(coverage.missing.includes("alternate team totals"));
+});
+
+test("one club's ladder does not cover the other club", () => {
+  const coverage = summarizeEventMarketCoverage(
+    mlbEvent(),
+    [
+      ...teamTotalSelections(
+        [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5],
+        ["Chicago Cubs"],
+      ),
+      ...teamTotalSelections([3.5], ["Atlanta Braves"]),
+    ],
+    "runtime_cache",
+    false,
+  );
+  assert.equal(coverage.teamTotalLadderClubs, 1);
+  assert.ok(coverage.missing.includes("alternate team totals"));
+});
+
+test("a top-up is offered only when team totals are the whole gap", () => {
+  assert.deepEqual(teamTotalGapMarkets(["alternate team totals"]), [
+    "alternate_team_totals",
+  ]);
+  assert.deepEqual(teamTotalGapMarkets(["team totals"]), [
+    "team_totals",
+    "alternate_team_totals",
+  ]);
+  // Anything else missing needs a real refresh, which asks for team totals too.
+  assert.equal(teamTotalGapMarkets(["alternate team totals", "F7"]), null);
+  assert.equal(teamTotalGapMarkets([]), null);
 });

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  addMissingEventBoardSelections,
   mergeEventBoardSelections,
   parseEventBoardSnapshot,
 } from "@/lib/odds-event-board-contract";
@@ -30,6 +31,7 @@ test("accepts a populated last-good event board for the exact event", () => {
   assert.deepEqual(parseEventBoardSnapshot(snapshot, "MLB", "event-1"), {
     ...snapshot,
     buys: [],
+    topUps: [],
   });
 });
 
@@ -108,4 +110,70 @@ test("merge keeps same-line team totals for both clubs", () => {
     yankees,
     redSox,
   ]);
+});
+
+test("the top-up log round-trips apart from the buy log", () => {
+  const now = Date.now();
+  const parsed = parseEventBoardSnapshot(
+    {
+      version: 1,
+      sport: "MLB",
+      eventId: "event-1",
+      selections: [selection],
+      savedAt: now,
+      buys: [now - 7_200_000],
+      topUps: [now - 3_600_000, "junk", now],
+    },
+    "MLB",
+    "event-1",
+  );
+  assert.deepEqual(parsed?.buys, [now - 7_200_000]);
+  assert.deepEqual(parsed?.topUps, [now - 3_600_000, now]);
+});
+
+// Phillies at Nationals, 2026-09-15: the board held the featured line per club
+// and a top-up brought the Caesars ladder.
+function teamTotal(team: string, line: number, price: number, book: string) {
+  const text = `${team} Over ${line}`;
+  return {
+    label: text,
+    market: "Team Total",
+    selection: text,
+    side: "Over",
+    line,
+    featured: false,
+    oddsAmerican: price,
+    book,
+    bookPrices: { [book]: price },
+  };
+}
+
+test("a top-up adds missing rungs and leaves every existing price alone", () => {
+  const cached = [
+    teamTotal("Philadelphia Phillies", 4.5, -113, "fanduel"),
+    teamTotal("Washington Nationals", 2.5, 105, "draftkings"),
+  ];
+  const fresh = [
+    // Same line the board already carries, priced by the ladder's book. It must
+    // not displace the FanDuel price a capper was already shown.
+    teamTotal("Philadelphia Phillies", 4.5, -125, "williamhill_us"),
+    teamTotal("Philadelphia Phillies", 2.5, -320, "williamhill_us"),
+    teamTotal("Philadelphia Phillies", 3.5, -190, "williamhill_us"),
+  ];
+  const merged = addMissingEventBoardSelections(cached, fresh);
+  assert.equal(merged.length, 4);
+  const phillies45 = merged.find(
+    (row) => row.selection === "Philadelphia Phillies Over 4.5",
+  );
+  assert.equal(phillies45?.oddsAmerican, -113);
+  assert.equal(phillies45?.book, "fanduel");
+  assert.ok(
+    merged.some((row) => row.selection === "Philadelphia Phillies Over 2.5"),
+    "the rung the owners asked for is on the board",
+  );
+});
+
+test("a top-up that finds nothing returns the board unchanged", () => {
+  const cached = [teamTotal("Los Angeles Dodgers", 5.5, -110, "fanduel")];
+  assert.deepEqual(addMissingEventBoardSelections(cached, []), cached);
 });

@@ -10,6 +10,7 @@ import {
   CircleDollarSign,
   Gauge,
   Globe,
+  Layers,
   Play,
   ScanSearch,
   Save,
@@ -26,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   dryRunOddsAction,
+  fillTeamTotalLaddersAction,
   runOddsNowAction,
   saveOddsControlSettingsAction,
 } from "@/lib/actions/odds-control.action";
@@ -44,6 +46,7 @@ import {
   HARD_MAX_EVENT_BUYS_PER_DAY,
 } from "@/lib/odds-event-buy-budget";
 import type { OddsControlSettingsInput } from "@/lib/schemas/odds-control.schema";
+import { ALTERNATE_TEAM_TOTAL_MARKET_KEY } from "@/lib/team-total-markets";
 import { cn } from "@/lib/utils";
 
 type SportDraft = OddsControlSettingsInput["sports"][number] & {
@@ -233,6 +236,18 @@ export function AdminOddsControlEditor({
         result.message ??
           `${sport} ${tier} ${dryRun ? "simulation completed" : "refresh completed"}`,
       );
+      router.refresh();
+    });
+  }
+
+  function fillLadders(sport: string) {
+    startTransition(async () => {
+      const result = await fillTeamTotalLaddersAction({ sport });
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(result.message ?? `${sport} team-total ladders checked`);
       router.refresh();
     });
   }
@@ -958,6 +973,16 @@ export function AdminOddsControlEditor({
                         {hasUnsavedChanges
                           ? "Save pending edits before running or simulating."
                           : "Run now starts immediately. Dry run spends zero credits."}
+                        {sport.expandedMarkets.includes(
+                          ALTERNATE_TEAM_TOTAL_MARKET_KEY,
+                        ) ? (
+                          <>
+                            <br />
+                            Fill team-total ladders asks only for team totals,
+                            only on games missing a club&apos;s ladder — one or
+                            two credits a game.
+                          </>
+                        ) : null}
                         <br />
                         Next standard: {scheduleLabel(sport.nextSurfaceRunAt)}
                         {groups.length ? (
@@ -1044,6 +1069,28 @@ export function AdminOddsControlEditor({
                             <Play className="size-4" aria-hidden />
                             Run expanded now
                           </Button>
+                          {sport.expandedMarkets.includes(
+                            ALTERNATE_TEAM_TOTAL_MARKET_KEY,
+                          ) ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="min-h-10"
+                              disabled={
+                                pending ||
+                                hasUnsavedChanges ||
+                                !storageReady ||
+                                !config.managedSchedulingEnabled ||
+                                config.paused ||
+                                !sport.enabled ||
+                                !sport.expandedEnabled
+                              }
+                              onClick={() => fillLadders(sport.sport)}
+                            >
+                              <Layers className="size-4" aria-hidden />
+                              Fill team-total ladders
+                            </Button>
+                          ) : null}
                         </>
                       ) : null}
                     </div>

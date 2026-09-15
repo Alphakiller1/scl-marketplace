@@ -233,3 +233,6 @@ export const oddsRunRequestSchema = z.object({
 export type OddsControlSettingsInput = z.infer<
   typeof oddsControlSettingsSchema
 >;
+
+/** Owner top-up of the team-total ladders on boards already bought. */
+export const oddsTeamTotalTopUpSchema = z.object({ sport: sportEnum });

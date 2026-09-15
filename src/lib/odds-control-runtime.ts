@@ -24,6 +24,12 @@ export type ClaimedOddsRun = {
   maxEventsPerRun: number;
   cadenceMinutes: number;
   estimatedCredits: number;
+  /**
+   * Set on a team-total top-up: the run fills missing ladders on boards
+   * already bought and buys nothing else. `force` is the owner pressing the
+   * button, which skips the hourly spacing between automatic top-ups.
+   */
+  topUp?: { force: boolean };
 };
 
 export async function managedOddsSchedulingEnabled(): Promise<boolean> {
@@ -109,6 +115,16 @@ export async function scheduleExpandedCatchUp(
   sport: string,
   uncovered: number,
   now = new Date(),
+  options: {
+    /** Do not wake the pass before this — see `expandedCatchUpRunAt`. */
+    notBefore?: Date | null;
+    /**
+     * Only schedule when the owner's expanded markets include one of these.
+     * A pass chasing a market the owner has switched off can never close the
+     * gap, so it would be re-queued every half hour for nothing.
+     */
+    requireMarkets?: readonly string[];
+  } = {},
 ): Promise<Date | null> {
   if (uncovered <= 0) return null;
   try {
@@ -127,11 +143,20 @@ export async function scheduleExpandedCatchUp(
     // back for; pulling its schedule forward would only queue a no-op run.
     if (!policy?.enabled || !policy.expandedEnabled) return null;
     if (policy.expandedMarkets.length === 0) return null;
+    if (
+      options.requireMarkets?.length &&
+      !options.requireMarkets.some((key) =>
+        policy.expandedMarkets.includes(key),
+      )
+    ) {
+      return null;
+    }
 
     const at = expandedCatchUpRunAt({
       uncovered,
       scheduledAt: policy.nextExpandedRunAt,
       lastRunAt: policy.lastExpandedRunAt,
+      notBefore: options.notBefore ?? null,
       now,
     });
     if (!at) return null;
@@ -394,6 +419,12 @@ export async function claimManualOddsRun(input: {
   triggeredById: string;
   dryRun?: boolean;
   now?: Date;
+  /**
+   * Narrow the run to these markets. Only markets the owner has already
+   * enabled for the tier survive — an override can focus a run, never widen it.
+   */
+  markets?: readonly string[];
+  topUp?: { force: boolean };
 }): Promise<
   | { ok: true; run: ClaimedOddsRun; dryRun: boolean; message: string }
   | { ok: false; error: string }
@@ -429,14 +460,23 @@ export async function claimManualOddsRun(input: {
             input.tier === "surface"
               ? policy.surfaceEnabled
               : policy.expandedEnabled;
-          const markets =
+          const policyMarkets =
             input.tier === "surface"
               ? policy.surfaceMarkets
               : policy.expandedMarkets;
-          if (!tierEnabled || markets.length === 0) {
+          const markets = input.markets
+            ? policyMarkets.filter((key) => input.markets!.includes(key))
+            : policyMarkets;
+          if (!tierEnabled || policyMarkets.length === 0) {
             return {
               ok: false as const,
               error: `Enable the ${input.tier} tier and select its markets first.`,
+            };
+          }
+          if (markets.length === 0) {
+            return {
+              ok: false as const,
+              error: `None of those markets are switched on for ${policy.sport}. Enable them under its expanded markets first.`,
             };
           }
 
@@ -535,6 +575,7 @@ export async function claimManualOddsRun(input: {
                 maxEventsPerRun: policy.maxEventsPerRun,
                 cadenceMinutes,
                 estimatedCredits: estimate,
+                ...(input.topUp ? { topUp: input.topUp } : {}),
               },
             };
           }
@@ -566,6 +607,7 @@ export async function claimManualOddsRun(input: {
               maxEventsPerRun: policy.maxEventsPerRun,
               cadenceMinutes,
               estimatedCredits: estimate,
+              ...(input.topUp ? { topUp: input.topUp } : {}),
             },
           };
         },
