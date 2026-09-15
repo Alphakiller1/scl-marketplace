@@ -154,3 +154,47 @@ export function recordEventBuy(
 ): number[] {
   return [...buysInBuyDay(buys, now), now];
 }
+
+/**
+ * The shortest gap between two team-total top-ups of one game.
+ *
+ * A top-up asks for a ladder a book has not posted yet, so asking again minutes
+ * later buys nothing. An hour is long enough for the book to move and short
+ * enough that a ladder posted mid-morning reaches the board well before first
+ * pitch.
+ */
+export const TOPUP_MIN_INTERVAL_MINUTES = 60;
+
+/**
+ * Top-ups one game may take in a buy day.
+ *
+ * The ceiling is for the game whose ladder never comes: without one it is asked
+ * every hour until first pitch. Eight hourly asks span a full morning. At two
+ * credits at most per ask, a fifteen-game slate's worst case is under 250
+ * credits — about five full boards — against a board that otherwise stays thin
+ * all day.
+ */
+export const MAX_TOPUPS_PER_BUY_DAY = 8;
+
+/**
+ * When this game may next be topped up: now, a later moment, or null once the
+ * day's ceiling is spent. Counted in buy days, like the buy allowance.
+ */
+export function nextTopUpAt(
+  topUps: readonly number[] | undefined,
+  now: number = Date.now(),
+): number | null {
+  const today = buysInBuyDay(topUps, now);
+  if (today.length >= MAX_TOPUPS_PER_BUY_DAY) return null;
+  if (today.length === 0) return now;
+  const last = Math.max(...today);
+  return Math.max(now, last + TOPUP_MIN_INTERVAL_MINUTES * 60_000);
+}
+
+/** The top-up log after one more attempt; earlier buy days drop off. */
+export function recordTopUp(
+  topUps: readonly number[] | undefined,
+  now: number = Date.now(),
+): number[] {
+  return [...buysInBuyDay(topUps, now), now];
+}

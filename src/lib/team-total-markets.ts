@@ -123,3 +123,18 @@ export function outcomeDescriptionFor(pick: {
   }
   return pick.player?.trim() || undefined;
 }
+
+/** The alternate ladder's key — the rungs around each club's main line. */
+export const ALTERNATE_TEAM_TOTAL_MARKET_KEY = "alternate_team_totals";
+
+/**
+ * Distinct lines one club needs before its alternate ladder counts as posted.
+ *
+ * Measured, not guessed: across 224 MLB clubs from 2026-09-07 to 09-15, a club
+ * carried either 1-3 distinct team-total lines (the featured line, plus a book
+ * hanging it at a different number) or 7-13 (Caesars — and BetMGM where it
+ * prices the game — posting the ladder from 0.5 up). Nothing fell in between,
+ * so any threshold from 4 to 7 separates them; the low end keeps a short ladder
+ * from reading as missing.
+ */
+export const MIN_TEAM_TOTAL_LADDER_LINES = 4;

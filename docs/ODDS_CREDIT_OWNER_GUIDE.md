@@ -107,6 +107,25 @@ all** switch remains available, but is not required. Save the strategy and run
 **Dry run expanded** before the first paid run. Anytime Touchdown is intentionally
 off for an existing saved strategy until an owner selects and saves it.
 
+### Team-total ladders (MLB)
+
+The alternate team-total ladder — each club's Over/Under from 0.5 up, including
+the Over 2.5 cappers ask for most — is posted game by game, mostly by Caesars,
+and often hours after the rest of the card. SCL now handles that on its own:
+
+- A game counts as covered only when **both** clubs carry their own ladder.
+- When the ladder is the only thing missing, SCL asks for team totals alone (one
+  or two credits a game), adds the new lines to the board, and leaves every
+  price already on it untouched. This does **not** use the game's daily
+  verification allowance.
+- It retries each thin game at most once an hour and at most 8 times per buy
+  day (counted from 8am ET), then leaves that game until the next day.
+
+To fill them immediately, open **MLB** and press **Fill team-total ladders**. It
+only asks about games still missing a ladder, and reports how many it filled and
+how many no book has posted yet. It is refused if team totals are switched off
+for the league.
+
 ### Scheduled verification runs
 
 A verification run re-prices events from the provider so cappers see current

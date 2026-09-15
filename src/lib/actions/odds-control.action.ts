@@ -10,9 +10,11 @@ import { claimManualOddsRun } from "@/lib/odds-control-runtime";
 import {
   oddsControlSettingsSchema,
   oddsRunRequestSchema,
+  oddsTeamTotalTopUpSchema,
   type OddsControlSettingsInput,
 } from "@/lib/schemas/odds-control.schema";
 import { requireAdmin } from "@/lib/session";
+import { TEAM_TOTAL_MARKET_KEYS } from "@/lib/team-total-markets";
 
 type ActionResult =
   | { ok: true; message?: string; credits?: number }
@@ -218,5 +220,100 @@ export async function dryRunOddsAction(input: {
   } catch (error) {
     console.error("[odds-control] dry run failed", error);
     return { ok: false, error: "Could not simulate the refresh." };
+  }
+}
+
+function topUpCounts(
+  details: Record<string, unknown> | undefined,
+  sport: string,
+) {
+  const expanded = details?.expanded;
+  const row =
+    expanded && typeof expanded === "object"
+      ? (expanded as Record<string, unknown>)[sport]
+      : undefined;
+  const read = (key: string): number => {
+    if (!row || typeof row !== "object") return 0;
+    const value = (row as Record<string, unknown>)[key];
+    return typeof value === "number" && Number.isFinite(value) ? value : 0;
+  };
+  return {
+    games: read("events"),
+    asked: read("topUpAttempts"),
+    filled: read("toppedUp"),
+    held: read("held"),
+  };
+}
+
+/**
+ * Fill the team-total ladders on today's boards without rebuying them.
+ *
+ * Asks only for team totals, only on games whose board is missing a club's
+ * ladder, and adds what comes back — a credit or two a game. Pressing it skips
+ * the hourly spacing between automatic top-ups, but not the credit reserve and
+ * not the owner's market switches: a sport with team totals turned off is
+ * refused rather than quietly bought.
+ */
+export async function fillTeamTotalLaddersAction(input: {
+  sport: string;
+}): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const parsed = oddsTeamTotalTopUpSchema.safeParse({
+    sport: input?.sport?.trim().toUpperCase(),
+  });
+  if (!parsed.success) return { ok: false, error: "Unknown sport." };
+  const { sport } = parsed.data;
+  try {
+    const claimed = await claimManualOddsRun({
+      sport,
+      tier: "expanded",
+      triggeredById: admin.id,
+      markets: TEAM_TOTAL_MARKET_KEYS,
+      topUp: { force: true },
+    });
+    if (!claimed.ok) return claimed;
+    const result = await executeClaimedOddsRun(appUrl(), claimed.run);
+    const counts = topUpCounts(result.details, sport);
+    await prisma.oddsControlAuditEvent.create({
+      data: {
+        action: "TEAM_TOTAL_TOPUP",
+        target: `${sport}:expanded`,
+        after: auditJson({
+          sport,
+          runId: result.id,
+          credits: result.credits,
+          ...counts,
+        }),
+        actorId: admin.id,
+      },
+    });
+    revalidatePath("/admin/odds");
+    if (!result.ok) {
+      return {
+        ok: false,
+        error: "Top-up started but the provider run failed.",
+      };
+    }
+    if (counts.asked === 0 && counts.held === 0) {
+      return {
+        ok: true,
+        credits: result.credits,
+        message: `Every ${sport} board in the window already carries both team-total ladders.`,
+      };
+    }
+    const notPosted = counts.asked - counts.filled;
+    const parts = [`ladders added on ${counts.filled}`];
+    if (notPosted > 0) parts.push(`${notPosted} not posted by any book yet`);
+    if (counts.held > 0) {
+      parts.push(`${counts.held} held back for the credit reserve`);
+    }
+    return {
+      ok: true,
+      credits: result.credits,
+      message: `${sport} team totals: ${parts.join(", ")}. ${result.credits.toLocaleString()} credits.`,
+    };
+  } catch (error) {
+    console.error("[odds-control] team-total top-up failed", error);
+    return { ok: false, error: "Could not fill the team-total ladders." };
   }
 }

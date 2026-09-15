@@ -17,11 +17,13 @@ import {
 import {
   eventBuyBudgetExhausted,
   recordEventBuy,
+  recordTopUp,
   remainingEventBuys,
   resolveEventBuyLimit,
 } from "@/lib/odds-event-buy-budget";
 import { freshestSnapshot } from "@/lib/odds-snapshot-freshness";
 import {
+  addMissingEventBoardSelections,
   mergeEventBoardSelections,
   parseEventBoardSnapshot,
   type EventBoardSnapshot,
@@ -51,6 +53,8 @@ export type CachedEventBoard = {
   savedAt: number | null;
   /** Paid refreshes this event has left today — 0 means it will not be re-bought. */
   buysRemaining: number;
+  /** Team-total top-up attempts logged for this event (see `nextTopUpAt`). */
+  topUps: number[];
 };
 
 const inFlight = new Map<string, Promise<LoadedEventBoard>>();
@@ -92,14 +96,16 @@ async function writeSnapshot(
   eventId: string,
   selections: OddsSelection[],
   buys: readonly number[] = [],
+  options: { savedAt?: number; topUps?: readonly number[] } = {},
 ): Promise<EventBoardSnapshot> {
   const snapshot: EventBoardSnapshot = {
     version: 1,
     sport: sport.toUpperCase(),
     eventId,
     selections,
-    savedAt: Date.now(),
+    savedAt: options.savedAt ?? Date.now(),
     buys: [...buys],
+    topUps: [...(options.topUps ?? [])],
   };
   await writeDurableOddsSnapshot(
     cacheKey(sport, eventId),
@@ -162,6 +168,7 @@ export async function loadCachedEventBoard(
       stale: false,
       savedAt: null,
       buysRemaining: resolveEventBuyLimit(dailyBuyLimit),
+      topUps: [],
     };
   }
   const stale = Date.now() - cached.savedAt > ODDS_EVENT_FRESH_SECONDS * 1_000;
@@ -171,6 +178,7 @@ export async function loadCachedEventBoard(
     stale,
     savedAt: cached.savedAt,
     buysRemaining: remainingEventBuys(cached.buys, Date.now(), dailyBuyLimit),
+    topUps: cached.topUps ?? [],
   };
 }
 
@@ -210,6 +218,7 @@ async function refreshEventBoard(
       eventId,
       merged,
       recordEventBuy(cached?.buys, boughtAt),
+      { topUps: cached?.topUps ?? [] },
     );
     return {
       selections: merged,
@@ -342,4 +351,75 @@ export async function loadEventBoard(
   ).finally(() => inFlight.delete(key));
   inFlight.set(key, pending);
   return pending;
+}
+
+export type EventBoardTopUp = {
+  /** Rows the provider returned that the board did not already carry. */
+  added: number;
+  /** Rows on the board after the top-up. */
+  selections: number;
+  outcome: "added" | "nothing_new" | "no_board" | "credit_reserve";
+};
+
+/**
+ * Ask for a few markets on a board that already exists, and add what comes back.
+ *
+ * The path for the alternate team-total ladder, which books post game by game
+ * and often hours after the rest of the card. It differs from a refresh in the
+ * three ways that make it cheap to repeat:
+ *
+ * - it requests only `markets` — one or two keys, a credit or two a game;
+ * - it adds rungs and never replaces a row the board already carries;
+ * - it logs a top-up, not a buy, so the day's buy allowance is untouched.
+ *
+ * `savedAt` moves by one millisecond, not to now. The prices already on the
+ * board are exactly as old as they were, and every age decision — the freshness
+ * window, `canSkipExpandedEvent` — must keep reading them that way. But it has
+ * to move: the runtime cache is regional and wins ties, so a region still
+ * holding the pre-top-up board at the same `savedAt` would keep serving the
+ * thin board over the durable row.
+ */
+export async function topUpEventBoard(
+  sport: string,
+  eventId: string,
+  options: { league?: string | null; markets: readonly string[] },
+): Promise<EventBoardTopUp> {
+  const normalizedSport = sport.toUpperCase();
+  const cached = await readSnapshot(normalizedSport, eventId);
+  if (!cached) return { added: 0, selections: 0, outcome: "no_board" };
+  if (shouldCircuitBreak(getLastOddsApiRemaining(), getLastOddsApiCapacity())) {
+    return {
+      added: 0,
+      selections: cached.selections.length,
+      outcome: "credit_reserve",
+    };
+  }
+  const attemptedAt = Date.now();
+  let fresh: OddsSelection[] = [];
+  try {
+    fresh = await fetchEventBoard(normalizedSport, eventId, {
+      league: options.league,
+      markets: options.markets,
+    });
+  } catch (error) {
+    console.warn("[odds-event-cache] top-up failed", {
+      sport: normalizedSport,
+      eventId,
+      markets: options.markets,
+      reason: error instanceof Error ? error.message : String(error),
+    });
+  }
+  const selections = addMissingEventBoardSelections(cached.selections, fresh);
+  const added = selections.length - cached.selections.length;
+  // Written even when nothing was added: the attempt is what spaces and caps
+  // the next one.
+  await writeSnapshot(normalizedSport, eventId, selections, cached.buys ?? [], {
+    savedAt: cached.savedAt + 1,
+    topUps: recordTopUp(cached.topUps, attemptedAt),
+  });
+  return {
+    added,
+    selections: selections.length,
+    outcome: added > 0 ? "added" : "nothing_new",
+  };
 }

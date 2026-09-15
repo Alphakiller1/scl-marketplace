@@ -535,3 +535,30 @@ test("a sport that has never run expanded still gets a catch-up", () => {
   assert.ok(at);
   assert.equal(at.getTime(), now.getTime() + EXPANDED_CATCHUP_MINUTES * 60_000);
 });
+
+test("a ladder retry waits until the soonest game is due again", () => {
+  const now = new Date("2026-09-15T13:00:00.000Z");
+  const scheduledAt = new Date("2026-09-16T01:20:00.000Z");
+  const lastRunAt = new Date("2026-09-15T07:10:00.000Z");
+  const at = expandedCatchUpRunAt({
+    uncovered: 7,
+    scheduledAt,
+    lastRunAt,
+    notBefore: new Date("2026-09-15T13:40:00.000Z"),
+    now,
+  });
+  assert.equal(at?.toISOString(), "2026-09-15T13:40:00.000Z");
+
+  // A retry that is already due never pulls the pass inside the usual lead.
+  const due = expandedCatchUpRunAt({
+    uncovered: 7,
+    scheduledAt,
+    lastRunAt,
+    notBefore: new Date("2026-09-15T12:00:00.000Z"),
+    now,
+  });
+  assert.equal(
+    due?.getTime(),
+    now.getTime() + EXPANDED_CATCHUP_MINUTES * 60_000,
+  );
+});

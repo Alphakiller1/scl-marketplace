@@ -444,6 +444,12 @@ export function expandedCatchUpRunAt(input: {
   uncovered: number;
   scheduledAt: Date | null;
   lastRunAt: Date | null;
+  /**
+   * The earliest moment the pass has anything to do. A ladder retry sets it to
+   * when the soonest game is due another top-up, so the pass does not wake to
+   * find every game still inside its retry spacing.
+   */
+  notBefore?: Date | null;
   now?: Date;
 }): Date | null {
   if (input.uncovered <= 0) return null;
@@ -455,7 +461,11 @@ export function expandedCatchUpRunAt(input: {
     ? input.lastRunAt.getTime() + EXPANDED_CATCHUP_MIN_GAP_MINUTES * 60_000
     : now.getTime();
   const at = new Date(
-    Math.max(now.getTime() + EXPANDED_CATCHUP_MINUTES * 60_000, floor),
+    Math.max(
+      now.getTime() + EXPANDED_CATCHUP_MINUTES * 60_000,
+      floor,
+      input.notBefore?.getTime() ?? 0,
+    ),
   );
   if (input.scheduledAt && input.scheduledAt.getTime() <= at.getTime()) {
     return null;

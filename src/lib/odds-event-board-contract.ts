@@ -15,6 +15,16 @@ export type EventBoardSnapshot = {
    * throwing away a cached board that cost real credits.
    */
   buys?: number[];
+  /**
+   * Epoch millis of each team-total top-up attempt in the current buy day.
+   *
+   * Kept apart from `buys` because a top-up is not a buy: it asks for one or
+   * two markets, a credit or two a game, and must not spend the allowance a
+   * full refresh needs. It still needs its own ceiling — a book that never
+   * posts a game's ladder would otherwise be asked every hour until first
+   * pitch. Optional for the same reason `buys` is.
+   */
+  topUps?: number[];
 };
 
 function selectionIdentity(selection: OddsSelection): string {
@@ -25,6 +35,30 @@ function selectionIdentity(selection: OddsSelection): string {
     selection.line ?? "",
     selection.player?.trim().toLowerCase() ?? "",
   ].join("|");
+}
+
+/**
+ * Add the rows a top-up found that the board does not already carry.
+ *
+ * Unlike {@link mergeEventBoardSelections}, a fresh row never replaces a cached
+ * one. The ladder request can come back with its own price for a line the board
+ * already holds, from a different set of books, and letting it win would swap
+ * the board's best price on a line nobody asked to reprice. A top-up adds
+ * rungs; it moves no prices.
+ */
+export function addMissingEventBoardSelections(
+  cached: readonly OddsSelection[],
+  fresh: readonly OddsSelection[],
+): OddsSelection[] {
+  const seen = new Set(cached.map(selectionIdentity));
+  const added: OddsSelection[] = [];
+  for (const selection of fresh) {
+    const identity = selectionIdentity(selection);
+    if (seen.has(identity)) continue;
+    seen.add(identity);
+    added.push(selection);
+  }
+  return [...cached, ...added];
 }
 
 /** Fresh rows win, while temporarily absent market groups retain their last-good rows. */
@@ -74,10 +108,15 @@ export function parseEventBoardSnapshot(
   const snapshot = row as EventBoardSnapshot;
   return {
     ...snapshot,
-    buys: Array.isArray(row.buys)
-      ? row.buys.filter(
-          (at): at is number => typeof at === "number" && Number.isFinite(at),
-        )
-      : [],
+    buys: finiteTimes(row.buys),
+    topUps: finiteTimes(row.topUps),
   };
+}
+
+function finiteTimes(value: unknown): number[] {
+  return Array.isArray(value)
+    ? value.filter(
+        (at): at is number => typeof at === "number" && Number.isFinite(at),
+      )
+    : [];
 }

@@ -23,8 +23,12 @@ import {
   eventsMissingBoard,
   loadCachedEventBoard,
   loadEventBoard,
+  topUpEventBoard,
 } from "@/lib/odds-event-board-cache";
-import { summarizeEventMarketCoverage } from "@/lib/odds-market-coverage";
+import {
+  summarizeEventMarketCoverage,
+  teamTotalGapMarkets,
+} from "@/lib/odds-market-coverage";
 import {
   canSkipExpandedEvent,
   expandedEventCreditCost,
@@ -48,6 +52,8 @@ import {
   scheduleExpandedCatchUp,
 } from "@/lib/odds-control-runtime";
 import { loadLeagueBuyLimits } from "@/lib/odds-league-buy-limits";
+import { nextTopUpAt } from "@/lib/odds-event-buy-budget";
+import { ALTERNATE_TEAM_TOTAL_MARKET_KEY } from "@/lib/team-total-markets";
 
 export const maxDuration = 300;
 
@@ -96,6 +102,12 @@ type ExpandedRow = {
   unpriced: number;
   /** Fixtures left alone because they have spent today's buy allowance. */
   capped: number;
+  /** Boards that gained team-total rungs from a top-up this run. */
+  toppedUp: number;
+  /** Team-total top-ups asked for (a credit or two each). */
+  topUpAttempts: number;
+  /** Boards missing a ladder but inside their retry spacing, or out of tries. */
+  ladderWaiting: number;
 };
 
 /**
@@ -229,6 +241,12 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
   // query flag rather than the default because the cap is the thing standing
   // between a fifteen-game slate and eight re-buys a day.
   const ignoreBuyCap = req.nextUrl.searchParams.get("ignoreBuyCap") === "1";
+  // A team-total top-up run fills missing ladders on boards already bought and
+  // buys nothing else. `topUpForce` is the owner pressing the button: it skips
+  // the hourly spacing between top-ups, not the credit reserve.
+  const teamTotalTopUpOnly =
+    req.nextUrl.searchParams.get("topUp") === "teamTotals";
+  const topUpForce = req.nextUrl.searchParams.get("topUpForce") === "1";
 
   const expandedMaxAgeMinutes = parseExpandedMaxAgeMinutes(
     req.nextUrl.searchParams.get("expandedMaxAgeMinutes"),
@@ -288,6 +306,14 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
       let stale = 0;
       let unpriced = 0;
       let capped = 0;
+      let toppedUp = 0;
+      let topUpAttempts = 0;
+      let ladderWaiting = 0;
+      // What this run may ask for: the owner's selection on a managed run, the
+      // sport's full expanded list otherwise. A top-up never reaches past it.
+      const sportMarkets = expandedMarkets.length
+        ? expandedMarkets
+        : allowedExpandedMarkets(sport);
       // One lookup per sport rather than per event: the allowance is a league
       // setting, and the inner loop runs once per fixture on the slate.
       const buyLimit = buyLimitsBySport.get(sport) ?? null;
@@ -304,31 +330,93 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
         // run REPORT how many events it declined to re-buy — a cap that is
         // enforced but invisible looks exactly like a broken populate.
         const cached = await loadCachedEventBoard(sport, event.id, buyLimit);
-        if (!ignoreBuyCap && cached.buysRemaining <= 0) {
+        const coverage = summarizeEventMarketCoverage(
+          event,
+          cached.selections,
+          cached.source,
+          cached.stale,
+        );
+        // Team totals are the one gap closed WITHOUT rebuying the board.
+        //
+        // Caesars posts the MLB alternate team-total ladder game by game, often
+        // hours after the other books open the card. A board bought before it
+        // arrives carries only the featured line per club, and with one buy a
+        // day it stayed that way: on 2026-09-15 seven of fifteen games had no
+        // ladder, and no Over 2.5 for either club. Rebuying fifty-odd markets
+        // to fetch one is the wrong trade, so the ladder is asked for on its
+        // own and added to the board without moving a price it already holds.
+        const ladderGap =
+          cached.savedAt == null
+            ? null
+            : (teamTotalGapMarkets(coverage.missing)?.filter((key) =>
+                sportMarkets.includes(key),
+              ) ?? null);
+        const boardWithinAge =
+          cached.savedAt != null &&
+          Date.now() - cached.savedAt <= expandedMaxAgeMinutes * 60_000;
+        const boardCapped = !ignoreBuyCap && cached.buysRemaining <= 0;
+        // A capped board is included deliberately: it cannot be rebought today,
+        // so a top-up is the only thing that can still fill it — and without an
+        // attempt logged, the catch-up scheduler would wake a pass every half
+        // hour to find it capped again.
+        if (
+          ladderGap?.length &&
+          (teamTotalTopUpOnly || boardWithinAge || boardCapped)
+        ) {
+          const dueAt = topUpForce ? Date.now() : nextTopUpAt(cached.topUps);
+          if (dueAt == null || dueAt > Date.now()) {
+            ladderWaiting += 1;
+            populated += 1;
+            selections += cached.selections.length;
+            continue;
+          }
+          if (
+            shouldHoldCreditsForLater(
+              getLastOddsApiRemaining(),
+              ladderGap.length,
+              laterCredits,
+              MIN_CIRCUIT_BREAK_RESERVE,
+            )
+          ) {
+            held += 1;
+            continue;
+          }
+          const topUp = await topUpEventBoard(sport, event.id, {
+            league: event.league,
+            markets: ladderGap,
+          });
+          topUpAttempts += 1;
+          if (topUp.added > 0) toppedUp += 1;
+          populated += 1;
+          selections += topUp.selections;
+          continue;
+        }
+        // A top-up run fills ladders and nothing else. Buying a whole board from
+        // it would turn a credit-a-game button into a fifty-credit one.
+        if (teamTotalTopUpOnly) {
+          skipped += 1;
+          if (cached.savedAt != null) populated += 1;
+          selections += cached.selections.length;
+          continue;
+        }
+        if (boardCapped) {
           capped += 1;
           populated += 1;
           selections += cached.selections.length;
           continue;
         }
-        if (skipPopulated) {
-          const coverage = summarizeEventMarketCoverage(
-            event,
-            cached.selections,
-            cached.source,
-            cached.stale,
-          );
-          if (
-            canSkipExpandedEvent(
-              coverage.fullyCovered,
-              cached.savedAt,
-              expandedMaxAgeMinutes,
-            )
-          ) {
-            skipped += 1;
-            populated += 1;
-            selections += cached.selections.length;
-            continue;
-          }
+        if (
+          skipPopulated &&
+          canSkipExpandedEvent(
+            coverage.fullyCovered,
+            cached.savedAt,
+            expandedMaxAgeMinutes,
+          )
+        ) {
+          skipped += 1;
+          populated += 1;
+          selections += cached.selections.length;
+          continue;
         }
         if (
           shouldHoldCreditsForLater(
@@ -371,6 +459,9 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
         stale,
         unpriced,
         capped,
+        toppedUp,
+        topUpAttempts,
+        ladderWaiting,
       };
     }
   }
@@ -391,6 +482,7 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
   // instead of from the loop is what makes a half-covered board visible, and
   // what tells the scheduler to come back.
   const uncovered: Record<string, number> = {};
+  const teamTotalLadderGaps: Record<string, number> = {};
   const catchUp: Record<string, string> = {};
   for (const sport of expandedOrder) {
     const slate = selectExpandedSlateEvents(
@@ -404,8 +496,42 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
       sport,
       slate.map((event) => event.id),
     );
-    if (missing.length === 0) continue;
-    uncovered[sport] = missing.length;
+    if (missing.length > 0) uncovered[sport] = missing.length;
+
+    // Boards that exist but still lack a club's team-total ladder, counted from
+    // the store for the same reason as a missing board: the pass that bought
+    // them cannot know which books have posted since, and a surface run never
+    // looks at deep boards at all. Only sports that can ask for the ladder are
+    // read, so a tennis or football run pays for no reads here.
+    let ladderGaps = 0;
+    let ladderRetryAt: number | null = null;
+    if (
+      !expandsFullSlate(sport) &&
+      allowedExpandedMarkets(sport).includes(ALTERNATE_TEAM_TOTAL_MARKET_KEY)
+    ) {
+      const missingIds = new Set(missing);
+      for (const event of slate) {
+        if (missingIds.has(event.id)) continue;
+        const cached = await loadCachedEventBoard(sport, event.id);
+        const gap = teamTotalGapMarkets(
+          summarizeEventMarketCoverage(
+            event,
+            cached.selections,
+            cached.source,
+            cached.stale,
+          ).missing,
+        );
+        if (!gap?.length) continue;
+        ladderGaps += 1;
+        // Out of tries for the buy day: reported, but nothing to wake for.
+        const retryAt = nextTopUpAt(cached.topUps);
+        if (retryAt == null) continue;
+        ladderRetryAt =
+          ladderRetryAt == null ? retryAt : Math.min(ladderRetryAt, retryAt);
+      }
+    }
+    if (ladderGaps > 0) teamTotalLadderGaps[sport] = ladderGaps;
+
     // Only the managed scheduler owns `nextExpandedRunAt`. Under the fixed
     // `vercel.json` cadence there is no schedule row to move, and the next
     // listed run comes round soon enough on its own.
@@ -418,8 +544,18 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
     // board that will never exist would otherwise re-queue a pass every half
     // hour for as long as the fixture is on the board.
     if (expandsFullSlate(sport)) continue;
-    const at = await scheduleExpandedCatchUp(sport, missing.length);
-    if (at) catchUp[sport] = at.toISOString();
+    if (missing.length > 0) {
+      const at = await scheduleExpandedCatchUp(sport, missing.length);
+      if (at) catchUp[sport] = at.toISOString();
+    } else if (ladderRetryAt != null) {
+      // Wakes when the soonest thin game is due another top-up, and only where
+      // the owner still has the ladder switched on.
+      const at = await scheduleExpandedCatchUp(sport, ladderGaps, new Date(), {
+        notBefore: new Date(ladderRetryAt),
+        requireMarkets: [ALTERNATE_TEAM_TOTAL_MARKET_KEY],
+      });
+      if (at) catchUp[sport] = at.toISOString();
+    }
   }
 
   const surfaceReady = (sport: string) =>
@@ -471,7 +607,9 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
     surface,
     expanded,
     uncovered,
+    teamTotalLadderGaps,
     catchUp,
+    topUp: teamTotalTopUpOnly,
     provider,
     requestsRemaining: remaining,
   });
