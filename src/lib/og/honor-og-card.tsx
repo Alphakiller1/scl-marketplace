@@ -274,6 +274,7 @@ export function HonorOgCard({
       <span
         style={{
           marginTop: "auto",
+          alignSelf: "center",
           fontSize: 24,
           letterSpacing: 6,
           color: GOLD,

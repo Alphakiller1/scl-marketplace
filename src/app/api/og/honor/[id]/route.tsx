@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-import { appUrl } from "@/lib/app-url";
+import { SCL_PUBLIC_DOMAIN } from "@/lib/brand";
 import { HONOR_OG_SIZE, HonorOgCard } from "@/lib/og/honor-og-card";
 import { getHonorAwardById } from "@/lib/queries/honors";
 
@@ -32,7 +32,7 @@ export async function GET(req: Request, { params }: RouteParams) {
 
   const download = new URL(req.url).searchParams.has("download");
   return new ImageResponse(
-    <HonorOgCard award={award} host={new URL(appUrl()).host} />,
+    <HonorOgCard award={award} host={SCL_PUBLIC_DOMAIN} />,
     {
       ...HONOR_OG_SIZE,
       emoji: "twemoji",
