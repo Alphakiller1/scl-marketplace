@@ -70,7 +70,9 @@ export function CompactCapperRow({
         <div className="min-w-0 flex-1">
           <CapperIdentityLabel capper={capper} compact />
           <div className="text-muted-foreground mt-0.5 flex items-center gap-1.5 text-xs">
-            <SportTag sport={capper.topSport} markOnly />
+            {capper.topSport !== "—" ? (
+              <SportTag sport={capper.topSport} markOnly />
+            ) : null}
             <span aria-hidden className="text-border">
               ·
             </span>

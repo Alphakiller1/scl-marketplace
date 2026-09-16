@@ -1,12 +1,21 @@
 import type { HonorAward } from "@/lib/honors";
-import { HonorCard } from "@/components/scl/honor-card";
+import { HonorScroller } from "@/components/scl/honor-scroller";
+import { HonorTrophyCard } from "@/components/scl/honor-trophy-card";
 
-/** Every award the capper has won, newest period first. Sits under the header. */
+/**
+ * Every award the capper has won, left to right by date earned. Each opens the
+ * award's 4:5 social graphic.
+ */
 export function TrophyCase({ awards }: { awards: HonorAward[] }) {
   if (!awards.length) return null;
+  const ordered = [...awards].sort(
+    (a, b) =>
+      a.periodEnd.localeCompare(b.periodEnd) || a.name.localeCompare(b.name),
+  );
   return (
     <section
-      className="border-border bg-card mb-4 rounded-[14px] border p-3 sm:mb-5 sm:p-4"
+      id="trophy-case"
+      className="border-border bg-card mb-4 scroll-mt-24 rounded-[14px] border p-3 sm:mb-5 sm:p-4"
       aria-labelledby="trophy-case-title"
     >
       <div className="mb-3 flex items-end justify-between gap-3">
@@ -20,13 +29,16 @@ export function TrophyCase({ awards }: { awards: HonorAward[] }) {
           {awards.length} earned
         </span>
       </div>
-      <ul className="flex flex-wrap gap-2">
-        {awards.map((award) => (
-          <li key={award.id} className="w-full min-w-0 sm:w-auto">
-            <HonorCard award={award} compact />
-          </li>
+      <HonorScroller label={`Trophy Case, ${awards.length} awards`}>
+        {ordered.map((award) => (
+          <HonorTrophyCard
+            key={award.id}
+            award={award}
+            size="sm"
+            href={`/honors/${award.id}`}
+          />
         ))}
-      </ul>
+      </HonorScroller>
     </section>
   );
 }

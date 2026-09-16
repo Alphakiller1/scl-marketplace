@@ -7,7 +7,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import { CompetitionHero } from "@/components/scl/competition-hero";
 import { FeaturedProofReceipt } from "@/components/scl/featured-proof-receipt";
-import { LiveBoardShell } from "@/components/scl/live-board-shell";
 import { HomeVerificationRail } from "@/components/scl/home-verification-rail";
 import { PlatformClvSummary } from "@/components/scl/platform-clv-summary";
 import { SectionHeader } from "@/components/scl/section";
@@ -17,7 +16,7 @@ import {
   TrackRecordCtaFallback,
 } from "@/components/scl/track-record-cta";
 import { LiveActivityTicker } from "@/components/scl/live-activity-ticker";
-import { HonorsSpotlight } from "@/components/scl/honors-spotlight";
+import { HonorsShowcase } from "@/components/scl/honors-showcase";
 
 import { appUrl } from "@/lib/app-url";
 import { SCL_BRAND_NAME, SCL_TITLE } from "@/lib/brand";
@@ -31,6 +30,7 @@ import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 import { getLeagueActionReport } from "@/lib/queries/league-action";
 import { getPlatformClvSummary } from "@/lib/queries/platform-clv";
 import { getFeaturedHonors } from "@/lib/queries/honors";
+import { featuredList } from "@/lib/honors";
 
 export const revalidate = 60;
 
@@ -92,37 +92,20 @@ function SectionSkeleton({ className }: { className?: string }) {
 }
 
 async function HomeHero() {
-  const updatedAt = new Date();
-  // Ranks every public record, not only email-verified accounts. Cappers
-  // carried over from the previous platform are unclaimed by design (no
-  // password until they claim the handle), so gating on account verification
-  // hid the entire imported roster and left the hero board empty.
-  // Last 90 days, matching the Top Cappers snapshot below. An all-time hero
-  // board next to a 90-day one told two different stories about who is hot.
-  const [{ cappers, failed }, honors] = await Promise.all([
-    getLeaderboardResult({ verifiedOnly: false, window: "90d" }),
-    getFeaturedHonors(),
-  ]);
-  const snapshot = sortLeaderboard(cappers, "roi")
-    .slice(0, 10)
-    .map(slimBoardCapper);
+  // The hero promotes the award winners on display. The ranked board itself
+  // is the Top Cappers section directly below, so visitors still land on a
+  // leaderboard without leaving the home page.
+  const honors = await getFeaturedHonors();
 
   return (
     <CompetitionHero
       board={
-        <div className="min-w-0 space-y-4">
-          <div
-            className="dark scl-elevated border-border min-w-0 rounded-[var(--scl-radius-card)] border bg-[color:var(--scl-ink-800)] p-4 sm:p-5"
-            data-scl-verification="home-honors"
-            data-data-status="ok"
-          >
-            <HonorsSpotlight featured={honors} limit={1} stacked />
-          </div>
-          <LiveBoardShell
-            cappers={snapshot}
-            leaderboardFailed={failed}
-            updatedAt={updatedAt}
-          />
+        <div
+          className="dark scl-elevated border-border min-w-0 rounded-[var(--scl-radius-card)] border bg-[color:var(--scl-ink-800)] p-4 sm:p-5"
+          data-scl-verification="home-honors"
+          data-data-status="ok"
+        >
+          <HonorsShowcase awards={featuredList(honors)} />
         </div>
       }
     />

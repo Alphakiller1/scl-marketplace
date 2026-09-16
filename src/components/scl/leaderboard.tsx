@@ -358,7 +358,11 @@ function LeaderboardTableRow({
   const career = capper.lifetimeGraded ?? graded;
   const provisional = isProvisional(career);
   const sports = (
-    capper.sports?.length ? capper.sports : [capper.topSport]
+    capper.sports?.length
+      ? capper.sports
+      : capper.topSport && capper.topSport !== "—"
+        ? [capper.topSport]
+        : []
   ).slice(0, 3);
   const roiScale = perfScale("roi", capper.roi, { gradedCount: graded });
   const unitsScale = perfScale("units", capper.units, { gradedCount: graded });
@@ -530,7 +534,9 @@ export function LeaderboardMobileCard({
             <CapperIdentityLabel capper={capper} compact verified={false} />
           </Link>
           <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-1.5 text-xs">
-            <SportTag sport={capper.topSport} markOnly className="shrink-0" />
+            {capper.topSport !== "—" ? (
+              <SportTag sport={capper.topSport} markOnly className="shrink-0" />
+            ) : null}
             <span aria-hidden className="text-border">
               ·
             </span>

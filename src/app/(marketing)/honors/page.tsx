@@ -1,6 +1,13 @@
 import { HonorsSpotlight } from "@/components/scl/honors-spotlight";
 import { HonorCard } from "@/components/scl/honor-card";
-import { AWARD_PERIODS, honorsRules } from "@/lib/honors";
+import {
+  ANNUAL_MINIMUM,
+  AWARD_PERIODS,
+  CROSS_SPORTS_MINIMUM,
+  honorsCriteria,
+  honorsRules,
+} from "@/lib/honors";
+import { HonorGlyph } from "@/components/scl/honor-icons";
 import { getAllHonors, getFeaturedHonors } from "@/lib/queries/honors";
 import { getHonorsContent } from "@/lib/queries/honors-content";
 
@@ -47,6 +54,70 @@ export default async function HonorsPage() {
               </ul>
             </div>
           ))}
+        </div>
+      </section>
+      <section aria-labelledby="honors-criteria-title" className="max-w-3xl">
+        <h2
+          id="honors-criteria-title"
+          className="scl-display text-xl font-bold"
+        >
+          Pick volume minimums
+        </h2>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Settled picks required to be eligible. Annual awards require{" "}
+          {ANNUAL_MINIMUM} across all sports; Cross Sport Parlay Allstar
+          requires {CROSS_SPORTS_MINIMUM} Cross-Sports parlays in the month.
+        </p>
+        <div className="border-border mt-3 overflow-x-auto rounded-xl border">
+          <table className="w-full min-w-[28rem] border-collapse text-sm">
+            <caption className="sr-only">
+              Minimum settled picks by sport for Season and Monthly awards
+            </caption>
+            <thead>
+              <tr className="bg-surface-2 text-muted-foreground border-border border-b text-xs font-semibold uppercase">
+                <th scope="col" className="px-3 py-2 text-left">
+                  Sport
+                </th>
+                <th scope="col" className="px-3 py-2 text-left">
+                  Season
+                </th>
+                <th scope="col" className="px-3 py-2 text-right">
+                  Season minimum
+                </th>
+                <th scope="col" className="px-3 py-2 text-right">
+                  Monthly minimum
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-border divide-y">
+              {honorsCriteria().map((row) => (
+                <tr key={row.sport}>
+                  <th scope="row" className="px-3 py-2 text-left font-semibold">
+                    <span className="inline-flex items-center gap-2">
+                      <HonorGlyph
+                        award={{
+                          sport: row.sport,
+                          sportLabel: row.label,
+                          metric: "units",
+                        }}
+                        className="text-base"
+                      />
+                      {row.label}
+                    </span>
+                  </th>
+                  <td className="text-muted-foreground px-3 py-2">
+                    {row.season}
+                  </td>
+                  <td className="scl-data px-3 py-2 text-right tabular-nums">
+                    {row.seasonMinimum}
+                  </td>
+                  <td className="scl-data px-3 py-2 text-right tabular-nums">
+                    {row.monthlyMinimum}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
       {past.length ? (

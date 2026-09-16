@@ -1,12 +1,10 @@
 import Link from "next/link";
-import { Award, Link2 } from "lucide-react";
 
-import { ALL_SPORTS, type HonorAward } from "@/lib/honors";
+import type { HonorAward } from "@/lib/honors";
 import { formatRoi, formatUnits } from "@/lib/format";
-import { CROSS_SPORTS } from "@/lib/parlay-sport";
 import { cn } from "@/lib/utils";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
-import { LeagueMark } from "@/components/scl/league-mark";
+import { HonorGlyph } from "@/components/scl/honor-icons";
 
 function honorResult(award: HonorAward) {
   return award.metric === "units"
@@ -14,38 +12,19 @@ function honorResult(award: HonorAward) {
     : formatRoi(award.winner.roi);
 }
 
-/**
- * The award's sport, so a Season or Monthly award says which league it
- * belongs to. All-sports awards use the Honors mark; Cross-Sports uses a link.
- */
+/** The award's mark from the Honors program (crown, trophy, or sport). */
 export function HonorMark({
   award,
   size = "sm",
   className,
 }: {
-  award: Pick<HonorAward, "sport" | "sportLabel">;
+  award: Pick<HonorAward, "sport" | "sportLabel" | "metric">;
   size?: "sm" | "md" | "lg";
   className?: string;
 }) {
-  const icon = size === "lg" ? "size-10" : size === "md" ? "size-6" : "size-4";
-  return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center justify-center",
-        className,
-      )}
-      title={award.sportLabel}
-    >
-      {award.sport === ALL_SPORTS ? (
-        <Award className={cn(icon, "text-foreground")} aria-hidden />
-      ) : award.sport === CROSS_SPORTS ? (
-        <Link2 className={cn(icon, "text-foreground")} aria-hidden />
-      ) : (
-        <LeagueMark leagueKey={award.sport} size={size} />
-      )}
-      <span className="sr-only">{award.sportLabel}</span>
-    </span>
-  );
+  const text =
+    size === "lg" ? "text-5xl" : size === "md" ? "text-2xl" : "text-base";
+  return <HonorGlyph award={award} className={cn(text, className)} />;
 }
 
 function profileHref(award: HonorAward) {
@@ -109,7 +88,7 @@ export function HonorCard({
   );
 }
 
-/** Dense leaderboard chip: sport mark + period abbreviation. */
+/** Dense leaderboard chip: award mark + board abbreviation. */
 export function HonorChip({ award }: { award: HonorAward }) {
   return (
     <Link
@@ -117,10 +96,10 @@ export function HonorChip({ award }: { award: HonorAward }) {
       prefetch={false}
       title={award.name}
       aria-label={award.name}
-      className="border-border bg-surface-2 hover:bg-surface-3 focus-visible:ring-ring inline-flex min-h-8 items-center gap-1 rounded-full border px-2 text-[0.65rem] font-bold whitespace-nowrap tabular-nums focus-visible:ring-2 focus-visible:outline-none"
+      className="focus-visible:ring-ring inline-flex min-h-7 items-center gap-1.5 rounded-md text-[0.7rem] font-bold whitespace-nowrap text-[color:var(--scl-perf-mid-text)] tabular-nums hover:underline focus-visible:ring-2 focus-visible:outline-none"
     >
-      <HonorMark award={award} />
-      {award.abbreviation.replace(`${award.sport} `, "")}
+      <HonorGlyph award={award} className="text-sm" />
+      {award.abbreviation}
     </Link>
   );
 }
@@ -129,7 +108,7 @@ export function HonorChip({ award }: { award: HonorAward }) {
 export function HonorChips({
   awards,
   handle,
-  max = 3,
+  max = 2,
 }: {
   awards: HonorAward[];
   handle: string;
@@ -138,18 +117,18 @@ export function HonorChips({
   const shown = awards.slice(0, max);
   const hidden = awards.length - shown.length;
   return (
-    <div className="flex max-w-[15rem] flex-wrap items-center gap-1">
+    <div className="flex flex-col items-start">
       {shown.map((award) => (
         <HonorChip key={award.id} award={award} />
       ))}
       {hidden > 0 ? (
         <Link
-          href={`/cappers/${handle}#trophy-case-title`}
+          href={`/cappers/${handle}#trophy-case`}
           prefetch={false}
           aria-label={`${hidden} more SCL Honors awards`}
-          className="text-muted-foreground hover:text-foreground inline-flex min-h-8 items-center px-1 text-[0.65rem] font-bold tabular-nums"
+          className="text-muted-foreground hover:text-foreground inline-flex min-h-6 items-center text-[0.65rem] font-bold tabular-nums"
         >
-          +{hidden}
+          +{hidden} more
         </Link>
       ) : null}
     </div>

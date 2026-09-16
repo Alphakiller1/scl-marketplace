@@ -119,11 +119,13 @@ export function RankBoardTable({
               const sports = (
                 capper.sports?.length ? capper.sports : [capper.topSport]
               )
-                .filter(Boolean)
+                .filter((sport) => sport && sport !== "—")
                 .slice(0, 3);
               const specialty =
                 capper.specialties?.find((s) => s.trim().length > 0) ??
-                (capper.topSport ? capper.topSport : null);
+                (capper.topSport && capper.topSport !== "—"
+                  ? capper.topSport
+                  : null);
               const roiScale = perfScale("roi", capper.roi, {
                 gradedCount: graded,
               });
@@ -285,7 +287,7 @@ function RankBoardMobileRow({
 }) {
   const graded = capper.settledPicks ?? 0;
   const sports = (capper.sports?.length ? capper.sports : [capper.topSport])
-    .filter(Boolean)
+    .filter((sport) => sport && sport !== "—")
     .slice(0, compact ? 2 : 3);
   const roiScale = perfScale("roi", capper.roi, { gradedCount: graded });
   const unitsScale = perfScale("units", capper.units, { gradedCount: graded });

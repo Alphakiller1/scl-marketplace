@@ -1,21 +1,19 @@
 import type { Outcome } from "@prisma/client";
 
-import { SPORTS } from "@/lib/constants";
 import { etYmd, startOfEtYmd } from "@/lib/et-day";
 import { CROSS_SPORTS, CROSS_SPORTS_LABEL } from "@/lib/parlay-sport";
 import { computeCapperStats, type StatsBaseline } from "@/lib/stats";
 
 /**
- * SCL Honors — awards for COMPLETED periods only.
+ * SCL Honors (Accolades) Program — awards for COMPLETED periods only.
  *
- * An award is granted once its period has ended: August's monthly awards
- * appear on September 1 (ET), a sport's season award once that season's window
- * closes, and a year's awards on January 1 of the next year. A winner must have
- * a positive result and meet the period's minimum settled sample.
+ * An award is granted once its period has ended: August's monthly awards on
+ * September 1 (ET), a sport's season awards when that season's window closes,
+ * a year's awards on January 1. The top performer must have positive units and
+ * ROI and meet the program minimum, or no award is granted.
  *
- * Everything that decides who wins — names, season windows, minimums — lives
- * in the config below, so the public rules copy is generated from the same
- * values the engine uses and the two cannot drift apart.
+ * Everything that decides who wins lives in the config below; the public
+ * rules copy and minimums table are generated from it.
  */
 
 export type AwardPeriod = "annual" | "season" | "monthly";
@@ -47,14 +45,19 @@ export type HonorWinner = {
 export type HonorAward = {
   /** Stable, URL-safe: `<period>-<periodKey>-<sport>-<metric>`. */
   id: string;
+  /** Full name with its period: `2025 Capper of the Year`. */
   name: string;
-  /** Compact chip label, e.g. `AUG26 ($)`, `2025 (%)`. */
+  /** Award title without the period: `NFL Season Champion`. */
+  title: string;
+  /** Board chip, per the program: `2025 COTY`, `NFL25 ($)`, `AUG26 (%)`. */
   abbreviation: string;
   period: AwardPeriod;
   /** e.g. `2025`, `2026-27`, `2026-08`. Sorts chronologically as a string. */
   periodKey: string;
-  /** Human label for the period: `2025`, `2025-26 NBA season`, `August 2026`. */
+  /** Human label for the period: `2025`, `2025-26 season`, `August 2026`. */
   periodLabel: string;
+  /** ISO instant the period ended — when the award was granted. */
+  periodEnd: string;
   /** Canonical sport key, `ALL`, or `CROSS_SPORTS`. */
   sport: string;
   sportLabel: string;
@@ -68,53 +71,75 @@ export type HonorAward = {
 // ---------------------------------------------------------------------------
 
 /**
- * Minimum settled picks by period, with optional per-sport overrides.
- * `cross` is the Cross Sport Parlay Allstar minimum (settled cross-sport
- * parlays in the month).
- */
-export const HONOR_MINIMUMS: {
-  annual: number;
-  season: { default: number; bySport: Partial<Record<string, number>> };
-  monthly: { default: number; bySport: Partial<Record<string, number>> };
-  cross: number;
-} = {
-  annual: 50,
-  season: { default: 25, bySport: {} },
-  monthly: { default: 10, bySport: {} },
-  cross: 10,
-};
-
-export function honorMinimum(period: AwardPeriod, sport: string): number {
-  if (sport === CROSS_SPORTS) return HONOR_MINIMUMS.cross;
-  if (period === "annual") return HONOR_MINIMUMS.annual;
-  const table = HONOR_MINIMUMS[period];
-  return table.bySport[sport] ?? table.default;
-}
-
-/**
- * A sport's season window, in ET months. `startMonth`/`endMonth` are 1-12 and
- * the window is [start of startMonth, start of the month AFTER endMonth).
- * A season whose end month is earlier in the calendar than its start month
- * crosses into the next year and is labelled `2026-27`.
+ * A sport's season, in ET months: [start of `startMonth`, start of the month
+ * after `endMonth`). An end month earlier than the start month crosses into
+ * the next year.
  */
 export type SeasonWindow = { startMonth: number; endMonth: number };
 
-export const SEASON_WINDOWS: Record<string, SeasonWindow> = {
-  MLB: { startMonth: 3, endMonth: 11 },
-  WNBA: { startMonth: 5, endMonth: 10 },
-  CFL: { startMonth: 6, endMonth: 11 },
-  UFL: { startMonth: 3, endMonth: 6 },
-  NFL: { startMonth: 9, endMonth: 2 },
-  NCAAF: { startMonth: 8, endMonth: 1 },
-  NBA: { startMonth: 10, endMonth: 6 },
-  NHL: { startMonth: 10, endMonth: 6 },
-  NCAAB: { startMonth: 11, endMonth: 4 },
+export type HonorSport = {
+  key: string;
+  /** Name used in award titles: `UFC`, `Soccer`. */
+  label: string;
+  /** Season chip prefix: `SOC` → `SOC26 ($)`. */
+  abbr: string;
+  seasonMinimum: number;
+  monthlyMinimum: number;
+  /** `null` = the season is the calendar year. */
+  window: SeasonWindow | null;
 };
-/** Sports without a defined season (soccer, tennis, combat, golf, racing). */
+
+const sport = (
+  key: string,
+  label: string,
+  abbr: string,
+  seasonMinimum: number,
+  monthlyMinimum: number,
+  window: SeasonWindow | null,
+): HonorSport => ({
+  key,
+  label,
+  abbr,
+  seasonMinimum,
+  monthlyMinimum,
+  window,
+});
+
+/** Only these sports earn Honors, with the program's minimum settled picks. */
+export const HONOR_SPORTS: readonly HonorSport[] = [
+  sport("NFL", "NFL", "NFL", 50, 15, { startMonth: 8, endMonth: 2 }),
+  sport("NCAAF", "NCAAF", "NCAAF", 50, 15, { startMonth: 8, endMonth: 1 }),
+  sport("NBA", "NBA", "NBA", 150, 20, { startMonth: 10, endMonth: 6 }),
+  sport("NCAAB", "NCAAB", "NCAAB", 100, 20, { startMonth: 11, endMonth: 4 }),
+  sport("WNBA", "WNBA", "WNBA", 100, 15, { startMonth: 5, endMonth: 10 }),
+  sport("MLB", "MLB", "MLB", 200, 25, { startMonth: 3, endMonth: 11 }),
+  sport("MMA", "UFC", "UFC", 75, 15, null),
+  sport("SOCCER", "Soccer", "SOC", 100, 20, null),
+  sport("TENNIS", "Tennis", "TEN", 75, 15, null),
+  sport("CFL", "CFL", "CFL", 40, 10, { startMonth: 6, endMonth: 11 }),
+  sport("NHL", "NHL", "NHL", 100, 20, { startMonth: 10, endMonth: 6 }),
+  sport("PGA", "PGA", "PGA", 50, 10, null),
+];
+
+const HONOR_SPORT_BY_KEY = new Map(HONOR_SPORTS.map((s) => [s.key, s]));
+
+/** Capper of the Year and the Annual Performance Award. */
+export const ANNUAL_MINIMUM = 250;
+/** Cross Sport Parlay Allstar: settled Cross-Sports parlays in the month. */
+export const CROSS_SPORTS_MINIMUM = 10;
+
+export function honorMinimum(period: AwardPeriod, sportKey: string): number {
+  if (sportKey === CROSS_SPORTS) return CROSS_SPORTS_MINIMUM;
+  if (period === "annual") return ANNUAL_MINIMUM;
+  const config = HONOR_SPORT_BY_KEY.get(sportKey);
+  if (!config) return Number.POSITIVE_INFINITY;
+  return period === "season" ? config.seasonMinimum : config.monthlyMinimum;
+}
+
 const CALENDAR_SEASON: SeasonWindow = { startMonth: 1, endMonth: 12 };
 
-export function seasonWindowFor(sport: string): SeasonWindow {
-  return SEASON_WINDOWS[sport] ?? CALENDAR_SEASON;
+export function seasonWindowFor(sportKey: string): SeasonWindow {
+  return HONOR_SPORT_BY_KEY.get(sportKey)?.window ?? CALENDAR_SEASON;
 }
 
 /**
@@ -127,14 +152,10 @@ export const HONORS_LEGACY_YEAR = 2025;
 /** When the legacy `PRE_IMPORT` residual was captured. */
 export const HONORS_LEGACY_CAPTURED = "2026-07-31";
 
-const SPORT_LABELS: Record<string, string> = Object.fromEntries(
-  SPORTS.map((s) => [s.key, s.label]),
-);
-
-export function honorSportLabel(sport: string): string {
-  if (sport === ALL_SPORTS) return "All Sports";
-  if (sport === CROSS_SPORTS) return CROSS_SPORTS_LABEL;
-  return SPORT_LABELS[sport] ?? sport;
+export function honorSportLabel(sportKey: string): string {
+  if (sportKey === ALL_SPORTS) return "All Sports";
+  if (sportKey === CROSS_SPORTS) return CROSS_SPORTS_LABEL;
+  return HONOR_SPORT_BY_KEY.get(sportKey)?.label ?? sportKey;
 }
 
 const MONTH_NAMES = [
@@ -170,12 +191,15 @@ export type SeasonPeriod = {
   end: Date;
 };
 
-export function seasonPeriod(sport: string, startYear: number): SeasonPeriod {
-  const w = seasonWindowFor(sport);
+export function seasonPeriod(
+  sportKey: string,
+  startYear: number,
+): SeasonPeriod {
+  const w = seasonWindowFor(sportKey);
   const crosses = w.endMonth < w.startMonth;
   const endYear = crosses ? startYear + 1 : startYear;
   return {
-    sport,
+    sport: sportKey,
     startYear,
     key: crosses
       ? `${startYear}-${String(endYear).slice(-2)}`
@@ -183,6 +207,18 @@ export function seasonPeriod(sport: string, startYear: number): SeasonPeriod {
     start: monthStart(startYear, w.startMonth),
     end: monthStart(endYear, w.endMonth + 1),
   };
+}
+
+/** True while one of the sport's seasons is under way. */
+export function sportInSeason(sportKey: string, now: Date): boolean {
+  const year = Number(etYmd(now).slice(0, 4));
+  return [year - 1, year].some((startYear) => {
+    const season = seasonPeriod(sportKey, startYear);
+    return (
+      now.getTime() >= season.start.getTime() &&
+      now.getTime() < season.end.getTime()
+    );
+  });
 }
 
 function monthAbbrev(year: number, month: number): string {
@@ -195,33 +231,26 @@ function metricMark(metric: AwardMetric): string {
   return metric === "units" ? "($)" : "(%)";
 }
 
+function metricTitle(metric: AwardMetric): string {
+  return metric === "units" ? "(Units)" : "(ROI%)";
+}
+
 // ---------------------------------------------------------------------------
 // Naming
 // ---------------------------------------------------------------------------
 
-export function annualAwardName(year: number, metric: AwardMetric): string {
-  return metric === "units"
-    ? `${year} Capper of the Year`
-    : `${year} ROI Capper of the Year`;
+export function annualAwardTitle(metric: AwardMetric): string {
+  return metric === "units" ? "Capper of the Year" : "Annual Performance Award";
 }
 
-export function seasonAwardName(
-  seasonKey: string,
-  sport: string,
-  metric: AwardMetric,
-): string {
-  return `${seasonKey} ${honorSportLabel(sport)} Season ${metric === "units" ? "Units" : "ROI"} Champion`;
+export function seasonAwardTitle(sportKey: string): string {
+  return `${honorSportLabel(sportKey)} Season Champion`;
 }
 
-export function monthlyAwardName(
-  year: number,
-  month: number,
-  sport: string,
-  metric: AwardMetric,
-): string {
-  const when = `${MONTH_NAMES[month - 1]} ${year}`;
-  if (sport === CROSS_SPORTS) return `${when} Cross Sport Parlay Allstar`;
-  return `${when} ${honorSportLabel(sport)} ${metric === "units" ? "Units" : "ROI"} Champion`;
+export function monthlyAwardTitle(sportKey: string): string {
+  return sportKey === CROSS_SPORTS
+    ? "Cross Sport Parlay Allstar"
+    : `${honorSportLabel(sportKey)} Monthly Winner`;
 }
 
 // ---------------------------------------------------------------------------
@@ -235,7 +264,7 @@ export type HonorCapper = {
   avatarUrl?: string;
 };
 
-/** One settled-or-not position of record (straight pick or whole parlay). */
+/** One position of record (straight pick or whole parlay). */
 export type HonorPosition = {
   capperId: string;
   /** Reporting sport: the play's sport, or the parlay's reporting sport. */
@@ -263,8 +292,10 @@ type Bucket = {
   period: AwardPeriod;
   periodKey: string;
   periodLabel: string;
+  periodEnd: Date;
   sport: string;
   metrics: AwardMetric[];
+  title: (metric: AwardMetric) => string;
   name: (metric: AwardMetric) => string;
   abbreviation: (metric: AwardMetric) => string;
   positions: (p: HonorPosition) => boolean;
@@ -336,17 +367,10 @@ function beats(a: HonorWinner, b: HonorWinner, metric: AwardMetric): boolean {
   return a.handle.localeCompare(b.handle) < 0;
 }
 
-function buckets(
-  now: Date,
-  sports: readonly string[],
-  hasCross: boolean,
-): Bucket[] {
-  const [nowY, nowM] = etYmd(now).split("-").map(Number) as [number, number];
-  const legacyCaptured = startOfEtYmd(HONORS_LEGACY_CAPTURED);
-  const out: Bucket[] = [];
-  const both: AwardMetric[] = ["units", "roi"];
+const BOTH: AwardMetric[] = ["units", "roi"];
 
-  // Annual: every completed calendar year since the legacy year.
+function annualBuckets(nowY: number): Bucket[] {
+  const out: Bucket[] = [];
   for (let year = HONORS_LEGACY_YEAR; year < nowY; year++) {
     const start = monthStart(year, 1);
     const end = monthStart(year + 1, 1);
@@ -355,10 +379,13 @@ function buckets(
       period: "annual",
       periodKey: String(year),
       periodLabel: String(year),
+      periodEnd: end,
       sport: ALL_SPORTS,
-      metrics: both,
-      name: (metric) => annualAwardName(year, metric),
-      abbreviation: (metric) => `${year} ${metricMark(metric)}`,
+      metrics: BOTH,
+      title: annualAwardTitle,
+      name: (metric) => `${year} ${annualAwardTitle(metric)}`,
+      abbreviation: (metric) =>
+        `${year} ${metric === "units" ? "COTY" : "ROI"}`,
       // The legacy year has no per-play history; its totals are the record.
       positions: (p) => !legacyYear && inRange(p.at, start, end),
       legacy: (row) =>
@@ -368,49 +395,70 @@ function buckets(
           : row.scope === "PRE_IMPORT" && year === HONORS_LEGACY_YEAR + 1),
     });
   }
+  return out;
+}
 
-  for (const sport of sports) {
-    // The legacy site's "2025 season" was the 2025 calendar year per sport.
-    out.push({
+function seasonBuckets(
+  sportKey: string,
+  now: Date,
+  nowY: number,
+  legacyCaptured: Date,
+): Bucket[] {
+  const abbr = HONOR_SPORT_BY_KEY.get(sportKey)!.abbr;
+  const title = () => seasonAwardTitle(sportKey);
+  const yy = (year: number) => String(year).slice(-2);
+  // The legacy site's "2025 season" was the 2025 calendar year per sport.
+  const out: Bucket[] = [
+    {
       period: "season",
       periodKey: String(HONORS_LEGACY_YEAR),
-      periodLabel: `${HONORS_LEGACY_YEAR} ${honorSportLabel(sport)} season`,
-      sport,
-      metrics: both,
+      periodLabel: `${HONORS_LEGACY_YEAR} season`,
+      periodEnd: monthStart(HONORS_LEGACY_YEAR + 1, 1),
+      sport: sportKey,
+      metrics: BOTH,
+      title,
       name: (metric) =>
-        seasonAwardName(String(HONORS_LEGACY_YEAR), sport, metric),
+        `${HONORS_LEGACY_YEAR} ${title()} ${metricTitle(metric)}`,
       abbreviation: (metric) =>
-        `${sport} ${HONORS_LEGACY_YEAR} ${metricMark(metric)}`,
+        `${abbr}${yy(HONORS_LEGACY_YEAR)} ${metricMark(metric)}`,
       positions: () => false,
-      legacy: (row) => row.sport === sport && row.scope === "YEAR_2025",
+      legacy: (row) => row.sport === sportKey && row.scope === "YEAR_2025",
+    },
+  ];
+  // Platform seasons that start in or after the first platform year and have
+  // finished. The early-2026 legacy residual belongs to a season only when
+  // that season already covered it.
+  for (let year = HONORS_LEGACY_YEAR + 1; year <= nowY; year++) {
+    const season = seasonPeriod(sportKey, year);
+    if (season.end.getTime() > now.getTime()) break;
+    const foldsResidual =
+      year === HONORS_LEGACY_YEAR + 1 &&
+      season.start.getTime() <= legacyCaptured.getTime();
+    out.push({
+      period: "season",
+      periodKey: season.key,
+      periodLabel: `${season.key} season`,
+      periodEnd: season.end,
+      sport: sportKey,
+      metrics: BOTH,
+      title,
+      name: (metric) => `${season.key} ${title()} ${metricTitle(metric)}`,
+      abbreviation: (metric) => `${abbr}${yy(year)} ${metricMark(metric)}`,
+      positions: (p) =>
+        p.sport === sportKey && inRange(p.at, season.start, season.end),
+      legacy: (row) =>
+        foldsResidual && row.sport === sportKey && row.scope === "PRE_IMPORT",
     });
-    // Platform seasons: those that start in or after the first platform year
-    // and have finished. The early-2026 legacy residual belongs to a season
-    // only when that season already covered it.
-    for (let year = HONORS_LEGACY_YEAR + 1; year <= nowY; year++) {
-      const season = seasonPeriod(sport, year);
-      if (season.end.getTime() > now.getTime()) break;
-      const foldsResidual =
-        year === HONORS_LEGACY_YEAR + 1 &&
-        season.start.getTime() <= legacyCaptured.getTime();
-      out.push({
-        period: "season",
-        periodKey: season.key,
-        periodLabel: `${season.key} ${honorSportLabel(sport)} season`,
-        sport,
-        metrics: both,
-        name: (metric) => seasonAwardName(season.key, sport, metric),
-        abbreviation: (metric) =>
-          `${sport} ${season.key} ${metricMark(metric)}`,
-        positions: (p) =>
-          p.sport === sport && inRange(p.at, season.start, season.end),
-        legacy: (row) =>
-          foldsResidual && row.sport === sport && row.scope === "PRE_IMPORT",
-      });
-    }
   }
+  return out;
+}
 
-  // Monthly: every completed ET month since per-play history began.
+function monthlyBuckets(
+  nowY: number,
+  nowM: number,
+  monthSports: readonly string[],
+): Bucket[] {
+  const out: Bucket[] = [];
   const [firstY, firstM] = HONORS_FIRST_MONTH.split("-").map(Number) as [
     number,
     number,
@@ -426,20 +474,25 @@ function buckets(
     const end = monthStart(year, month + 1);
     const periodKey = `${year}-${String(month).padStart(2, "0")}`;
     const periodLabel = `${MONTH_NAMES[month - 1]} ${year}`;
-    const monthSports = hasCross ? [...sports, CROSS_SPORTS] : sports;
-    for (const sport of monthSports) {
-      const cross = sport === CROSS_SPORTS;
+    for (const sportKey of monthSports) {
+      const cross = sportKey === CROSS_SPORTS;
+      const title = () => monthlyAwardTitle(sportKey);
       out.push({
         period: "monthly",
         periodKey,
         periodLabel,
-        sport,
+        periodEnd: end,
+        sport: sportKey,
         // Cross Sport Parlay Allstar is a units award only.
-        metrics: cross ? ["units"] : both,
-        name: (metric) => monthlyAwardName(year, month, sport, metric),
+        metrics: cross ? ["units"] : BOTH,
+        title,
+        name: (metric) =>
+          cross
+            ? `${periodLabel} ${title()}`
+            : `${periodLabel} ${title()} ${metricTitle(metric)}`,
         abbreviation: (metric) =>
-          `${cross ? "" : `${sport} `}${monthAbbrev(year, month)} ${metricMark(metric)}`,
-        positions: (p) => p.sport === sport && inRange(p.at, start, end),
+          `${monthAbbrev(year, month)} ${metricMark(metric)}`,
+        positions: (p) => p.sport === sportKey && inRange(p.at, start, end),
         legacy: () => false,
       });
     }
@@ -469,17 +522,29 @@ export function computeHonors(input: {
   const cappers = new Map(input.cappers.map((c) => [c.id, c]));
   const positions = input.positions.filter((p) => cappers.has(p.capperId));
   const legacy = input.legacy.filter((row) => cappers.has(row.capperId));
-  const sports = SPORTS.map((s) => s.key).filter(
-    (sport) =>
-      positions.some((p) => p.sport === sport) ||
-      legacy.some((row) => row.sport === sport),
+  const sports = HONOR_SPORTS.map((s) => s.key).filter(
+    (key) =>
+      positions.some((p) => p.sport === key) ||
+      legacy.some((row) => row.sport === key),
   );
   const hasCross = positions.some((p) => p.sport === CROSS_SPORTS);
   const positionsByCapper = groupBy(positions, (p) => p.capperId);
   const legacyByCapper = groupBy(legacy, (row) => row.capperId);
 
+  const [nowY, nowM] = etYmd(now).split("-").map(Number) as [number, number];
+  const legacyCaptured = startOfEtYmd(HONORS_LEGACY_CAPTURED);
+  const allBuckets = [
+    ...annualBuckets(nowY),
+    ...sports.flatMap((key) => seasonBuckets(key, now, nowY, legacyCaptured)),
+    ...monthlyBuckets(
+      nowY,
+      nowM,
+      hasCross ? [...sports, CROSS_SPORTS] : sports,
+    ),
+  ];
+
   const awards: HonorAward[] = [];
-  for (const bucket of buckets(now, sports, hasCross)) {
+  for (const bucket of allBuckets) {
     for (const metric of bucket.metrics) {
       const winner = rankWinner(
         bucket,
@@ -492,10 +557,12 @@ export function computeHonors(input: {
       awards.push({
         id: `${bucket.period}-${bucket.periodKey}-${bucket.sport.toLowerCase()}-${metric}`,
         name: bucket.name(metric),
+        title: bucket.title(metric),
         abbreviation: bucket.abbreviation(metric),
         period: bucket.period,
         periodKey: bucket.periodKey,
         periodLabel: bucket.periodLabel,
+        periodEnd: bucket.periodEnd.toISOString(),
         sport: bucket.sport,
         sportLabel: honorSportLabel(bucket.sport),
         metric,
@@ -506,53 +573,77 @@ export function computeHonors(input: {
   }
   return awards.sort(
     (a, b) =>
-      b.periodKey.localeCompare(a.periodKey) ||
+      b.periodEnd.localeCompare(a.periodEnd) ||
       sportOrder(a.sport) - sportOrder(b.sport) ||
       (a.metric === b.metric ? 0 : a.metric === "units" ? -1 : 1),
   );
 }
 
-function sportOrder(sport: string): number {
-  if (sport === ALL_SPORTS) return -1;
-  const index = SPORTS.findIndex((s) => s.key === sport);
-  return index === -1 ? SPORTS.length : index;
+function sportOrder(sportKey: string): number {
+  if (sportKey === ALL_SPORTS) return -1;
+  const index = HONOR_SPORTS.findIndex((s) => s.key === sportKey);
+  return index === -1 ? HONOR_SPORTS.length : index;
 }
 
 /**
- * The featured set: the most recent completed period in each column —
- * the latest year, each sport's latest completed season, and the latest month.
+ * What the boards feature right now, per the program's display rules:
+ * - an annual award for the whole following calendar year;
+ * - a season award for one month after its season ends, then again for the
+ *   whole of the sport's next season (an NFL champion drops off after its
+ *   grace month and returns when the next season starts in August);
+ * - a monthly award for the whole following month.
  */
 export function featuredHonors(
   awards: readonly HonorAward[],
+  now = new Date(),
 ): Record<AwardPeriod, HonorAward[]> {
+  const [nowY, nowM] = etYmd(now).split("-").map(Number) as [number, number];
+  const lastYear = String(nowY - 1);
+  const lastMonth =
+    nowM === 1
+      ? `${nowY - 1}-12`
+      : `${nowY}-${String(nowM - 1).padStart(2, "0")}`;
   const latestSeason = new Map<string, string>();
-  let latestYear = "";
-  let latestMonth = "";
   for (const award of awards) {
-    if (award.period === "annual" && award.periodKey > latestYear) {
-      latestYear = award.periodKey;
-    }
-    if (award.period === "monthly" && award.periodKey > latestMonth) {
-      latestMonth = award.periodKey;
-    }
     if (
       award.period === "season" &&
-      award.periodKey > (latestSeason.get(award.sport) ?? "")
+      award.periodEnd > (latestSeason.get(award.sport) ?? "")
     ) {
-      latestSeason.set(award.sport, award.periodKey);
+      latestSeason.set(award.sport, award.periodEnd);
     }
   }
+  const seasonVisible = (award: HonorAward) => {
+    const [y, m] = etYmd(new Date(award.periodEnd)).split("-").map(Number) as [
+      number,
+      number,
+    ];
+    // Seasons end at the start of a month, so the grace month is that month.
+    const graceEnd = monthStart(y, m + 1);
+    return (
+      now.getTime() < graceEnd.getTime() || sportInSeason(award.sport, now)
+    );
+  };
   return {
     annual: awards.filter(
-      (a) => a.period === "annual" && a.periodKey === latestYear,
+      (a) => a.period === "annual" && a.periodKey === lastYear,
     ),
     season: awards.filter(
-      (a) => a.period === "season" && a.periodKey === latestSeason.get(a.sport),
+      (a) =>
+        a.period === "season" &&
+        a.periodEnd === latestSeason.get(a.sport) &&
+        seasonVisible(a),
     ),
     monthly: awards.filter(
-      (a) => a.period === "monthly" && a.periodKey === latestMonth,
+      (a) => a.period === "monthly" && a.periodKey === lastMonth,
     ),
   };
+}
+
+/** Everything featured, in board order: annual, season, monthly. */
+export function featuredList(
+  featured: Record<AwardPeriod, HonorAward[]>,
+): HonorAward[] {
+  return [...featured.annual, ...featured.season, ...featured.monthly];
 }
 
 export function awardsForCapper(
@@ -566,57 +657,60 @@ export function honorResultValue(award: HonorAward): number {
   return award.metric === "units" ? award.winner.units : award.winner.roi;
 }
 
+export type HonorCriteriaRow = {
+  sport: string;
+  label: string;
+  seasonMinimum: number;
+  /** `Aug–Feb`, or `Calendar year`. */
+  season: string;
+  monthlyMinimum: number;
+};
+
+/** The minimums table on the Honors page, straight from the config. */
+export function honorsCriteria(): HonorCriteriaRow[] {
+  const short = (month: number) => MONTH_NAMES[month - 1]!.slice(0, 3);
+  return HONOR_SPORTS.map((s) => ({
+    sport: s.key,
+    label: s.label,
+    seasonMinimum: s.seasonMinimum,
+    season: s.window
+      ? `${short(s.window.startMonth)}–${short(s.window.endMonth)}`
+      : "Calendar year",
+    monthlyMinimum: s.monthlyMinimum,
+  }));
+}
+
 /** Rules copy generated from the engine's own configuration. */
 export function honorsRules(): { heading: string; lines: string[] }[] {
-  const seasonMin = HONOR_MINIMUMS.season;
-  const monthlyMin = HONOR_MINIMUMS.monthly;
-  const overrides = (bySport: Partial<Record<string, number>>) => {
-    const entries = Object.entries(bySport);
-    return entries.length
-      ? ` (${entries.map(([s, n]) => `${honorSportLabel(s)} ${n}`).join(", ")})`
-      : "";
-  };
-  const seasonLines = SPORTS.filter((s) => SEASON_WINDOWS[s.key]).map((s) => {
-    const w = SEASON_WINDOWS[s.key]!;
-    return `${s.label}: ${MONTH_NAMES[w.startMonth - 1]} through ${MONTH_NAMES[w.endMonth - 1]}.`;
-  });
   return [
-    {
-      heading: "When awards are granted",
-      lines: [
-        "Awards are granted only after their period is complete. A month's awards appear once that calendar month ends, a sport's season awards once that season ends, and a year's awards once the calendar year ends.",
-        "Only cappers with a positive result are eligible. Periods and months follow Eastern Time.",
-      ],
-    },
     {
       heading: "Annual Awards",
       lines: [
-        "YYYY Capper of the Year: the most net units across all sports for the calendar year.",
-        "YYYY ROI Capper of the Year: the highest ROI across all sports for the calendar year.",
-        `Minimum ${HONOR_MINIMUMS.annual} settled picks.`,
+        "Capper of the Year: highest net units across all sports in the calendar year.",
+        "Annual Performance Award: highest ROI across all sports in the calendar year.",
+        `Minimum ${ANNUAL_MINIMUM} settled picks in the calendar year. Annual awards are featured for the entire following calendar year.`,
       ],
     },
     {
       heading: "Season Awards",
       lines: [
-        "Season Units Champion and Season ROI Champion are awarded per sport, for that sport's season.",
-        `Minimum ${seasonMin.default} settled picks in the sport${overrides(seasonMin.bySport)}.`,
-        ...seasonLines,
-        "Sports without a set season use the calendar year. The 2025 season awards use the 2025 records carried over from the previous platform.",
+        "Season Champion (Units) and Season Champion (ROI%) are awarded per sport for that sport's season, with the minimums in the table below. UFC, Soccer, Tennis, and PGA seasons are the calendar year.",
+        "Season awards are featured for one month after the season ends, and again for the whole of the sport's next season.",
+        `The ${HONORS_LEGACY_YEAR} season awards use the ${HONORS_LEGACY_YEAR} records carried over from the previous platform.`,
       ],
     },
     {
       heading: "Monthly Awards",
       lines: [
-        "Monthly Units Champion and Monthly ROI Champion are awarded per sport for each calendar month.",
-        `Minimum ${monthlyMin.default} settled picks in the sport${overrides(monthlyMin.bySport)}.`,
-        `Cross Sport Parlay Allstar goes to the most net units from Cross-Sports parlays in the month. Minimum ${HONOR_MINIMUMS.cross} settled Cross-Sports parlays. There is no ROI version of this award.`,
+        "Monthly Winner (Units) and Monthly Winner (ROI%) are awarded per sport for each calendar month, with the minimums in the table below. Monthly awards are featured for the entire following month.",
+        `Cross Sport Parlay Allstar goes to the most net units from Cross-Sports parlays in the month (minimum ${CROSS_SPORTS_MINIMUM} settled Cross-Sports parlays). There is no ROI version.`,
       ],
     },
     {
-      heading: "Results",
+      heading: "Eligibility",
       lines: [
-        "Results use the same settled positions and sport attribution as the leaderboard. Each award records its metric, sport, minimum sample, and winning result, and stays in the capper's Trophy Case permanently.",
+        "An award is granted only after its period is complete, and never when the top performer's units or ROI are negative. Periods follow Eastern Time.",
+        "Results use the same settled positions and sport attribution as the leaderboard. Every award stays in the capper's Trophy Case permanently.",
       ],
     },
   ];
