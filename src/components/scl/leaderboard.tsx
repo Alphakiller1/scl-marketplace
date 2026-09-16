@@ -14,7 +14,7 @@ import {
 } from "@/components/scl/indicators";
 import { RankBadge } from "@/components/scl/rank-badge";
 import { SampleCount } from "@/components/scl/sample-maturity-meter";
-import { HonorChip } from "@/components/scl/honor-card";
+import { HonorChips } from "@/components/scl/honor-card";
 import { EmptyState } from "@/components/scl/states";
 import { StatValue } from "@/components/scl/stat-value";
 import { LEADERBOARD_TABLE_MIN_WIDTH } from "@/components/scl/leaderboard-table";
@@ -408,11 +408,7 @@ function LeaderboardTableRow({
       </td>
       <td className="px-1.5 py-2 align-middle">
         {capper.honors?.length ? (
-          <div className="flex max-w-[13rem] flex-wrap items-center gap-1">
-            {capper.honors.map((award) => (
-              <HonorChip key={award.id} award={award} />
-            ))}
-          </div>
+          <HonorChips awards={capper.honors} handle={capper.handle} />
         ) : (
           <span className="text-muted-foreground">—</span>
         )}
@@ -543,13 +539,8 @@ export function LeaderboardMobileCard({
             </span>
           </div>
           {capper.honors?.length ? (
-            <div
-              className="mt-2 flex flex-wrap gap-1"
-              aria-label={`${capper.honors.length} SCL Honors awards`}
-            >
-              {capper.honors.map((award) => (
-                <HonorChip key={award.id} award={award} />
-              ))}
+            <div className="mt-2">
+              <HonorChips awards={capper.honors} handle={capper.handle} />
             </div>
           ) : null}
         </div>

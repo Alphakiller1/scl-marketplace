@@ -124,3 +124,34 @@ export function HonorChip({ award }: { award: HonorAward }) {
     </Link>
   );
 }
+
+/** At most `max` chips; the rest collapse into a link to the Trophy Case. */
+export function HonorChips({
+  awards,
+  handle,
+  max = 3,
+}: {
+  awards: HonorAward[];
+  handle: string;
+  max?: number;
+}) {
+  const shown = awards.slice(0, max);
+  const hidden = awards.length - shown.length;
+  return (
+    <div className="flex max-w-[15rem] flex-wrap items-center gap-1">
+      {shown.map((award) => (
+        <HonorChip key={award.id} award={award} />
+      ))}
+      {hidden > 0 ? (
+        <Link
+          href={`/cappers/${handle}#trophy-case-title`}
+          prefetch={false}
+          aria-label={`${hidden} more SCL Honors awards`}
+          className="text-muted-foreground hover:text-foreground inline-flex min-h-8 items-center px-1 text-[0.65rem] font-bold tabular-nums"
+        >
+          +{hidden}
+        </Link>
+      ) : null}
+    </div>
+  );
+}
