@@ -22,7 +22,7 @@ test("homepage leaderboard snapshot stays ROI-ranked and rolling", () => {
 });
 
 test("homepage hero carries SCL Honors above the snapshot, plus the top board", () => {
-  assert.match(homeSource, /<HonorsSpotlight[^>]*variant="rail"/);
+  assert.match(homeSource, /<HonorsSpotlight[^>]*\bstacked\b/);
   assert.match(homeSource, /<LiveBoardShell/);
   assert.match(homeSource, /<HomeTopBoard \/>/);
   assert.ok(

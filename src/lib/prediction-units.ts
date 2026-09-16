@@ -24,3 +24,16 @@ export function clampPredictionUnits(units: number): number {
   );
   return Math.round((bounded + Number.EPSILON) * UNIT_SCALE) / UNIT_SCALE;
 }
+
+/**
+ * Reads what a capper has typed so far into a unit field.
+ * `undefined` rejects the keystroke (not a stake shape); `null` is a valid
+ * partial entry with no usable amount yet ("", ".", "0.0"); otherwise the
+ * typed amount, unclamped.
+ */
+export function parseStakeDraft(text: string): number | null | undefined {
+  const trimmed = text.trim();
+  if (!/^\d{0,3}(\.\d{0,2})?$/.test(trimmed)) return undefined;
+  const n = Number(trimmed);
+  return trimmed === "" || trimmed === "." || !(n > 0) ? null : n;
+}

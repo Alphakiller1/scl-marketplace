@@ -1,9 +1,12 @@
 import { FileText } from "lucide-react";
 
+import { AdminHonorsEditor } from "@/components/scl/admin-honors-editor";
 import { AdminPolicyEditor } from "@/components/scl/admin-policy-editor";
+import { PolicyDocumentSelect } from "@/components/scl/policy-document-select";
 import { SectionHeader } from "@/components/scl/section";
 import { Card } from "@/components/ui/card";
-import { parsePolicySlug } from "@/lib/policy-metadata";
+import { HONORS_DOCUMENT, parsePolicySlug } from "@/lib/policy-metadata";
+import { getHonorsContent } from "@/lib/queries/honors-content";
 import { getAdminPolicyWorkspace } from "@/lib/queries/policies";
 
 export const metadata = { title: "Policy documents" };
@@ -14,6 +17,22 @@ export default async function AdminPoliciesPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
+  if (params.document === HONORS_DOCUMENT) {
+    const content = await getHonorsContent();
+    return (
+      <div className="space-y-6">
+        <SectionHeader
+          icon={FileText}
+          title="Policy Documents"
+          subtitle="Edit the SCL Honors page. Award names, minimums, and periods are generated from the Honors rules and always match what is awarded."
+        />
+        <Card className="space-y-5 p-4 sm:p-5">
+          <PolicyDocumentSelect value={HONORS_DOCUMENT} />
+          <AdminHonorsEditor title={content.title} body={content.body} />
+        </Card>
+      </div>
+    );
+  }
   const slug = parsePolicySlug(params.document);
   const { document, revisions, storageReady } =
     await getAdminPolicyWorkspace(slug);

@@ -6,6 +6,9 @@ export const POLICY_SLUGS = [
   "REFUND",
 ] as const;
 
+/** SCL Honors is edited beside the policies, though it is not a versioned policy. */
+export const HONORS_DOCUMENT = "HONORS";
+
 export type PolicySlugKey = (typeof POLICY_SLUGS)[number];
 
 export const POLICY_METADATA: Record<

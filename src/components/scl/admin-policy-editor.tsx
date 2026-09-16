@@ -11,10 +11,10 @@ import { Label } from "@/components/ui/label";
 import { savePolicyDocumentAction } from "@/lib/actions/policy.action";
 import {
   POLICY_METADATA,
-  POLICY_SLUGS,
   requiresPolicyAcceptance,
   type PolicySlugKey,
 } from "@/lib/policy-metadata";
+import { PolicyDocumentSelect } from "@/components/scl/policy-document-select";
 
 export function AdminPolicyEditor({
   initial,
@@ -61,24 +61,7 @@ export function AdminPolicyEditor({
       }}
     >
       <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_12rem]">
-        <div className="space-y-1.5">
-          <Label htmlFor="policy-document">Policy document</Label>
-          <select
-            id="policy-document"
-            value={initial.slug}
-            onChange={(event) => {
-              const slug = event.target.value as PolicySlugKey;
-              router.push(`/admin/policies?document=${slug}`);
-            }}
-            className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 min-h-10 w-full rounded-lg border px-3 text-sm outline-none focus-visible:ring-3"
-          >
-            {POLICY_SLUGS.map((slug) => (
-              <option key={slug} value={slug}>
-                {POLICY_METADATA[slug].label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <PolicyDocumentSelect value={initial.slug} />
         <div className="space-y-1.5">
           <Label htmlFor="policy-version">Policy version</Label>
           <Input

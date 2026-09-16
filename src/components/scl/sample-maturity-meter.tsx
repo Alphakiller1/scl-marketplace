@@ -86,3 +86,36 @@ export function SampleMaturityMeter({
     </div>
   );
 }
+
+const SAMPLE_TONE = {
+  established: "text-[color:var(--scl-perf-strong-text)]",
+  developing: "text-[color:var(--scl-perf-mid-text)]",
+  early: "text-muted-foreground",
+} as const;
+
+/**
+ * Dense sample cell: the graded count alone, colored by maturity bucket
+ * (Established / Developing / Early). Early stays neutral, never red.
+ */
+export function SampleCount({
+  graded,
+  className,
+}: {
+  graded: number;
+  className?: string;
+}) {
+  const bucket = maturityBucket(graded);
+  return (
+    <span
+      className={cn(
+        "scl-data text-sm font-semibold tabular-nums",
+        SAMPLE_TONE[bucket],
+        className,
+      )}
+      title={`${maturityLabel(graded)} sample`}
+    >
+      {graded.toLocaleString("en-US")}
+      <span className="sr-only"> graded, {maturityLabel(graded)}</span>
+    </span>
+  );
+}

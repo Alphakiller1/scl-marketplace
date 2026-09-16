@@ -8,18 +8,12 @@ import { LeagueRef, TeamRef, isTeamSide } from "@/components/scl/entity-marks";
 import { SlipConflictPrompt } from "@/components/scl/slip-conflict-prompt";
 import { SlipModeToggle } from "@/components/scl/slip-mode-toggle";
 import { useSlipStore } from "@/components/scl/slip-store";
+import { StakeInput } from "@/components/scl/stake-input";
 import { StakeQuickChips } from "@/components/scl/stake-quick-chips";
 import { StatValue } from "@/components/scl/stat-value";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  PREDICTION_UNIT_MAX,
-  PREDICTION_UNIT_MIN,
-  PREDICTION_UNIT_STEP,
-  SUPERMAX_UNITS,
-} from "@/lib/constants";
 import { formatOdds } from "@/lib/format";
 import {
   americanToDecimal,
@@ -290,18 +284,11 @@ export function BetSlip({
                   <div className="grid grid-cols-2 items-end gap-2">
                     <div className="space-y-1">
                       <Label htmlFor={`units-${s.id}`}>Units</Label>
-                      <Input
+                      <StakeInput
                         id={`units-${s.id}`}
-                        type="number"
-                        step={PREDICTION_UNIT_STEP}
-                        min={PREDICTION_UNIT_MIN}
-                        max={PREDICTION_UNIT_MAX}
                         value={s.units}
                         disabled={s.isSupermax}
-                        onChange={(e) => {
-                          const n = Number(e.target.value);
-                          if (Number.isFinite(n)) setSelectionUnits(s.id, n);
-                        }}
+                        onValueChange={(n) => setSelectionUnits(s.id, n)}
                       />
                     </div>
                     <div className="text-right">
@@ -379,18 +366,11 @@ export function BetSlip({
       {mode === "parlay" ? (
         <div className="space-y-1.5">
           <Label htmlFor="parlay-units">Stake (units)</Label>
-          <Input
+          <StakeInput
             id="parlay-units"
-            type="number"
-            step={PREDICTION_UNIT_STEP}
-            min={PREDICTION_UNIT_MIN}
-            max={parlayIsSupermax ? SUPERMAX_UNITS : PREDICTION_UNIT_MAX}
             value={parlayUnits}
             disabled={parlayIsSupermax}
-            onChange={(e) => {
-              const n = Number(e.target.value);
-              if (Number.isFinite(n)) setParlayUnits(n);
-            }}
+            onValueChange={setParlayUnits}
           />
           {!parlayIsSupermax ? (
             <StakeQuickChips value={parlayUnits} onChange={setParlayUnits} />

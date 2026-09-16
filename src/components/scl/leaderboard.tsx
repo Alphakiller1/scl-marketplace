@@ -13,7 +13,8 @@ import {
   RecentFormStrip,
 } from "@/components/scl/indicators";
 import { RankBadge } from "@/components/scl/rank-badge";
-import { SampleMaturityMeter } from "@/components/scl/sample-maturity-meter";
+import { SampleCount } from "@/components/scl/sample-maturity-meter";
+import { HonorChip } from "@/components/scl/honor-card";
 import { EmptyState } from "@/components/scl/states";
 import { StatValue } from "@/components/scl/stat-value";
 import { LEADERBOARD_TABLE_MIN_WIDTH } from "@/components/scl/leaderboard-table";
@@ -43,7 +44,6 @@ const METRIC_SORTS: {
     key: "sample",
     label: "Sample",
     align: "right",
-    thClassName: "min-w-[5.75rem]",
   },
   { key: "form", label: "Form", align: "right" },
 ];
@@ -185,6 +185,9 @@ export function Leaderboard({
                   claim about which offer produced the record. */}
               <th scope="col" className="px-1.5 py-2 text-left font-semibold">
                 Sports
+              </th>
+              <th scope="col" className="px-1.5 py-2 text-left font-semibold">
+                Honors
               </th>
               <th scope="col" className="px-1.5 py-2 text-right font-semibold">
                 Record
@@ -401,31 +404,18 @@ function LeaderboardTableRow({
           {sports.map((sport) => (
             <SportTag key={sport} sport={sport} markOnly className="shrink-0" />
           ))}
-          {capper.honors?.length ? (
-            <span
-              className="text-muted-foreground px-1 text-[0.65rem] font-semibold"
-              title={`${capper.honors.length} SCL Honors awards`}
-            >
-              🏆 ×{capper.honors.length}
-            </span>
-          ) : null}
-          {capper.honors?.map((award) => (
-            <Link
-              key={award.id}
-              href={`/honors/${award.id}`}
-              title={award.name}
-              aria-label={`${award.name}: ${award.abbreviation}`}
-              className="border-border bg-surface-2 inline-flex min-h-8 items-center rounded-full border px-2 text-[0.65rem] font-bold tabular-nums"
-            >
-              {!award.abbreviation.startsWith(award.icon) ? (
-                <span className="mr-1" aria-hidden>
-                  {award.icon}
-                </span>
-              ) : null}
-              {award.abbreviation}
-            </Link>
-          ))}
         </div>
+      </td>
+      <td className="px-1.5 py-2 align-middle">
+        {capper.honors?.length ? (
+          <div className="flex max-w-[13rem] flex-wrap items-center gap-1">
+            {capper.honors.map((award) => (
+              <HonorChip key={award.id} award={award} />
+            ))}
+          </div>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
       </td>
       <td className="px-1.5 py-2 text-right align-middle">
         <StatValue tone="text" className="text-sm font-semibold tabular-nums">
@@ -465,10 +455,8 @@ function LeaderboardTableRow({
           {formatUnits(capper.units)}
         </span>
       </td>
-      <td className="min-w-[5.75rem] overflow-hidden px-1.5 py-2 text-right align-middle">
-        <div className="ml-auto w-full max-w-[6rem]">
-          <SampleMaturityMeter graded={career} compact />
-        </div>
+      <td className="px-1.5 py-2 text-right align-middle">
+        <SampleCount graded={career} />
       </td>
       <td className="px-1.5 py-2 text-right align-middle">
         {capper.recentForm.length ? (
@@ -559,23 +547,8 @@ export function LeaderboardMobileCard({
               className="mt-2 flex flex-wrap gap-1"
               aria-label={`${capper.honors.length} SCL Honors awards`}
             >
-              <span className="text-muted-foreground inline-flex min-h-8 items-center px-1 text-[0.65rem] font-semibold">
-                🏆 ×{capper.honors.length}
-              </span>
               {capper.honors.map((award) => (
-                <Link
-                  key={award.id}
-                  href={`/honors/${award.id}`}
-                  title={award.name}
-                  className="border-border bg-surface-2 inline-flex min-h-8 items-center rounded-full border px-2 text-[0.65rem] font-bold tabular-nums"
-                >
-                  {!award.abbreviation.startsWith(award.icon) ? (
-                    <span className="mr-1" aria-hidden>
-                      {award.icon}
-                    </span>
-                  ) : null}
-                  {award.abbreviation}
-                </Link>
+                <HonorChip key={award.id} award={award} />
               ))}
             </div>
           ) : null}
@@ -599,7 +572,9 @@ export function LeaderboardMobileCard({
         />
       </div>
       <div className="bg-surface-2 flex min-h-10 items-center justify-between gap-3 rounded-lg px-3 py-2">
-        <SampleMaturityMeter graded={career} compact className="min-w-[4rem]" />
+        <span className="text-muted-foreground inline-flex items-baseline gap-1.5 text-xs">
+          Sample <SampleCount graded={career} />
+        </span>
         {capper.recentForm.length ? (
           <RecentFormStrip form={capper.recentForm.slice(-5)} />
         ) : (

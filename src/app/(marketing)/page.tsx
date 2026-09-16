@@ -30,7 +30,7 @@ import { getLiveActivityTicker } from "@/lib/queries/live-activity-ticker";
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
 import { getLeagueActionReport } from "@/lib/queries/league-action";
 import { getPlatformClvSummary } from "@/lib/queries/platform-clv";
-import { getCurrentHonors } from "@/lib/queries/honors";
+import { getFeaturedHonors } from "@/lib/queries/honors";
 
 export const revalidate = 60;
 
@@ -99,9 +99,9 @@ async function HomeHero() {
   // hid the entire imported roster and left the hero board empty.
   // Last 90 days, matching the Top Cappers snapshot below. An all-time hero
   // board next to a 90-day one told two different stories about who is hot.
-  const [{ cappers, failed }, awards] = await Promise.all([
+  const [{ cappers, failed }, honors] = await Promise.all([
     getLeaderboardResult({ verifiedOnly: false, window: "90d" }),
-    getCurrentHonors(),
+    getFeaturedHonors(),
   ]);
   const snapshot = sortLeaderboard(cappers, "roi")
     .slice(0, 10)
@@ -115,9 +115,8 @@ async function HomeHero() {
             className="dark scl-elevated border-border min-w-0 rounded-[var(--scl-radius-card)] border bg-[color:var(--scl-ink-800)] p-4 sm:p-5"
             data-scl-verification="home-honors"
             data-data-status="ok"
-            data-honor-count={awards.length}
           >
-            <HonorsSpotlight awards={awards.slice(0, 3)} variant="rail" />
+            <HonorsSpotlight featured={honors} limit={1} stacked />
           </div>
           <LiveBoardShell
             cappers={snapshot}

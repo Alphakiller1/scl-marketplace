@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
+import { HonorMark } from "@/components/scl/honor-card";
 import { formatRecord, formatRoi, formatUnits } from "@/lib/format";
 import { getHonorAwardById } from "@/lib/queries/honors";
 
@@ -10,7 +11,7 @@ export default async function ShareableHonorPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const award = await getHonorAwardById(id);
+  const award = await getHonorAwardById(decodeURIComponent(id));
   if (!award) notFound();
   const result =
     award.metric === "units"
@@ -19,15 +20,14 @@ export default async function ShareableHonorPage({
   return (
     <main className="mx-auto flex min-h-[70vh] max-w-3xl items-center px-4 py-10">
       <article className="scl-card-gradient border-border w-full rounded-2xl border p-6 text-center shadow-xl sm:p-10">
-        <span className="text-5xl" aria-hidden>
-          {award.icon}
-        </span>
+        <HonorMark award={award} size="lg" />
         <p className="scl-eyebrow mt-4">{award.abbreviation}</p>
         <h1 className="scl-display mt-2 text-3xl font-bold sm:text-5xl">
           {award.name}
         </h1>
         <p className="text-muted-foreground mt-2">
-          {award.sport} · {award.period} · minimum {award.minimumPicks} picks
+          {award.sportLabel} · {award.periodLabel} · minimum{" "}
+          {award.minimumPicks} settled picks
         </p>
         <Link
           href={`/cappers/${award.winner.handle}`}

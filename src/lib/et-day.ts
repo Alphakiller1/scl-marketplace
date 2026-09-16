@@ -4,12 +4,12 @@
 
 const ET = "America/New_York";
 
-function etYmd(date: Date): string {
+export function etYmd(date: Date): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: ET }).format(date);
 }
 
 /** UTC instant when an ET calendar day (YYYY-MM-DD) begins. */
-function startOfEtYmd(ymd: string): Date {
+export function startOfEtYmd(ymd: string): Date {
   const [y, m, d] = ymd.split("-").map(Number);
   const base = Date.UTC(y, m - 1, d, 0, 0, 0);
   for (let offsetH = -30; offsetH <= 30; offsetH++) {

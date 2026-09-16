@@ -16,7 +16,7 @@ import { getLivePackagesForCapper } from "@/lib/queries/store";
 import { refreshWhopStorefrontIfStale } from "@/lib/whop-sync";
 import { TrophyCase } from "@/components/scl/trophy-case";
 import { awardsForCapper } from "@/lib/honors";
-import { getCapperHonorHistory, getCurrentHonors } from "@/lib/queries/honors";
+import { getAllHonors } from "@/lib/queries/honors";
 import { getCapperSupermaxStats } from "@/lib/queries/supermax";
 import { SupermaxSummary } from "@/components/scl/supermax-summary";
 
@@ -55,8 +55,7 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
   // Keep one profile's heavier reads sequential so it does not consume the
   // entire shared Fluid Compute pool while other public requests are active.
   const packages = await getLivePackagesForCapper(capper.id);
-  const currentHonors = await getCurrentHonors();
-  const historicalHonors = await getCapperHonorHistory(capper.id);
+  const honors = awardsForCapper(await getAllHonors(), capper.id);
   const supermaxStats = await getCapperSupermaxStats(capper.id);
   const accolades = await getCapperAccolades(capper.handle, capper.topSport);
   const profileCapper = { ...capper, trophies: accolades };
@@ -89,6 +88,7 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
       <CapperProfileHeader capper={profileCapper} />
 
       <div className="mx-auto mt-3 max-w-[1400px] px-4 sm:mt-5 sm:px-6 lg:px-8">
+        <TrophyCase awards={honors} />
         <ProfileTopPackages
           packages={rankedPackages.slice(0, 3)}
           totalCount={rankedPackages.length}
@@ -115,15 +115,6 @@ export default async function CapperProfilePage({ params }: ProfileParams) {
           emptyName={identity.primary}
         />
         <CapperProfileMeta capper={profileCapper} />
-        <TrophyCase
-          awards={[
-            ...awardsForCapper(currentHonors, capper.id),
-            ...historicalHonors.filter(
-              (historical) =>
-                !currentHonors.some((current) => current.id === historical.id),
-            ),
-          ]}
-        />
         <SupermaxSummary stats={supermaxStats} />
         <div className="border-border mt-8 border-t pt-6 sm:mt-10 sm:pt-8">
           <CapperStorefront
