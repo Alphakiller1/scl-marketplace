@@ -3,6 +3,46 @@ import type { HonorAward } from "@/lib/honors";
 import { formatRoi, formatUnits } from "@/lib/format";
 import { CapperAvatar } from "@/components/scl/capper-avatar";
 
+function honorResult(award: HonorAward) {
+  return award.metric === "units"
+    ? formatUnits(award.winner.units)
+    : formatRoi(award.winner.roi);
+}
+
+/** Full-width list row: award name gets its own line so it never truncates. */
+export function HonorRow({ award }: { award: HonorAward }) {
+  return (
+    <Link
+      href={`/honors/${award.id}`}
+      className="hover:bg-surface-2 focus-visible:ring-ring flex min-w-0 items-center gap-3 px-3 py-2.5 transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
+    >
+      <span className="w-6 shrink-0 text-center text-lg" aria-hidden>
+        {award.icon}
+      </span>
+      <CapperAvatar
+        name={award.winner.name}
+        src={award.winner.avatarUrl}
+        size="sm"
+      />
+      <span className="min-w-0 flex-1">
+        <span className="scl-eyebrow block truncate text-[color:var(--scl-muted-label)]">
+          {award.name}
+        </span>
+        <span className="block truncate text-sm font-semibold">
+          @{award.winner.handle}
+          <span className="text-muted-foreground font-normal">
+            {" "}
+            · {award.sport}
+          </span>
+        </span>
+      </span>
+      <span className="scl-data text-pos shrink-0 text-sm font-bold tabular-nums">
+        {honorResult(award)}
+      </span>
+    </Link>
+  );
+}
+
 export function HonorCard({
   award,
   compact = false,
@@ -10,10 +50,7 @@ export function HonorCard({
   award: HonorAward;
   compact?: boolean;
 }) {
-  const result =
-    award.metric === "units"
-      ? formatUnits(award.winner.units)
-      : formatRoi(award.winner.roi);
+  const result = honorResult(award);
   return (
     <Link
       href={`/honors/${award.id}`}

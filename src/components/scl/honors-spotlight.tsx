@@ -1,13 +1,24 @@
 import Link from "next/link";
 import { Award } from "lucide-react";
 import type { HonorAward } from "@/lib/honors";
-import { HonorCard } from "@/components/scl/honor-card";
+import { HonorCard, HonorRow } from "@/components/scl/honor-card";
 
-export function HonorsSpotlight({ awards }: { awards: HonorAward[] }) {
+export function HonorsSpotlight({
+  awards,
+  variant = "grid",
+}: {
+  awards: HonorAward[];
+  /** "rail" = one row per award, for narrow columns such as the home hero. */
+  variant?: "grid" | "rail";
+}) {
+  const rail = variant === "rail";
   return (
-    <section className="space-y-4" aria-labelledby="honors-spotlight-title">
-      <div className="flex items-end justify-between gap-4">
-        <div>
+    <section
+      className={rail ? "min-w-0 space-y-3" : "space-y-4"}
+      aria-labelledby="honors-spotlight-title"
+    >
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
+        <div className="min-w-0">
           <p className="scl-eyebrow">The winning record</p>
           <h2
             id="honors-spotlight-title"
@@ -27,7 +38,15 @@ export function HonorsSpotlight({ awards }: { awards: HonorAward[] }) {
           Rules & all honors
         </Link>
       </div>
-      {awards.length ? (
+      {awards.length && rail ? (
+        <ul className="divide-border border-border divide-y overflow-hidden rounded-xl border">
+          {awards.map((award) => (
+            <li key={award.id}>
+              <HonorRow award={award} />
+            </li>
+          ))}
+        </ul>
+      ) : awards.length ? (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {awards.map((award) => (
             <HonorCard key={award.id} award={award} />
