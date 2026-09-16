@@ -294,3 +294,24 @@ test("published rules and criteria come from the config", () => {
     "Calendar year",
   );
 });
+
+test("awards survive the query cache's date revival unchanged", async () => {
+  const { reviveCachedDates } = await import("@/lib/cache-dates");
+  const awards = computeHonors({
+    cappers: [ALICE],
+    positions: [],
+    legacy: [
+      legacyRow("a", "ALL", 300, 200, 1500, 450),
+      legacyRow("a", "NFL", 30, 20, 100, 50),
+    ],
+    now: NOW,
+  });
+  // A cache HIT hands back JSON with ISO strings turned into Dates.
+  const revived = reviveCachedDates(JSON.parse(JSON.stringify(awards)));
+  const featured = featuredHonors(revived, NOW);
+  assert.deepEqual(
+    featured.season.map((a) => a.metric),
+    ["units", "roi"],
+  );
+  assert.equal(typeof revived[0]!.periodEnd, "number");
+});

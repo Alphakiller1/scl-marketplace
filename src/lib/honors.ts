@@ -56,8 +56,11 @@ export type HonorAward = {
   periodKey: string;
   /** Human label for the period: `2025`, `2025-26 season`, `August 2026`. */
   periodLabel: string;
-  /** ISO instant the period ended — when the award was granted. */
-  periodEnd: string;
+  /**
+   * Epoch ms the period ended — when the award was granted. A number, not an
+   * ISO string: the query cache revives ISO strings into Dates on a hit.
+   */
+  periodEnd: number;
   /** Canonical sport key, `ALL`, or `CROSS_SPORTS`. */
   sport: string;
   sportLabel: string;
@@ -562,7 +565,7 @@ export function computeHonors(input: {
         period: bucket.period,
         periodKey: bucket.periodKey,
         periodLabel: bucket.periodLabel,
-        periodEnd: bucket.periodEnd.toISOString(),
+        periodEnd: bucket.periodEnd.getTime(),
         sport: bucket.sport,
         sportLabel: honorSportLabel(bucket.sport),
         metric,
@@ -573,7 +576,7 @@ export function computeHonors(input: {
   }
   return awards.sort(
     (a, b) =>
-      b.periodEnd.localeCompare(a.periodEnd) ||
+      b.periodEnd - a.periodEnd ||
       sportOrder(a.sport) - sportOrder(b.sport) ||
       (a.metric === b.metric ? 0 : a.metric === "units" ? -1 : 1),
   );
@@ -603,11 +606,11 @@ export function featuredHonors(
     nowM === 1
       ? `${nowY - 1}-12`
       : `${nowY}-${String(nowM - 1).padStart(2, "0")}`;
-  const latestSeason = new Map<string, string>();
+  const latestSeason = new Map<string, number>();
   for (const award of awards) {
     if (
       award.period === "season" &&
-      award.periodEnd > (latestSeason.get(award.sport) ?? "")
+      award.periodEnd > (latestSeason.get(award.sport) ?? 0)
     ) {
       latestSeason.set(award.sport, award.periodEnd);
     }

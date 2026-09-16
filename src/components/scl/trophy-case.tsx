@@ -9,8 +9,7 @@ import { HonorTrophyCard } from "@/components/scl/honor-trophy-card";
 export function TrophyCase({ awards }: { awards: HonorAward[] }) {
   if (!awards.length) return null;
   const ordered = [...awards].sort(
-    (a, b) =>
-      a.periodEnd.localeCompare(b.periodEnd) || a.name.localeCompare(b.name),
+    (a, b) => a.periodEnd - b.periodEnd || a.name.localeCompare(b.name),
   );
   return (
     <section

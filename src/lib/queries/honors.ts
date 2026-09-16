@@ -151,7 +151,7 @@ async function loadHonors(): Promise<HonorAward[]> {
   return computeHonors({ cappers, positions, legacy });
 }
 
-const getCachedHonors = cachedQuery(loadHonors, ["scl-honors-v2"], {
+const getCachedHonors = cachedQuery(loadHonors, ["scl-honors-v3"], {
   revalidate: 3600,
   tags: ["leaderboard", "honors"],
 });
