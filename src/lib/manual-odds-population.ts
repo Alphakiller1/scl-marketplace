@@ -149,6 +149,45 @@ export function withinExpandedBuyWindow(
   return hours <= expandedWindowOpenHours(sport);
 }
 
+/**
+ * How far ahead a sport's deep board may be bought for the FIRST time.
+ *
+ * Football is played in weekly slates that books price days out: a Sunday card
+ * carries its featured props by Wednesday. Held to "today and tomorrow" inside
+ * the 36-hour window, a Sunday game could not be bought until Saturday
+ * afternoon, so from Monday to Saturday the only NFL game with props or
+ * alternate lines was Thursday night's — and to the people logging picks the
+ * NFL expanded board looked like it had never been populated at all.
+ *
+ * Inside this horizon but outside {@link EXPANDED_WINDOW_OPEN_HOURS} an event is
+ * "early": it is bought once, as soon as its card has opened (the same two-thirds
+ * rule as any buy), and not bought again until its own window opens, where the
+ * normal cadence takes over. That bounds the early week to one buy per game.
+ */
+export const EXPANDED_EARLY_BUY_HOURS: Record<string, number> = {
+  NFL: 7 * 24,
+};
+
+export function earlyExpandedBuyHours(sport: string): number | null {
+  return EXPANDED_EARLY_BUY_HOURS[sport.trim().toUpperCase()] ?? null;
+}
+
+/** Beyond the normal buy window, but inside the sport's early horizon. */
+export function isEarlyExpandedEvent(
+  commenceTime: string,
+  sport: string,
+  now: number = Date.now(),
+): boolean {
+  const horizon = earlyExpandedBuyHours(sport);
+  if (horizon == null) return false;
+  const hours = hoursToKickoff(commenceTime, now);
+  return (
+    Number.isFinite(hours) &&
+    hours > expandedWindowOpenHours(sport) &&
+    hours <= horizon
+  );
+}
+
 /** Past the point where holding out for a fuller card costs more than it gains. */
 export function pastExpandedLastCall(
   commenceTime: string,
@@ -213,6 +252,21 @@ export function selectExpandedSlateEvents(
   );
   // A cheap expanded board follows the board, not the slate day.
   if (sport && expandsFullSlate(sport)) return future;
+  // A weekly sport follows its early horizon, not the slate day. Games already
+  // inside their buy window go first, so a per-run event cap can never spend
+  // itself on next Sunday while tonight's game waits.
+  if (sport && earlyExpandedBuyHours(sport) != null) {
+    const nowMs = now.getTime();
+    const inWindow = future.filter((event) =>
+      withinExpandedBuyWindow(event.commenceTime, sport, nowMs),
+    );
+    const early = future.filter((event) =>
+      isEarlyExpandedEvent(event.commenceTime, sport, nowMs),
+    );
+    const byKickoff = (a: OddsEvent, b: OddsEvent) =>
+      Date.parse(a.commenceTime) - Date.parse(b.commenceTime);
+    return [...inWindow.sort(byKickoff), ...early.sort(byKickoff)];
+  }
 
   const allowed = new Set<string>();
   if (days.includes("today")) allowed.add(etDay(now));

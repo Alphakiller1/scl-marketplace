@@ -30,6 +30,7 @@ import {
   getLeaguePickDemand,
   getOddsCreditDashboard,
   getVerificationSchedules,
+  type OddsRunRow,
 } from "@/lib/queries/odds-control";
 import { cn } from "@/lib/utils";
 
@@ -125,6 +126,151 @@ function RunStatus({ status }: { status: string }) {
     >
       {marketLabel(status)}
     </Badge>
+  );
+}
+
+function runDuration(run: OddsRunRow): string {
+  if (!run.completedAt) return run.status === "RUNNING" ? "Running" : "—";
+  const ms = Date.parse(run.completedAt) - Date.parse(run.startedAt);
+  if (!Number.isFinite(ms) || ms < 0) return "—";
+  return ms < 60_000
+    ? `${Math.max(1, Math.round(ms / 1000))}s`
+    : `${Math.round(ms / 60_000)}m`;
+}
+
+/**
+ * One tier's run log. Standard and expanded runs are listed apart because a
+ * mixed list was dominated by the half-hourly catch-up passes, and a six-hourly
+ * football pass fell off it before anyone could find it.
+ */
+function RunLogCard({
+  title,
+  description,
+  runs,
+}: {
+  title: string;
+  description: string;
+  runs: OddsRunRow[];
+}) {
+  return (
+    <Card className="space-y-4 p-4 sm:p-5">
+      <div>
+        <h3 className="font-semibold">{title}</h3>
+        <p className="text-muted-foreground text-xs">{description}</p>
+      </div>
+      {runs.length ? (
+        <div className="divide-border max-h-[40rem] divide-y overflow-y-auto">
+          {runs.map((run) => (
+            <article key={run.id} className="space-y-2 py-3 text-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-medium">
+                    {run.sport} · {marketLabel(run.tier)}
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    {marketLabel(run.trigger)}
+                  </p>
+                </div>
+                <RunStatus status={run.status} />
+              </div>
+              <dl className="grid grid-cols-3 gap-2 text-xs">
+                <div>
+                  <dt className="text-muted-foreground">Started</dt>
+                  <dd className="nums font-semibold">
+                    <time dateTime={run.startedAt}>
+                      {formatEasternDateTime(run.startedAt)}
+                    </time>
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Finished</dt>
+                  <dd className="nums font-semibold">
+                    {run.completedAt ? (
+                      <time dateTime={run.completedAt}>
+                        {formatEasternDateTime(run.completedAt)}
+                      </time>
+                    ) : (
+                      "—"
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Duration</dt>
+                  <dd className="nums font-semibold">{runDuration(run)}</dd>
+                </div>
+              </dl>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <span className="text-muted-foreground">Estimated</span>
+                <span className="text-muted-foreground">Actual</span>
+                <span className="text-muted-foreground">Variance</span>
+                <span className="nums font-semibold">
+                  {credits(run.estimatedCredits)}
+                </span>
+                <span className="nums font-semibold">
+                  {credits(run.credits)}
+                </span>
+                <span className="nums font-semibold">
+                  {run.credits - run.estimatedCredits > 0 ? "+" : ""}
+                  {credits(run.credits - run.estimatedCredits)}
+                </span>
+              </div>
+              <details className="border-border rounded-lg border p-2 text-xs">
+                <summary className="cursor-pointer font-medium">
+                  Run detail
+                </summary>
+                <div className="text-muted-foreground mt-2 space-y-1">
+                  <p>
+                    Markets:{" "}
+                    {run.markets.length
+                      ? run.markets.map(marketLabel).join(", ")
+                      : "None"}
+                  </p>
+                  <p>
+                    Leagues:{" "}
+                    {run.leagues.length ? run.leagues.join(", ") : "Automatic"}
+                  </p>
+                  <p>
+                    Events {run.details.events} · fetched {run.details.fetched}{" "}
+                    · populated {run.details.populated} · skipped fresh{" "}
+                    {run.details.skipped}
+                  </p>
+                  <p>
+                    Held {run.details.held} · stale {run.details.stale} ·
+                    unpriced {run.details.unpriced}
+                  </p>
+                  {run.tier === "expanded" ? (
+                    <p>
+                      {run.details.events === 0
+                        ? "No games were inside the buy window on this pass."
+                        : `First kickoff ${formatEasternDateTime(run.details.firstKickoff)}`}
+                      {run.details.early > 0
+                        ? ` · ${run.details.early} early (bought once ahead of their window)`
+                        : ""}
+                    </p>
+                  ) : null}
+                  {run.remaining != null ? (
+                    <p>Provider remaining: {credits(run.remaining)}</p>
+                  ) : null}
+                  {run.details.blockedReason ? (
+                    <p className="text-neg">{run.details.blockedReason}</p>
+                  ) : null}
+                </div>
+              </details>
+              {run.error ? (
+                <p className="text-neg text-xs">{run.error}</p>
+              ) : null}
+            </article>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={Activity}
+          title="No runs recorded"
+          description="Runs appear here as soon as the scheduler or Run now starts one."
+          headingLevel="h3"
+        />
+      )}
+    </Card>
   );
 }
 
@@ -382,6 +528,7 @@ export default async function AdminOddsPage() {
           initialSports={settings.sports}
           verificationUsage={data.verification}
           storageReady={settings.storageReady}
+          lastRuns={data.lastRuns}
         />
       </section>
 
@@ -640,97 +787,16 @@ export default async function AdminOddsPage() {
           subtitle="Confirm what ran, what it cost, and who changed the strategy"
         />
         <div className="grid gap-4 lg:grid-cols-2">
-          <Card className="space-y-4 p-4 sm:p-5">
-            <div>
-              <h3 className="font-semibold">Recent API runs</h3>
-              <p className="text-muted-foreground text-xs">
-                Latest managed requests and actual credit cost
-              </p>
-            </div>
-            {data.recentRuns.length ? (
-              <div className="divide-border divide-y">
-                {data.recentRuns.slice(0, 12).map((run) => (
-                  <article key={run.id} className="space-y-2 py-3 text-sm">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-medium">
-                          {run.sport} · {marketLabel(run.tier)}
-                        </p>
-                        <p className="text-muted-foreground text-xs">
-                          {formatEasternDateTime(run.startedAt)} ·{" "}
-                          {marketLabel(run.trigger)}
-                        </p>
-                      </div>
-                      <RunStatus status={run.status} />
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <span className="text-muted-foreground">Estimated</span>
-                      <span className="text-muted-foreground">Actual</span>
-                      <span className="text-muted-foreground">Variance</span>
-                      <span className="nums font-semibold">
-                        {credits(run.estimatedCredits)}
-                      </span>
-                      <span className="nums font-semibold">
-                        {credits(run.credits)}
-                      </span>
-                      <span className="nums font-semibold">
-                        {run.credits - run.estimatedCredits > 0 ? "+" : ""}
-                        {credits(run.credits - run.estimatedCredits)}
-                      </span>
-                    </div>
-                    <details className="border-border rounded-lg border p-2 text-xs">
-                      <summary className="cursor-pointer font-medium">
-                        Run detail
-                      </summary>
-                      <div className="text-muted-foreground mt-2 space-y-1">
-                        <p>
-                          Markets:{" "}
-                          {run.markets.length
-                            ? run.markets.map(marketLabel).join(", ")
-                            : "None"}
-                        </p>
-                        <p>
-                          Leagues:{" "}
-                          {run.leagues.length
-                            ? run.leagues.join(", ")
-                            : "Automatic"}
-                        </p>
-                        <p>
-                          Events {run.details.events} · fetched{" "}
-                          {run.details.fetched} · populated{" "}
-                          {run.details.populated} · skipped fresh{" "}
-                          {run.details.skipped}
-                        </p>
-                        <p>
-                          Held {run.details.held} · stale {run.details.stale} ·
-                          unpriced {run.details.unpriced}
-                        </p>
-                        {run.remaining != null ? (
-                          <p>Provider remaining: {credits(run.remaining)}</p>
-                        ) : null}
-                        {run.details.blockedReason ? (
-                          <p className="text-neg">
-                            {run.details.blockedReason}
-                          </p>
-                        ) : null}
-                      </div>
-                    </details>
-                    {run.error ? (
-                      <p className="text-neg text-xs">{run.error}</p>
-                    ) : null}
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <EmptyState
-                icon={Activity}
-                title="No managed runs yet"
-                description="Run history begins after owner-managed scheduling is activated."
-                headingLevel="h3"
-              />
-            )}
-          </Card>
-
+          <RunLogCard
+            title="Expanded runs"
+            description="Props and alternate lines — when each pass started, finished, and what it found"
+            runs={data.runLog.expanded}
+          />
+          <RunLogCard
+            title="Standard runs"
+            description="Moneyline, spread and total refreshes — start and finish times with credit cost"
+            runs={data.runLog.surface}
+          />
           <Card className="space-y-4 p-4 sm:p-5">
             <div>
               <h3 className="font-semibold">Strategy changes</h3>

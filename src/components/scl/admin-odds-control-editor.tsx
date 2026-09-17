@@ -170,16 +170,37 @@ function scheduleLabel(value: string | null): string {
   return formatEasternDateTime(value);
 }
 
+/** Newest started run of one tier, from the run log (scheduled or manual). */
+export type AdminLastOddsRun = {
+  status: string;
+  trigger: string;
+  credits: number;
+  startedAt: string;
+  completedAt: string | null;
+};
+
+function lastRunLabel(run: AdminLastOddsRun | undefined): string {
+  if (!run) return "No run recorded";
+  const started = formatEasternDateTime(run.startedAt);
+  if (run.status === "RUNNING") return `${started} · running`;
+  const outcome = run.status === "COMPLETED" ? "completed" : "failed";
+  const manual = run.trigger === "MANUAL" ? " · manual" : "";
+  return `${started} · ${outcome} · ${run.credits.toLocaleString()} credits${manual}`;
+}
+
 export function AdminOddsControlEditor({
   initialConfig,
   initialSports,
   verificationUsage,
   storageReady,
+  lastRuns = {},
 }: {
   initialConfig: Omit<OddsControlSettingsInput, "sports">;
   initialSports: SportDraft[];
   verificationUsage: { requestsToday: number; creditsToday: number };
   storageReady: boolean;
+  /** Keyed `SPORT:tier`. */
+  lastRuns?: Record<string, AdminLastOddsRun>;
 }) {
   const router = useRouter();
   const [config, setConfig] = useState(initialConfig);
@@ -984,9 +1005,15 @@ export function AdminOddsControlEditor({
                           </>
                         ) : null}
                         <br />
+                        Last standard:{" "}
+                        {lastRunLabel(lastRuns[`${sport.sport}:surface`])}
+                        <br />
                         Next standard: {scheduleLabel(sport.nextSurfaceRunAt)}
                         {groups.length ? (
                           <>
+                            <br />
+                            Last expanded:{" "}
+                            {lastRunLabel(lastRuns[`${sport.sport}:expanded`])}
                             <br />
                             Next expanded:{" "}
                             {scheduleLabel(sport.nextExpandedRunAt)}
