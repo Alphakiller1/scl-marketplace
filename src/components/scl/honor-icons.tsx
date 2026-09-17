@@ -1,5 +1,3 @@
-import { Crown, Trophy } from "lucide-react";
-
 import { ALL_SPORTS, type HonorAward } from "@/lib/honors";
 import { CROSS_SPORTS } from "@/lib/parlay-sport";
 import { cn } from "@/lib/utils";
@@ -114,6 +112,22 @@ export function honorEmoji(award: Pick<HonorAward, "sport">): string | null {
   return SPORT_EMOJI[award.sport] ?? null;
 }
 
+/** Lucide Crown / Trophy geometry, inlined so next/og can render it too. */
+const ANNUAL_PATHS = {
+  units: [
+    "M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z",
+    "M5 21h14",
+  ],
+  roi: [
+    "M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978",
+    "M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978",
+    "M18 9h1.5a1 1 0 0 0 0-5H18",
+    "M4 22h16",
+    "M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z",
+    "M6 9H4.5a1 1 0 0 1 0-5H6",
+  ],
+} as const;
+
 /**
  * Annual awards use the rank crown and a trophy, pink per the design spec
  * (conviction marks; never gold).
@@ -122,7 +136,7 @@ export function AnnualMark({
   metric,
   className,
   size,
-  color,
+  color = "currentColor",
 }: {
   metric: HonorAward["metric"];
   className?: string;
@@ -130,15 +144,23 @@ export function AnnualMark({
   size?: number;
   color?: string;
 }) {
-  const Icon = metric === "units" ? Crown : Trophy;
   return (
-    <Icon
-      aria-hidden
-      size={size}
-      color={color}
-      strokeWidth={2.25}
+    <svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
       className={className}
-    />
+      aria-hidden
+      fill="none"
+      stroke={color}
+      strokeWidth={2.25}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {ANNUAL_PATHS[metric].map((d) => (
+        <path key={d} d={d} />
+      ))}
+    </svg>
   );
 }
 
