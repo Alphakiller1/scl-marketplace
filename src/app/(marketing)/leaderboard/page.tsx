@@ -10,7 +10,7 @@ import { LeaderboardOverview } from "@/components/scl/leaderboard-overview";
 import { LeaderboardRankingRail } from "@/components/scl/leaderboard-ranking-rail";
 import { parseLeaderboardFilters } from "@/lib/leaderboard";
 import { getLeaderboardResult } from "@/lib/queries/leaderboard";
-import { getCurrentHonors } from "@/lib/queries/honors";
+import { getFeaturedHonors } from "@/lib/queries/honors";
 import { awardsForCapper } from "@/lib/honors";
 
 export const metadata: Metadata = {
@@ -30,11 +30,12 @@ export default async function LeaderboardPage({
   const filters = parseLeaderboardFilters(await searchParams);
   const [{ cappers, unranked, failed }, honors] = await Promise.all([
     getLeaderboardResult(filters),
-    getCurrentHonors(),
+    getFeaturedHonors(),
   ]);
+  const currentHonors = [...honors.annual, ...honors.season, ...honors.monthly];
   const decoratedCappers = cappers.map((capper) => ({
     ...capper,
-    honors: awardsForCapper(honors, capper.id),
+    honors: awardsForCapper(currentHonors, capper.id),
   }));
 
   return (

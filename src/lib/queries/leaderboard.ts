@@ -412,7 +412,9 @@ function summarize(
     avatarUrl: p.avatarUrl ?? undefined,
     bannerUrl: p.bannerUrl ?? undefined,
     verified: p.user.emailVerified != null,
-    topSport: topSport(relevantSports, p.sports[0]),
+    // A scoped board describes only the period: a profile's listed sports
+    // are not a claim that the capper picked them this week.
+    topSport: topSport(relevantSports, applyBaseline ? p.sports[0] : undefined),
     rank: 0, // assigned after sort
     rankDelta: 0, // no historical snapshot yet — honest neutral
     record: { w: stats.wins, l: stats.losses, p: stats.pushes },
@@ -436,7 +438,7 @@ function summarize(
     // selected period, including the single Cross-Sports parlay bucket.
     sports: relevantSports.length
       ? relevantSports
-      : p.sports.length
+      : applyBaseline && p.sports.length
         ? p.sports
         : undefined,
     books: p.books.length ? p.books : undefined,

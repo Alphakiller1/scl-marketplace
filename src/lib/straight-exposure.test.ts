@@ -53,3 +53,42 @@ test("daily Supermax reporting is separate from the standard exposure cap", () =
     /only one/i,
   );
 });
+
+test("a Supermax selection cannot take another straight, in either order", () => {
+  const supermax = { ...straight(20), isSupermax: true };
+  assert.match(
+    straightExposureError([supermax], [straight(5)]) ?? "",
+    /cannot be combined/i,
+  );
+  assert.match(
+    straightExposureError([straight(5)], [supermax]) ?? "",
+    /cannot be combined/i,
+  );
+  assert.match(
+    straightExposureError([], [straight(5), supermax]) ?? "",
+    /cannot be combined/i,
+  );
+  // An alternate line on the same side still stacks onto the same play.
+  assert.match(
+    straightExposureError([supermax], [{ ...straight(5), line: -5.5 }]) ?? "",
+    /cannot be combined/i,
+  );
+});
+
+test("a Supermax leaves other selections and unbound picks alone", () => {
+  const supermax = { ...straight(20), isSupermax: true };
+  assert.equal(
+    straightExposureError(
+      [supermax],
+      [{ ...straight(5), selection: "Miami Heat", side: "Miami Heat" }],
+    ),
+    null,
+  );
+  assert.equal(
+    straightExposureError(
+      [{ ...supermax, eventId: null }],
+      [{ ...straight(5), eventId: null }],
+    ),
+    null,
+  );
+});

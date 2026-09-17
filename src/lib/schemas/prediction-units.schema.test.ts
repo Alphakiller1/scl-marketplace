@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { clampPredictionUnits } from "@/lib/prediction-units";
+import { clampPredictionUnits, parseStakeDraft } from "@/lib/prediction-units";
 import { createParlaySchema } from "@/lib/schemas/parlay.schema";
 import { playSchema } from "@/lib/schemas/play.schema";
 
@@ -46,4 +46,16 @@ test("controlled stake inputs clamp to the owner range and precision", () => {
   assert.equal(clampPredictionUnits(1.25), 1.25);
   assert.equal(clampPredictionUnits(4.401), 4.4);
   assert.equal(clampPredictionUnits(11), 10);
+});
+
+test("stake drafts accept partial decimals while typing", () => {
+  assert.equal(parseStakeDraft(""), null);
+  assert.equal(parseStakeDraft("."), null);
+  assert.equal(parseStakeDraft("0.0"), null);
+  assert.equal(parseStakeDraft(".5"), 0.5);
+  assert.equal(parseStakeDraft("0.25"), 0.25);
+  assert.equal(parseStakeDraft("7"), 7);
+  assert.equal(parseStakeDraft("0.123"), undefined);
+  assert.equal(parseStakeDraft("1e3"), undefined);
+  assert.equal(parseStakeDraft("-1"), undefined);
 });

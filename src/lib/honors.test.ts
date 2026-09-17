@@ -1,26 +1,317 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { awardMonthLabel, makeHonorAward } from "@/lib/honors";
-import { MOCK_CAPPERS } from "@/lib/mock";
 
-test("Cross Sport Parlay Allstar uses the requested monthly abbreviation", () => {
-  const now = new Date("2026-08-15T12:00:00Z");
-  const award = makeHonorAward(
-    {
-      name: "Cross Sport Parlay Allstar",
-      abbreviation: `🔗 ${awardMonthLabel(now)} ($)`,
-      icon: "🔗",
-      period: "monthly",
-      sport: "Cross-Sports",
-      metric: "units",
-      minimumPicks: 10,
-      winner: MOCK_CAPPERS[0]!,
-    },
-    now,
+import {
+  ANNUAL_MINIMUM,
+  computeHonors,
+  CROSS_SPORTS_MINIMUM,
+  featuredHonors,
+  honorMinimum,
+  honorsCriteria,
+  honorsRules,
+  seasonPeriod,
+  type HonorCapper,
+  type HonorLegacyTotal,
+  type HonorPosition,
+} from "@/lib/honors";
+import { CROSS_SPORTS } from "@/lib/parlay-sport";
+
+const ALICE: HonorCapper = { id: "a", name: "alice", handle: "alice" };
+const BOB: HonorCapper = { id: "b", name: "bob", handle: "bob" };
+
+function picks(
+  capperId: string,
+  sport: string,
+  at: string,
+  count: number,
+  profitEach: number,
+): HonorPosition[] {
+  return Array.from({ length: count }, () => ({
+    capperId,
+    sport,
+    at: new Date(at),
+    outcome: profitEach >= 0 ? "WIN" : "LOSS",
+    units: 1,
+    profitUnits: profitEach,
+  }));
+}
+
+function legacyRow(
+  capperId: string,
+  sport: string,
+  wins: number,
+  losses: number,
+  risked: number,
+  net: number,
+): HonorLegacyTotal {
+  return {
+    capperId,
+    scope: "YEAR_2025",
+    sport,
+    wins,
+    losses,
+    pushes: 0,
+    unitsRisked: risked,
+    unitsNet: net,
+  };
+}
+
+const NOW = new Date("2026-09-16T16:00:00Z");
+
+test("program minimums by sport and period", () => {
+  assert.equal(ANNUAL_MINIMUM, 250);
+  assert.equal(honorMinimum("annual", "ALL"), 250);
+  assert.equal(honorMinimum("season", "MLB"), 200);
+  assert.equal(honorMinimum("season", "NBA"), 150);
+  assert.equal(honorMinimum("season", "CFL"), 40);
+  assert.equal(honorMinimum("season", "MMA"), 75);
+  assert.equal(honorMinimum("monthly", "MLB"), 25);
+  assert.equal(honorMinimum("monthly", "NFL"), 15);
+  assert.equal(honorMinimum("monthly", "PGA"), 10);
+  assert.equal(honorMinimum("monthly", CROSS_SPORTS), CROSS_SPORTS_MINIMUM);
+  // Sports outside the program never qualify.
+  assert.equal(honorMinimum("monthly", "BOXING"), Number.POSITIVE_INFINITY);
+});
+
+test("monthly awards cover the last completed month, never the current one", () => {
+  const awards = computeHonors({
+    cappers: [ALICE],
+    positions: [
+      ...picks("a", "MLB", "2026-08-10T23:00:00Z", 25, 1),
+      ...picks("a", "MLB", "2026-09-05T23:00:00Z", 25, 1),
+    ],
+    legacy: [],
+    now: NOW,
+  });
+  const monthly = awards.filter((a) => a.period === "monthly");
+  assert.deepEqual(
+    monthly.map((a) => [a.id, a.name, a.abbreviation]),
+    [
+      [
+        "monthly-2026-08-mlb-units",
+        "August 2026 MLB Monthly Winner (Units)",
+        "AUG26 ($)",
+      ],
+      [
+        "monthly-2026-08-mlb-roi",
+        "August 2026 MLB Monthly Winner (ROI%)",
+        "AUG26 (%)",
+      ],
+    ],
   );
-  assert.equal(award.abbreviation, "🔗 AUG26 ($)");
-  assert.equal(award.metric, "units");
-  assert.equal(award.minimumPicks, 10);
-  assert.equal(award.visibleFrom.toISOString(), "2026-08-01T00:00:00.000Z");
-  assert.equal(award.visibleUntil.toISOString(), "2026-11-01T00:00:00.000Z");
+});
+
+test("below the sport's monthly minimum, no award", () => {
+  const awards = computeHonors({
+    cappers: [ALICE],
+    positions: picks("a", "MLB", "2026-08-10T23:00:00Z", 24, 5),
+    legacy: [],
+    now: NOW,
+  });
+  assert.deepEqual(awards, []);
+});
+
+test("months follow Eastern Time at the boundary", () => {
+  // 02:00 UTC on Sep 1 is still Aug 31 in New York.
+  const awards = computeHonors({
+    cappers: [ALICE],
+    positions: picks("a", "NFL", "2026-09-01T02:00:00Z", 15, 1),
+    legacy: [],
+    now: NOW,
+  });
+  assert.ok(awards.some((a) => a.id === "monthly-2026-08-nfl-units"));
+});
+
+test("a negative top performer never wins", () => {
+  const awards = computeHonors({
+    cappers: [ALICE],
+    positions: picks("a", CROSS_SPORTS, "2026-08-10T23:00:00Z", 12, -1),
+    legacy: [],
+    now: NOW,
+  });
+  assert.deepEqual(awards, []);
+});
+
+test("Cross Sport Parlay Allstar is units-only", () => {
+  const awards = computeHonors({
+    cappers: [ALICE],
+    positions: picks(
+      "a",
+      CROSS_SPORTS,
+      "2026-08-10T23:00:00Z",
+      CROSS_SPORTS_MINIMUM,
+      2,
+    ),
+    legacy: [],
+    now: NOW,
+  });
+  assert.deepEqual(
+    awards.map((a) => [a.name, a.metric, a.abbreviation]),
+    [["August 2026 Cross Sport Parlay Allstar", "units", "AUG26 ($)"]],
+  );
+});
+
+test("2025 annual and season awards come from the legacy 2025 records", () => {
+  const legacy = [
+    legacyRow("a", "ALL", 300, 200, 1500, 450),
+    legacyRow("b", "ALL", 160, 100, 300, 150),
+    legacyRow("b", "NFL", 30, 20, 100, 50),
+    legacyRow("a", "NBA", 30, 20, 100, 50),
+  ];
+  const awards = computeHonors({
+    cappers: [ALICE, BOB],
+    positions: [],
+    legacy,
+    now: NOW,
+  });
+  const byId = new Map(awards.map((a) => [a.id, a]));
+  const coty = byId.get("annual-2025-all-units");
+  assert.equal(coty?.name, "2025 Capper of the Year");
+  assert.equal(coty?.abbreviation, "2025 COTY");
+  assert.equal(coty?.winner.handle, "alice");
+  const perf = byId.get("annual-2025-all-roi");
+  assert.equal(perf?.name, "2025 Annual Performance Award");
+  assert.equal(perf?.abbreviation, "2025 ROI");
+  assert.equal(perf?.winner.handle, "bob");
+  const nfl = byId.get("season-2025-nfl-units");
+  assert.equal(nfl?.name, "2025 NFL Season Champion (Units)");
+  assert.equal(nfl?.abbreviation, "NFL25 ($)");
+  // 50 NBA picks is below the NBA season minimum of 150.
+  assert.ok(!byId.has("season-2025-nba-units"));
+  // 2026 is still in progress on Sept 16.
+  assert.ok(!awards.some((a) => a.periodKey === "2026"));
+});
+
+test("season chips use the program abbreviations", () => {
+  const awards = computeHonors({
+    cappers: [ALICE],
+    positions: [],
+    legacy: [
+      legacyRow("a", "SOCCER", 60, 40, 100, 20),
+      legacyRow("a", "MMA", 50, 25, 80, 10),
+    ],
+    now: NOW,
+  });
+  const chips = new Set(awards.map((a) => a.abbreviation));
+  assert.ok(chips.has("SOC25 ($)"));
+  assert.ok(chips.has("UFC25 (%)"));
+  assert.ok(awards.some((a) => a.name === "2025 UFC Season Champion (ROI%)"));
+});
+
+test("a season is granted only after its window closes", () => {
+  const wnba = seasonPeriod("WNBA", 2026);
+  assert.equal(wnba.key, "2026");
+  const positions = picks("a", "WNBA", "2026-07-10T23:00:00Z", 100, 1);
+  const during = computeHonors({
+    cappers: [ALICE],
+    positions,
+    legacy: [],
+    now: new Date("2026-10-31T12:00:00Z"),
+  });
+  assert.ok(!during.some((a) => a.id === "season-2026-wnba-units"));
+  const after = computeHonors({
+    cappers: [ALICE],
+    positions,
+    legacy: [],
+    now: new Date("2026-11-01T12:00:00Z"),
+  });
+  const award = after.find((a) => a.id === "season-2026-wnba-units");
+  assert.equal(award?.abbreviation, "WNBA26 ($)");
+});
+
+test("split-year seasons are labelled by both years", () => {
+  const nba = seasonPeriod("NBA", 2026);
+  assert.equal(nba.key, "2026-27");
+  assert.ok(nba.end.getTime() > new Date("2027-06-30T12:00:00Z").getTime());
+});
+
+test("featured: last year, last month, and seasons for sports in season", () => {
+  const awards = computeHonors({
+    cappers: [ALICE],
+    positions: [
+      ...picks("a", "MLB", "2026-07-10T23:00:00Z", 25, 1),
+      ...picks("a", "MLB", "2026-08-10T23:00:00Z", 25, 1),
+    ],
+    legacy: [
+      legacyRow("a", "ALL", 300, 200, 1500, 450),
+      legacyRow("a", "NFL", 30, 20, 100, 50),
+      legacyRow("a", "NBA", 100, 60, 200, 50),
+    ],
+    now: NOW,
+  });
+  const featured = featuredHonors(awards, NOW);
+  assert.deepEqual(
+    [...new Set(featured.monthly.map((a) => a.periodKey))],
+    ["2026-08"],
+  );
+  assert.deepEqual(
+    featured.annual.map((a) => a.abbreviation),
+    ["2025 COTY", "2025 ROI"],
+  );
+  // NFL is in season in September; the NBA is not.
+  assert.deepEqual([...new Set(featured.season.map((a) => a.sport))], ["NFL"]);
+  // In January 2027 the 2025 annual awards have given way to 2026's.
+  assert.equal(
+    featuredHonors(awards, new Date("2027-01-15T12:00:00Z")).annual.length,
+    0,
+  );
+});
+
+test("a season award shows for the month after its season, then drops off", () => {
+  const positions = picks("a", "WNBA", "2026-07-10T23:00:00Z", 100, 1);
+  const at = (iso: string) =>
+    featuredHonors(
+      computeHonors({
+        cappers: [ALICE],
+        positions,
+        legacy: [],
+        now: new Date(iso),
+      }),
+      new Date(iso),
+    ).season.length;
+  assert.equal(at("2026-11-20T12:00:00Z"), 2);
+  assert.equal(at("2026-12-15T12:00:00Z"), 0);
+  // Back on the boards once the next WNBA season starts.
+  assert.equal(at("2027-05-10T12:00:00Z"), 2);
+});
+
+test("published rules and criteria come from the config", () => {
+  const text = honorsRules()
+    .flatMap((group) => group.lines)
+    .join(" ");
+  assert.match(text, /Minimum 250 settled picks/);
+  assert.doesNotMatch(text, /Seasonal|rolling 90-day/);
+  const mlb = honorsCriteria().find((row) => row.sport === "MLB");
+  assert.deepEqual(mlb, {
+    sport: "MLB",
+    label: "MLB",
+    seasonMinimum: 200,
+    season: "Mar–Nov",
+    monthlyMinimum: 25,
+  });
+  assert.equal(
+    honorsCriteria().find((row) => row.sport === "TENNIS")?.season,
+    "Calendar year",
+  );
+});
+
+test("awards survive the query cache's date revival unchanged", async () => {
+  const { reviveCachedDates } = await import("@/lib/cache-dates");
+  const awards = computeHonors({
+    cappers: [ALICE],
+    positions: [],
+    legacy: [
+      legacyRow("a", "ALL", 300, 200, 1500, 450),
+      legacyRow("a", "NFL", 30, 20, 100, 50),
+    ],
+    now: NOW,
+  });
+  // A cache HIT hands back JSON with ISO strings turned into Dates.
+  const revived = reviveCachedDates(JSON.parse(JSON.stringify(awards)));
+  const featured = featuredHonors(revived, NOW);
+  assert.deepEqual(
+    featured.season.map((a) => a.metric),
+    ["units", "roi"],
+  );
+  assert.equal(typeof revived[0]!.periodEnd, "number");
 });

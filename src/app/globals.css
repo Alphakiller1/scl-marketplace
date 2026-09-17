@@ -108,6 +108,15 @@
   --scl-hero-line: #243045;
   --scl-hero-blue: #6ea8ff;
   --scl-hero-pink-text: #ff74c8;
+  /* SCL Honors trophy art only — the awards are the one gold surface. It sits
+     on its own ink in both themes, like the hero. */
+  --scl-honor-ink: #0c0b08;
+  --scl-honor-ink-raised: #17140c;
+  --scl-honor-gold: #e7b64a;
+  --scl-honor-gold-bright: #ffe19a;
+  --scl-honor-gold-deep: #7a5410;
+  --scl-honor-plaque-text: #231703;
+  --scl-honor-text: #f6efdc;
 
   --scl-win: #2fbf7b;
   --scl-loss: #e5484d;

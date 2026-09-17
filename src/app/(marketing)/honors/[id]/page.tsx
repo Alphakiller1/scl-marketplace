@@ -1,63 +1,71 @@
-import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import Link from "next/link";
-import { CapperAvatar } from "@/components/scl/capper-avatar";
-import { formatRecord, formatRoi, formatUnits } from "@/lib/format";
+import { notFound } from "next/navigation";
+import { Download } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import { getHonorAwardById } from "@/lib/queries/honors";
 
-export default async function ShareableHonorPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+type PageProps = { params: Promise<{ id: string }> };
+
+async function loadAward(params: PageProps["params"]) {
   const { id } = await params;
-  const award = await getHonorAwardById(id);
+  return getHonorAwardById(decodeURIComponent(id));
+}
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const award = await loadAward(params);
+  if (!award) return { title: "SCL Honors" };
+  const image = `/api/og/honor/${award.id}`;
+  const title = `${award.name} — @${award.winner.handle}`;
+  return {
+    title,
+    description: `SCL Honors: ${award.name}, awarded to @${award.winner.handle}.`,
+    openGraph: {
+      title,
+      images: [{ url: image, width: 1080, height: 1350 }],
+    },
+    twitter: { card: "summary_large_image", title, images: [image] },
+  };
+}
+
+/** Shareable 4:5 award graphic, with a download for social posts. */
+export default async function ShareableHonorPage({ params }: PageProps) {
+  const award = await loadAward(params);
   if (!award) notFound();
-  const result =
-    award.metric === "units"
-      ? formatUnits(award.winner.units)
-      : formatRoi(award.winner.roi);
+  const image = `/api/og/honor/${award.id}`;
   return (
-    <main className="mx-auto flex min-h-[70vh] max-w-3xl items-center px-4 py-10">
-      <article className="scl-card-gradient border-border w-full rounded-2xl border p-6 text-center shadow-xl sm:p-10">
-        <span className="text-5xl" aria-hidden>
-          {award.icon}
-        </span>
-        <p className="scl-eyebrow mt-4">{award.abbreviation}</p>
-        <h1 className="scl-display mt-2 text-3xl font-bold sm:text-5xl">
-          {award.name}
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          {award.sport} · {award.period} · minimum {award.minimumPicks} picks
-        </p>
-        <Link
-          href={`/cappers/${award.winner.handle}`}
-          className="mt-8 inline-flex min-h-12 items-center gap-3 rounded-xl"
+    <main className="mx-auto flex max-w-xl flex-col items-center gap-4 px-4 py-8">
+      <h1 className="sr-only">{award.name}</h1>
+      {/* The graphic is generated server-side; a plain img keeps it a PNG. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={image}
+        width={1080}
+        height={1350}
+        alt={`${award.name}, awarded to @${award.winner.handle}`}
+        className="border-border aspect-[4/5] h-auto w-full rounded-2xl border shadow-xl"
+      />
+      <div className="flex flex-wrap justify-center gap-2">
+        <Button
+          render={<a href={`${image}?download=1`} download />}
+          nativeButton={false}
+          className="min-h-10"
         >
-          <CapperAvatar
-            name={award.winner.name}
-            src={award.winner.avatarUrl}
-            size="lg"
-          />
-          <span className="text-left">
-            <span className="block text-lg font-bold">
-              @{award.winner.handle}
-            </span>
-            <span className="text-pos scl-data block font-bold tabular-nums">
-              {result}
-            </span>
-            <span className="text-muted-foreground scl-data block text-sm tabular-nums">
-              {formatRecord(
-                award.winner.record.w,
-                award.winner.record.l,
-                award.winner.record.p,
-              )}
-            </span>
-          </span>
-        </Link>
-        <p className="text-muted-foreground mt-8 text-xs">
-          SCL Honors · results use settled leaderboard positions
-        </p>
-      </article>
+          <Download className="size-4" aria-hidden />
+          Download graphic
+        </Button>
+        <Button
+          render={<Link href={`/cappers/${award.winner.handle}`} />}
+          nativeButton={false}
+          variant="outline"
+          className="min-h-10"
+        >
+          View @{award.winner.handle}
+        </Button>
+      </div>
     </main>
   );
 }
