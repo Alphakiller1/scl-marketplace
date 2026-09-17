@@ -315,3 +315,26 @@ test("awards survive the query cache's date revival unchanged", async () => {
   );
   assert.equal(typeof revived[0]!.periodEnd, "number");
 });
+
+test("Honors art follows the design spec: no gold, pink conviction marks", async () => {
+  const { readFileSync } = await import("node:fs");
+  const files = [
+    "src/components/scl/honor-icons.tsx",
+    "src/components/scl/honor-trophy-card.tsx",
+    "src/components/scl/honor-card.tsx",
+    "src/components/scl/honors-showcase.tsx",
+    "src/components/scl/leaderboard-ranking-rail.tsx",
+    "src/lib/og/honor-og-card.tsx",
+    "src/app/globals.css",
+  ];
+  for (const file of files) {
+    const src = readFileSync(file, "utf8");
+    assert.doesNotMatch(src, /--scl-honor-gold|#e9b64b|#b98f2e|#f1c35b/i, file);
+    // Amber is data magnitude only — never an honor.
+    if (/honor/i.test(file)) {
+      assert.doesNotMatch(src, /perf-mid/, file);
+    }
+    // No gold crown or trophy emoji; annual marks are drawn pink.
+    assert.doesNotMatch(src, /👑|🏆/u, file);
+  }
+});

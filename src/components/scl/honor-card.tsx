@@ -96,7 +96,7 @@ export function HonorChip({ award }: { award: HonorAward }) {
       prefetch={false}
       title={award.name}
       aria-label={award.name}
-      className="focus-visible:ring-ring inline-flex min-h-7 items-center gap-1.5 rounded-md text-[0.7rem] font-bold whitespace-nowrap text-[color:var(--scl-perf-mid-text)] tabular-nums hover:underline focus-visible:ring-2 focus-visible:outline-none"
+      className="focus-visible:ring-ring inline-flex min-h-7 items-center gap-1.5 rounded-md text-[0.7rem] font-bold whitespace-nowrap text-[color:var(--scl-pink-text)] tabular-nums hover:underline focus-visible:ring-2 focus-visible:outline-none"
     >
       <HonorGlyph award={award} className="text-sm" />
       {award.abbreviation}

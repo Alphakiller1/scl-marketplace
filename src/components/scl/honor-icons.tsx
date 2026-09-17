@@ -1,3 +1,5 @@
+import { Crown, Trophy } from "lucide-react";
+
 import { ALL_SPORTS, type HonorAward } from "@/lib/honors";
 import { CROSS_SPORTS } from "@/lib/parlay-sport";
 import { cn } from "@/lib/utils";
@@ -107,13 +109,42 @@ export function HoopIcon({
   );
 }
 
-export function honorEmoji(award: Pick<HonorAward, "sport" | "metric">) {
-  if (award.sport === ALL_SPORTS) return award.metric === "units" ? "👑" : "🏆";
-  return SPORT_EMOJI[award.sport] ?? "🏆";
+/** Sport emoji; `null` for marks that are drawn (annual awards, NCAAF, NCAAB). */
+export function honorEmoji(award: Pick<HonorAward, "sport">): string | null {
+  return SPORT_EMOJI[award.sport] ?? null;
 }
 
 /**
- * The award's mark: crown (Capper of the Year), trophy (Annual Performance),
+ * Annual awards use the rank crown and a trophy, pink per the design spec
+ * (conviction marks; never gold).
+ */
+export function AnnualMark({
+  metric,
+  className,
+  size,
+  color,
+}: {
+  metric: HonorAward["metric"];
+  className?: string;
+  /** Pixel size and color, for image rendering where classes do not apply. */
+  size?: number;
+  color?: string;
+}) {
+  const Icon = metric === "units" ? Crown : Trophy;
+  return (
+    <Icon
+      aria-hidden
+      size={size}
+      color={color}
+      strokeWidth={2.25}
+      className={className}
+    />
+  );
+}
+
+/**
+ * The award's mark: pink crown (Capper of the Year), pink trophy (Annual
+ * Performance),
  * or the sport — football vs helmet, basketball vs hoop.
  */
 export function HonorGlyph({
@@ -133,12 +164,17 @@ export function HonorGlyph({
       )}
       title={label}
     >
-      {award.sport === "NCAAF" ? (
+      {award.sport === ALL_SPORTS ? (
+        <AnnualMark
+          metric={award.metric}
+          className="size-[1.1em] text-[color:var(--scl-pink)]"
+        />
+      ) : award.sport === "NCAAF" ? (
         <HelmetIcon className="size-[1.15em]" />
       ) : award.sport === "NCAAB" ? (
         <HoopIcon className="size-[1.15em]" />
       ) : (
-        <span aria-hidden>{honorEmoji(award)}</span>
+        <span aria-hidden>{honorEmoji(award) ?? "•"}</span>
       )}
       {label ? <span className="sr-only">{label}</span> : null}
     </span>
