@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  decodeCheckoutUrlEntities,
   SCL_WHOP_AFFILIATE_COMMISSION,
   SCL_WHOP_AFFILIATE_PAGE_URL,
   WHOP_AFFILIATES_HUB_URL,
@@ -102,5 +103,20 @@ describe("store-connection helpers", () => {
     assert.equal(WHOP_AFFILIATES_HUB_URL, SCL_WHOP_AFFILIATE_PAGE_URL);
     assert.equal(SCL_WHOP_AFFILIATE_COMMISSION.percent, 35);
     assert.equal(SCL_WHOP_AFFILIATE_COMMISSION.duration, "Recurring");
+  });
+});
+
+describe("decodeCheckoutUrlEntities", () => {
+  it("restores HTML-escaped ampersands, including double escapes", () => {
+    assert.equal(
+      decodeCheckoutUrlEntities(
+        "https://www.winible.com/checkout/1?pid=2&amp;a=154605&amp;amp;c=x&#38;d=1",
+      ),
+      "https://www.winible.com/checkout/1?pid=2&a=154605&c=x&d=1",
+    );
+  });
+  it("leaves a clean link untouched", () => {
+    const url = "https://whop.com/checkout/plan_X?a=scleaderboard&b=1";
+    assert.equal(decodeCheckoutUrlEntities(url), url);
   });
 });

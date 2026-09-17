@@ -48,6 +48,19 @@ test("creator referral links cannot be saved as customer package checkout URLs",
     }).success,
     true,
   );
+
+  // Carried-over Winible links arrive HTML-escaped. Rejecting them left those
+  // offers unsaveable in admin; the save now stores the decoded link.
+  const escaped = adminPackageSchema.safeParse({
+    ...basePackage,
+    checkoutUrl:
+      " https://www.winible.com/checkout/1490424236278305379?pid=1490424236290888293&amp;a=154605 ",
+  });
+  assert.equal(escaped.success, true);
+  assert.equal(
+    escaped.success && escaped.data.checkoutUrl,
+    "https://www.winible.com/checkout/1490424236278305379?pid=1490424236290888293&a=154605",
+  );
 });
 
 test("storefront suspension requires a reason and stale-status guard", () => {

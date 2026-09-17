@@ -47,6 +47,19 @@ export function providerLabel(provider: StoreProvider): string {
   return provider === "WINIBLE" ? "Winible" : "Whop";
 }
 
+/**
+ * Undo HTML escaping on a pasted checkout link. `&amp;` (and the double-escaped
+ * `&amp;amp;`) is what a link looks like when copied from page source or an
+ * HTML export — a browser would send `amp;a=…` as the parameter name and drop
+ * the affiliate code. Only the ampersand entity is touched; nothing else in a
+ * URL is ever legitimately HTML-escaped.
+ */
+export function decodeCheckoutUrlEntities(value: string): string {
+  let out = value;
+  while (/&amp;/i.test(out)) out = out.replace(/&amp;/gi, "&");
+  return out.replace(/&#0*38;|&#x0*26;/gi, "&");
+}
+
 export {
   isWhopCheckoutUrl,
   isWhopCreatorReferralUrl,

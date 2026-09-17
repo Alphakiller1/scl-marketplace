@@ -28,6 +28,7 @@ import { SectionHeader } from "@/components/scl/section";
 import { StoreStatusChip } from "@/components/scl/store-status-chip";
 import { Button } from "@/components/ui/button";
 import { formatUnits, signTone } from "@/lib/format";
+import { accountLabel } from "@/lib/identity";
 import {
   formatPriceCents,
   importStatusLabel,
@@ -71,8 +72,14 @@ export default async function AdminCapperDetailPage({
   const profile = capper.capperProfile;
   const summary = capper.summary;
   const handle = capper.username?.replace(/^@/, "") ?? null;
-  const name =
-    capper.displayName?.trim() || (handle ? `@${handle}` : capper.email);
+  const name = accountLabel(capper);
+  // The legacy display name is not editable and goes stale once a capper
+  // renames their handle — show it only as a lookup aid, never as the name.
+  const legacyName =
+    capper.displayName?.trim() &&
+    capper.displayName.trim().toLowerCase() !== (handle ?? "").toLowerCase()
+      ? capper.displayName.trim()
+      : null;
   const latestAcceptance = capper.termsAcceptances[0] ?? null;
   // The quick-package form was pinned to Winible. For a Whop capper that both
   // mislabelled the storefront as "not started" and would have created the
@@ -119,8 +126,12 @@ export default async function AdminCapperDetailPage({
             </div>
             <p className="text-muted-foreground mt-1 text-sm break-all">
               {capper.email}
-              {handle ? ` · @${handle}` : ""}
             </p>
+            {legacyName ? (
+              <p className="text-muted-foreground mt-0.5 text-xs">
+                Legacy name: {legacyName}
+              </p>
+            ) : null}
             <p className="text-muted-foreground mt-2 text-xs">
               Joined {dateTime.format(capper.createdAt)} · Account updated{" "}
               {dateTime.format(capper.updatedAt)}
@@ -368,7 +379,7 @@ export default async function AdminCapperDetailPage({
                     label="Last human review"
                     value={
                       connection.reviewedAt
-                        ? `${connection.reviewedBy?.displayName?.trim() || connection.reviewedBy?.username || connection.reviewedBy?.email || "Administrator"} · ${dateTime.format(connection.reviewedAt)}`
+                        ? `${accountLabel(connection.reviewedBy, "Administrator")} · ${dateTime.format(connection.reviewedAt)}`
                         : "Not reviewed"
                     }
                   />
@@ -472,7 +483,10 @@ export default async function AdminCapperDetailPage({
                       </p>
                       {pkg.checkoutUrl ? (
                         <p className="text-muted-foreground mt-1.5 text-xs break-all">
-                          Whop checkout:{" "}
+                          {pkg.affiliateProvider
+                            ? providerLabel(pkg.affiliateProvider)
+                            : "Provider"}{" "}
+                          checkout:{" "}
                           <a
                             href={pkg.checkoutUrl}
                             target="_blank"
@@ -484,7 +498,11 @@ export default async function AdminCapperDetailPage({
                         </p>
                       ) : (
                         <p className="text-warn mt-1.5 text-xs">
-                          Missing Whop checkout link — edit package to add one.
+                          Missing{" "}
+                          {pkg.affiliateProvider
+                            ? providerLabel(pkg.affiliateProvider)
+                            : "Provider"}{" "}
+                          checkout link — edit package to add one.
                         </p>
                       )}
                       {trackingSlug ? (
@@ -589,10 +607,7 @@ export default async function AdminCapperDetailPage({
                     </span>
                     <span className="text-muted-foreground">
                       {" · "}
-                      {event.actor.displayName?.trim() ||
-                        (event.actor.username
-                          ? `@${event.actor.username.replace(/^@/, "")}`
-                          : event.actor.email)}
+                      {accountLabel(event.actor)}
                     </span>
                   </span>
                   <time
@@ -663,7 +678,11 @@ export default async function AdminCapperDetailPage({
             capperId={profile.id}
             storeConnectionId={selectedPackage?.storeConnectionId ?? null}
             provider={manualProvider}
-            allowProviderSelection={!selectedPackage}
+            // A package with no connection can be moved between platforms — a
+            // carried-over offer labelled Winible with a Whop link was otherwise
+            // unsaveable, because the label was read-only and the link was
+            // validated against it. Connected packages keep their platform.
+            allowProviderSelection={!selectedPackage?.storeConnectionId}
             initial={
               selectedPackage
                 ? {
@@ -747,10 +766,7 @@ export default async function AdminCapperDetailPage({
           {capper.statusChanges.length ? (
             <ol className="border-border divide-border divide-y overflow-hidden rounded-xl border">
               {capper.statusChanges.map((change) => {
-                const actor =
-                  change.changedBy.displayName?.trim() ||
-                  change.changedBy.username ||
-                  change.changedBy.email;
+                const actor = accountLabel(change.changedBy);
                 return (
                   <li key={change.id} className="bg-card space-y-2 p-4">
                     <div className="flex flex-wrap items-center gap-2">

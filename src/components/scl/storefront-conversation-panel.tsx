@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { accountLabel } from "@/lib/identity";
 import {
   markStorefrontThreadReadAction,
   sendStorefrontMessageAction,
@@ -28,19 +29,15 @@ type Message = {
 
 function senderLabel(message: Message): string {
   if (message.senderRole === "ADMIN") {
-    return (
-      message.sender.displayName?.trim() ||
-      (message.sender.username
-        ? `@${message.sender.username.replace(/^@/, "")}`
-        : "SCL Team")
+    return accountLabel(
+      {
+        username: message.sender.username,
+        displayName: message.sender.displayName,
+      },
+      "SCL Team",
     );
   }
-  return (
-    message.sender.displayName?.trim() ||
-    (message.sender.username
-      ? `@${message.sender.username.replace(/^@/, "")}`
-      : message.sender.email)
-  );
+  return accountLabel(message.sender);
 }
 
 function adminQuickReplies(provider?: StoreProvider | null): string[] {

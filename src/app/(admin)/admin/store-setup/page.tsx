@@ -14,6 +14,7 @@ import { StoreStatusChip } from "@/components/scl/store-status-chip";
 import { EmptyState } from "@/components/scl/states";
 import { SectionHeader } from "@/components/scl/section";
 import { Button } from "@/components/ui/button";
+import { accountLabel } from "@/lib/identity";
 import { importStatusLabel, providerLabel } from "@/lib/store-connection";
 import {
   adminStorefrontReadiness,
@@ -163,12 +164,7 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
           </div>
           <div className="divide-border divide-y">
             {rows.map((row) => {
-              const handle = row.capper.user.username;
-              const name =
-                row.capper.user.displayName?.trim() ||
-                (handle
-                  ? `@${handle.replace(/^@/, "")}`
-                  : row.capper.user.email);
+              const name = accountLabel(row.capper.user);
               const packageCountDisplay = row.packageCount;
               const affiliatePercentDisplay =
                 row.affiliatePercent != null
@@ -239,10 +235,7 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
                 Storefront for
               </p>
               <h2 className="scl-display mt-0.5 text-lg font-bold tracking-[0.02em] normal-case">
-                {selected.capper.user.displayName?.trim() ||
-                  (selected.capper.user.username
-                    ? `@${selected.capper.user.username.replace(/^@/, "")}`
-                    : selected.capper.user.email)}
+                {accountLabel(selected.capper.user)}
               </h2>
               <p className="text-muted-foreground mt-0.5 truncate text-xs">
                 {selected.capper.user.username
@@ -359,7 +352,7 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
               </p>
               <p className="mt-1">
                 {selected.reviewedAt
-                  ? `${selected.reviewedBy?.displayName?.trim() || selected.reviewedBy?.username || selected.reviewedBy?.email || "Administrator"} · ${selected.reviewedAt.toLocaleString()}`
+                  ? `${accountLabel(selected.reviewedBy, "Administrator")} · ${selected.reviewedAt.toLocaleString()}`
                   : "Not reviewed yet"}
               </p>
             </div>
@@ -416,10 +409,7 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
               {reviewHistory.length ? (
                 <ol className="border-border divide-border divide-y overflow-hidden rounded-xl border">
                   {reviewHistory.map((event) => {
-                    const actor =
-                      event.reviewedBy.displayName?.trim() ||
-                      event.reviewedBy.username ||
-                      event.reviewedBy.email;
+                    const actor = accountLabel(event.reviewedBy);
                     return (
                       <li key={event.id} className="bg-card space-y-2 p-3">
                         <div className="flex flex-wrap items-center gap-2">
@@ -473,6 +463,7 @@ export default async function AdminStoreSetupPage({ searchParams }: Search) {
             <AdminCapperPackageInventory
               packages={capperPackages}
               currentConnectionId={selected.id}
+              capperUserId={selected.capper.user.id}
             />
 
             <div className="flex flex-wrap items-center justify-between gap-2">

@@ -110,7 +110,8 @@ async function loadHonors(): Promise<HonorAward[]> {
     const handle = profile.user.username!.replace(/^@/, "");
     cappers.push({
       id: profile.id,
-      name: profile.user.displayName || handle,
+      // Public identity is the live handle — see accountLabel.
+      name: handle,
       handle,
       avatarUrl: profile.avatarUrl ?? undefined,
     });
