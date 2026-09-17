@@ -107,13 +107,66 @@ export function HoopIcon({
   );
 }
 
-export function honorEmoji(award: Pick<HonorAward, "sport" | "metric">) {
-  if (award.sport === ALL_SPORTS) return award.metric === "units" ? "👑" : "🏆";
-  return SPORT_EMOJI[award.sport] ?? "🏆";
+/** Sport emoji; `null` for marks that are drawn (annual awards, NCAAF, NCAAB). */
+export function honorEmoji(award: Pick<HonorAward, "sport">): string | null {
+  return SPORT_EMOJI[award.sport] ?? null;
+}
+
+/** Lucide Crown / Trophy geometry, inlined so next/og can render it too. */
+const ANNUAL_PATHS = {
+  units: [
+    "M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z",
+    "M5 21h14",
+  ],
+  roi: [
+    "M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978",
+    "M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978",
+    "M18 9h1.5a1 1 0 0 0 0-5H18",
+    "M4 22h16",
+    "M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z",
+    "M6 9H4.5a1 1 0 0 1 0-5H6",
+  ],
+} as const;
+
+/**
+ * Annual awards use the rank crown and a trophy, pink per the design spec
+ * (conviction marks; never gold).
+ */
+export function AnnualMark({
+  metric,
+  className,
+  size,
+  color = "currentColor",
+}: {
+  metric: HonorAward["metric"];
+  className?: string;
+  /** Pixel size and color, for image rendering where classes do not apply. */
+  size?: number;
+  color?: string;
+}) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      className={className}
+      aria-hidden
+      fill="none"
+      stroke={color}
+      strokeWidth={2.25}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {ANNUAL_PATHS[metric].map((d) => (
+        <path key={d} d={d} />
+      ))}
+    </svg>
+  );
 }
 
 /**
- * The award's mark: crown (Capper of the Year), trophy (Annual Performance),
+ * The award's mark: pink crown (Capper of the Year), pink trophy (Annual
+ * Performance),
  * or the sport — football vs helmet, basketball vs hoop.
  */
 export function HonorGlyph({
@@ -133,12 +186,17 @@ export function HonorGlyph({
       )}
       title={label}
     >
-      {award.sport === "NCAAF" ? (
+      {award.sport === ALL_SPORTS ? (
+        <AnnualMark
+          metric={award.metric}
+          className="size-[1.1em] text-[color:var(--scl-pink)]"
+        />
+      ) : award.sport === "NCAAF" ? (
         <HelmetIcon className="size-[1.15em]" />
       ) : award.sport === "NCAAB" ? (
         <HoopIcon className="size-[1.15em]" />
       ) : (
-        <span aria-hidden>{honorEmoji(award)}</span>
+        <span aria-hidden>{honorEmoji(award) ?? "•"}</span>
       )}
       {label ? <span className="sr-only">{label}</span> : null}
     </span>

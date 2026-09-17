@@ -103,7 +103,7 @@ function HonorsLegend({ className }: { className?: string }) {
           <li key={row.chip} className="flex items-start gap-1.5">
             <HonorGlyph award={row.glyph} className="mt-px text-sm" />
             <span>
-              <span className="block font-bold text-[color:var(--scl-perf-mid-text)]">
+              <span className="block font-bold text-[color:var(--scl-pink-text)]">
                 {row.chip}
               </span>
               <span className="text-muted-foreground block">{row.meaning}</span>
