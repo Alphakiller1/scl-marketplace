@@ -7,6 +7,7 @@ import {
   UserPlus,
 } from "lucide-react";
 
+import { accountLabel } from "@/lib/identity";
 import { storeStatusLabel } from "@/lib/store-connection";
 import type {
   StorefrontCoverage,
@@ -66,8 +67,11 @@ const BUCKETS: Bucket[] = [
 ];
 
 function nameFor(entry: StorefrontCoverageEntry): string {
-  const handle = entry.handle?.replace(/^@/, "");
-  return entry.displayName?.trim() || (handle ? `@${handle}` : entry.email);
+  return accountLabel({
+    username: entry.handle,
+    displayName: entry.displayName,
+    email: entry.email,
+  });
 }
 
 export function StorefrontCoveragePanel({

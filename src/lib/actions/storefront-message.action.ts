@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { accountLabel } from "@/lib/identity";
 import { hasDeliverableEmail } from "@/lib/account-claim";
 import { appUrl } from "@/lib/app-url";
 import {
@@ -137,12 +138,10 @@ export async function sendStorefrontMessageAction(input: {
   const platform = providerLabel(access.connection.provider);
   const handle =
     access.connection.capper.user.username?.replace(/^@/, "") ?? null;
-  const senderLabel =
-    access.admin.displayName?.trim() ||
-    (access.admin.username
-      ? `@${access.admin.username.replace(/^@/, "")}`
-      : null) ||
-    "SCL Team";
+  const senderLabel = accountLabel(
+    { username: access.admin.username, displayName: access.admin.displayName },
+    "SCL Team",
+  );
 
   if (access.isAdmin) {
     const capperEmail = access.connection.capper.user.email;

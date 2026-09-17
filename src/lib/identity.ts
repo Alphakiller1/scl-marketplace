@@ -87,3 +87,31 @@ export function identityDisplayLinesFromCapper(
 ): IdentityDisplayLines {
   return identityDisplayLines({ handle: capper.handle || capper.name });
 }
+
+/**
+ * One label for an account anywhere a person is named — admin tables, audit
+ * lines, honors. The live `@handle` always wins: cappers rename by changing
+ * their handle, and the legacy `displayName` column is not editable, so reading
+ * it first kept showing a name the capper had already dropped (BTTS Sports
+ * Consulting → @boardroom9sports). `displayName` is only a fallback for rows
+ * with no handle; email is admin-only and last.
+ */
+export function accountLabel(
+  account:
+    | {
+        username?: string | null;
+        displayName?: string | null;
+        email?: string | null;
+      }
+    | null
+    | undefined,
+  fallback = "",
+): string {
+  if (!account) return fallback;
+  return (
+    formatHandle(account.username) ||
+    account.displayName?.trim() ||
+    account.email?.trim() ||
+    fallback
+  );
+}

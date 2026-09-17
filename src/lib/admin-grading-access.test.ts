@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { adminGradingHref } from "@/lib/admin-grading-link";
+import * as identity from "@/lib/identity";
 import { loadTestModule } from "@/lib/test-support/load-module";
 import type * as Queries from "@/lib/queries/admin-play-correction";
 
@@ -26,6 +27,7 @@ test("admin operational lookup is independent of public visibility and still rej
     "src/lib/queries/admin-play-correction.ts",
     {
       "server-only": {},
+      "@/lib/identity": identity,
       "@/lib/session": {
         requireAdmin: async () => {
           authorized++;
@@ -78,6 +80,7 @@ test("non-admins are rejected before either grading record is read", async () =>
     "src/lib/queries/admin-play-correction.ts",
     {
       "server-only": {},
+      "@/lib/identity": identity,
       "@/lib/session": {
         requireAdmin: async () => {
           throw new Error("access denied");

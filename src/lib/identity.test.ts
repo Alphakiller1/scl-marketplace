@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  accountLabel,
   bareHandle,
   formatHandle,
   identityDisplayLines,
@@ -78,4 +79,24 @@ test("identityDisplayLinesFromCapper uses handle, never displayName", () => {
     }),
     { primary: "@battle", secondary: null },
   );
+});
+
+test("accountLabel leads with the live handle, not a stale display name", () => {
+  // BTTS Sports Consulting renamed their handle to boardroom9sports; the
+  // legacy displayName column kept the old name and admin kept showing it.
+  assert.equal(
+    accountLabel({
+      username: "boardroom9sports",
+      displayName: "BTTS Sports Consulting",
+      email: "capper@example.com",
+    }),
+    "@boardroom9sports",
+  );
+  assert.equal(
+    accountLabel({ username: null, displayName: " Legacy ", email: "a@b.co" }),
+    "Legacy",
+  );
+  assert.equal(accountLabel({ username: "", email: "a@b.co" }), "a@b.co");
+  assert.equal(accountLabel(null, "SCL Team"), "SCL Team");
+  assert.equal(accountLabel({ username: "@@solo" }), "@solo");
 });

@@ -2,6 +2,7 @@ import "server-only";
 
 import type { GradingSource, Outcome, VerificationTier } from "@prisma/client";
 
+import { accountLabel } from "@/lib/identity";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/session";
 
@@ -156,11 +157,13 @@ export async function getAdminStraightCorrectionRecord(
     kind: "straight",
     id: play.id,
     username: play.capper.user.username,
-    capperName:
-      play.capper.user.displayName ||
-      (play.capper.user.username
-        ? `@${play.capper.user.username.replace(/^@/, "")}`
-        : "Unavailable capper"),
+    capperName: accountLabel(
+      {
+        username: play.capper.user.username,
+        displayName: play.capper.user.displayName,
+      },
+      "Unavailable capper",
+    ),
     sport: play.sport,
     market: play.market,
     selection: play.selection,
@@ -257,11 +260,13 @@ export async function getAdminParlayCorrectionRecord(
     kind: "parlay",
     id: parlay.id,
     username: parlay.capper.user.username,
-    capperName:
-      parlay.capper.user.displayName ||
-      (parlay.capper.user.username
-        ? `@${parlay.capper.user.username.replace(/^@/, "")}`
-        : "Unavailable capper"),
+    capperName: accountLabel(
+      {
+        username: parlay.capper.user.username,
+        displayName: parlay.capper.user.displayName,
+      },
+      "Unavailable capper",
+    ),
     combinedOddsAmerican: parlay.combinedOddsAmerican,
     units: Number(parlay.units),
     outcome: parlay.outcome,

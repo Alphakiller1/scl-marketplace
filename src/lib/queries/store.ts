@@ -2,6 +2,7 @@ import "server-only";
 
 import type { StoreProvider } from "@prisma/client";
 
+import { accountLabel } from "@/lib/identity";
 import { withTransientDatabaseRetry } from "@/lib/database-retry";
 import { prisma } from "@/lib/prisma";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
@@ -312,9 +313,7 @@ export async function listPublicMarketplaceCappersResult(): Promise<{
         .map((profile) => ({
           id: profile.id,
           handle: profile.user.username!,
-          name:
-            profile.user.displayName?.trim() ||
-            `@${profile.user.username!.replace(/^@/, "")}`,
+          name: accountLabel(profile.user),
           avatarUrl: profile.avatarUrl,
         }))
         .sort((a, b) => a.handle.localeCompare(b.handle)),
@@ -509,9 +508,7 @@ export async function listActiveMarketplacePackagesResult(): Promise<{
           trackingPath: `/go/${p.trackingUrls[0]!.slug}`,
           capperId: p.capper.id,
           capperHandle: p.capper.user.username!,
-          capperName:
-            p.capper.user.displayName?.trim() ||
-            `@${p.capper.user.username!.replace(/^@/, "")}`,
+          capperName: accountLabel(p.capper.user),
         })),
       failed: false,
     };

@@ -2,6 +2,7 @@ import { StoreConnectionStatus } from "@prisma/client";
 import { z } from "zod";
 
 import {
+  decodeCheckoutUrlEntities,
   isWhopCheckoutUrl,
   isWhopCreatorReferralUrl,
   whopAffiliateParamIssues,
@@ -78,7 +79,14 @@ export const adminPackageSchema = z
     title: z.string().trim().min(2).max(120),
     description: z.string().trim().max(2000).optional().or(z.literal("")),
     promoOffer: z.string().trim().max(160).optional().or(z.literal("")),
-    checkoutUrl: z.string().trim().url("Enter a valid destination URL."),
+    // Links copied out of HTML (and the carried-over catalog) arrive with
+    // `&amp;` separators. Rejecting them made those offers unsaveable; decode
+    // instead, so the saved link and the /go redirect carry real parameters.
+    checkoutUrl: z
+      .string()
+      .trim()
+      .transform(decodeCheckoutUrlEntities)
+      .pipe(z.string().url("Enter a valid destination URL.")),
     priceCents: z.number().int().min(0).max(1_000_000).default(0),
     billingPeriod: z
       .enum(["ONE_TIME", "DAY", "WEEK", "MONTH", "SEASON", "YEAR"])

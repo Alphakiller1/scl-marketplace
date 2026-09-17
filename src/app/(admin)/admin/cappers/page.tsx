@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/scl/states";
 import { StoreStatusChip } from "@/components/scl/store-status-chip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { accountLabel } from "@/lib/identity";
 import {
   ADMIN_CAPPERS_PAGE_SIZE,
   adminCappersHref,
@@ -144,11 +145,7 @@ export default async function AdminCappersPage({
             <div className="divide-border divide-y">
               {result.rows.map((account) => {
                 const profile = account.capperProfile;
-                const name =
-                  account.displayName?.trim() ||
-                  (account.username
-                    ? `@${account.username.replace(/^@/, "")}`
-                    : account.email);
+                const name = accountLabel(account);
                 const latestPick = profile?.plays[0]?.createdAt ?? null;
                 const carried = statsBaselineFromLegacyRows(
                   (profile?.legacyRecords ?? []).map((row) => ({

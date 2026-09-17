@@ -1,4 +1,6 @@
 import { z } from "zod";
+
+import { decodeCheckoutUrlEntities } from "@/lib/store-connection";
 import { BillingPeriod, StoreProvider } from "@prisma/client";
 
 /**
@@ -36,7 +38,11 @@ export const legacyPackageSchema = z.object({
   priceCents: z.number().int().nonnegative(),
   billingPeriod: z.nativeEnum(BillingPeriod),
   /** Required: a package with no checkout URL can never publish. */
-  checkoutUrl: z.string().url(),
+  // The legacy dump HTML-escapes `&` — decode before it becomes a redirect.
+  checkoutUrl: z
+    .string()
+    .transform(decodeCheckoutUrlEntities)
+    .pipe(z.string().url()),
   affiliateProvider: z.nativeEnum(StoreProvider).nullish(),
   sortOrder: z.number().int().nonnegative(),
   isActive: z.boolean(),

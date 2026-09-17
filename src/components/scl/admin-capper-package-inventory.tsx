@@ -36,9 +36,18 @@ type InventoryPackage = {
 export function AdminCapperPackageInventory({
   packages,
   currentConnectionId,
+  capperUserId,
   className,
 }: {
   packages: InventoryPackage[];
+  /**
+   * The capper's user id. Each row links to the package manager on the capper
+   * page — the only editor that keeps a package on the connection it already
+   * has. The storefront form below this panel attaches whatever it saves to the
+   * connection under review, which would pull a live carried-over offer behind
+   * Mark live; without this link those offers had no edit path at all.
+   */
+  capperUserId?: string | null;
   /** Packages on the connection being reviewed are marked, not repeated. */
   currentConnectionId?: string | null;
   className?: string;
@@ -162,19 +171,29 @@ export function AdminCapperPackageInventory({
                     </p>
                   ) : null}
                 </div>
-                {pkg.trackingSlug ? (
-                  <Link
-                    href={`/go/${pkg.trackingSlug}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    // /go writes a ClickEvent on every GET — prefetching an
-                    // admin list of these would invent clicks wholesale.
-                    prefetch={false}
-                    className="scl-link inline-flex min-h-10 shrink-0 items-center text-xs font-medium"
-                  >
-                    Open offer
-                  </Link>
-                ) : null}
+                <div className="flex shrink-0 items-center gap-3">
+                  {capperUserId ? (
+                    <Link
+                      href={`/admin/cappers/${capperUserId}?packageId=${pkg.id}#manual-package-manager`}
+                      className="scl-link inline-flex min-h-10 shrink-0 items-center text-xs font-medium"
+                    >
+                      Edit
+                    </Link>
+                  ) : null}
+                  {pkg.trackingSlug ? (
+                    <Link
+                      href={`/go/${pkg.trackingSlug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      // /go writes a ClickEvent on every GET — prefetching an
+                      // admin list of these would invent clicks wholesale.
+                      prefetch={false}
+                      className="scl-link inline-flex min-h-10 shrink-0 items-center text-xs font-medium"
+                    >
+                      Open offer
+                    </Link>
+                  ) : null}
+                </div>
               </li>
             ))}
           </ul>
