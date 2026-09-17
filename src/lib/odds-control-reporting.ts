@@ -146,6 +146,10 @@ export function summarizeOddsRunDetails(details: unknown): {
   held: number;
   stale: number;
   unpriced: number;
+  /** Slate fixtures ahead of their buy window (weekly sports only). */
+  early: number;
+  /** Soonest kickoff on any expanded slate, or null when the slate was empty. */
+  firstKickoff: string | null;
   refreshedSports: number;
   staleSports: string[];
   dryRun: boolean;
@@ -164,10 +168,19 @@ export function summarizeOddsRunDetails(details: unknown): {
     stale: 0,
     unpriced: 0,
   };
+  let early = 0;
+  let firstKickoff: string | null = null;
   for (const value of Object.values(expanded)) {
     const row = plainRecord(value);
     for (const key of Object.keys(totals) as Array<keyof typeof totals>) {
       totals[key] += Number(row[key] ?? 0);
+    }
+    early += Number(row.early ?? 0);
+    if (
+      typeof row.firstKickoff === "string" &&
+      (firstKickoff == null || row.firstKickoff < firstKickoff)
+    ) {
+      firstKickoff = row.firstKickoff;
     }
   }
   for (const value of Object.values(surface)) {
@@ -179,6 +192,8 @@ export function summarizeOddsRunDetails(details: unknown): {
   const provider = plainRecord(root.provider);
   return {
     ...totals,
+    early,
+    firstKickoff,
     refreshedSports: Number(provider.refreshedSports ?? 0),
     staleSports: Array.isArray(provider.staleSports)
       ? provider.staleSports.map(String)

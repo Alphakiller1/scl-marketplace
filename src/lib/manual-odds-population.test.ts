@@ -23,6 +23,7 @@ import {
   expandedEventCreditCost,
   expandsFullSlate,
   intersectExpandedMarkets,
+  isEarlyExpandedEvent,
   laterExpandedCreditReserve,
   mergeLastGoodBoardEvents,
   parseExpandedMaxAgeMinutes,
@@ -560,5 +561,51 @@ test("a ladder retry waits until the soonest game is due again", () => {
   assert.equal(
     due?.getTime(),
     now.getTime() + EXPANDED_CATCHUP_MINUTES * 60_000,
+  );
+});
+
+test("NFL sees the whole week, not just today and tomorrow", () => {
+  // Thursday 2026-09-17, midday ET. Under the old slate-day filter the only
+  // NFL game an expanded pass could see was Thursday night's; Sunday's slate
+  // stayed invisible until Saturday afternoon.
+  const now = new Date("2026-09-17T16:00:00Z");
+  const events = [
+    { id: "sun-late", commenceTime: "2026-09-20T20:25:00Z" },
+    { id: "thu-night", commenceTime: "2026-09-18T00:15:00Z" },
+    { id: "sun-early", commenceTime: "2026-09-20T17:00:00Z" },
+    { id: "mon-night", commenceTime: "2026-09-22T00:15:00Z" },
+    { id: "next-sunday", commenceTime: "2026-09-27T17:00:00Z" },
+    { id: "kicked-off", commenceTime: "2026-09-17T15:00:00Z" },
+  ] as unknown as OddsEvent[];
+
+  assert.deepEqual(
+    selectExpandedSlateEvents(events, ["today", "tomorrow"], now, "NFL").map(
+      (e) => e.id,
+    ),
+    // In-window first, so a per-run cap cannot starve tonight's game; then the
+    // rest of the week by kickoff. Beyond seven days and already-started games
+    // stay out.
+    ["thu-night", "sun-early", "sun-late", "mon-night"],
+  );
+
+  assert.equal(
+    isEarlyExpandedEvent("2026-09-18T00:15:00Z", "NFL", +now),
+    false,
+  );
+  assert.equal(isEarlyExpandedEvent("2026-09-20T17:00:00Z", "NFL", +now), true);
+  assert.equal(
+    isEarlyExpandedEvent("2026-09-27T17:00:00Z", "NFL", +now),
+    false,
+  );
+  // Other sports keep the slate-day budget control.
+  assert.equal(
+    isEarlyExpandedEvent("2026-09-20T17:00:00Z", "NCAAF", +now),
+    false,
+  );
+  assert.deepEqual(
+    selectExpandedSlateEvents(events, ["today", "tomorrow"], now, "NCAAF").map(
+      (e) => e.id,
+    ),
+    ["thu-night"],
   );
 });

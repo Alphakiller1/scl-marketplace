@@ -34,6 +34,15 @@ export async function GET(req: NextRequest) {
   if (!claimed.runs.length && !verification) {
     return NextResponse.json({ ok: true, state: claimed.state, runs: [] });
   }
+  for (const run of claimed.runs) {
+    console.info("[odds-dispatch] run started", {
+      runId: run.id,
+      sport: run.sport,
+      tier: run.tier,
+      estimatedCredits: run.estimatedCredits,
+      startedAt: new Date().toISOString(),
+    });
+  }
   const runs = await Promise.all(
     claimed.runs.map((run) => executeClaimedOddsRun(req.nextUrl.origin, run)),
   );

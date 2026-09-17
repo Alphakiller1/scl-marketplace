@@ -184,3 +184,29 @@ lead) is:
 Cadence is not the credit lever — **what each run warms** is (expanded MLB is
 the expensive path). `src/lib/strategic-odds-cadence.test.ts` fails if those
 times and the lead window drift.
+
+## NFL expanded: the week ahead, bought once
+
+The expanded pass normally sees only today's and tomorrow's ET slate, inside a
+36-hour football window. For NFL that meant Sunday's games could not be bought
+until Saturday afternoon, so from Monday to Saturday only Thursday night's game
+carried props or alternate lines. NFL now looks **seven days** ahead
+(`EXPANDED_EARLY_BUY_HOURS`). A game past its normal window is **early**: it is
+bought once, as soon as two thirds of its featured card is priced, and it is not
+bought again until its own 36-hour window opens. Early games that nobody has
+priced yet are reported under `uncovered` but do not trigger the 30-minute
+catch-up; the regular 6-hour cadence retries them. Expect roughly one extra
+card per NFL game per week (~29 credits each).
+
+## Run timestamps
+
+Every managed run is a row in `OddsApiRun` with `startedAt` and `completedAt`.
+`/admin/odds` lists **expanded** and **standard** runs in separate logs (start,
+finish, duration, credits, and for expanded passes the first kickoff and early
+count), and each league card shows the last and next run for both tiers, manual
+runs included. The platform log carries the same timestamps:
+`[odds-dispatch] run started`, `[odds-control] run finished`,
+`[odds-control] run blocked`, and one `[odds-populate] expanded pass` line per
+sport, so a pass over an empty slate is no longer silent. `last*RunAt` on
+`OddsSportControl` now moves only when a run actually starts, not when it is
+blocked on credits.

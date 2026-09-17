@@ -29,6 +29,73 @@ function isoOrNull(value: Date | null): string | null {
   return value?.toISOString() ?? null;
 }
 
+export type OddsRunRow = {
+  id: string;
+  sport: string;
+  tier: string;
+  status: string;
+  trigger: string;
+  credits: number;
+  estimatedCredits: number;
+  startedAt: string;
+  completedAt: string | null;
+  remaining: number | null;
+  markets: string[];
+  leagues: string[];
+  details: ReturnType<typeof summarizeOddsRunDetails>;
+  error: string | null;
+};
+
+/** The newest run of one sport's tier that actually started. */
+export type LastOddsRun = {
+  status: string;
+  trigger: string;
+  credits: number;
+  startedAt: string;
+  completedAt: string | null;
+};
+
+/** `lastRuns` key: one entry per sport and tier. */
+export function lastRunKey(sport: string, tier: string): string {
+  return `${sport}:${tier}`;
+}
+
+type StoredRun = {
+  id: string;
+  sport: string;
+  tier: string;
+  status: string;
+  trigger: string;
+  credits: number;
+  estimatedCredits: number;
+  startedAt: Date;
+  completedAt: Date | null;
+  remaining: number | null;
+  markets: string[];
+  leagues: string[];
+  details: unknown;
+  error: string | null;
+};
+
+function runRow(run: StoredRun): OddsRunRow {
+  return {
+    id: run.id,
+    sport: run.sport,
+    tier: run.tier,
+    status: run.status,
+    trigger: run.trigger,
+    credits: run.credits,
+    estimatedCredits: run.estimatedCredits,
+    startedAt: run.startedAt.toISOString(),
+    completedAt: run.completedAt?.toISOString() ?? null,
+    remaining: run.remaining,
+    markets: run.markets,
+    leagues: run.leagues,
+    details: summarizeOddsRunDetails(run.details),
+    error: run.error,
+  };
+}
+
 export async function oddsControlStorageReady(): Promise<boolean> {
   try {
     const [result] = await prisma.$queryRaw<Array<{ ready: boolean }>>`
@@ -199,22 +266,9 @@ export async function getOddsCreditDashboard() {
         trailingAverage: number;
         spike: boolean;
       }[],
-      recentRuns: [] as Array<{
-        id: string;
-        sport: string;
-        tier: string;
-        status: string;
-        trigger: string;
-        credits: number;
-        estimatedCredits: number;
-        startedAt: string;
-        completedAt: string | null;
-        remaining: number | null;
-        markets: string[];
-        leagues: string[];
-        details: ReturnType<typeof summarizeOddsRunDetails>;
-        error: string | null;
-      }>,
+      recentRuns: [] as OddsRunRow[],
+      runLog: { surface: [] as OddsRunRow[], expanded: [] as OddsRunRow[] },
+      lastRuns: {} as Record<string, LastOddsRun>,
       audit: [] as Array<{
         id: string;
         action: string;
@@ -226,31 +280,72 @@ export async function getOddsCreditDashboard() {
     };
   }
 
-  const [usage, recentRuns, marketUsage, audit, verificationActivityToday] =
-    await Promise.all([
-      prisma.oddsUsageDaily.findMany({
-        where: { date: { gte: usageStart } },
-        orderBy: [{ date: "asc" }, { updatedAt: "asc" }],
-      }),
-      prisma.oddsApiRun.findMany({
-        orderBy: { startedAt: "desc" },
-        take: 50,
-      }),
-      prisma.oddsUsageMarketDaily.findMany({
-        where: { date: { gte: monthStart } },
-        orderBy: [{ credits: "desc" }, { market: "asc" }],
-      }),
-      prisma.oddsControlAuditEvent.findMany({
-        include: { actor: { select: { username: true, displayName: true } } },
-        orderBy: { createdAt: "desc" },
-        take: 30,
-      }),
-      prisma.oddsApiRun.aggregate({
-        where: { trigger: "VERIFICATION", startedAt: { gte: today } },
-        _count: { _all: true },
-        _sum: { credits: true },
-      }),
-    ]);
+  const [
+    usage,
+    recentRuns,
+    marketUsage,
+    audit,
+    verificationActivityToday,
+    surfaceRuns,
+    expandedRuns,
+    latestRuns,
+  ] = await Promise.all([
+    prisma.oddsUsageDaily.findMany({
+      where: { date: { gte: usageStart } },
+      orderBy: [{ date: "asc" }, { updatedAt: "asc" }],
+    }),
+    prisma.oddsApiRun.findMany({
+      orderBy: { startedAt: "desc" },
+      take: 50,
+    }),
+    prisma.oddsUsageMarketDaily.findMany({
+      where: { date: { gte: monthStart } },
+      orderBy: [{ credits: "desc" }, { market: "asc" }],
+    }),
+    prisma.oddsControlAuditEvent.findMany({
+      include: { actor: { select: { username: true, displayName: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 30,
+    }),
+    prisma.oddsApiRun.aggregate({
+      where: { trigger: "VERIFICATION", startedAt: { gte: today } },
+      _count: { _all: true },
+      _sum: { credits: true },
+    }),
+    // Each tier gets its own log. Mixed together, the half-hourly MLB and
+    // WNBA catch-ups filled every visible row and a football pass that ran
+    // six hours earlier could not be found at all.
+    prisma.oddsApiRun.findMany({
+      where: { tier: "surface", trigger: { not: "DRY_RUN" } },
+      orderBy: { startedAt: "desc" },
+      take: 30,
+    }),
+    prisma.oddsApiRun.findMany({
+      where: { tier: "expanded", trigger: { not: "DRY_RUN" } },
+      orderBy: { startedAt: "desc" },
+      take: 30,
+    }),
+    // Newest started run per sport and tier, scheduled or manual. The
+    // schedule row's own `last*RunAt` misses manual runs, so the log is the
+    // source for "when did this last run".
+    prisma.$queryRaw<
+      Array<{
+        sport: string;
+        tier: string;
+        status: string;
+        trigger: string;
+        credits: number;
+        startedAt: Date;
+        completedAt: Date | null;
+      }>
+    >`
+        SELECT DISTINCT ON ("sport", "tier")
+          "sport", "tier", "status", "trigger", "credits", "startedAt", "completedAt"
+        FROM scl."OddsApiRun"
+        WHERE "trigger" <> 'DRY_RUN' AND "status" <> 'BLOCKED'
+        ORDER BY "sport", "tier", "startedAt" DESC
+      `,
+  ]);
 
   const creditsSince = (start: Date) =>
     usage
@@ -381,22 +476,25 @@ export async function getOddsCreditDashboard() {
       creditsToday: verificationActivityToday._sum.credits ?? 0,
     },
     history,
-    recentRuns: recentRuns.map((run) => ({
-      id: run.id,
-      sport: run.sport,
-      tier: run.tier,
-      status: run.status,
-      trigger: run.trigger,
-      credits: run.credits,
-      estimatedCredits: run.estimatedCredits,
-      startedAt: run.startedAt.toISOString(),
-      completedAt: run.completedAt?.toISOString() ?? null,
-      remaining: run.remaining,
-      markets: run.markets,
-      leagues: run.leagues,
-      details: summarizeOddsRunDetails(run.details),
-      error: run.error,
-    })),
+    recentRuns: recentRuns.map(runRow),
+    runLog: {
+      surface: surfaceRuns.map(runRow),
+      expanded: expandedRuns.map(runRow),
+    },
+    lastRuns: Object.fromEntries(
+      latestRuns.map((run) => [
+        lastRunKey(run.sport, run.tier),
+        {
+          status: run.status,
+          trigger: run.trigger,
+          credits: Number(run.credits),
+          startedAt: new Date(run.startedAt).toISOString(),
+          completedAt: run.completedAt
+            ? new Date(run.completedAt).toISOString()
+            : null,
+        } satisfies LastOddsRun,
+      ]),
+    ) as Record<string, LastOddsRun>,
     audit: audit.map((event) => ({
       id: event.id,
       action: event.action,

@@ -343,15 +343,30 @@ export async function claimDueOddsRuns(
             const next = allowed
               ? nextRunAt(now, cadenceMinutes)
               : nextRunAt(now, BLOCKED_RETRY_MINUTES);
+            // "Last run" means a run that started. Stamping it on a refusal made
+            // the dashboard report passes that never reached the provider.
             const scheduleUpdate =
               candidate.tier === "surface"
-                ? { nextSurfaceRunAt: next, lastSurfaceRunAt: now }
-                : { nextExpandedRunAt: next, lastExpandedRunAt: now };
+                ? {
+                    nextSurfaceRunAt: next,
+                    ...(allowed ? { lastSurfaceRunAt: now } : {}),
+                  }
+                : {
+                    nextExpandedRunAt: next,
+                    ...(allowed ? { lastExpandedRunAt: now } : {}),
+                  };
             await tx.oddsSportControl.update({
               where: { id: policy.id },
               data: scheduleUpdate,
             });
             if (!allowed) {
+              console.warn("[odds-control] run blocked", {
+                sport: policy.sport,
+                tier: candidate.tier,
+                estimate,
+                at: now.toISOString(),
+                retryAt: next.toISOString(),
+              });
               await tx.oddsApiRun.create({
                 data: {
                   sport: policy.sport,
@@ -636,7 +651,7 @@ export async function completeOddsRun(
     error?: string;
   },
 ): Promise<void> {
-  await prisma.oddsApiRun.update({
+  const row = await prisma.oddsApiRun.update({
     where: { id },
     data: {
       status: result.ok ? "COMPLETED" : "FAILED",
@@ -649,20 +664,79 @@ export async function completeOddsRun(
       error: result.error,
       completedAt: new Date(),
     },
+    select: {
+      sport: true,
+      tier: true,
+      trigger: true,
+      status: true,
+      credits: true,
+      startedAt: true,
+      completedAt: true,
+    },
   });
+  logRunFinished(id, row, result.error);
+}
+
+/**
+ * The run log's timestamps, mirrored to the platform log. The table is what the
+ * dashboard reads; this line is what survives when the dashboard is the thing
+ * being doubted.
+ */
+function logRunFinished(
+  id: string,
+  row: {
+    sport: string;
+    tier: string;
+    trigger: string;
+    status: string;
+    credits: number;
+    startedAt: Date;
+    completedAt: Date | null;
+  },
+  error?: string | null,
+) {
+  const finishedAt = row.completedAt ?? new Date();
+  const payload = {
+    runId: id,
+    sport: row.sport,
+    tier: row.tier,
+    trigger: row.trigger,
+    status: row.status,
+    credits: row.credits,
+    startedAt: row.startedAt.toISOString(),
+    completedAt: finishedAt.toISOString(),
+    durationMs: finishedAt.getTime() - row.startedAt.getTime(),
+    ...(error ? { error } : {}),
+  };
+  if (row.status === "COMPLETED") {
+    console.info("[odds-control] run finished", payload);
+  } else {
+    console.warn("[odds-control] run finished", payload);
+  }
 }
 
 export async function failOddsRun(id: string, error: unknown): Promise<void> {
-  await prisma.oddsApiRun.update({
+  const message =
+    error instanceof Error
+      ? error.message.slice(0, 500)
+      : String(error).slice(0, 500);
+  const row = await prisma.oddsApiRun.update({
     where: { id },
     data: {
       status: "FAILED",
       reservedCredits: 0,
-      error:
-        error instanceof Error
-          ? error.message.slice(0, 500)
-          : String(error).slice(0, 500),
+      error: message,
       completedAt: new Date(),
     },
+    select: {
+      sport: true,
+      tier: true,
+      trigger: true,
+      status: true,
+      credits: true,
+      startedAt: true,
+      completedAt: true,
+    },
   });
+  logRunFinished(id, row, message);
 }

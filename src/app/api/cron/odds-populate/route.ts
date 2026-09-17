@@ -33,6 +33,7 @@ import {
   canSkipExpandedEvent,
   expandedEventCreditCost,
   expandsFullSlate,
+  isEarlyExpandedEvent,
   laterExpandedCreditReserve,
   parseExpandedMaxAgeMinutes,
   parseExpandedSlateDays,
@@ -108,6 +109,11 @@ type ExpandedRow = {
   topUpAttempts: number;
   /** Boards missing a ladder but inside their retry spacing, or out of tries. */
   ladderWaiting: number;
+  /** Slate fixtures ahead of their buy window, eligible for one early buy. */
+  early: number;
+  /** Earliest and latest kickoff on the slate, so an empty pass says why. */
+  firstKickoff: string | null;
+  lastKickoff: string | null;
 };
 
 /**
@@ -309,6 +315,7 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
       let toppedUp = 0;
       let topUpAttempts = 0;
       let ladderWaiting = 0;
+      let early = 0;
       // What this run may ask for: the owner's selection on a managed run, the
       // sport's full expanded list otherwise. A top-up never reaches past it.
       const sportMarkets = expandedMarkets.length
@@ -330,6 +337,17 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
         // run REPORT how many events it declined to re-buy — a cap that is
         // enforced but invisible looks exactly like a broken populate.
         const cached = await loadCachedEventBoard(sport, event.id, buyLimit);
+        // An early fixture is bought once. Until its own window opens, the
+        // board it has is the board it keeps — re-buying next Sunday's card
+        // every six hours from Wednesday is the spend the window exists to stop.
+        const isEarly = isEarlyExpandedEvent(event.commenceTime, sport);
+        if (isEarly) early += 1;
+        if (isEarly && cached.savedAt != null) {
+          skipped += 1;
+          populated += 1;
+          selections += cached.selections.length;
+          continue;
+        }
         const coverage = summarizeEventMarketCoverage(
           event,
           cached.selections,
@@ -462,7 +480,19 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
         toppedUp,
         topUpAttempts,
         ladderWaiting,
+        early,
+        firstKickoff: events[0]?.commenceTime ?? null,
+        lastKickoff: events.at(-1)?.commenceTime ?? null,
       };
+      // One line per sport per pass. A pass with nothing on its slate makes no
+      // provider call, so without this it left no trace in the logs at all —
+      // which is how "NFL expanded never ran" and "NFL expanded ran over an
+      // empty slate" became impossible to tell apart.
+      console.info("[odds-populate] expanded pass", {
+        sport,
+        at: new Date().toISOString(),
+        ...expanded[sport],
+      });
     }
   }
 
@@ -497,6 +527,14 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
       slate.map((event) => event.id),
     );
     if (missing.length > 0) uncovered[sport] = missing.length;
+    // Early fixtures are reported with the rest but not chased: their card is
+    // often unopened days out, and a half-hourly catch-up would read every
+    // catalog on next week's slate for nothing. The regular cadence retries them.
+    const eventsById = new Map(slate.map((event) => [event.id, event]));
+    const missingInWindow = missing.filter((id) => {
+      const event = eventsById.get(id);
+      return !event || !isEarlyExpandedEvent(event.commenceTime, sport);
+    });
 
     // Boards that exist but still lack a club's team-total ladder, counted from
     // the store for the same reason as a missing board: the pass that bought
@@ -544,8 +582,8 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
     // board that will never exist would otherwise re-queue a pass every half
     // hour for as long as the fixture is on the board.
     if (expandsFullSlate(sport)) continue;
-    if (missing.length > 0) {
-      const at = await scheduleExpandedCatchUp(sport, missing.length);
+    if (missingInWindow.length > 0) {
+      const at = await scheduleExpandedCatchUp(sport, missingInWindow.length);
       if (at) catchUp[sport] = at.toISOString();
     } else if (ladderRetryAt != null) {
       // Wakes when the soonest thin game is due another top-up, and only where
