@@ -15,10 +15,20 @@ export type ProfileChartWindow = ProfilePerfWindow;
 
 export const PROFILE_CHART_WINDOWS = PROFILE_PERF_WINDOWS;
 
-export type ProfileChartPoint = { n: number; units: number };
+export type ProfileChartPoint = {
+  n: number;
+  units: number;
+  /** Shown instead of "Pick n" for the opening and carried-over points. */
+  label?: string;
+};
 export type ProfileChartSeries = Record<
   ProfileChartWindow,
-  { points: ProfileChartPoint[]; gradedCount: number }
+  {
+    points: ProfileChartPoint[];
+    gradedCount: number;
+    /** Carried-over balance opening this scope, if any. */
+    carriedUnits?: number;
+  }
 >;
 
 /**
@@ -111,18 +121,32 @@ export function buildProfileChartSeries(
           : plays;
 
       const profits = profileProfitUnitsForWindow(scoped, key, asOf);
-      let running = key === "all" ? allOpening : key === "ytd" ? ytdOpening : 0;
-      const points = profits.map((profit, index) => {
+      const opening =
+        key === "all" ? allOpening : key === "ytd" ? ytdOpening : 0;
+      let running = opening;
+      const receipts = profits.map((profit, index) => {
         running += profit;
         return { n: index + 1, units: round2(running) };
       });
+      // Every scope opens at zero at the start of its window, so the line
+      // shows the whole period rather than starting partway up the axis. A
+      // carried-over balance is its own step, not a hidden head start.
+      const points: ProfileChartPoint[] = [
+        { n: 0, units: 0, label: "Start" },
+        ...(opening !== 0
+          ? [{ n: 0, units: opening, label: "Carried over" }]
+          : []),
+        ...receipts,
+      ];
 
       return [
         key,
         {
-          points: downsampleCumulative(points, maxPoints),
+          points:
+            points.length > 1 ? downsampleCumulative(points, maxPoints) : [],
           // gradedCount stays receipt-derived — baseline results have no picks.
           gradedCount: profits.length,
+          ...(opening !== 0 ? { carriedUnits: opening } : {}),
         },
       ];
     }),

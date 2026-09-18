@@ -35,7 +35,7 @@ export function TopCappersLive({
 }: {
   cappers: CapperSummary[];
   failed?: boolean;
-  activeWindow?: Exclude<LeaderboardWindow, "year">;
+  activeWindow?: LeaderboardWindow;
   className?: string;
 }) {
   return (

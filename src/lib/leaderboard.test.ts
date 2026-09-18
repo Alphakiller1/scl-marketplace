@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  LEADERBOARD_SCOPE_WINDOWS,
   buildPerformanceTrend,
   hasLeaderboardSample,
   isBuildingARecord,
@@ -46,9 +47,11 @@ test("leaderboard filters reject unsupported query values", () => {
   );
 });
 
-test("legacy year scope normalizes to the supported all-time control", () => {
-  const filters = parseLeaderboardFilters({ window: "year" });
-  assert.equal(filters.window, "all");
+test("YTD is a selectable public scope", () => {
+  assert.equal(parseLeaderboardFilters({ window: "year" }).window, "year");
+  assert.ok(LEADERBOARD_SCOPE_WINDOWS.some((item) => item.key === "year"));
+  // Calendar month stays internal — Honors owns it.
+  assert.equal(parseLeaderboardFilters({ window: "month" }).window, "all");
 });
 
 test("leaderboard href can preserve filters on a shared route", () => {

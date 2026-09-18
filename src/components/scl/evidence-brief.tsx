@@ -298,16 +298,32 @@ export function EvidenceBrief({
   const scopedStats = activePackage
     ? null
     : (windowStats?.[perfWindow] ?? null);
-  // Offering a sport the capper did not play in this scope would hand the
-  // reader an empty chart and no way to tell why.
+  // Every sport the record covers in this scope, including sports whose
+  // results were carried over from the previous platform. Listing only the
+  // sports with SCL receipts meant the By sport table showed four sports
+  // while the chart filter offered one.
+  const scopedCarriedSports =
+    windowSportBreakdown?.[perfWindow] ??
+    (perfWindow === "all" ? legacyBySport : []);
   const availableSports = activePackage
     ? activePackage.sports
-    : scopedStats
-      ? scopedStats.bySport.map((row) => row.sport).sort()
-      : Object.keys(chartSeriesBySport).sort();
+    : [
+        ...new Set([
+          ...(scopedStats
+            ? scopedStats.bySport.map((row) => row.sport)
+            : Object.keys(chartSeriesBySport)),
+          ...scopedCarriedSports.map((row) => row.sport),
+        ]),
+      ].sort();
   const effectiveSport = availableSports.includes(chartSport)
     ? chartSport
     : "ALL";
+  // A carried-over sport has a record but no receipts: chart nothing rather
+  // than falling back to the all-sports line under its label.
+  const carriedOnlySport =
+    !activePackage &&
+    effectiveSport !== "ALL" &&
+    !chartSeriesBySport[effectiveSport];
   const activeChartSeries = activePackage
     ? effectiveSport === "ALL"
       ? activePackage.chartSeries
@@ -337,9 +353,7 @@ export function EvidenceBrief({
       ? "All sports"
       : (SPORTS.find((entry) => entry.key === effectiveSport)?.label ??
         effectiveSport);
-  const scopedSportRecords =
-    windowSportBreakdown?.[perfWindow] ??
-    (perfWindow === "all" ? legacyBySport : []);
+  const scopedSportRecords = scopedCarriedSports;
   const historyLedgerKey = `${capper.handle}:${historyNextCursor ?? "end"}:${eligiblePlays
     .map(
       (play) =>
@@ -425,18 +439,35 @@ export function EvidenceBrief({
               ) : null}
             </div>
           </div>
-          <CumulativeUnitsChart
-            points={cumulative.points}
-            gradedCount={cumulative.gradedCount}
-            startsFromLegacyBalance={
-              !activePackage &&
-              effectiveSport === "ALL" &&
-              (scopedStats
-                ? scopedStats.carriesLegacy
-                : perfWindow === "all" &&
-                  (capper.legacyBaselineUnits ?? 0) !== 0)
-            }
-          />
+          {carriedOnlySport ? (
+            <div
+              className="border-border bg-surface-2 flex min-h-[11rem] flex-col justify-center rounded-xl border px-4 py-6"
+              role="status"
+            >
+              <p className="scl-eyebrow text-muted-foreground">
+                Cumulative units
+              </p>
+              <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+                No SCL-tracked receipts for {sportFilterLabel} in this scope.
+                The record above is carried over from the previous platform,
+                which exported totals only — there is no pick-by-pick history to
+                chart.
+              </p>
+            </div>
+          ) : (
+            <CumulativeUnitsChart
+              points={cumulative.points}
+              gradedCount={cumulative.gradedCount}
+              startsFromLegacyBalance={
+                !activePackage &&
+                effectiveSport === "ALL" &&
+                (scopedStats
+                  ? scopedStats.carriesLegacy
+                  : perfWindow === "all" &&
+                    (capper.legacyBaselineUnits ?? 0) !== 0)
+              }
+            />
+          )}
           {!activePackage ? (
             <ClvTrackerPanel summary={scopedClvTracker} />
           ) : null}

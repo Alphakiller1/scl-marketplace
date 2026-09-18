@@ -19,9 +19,11 @@ const CHART_SIDE = 12;
 const GRID_STEPS = [0, 0.25, 0.5, 0.75, 1] as const;
 
 export type CumulativePoint = {
-  /** 1-based graded pick index (oldest → newest). */
+  /** 1-based graded pick index (oldest → newest); 0 for opening points. */
   n: number;
   units: number;
+  /** Shown instead of "Pick n" — the scope's start and carried-over balance. */
+  label?: string;
 };
 
 /**
@@ -299,7 +301,7 @@ export function CumulativeUnitsChart({
                 }}
               >
                 <span className="text-muted-foreground font-medium">
-                  Pick {active.n.toLocaleString()}
+                  {active.label ?? `Pick ${active.n.toLocaleString()}`}
                 </span>
                 <span aria-hidden> · </span>
                 <span className={tone.text}>{signed(active.units)}U</span>

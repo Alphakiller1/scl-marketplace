@@ -54,6 +54,7 @@ function RankingExplainer() {
 
 const LEGEND_SAMPLE = {
   season: { sport: "NFL", sportLabel: "NFL", metric: "units" },
+  supermax: { sport: "SUPERMAX", sportLabel: "Supermax", metric: "units" },
   annualUnits: { sport: "ALL", sportLabel: "All Sports", metric: "units" },
   annualRoi: { sport: "ALL", sportLabel: "All Sports", metric: "roi" },
 } as const;
@@ -81,6 +82,11 @@ function HonorsLegend({ className }: { className?: string }) {
       glyph: LEGEND_SAMPLE.season,
       chip: "NFL26 ($/%)",
       meaning: "Season Champion (Units or ROI)",
+    },
+    {
+      glyph: LEGEND_SAMPLE.supermax,
+      chip: `SEP26 / MAX${String(year).slice(-2)}`,
+      meaning: "Supermax All-Star (month) / Champion (year)",
     },
   ];
   return (

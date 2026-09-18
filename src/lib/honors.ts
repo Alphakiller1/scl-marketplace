@@ -30,6 +30,8 @@ export const AWARD_PERIODS: readonly {
 
 /** All-sports awards (the annual pair) use this sentinel sport key. */
 export const ALL_SPORTS = "ALL";
+/** Supermax awards read one capper's 20u Supermax plays, across every sport. */
+export const SUPERMAX = "SUPERMAX";
 
 export type HonorWinner = {
   id: string;
@@ -130,8 +132,17 @@ const HONOR_SPORT_BY_KEY = new Map(HONOR_SPORTS.map((s) => [s.key, s]));
 export const ANNUAL_MINIMUM = 250;
 /** Cross Sport Parlay Allstar: settled Cross-Sports parlays in the month. */
 export const CROSS_SPORTS_MINIMUM = 10;
+/** Monthly Supermax All-Star: settled Supermax plays in the month. */
+export const SUPERMAX_MONTHLY_MINIMUM = 3;
+/** Annual Supermax Champion: settled Supermax plays in the year. */
+export const SUPERMAX_ANNUAL_MINIMUM = 20;
 
 export function honorMinimum(period: AwardPeriod, sportKey: string): number {
+  if (sportKey === SUPERMAX) {
+    return period === "annual"
+      ? SUPERMAX_ANNUAL_MINIMUM
+      : SUPERMAX_MONTHLY_MINIMUM;
+  }
   if (sportKey === CROSS_SPORTS) return CROSS_SPORTS_MINIMUM;
   if (period === "annual") return ANNUAL_MINIMUM;
   const config = HONOR_SPORT_BY_KEY.get(sportKey);
@@ -158,6 +169,7 @@ export const HONORS_LEGACY_CAPTURED = "2026-07-31";
 export function honorSportLabel(sportKey: string): string {
   if (sportKey === ALL_SPORTS) return "All Sports";
   if (sportKey === CROSS_SPORTS) return CROSS_SPORTS_LABEL;
+  if (sportKey === SUPERMAX) return "Supermax";
   return HONOR_SPORT_BY_KEY.get(sportKey)?.label ?? sportKey;
 }
 
@@ -250,7 +262,12 @@ export function seasonAwardTitle(sportKey: string): string {
   return `${honorSportLabel(sportKey)} Season Champion`;
 }
 
+export function supermaxAwardTitle(period: AwardPeriod): string {
+  return period === "annual" ? "Supermax Champion" : "Supermax All-Star";
+}
+
 export function monthlyAwardTitle(sportKey: string): string {
+  if (sportKey === SUPERMAX) return supermaxAwardTitle("monthly");
   return sportKey === CROSS_SPORTS
     ? "Cross Sport Parlay Allstar"
     : `${honorSportLabel(sportKey)} Monthly Winner`;
@@ -277,6 +294,8 @@ export type HonorPosition = {
   outcome: Outcome;
   units: number;
   profitUnits: number | null;
+  /** A 20u daily Supermax — its own pair of awards, on top of its sport's. */
+  isSupermax?: boolean;
 };
 
 /** Legacy year totals: `YEAR_2025` rows and the 2026 `PRE_IMPORT` residual. */
@@ -372,7 +391,7 @@ function beats(a: HonorWinner, b: HonorWinner, metric: AwardMetric): boolean {
 
 const BOTH: AwardMetric[] = ["units", "roi"];
 
-function annualBuckets(nowY: number): Bucket[] {
+function annualBuckets(nowY: number, hasSupermax: boolean): Bucket[] {
   const out: Bucket[] = [];
   for (let year = HONORS_LEGACY_YEAR; year < nowY; year++) {
     const start = monthStart(year, 1);
@@ -397,6 +416,22 @@ function annualBuckets(nowY: number): Bucket[] {
           ? row.scope === "YEAR_2025"
           : row.scope === "PRE_IMPORT" && year === HONORS_LEGACY_YEAR + 1),
     });
+    // Supermax has no legacy history — the concept starts on SCL.
+    if (hasSupermax && !legacyYear) {
+      out.push({
+        period: "annual",
+        periodKey: String(year),
+        periodLabel: String(year),
+        periodEnd: end,
+        sport: SUPERMAX,
+        metrics: ["units"],
+        title: () => supermaxAwardTitle("annual"),
+        name: () => `${year} ${supermaxAwardTitle("annual")}`,
+        abbreviation: () => `MAX${String(year).slice(-2)}`,
+        positions: (p) => Boolean(p.isSupermax) && inRange(p.at, start, end),
+        legacy: () => false,
+      });
+    }
   }
   return out;
 }
@@ -477,7 +512,22 @@ function monthlyBuckets(
     const end = monthStart(year, month + 1);
     const periodKey = `${year}-${String(month).padStart(2, "0")}`;
     const periodLabel = `${MONTH_NAMES[month - 1]} ${year}`;
-    for (const sportKey of monthSports) {
+    if (monthSports.includes(SUPERMAX)) {
+      out.push({
+        period: "monthly",
+        periodKey,
+        periodLabel,
+        periodEnd: end,
+        sport: SUPERMAX,
+        metrics: ["units"],
+        title: () => supermaxAwardTitle("monthly"),
+        name: () => `${periodLabel} ${supermaxAwardTitle("monthly")}`,
+        abbreviation: () => monthAbbrev(year, month),
+        positions: (p) => Boolean(p.isSupermax) && inRange(p.at, start, end),
+        legacy: () => false,
+      });
+    }
+    for (const sportKey of monthSports.filter((key) => key !== SUPERMAX)) {
       const cross = sportKey === CROSS_SPORTS;
       const title = () => monthlyAwardTitle(sportKey);
       out.push({
@@ -531,19 +581,20 @@ export function computeHonors(input: {
       legacy.some((row) => row.sport === key),
   );
   const hasCross = positions.some((p) => p.sport === CROSS_SPORTS);
+  const hasSupermax = positions.some((p) => p.isSupermax);
   const positionsByCapper = groupBy(positions, (p) => p.capperId);
   const legacyByCapper = groupBy(legacy, (row) => row.capperId);
 
   const [nowY, nowM] = etYmd(now).split("-").map(Number) as [number, number];
   const legacyCaptured = startOfEtYmd(HONORS_LEGACY_CAPTURED);
   const allBuckets = [
-    ...annualBuckets(nowY),
+    ...annualBuckets(nowY, hasSupermax),
     ...sports.flatMap((key) => seasonBuckets(key, now, nowY, legacyCaptured)),
-    ...monthlyBuckets(
-      nowY,
-      nowM,
-      hasCross ? [...sports, CROSS_SPORTS] : sports,
-    ),
+    ...monthlyBuckets(nowY, nowM, [
+      ...sports,
+      ...(hasCross ? [CROSS_SPORTS] : []),
+      ...(hasSupermax ? [SUPERMAX] : []),
+    ]),
   ];
 
   const awards: HonorAward[] = [];
@@ -584,6 +635,7 @@ export function computeHonors(input: {
 
 function sportOrder(sportKey: string): number {
   if (sportKey === ALL_SPORTS) return -1;
+  if (sportKey === SUPERMAX) return HONOR_SPORTS.length + 1;
   const index = HONOR_SPORTS.findIndex((s) => s.key === sportKey);
   return index === -1 ? HONOR_SPORTS.length : index;
 }
@@ -691,7 +743,8 @@ export function honorsRules(): { heading: string; lines: string[] }[] {
       lines: [
         "Capper of the Year: highest net units across all sports in the calendar year.",
         "Annual Performance Award: highest ROI across all sports in the calendar year.",
-        `Minimum ${ANNUAL_MINIMUM} settled picks in the calendar year. Annual awards are featured for the entire following calendar year.`,
+        `Annual Supermax Champion: most net units from Supermax plays in the calendar year (minimum ${SUPERMAX_ANNUAL_MINIMUM} settled Supermax plays).`,
+        `Capper of the Year and the Annual Performance Award need ${ANNUAL_MINIMUM} settled picks in the calendar year. Annual awards are featured for the entire following calendar year.`,
       ],
     },
     {
@@ -706,6 +759,7 @@ export function honorsRules(): { heading: string; lines: string[] }[] {
       heading: "Monthly Awards",
       lines: [
         "Monthly Winner (Units) and Monthly Winner (ROI%) are awarded per sport for each calendar month, with the minimums in the table below. Monthly awards are featured for the entire following month.",
+        `Monthly Supermax All-Star goes to the most net units from Supermax plays in the month (minimum ${SUPERMAX_MONTHLY_MINIMUM} settled Supermax plays).`,
         `Cross Sport Parlay Allstar goes to the most net units from Cross-Sports parlays in the month (minimum ${CROSS_SPORTS_MINIMUM} settled Cross-Sports parlays). There is no ROI version.`,
       ],
     },
