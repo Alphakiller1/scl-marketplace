@@ -171,3 +171,40 @@ test("every scope's final chart point equals the units its metric row reports", 
     );
   }
 });
+
+test("the opening zero and carried-over step survive downsampling", () => {
+  const plays = Array.from({ length: 600 }, (_, index) => ({
+    createdAt: new Date(Date.UTC(2026, 0, 2, 12) + index * 3_600_000),
+    outcome: "WIN",
+    profitUnits: 1,
+  }));
+  const series = buildProfileChartSeries(
+    plays,
+    new Date("2026-06-01T12:00:00Z"),
+    120,
+    { ytdUnits: 690, allUnits: 690 },
+  );
+  const ytd = series.ytd;
+  assert.equal(ytd.points.length, 120);
+  assert.deepEqual(ytd.points[0], { n: 0, units: 0, label: "Start" });
+  assert.deepEqual(ytd.points[1], {
+    n: 0,
+    units: 690,
+    label: "Carried over",
+  });
+  assert.equal(ytd.carriedUnits, 690);
+  // The closing balance still matches the metric row: 690 carried + 600 won.
+  assert.equal(ytd.points[ytd.points.length - 1]!.units, 1290);
+  // A scope with no receipts in range stays honestly empty.
+  assert.deepEqual(series["30d"].points, []);
+  assert.equal(series["30d"].carriedUnits, undefined);
+  // Without a carried balance the line still opens at zero, with no step.
+  const noCarry = buildProfileChartSeries(
+    plays,
+    new Date("2026-06-01T12:00:00Z"),
+    120,
+  );
+  assert.deepEqual(noCarry.ytd.points[0], { n: 0, units: 0, label: "Start" });
+  assert.equal(noCarry.ytd.points[noCarry.ytd.points.length - 1]!.units, 600);
+  assert.equal(noCarry.ytd.carriedUnits, undefined);
+});

@@ -415,7 +415,11 @@ export function EvidenceBrief({
               <p className="text-muted-foreground mt-0.5 text-xs leading-snug">
                 {activePackage
                   ? `Cumulative units — receipts assigned to ${activePackage.title}.`
-                  : `Cumulative units — ${profilePerfWindowLabel(perfWindow)} · ${sportFilterLabel}.`}
+                  : `Cumulative units — ${profilePerfWindowLabel(perfWindow)} · ${sportFilterLabel}.${
+                      cumulative.carriedUnits
+                        ? ` Opens at zero; ${formatUnits(cumulative.carriedUnits)} carried over from the previous platform.`
+                        : ""
+                    }`}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">

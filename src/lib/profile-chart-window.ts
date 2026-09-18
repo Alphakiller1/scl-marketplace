@@ -143,7 +143,13 @@ export function buildProfileChartSeries(
         key,
         {
           points:
-            points.length > 1 ? downsampleCumulative(points, maxPoints) : [],
+            points.length > 1
+              ? downsampleCumulative(
+                  points,
+                  maxPoints,
+                  opening !== 0 ? [1] : [],
+                )
+              : [],
           // gradedCount stays receipt-derived — baseline results have no picks.
           gradedCount: profits.length,
           ...(opening !== 0 ? { carriedUnits: opening } : {}),
@@ -153,14 +159,21 @@ export function buildProfileChartSeries(
   ) as ProfileChartSeries;
 }
 
+/**
+ * `keep` are indexes that must survive: the opening zero and any carried-over
+ * step. Sampling them away on a long book would draw the line leaping from
+ * zero into the middle of the record with nothing to explain the jump.
+ */
 function downsampleCumulative(
   points: ProfileChartPoint[],
   maxPoints: number,
+  keep: number[] = [],
 ): ProfileChartPoint[] {
   if (points.length <= maxPoints || maxPoints < 2) return points;
-  const indexes = new Set<number>([0, points.length - 1]);
+  const indexes = new Set<number>([0, ...keep, points.length - 1]);
   const step = (points.length - 1) / (maxPoints - 1);
   for (let index = 1; index < maxPoints - 1; index += 1) {
+    if (indexes.size >= maxPoints) break;
     indexes.add(Math.round(index * step));
   }
   return [...indexes].sort((a, b) => a - b).map((index) => points[index]!);
