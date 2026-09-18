@@ -1,4 +1,4 @@
-import { ALL_SPORTS, type HonorAward } from "@/lib/honors";
+import { ALL_SPORTS, SUPERMAX, type HonorAward } from "@/lib/honors";
 import { CROSS_SPORTS } from "@/lib/parlay-sport";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +15,7 @@ const SPORT_EMOJI: Record<string, string> = {
   NHL: "🏒",
   PGA: "⛳",
   [CROSS_SPORTS]: "🔗",
+  [SUPERMAX]: "🐳",
 };
 
 /** Football helmet — NCAAF, kept distinct from the NFL ball. */

@@ -208,3 +208,34 @@ export async function listManualGradingQueue(
       reason: manualGradingReason(play),
     }));
 }
+
+/**
+ * Everything a human should look at this morning: plays auto-grading has given
+ * up on, plus plays still pending past their sport's expected final.
+ *
+ * The two used to be separate — the queue listed only the first kind while the
+ * health line counted the second — so the panel could read "3 past expected
+ * final" with one play to act on and no way to reach the other two. Retries
+ * continue on the overdue ones; listing them only means the owner can settle
+ * one by hand instead of waiting for a feed that may never carry it.
+ */
+export async function listGradingWorkQueue(
+  now = new Date(),
+  take = 50,
+): Promise<(StuckPlayRow & { reason: string; manualOnly: boolean })[]> {
+  const [manual, overdue] = await Promise.all([
+    listManualGradingQueue(now, take),
+    listOverduePendingPlays(now, take),
+  ]);
+  const seen = new Set(manual.map((play) => play.id));
+  return [
+    ...manual.map((play) => ({ ...play, manualOnly: true })),
+    ...overdue
+      .filter((play) => !seen.has(play.id))
+      .map((play) => ({
+        ...play,
+        manualOnly: false,
+        reason: `${play.market} is past its expected final for ${play.sport} — automatic retries continue`,
+      })),
+  ].slice(0, take);
+}

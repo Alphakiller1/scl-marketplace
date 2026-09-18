@@ -5,7 +5,8 @@ import {
   honorEmoji,
 } from "@/components/scl/honor-icons";
 import { formatRecord, formatRoi, formatUnits } from "@/lib/format";
-import { ALL_SPORTS, type HonorAward } from "@/lib/honors";
+import { ALL_SPORTS, SUPERMAX, type HonorAward } from "@/lib/honors";
+import { NeonTrophy } from "@/lib/og/honor-neon-trophy";
 import { OG } from "@/lib/og/tokens";
 import { CROSS_SPORTS } from "@/lib/parlay-sport";
 
@@ -20,6 +21,12 @@ const PINK_TEXT = "#FF74C8";
 const PINK_INK = "#FFF3FC";
 
 function titleLines(award: HonorAward): [string, string] {
+  if (award.sport === SUPERMAX) {
+    return [
+      "SCL Supermax",
+      award.period === "annual" ? "Champion" : "All-Star",
+    ];
+  }
   if (award.period === "annual") {
     return award.metric === "units"
       ? ["SCL Capper", "of the Year"]
@@ -35,6 +42,9 @@ function titleLines(award: HonorAward): [string, string] {
 function subtitle(award: HonorAward): string {
   const metric =
     award.metric === "units" ? "Highest net units" : "Highest ROI%";
+  if (award.sport === SUPERMAX) {
+    return `Highest net units from Supermax plays · ${award.periodLabel}`;
+  }
   if (award.period === "annual") return `${metric} across all sports`;
   if (award.period === "season")
     return `${metric} · ${award.sportLabel} season`;
@@ -50,12 +60,16 @@ function blurb(award: HonorAward): string {
   if (award.sport === CROSS_SPORTS) {
     return `Awarded to the capper with the most net units from Cross-Sports parlays in ${award.periodLabel}.`;
   }
+  if (award.sport === SUPERMAX) {
+    return `Awarded to the capper with the most net units from 20u Supermax plays in ${award.periodLabel}.`;
+  }
   return award.period === "season"
     ? `Awarded to the capper with ${what} in ${award.sportLabel} for the ${award.periodLabel}.`
     : `Awarded to the capper with ${what} in ${award.sportLabel} for ${award.periodLabel}.`;
 }
 
 function ribbon(award: HonorAward): string {
+  if (award.sport === SUPERMAX) return `Supermax · ${award.periodLabel}`;
   if (award.period === "annual") return award.periodKey;
   if (award.period === "season") {
     return `${award.sportLabel} · ${award.periodKey}`;
@@ -133,6 +147,7 @@ export function HonorOgCard({
   return (
     <div
       style={{
+        position: "relative",
         width: "100%",
         height: "100%",
         display: "flex",
@@ -145,6 +160,18 @@ export function HonorOgCard({
         borderTop: `10px solid ${PINK}`,
       }}
     >
+      {/* Neon trophy behind the record, per the owner's reference art. */}
+      <div
+        style={{
+          position: "absolute",
+          top: 232,
+          left: 235,
+          display: "flex",
+        }}
+      >
+        <NeonTrophy width={610} height={610} color={PINK} core={PINK_INK} />
+      </div>
+
       <div
         style={{
           display: "flex",

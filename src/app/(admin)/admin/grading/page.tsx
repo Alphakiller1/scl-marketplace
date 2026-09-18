@@ -22,7 +22,7 @@ import { getSchemaStatusReport } from "@/lib/results/schema-status";
 import {
   countPendingPlays,
   listAgedOutPendingPlays,
-  listManualGradingQueue,
+  listGradingWorkQueue,
 } from "@/lib/results/stuck-plays";
 
 export const metadata = { title: "Grading" };
@@ -45,7 +45,7 @@ export default async function AdminGradingPage() {
       getGradingHealthReport(),
       getSchemaStatusReport(),
       listAgedOutPendingPlays(),
-      listManualGradingQueue(),
+      listGradingWorkQueue(),
       getRecentCronRuns(),
       countPendingPlays(),
     ]);
@@ -111,12 +111,12 @@ export default async function AdminGradingPage() {
         {manualQueue.length ? (
           <div className="mb-3 rounded-lg border border-[color:var(--scl-pink)]/40 bg-[color:var(--scl-pink)]/5 p-3">
             <p className="scl-eyebrow text-[color:var(--scl-pink)]">
-              Needs manual grading — {manualQueue.length}
+              Needs grading — {manualQueue.length}
             </p>
             <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-              These plays need review because results are missing or require
-              manual settlement. Automatic retries continue. Parlay legs open
-              their full ticket so you can review every leg before saving.
+              Every play past its expected final, whether auto-grading gave up
+              on it or is still retrying. Parlay legs open their full ticket so
+              you can review every leg before saving.
             </p>
             <ul className="divide-border border-border mt-2 max-h-64 divide-y overflow-auto rounded-lg border bg-[color:var(--scl-ink-800)] text-sm">
               {manualQueue.map((p) => (
@@ -135,7 +135,7 @@ export default async function AdminGradingPage() {
                       </span>
                       <span className="scl-link ml-auto inline-flex items-center gap-1 text-xs">
                         <LifeBuoy className="size-3.5" aria-hidden />
-                        Grade by hand →
+                        {p.manualOnly ? "Grade by hand →" : "Settle now →"}
                       </span>
                     </p>
                     <p className="text-muted-foreground text-xs">{p.reason}</p>

@@ -14,13 +14,17 @@ export const LEADERBOARD_WINDOWS = [
   { key: "30d", label: "30D", longLabel: "Past 30 Days" },
   { key: "month", label: "Month", longLabel: "Current Calendar Month" },
   { key: "90d", label: "90D", longLabel: "Past 90 Days" },
+  { key: "year", label: "YTD", longLabel: "Year to Date" },
   { key: "all", label: "All", longLabel: "All Time" },
-  { key: "year", label: "Year", longLabel: "This Year" },
 ] as const;
 
-/** Windows shown in the compact scope bar (excludes year). */
+/**
+ * Windows shown in the compact scope bar. YTD is here so the public boards
+ * offer the same scope the capper profile does; `month` stays internal to
+ * Honors, which owns calendar months.
+ */
 export const LEADERBOARD_SCOPE_WINDOWS = LEADERBOARD_WINDOWS.filter(
-  (w) => w.key !== "year" && w.key !== "month",
+  (w) => w.key !== "month",
 );
 
 export const LEADERBOARD_MIN_PICKS = [0, 10, 25, 50] as const;
@@ -65,11 +69,11 @@ export function parseLeaderboardFilters(
         requestedSport === CROSS_SPORTS)
         ? requestedSport
         : "ALL",
-    window:
-      requestedWindow !== "year" &&
-      LEADERBOARD_SCOPE_WINDOWS.some((item) => item.key === requestedWindow)
-        ? (requestedWindow as LeaderboardWindow)
-        : "all",
+    window: LEADERBOARD_SCOPE_WINDOWS.some(
+      (item) => item.key === requestedWindow,
+    )
+      ? (requestedWindow as LeaderboardWindow)
+      : "all",
     sort: LEADERBOARD_SORTS.some((item) => item.key === requestedSort)
       ? (requestedSort as LeaderboardSort)
       : "units",

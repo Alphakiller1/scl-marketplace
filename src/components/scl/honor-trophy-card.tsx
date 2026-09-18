@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { ALL_SPORTS, type HonorAward } from "@/lib/honors";
+import { ALL_SPORTS, SUPERMAX, type HonorAward } from "@/lib/honors";
 import { formatRoi, formatUnits } from "@/lib/format";
 import { CROSS_SPORTS } from "@/lib/parlay-sport";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
@@ -9,6 +9,9 @@ import { CapperAvatar } from "@/components/scl/capper-avatar";
 import { HonorGlyph } from "@/components/scl/honor-icons";
 
 function headerLines(award: HonorAward): [string, string] {
+  if (award.sport === SUPERMAX) {
+    return ["Supermax", award.period === "annual" ? "Champion" : "All-Star"];
+  }
   if (award.sport === ALL_SPORTS) {
     return award.metric === "units"
       ? ["Capper", "of the Year"]
@@ -23,6 +26,7 @@ function headerLines(award: HonorAward): [string, string] {
 
 /** Plaque under the medal: `2025 COTY`, `NFL25 Units`, `AUG26 ROI`. */
 function plaque(award: HonorAward): string {
+  if (award.sport === SUPERMAX) return award.abbreviation;
   if (award.period === "annual") {
     return `${award.periodKey} ${award.metric === "units" ? "COTY" : "ROI"}`;
   }

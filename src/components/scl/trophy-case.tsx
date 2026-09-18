@@ -3,13 +3,18 @@ import { HonorScroller } from "@/components/scl/honor-scroller";
 import { HonorTrophyCard } from "@/components/scl/honor-trophy-card";
 
 /**
- * Every award the capper has won, left to right by date earned. Each opens the
- * award's 4:5 social graphic.
+ * Every award the capper has won. Annual awards lead — they are the most
+ * prestigious — then the rest newest first, so a capper with a long shelf
+ * still shows this month's win without scrolling. Each opens the award's
+ * 4:5 social graphic.
  */
 export function TrophyCase({ awards }: { awards: HonorAward[] }) {
   if (!awards.length) return null;
   const ordered = [...awards].sort(
-    (a, b) => a.periodEnd - b.periodEnd || a.name.localeCompare(b.name),
+    (a, b) =>
+      Number(b.period === "annual") - Number(a.period === "annual") ||
+      b.periodEnd - a.periodEnd ||
+      a.name.localeCompare(b.name),
   );
   return (
     <section

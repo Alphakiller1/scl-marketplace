@@ -66,6 +66,7 @@ async function loadHonors(): Promise<HonorAward[]> {
               eventStartsAt: true,
               createdAt: true,
               notes: true,
+              isSupermax: true,
             },
           },
           parlays: {
@@ -79,6 +80,7 @@ async function loadHonors(): Promise<HonorAward[]> {
               units: true,
               profitUnits: true,
               createdAt: true,
+              isSupermax: true,
               legs: {
                 select: { sport: true, eventStartsAt: true },
                 take: 12,
@@ -123,6 +125,7 @@ async function loadHonors(): Promise<HonorAward[]> {
         sport: play.sport,
         at: leaderboardSlateInstant(play),
         outcome: play.outcome,
+        isSupermax: play.isSupermax,
         ...stake,
       });
     }
@@ -133,6 +136,7 @@ async function loadHonors(): Promise<HonorAward[]> {
         sport: parlayReportingSport(parlay.legs),
         at: parlayLeaderboardSlateInstant(parlay),
         outcome: parlay.outcome,
+        isSupermax: parlay.isSupermax,
         ...stake,
       });
     }

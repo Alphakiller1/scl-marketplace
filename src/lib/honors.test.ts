@@ -3,6 +3,9 @@ import test from "node:test";
 
 import {
   ANNUAL_MINIMUM,
+  SUPERMAX,
+  SUPERMAX_ANNUAL_MINIMUM,
+  SUPERMAX_MONTHLY_MINIMUM,
   computeHonors,
   CROSS_SPORTS_MINIMUM,
   featuredHonors,
@@ -279,7 +282,9 @@ test("published rules and criteria come from the config", () => {
   const text = honorsRules()
     .flatMap((group) => group.lines)
     .join(" ");
-  assert.match(text, /Minimum 250 settled picks/);
+  assert.match(text, /need 250 settled picks in the calendar year/);
+  assert.match(text, /minimum 3 settled Supermax plays/);
+  assert.match(text, /minimum 20 settled Supermax plays/);
   assert.doesNotMatch(text, /Seasonal|rolling 90-day/);
   const mlb = honorsCriteria().find((row) => row.sport === "MLB");
   assert.deepEqual(mlb, {
@@ -337,4 +342,95 @@ test("Honors art follows the design spec: no gold, pink conviction marks", async
     // No gold crown or trophy emoji; annual marks are drawn pink.
     assert.doesNotMatch(src, /👑|🏆/u, file);
   }
+});
+
+function supermaxPicks(
+  capperId: string,
+  sport: string,
+  at: string,
+  count: number,
+  profitEach: number,
+): HonorPosition[] {
+  return picks(capperId, sport, at, count, profitEach).map((play) => ({
+    ...play,
+    units: 20,
+    isSupermax: true,
+  }));
+}
+
+test("Monthly Supermax All-Star: most units from Supermax plays, min 3", () => {
+  const near = computeHonors({
+    cappers: [ALICE],
+    positions: supermaxPicks(
+      "a",
+      "MLB",
+      "2026-08-10T23:00:00Z",
+      SUPERMAX_MONTHLY_MINIMUM - 1,
+      18,
+    ),
+    legacy: [],
+    now: NOW,
+  });
+  assert.ok(!near.some((a) => a.sport === SUPERMAX));
+
+  const awards = computeHonors({
+    cappers: [ALICE, BOB],
+    positions: [
+      ...supermaxPicks("a", "MLB", "2026-08-10T23:00:00Z", 3, 18),
+      ...supermaxPicks("b", "NFL", "2026-08-11T23:00:00Z", 4, 10),
+    ],
+    legacy: [],
+    now: NOW,
+  });
+  const supermax = awards.filter((a) => a.sport === SUPERMAX);
+  assert.deepEqual(
+    supermax.map((a) => [a.id, a.name, a.abbreviation, a.metric]),
+    [
+      [
+        "monthly-2026-08-supermax-units",
+        "August 2026 Supermax All-Star",
+        "AUG26",
+        "units",
+      ],
+    ],
+  );
+  // Most units wins: 4 x 10 = 40 beats 3 x 18 = 54? No — 54 wins.
+  assert.equal(supermax[0]!.winner.handle, "alice");
+  assert.equal(supermax[0]!.winner.units, 54);
+  assert.equal(supermax[0]!.minimumPicks, SUPERMAX_MONTHLY_MINIMUM);
+  // The same plays still count toward their own sport's awards.
+  assert.ok(awards.some((a) => a.id === "monthly-2026-08-mlb-units") === false);
+});
+
+test("Annual Supermax Champion: min 20 plays, MAX-prefixed chip", () => {
+  const positions = supermaxPicks("a", "MLB", "2026-06-10T23:00:00Z", 20, 5);
+  const during = computeHonors({
+    cappers: [ALICE],
+    positions,
+    legacy: [],
+    now: NOW,
+  });
+  // 2026 is not over yet.
+  assert.ok(!during.some((a) => a.id === "annual-2026-supermax-units"));
+
+  const after = computeHonors({
+    cappers: [ALICE],
+    positions,
+    legacy: [],
+    now: new Date("2027-02-01T12:00:00Z"),
+  });
+  const award = after.find((a) => a.id === "annual-2026-supermax-units");
+  assert.equal(award?.name, "2026 Supermax Champion");
+  assert.equal(award?.abbreviation, "MAX26");
+  assert.equal(award?.minimumPicks, SUPERMAX_ANNUAL_MINIMUM);
+  assert.equal(award?.winner.units, 100);
+  // Below the annual minimum, nothing is granted.
+  assert.ok(
+    !computeHonors({
+      cappers: [ALICE],
+      positions: supermaxPicks("a", "MLB", "2026-06-10T23:00:00Z", 19, 5),
+      legacy: [],
+      now: new Date("2027-02-01T12:00:00Z"),
+    }).some((a) => a.id === "annual-2026-supermax-units"),
+  );
 });
