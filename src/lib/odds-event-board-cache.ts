@@ -211,6 +211,7 @@ async function refreshEventBoard(
     const merged = mergeEventBoardSelections(
       cached?.selections ?? [],
       selections,
+      sport,
     );
     const retainedCachedRows = merged.length > selections.length;
     const saved = await writeSnapshot(

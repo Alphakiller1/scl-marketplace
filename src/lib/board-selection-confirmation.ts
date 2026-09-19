@@ -57,6 +57,7 @@ export async function confirmedBoardEvent(
   const selections = mergeEventBoardSelections(
     event.selections,
     detail.selections,
+    claim.sport,
   ).filter((selection) =>
     policy
       ? selectionAllowedForMarkets(selection, [

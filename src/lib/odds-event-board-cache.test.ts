@@ -86,10 +86,58 @@ test("partial refresh retains missing last-good market groups", () => {
     player: "Pitcher",
   };
   const refreshed = { ...selection, oddsAmerican: -110, book: "draftkings" };
-  assert.deepEqual(mergeEventBoardSelections([selection, prop], [refreshed]), [
-    refreshed,
-    prop,
-  ]);
+  const merged = mergeEventBoardSelections([selection, prop], [refreshed]);
+  const f5 = merged.find((row) => row.market === selection.market);
+  assert.equal(f5?.oddsAmerican, -105);
+  assert.equal(f5?.book, "fanduel");
+  assert.equal(f5?.bookPrices?.fanduel, -105);
+  assert.equal(f5?.bookPrices?.draftkings, -110);
+  assert.ok(merged.some((row) => row.market === prop.market));
+});
+
+test("merge unions DraftKings surface extras onto FanDuel alt rows", () => {
+  const surface = {
+    label: "Dodgers +1.5",
+    market: "Spread",
+    selection: "Dodgers +1.5",
+    side: "Dodgers",
+    line: 1.5,
+    featured: true,
+    oddsAmerican: -105,
+    book: "draftkings",
+    bookPrices: { draftkings: -105 },
+  };
+  const featured = {
+    label: "Los Angeles Dodgers -1.5",
+    market: "Spread",
+    selection: "Los Angeles Dodgers -1.5",
+    side: "Los Angeles Dodgers",
+    line: -1.5,
+    featured: true,
+    oddsAmerican: -110,
+    book: "fanduel",
+    bookPrices: { fanduel: -110 },
+  };
+  const expanded = {
+    label: "Los Angeles Dodgers +1.5",
+    market: "Spread",
+    selection: "Los Angeles Dodgers +1.5",
+    side: "Los Angeles Dodgers",
+    line: 1.5,
+    featured: false,
+    oddsAmerican: -102,
+    book: "fanduel",
+    bookPrices: { fanduel: -102 },
+  };
+  const merged = mergeEventBoardSelections(
+    [featured, surface],
+    [expanded],
+    "MLB",
+  );
+  const alt = merged.find((row) => row.line === 1.5);
+  assert.equal(alt?.featured, false);
+  assert.equal(alt?.bookPrices?.draftkings, -105);
+  assert.equal(alt?.bookPrices?.fanduel, -102);
 });
 
 test("merge keeps same-line team totals for both clubs", () => {
