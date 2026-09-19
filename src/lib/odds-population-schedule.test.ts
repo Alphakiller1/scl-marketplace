@@ -169,7 +169,7 @@ test("production route accepts a one-shot key, expands supported sports, and ret
   );
   assert.match(route, /withFeaturedGameLineCompanions/);
   assert.match(route, /shouldBypassExpandedBuyCap/);
-  assert.match(route, /ignoreDailyBuyCap: ignoreBuyCap \|\| bypassBuyCap/);
+  assert.match(route, /HARD_MAX_EVENT_BUYS_PER_DAY/);
   assert.match(route, /skipPopulated/);
   assert.match(route, /loadEventBoard/);
   assert.match(route, /forceRefresh: true/);

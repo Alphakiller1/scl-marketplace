@@ -352,8 +352,20 @@ test("an incomplete or uncached expanded board is never skipped", () => {
 
 test("an incomplete NCAAF board may spend past today's buy cap", () => {
   assert.equal(
-    shouldBypassExpandedBuyCap({ sport: "NCAAF", fullyCovered: false }),
+    shouldBypassExpandedBuyCap({
+      sport: "NCAAF",
+      fullyCovered: false,
+      buysToday: 1,
+    }),
     true,
+  );
+  assert.equal(
+    shouldBypassExpandedBuyCap({
+      sport: "NCAAF",
+      fullyCovered: false,
+      buysToday: HARD_MAX_EVENT_BUYS_PER_DAY,
+    }),
+    false,
   );
   assert.equal(
     shouldBypassExpandedBuyCap({ sport: "NCAAF", fullyCovered: true }),
