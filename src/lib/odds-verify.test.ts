@@ -6,6 +6,7 @@ import {
   collectAvailablePrices,
   decidePickIntegrity,
   expandedBoardMarkets,
+  withFeaturedGameLineCompanions,
   getOddsForBook,
   MLB_BATTER_PROP_MARKETS,
   MLB_PITCHER_PROP_MARKETS,
@@ -240,6 +241,14 @@ test("expanded football boards carry props and no game ladder", () => {
     "alternate_spreads",
     "alternate_totals",
   ]);
+  assert.deepEqual(
+    withFeaturedGameLineCompanions("NCAAF", expandedBoardMarkets("NCAAF")),
+    ["spreads", "alternate_spreads", "totals", "alternate_totals"],
+  );
+  assert.deepEqual(
+    withFeaturedGameLineCompanions("MLB", ["alternate_spreads"]),
+    ["alternate_spreads"],
+  );
 });
 
 test("expanded tennis boards request featured and alternate full-match lines", () => {

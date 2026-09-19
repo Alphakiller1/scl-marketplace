@@ -163,6 +163,11 @@ test("production route accepts a one-shot key, expands supported sports, and ret
   assert.match(route, /loadCachedEventBoard/);
   assert.match(route, /summarizeEventMarketCoverage/);
   assert.match(route, /coverage\.fullyCovered/);
+  assert.match(
+    route,
+    /isEarly && cached\.savedAt != null && coverage\.fullyCovered/,
+  );
+  assert.match(route, /withFeaturedGameLineCompanions/);
   assert.match(route, /skipPopulated/);
   assert.match(route, /loadEventBoard/);
   assert.match(route, /forceRefresh: true/);

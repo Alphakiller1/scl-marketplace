@@ -287,6 +287,7 @@ test("NCAAF expanded runs cover the Saturday card, not twenty games", () => {
   assert.equal(resolveExpandedEventLimit("MLB", 20), 20);
   assert.equal(resolveExpandedEventLimit("NFL", 20), 20);
   assert.equal(resolveExpandedEventLimit("NCAAF", 0), 0);
+  assert.equal(expandedEventCreditCost("NCAAF"), 4);
 });
 
 test("an expanded NCAAF pass refreshes the cached surface board", () => {

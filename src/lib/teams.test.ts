@@ -64,6 +64,11 @@ test("NCAAF identities use ESPN college logos", () => {
     "https://a.espncdn.com/i/teamlogos/ncaa/500/26.png",
   );
   assert.equal(getTeamIdentity("UCLA", "NCAAF").abbr, "UCLA");
+  assert.equal(getTeamIdentity("#8 UCLA Bruins", "ncaaf").abbr, "UCLA");
+  assert.equal(
+    getTeamIdentity("#18 Purdue Boilermakers", "NCAAF").logoUrl,
+    "https://a.espncdn.com/i/teamlogos/ncaa/500/2509.png",
+  );
   const purdue = getTeamIdentity("Purdue Boilermakers", "NCAAF");
   assert.equal(purdue.abbr, "PUR");
   assert.equal(

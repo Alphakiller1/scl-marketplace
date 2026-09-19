@@ -4,6 +4,7 @@ import {
   expandedBoardMarkets,
   marketKeysForMarket,
   propMarketLabel,
+  withFeaturedGameLineCompanions,
 } from "@/lib/odds-verify";
 import type { OddsSelection } from "@/lib/odds-board";
 import { PERIOD_MARKET_LABEL } from "@/lib/period-markets";
@@ -408,12 +409,13 @@ export function estimatedRunCredits(input: {
   maxEventsPerRun: number;
 }): number {
   if (input.tier === "expanded") {
-    const catalogCredit = input.markets.length > 8 ? 1 : 0;
+    const markets = withFeaturedGameLineCompanions(input.sport, input.markets);
+    const catalogCredit = markets.length > 8 ? 1 : 0;
     const events = resolveExpandedEventLimit(
       input.sport,
       input.maxEventsPerRun,
     );
-    return (input.markets.length + catalogCredit) * events;
+    return (markets.length + catalogCredit) * events;
   }
   const competitionCount =
     input.sport === "SOCCER"

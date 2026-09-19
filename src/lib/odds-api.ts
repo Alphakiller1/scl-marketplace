@@ -55,6 +55,7 @@ import {
   VERIFY_TTL_SECONDS,
   collectAvailablePrices,
   expandedBoardMarkets,
+  withFeaturedGameLineCompanions,
   getOddsForBook as getOddsForBookFromEvent,
   liveLineAmerican,
   verificationMarkets,
@@ -1212,9 +1213,12 @@ export async function fetchEventBoard(
     commenceTime?: string | null;
   },
 ): Promise<OddsSelection[]> {
-  const wanted = opts?.markets?.length
-    ? [...new Set(opts.markets)]
-    : expandedBoardMarkets(sclSport);
+  const wanted = withFeaturedGameLineCompanions(
+    sclSport,
+    opts?.markets?.length
+      ? [...new Set(opts.markets)]
+      : expandedBoardMarkets(sclSport),
+  );
   if (wanted.length === 0) return [];
   const markets = await pricedExpandedMarkets(sclSport, eventId, wanted, opts);
   // Every wanted market read the catalog and none came back: no covered book is
