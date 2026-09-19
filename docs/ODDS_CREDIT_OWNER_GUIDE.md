@@ -99,7 +99,10 @@ same pool.
 For **NCAAF alternate spreads and totals**, enable NCAAF, enable **Expanded**
 coverage, and select **Alternate game lines**. Save the strategy, run **Dry run
 expanded**, review the estimate, and only then use **Run expanded now** or allow
-the saved expanded cadence to run.
+the saved expanded cadence to run. That expanded pass also refreshes the
+featured NCAAF board (so DraftKings moneyline/spread/total prices land) and
+looks a week ahead — Saturday's card is buyable on Thursday, not only Friday
+afternoon.
 
 For **NFL Anytime Touchdown**, enable NFL, enable **Expanded** coverage, open
 **Player props**, and turn on **Anytime Touchdown**. The group-level **select

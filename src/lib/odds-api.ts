@@ -44,6 +44,7 @@ import {
   normalizeEventBoard,
   normalizeUpcomingEvent,
   sortByKickoff,
+  SURFACE_BOARD_EVENT_LIMIT,
   type OddsBoardOpts,
   type OddsEvent,
   type OddsSelection,
@@ -682,7 +683,10 @@ export async function fetchTennisBoard(
           ` (${tours.map((tour) => tour.key).join(", ")})`,
       );
     }
-    return sortByKickoff(dedupeOddsEvents(all)).slice(0, 60);
+    return sortByKickoff(dedupeOddsEvents(all)).slice(
+      0,
+      SURFACE_BOARD_EVENT_LIMIT,
+    );
   } catch (err) {
     console.warn("[odds] tennis board fetch failed", err);
     return [];
@@ -955,7 +959,7 @@ export async function fetchUpcomingOdds(
       events
         .map((e) => normalizeUpcomingEvent(sclSport, e, preferred))
         .filter((e) => e.selections.length > 0),
-    ).slice(0, 60);
+    ).slice(0, SURFACE_BOARD_EVENT_LIMIT);
   };
 
   try {
@@ -972,15 +976,15 @@ export async function fetchUpcomingOdds(
     const extras = await fetchExtraSportBoards(sclSport, preferred, opts);
     if (board.length > 0 || extras.length > 0) {
       // Sort before the cap, or the cap silently decides the slate.
-      // `attempt` already returned 60 regular-season events — books post the
-      // whole season in August — so appending preseason and slicing to 60 threw
-      // every preseason game away after paying to fetch it. Ordering by kickoff
-      // means the soonest games win the 60 slots, which is what the board is
-      // for: in August that is preseason, in September the regular season
+      // `attempt` already returned a capped regular-season list — books post
+      // the whole season in August — so appending preseason and slicing again
+      // threw every preseason game away after paying to fetch it. Ordering by
+      // kickoff means the soonest games win the slots, which is what the board
+      // is for: in August that is preseason, in September the regular season
       // reclaims them on its own.
       return sortByKickoff(dedupeOddsEvents([...board, ...extras])).slice(
         0,
-        60,
+        SURFACE_BOARD_EVENT_LIMIT,
       );
     }
 
