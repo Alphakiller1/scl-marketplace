@@ -55,6 +55,13 @@ export type OddsSelection = {
   line?: number;
   player?: string;
   featured?: boolean;
+  /**
+   * How many books posted this rung on a featured market key (`spreads` /
+   * `totals`). DraftKings dumps alt run lines on `spreads`, so total
+   * `bookPrices` is the wrong signal for which row is the consensus featured
+   * line — a juiced −1.5 can have the same two books as a −110 alt.
+   */
+  featuredBookCount?: number;
   oddsAmerican: number;
   /** Odds API bookmaker key for the displayed (best) price. */
   book?: string;
@@ -297,6 +304,15 @@ function bookPriceCount(selection: OddsSelection): number {
   return priced > 0 ? priced : 1;
 }
 
+/** Books that originally marked this rung featured, not every book that later priced it. */
+function featuredWeight(selection: OddsSelection): number {
+  if (!selection.featured) return 0;
+  if (typeof selection.featuredBookCount === "number") {
+    return selection.featuredBookCount;
+  }
+  return bookPriceCount(selection);
+}
+
 function unionSelectionPrices(
   cached: OddsSelection,
   fresh: OddsSelection,
@@ -352,12 +368,14 @@ function unionSelectionPrices(
     selectionText = side;
     label = `${side} ML`;
   }
+  const featuredBookCount = featuredWeight(cached) + featuredWeight(fresh);
   return {
     ...fresh,
     side,
     selection: selectionText,
     label,
     featured: Boolean(cached.featured || fresh.featured),
+    ...(featuredBookCount > 0 ? { featuredBookCount } : {}),
     oddsAmerican: best?.price ?? fresh.oddsAmerican,
     book: best?.book ?? fresh.book,
     bookPrices,
@@ -419,6 +437,11 @@ function demoteExtraFeaturedGameLines(
   for (const rows of featured.values()) {
     if (rows.length <= 1) continue;
     const winner = rows.reduce((best, row) => {
+      const featuredBooks = featuredWeight(row);
+      const bestFeaturedBooks = featuredWeight(best);
+      if (featuredBooks !== bestFeaturedBooks) {
+        return featuredBooks > bestFeaturedBooks ? row : best;
+      }
       const books = bookPriceCount(row);
       const bestBooks = bookPriceCount(best);
       if (books !== bestBooks) {
@@ -609,6 +632,7 @@ type BoardGroup = {
    */
   team?: string;
   featured: boolean;
+  featuredBooks: Set<string>;
   byBook: Map<string, number>;
   lastUpdateByBook: Map<string, string>;
 };
@@ -645,7 +669,10 @@ export function normalizeEventBoard(
 
   const add = (
     key: string,
-    seed: () => Omit<BoardGroup, "byBook" | "lastUpdateByBook">,
+    seed: () => Omit<
+      BoardGroup,
+      "byBook" | "lastUpdateByBook" | "featuredBooks"
+    >,
     bookKey: string | undefined,
     price: number,
     featured: boolean,
@@ -657,10 +684,14 @@ export function normalizeEventBoard(
         ...seed(),
         byBook: new Map(),
         lastUpdateByBook: new Map(),
+        featuredBooks: new Set(),
       };
       groups.set(key, g);
     }
-    if (featured) g.featured = true;
+    if (featured) {
+      g.featured = true;
+      if (bookKey) g.featuredBooks.add(bookKey);
+    }
     const bk = bookKey ?? "";
     const prev = g.byBook.get(bk);
     if (
@@ -903,6 +934,9 @@ export function normalizeEventBoard(
         side: g.side,
         line: g.line,
         featured: g.featured,
+        ...(g.featured && g.featuredBooks.size > 0
+          ? { featuredBookCount: g.featuredBooks.size }
+          : {}),
         oddsAmerican: best.price,
         book,
         bookPrices: best.bookPrices,
@@ -917,6 +951,9 @@ export function normalizeEventBoard(
         side: g.side,
         line: g.line,
         featured: g.featured,
+        ...(g.featured && g.featuredBooks.size > 0
+          ? { featuredBookCount: g.featuredBooks.size }
+          : {}),
         oddsAmerican: best.price,
         book,
         bookPrices: best.bookPrices,
@@ -1078,6 +1115,7 @@ export function normalizeUpcomingEvent(
         side: g.side,
         line: g.line,
         featured: true,
+        featuredBookCount: g.byBook.size,
         oddsAmerican: best.price,
         book,
         bookPrices: best.bookPrices,
@@ -1092,6 +1130,7 @@ export function normalizeUpcomingEvent(
         side: g.side,
         line: g.line,
         featured: true,
+        featuredBookCount: g.byBook.size,
         oddsAmerican: best.price,
         book,
         bookPrices: best.bookPrices,

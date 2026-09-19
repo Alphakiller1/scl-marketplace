@@ -860,18 +860,6 @@ test("MLB juiced main run line stays featured while DraftKings alt keeps its pri
           },
         ],
       },
-      {
-        key: "betmgm",
-        markets: [
-          {
-            key: "spreads",
-            outcomes: [
-              { name: "Los Angeles Dodgers", price: -200, point: -1.5 },
-              { name: "Philadelphia Phillies", price: 175, point: 1.5 },
-            ],
-          },
-        ],
-      },
     ],
   };
 

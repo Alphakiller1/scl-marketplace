@@ -116,7 +116,7 @@ test("merge unions DraftKings surface extras onto FanDuel alt rows", () => {
     featured: true,
     oddsAmerican: -110,
     book: "fanduel",
-    bookPrices: { fanduel: -110 },
+    bookPrices: { fanduel: -110, draftkings: -115 },
   };
   const expanded = {
     label: "Los Angeles Dodgers +1.5",
