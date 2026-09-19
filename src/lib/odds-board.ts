@@ -419,14 +419,14 @@ function demoteExtraFeaturedGameLines(
   for (const rows of featured.values()) {
     if (rows.length <= 1) continue;
     const winner = rows.reduce((best, row) => {
-      const closeness = Math.abs((row.oddsAmerican ?? 0) + 110);
-      const bestCloseness = Math.abs((best.oddsAmerican ?? 0) + 110);
-      if (closeness !== bestCloseness) {
-        return closeness < bestCloseness ? row : best;
-      }
       const books = bookPriceCount(row);
       const bestBooks = bookPriceCount(best);
-      return books > bestBooks ? row : best;
+      if (books !== bestBooks) {
+        return books > bestBooks ? row : best;
+      }
+      const closeness = Math.abs((row.oddsAmerican ?? 0) + 110);
+      const bestCloseness = Math.abs((best.oddsAmerican ?? 0) + 110);
+      return closeness < bestCloseness ? row : best;
     });
     winners.add(winner);
   }

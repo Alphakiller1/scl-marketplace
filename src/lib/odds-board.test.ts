@@ -823,7 +823,7 @@ test("a soccer fixture keeps the market only a non-rail book priced", () => {
   assert.equal(resolveBoardBooks(undefined, "NFL").fallbackToAll, false);
 });
 
-test("MLB DraftKings alt rungs on featured spreads keep their price on the alt chip", () => {
+test("MLB juiced main run line stays featured while DraftKings alt keeps its price", () => {
   const event: RawEventOdds = {
     id: "mlb-dk-alts",
     bookmakers: [
@@ -833,10 +833,10 @@ test("MLB DraftKings alt rungs on featured spreads keep their price on the alt c
           {
             key: "spreads",
             outcomes: [
-              { name: "Dodgers", price: -115, point: -1.5 },
-              { name: "Phillies", price: -105, point: 1.5 },
-              { name: "Dodgers", price: -180, point: -2.5 },
-              { name: "Phillies", price: 155, point: 2.5 },
+              { name: "Dodgers", price: -190, point: -1.5 },
+              { name: "Phillies", price: 165, point: 1.5 },
+              { name: "Dodgers", price: -105, point: -2.5 },
+              { name: "Phillies", price: -115, point: 2.5 },
             ],
           },
         ],
@@ -847,15 +847,27 @@ test("MLB DraftKings alt rungs on featured spreads keep their price on the alt c
           {
             key: "spreads",
             outcomes: [
-              { name: "Los Angeles Dodgers", price: -110, point: -1.5 },
-              { name: "Philadelphia Phillies", price: -110, point: 1.5 },
+              { name: "Los Angeles Dodgers", price: -195, point: -1.5 },
+              { name: "Philadelphia Phillies", price: 170, point: 1.5 },
             ],
           },
           {
             key: "alternate_spreads",
             outcomes: [
-              { name: "Los Angeles Dodgers", price: -175, point: -2.5 },
-              { name: "Philadelphia Phillies", price: 148, point: 2.5 },
+              { name: "Los Angeles Dodgers", price: -102, point: -2.5 },
+              { name: "Philadelphia Phillies", price: -118, point: 2.5 },
+            ],
+          },
+        ],
+      },
+      {
+        key: "betmgm",
+        markets: [
+          {
+            key: "spreads",
+            outcomes: [
+              { name: "Los Angeles Dodgers", price: -200, point: -1.5 },
+              { name: "Philadelphia Phillies", price: 175, point: 1.5 },
             ],
           },
         ],
@@ -878,11 +890,11 @@ test("MLB DraftKings alt rungs on featured spreads keep their price on the alt c
   );
   assert.ok(main);
   assert.equal(main!.featured, true);
-  assert.equal(getOddsForBook(main!, "draftkings"), -115);
+  assert.equal(getOddsForBook(main!, "draftkings"), -190);
   assert.ok(alt);
   assert.equal(alt!.featured, false);
-  assert.equal(getOddsForBook(alt!, "draftkings"), -180);
-  assert.equal(getOddsForBook(alt!, "fanduel"), -175);
+  assert.equal(getOddsForBook(alt!, "draftkings"), -105);
+  assert.equal(getOddsForBook(alt!, "fanduel"), -102);
   assert.equal(selectionAllowedForMarkets(alt!, ["alternate_spreads"]), true);
 });
 
