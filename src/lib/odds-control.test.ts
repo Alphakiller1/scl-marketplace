@@ -73,6 +73,7 @@ test("NCAAF dashboard exposes only the requested alternate spreads and totals", 
 
   const defaults = defaultSportControl("NCAAF");
   assert.equal(defaults.expandedEnabled, false);
+  assert.equal(defaults.maxEventsPerRun, 200);
   assert.deepEqual(defaults.expandedMarkets, [
     "alternate_spreads",
     "alternate_totals",
@@ -135,6 +136,16 @@ test("cost preview is a conservative upper bound for surface and expanded runs",
       maxEventsPerRun: 12,
     }),
     24,
+  );
+  assert.equal(
+    estimatedRunCredits({
+      sport: "NCAAF",
+      tier: "expanded",
+      markets: ["alternate_spreads", "alternate_totals"],
+      leagues: [],
+      maxEventsPerRun: 20,
+    }),
+    400,
   );
 });
 

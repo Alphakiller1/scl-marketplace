@@ -1,3 +1,4 @@
+import { resolveExpandedEventLimit } from "@/lib/manual-odds-population";
 import { DEFAULT_EVENT_BUYS_PER_DAY } from "@/lib/odds-event-buy-budget";
 import {
   expandedBoardMarkets,
@@ -190,7 +191,7 @@ export function defaultSportControl(sport: OddsControlSport) {
     leagues: [] as string[],
     surfaceCadenceMinutes: 240,
     expandedCadenceMinutes: 360,
-    maxEventsPerRun: sport === "SOCCER" ? 80 : 20,
+    maxEventsPerRun: sport === "SOCCER" ? 80 : sport === "NCAAF" ? 200 : 20,
     dailyVerificationLimit: DEFAULT_EVENT_BUYS_PER_DAY,
     nextSurfaceRunAt: null as string | null,
     nextExpandedRunAt: null as string | null,
@@ -408,7 +409,11 @@ export function estimatedRunCredits(input: {
 }): number {
   if (input.tier === "expanded") {
     const catalogCredit = input.markets.length > 8 ? 1 : 0;
-    return (input.markets.length + catalogCredit) * input.maxEventsPerRun;
+    const events = resolveExpandedEventLimit(
+      input.sport,
+      input.maxEventsPerRun,
+    );
+    return (input.markets.length + catalogCredit) * events;
   }
   const competitionCount =
     input.sport === "SOCCER"

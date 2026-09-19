@@ -30,7 +30,7 @@ export const oddsSportControlSchema = z
     leagues: z.array(z.string().trim().min(1).max(100)).max(60),
     surfaceCadenceMinutes: z.number().int().min(15).max(1440),
     expandedCadenceMinutes: z.number().int().min(15).max(1440),
-    maxEventsPerRun: z.number().int().min(1).max(99),
+    maxEventsPerRun: z.number().int().min(1).max(200),
     // Clamped at the schema edge as well as in the UI: the ceiling is the whole
     // point of the setting, so it cannot rely on the form to enforce it.
     dailyVerificationLimit: z

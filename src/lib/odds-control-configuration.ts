@@ -139,6 +139,7 @@ const CODE_LEVEL_LEAGUE_DEFAULTS: Partial<
   Record<OddsControlSport, { maxEventsPerRun?: number }>
 > = {
   SOCCER: { maxEventsPerRun: 80 },
+  NCAAF: { maxEventsPerRun: 200 },
 };
 
 export function cadenceText(minutes: number): string {

@@ -9,6 +9,7 @@
  */
 
 import { teamMarkSrc } from "@/lib/mark-manifest";
+import { NCAAF_TEAM_ROWS } from "@/lib/ncaaf-teams";
 
 export type TeamIdentity = {
   key: string;
@@ -32,7 +33,7 @@ const ESPN_SPORT_SLUG: Record<string, string> = {
   NFL: "nfl",
   NBA: "nba",
   NHL: "nhl",
-  NCAAF: "ncaa/football",
+  NCAAF: "ncaa",
   NCAAB: "ncaa/basketball",
   CFL: "cfl",
 };
@@ -259,10 +260,24 @@ const NFL_TEAMS: TeamRecord[] = [
   ]),
 ];
 
+const NCAAF_TEAMS: TeamRecord[] = NCAAF_TEAM_ROWS.map((row) =>
+  team(
+    "NCAAF",
+    row.abbr,
+    row.shortName,
+    row.fullName,
+    row.primaryColor,
+    [...row.aliases],
+    undefined,
+    row.espnId,
+  ),
+);
+
 const TEAMS_BY_SPORT: Record<string, TeamRecord[]> = {
   NFL: NFL_TEAMS,
   MLB: MLB_TEAMS,
   WNBA: WNBA_TEAMS,
+  NCAAF: NCAAF_TEAMS,
 };
 
 /** Spec map shape: normalizedName → { abbr, shortName, primaryColor }. */
@@ -334,13 +349,14 @@ export function readableTextColor(hex: string): "#0b0f19" | "#ffffff" {
 }
 
 function team(
-  sport: "MLB" | "WNBA" | "NFL",
+  sport: "MLB" | "WNBA" | "NFL" | "NCAAF",
   abbr: string,
   shortName: string,
   fullName: string,
   primaryColor: string,
   aliases: string[] = [],
   secondaryColor?: string,
+  espnLogoStem?: string,
 ): TeamRecord {
   return {
     key: `${abbr}-${normalize(fullName)}`,
@@ -349,7 +365,8 @@ function team(
     fullName,
     primaryColor,
     secondaryColor,
-    logoUrl: teamMarkSrc(sport, abbr) ?? espnTeamLogoUrl(sport, abbr),
+    logoUrl:
+      teamMarkSrc(sport, abbr) ?? espnTeamLogoUrl(sport, espnLogoStem ?? abbr),
     aliases,
   };
 }

@@ -56,6 +56,27 @@ test("espnTeamLogoUrl applies abbr overrides", () => {
   );
 });
 
+test("NCAAF identities use ESPN college logos", () => {
+  const ucla = getTeamIdentity("UCLA Bruins", "NCAAF");
+  assert.equal(ucla.abbr, "UCLA");
+  assert.equal(
+    ucla.logoUrl,
+    "https://a.espncdn.com/i/teamlogos/ncaa/500/26.png",
+  );
+  assert.equal(getTeamIdentity("UCLA", "NCAAF").abbr, "UCLA");
+  const purdue = getTeamIdentity("Purdue Boilermakers", "NCAAF");
+  assert.equal(purdue.abbr, "PUR");
+  assert.equal(
+    purdue.logoUrl,
+    "https://a.espncdn.com/i/teamlogos/ncaa/500/2509.png",
+  );
+  assert.equal(
+    getTeamIdentity("Purdue", "NCAAF").fullName,
+    "Purdue Boilermakers",
+  );
+  assert.equal(resolveKnownTeam("Purdue Boilermakers", "NCAAF")?.abbr, "PUR");
+});
+
 test("getTeamIdentity creates deterministic fallback marks without logos", () => {
   const first = getTeamIdentity("Mystery City Meteors", "MLB");
   const second = getTeamIdentity("Mystery City Meteors", "MLB");

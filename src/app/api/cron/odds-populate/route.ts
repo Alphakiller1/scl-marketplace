@@ -37,6 +37,7 @@ import {
   isEarlyExpandedEvent,
   laterExpandedCreditReserve,
   parseExpandedMaxAgeMinutes,
+  resolveExpandedEventLimit,
   parseExpandedSlateDays,
   parseExpandedSportOrder,
   selectExpandedSlateEvents,
@@ -234,7 +235,7 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
     req.nextUrl.searchParams.get("expanded") ?? 0,
   );
   const expandedLimit = Number.isFinite(requestedExpanded)
-    ? Math.max(0, Math.min(99, Math.floor(requestedExpanded)))
+    ? Math.max(0, Math.floor(requestedExpanded))
     : 0;
   const expandedDays = parseExpandedSlateDays(
     req.nextUrl.searchParams.get("expandedDays") ?? "tomorrow",
@@ -311,7 +312,7 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
         expandedDays,
         new Date(),
         sport,
-      ).slice(0, expandedLimit),
+      ).slice(0, resolveExpandedEventLimit(sport, expandedLimit)),
     }));
     for (let index = 0; index < slates.length; index += 1) {
       const { sport, events } = slates[index]!;

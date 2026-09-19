@@ -1,4 +1,4 @@
-import type { OddsEvent } from "@/lib/odds-board";
+import { SURFACE_BOARD_EVENT_LIMIT, type OddsEvent } from "@/lib/odds-board";
 import { expandedBoardMarkets } from "@/lib/odds-verify";
 
 /**
@@ -41,6 +41,26 @@ const ET_DAY = new Intl.DateTimeFormat("en-CA", {
 
 function etDay(date: Date): string {
   return ET_DAY.format(date);
+}
+
+/**
+ * How many fixtures an expanded pass may buy.
+ *
+ * The dashboard default of 20 is right for MLB (dozens of markets a game).
+ * NCAAF asks for two alternate ladders and plays 60–80 games on a Saturday;
+ * slicing that card to 20 left night kickoffs — Purdue vs UCLA — as
+ * surface-only after a "successful" expanded run.
+ */
+export function resolveExpandedEventLimit(
+  sport: string,
+  requested: number,
+): number {
+  if (!Number.isFinite(requested) || requested <= 0) return 0;
+  const n = Math.floor(requested);
+  if (sport.trim().toUpperCase() === "NCAAF") {
+    return SURFACE_BOARD_EVENT_LIMIT;
+  }
+  return Math.min(n, SURFACE_BOARD_EVENT_LIMIT);
 }
 
 export function parseExpandedSlateDays(value: string): ExpandedSlateDay[] {
