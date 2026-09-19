@@ -30,6 +30,7 @@ import {
   parseExpandedSlateDays,
   parseExpandedSportOrder,
   selectExpandedSlateEvents,
+  shouldBypassExpandedBuyCap,
   shouldHoldCreditsForLater,
   shouldRefreshSurfaceForExpanded,
   staleSurfaceSports,
@@ -347,6 +348,21 @@ test("an incomplete or uncached expanded board is never skipped", () => {
   const now = Date.now();
   assert.equal(canSkipExpandedEvent(false, now, 120, now), false);
   assert.equal(canSkipExpandedEvent(true, null, 120, now), false);
+});
+
+test("an incomplete NCAAF board may spend past today's buy cap", () => {
+  assert.equal(
+    shouldBypassExpandedBuyCap({ sport: "NCAAF", fullyCovered: false }),
+    true,
+  );
+  assert.equal(
+    shouldBypassExpandedBuyCap({ sport: "NCAAF", fullyCovered: true }),
+    false,
+  );
+  assert.equal(
+    shouldBypassExpandedBuyCap({ sport: "MLB", fullyCovered: false }),
+    false,
+  );
 });
 
 test("the expanded max age falls back rather than trusting a bad query value", () => {

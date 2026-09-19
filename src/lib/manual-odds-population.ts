@@ -488,6 +488,23 @@ export function canSkipExpandedEvent(
 }
 
 /**
+ * May today's one-buy cap block another expanded fetch?
+ *
+ * The cap is right for a complete MLB card. It is wrong for NCAAF after a
+ * "successful" run that saved only the featured line: Purdue vs UCLA spent
+ * its allowance on a surface-shaped board, and every later pass reported
+ * `capped` instead of buying the DraftKings alt ladder. Incomplete college
+ * boards are four credits; leaving them frozen until 8am ET costs the
+ * Saturday card.
+ */
+export function shouldBypassExpandedBuyCap(input: {
+  sport: string;
+  fullyCovered: boolean;
+}): boolean {
+  return input.sport.trim().toUpperCase() === "NCAAF" && !input.fullyCovered;
+}
+
+/**
  * How soon a catch-up pass runs once a fixture with no board at all is found.
  *
  * Short, because the thing it is chasing is a fixture the provider published

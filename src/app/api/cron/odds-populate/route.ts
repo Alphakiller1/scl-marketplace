@@ -41,6 +41,7 @@ import {
   parseExpandedSlateDays,
   parseExpandedSportOrder,
   selectExpandedSlateEvents,
+  shouldBypassExpandedBuyCap,
   shouldHoldCreditsForLater,
   shouldRefreshSurfaceForExpanded,
   staleSurfaceSports,
@@ -398,7 +399,12 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
         const boardWithinAge =
           cached.savedAt != null &&
           Date.now() - cached.savedAt <= expandedMaxAgeMinutes * 60_000;
-        const boardCapped = !ignoreBuyCap && cached.buysRemaining <= 0;
+        const bypassBuyCap = shouldBypassExpandedBuyCap({
+          sport,
+          fullyCovered: coverage.fullyCovered,
+        });
+        const boardCapped =
+          !ignoreBuyCap && !bypassBuyCap && cached.buysRemaining <= 0;
         // A capped board is included deliberately: it cannot be rebought today,
         // so a top-up is the only thing that can still fill it — and without an
         // attempt logged, the catch-up scheduler would wake a pass every half
@@ -478,7 +484,7 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
           forceRefresh: true,
           league: event.league,
           markets: sportMarkets.length ? sportMarkets : undefined,
-          ignoreDailyBuyCap: ignoreBuyCap,
+          ignoreDailyBuyCap: ignoreBuyCap || bypassBuyCap,
           dailyBuyLimit: buyLimit,
           // The scheduled sweep is the path the one-buy allowance is spent on,
           // so it is the path that has to wait for the card to open.
