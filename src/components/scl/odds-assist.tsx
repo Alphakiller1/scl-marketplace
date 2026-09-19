@@ -559,7 +559,11 @@ export function EventDetail({
 
   const shown =
     detail?.status === "ready" && detail.selections.length > 0
-      ? mergeEventBoardSelections(event.selections, detail.selections)
+      ? mergeEventBoardSelections(
+          event.selections,
+          detail.selections,
+          event.sport,
+        )
       : event.selections;
 
   // Hierarchy: featured game lines (always visible) → player props (searchable) → alternate

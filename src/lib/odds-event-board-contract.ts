@@ -1,4 +1,4 @@
-import type { OddsSelection } from "@/lib/odds-board";
+import { coalesceBoardSelections, type OddsSelection } from "@/lib/odds-board";
 
 export type EventBoardSnapshot = {
   version: 1;
@@ -61,18 +61,20 @@ export function addMissingEventBoardSelections(
   return [...cached, ...added];
 }
 
-/** Fresh rows win, while temporarily absent market groups retain their last-good rows. */
+/**
+ * Union per-book prices on the same line, then keep last-good rows the
+ * refresh did not return.
+ *
+ * A wholesale replace dropped DraftKings MLB alt rungs: those prices live on
+ * the surface `spreads` snapshot, FanDuel's live on `alternate_spreads`, and
+ * the event-detail merge used the same identity for both.
+ */
 export function mergeEventBoardSelections(
   cached: readonly OddsSelection[],
   fresh: readonly OddsSelection[],
+  sport?: string,
 ): OddsSelection[] {
-  const merged = new Map(
-    cached.map((selection) => [selectionIdentity(selection), selection]),
-  );
-  for (const selection of fresh) {
-    merged.set(selectionIdentity(selection), selection);
-  }
-  return [...merged.values()];
+  return coalesceBoardSelections([...cached, ...fresh], sport);
 }
 
 function isOddsSelection(value: unknown): value is OddsSelection {

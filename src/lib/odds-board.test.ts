@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  coalesceBoardSelections,
   dedupeOddsEvents,
   getOddsForBook,
   isExtremeAmericanOdds,
@@ -14,6 +15,7 @@ import {
   type OddsEvent,
   type OddsSelection,
 } from "@/lib/odds-board";
+import { selectionAllowedForMarkets } from "@/lib/odds-control";
 import { PICK_BOARD_BOOKS } from "@/lib/books";
 import type { RawEventOdds } from "@/lib/odds-verify";
 
@@ -819,4 +821,112 @@ test("a soccer fixture keeps the market only a non-rail book priced", () => {
   // The rail still governs the US majors: nothing here widens those boards.
   assert.equal(resolveBoardBooks(undefined, "MLB").fallbackToAll, false);
   assert.equal(resolveBoardBooks(undefined, "NFL").fallbackToAll, false);
+});
+
+test("MLB juiced main run line stays featured while DraftKings alt keeps its price", () => {
+  const event: RawEventOdds = {
+    id: "mlb-dk-alts",
+    bookmakers: [
+      {
+        key: "draftkings",
+        markets: [
+          {
+            key: "spreads",
+            outcomes: [
+              { name: "Dodgers", price: -190, point: -1.5 },
+              { name: "Phillies", price: 165, point: 1.5 },
+              { name: "Dodgers", price: -105, point: -2.5 },
+              { name: "Phillies", price: -115, point: 2.5 },
+            ],
+          },
+        ],
+      },
+      {
+        key: "fanduel",
+        markets: [
+          {
+            key: "spreads",
+            outcomes: [
+              { name: "Los Angeles Dodgers", price: -195, point: -1.5 },
+              { name: "Philadelphia Phillies", price: 170, point: 1.5 },
+            ],
+          },
+          {
+            key: "alternate_spreads",
+            outcomes: [
+              { name: "Los Angeles Dodgers", price: -102, point: -2.5 },
+              { name: "Philadelphia Phillies", price: -118, point: 2.5 },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  const board = normalizeEventBoard(event, { sport: "MLB" });
+  const main = board.find(
+    (s) =>
+      s.market === "Spread" &&
+      s.side === "Los Angeles Dodgers" &&
+      s.line === -1.5,
+  );
+  const alt = board.find(
+    (s) =>
+      s.market === "Spread" &&
+      s.side === "Los Angeles Dodgers" &&
+      s.line === -2.5,
+  );
+  assert.ok(main);
+  assert.equal(main!.featured, true);
+  assert.equal(getOddsForBook(main!, "draftkings"), -190);
+  assert.ok(alt);
+  assert.equal(alt!.featured, false);
+  assert.equal(getOddsForBook(alt!, "draftkings"), -105);
+  assert.equal(getOddsForBook(alt!, "fanduel"), -102);
+  assert.equal(selectionAllowedForMarkets(alt!, ["alternate_spreads"]), true);
+});
+
+test("surface DK extras union into expanded FanDuel alts instead of replacing them", () => {
+  const surface: OddsSelection = {
+    label: "Dodgers +1.5",
+    market: "Spread",
+    selection: "Dodgers +1.5",
+    side: "Dodgers",
+    line: 1.5,
+    featured: true,
+    oddsAmerican: -105,
+    book: "draftkings",
+    bookPrices: { draftkings: -105 },
+  };
+  const main: OddsSelection = {
+    label: "Los Angeles Dodgers -1.5",
+    market: "Spread",
+    selection: "Los Angeles Dodgers -1.5",
+    side: "Los Angeles Dodgers",
+    line: -1.5,
+    featured: true,
+    oddsAmerican: -110,
+    book: "fanduel",
+    bookPrices: { fanduel: -110, draftkings: -115 },
+  };
+  const expanded: OddsSelection = {
+    label: "Los Angeles Dodgers +1.5",
+    market: "Spread",
+    selection: "Los Angeles Dodgers +1.5",
+    side: "Los Angeles Dodgers",
+    line: 1.5,
+    featured: false,
+    oddsAmerican: -102,
+    book: "fanduel",
+    bookPrices: { fanduel: -102 },
+  };
+
+  const shown = coalesceBoardSelections([main, surface, expanded], "MLB");
+  const alt = shown.find((s) => s.line === 1.5);
+  assert.ok(alt);
+  assert.equal(alt!.featured, false);
+  assert.equal(alt!.side, "Los Angeles Dodgers");
+  assert.equal(getOddsForBook(alt!, "draftkings"), -105);
+  assert.equal(getOddsForBook(alt!, "fanduel"), -102);
+  assert.equal(selectionAllowedForMarkets(alt!, ["alternate_spreads"]), true);
 });

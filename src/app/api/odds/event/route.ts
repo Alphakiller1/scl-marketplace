@@ -5,6 +5,7 @@ import {
   loadCachedEventBoard,
   loadEventBoard,
 } from "@/lib/odds-event-board-cache";
+import { coalesceBoardSelections } from "@/lib/odds-board";
 import { selectionAllowedForMarkets } from "@/lib/odds-control";
 import { getManagedOddsSportControl } from "@/lib/odds-control-runtime";
 import { leagueBuyLimit } from "@/lib/odds-league-buy-limits";
@@ -51,11 +52,12 @@ export async function GET(request: Request) {
           source: "provider_empty" as const,
           stale: false,
         };
+  const coalesced = coalesceBoardSelections(board.selections, sport);
   const selections = policy
-    ? board.selections.filter((selection) =>
+    ? coalesced.filter((selection) =>
         selectionAllowedForMarkets(selection, policy.expandedMarkets),
       )
-    : board.selections;
+    : coalesced;
   if (selections.length === 0) {
     console.warn("[odds-board] event detail empty", {
       sport,

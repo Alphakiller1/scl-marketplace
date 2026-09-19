@@ -3,6 +3,7 @@
  * No network / no server-only — unit-testable. Fetch lives in odds-api.ts.
  */
 
+import { resolveKnownTeam } from "@/lib/teams";
 import {
   isBookKey,
   pickFormFallsBackOutsideRail,
@@ -54,6 +55,13 @@ export type OddsSelection = {
   line?: number;
   player?: string;
   featured?: boolean;
+  /**
+   * How many books posted this rung on a featured market key (`spreads` /
+   * `totals`). DraftKings dumps alt run lines on `spreads`, so total
+   * `bookPrices` is the wrong signal for which row is the consensus featured
+   * line — a juiced −1.5 can have the same two books as a −110 alt.
+   */
+  featuredBookCount?: number;
   oddsAmerican: number;
   /** Odds API bookmaker key for the displayed (best) price. */
   book?: string;
@@ -282,6 +290,218 @@ export function preferredThenAll(
   };
 }
 
+/** Map a bookmaker team string onto SCL's canonical full name when we know it. */
+export function canonicalGameSide(name: string, sport?: string): string {
+  const trimmed = name.trim();
+  if (!trimmed || !sport) return trimmed;
+  return resolveKnownTeam(trimmed, sport)?.fullName ?? trimmed;
+}
+
+function bookPriceCount(selection: OddsSelection): number {
+  const priced = Object.values(selection.bookPrices ?? {}).filter(
+    (price) => typeof price === "number",
+  ).length;
+  return priced > 0 ? priced : 1;
+}
+
+/** Books that originally marked this rung featured, not every book that later priced it. */
+function featuredWeight(selection: OddsSelection): number {
+  if (!selection.featured) return 0;
+  if (typeof selection.featuredBookCount === "number") {
+    return selection.featuredBookCount;
+  }
+  return bookPriceCount(selection);
+}
+
+function unionSelectionPrices(
+  cached: OddsSelection,
+  fresh: OddsSelection,
+  sport?: string,
+): OddsSelection {
+  const bookPrices = {
+    ...(cached.bookPrices ?? {}),
+    ...(fresh.bookPrices ?? {}),
+  };
+  if (
+    typeof cached.oddsAmerican === "number" &&
+    cached.book &&
+    bookPrices[cached.book] == null
+  ) {
+    bookPrices[cached.book] = cached.oddsAmerican;
+  }
+  if (
+    typeof fresh.oddsAmerican === "number" &&
+    fresh.book &&
+    bookPrices[fresh.book] == null
+  ) {
+    bookPrices[fresh.book] = fresh.oddsAmerican;
+  }
+  const bookCapturedAt = {
+    ...(cached.bookCapturedAt ?? {}),
+    ...(fresh.bookCapturedAt ?? {}),
+  };
+  const byBook = new Map(
+    Object.entries(bookPrices).filter(
+      (entry): entry is [string, number] => typeof entry[1] === "number",
+    ),
+  );
+  const lastUpdate = new Map(
+    Object.entries(bookCapturedAt).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string",
+    ),
+  );
+  const best = preferredThenAll(byBook, PICK_BOARD_BOOKS, lastUpdate, {
+    fallbackToAll: true,
+  });
+  const side =
+    cached.market === "Spread" || cached.market === "Moneyline"
+      ? canonicalGameSide(fresh.side || cached.side, sport)
+      : fresh.side;
+  const line = fresh.line ?? cached.line;
+  let selectionText = fresh.selection;
+  let label = fresh.label;
+  if (cached.market === "Spread" && line != null) {
+    const signed = `${line > 0 ? "+" : ""}${line}`;
+    selectionText = `${side} ${signed}`;
+    label = `${side} ${signed}`;
+  } else if (cached.market === "Moneyline") {
+    selectionText = side;
+    label = `${side} ML`;
+  }
+  const featuredBookCount = featuredWeight(cached) + featuredWeight(fresh);
+  return {
+    ...fresh,
+    side,
+    selection: selectionText,
+    label,
+    featured: Boolean(cached.featured || fresh.featured),
+    ...(featuredBookCount > 0 ? { featuredBookCount } : {}),
+    oddsAmerican: best?.price ?? fresh.oddsAmerican,
+    book: best?.book ?? fresh.book,
+    bookPrices,
+    ...(Object.keys(bookCapturedAt).length > 0 ? { bookCapturedAt } : {}),
+    ...(best?.capturedAt
+      ? { oddsCapturedAt: best.capturedAt }
+      : fresh.oddsCapturedAt
+        ? { oddsCapturedAt: fresh.oddsCapturedAt }
+        : cached.oddsCapturedAt
+          ? { oddsCapturedAt: cached.oddsCapturedAt }
+          : {}),
+  };
+}
+
+function rewriteGameLineIdentity(
+  selection: OddsSelection,
+  sport?: string,
+): OddsSelection {
+  if (selection.market !== "Spread" && selection.market !== "Moneyline") {
+    return selection;
+  }
+  const side = canonicalGameSide(selection.side, sport);
+  if (side === selection.side) return selection;
+  if (selection.market === "Moneyline") {
+    return {
+      ...selection,
+      side,
+      selection: side,
+      label: `${side} ML`,
+    };
+  }
+  const signed = `${(selection.line ?? 0) > 0 ? "+" : ""}${selection.line}`;
+  return {
+    ...selection,
+    side,
+    selection: `${side} ${signed}`,
+    label: `${side} ${signed}`,
+  };
+}
+
+function demoteExtraFeaturedGameLines(
+  selections: readonly OddsSelection[],
+): OddsSelection[] {
+  const featured = new Map<string, OddsSelection[]>();
+  for (const selection of selections) {
+    if (
+      !selection.featured ||
+      (selection.market !== "Spread" && selection.market !== "Total") ||
+      selection.line == null
+    ) {
+      continue;
+    }
+    const key = `${selection.market}|${selection.side}`;
+    const rows = featured.get(key) ?? [];
+    rows.push(selection);
+    featured.set(key, rows);
+  }
+  const winners = new Set<OddsSelection>();
+  for (const rows of featured.values()) {
+    if (rows.length <= 1) continue;
+    const winner = rows.reduce((best, row) => {
+      const featuredBooks = featuredWeight(row);
+      const bestFeaturedBooks = featuredWeight(best);
+      if (featuredBooks !== bestFeaturedBooks) {
+        return featuredBooks > bestFeaturedBooks ? row : best;
+      }
+      const books = bookPriceCount(row);
+      const bestBooks = bookPriceCount(best);
+      if (books !== bestBooks) {
+        return books > bestBooks ? row : best;
+      }
+      const closeness = Math.abs((row.oddsAmerican ?? 0) + 110);
+      const bestCloseness = Math.abs((best.oddsAmerican ?? 0) + 110);
+      return closeness < bestCloseness ? row : best;
+    });
+    winners.add(winner);
+  }
+  if (winners.size === 0) return [...selections];
+  return selections.map((selection) => {
+    if (
+      !selection.featured ||
+      (selection.market !== "Spread" && selection.market !== "Total")
+    ) {
+      return selection;
+    }
+    const peers = featured.get(`${selection.market}|${selection.side}`);
+    if (!peers || peers.length <= 1) return selection;
+    const winner = peers.find((row) => winners.has(row));
+    return winner === selection ? selection : { ...selection, featured: false };
+  });
+}
+
+/**
+ * One row per {market, side, line}: union per-book prices, canonical team
+ * names, and a single featured spread/total per side.
+ *
+ * DraftKings files MLB alt run lines on the featured `spreads` key. Other
+ * books use `alternate_spreads`. Without this, those DK rungs stay
+ * `featured: true`, the expanded-board filter (which only publishes
+ * `alternate_spreads`) drops them, and the DK tab greys out every alt chip.
+ */
+export function coalesceBoardSelections(
+  selections: readonly OddsSelection[],
+  sport?: string,
+): OddsSelection[] {
+  const merged = new Map<string, OddsSelection>();
+  for (const selection of selections) {
+    const rewritten = rewriteGameLineIdentity(selection, sport);
+    const key = [
+      rewritten.market.trim().toLowerCase(),
+      rewritten.side.trim().toLowerCase(),
+      rewritten.line ?? "",
+      rewritten.player?.trim().toLowerCase() ?? "",
+      isTeamTotalMarket(rewritten.market)
+        ? rewritten.selection.trim().toLowerCase()
+        : "",
+    ].join("|");
+    const prev = merged.get(key);
+    merged.set(
+      key,
+      prev ? unionSelectionPrices(prev, rewritten, sport) : rewritten,
+    );
+  }
+  return demoteExtraFeaturedGameLines([...merged.values()]);
+}
+
 /** Normalized matchup key for board dedupe (sport + home + away + commence). */
 export function oddsEventMatchupKey(
   event: Pick<OddsEvent, "sport" | "home" | "away" | "commenceTime">,
@@ -412,6 +632,7 @@ type BoardGroup = {
    */
   team?: string;
   featured: boolean;
+  featuredBooks: Set<string>;
   byBook: Map<string, number>;
   lastUpdateByBook: Map<string, string>;
 };
@@ -448,7 +669,10 @@ export function normalizeEventBoard(
 
   const add = (
     key: string,
-    seed: () => Omit<BoardGroup, "byBook" | "lastUpdateByBook">,
+    seed: () => Omit<
+      BoardGroup,
+      "byBook" | "lastUpdateByBook" | "featuredBooks"
+    >,
     bookKey: string | undefined,
     price: number,
     featured: boolean,
@@ -460,10 +684,14 @@ export function normalizeEventBoard(
         ...seed(),
         byBook: new Map(),
         lastUpdateByBook: new Map(),
+        featuredBooks: new Set(),
       };
       groups.set(key, g);
     }
-    if (featured) g.featured = true;
+    if (featured) {
+      g.featured = true;
+      if (bookKey) g.featuredBooks.add(bookKey);
+    }
     const bk = bookKey ?? "";
     const prev = g.byBook.get(bk);
     if (
@@ -524,11 +752,12 @@ export function normalizeEventBoard(
           );
         } else if (gameMarket) {
           if (gameMarket !== "Moneyline" && line === undefined) continue;
+          const side = canonicalGameSide(o.name, opts?.sport);
           add(
-            `g|${gameMarket}|${o.name.toLowerCase()}|${line ?? ""}`,
+            `g|${gameMarket}|${side.toLowerCase()}|${line ?? ""}`,
             () => ({
               market: gameMarket,
-              side: o.name,
+              side,
               line,
               featured: false,
             }),
@@ -705,6 +934,9 @@ export function normalizeEventBoard(
         side: g.side,
         line: g.line,
         featured: g.featured,
+        ...(g.featured && g.featuredBooks.size > 0
+          ? { featuredBookCount: g.featuredBooks.size }
+          : {}),
         oddsAmerican: best.price,
         book,
         bookPrices: best.bookPrices,
@@ -719,6 +951,9 @@ export function normalizeEventBoard(
         side: g.side,
         line: g.line,
         featured: g.featured,
+        ...(g.featured && g.featuredBooks.size > 0
+          ? { featuredBookCount: g.featuredBooks.size }
+          : {}),
         oddsAmerican: best.price,
         book,
         bookPrices: best.bookPrices,
@@ -728,7 +963,7 @@ export function normalizeEventBoard(
     }
   }
 
-  return selections.sort((a, b) => {
+  return coalesceBoardSelections(selections, opts?.sport).sort((a, b) => {
     const ra = marketRank(a.market);
     const rb = marketRank(b.market);
     if (ra !== rb) return ra - rb;
@@ -820,17 +1055,19 @@ export function normalizeUpcomingEvent(
         if (typeof o.price !== "number") continue;
         const price = Math.round(o.price);
         if (m.key === "h2h") {
+          const side = canonicalGameSide(o.name, sclSport);
           touch(
-            `ml|${o.name.toLowerCase()}`,
-            { market: "Moneyline", side: o.name },
+            `ml|${side.toLowerCase()}`,
+            { market: "Moneyline", side },
             bookKey,
             price,
             lastUpdate,
           );
         } else if (m.key === "spreads" && typeof o.point === "number") {
+          const side = canonicalGameSide(o.name, sclSport);
           touch(
-            `sp|${o.name.toLowerCase()}|${o.point}`,
-            { market: "Spread", side: o.name, line: o.point },
+            `sp|${side.toLowerCase()}|${o.point}`,
+            { market: "Spread", side, line: o.point },
             bookKey,
             price,
             lastUpdate,
@@ -878,6 +1115,7 @@ export function normalizeUpcomingEvent(
         side: g.side,
         line: g.line,
         featured: true,
+        featuredBookCount: g.byBook.size,
         oddsAmerican: best.price,
         book,
         bookPrices: best.bookPrices,
@@ -892,6 +1130,7 @@ export function normalizeUpcomingEvent(
         side: g.side,
         line: g.line,
         featured: true,
+        featuredBookCount: g.byBook.size,
         oddsAmerican: best.price,
         book,
         bookPrices: best.bookPrices,
