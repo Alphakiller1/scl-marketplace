@@ -5,6 +5,7 @@ import {
   failOddsRun,
   type ClaimedOddsRun,
 } from "@/lib/odds-control-runtime";
+import { resolveExpandedEventLimit } from "@/lib/manual-odds-population";
 import { siteUrl } from "@/lib/site-url";
 
 export async function executeClaimedOddsRun(
@@ -43,7 +44,9 @@ export async function executeClaimedOddsRun(
   target.searchParams.set("surface", run.tier === "surface" ? "1" : "0");
   target.searchParams.set(
     "expanded",
-    run.tier === "expanded" ? String(run.maxEventsPerRun) : "0",
+    run.tier === "expanded"
+      ? String(resolveExpandedEventLimit(run.sport, run.maxEventsPerRun))
+      : "0",
   );
   target.searchParams.set("expandedDays", "today,tomorrow");
   target.searchParams.set("skipPopulated", "1");

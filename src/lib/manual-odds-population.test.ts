@@ -36,6 +36,7 @@ import {
   surfaceRefreshReachedProvider,
   unpricedCompetitionKey,
   expandedPassLookedAtSlate,
+  resolveExpandedEventLimit,
 } from "@/lib/manual-odds-population";
 
 const NOW = new Date("2026-08-18T06:00:00.000Z");
@@ -280,12 +281,33 @@ test("NCAAF games are not one unpriced competition", () => {
   );
 });
 
+test("NCAAF expanded runs cover the Saturday card, not twenty games", () => {
+  assert.equal(resolveExpandedEventLimit("NCAAF", 20), 200);
+  assert.equal(resolveExpandedEventLimit("NCAAF", 1), 200);
+  assert.equal(resolveExpandedEventLimit("MLB", 20), 20);
+  assert.equal(resolveExpandedEventLimit("NFL", 20), 20);
+  assert.equal(resolveExpandedEventLimit("NCAAF", 0), 0);
+});
+
 test("an expanded NCAAF pass refreshes the cached surface board", () => {
   const cached = [{ commenceTime: "2026-09-19T16:00:00Z" }];
-  assert.equal(shouldRefreshSurfaceForExpanded("NCAAF", cached, false), true);
-  assert.equal(shouldRefreshSurfaceForExpanded("NCAAF", cached, true), false);
-  assert.equal(shouldRefreshSurfaceForExpanded("MLB", cached, false), false);
-  assert.equal(shouldRefreshSurfaceForExpanded("MLB", [], false), true);
+  const morning = Date.parse("2026-09-19T12:00:00.000Z");
+  assert.equal(
+    shouldRefreshSurfaceForExpanded("NCAAF", cached, false, morning),
+    true,
+  );
+  assert.equal(
+    shouldRefreshSurfaceForExpanded("NCAAF", cached, true, morning),
+    false,
+  );
+  assert.equal(
+    shouldRefreshSurfaceForExpanded("MLB", cached, false, morning),
+    false,
+  );
+  assert.equal(
+    shouldRefreshSurfaceForExpanded("MLB", [], false, morning),
+    true,
+  );
 });
 
 test("a targeted expanded run is not success against an empty slate", () => {

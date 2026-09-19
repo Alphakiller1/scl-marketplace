@@ -904,7 +904,7 @@ export function AdminOddsControlEditor({
                               id={`${sport.sport}-event-limit`}
                               type="number"
                               min={1}
-                              max={99}
+                              max={200}
                               disabled={
                                 !sport.enabled || !sport.expandedEnabled
                               }
