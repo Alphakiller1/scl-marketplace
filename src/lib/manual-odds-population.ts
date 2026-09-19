@@ -1,4 +1,5 @@
 import { SURFACE_BOARD_EVENT_LIMIT, type OddsEvent } from "@/lib/odds-board";
+import { HARD_MAX_EVENT_BUYS_PER_DAY } from "@/lib/odds-event-buy-budget";
 import {
   expandedBoardMarkets,
   withFeaturedGameLineCompanions,
@@ -496,12 +497,20 @@ export function canSkipExpandedEvent(
  * `capped` instead of buying the DraftKings alt ladder. Incomplete college
  * boards are four credits; leaving them frozen until 8am ET costs the
  * Saturday card.
+ *
+ * The bypass still stops at {@link HARD_MAX_EVENT_BUYS_PER_DAY}. Games whose
+ * alt ladders never open must not be rebought on every scheduled pass with
+ * the hard ceiling lifted.
  */
 export function shouldBypassExpandedBuyCap(input: {
   sport: string;
   fullyCovered: boolean;
+  buysToday?: number;
 }): boolean {
-  return input.sport.trim().toUpperCase() === "NCAAF" && !input.fullyCovered;
+  if (input.sport.trim().toUpperCase() !== "NCAAF") return false;
+  if (input.fullyCovered) return false;
+  const used = input.buysToday ?? 0;
+  return used < HARD_MAX_EVENT_BUYS_PER_DAY;
 }
 
 /**

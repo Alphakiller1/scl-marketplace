@@ -58,7 +58,10 @@ import {
   scheduleExpandedCatchUp,
 } from "@/lib/odds-control-runtime";
 import { loadLeagueBuyLimits } from "@/lib/odds-league-buy-limits";
-import { nextTopUpAt } from "@/lib/odds-event-buy-budget";
+import {
+  HARD_MAX_EVENT_BUYS_PER_DAY,
+  nextTopUpAt,
+} from "@/lib/odds-event-buy-budget";
 import { ALTERNATE_TEAM_TOTAL_MARKET_KEY } from "@/lib/team-total-markets";
 import { withFeaturedGameLineCompanions } from "@/lib/odds-verify";
 
@@ -402,6 +405,7 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
         const bypassBuyCap = shouldBypassExpandedBuyCap({
           sport,
           fullyCovered: coverage.fullyCovered,
+          buysToday: cached.buysToday,
         });
         const boardCapped =
           !ignoreBuyCap && !bypassBuyCap && cached.buysRemaining <= 0;
@@ -484,8 +488,8 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
           forceRefresh: true,
           league: event.league,
           markets: sportMarkets.length ? sportMarkets : undefined,
-          ignoreDailyBuyCap: ignoreBuyCap || bypassBuyCap,
-          dailyBuyLimit: buyLimit,
+          ignoreDailyBuyCap: ignoreBuyCap,
+          dailyBuyLimit: bypassBuyCap ? HARD_MAX_EVENT_BUYS_PER_DAY : buyLimit,
           // The scheduled sweep is the path the one-buy allowance is spent on,
           // so it is the path that has to wait for the card to open.
           commenceTime: event.commenceTime,

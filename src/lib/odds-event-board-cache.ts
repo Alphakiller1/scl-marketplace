@@ -15,6 +15,7 @@ import {
   writeDurableOddsSnapshot,
 } from "@/lib/odds-durable-cache";
 import {
+  buysInBuyDay,
   eventBuyBudgetExhausted,
   recordEventBuy,
   recordTopUp,
@@ -53,6 +54,8 @@ export type CachedEventBoard = {
   savedAt: number | null;
   /** Paid refreshes this event has left today — 0 means it will not be re-bought. */
   buysRemaining: number;
+  /** Paid refreshes already stamped on today's buy day. */
+  buysToday: number;
   /** Team-total top-up attempts logged for this event (see `nextTopUpAt`). */
   topUps: number[];
 };
@@ -168,6 +171,7 @@ export async function loadCachedEventBoard(
       stale: false,
       savedAt: null,
       buysRemaining: resolveEventBuyLimit(dailyBuyLimit),
+      buysToday: 0,
       topUps: [],
     };
   }
@@ -178,6 +182,7 @@ export async function loadCachedEventBoard(
     stale,
     savedAt: cached.savedAt,
     buysRemaining: remainingEventBuys(cached.buys, Date.now(), dailyBuyLimit),
+    buysToday: buysInBuyDay(cached.buys, Date.now()).length,
     topUps: cached.topUps ?? [],
   };
 }
