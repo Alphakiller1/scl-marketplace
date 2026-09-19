@@ -350,7 +350,7 @@ test("an incomplete or uncached expanded board is never skipped", () => {
   assert.equal(canSkipExpandedEvent(true, null, 120, now), false);
 });
 
-test("an incomplete NCAAF board may spend past today's buy cap", () => {
+test("an incomplete NCAAF board may use the hard cap instead", () => {
   assert.equal(
     shouldBypassExpandedBuyCap({ sport: "NCAAF", fullyCovered: false }),
     true,
