@@ -153,11 +153,10 @@ export function withinExpandedBuyWindow(
  * How far ahead a sport's deep board may be bought for the FIRST time.
  *
  * Football is played in weekly slates that books price days out: a Sunday card
- * carries its featured props by Wednesday. Held to "today and tomorrow" inside
- * the 36-hour window, a Sunday game could not be bought until Saturday
- * afternoon, so from Monday to Saturday the only NFL game with props or
- * alternate lines was Thursday night's — and to the people logging picks the
- * NFL expanded board looked like it had never been populated at all.
+ * carries its featured props by Wednesday, a Saturday NCAAF card its
+ * alternate ladders. Held to "today and tomorrow" inside the 36-hour window,
+ * those games could not be bought until the day before, so from Monday to
+ * Friday the expanded football board looked empty.
  *
  * Inside this horizon but outside {@link EXPANDED_WINDOW_OPEN_HOURS} an event is
  * "early": it is bought once, as soon as its card has opened (the same two-thirds
@@ -166,6 +165,12 @@ export function withinExpandedBuyWindow(
  */
 export const EXPANDED_EARLY_BUY_HOURS: Record<string, number> = {
   NFL: 7 * 24,
+  // Same weekly shape as NFL: books price Saturday's card days out, and the
+  // 36-hour window made a Thursday "run expanded now" succeed against an empty
+  // slate. Alternate spreads/totals are two credits a game, so covering the
+  // week is cheap enough that holding it back until Friday afternoon is the
+  // expensive mistake.
+  NCAAF: 7 * 24,
 };
 
 export function earlyExpandedBuyHours(sport: string): number | null {
@@ -549,6 +554,71 @@ export function surfaceRefreshReachedProvider(
 ): boolean {
   if (!refreshSurface) return true;
   return Object.values(surfaces).some((row) => row.source === "provider");
+}
+
+/**
+ * Competition identity used to stop paying for a card nobody prices.
+ *
+ * Soccer (and tennis) post extra markets by COMPETITION: if two EFL Cup ties
+ * come back empty, the rest of the cup will too. NCAAF has no league tag —
+ * every game is filed under the sport — so treating "NCAAF" as one competition
+ * meant two early FCS games without alternate ladders caused the populate to
+ * skip the entire Saturday FBS slate, report success, and write nothing.
+ *
+ * No league tag → each fixture is its own competition (the skip never fans out).
+ */
+export function unpricedCompetitionKey(event: {
+  id: string;
+  sport: string;
+  league?: string;
+}): string {
+  const league = event.league?.trim();
+  if (league) return `${event.sport}:${league}`;
+  return `${event.sport}:${event.id}`;
+}
+
+/**
+ * Should an expanded pass pay to refresh the cached surface board first?
+ *
+ * Expanded runs set `surface=0` and iterate the cached slate. That is the
+ * right trade when the cache already holds this weekend's games. It is a
+ * silent no-op when the cache is empty, and it is how NCAAF "Run expanded now"
+ * completed with `ok: true`, zero credits, and no DraftKings lines: Saturday's
+ * card had never been written to the 60-event cache, so there were no event
+ * ids to buy ladders for.
+ *
+ * NCAAF is refreshed even when the cache is non-empty, because a Saturday
+ * card outgrows the old 60-event cap. Re-reading the surface (three credits)
+ * is what puts the rest of the slate — and DraftKings prices on it — in reach
+ * of the expanded pass.
+ */
+export function shouldRefreshSurfaceForExpanded(
+  sport: string,
+  cachedEvents: readonly { commenceTime: string }[],
+  refreshSurface: boolean,
+  now = Date.now(),
+): boolean {
+  if (refreshSurface) return false;
+  if (sport.trim().toUpperCase() === "NCAAF") return true;
+  return !cachedEvents.some((event) => Date.parse(event.commenceTime) > now);
+}
+
+/**
+ * Did an expanded pass actually have a slate to walk?
+ *
+ * `ok` used to ask only whether DEFAULT_SPORTS had surface events. A targeted
+ * NCAAF expanded run is not in that list, so it went green with
+ * `expanded.NCAAF.events === 0` whenever the cached board was empty or the
+ * buy window hid Saturday's games.
+ */
+export function expandedPassLookedAtSlate(
+  expandedLimit: number,
+  expanded: Readonly<Record<string, { events: number }>>,
+): boolean {
+  if (expandedLimit <= 0) return true;
+  const rows = Object.values(expanded);
+  if (rows.length === 0) return true;
+  return rows.some((row) => row.events > 0);
 }
 
 /** Sports serving a board older than the freshness window. */

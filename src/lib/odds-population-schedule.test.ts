@@ -171,6 +171,9 @@ test("production route accepts a one-shot key, expands supported sports, and ret
     /DEFAULT_SPORTS = \["MLB", "WNBA", "TENNIS", "SOCCER", "NFL"\]/,
   );
   assert.match(route, /DEFAULT_SPORTS\.every\(surfaceReady\)/);
+  assert.match(route, /expandedPassLookedAtSlate/);
+  assert.match(route, /unpricedCompetitionKey/);
+  assert.match(route, /shouldRefreshSurfaceForExpanded/);
 });
 
 /**

@@ -32,6 +32,7 @@ import {
 import {
   canSkipExpandedEvent,
   expandedEventCreditCost,
+  expandedPassLookedAtSlate,
   expandsFullSlate,
   isEarlyExpandedEvent,
   laterExpandedCreditReserve,
@@ -40,8 +41,10 @@ import {
   parseExpandedSportOrder,
   selectExpandedSlateEvents,
   shouldHoldCreditsForLater,
+  shouldRefreshSurfaceForExpanded,
   staleSurfaceSports,
   surfaceRefreshReachedProvider,
+  unpricedCompetitionKey,
 } from "@/lib/manual-odds-population";
 import {
   allowedExpandedMarkets,
@@ -280,6 +283,23 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
     });
   }
 
+  if (expandedLimit > 0 && !refreshSurface) {
+    for (const sport of expandedOrder) {
+      if (
+        shouldRefreshSurfaceForExpanded(
+          sport,
+          boardEvents.get(sport) ?? [],
+          refreshSurface,
+        )
+      ) {
+        await loadSurface(sport, true, boardEvents, surface, {
+          markets: surfaceMarkets.length ? surfaceMarkets : undefined,
+          leagues: leagues.length ? leagues : undefined,
+        });
+      }
+    }
+  }
+
   if (expandedLimit > 0) {
     // Each league's own daily allowance, read once for the whole run. A league
     // with no saved row falls back to the shared default rather than to no cap.
@@ -326,7 +346,7 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
       const buyLimit = buyLimitsBySport.get(sport) ?? null;
       const emptyRuns = new Map<string, number>();
       for (const event of events) {
-        const competition = event.league ?? sport;
+        const competition = unpricedCompetitionKey(event);
         if ((emptyRuns.get(competition) ?? 0) >= UNPRICED_COMPETITION_LIMIT) {
           unpriced += 1;
           continue;
@@ -626,8 +646,9 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
     refreshSurface,
     surface,
   );
+  const expandedReady = expandedPassLookedAtSlate(expandedLimit, expanded);
   return NextResponse.json({
-    ok: DEFAULT_SPORTS.every(surfaceReady) && surfaceRefreshed,
+    ok: DEFAULT_SPORTS.every(surfaceReady) && surfaceRefreshed && expandedReady,
     surfaceRefreshed,
     sports,
     expandedDays,

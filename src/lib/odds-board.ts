@@ -323,13 +323,26 @@ function eventBoardFreshness(event: OddsEvent): number {
  * Prefers the most-complete row, then the freshest row, then the later feed row.
  */
 /**
+ * How many upcoming events a surface board may keep after the provider call.
+ *
+ * The Odds API bills the sport-level odds endpoint per market per region, not
+ * per event, so this cap does not save credits — it only drops games we already
+ * paid for. Sixty was enough for NFL and a few MLB days, and it silently threw
+ * away the back half of a Saturday NCAAF card (often 60+ games in one day,
+ * plus Friday night) so DraftKings lines for those games never reached the
+ * picker or the expanded pass, which iterates this same cached slate.
+ */
+export const SURFACE_BOARD_EVENT_LIMIT = 200;
+
+/**
  * Kickoff order, soonest first.
  *
- * The board is capped at 60 events, so ordering decides what a capper can
- * actually bet. Sorting must happen before that cap: a merged slate appends
- * preseason after a regular season that already fills all 60 slots, and slicing
- * an unsorted list drops the games starting tonight in favour of games weeks
- * out. Unparseable times sort last rather than scrambling the slate.
+ * The board is capped at {@link SURFACE_BOARD_EVENT_LIMIT} events, so ordering
+ * decides what a capper can actually bet. Sorting must happen before that cap:
+ * a merged slate appends preseason after a regular season that already fills
+ * the slots, and slicing an unsorted list drops the games starting tonight in
+ * favour of games weeks out. Unparseable times sort last rather than scrambling
+ * the slate.
  */
 export function sortByKickoff(events: readonly OddsEvent[]): OddsEvent[] {
   return [...events].sort((a, b) => {

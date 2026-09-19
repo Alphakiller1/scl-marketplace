@@ -31,8 +31,11 @@ import {
   parseExpandedSportOrder,
   selectExpandedSlateEvents,
   shouldHoldCreditsForLater,
+  shouldRefreshSurfaceForExpanded,
   staleSurfaceSports,
   surfaceRefreshReachedProvider,
+  unpricedCompetitionKey,
+  expandedPassLookedAtSlate,
 } from "@/lib/manual-odds-population";
 
 const NOW = new Date("2026-08-18T06:00:00.000Z");
@@ -254,6 +257,47 @@ test("stale sports are named so a frozen board says which one froze", () => {
       TENNIS: { source: "stale_cache_only", stale: true },
     }),
     ["TENNIS", "WNBA"],
+  );
+});
+
+test("NCAAF games are not one unpriced competition", () => {
+  // Two empty FCS kickoffs must not skip Alabama later the same day.
+  assert.equal(
+    unpricedCompetitionKey({ id: "fcs-noon", sport: "NCAAF" }),
+    "NCAAF:fcs-noon",
+  );
+  assert.equal(
+    unpricedCompetitionKey({ id: "bama-night", sport: "NCAAF" }),
+    "NCAAF:bama-night",
+  );
+  assert.equal(
+    unpricedCompetitionKey({
+      id: "efl-1",
+      sport: "SOCCER",
+      league: "EFL_CUP",
+    }),
+    "SOCCER:EFL_CUP",
+  );
+});
+
+test("an expanded NCAAF pass refreshes the cached surface board", () => {
+  const cached = [{ commenceTime: "2026-09-19T16:00:00Z" }];
+  assert.equal(shouldRefreshSurfaceForExpanded("NCAAF", cached, false), true);
+  assert.equal(shouldRefreshSurfaceForExpanded("NCAAF", cached, true), false);
+  assert.equal(shouldRefreshSurfaceForExpanded("MLB", cached, false), false);
+  assert.equal(shouldRefreshSurfaceForExpanded("MLB", [], false), true);
+});
+
+test("a targeted expanded run is not success against an empty slate", () => {
+  assert.equal(expandedPassLookedAtSlate(0, {}), true);
+  assert.equal(expandedPassLookedAtSlate(20, { NCAAF: { events: 0 } }), false);
+  assert.equal(expandedPassLookedAtSlate(20, { NCAAF: { events: 14 } }), true);
+  assert.equal(
+    expandedPassLookedAtSlate(20, {
+      MLB: { events: 8 },
+      NCAAF: { events: 0 },
+    }),
+    true,
   );
 });
 
@@ -597,15 +641,21 @@ test("NFL sees the whole week, not just today and tomorrow", () => {
     isEarlyExpandedEvent("2026-09-27T17:00:00Z", "NFL", +now),
     false,
   );
-  // Other sports keep the slate-day budget control.
+  // NCAAF is the same weekly sport: Saturday's card has to be buyable on
+  // Thursday, or "Run expanded now" walks an empty slate and reports success.
   assert.equal(
     isEarlyExpandedEvent("2026-09-20T17:00:00Z", "NCAAF", +now),
-    false,
+    true,
   );
   assert.deepEqual(
     selectExpandedSlateEvents(events, ["today", "tomorrow"], now, "NCAAF").map(
       (e) => e.id,
     ),
-    ["thu-night"],
+    ["thu-night", "sun-early", "sun-late", "mon-night"],
+  );
+  // A sport without an early horizon still follows the slate-day filter.
+  assert.equal(
+    isEarlyExpandedEvent("2026-09-20T17:00:00Z", "MLB", +now),
+    false,
   );
 });

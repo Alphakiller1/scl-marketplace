@@ -185,18 +185,32 @@ Cadence is not the credit lever — **what each run warms** is (expanded MLB is
 the expensive path). `src/lib/strategic-odds-cadence.test.ts` fails if those
 times and the lead window drift.
 
-## NFL expanded: the week ahead, bought once
+## NFL and NCAAF expanded: the week ahead, bought once
 
 The expanded pass normally sees only today's and tomorrow's ET slate, inside a
 36-hour football window. For NFL that meant Sunday's games could not be bought
 until Saturday afternoon, so from Monday to Saturday only Thursday night's game
-carried props or alternate lines. NFL now looks **seven days** ahead
-(`EXPANDED_EARLY_BUY_HOURS`). A game past its normal window is **early**: it is
-bought once, as soon as two thirds of its featured card is priced, and it is not
-bought again until its own 36-hour window opens. Early games that nobody has
-priced yet are reported under `uncovered` but do not trigger the 30-minute
-catch-up; the regular 6-hour cadence retries them. Expect roughly one extra
-card per NFL game per week (~29 credits each).
+carried props or alternate lines. NCAAF is the same weekly shape: a Thursday
+"Run expanded now" for alternate spreads and totals walked an empty Saturday
+slate, reported success, and wrote nothing.
+
+Both sports now look **seven days** ahead (`EXPANDED_EARLY_BUY_HOURS`). A game
+past its normal window is **early**: it is bought once, as soon as two thirds of
+its featured card is priced, and it is not bought again until its own 36-hour
+window opens. Early games that nobody has priced yet are reported under
+`uncovered` but do not trigger the 30-minute catch-up; the regular cadence
+retries them. Expect roughly one extra card per NFL game per week (~29 credits
+each) and two credits per NCAAF game (alternate spread + total).
+
+NCAAF expanded also re-reads the surface board before it buys ladders. The
+sport-level odds call is already paid for the whole Saturday card; a 60-event
+cap used to throw the back half away, so DraftKings prices (and event ids) for
+those games never reached the picker. The surface cap is 200, and an NCAAF
+expanded pass refreshes it so a truncated cache cannot hide the rest of the
+slate.
+
+Unpriced-competition skipping is soccer/tennis only. NCAAF has no league tag,
+so two FCS games without alternate ladders must not skip the rest of Saturday.
 
 ## Run timestamps
 

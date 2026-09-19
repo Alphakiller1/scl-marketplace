@@ -4,7 +4,6 @@ import {
   expandedBoardMarkets,
   PRIMARY_MLB_PROP_MARKETS,
   PROP_MARKET_LABEL,
-  PROP_MARKETS_BY_SPORT,
   propMarketLabel,
 } from "@/lib/odds-verify";
 import { isDoubleChanceMarket } from "@/lib/soccer-markets";
@@ -35,7 +34,22 @@ const PROP_LABELS = new Set(
 export const TEAM_TOTALS_GAP = "team totals";
 export const ALTERNATE_TEAM_TOTALS_GAP = "alternate team totals";
 
-const HALF_SPORTS = new Set(["CFL", "NFL", "NCAAF", "NBA", "NCAAB", "WNBA"]);
+function requestedExpandedMarkets(sport: string): string[] {
+  return expandedBoardMarkets(sport);
+}
+
+function requestsHalves(markets: readonly string[]): boolean {
+  return markets.some((key) => /_h[12]$/.test(key));
+}
+
+function requestsPlayerProps(markets: readonly string[]): boolean {
+  return markets.some(
+    (key) =>
+      key.startsWith("player_") ||
+      key.startsWith("pitcher_") ||
+      key.startsWith("batter_"),
+  );
+}
 
 export type EventMarketCoverage = {
   eventId: string;
@@ -130,6 +144,7 @@ export function summarizeEventMarketCoverage(
   }
 
   const missing: string[] = [];
+  const requested = requestedExpandedMarkets(sport);
   if (selections.length === 0) missing.push("expanded board");
   if (sport === "TENNIS") {
     // Tennis often has a single featured game spread/total (Bovada) and no
@@ -147,10 +162,18 @@ export function summarizeEventMarketCoverage(
     // and make `skipPopulated` re-bill the whole slate on every run.
     if (doubleChance === 0) missing.push("double chance");
   } else {
-    if (alternateSpreads === 0) missing.push("alternate spreads");
-    if (alternateTotals === 0) missing.push("alternate totals");
+    // Only demand markets this sport's expanded board actually fetches.
+    // NCAAF asks for alternate spreads/totals and nothing else; requiring
+    // halves and player props (which live on other football sports) made every
+    // NCAAF board look incomplete forever.
+    if (requested.includes("alternate_spreads") && alternateSpreads === 0) {
+      missing.push("alternate spreads");
+    }
+    if (requested.includes("alternate_totals") && alternateTotals === 0) {
+      missing.push("alternate totals");
+    }
   }
-  if ((PROP_MARKETS_BY_SPORT[sport]?.length ?? 0) > 0 && props === 0) {
+  if (requestsPlayerProps(requested) && props === 0) {
     missing.push("player props");
   }
   // "Some props" is not complete MLB coverage. A strikeouts-only snapshot used
@@ -196,7 +219,7 @@ export function summarizeEventMarketCoverage(
     if (f5 === 0) missing.push("F5");
     if (f7 === 0) missing.push("F7");
   }
-  if (HALF_SPORTS.has(sport) && halves === 0) missing.push("halves");
+  if (requestsHalves(requested) && halves === 0) missing.push("halves");
 
   return {
     eventId: event.id,

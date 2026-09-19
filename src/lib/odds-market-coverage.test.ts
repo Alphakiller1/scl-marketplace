@@ -142,6 +142,43 @@ test("sports without an expanded board are not asked for team totals", () => {
   assert.equal(nhl.missing.includes("team totals"), false);
 });
 
+test("NCAAF coverage is the two alternate ladders, not halves or props", () => {
+  // NCAAF expanded fetches only alternate_spreads and alternate_totals. The
+  // football half/prop rules are for NFL; applying them here made every NCAAF
+  // board look incomplete, so skipPopulated never learned and the run kept
+  // reporting a gap that nothing would fill.
+  const ncaafEvent = {
+    ...event,
+    id: "ncaaf-1",
+    sport: "NCAAF",
+  };
+  const complete = summarizeEventMarketCoverage(
+    ncaafEvent,
+    [
+      selection("Spread", { featured: false, line: 7.5 }),
+      selection("Total", { featured: false, line: 48.5 }),
+    ],
+    "runtime_cache",
+    false,
+  );
+  assert.deepEqual(complete.missing, []);
+  assert.equal(complete.fullyCovered, true);
+
+  const featuredOnly = summarizeEventMarketCoverage(
+    ncaafEvent,
+    [
+      selection("Spread", { featured: true, line: 7.5 }),
+      selection("Total", { featured: true, line: 48.5 }),
+    ],
+    "runtime_cache",
+    false,
+  );
+  assert.deepEqual(featuredOnly.missing, [
+    "alternate spreads",
+    "alternate totals",
+  ]);
+});
+
 test("tennis coverage is complete with featured game spreads and totals", () => {
   const tennisEvent = {
     ...event,

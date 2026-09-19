@@ -10,6 +10,7 @@ import {
   normalizeUpcomingEvent,
   preferredThenAll,
   resolveBoardBooks,
+  SURFACE_BOARD_EVENT_LIMIT,
   type OddsEvent,
   type OddsSelection,
 } from "@/lib/odds-board";
@@ -417,6 +418,13 @@ test("dedupeOddsEvents prefers the freshest row when completeness ties", () => {
 
   assert.equal(dedupeOddsEvents([stale, fresh])[0]!.id, "fresh");
   assert.equal(dedupeOddsEvents([fresh, stale])[0]!.id, "fresh");
+});
+
+test("the surface board keeps a Saturday NCAAF card, not sixty games", () => {
+  // A 14-day NCAAF window is often 80–150 games. Sixty slots paid for the
+  // whole Saturday card then threw Friday night + Saturday night away, so
+  // DraftKings prices for those games never reached the picker.
+  assert.ok(SURFACE_BOARD_EVENT_LIMIT >= 150);
 });
 
 test("normalizeEventBoard attaches bookmaker last_update as oddsCapturedAt", () => {
