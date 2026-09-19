@@ -317,9 +317,11 @@ for (const [sport, teams] of Object.entries(TEAMS_BY_SPORT)) {
 }
 
 export function getTeamIdentity(name: string, sport?: string): TeamIdentity {
-  const sports = sport ? [sport] : Object.keys(TEAMS_BY_SPORT);
+  const sports = sport
+    ? [sport.trim().toUpperCase()]
+    : Object.keys(TEAMS_BY_SPORT);
   for (const s of sports) {
-    const found = TEAM_INDEX.get(indexKey(s, name));
+    const found = lookupTeam(s, name);
     if (found) return stripAliases(found);
   }
   return fallbackTeam(name, sport);
@@ -333,7 +335,7 @@ export function resolveKnownTeam(
   name: string,
   sport: string,
 ): TeamIdentity | null {
-  const found = TEAM_INDEX.get(indexKey(sport, name));
+  const found = lookupTeam(sport.trim().toUpperCase(), name);
   return found ? stripAliases(found) : null;
 }
 
@@ -381,6 +383,22 @@ function stripAliases(t: TeamRecord): TeamIdentity {
     secondaryColor: t.secondaryColor,
     logoUrl: t.logoUrl,
   };
+}
+
+function lookupTeam(sport: string, name: string): TeamRecord | undefined {
+  for (const variant of teamNameVariants(name)) {
+    const found = TEAM_INDEX.get(indexKey(sport, variant));
+    if (found) return found;
+  }
+  return undefined;
+}
+
+/** Odds API / board names often carry AP rank prefixes the ESPN roster does not. */
+function teamNameVariants(name: string): string[] {
+  const trimmed = name.trim();
+  if (!trimmed) return [];
+  const withoutRank = trimmed.replace(/^(?:#\d+\s+|\d+\.\s+)/, "");
+  return [...new Set([trimmed, withoutRank].filter(Boolean))];
 }
 
 function indexKey(sport: string, value: string): string {

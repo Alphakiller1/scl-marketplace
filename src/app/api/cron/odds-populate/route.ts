@@ -59,6 +59,7 @@ import {
 import { loadLeagueBuyLimits } from "@/lib/odds-league-buy-limits";
 import { nextTopUpAt } from "@/lib/odds-event-buy-budget";
 import { ALTERNATE_TEAM_TOTAL_MARKET_KEY } from "@/lib/team-total-markets";
+import { withFeaturedGameLineCompanions } from "@/lib/odds-verify";
 
 export const maxDuration = 300;
 
@@ -322,9 +323,6 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
           events: row.events.length,
         })),
       );
-      const nextCost = expandedMarkets.length
-        ? expandedMarkets.length
-        : expandedEventCreditCost(sport);
       let populated = 0;
       let skipped = 0;
       let fetched = 0;
@@ -339,9 +337,15 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
       let early = 0;
       // What this run may ask for: the owner's selection on a managed run, the
       // sport's full expanded list otherwise. A top-up never reaches past it.
-      const sportMarkets = expandedMarkets.length
-        ? expandedMarkets
-        : allowedExpandedMarkets(sport);
+      // NCAAF alt ladders also buy featured spreads/totals because DraftKings
+      // files those rungs there — billed keys, not dashboard checkboxes.
+      const sportMarkets = withFeaturedGameLineCompanions(
+        sport,
+        expandedMarkets.length
+          ? expandedMarkets
+          : allowedExpandedMarkets(sport),
+      );
+      const nextCost = sportMarkets.length || expandedEventCreditCost(sport);
       // One lookup per sport rather than per event: the allowance is a league
       // setting, and the inner loop runs once per fixture on the slate.
       const buyLimit = buyLimitsBySport.get(sport) ?? null;
@@ -358,23 +362,24 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
         // run REPORT how many events it declined to re-buy — a cap that is
         // enforced but invisible looks exactly like a broken populate.
         const cached = await loadCachedEventBoard(sport, event.id, buyLimit);
-        // An early fixture is bought once. Until its own window opens, the
-        // board it has is the board it keeps — re-buying next Sunday's card
-        // every six hours from Wednesday is the spend the window exists to stop.
-        const isEarly = isEarlyExpandedEvent(event.commenceTime, sport);
-        if (isEarly) early += 1;
-        if (isEarly && cached.savedAt != null) {
-          skipped += 1;
-          populated += 1;
-          selections += cached.selections.length;
-          continue;
-        }
         const coverage = summarizeEventMarketCoverage(
           event,
           cached.selections,
           cached.source,
           cached.stale,
         );
+        // An early fixture is bought once when its card is actually complete.
+        // Skipping any saved snapshot froze Saturday night NCAAF games that
+        // were bought Thursday with only the featured line — Purdue vs UCLA
+        // stayed surface-only until kickoff week after week.
+        const isEarly = isEarlyExpandedEvent(event.commenceTime, sport);
+        if (isEarly) early += 1;
+        if (isEarly && cached.savedAt != null && coverage.fullyCovered) {
+          skipped += 1;
+          populated += 1;
+          selections += cached.selections.length;
+          continue;
+        }
         // Team totals are the one gap closed WITHOUT rebuying the board.
         //
         // Caesars posts the MLB alternate team-total ladder game by game, often
@@ -472,7 +477,7 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
         const board = await loadEventBoard(sport, event.id, {
           forceRefresh: true,
           league: event.league,
-          markets: expandedMarkets.length ? expandedMarkets : undefined,
+          markets: sportMarkets.length ? sportMarkets : undefined,
           ignoreDailyBuyCap: ignoreBuyCap,
           dailyBuyLimit: buyLimit,
           // The scheduled sweep is the path the one-buy allowance is spent on,

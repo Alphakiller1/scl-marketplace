@@ -1,5 +1,8 @@
 import { SURFACE_BOARD_EVENT_LIMIT, type OddsEvent } from "@/lib/odds-board";
-import { expandedBoardMarkets } from "@/lib/odds-verify";
+import {
+  expandedBoardMarkets,
+  withFeaturedGameLineCompanions,
+} from "@/lib/odds-verify";
 
 /**
  * Owner priority for sports with per-event expanded boards.
@@ -338,7 +341,8 @@ export function mergeLastGoodBoardEvents(
 
 /** Markets × one region — the billed cost of one expanded event board. */
 export function expandedEventCreditCost(sport: string): number {
-  return expandedBoardMarkets(sport).length;
+  return withFeaturedGameLineCompanions(sport, expandedBoardMarkets(sport))
+    .length;
 }
 
 /**

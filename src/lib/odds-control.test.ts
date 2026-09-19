@@ -145,7 +145,7 @@ test("cost preview is a conservative upper bound for surface and expanded runs",
       leagues: [],
       maxEventsPerRun: 20,
     }),
-    400,
+    800,
   );
 });
 

@@ -15,8 +15,8 @@ export function TeamMark({
   size?: "sm" | "md";
   className?: string;
 }) {
-  const [failed, setFailed] = useState(false);
-  const showLogo = Boolean(team.logoUrl) && !failed;
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const showLogo = Boolean(team.logoUrl) && failedUrl !== team.logoUrl;
   const style = {
     backgroundColor: showLogo ? "transparent" : team.primaryColor,
     color: readableTextColor(team.primaryColor),
@@ -45,7 +45,8 @@ export function TeamMark({
           className="size-full object-contain"
           loading="lazy"
           decoding="async"
-          onError={() => setFailed(true)}
+          referrerPolicy="no-referrer"
+          onError={() => setFailedUrl(team.logoUrl ?? null)}
         />
       ) : (
         team.abbr
