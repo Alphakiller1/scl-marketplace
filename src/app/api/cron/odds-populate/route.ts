@@ -50,6 +50,7 @@ import {
 } from "@/lib/manual-odds-population";
 import {
   allowedExpandedMarkets,
+  defaultExpandedMarkets,
   ODDS_CONTROL_SPORTS,
   SURFACE_MARKETS,
 } from "@/lib/odds-control";
@@ -340,14 +341,14 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
       let ladderWaiting = 0;
       let early = 0;
       // What this run may ask for: the owner's selection on a managed run, the
-      // sport's full expanded list otherwise. A top-up never reaches past it.
+      // sport's default expanded list otherwise. A top-up never reaches past it.
       // NCAAF alt ladders also buy featured spreads/totals because DraftKings
       // files those rungs there — billed keys, not dashboard checkboxes.
       const sportMarkets = withFeaturedGameLineCompanions(
         sport,
         expandedMarkets.length
           ? expandedMarkets
-          : allowedExpandedMarkets(sport),
+          : defaultExpandedMarkets(sport),
       );
       const nextCost = sportMarkets.length || expandedEventCreditCost(sport);
       // One lookup per sport rather than per event: the allowance is a league
@@ -371,6 +372,7 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
           cached.selections,
           cached.source,
           cached.stale,
+          sportMarkets,
         );
         // An early fixture is bought once when its card is actually complete.
         // Skipping any saved snapshot froze Saturday night NCAAF games that
@@ -575,13 +577,20 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
     // Boards that exist but still lack a club's team-total ladder, counted from
     // the store for the same reason as a missing board: the pass that bought
     // them cannot know which books have posted since, and a surface run never
-    // looks at deep boards at all. Only sports that can ask for the ladder are
-    // read, so a tennis or football run pays for no reads here.
+    // looks at deep boards at all. Only this run's requested markets matter:
+    // NFL's catalog lists team totals so owners can toggle them, but a pass
+    // that did not buy the ladder should not scan or chase it.
+    const sportMarkets = withFeaturedGameLineCompanions(
+      sport,
+      expandedMarkets.length
+        ? expandedMarkets
+        : defaultExpandedMarkets(sport),
+    );
     let ladderGaps = 0;
     let ladderRetryAt: number | null = null;
     if (
       !expandsFullSlate(sport) &&
-      allowedExpandedMarkets(sport).includes(ALTERNATE_TEAM_TOTAL_MARKET_KEY)
+      sportMarkets.includes(ALTERNATE_TEAM_TOTAL_MARKET_KEY)
     ) {
       const missingIds = new Set(missing);
       for (const event of slate) {
@@ -593,6 +602,7 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
             cached.selections,
             cached.source,
             cached.stale,
+            sportMarkets,
           ).missing,
         );
         if (!gap?.length) continue;

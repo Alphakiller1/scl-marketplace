@@ -205,6 +205,20 @@ function soccerExtraMarkets(sclSport: string): string[] {
 }
 
 /**
+ * NFL game-ladder keys owners can switch on from Admin → API Credits.
+ *
+ * They are registered on the expanded board so the dashboard can offer a
+ * toggle per key, but they stay off the default request list: sixteen
+ * Sunday games times alt spreads, alt totals and both team-total keys is
+ * the spend that used to keep football surface-only.
+ */
+export const NFL_OPT_IN_GAME_LADDER_MARKETS = [
+  "alternate_spreads",
+  "alternate_totals",
+  ...TEAM_TOTAL_MARKET_KEYS,
+] as const;
+
+/**
  * Markets needed only after a user opens a game. Featured h2h/spreads/totals
  * already arrive on the shared slate, so rebilling them here wastes three
  * credits per event without adding a selectable line.
@@ -223,18 +237,13 @@ export function expandedBoardMarkets(sclSport: string): string[] {
   // Surface h2h/spreads/totals already carry soccer's game lines; the per-event
   // call adds only Double Chance, which the bulk endpoint does not serve.
   if (sclSport === "SOCCER") return [DOUBLE_CHANCE_MARKET_KEY];
-  // Football carries its player props and nothing else. The owner decision that
-  // kept football surface-level was about the cost of the expanded GAME ladder
-  // — alternates, team totals, halves, priced across a sixteen-game slate — and
-  // that ladder stays off. Props are the one football market a capper cannot
-  // express with h2h/spreads/totals, so they are the one thing worth the credits
-  // here: four keys plus their alternate ladders, per event a capper opens.
+  // NFL's catalog is halves and player props plus the owner-toggled game
+  // ladder (alt spreads/totals and team totals). Halves already grade off
+  // ESPN quarter line-scores; the ladder keys are billed only when an owner
+  // switches them on.
   if (sclSport === "NFL") {
-    // Halves ride along because the owners asked for them and they already
-    // grade: `resolvePeriodPlay` settles a half off the ESPN quarter
-    // line-scores. Alternates, team totals and the rest of the game ladder stay
-    // off — that was the cost decision, and nothing here reopens it.
     return [
+      ...NFL_OPT_IN_GAME_LADDER_MARKETS,
       ...periodMarketKeysForSport(sclSport),
       ...(PROP_MARKETS_BY_SPORT.NFL ?? []).flatMap(
         propMarketKeysWithAlternates,
@@ -289,6 +298,20 @@ export function withFeaturedGameLineCompanions(
     add(market);
   }
   return ordered;
+}
+
+/**
+ * Markets an unmanaged or unconfigured run actually asks for.
+ *
+ * For most sports this is the full catalog. NFL's game ladder is registered
+ * so owners can turn it on, but a run that has not been told to buy it
+ * still spends only halves and player props.
+ */
+export function defaultExpandedBoardMarkets(sclSport: string): string[] {
+  const markets = expandedBoardMarkets(sclSport);
+  if (sclSport !== "NFL") return markets;
+  const optIn = new Set<string>(NFL_OPT_IN_GAME_LADDER_MARKETS);
+  return markets.filter((key) => !optIn.has(key));
 }
 
 /**

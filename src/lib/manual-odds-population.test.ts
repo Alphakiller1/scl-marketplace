@@ -182,16 +182,16 @@ test("the reserve prices an expanded event with its catalog call included", () =
   // spend smaller, so a reserve built on it never starves the next sport.
   assert.equal(EVENT_MARKET_CATALOG_CREDIT_COST, 1);
   assert.equal(expandedEventCreditCost("MLB") > 40, true);
-  // Football's expanded event is halves plus nine prop markets and their
-  // alternate ladders. Well past CATALOG_WORTH_READING_MARKETS, so the catalog
-  // is read first and only the keys a book actually prices are billed.
+  // Football's expanded event is halves plus player props (and, when owners
+  // switch them on, the full-game ladder). Well past CATALOG_WORTH_READING_MARKETS,
+  // so the catalog is read first and only the keys a book actually prices are billed.
   const nflCost = expandedEventCreditCost("NFL");
   assert.ok(
     nflCost > CATALOG_WORTH_READING_MARKETS,
     `NFL asks for ${nflCost} keys, which should be worth a catalog read`,
   );
-  // Still an order of magnitude under MLB's, which is the point of leaving the
-  // football game ladder off.
+  // Still an order of magnitude under MLB's even with the opt-in game ladder
+  // on the catalog: that was the point of leaving those keys off by default.
   assert.ok(nflCost < expandedEventCreditCost("MLB"));
   assert.equal(expandedEventCreditCost("SOCCER"), 1);
 });

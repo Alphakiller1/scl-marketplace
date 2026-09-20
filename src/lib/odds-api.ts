@@ -54,7 +54,7 @@ import {
   VERIFY_REGIONS,
   VERIFY_TTL_SECONDS,
   collectAvailablePrices,
-  expandedBoardMarkets,
+  defaultExpandedBoardMarkets,
   withFeaturedGameLineCompanions,
   getOddsForBook as getOddsForBookFromEvent,
   liveLineAmerican,
@@ -1217,7 +1217,7 @@ export async function fetchEventBoard(
     sclSport,
     opts?.markets?.length
       ? [...new Set(opts.markets)]
-      : expandedBoardMarkets(sclSport),
+      : defaultExpandedBoardMarkets(sclSport),
   );
   if (wanted.length === 0) return [];
   const markets = await pricedExpandedMarkets(sclSport, eventId, wanted, opts);

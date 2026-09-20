@@ -48,7 +48,7 @@ import {
   sortByKickoff,
   type OddsEvent,
 } from "@/lib/odds-board";
-import { expandedBoardMarkets } from "@/lib/odds-verify";
+import { defaultExpandedBoardMarkets } from "@/lib/odds-verify";
 import {
   selectLeaguesWithFixtures,
   selectSoccerLeagues,
@@ -244,7 +244,8 @@ function pushBoard(sclSport: string, events: OddsEvent[], cap: number) {
  */
 function perEventCost(sclSport: string): number {
   return (
-    expandedBoardMarkets(sclSport).length + EVENT_MARKET_CATALOG_CREDIT_COST
+    defaultExpandedBoardMarkets(sclSport).length +
+    EVENT_MARKET_CATALOG_CREDIT_COST
   );
 }
 
@@ -277,7 +278,7 @@ async function expandSport(
   reserve: number,
 ): Promise<void> {
   if (!wanted(sclSport)) return;
-  const wantedMarkets = expandedBoardMarkets(sclSport);
+  const wantedMarkets = defaultExpandedBoardMarkets(sclSport);
   if (wantedMarkets.length === 0) return;
   const slate = selectExpandedSlateEvents(events, EXPANDED_DAYS).slice(
     0,

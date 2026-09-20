@@ -345,3 +345,27 @@ test("a top-up is offered only when team totals are the whole gap", () => {
   assert.equal(teamTotalGapMarkets(["alternate team totals", "F7"]), null);
   assert.equal(teamTotalGapMarkets([]), null);
 });
+
+test("NFL coverage does not demand the game ladder unless those keys were requested", () => {
+  const nflEvent = { ...event, id: "nfl-1", sport: "NFL" };
+  const ladderOff = summarizeEventMarketCoverage(
+    nflEvent,
+    [selection("Passing Yds", { player: "QB", line: 250.5 })],
+    "runtime_cache",
+    false,
+    ["player_pass_yds"],
+  );
+  assert.equal(ladderOff.missing.includes("alternate spreads"), false);
+  assert.equal(ladderOff.missing.includes("alternate totals"), false);
+  assert.equal(ladderOff.missing.includes("team totals"), false);
+
+  const ladderOn = summarizeEventMarketCoverage(
+    nflEvent,
+    [selection("Passing Yds", { player: "QB", line: 250.5 })],
+    "runtime_cache",
+    false,
+    ["player_pass_yds", "alternate_spreads", "team_totals"],
+  );
+  assert.ok(ladderOn.missing.includes("alternate spreads"));
+  assert.ok(ladderOn.missing.includes("team totals"));
+});

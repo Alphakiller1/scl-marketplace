@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { expandedBoardMarkets } from "@/lib/odds-verify";
+import { defaultExpandedBoardMarkets } from "@/lib/odds-verify";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -57,10 +57,11 @@ type SportPatch = {
  * What each sport is set to before the flag moves, because from that moment the
  * config IS the schedule.
  *
- * NFL's market list is read from `expandedBoardMarkets` rather than restated,
- * so it cannot drift out of step with the code — the populate route filters
- * what it is handed through `allowedExpandedMarkets`, and a stale key would be
- * silently dropped rather than fetched.
+ * NFL's market list is read from `defaultExpandedBoardMarkets` rather than
+ * restated, so it cannot drift out of step with the code — the populate route
+ * filters what it is handed through `allowedExpandedMarkets`, and a stale key
+ * would be silently dropped rather than fetched. Alt spreads, alt totals and
+ * team totals stay off until an owner toggles them on the dashboard.
  */
 function sportUpdates(): Record<string, SportPatch> {
   return {
@@ -68,7 +69,7 @@ function sportUpdates(): Record<string, SportPatch> {
       enabled: true,
       surfaceEnabled: true,
       expandedEnabled: true,
-      expandedMarkets: expandedBoardMarkets("NFL"),
+      expandedMarkets: defaultExpandedBoardMarkets("NFL"),
       expandedCadenceMinutes: 360,
       maxEventsPerRun: 16,
     },

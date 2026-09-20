@@ -80,6 +80,31 @@ test("NCAAF dashboard exposes only the requested alternate spreads and totals", 
   ]);
 });
 
+test("NFL dashboard exposes opt-in alt lines and team totals off by default", () => {
+  const groups = expandedMarketGroups("NFL");
+  const alts = groups.find((group) => group.id === "alternate-game-lines");
+  const teamTotals = groups.find((group) => group.id === "team-totals");
+  assert.ok(alts);
+  assert.deepEqual(alts.markets, ["alternate_spreads", "alternate_totals"]);
+  assert.ok(teamTotals);
+  assert.deepEqual(teamTotals.markets, [
+    "team_totals",
+    "alternate_team_totals",
+  ]);
+
+  const defaults = defaultSportControl("NFL");
+  assert.equal(defaults.expandedEnabled, true);
+  assert.equal(defaults.expandedMarkets.includes("alternate_spreads"), false);
+  assert.equal(defaults.expandedMarkets.includes("alternate_totals"), false);
+  assert.equal(defaults.expandedMarkets.includes("team_totals"), false);
+  assert.equal(
+    defaults.expandedMarkets.includes("alternate_team_totals"),
+    false,
+  );
+  assert.ok(defaults.expandedMarkets.includes("player_pass_yds"));
+  assert.ok(defaults.expandedMarkets.includes("h2h_h1"));
+});
+
 test("NFL exposes Anytime Touchdown as its own safe owner-controlled market", () => {
   const playerProps = expandedMarketGroups("NFL").find(
     (group) => group.id === "player-props",

@@ -110,6 +110,14 @@ all** switch remains available, but is not required. Save the strategy and run
 **Dry run expanded** before the first paid run. Anytime Touchdown is intentionally
 off for an existing saved strategy until an owner selects and saves it.
 
+For **NFL alternate spreads, alternate totals, and team totals**, enable NFL,
+enable **Expanded** coverage, and turn on the individual switches under
+**Alternate game lines** and **Team totals**. Those four keys are on the
+catalog so they can be billed, but they stay off until an owner selects and
+saves them — they are the spend that used to keep football's game ladder off.
+Save the strategy, run **Dry run expanded**, and only then use **Run expanded
+now** or the saved expanded cadence.
+
 ### Team-total ladders (MLB)
 
 The alternate team-total ladder — each club's Over/Under from 0.5 up, including
