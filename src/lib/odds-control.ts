@@ -1,6 +1,7 @@
 import { resolveExpandedEventLimit } from "@/lib/manual-odds-population";
 import { DEFAULT_EVENT_BUYS_PER_DAY } from "@/lib/odds-event-buy-budget";
 import {
+  defaultExpandedBoardMarkets,
   expandedBoardMarkets,
   marketKeysForMarket,
   propMarketLabel,
@@ -179,6 +180,17 @@ export function allowedExpandedMarkets(sport: string): string[] {
   return expandedMarketGroups(sport).flatMap((group) => group.markets);
 }
 
+/**
+ * The expanded keys a league starts with, before an owner selects more.
+ *
+ * NFL's catalog is larger than this list: alt spreads, alt totals and team
+ * totals are toggleable but off until saved on.
+ */
+export function defaultExpandedMarkets(sport: string): string[] {
+  const allowed = new Set(allowedExpandedMarkets(sport));
+  return defaultExpandedBoardMarkets(sport).filter((key) => allowed.has(key));
+}
+
 export function defaultSportControl(sport: OddsControlSport) {
   const expanded = allowedExpandedMarkets(sport);
   const enabled = LEGACY_SCHEDULED_SPORTS.has(sport);
@@ -188,7 +200,7 @@ export function defaultSportControl(sport: OddsControlSport) {
     surfaceEnabled: enabled,
     expandedEnabled: enabled && expanded.length > 0,
     surfaceMarkets: SURFACE_MARKETS.map((market) => market.key),
-    expandedMarkets: expanded,
+    expandedMarkets: defaultExpandedMarkets(sport),
     leagues: [] as string[],
     surfaceCadenceMinutes: 240,
     expandedCadenceMinutes: 360,

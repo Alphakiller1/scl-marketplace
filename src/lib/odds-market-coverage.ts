@@ -22,8 +22,16 @@ import {
  * sport that gains or loses team totals cannot end up with a coverage rule that
  * disagrees with what is fetched.
  */
-function requestsTeamTotals(sport: string): boolean {
-  const markets = expandedBoardMarkets(sport);
+function requestedMarketsForSport(
+  sport: string,
+  wantedMarkets?: readonly string[],
+): string[] {
+  return wantedMarkets?.length
+    ? [...wantedMarkets]
+    : expandedBoardMarkets(sport);
+}
+
+function requestsTeamTotals(markets: readonly string[]): boolean {
   return TEAM_TOTAL_MARKET_KEYS.some((key) => markets.includes(key));
 }
 
@@ -33,10 +41,6 @@ const PROP_LABELS = new Set(
 /** Gap labels the team-total rule writes, and the top-up keys off. */
 export const TEAM_TOTALS_GAP = "team totals";
 export const ALTERNATE_TEAM_TOTALS_GAP = "alternate team totals";
-
-function requestedExpandedMarkets(sport: string): string[] {
-  return expandedBoardMarkets(sport);
-}
 
 function requestsHalves(markets: readonly string[]): boolean {
   return markets.some((key) => /_h[12]$/.test(key));
@@ -89,8 +93,10 @@ export function summarizeEventMarketCoverage(
   selections: readonly OddsSelection[],
   source: string,
   stale: boolean,
+  wantedMarkets?: readonly string[],
 ): EventMarketCoverage {
   const sport = event.sport.toUpperCase();
+  const wanted = requestedMarketsForSport(sport, wantedMarkets);
   let props = 0;
   const propMarkets = new Set<string>();
   let alternateGameLines = 0;
@@ -144,7 +150,6 @@ export function summarizeEventMarketCoverage(
   }
 
   const missing: string[] = [];
-  const requested = requestedExpandedMarkets(sport);
   if (selections.length === 0) missing.push("expanded board");
   if (sport === "TENNIS") {
     // Tennis often has a single featured game spread/total (Bovada) and no
@@ -165,15 +170,16 @@ export function summarizeEventMarketCoverage(
     // Only demand markets this sport's expanded board actually fetches.
     // NCAAF asks for alternate spreads/totals and nothing else; requiring
     // halves and player props (which live on other football sports) made every
-    // NCAAF board look incomplete forever.
-    if (requested.includes("alternate_spreads") && alternateSpreads === 0) {
+    // NCAAF board look incomplete forever. NFL's owner-toggled game ladder
+    // is the same rule: do not chase alt lines or team totals unless asked.
+    if (wanted.includes("alternate_spreads") && alternateSpreads === 0) {
       missing.push("alternate spreads");
     }
-    if (requested.includes("alternate_totals") && alternateTotals === 0) {
+    if (wanted.includes("alternate_totals") && alternateTotals === 0) {
       missing.push("alternate totals");
     }
   }
-  if (requestsPlayerProps(requested) && props === 0) {
+  if (requestsPlayerProps(wanted) && props === 0) {
     missing.push("player props");
   }
   // "Some props" is not complete MLB coverage. A strikeouts-only snapshot used
@@ -198,7 +204,7 @@ export function summarizeEventMarketCoverage(
   const teamTotalLadderClubs = [...teamTotalLinesByClub.values()].filter(
     (lines) => lines.size >= MIN_TEAM_TOTAL_LADDER_LINES,
   ).length;
-  if (requestsTeamTotals(sport)) {
+  if (requestsTeamTotals(wanted)) {
     if (teamTotals === 0) {
       missing.push(TEAM_TOTALS_GAP);
     } else if (teamTotalLadderClubs < 2) {
@@ -215,11 +221,19 @@ export function summarizeEventMarketCoverage(
     }
   }
   if (sport === "MLB") {
-    if (f3 === 0) missing.push("F3");
-    if (f5 === 0) missing.push("F5");
-    if (f7 === 0) missing.push("F7");
+    if (wanted.some((key) => key.includes("1st_3_innings")) && f3 === 0) {
+      missing.push("F3");
+    }
+    if (wanted.some((key) => key.includes("1st_5_innings")) && f5 === 0) {
+      missing.push("F5");
+    }
+    if (wanted.some((key) => key.includes("1st_7_innings")) && f7 === 0) {
+      missing.push("F7");
+    }
   }
-  if (requestsHalves(requested) && halves === 0) missing.push("halves");
+  if (requestsHalves(wanted) && halves === 0) {
+    missing.push("halves");
+  }
 
   return {
     eventId: event.id,

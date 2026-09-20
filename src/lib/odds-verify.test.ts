@@ -5,7 +5,9 @@ import {
   bestAvailableAmerican,
   collectAvailablePrices,
   decidePickIntegrity,
+  defaultExpandedBoardMarkets,
   expandedBoardMarkets,
+  NFL_OPT_IN_GAME_LADDER_MARKETS,
   withFeaturedGameLineCompanions,
   getOddsForBook,
   MLB_BATTER_PROP_MARKETS,
@@ -189,10 +191,11 @@ test("expandedBoardMarkets omits already-loaded featured lines", () => {
   assert.ok(mlb.includes("pitcher_strikeouts_alternate"));
 });
 
-test("expanded football boards carry props and no game ladder", () => {
+test("expanded football boards carry props plus an owner-toggled game ladder", () => {
   const nfl = expandedBoardMarkets("NFL");
   // The card the owners asked for: halves, then the passer/runner/receiver/
-  // kicker props, each with its alternate ladder.
+  // kicker props, each with its alternate ladder — plus the full-game ladder
+  // they can switch on from the API Credit Dashboard.
   for (const key of [
     "h2h_h1",
     "spreads_h1",
@@ -209,6 +212,10 @@ test("expanded football boards carry props and no game ladder", () => {
     "player_reception_yds",
     "player_rush_reception_yds",
     "player_field_goals",
+    "alternate_spreads",
+    "alternate_totals",
+    "team_totals",
+    "alternate_team_totals",
   ]) {
     assert.ok(nfl.includes(key), `NFL should request ${key}`);
   }
@@ -220,21 +227,15 @@ test("expanded football boards carry props and no game ladder", () => {
   ]) {
     assert.ok(nfl.includes(key), `NFL should request the ${key} ladder`);
   }
-  // The owner decision that keeps football's expanded GAME ladder off stands:
-  // alternates, team totals and halves are what made a sixteen-game slate
-  // expensive, and none of them are worth a credit on a board that already
-  // carries the featured three.
-  for (const key of [
-    "h2h",
-    "spreads",
-    "totals",
-    "alternate_spreads",
-    "alternate_totals",
-    "team_totals",
-    "alternate_team_totals",
-  ]) {
+  // Featured surface lines stay off the per-event call.
+  for (const key of ["h2h", "spreads", "totals"]) {
     assert.ok(!nfl.includes(key), `NFL should not request ${key}`);
   }
+  const optIn = new Set<string>(NFL_OPT_IN_GAME_LADDER_MARKETS);
+  assert.deepEqual(
+    defaultExpandedBoardMarkets("NFL"),
+    nfl.filter((key) => !optIn.has(key)),
+  );
   // NCAAF player props still stay out because no graded stat feed supports
   // them, but the owner-selected full-game alternate ladders are safe.
   assert.deepEqual(expandedBoardMarkets("NCAAF"), [

@@ -1,6 +1,7 @@
 import {
   allowedExpandedMarkets,
   CADENCE_OPTIONS,
+  defaultExpandedMarkets,
   defaultSportControl,
   estimatedRunCredits,
   LEGACY_SCHEDULED_SPORTS,
@@ -485,9 +486,11 @@ export function leagueConfigEntries(
         value: `${sport.expandedMarkets.length} of ${expandedAvailable.length}`,
         description:
           "Only the market groups selected for this league are requested. Every key is billed whether or not a book prices it.",
-        universalValue: `${expandedAvailable.length} supported`,
-        overridesUniversal:
-          sport.expandedMarkets.length !== expandedAvailable.length,
+        universalValue: `${defaultExpandedMarkets(sport.sport).length} of ${expandedAvailable.length} (default)`,
+        overridesUniversal: !sameMarkets(
+          sport.expandedMarkets,
+          defaultExpandedMarkets(sport.sport),
+        ),
       }),
       league({
         id: "expanded-cadence",

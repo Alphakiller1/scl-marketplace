@@ -130,7 +130,7 @@ Owner decision, and the shape of the credit bill. Depth is set in
 | --------------- | ---------------- | ----------------------------------------------------------------------------------------------------------- |
 | MLB             | 58               | Full pitcher and hitter cards with milestone ladders, alternate spreads/totals, team totals, F1/F3/F5/F7    |
 | WNBA            | 36               | Points/rebounds/assists/threes, blocks/steals/turnovers, the combo card, halves, team totals, alt ladders   |
-| NFL             | 29               | Halves and individually controlled player props, including Anytime Touchdown                                |
+| NFL             | 33               | Halves and player props by default; alt spreads, alt totals and team totals are owner toggles               |
 | Tennis          | 4                | Game spread and total plus their alternate ladders. Set markets stay out until set-score grading is trusted |
 | Soccer          | 1                | Double Chance — the one soccer bet the three surface markets cannot express                                 |
 | NCAAF           | 2                | Full-game alternate spread and total ladders, selectable through the owner API Credit Dashboard             |
