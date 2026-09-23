@@ -77,6 +77,7 @@ jobs:
             const aged = d.skippedByReason?.aged_out || 0;
             const graded = d.graded || 0;
             const overdue = d.overduePending?.length || 0;
+            const overdueParlayLegs = d.overdueParlayLegs?.length || 0;
             console.log("health=", health, "graded=", graded, "skippedByReason=", d.skippedByReason);
             if (health === "UNHEALTHY") {
               console.error("Grade health UNHEALTHY — plays remain pending past expected final time");
@@ -84,6 +85,10 @@ jobs:
             }
             if (overdue > 0) {
               console.error(`${overdue} committed plays remain pending past expected final time`);
+              process.exit(1);
+            }
+            if (overdueParlayLegs > 0) {
+              console.error(`${overdueParlayLegs} parlay legs remain pending past expected final time`);
               process.exit(1);
             }
             if (graded === 0 && aged > 0 && (d.skipped || 0) === aged) {

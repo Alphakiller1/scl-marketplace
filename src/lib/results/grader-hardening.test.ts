@@ -49,6 +49,8 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
   assert.match(provider, /"CFL"/);
   assert.match(route, /Recovered stale RUNNING grader lock/);
   assert.match(route, /listOverduePendingPlays/);
+  assert.match(route, /listOverduePendingParlayLegs/);
+  assert.match(route, /overdueParlayLegs\.length === 0/);
   assert.match(route, /status: gradeOk \? 200 : 503/);
   assert.match(route, /status: gradeOk \? "SUCCESS" : "FAILED"/);
   assert.match(route, /revalidateTag\("leaderboard", \{ expire: 0 \}\)/);
@@ -60,6 +62,8 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
   assert.doesNotMatch(route, /snapshotClosingOdds/);
   assert.doesNotMatch(route, /odds-coverage-report/);
   assert.match(health, /pendingPastExpectedFinal/);
+  assert.match(health, /pendingParlayLegsPastExpectedFinal/);
+  assert.match(health, /affectedParlaysPastExpectedFinal/);
   assert.match(health, /isAutoGradeBlocked/);
   assert.match(health, /units: \{ gte: UNIT_MIN \}/);
 
@@ -70,11 +74,14 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
   // Overdue inventory must match health or the cron 503s a HEALTHY run.
   assert.match(stuck, /parlayId: null/);
   assert.match(stuck, /units: \{ gte: UNIT_MIN \}/);
+  assert.match(stuck, /listOverduePendingParlayLegs/);
+  assert.match(stuck, /parlayId: \{ not: null \}/);
   // Every 30 minutes — pinned so automatic grading cannot drift to a slower cadence.
   assert.match(workflow, /- cron: "7,37 \* \* \* \*"/);
   assert.match(workflow, /types: \[grade-pending\]/);
   assert.match(workflow, /--retry 3/);
   assert.match(workflow, /overduePending/);
+  assert.match(workflow, /overdueParlayLegs/);
   assert.match(workflow, /inputs\.odds_key/);
   assert.match(workflow, /::add-mask::\$ODDS_KEY/);
   assert.match(workflow, /x-scl-odds-key: \$ODDS_KEY/);

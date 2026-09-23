@@ -24,6 +24,10 @@ export type GradingHealthReport = {
   pendingPast24h: number;
   /** PENDING plays beyond the sport-specific maximum expected final window. */
   pendingPastExpectedFinal: number;
+  /** PENDING parlay legs beyond the final window (diagnostic, not positions). */
+  pendingParlayLegsPastExpectedFinal: number;
+  /** Distinct parlay tickets affected by overdue pending legs. */
+  affectedParlaysPastExpectedFinal: number;
   /**
    * PENDING plays whose start is older than (LOOKBACK - 1) days — about to
    * become permanently ungradeable via the live scores feed (Task C).
@@ -56,15 +60,17 @@ export async function getGradingHealthReport(
   const cliffBefore = new Date(
     now.getTime() - RESULTS_CLIFF_WARNING_DAYS * 24 * 60 * 60 * 1000,
   );
+  const publicCapper = await publicPendingCapperFilter();
 
   // Keep `listOverduePendingPlays` on this same public-record set. Parlay
-  // legs are units=0; counting them as overdue 503'd a HEALTHY grade cron.
+  // legs are units=0 and are inventoried separately below so they cannot be
+  // mistaken for additional betting positions.
   const baseWhere = {
     outcome: "PENDING" as const,
     status: "COMMITTED" as const,
     eventStartsAt: { not: null },
     units: { gte: UNIT_MIN },
-    capper: await publicPendingCapperFilter(),
+    capper: publicCapper,
   };
 
   const pendingPast24h = await withTransientDatabaseRetry(
@@ -105,14 +111,52 @@ export async function getGradingHealthReport(
       expectedFinalAt(play.sport, play.eventStartsAt) <= now,
   ).length;
 
+  const pendingParlayCandidates = await withTransientDatabaseRetry(
+    () =>
+      prisma.play.findMany({
+        where: {
+          outcome: "PENDING",
+          status: "COMMITTED",
+          eventStartsAt: { not: null },
+          parlayId: { not: null },
+          capper: publicCapper,
+        },
+        select: {
+          sport: true,
+          market: true,
+          eventStartsAt: true,
+          parlayId: true,
+        },
+        orderBy: { eventStartsAt: "asc" as const },
+        take: 1_000,
+      }),
+    { label: "grading health overdue parlay-leg inventory" },
+  );
+  const overdueParlayLegs = pendingParlayCandidates.filter(
+    (play) =>
+      play.eventStartsAt != null &&
+      !isAutoGradeBlocked(play) &&
+      expectedFinalAt(play.sport, play.eventStartsAt) <= now,
+  );
+  const pendingParlayLegsPastExpectedFinal = overdueParlayLegs.length;
+  const affectedParlaysPastExpectedFinal = new Set(
+    overdueParlayLegs.flatMap((play) =>
+      play.parlayId == null ? [] : [play.parlayId],
+    ),
+  ).size;
+
   const status: GradingHealthStatus =
-    pendingPastExpectedFinal > 0 ? "UNHEALTHY" : "HEALTHY";
+    pendingPastExpectedFinal > 0 || pendingParlayLegsPastExpectedFinal > 0
+      ? "UNHEALTHY"
+      : "HEALTHY";
 
   return {
     status,
     healthy: status === "HEALTHY",
     pendingPast24h,
     pendingPastExpectedFinal,
+    pendingParlayLegsPastExpectedFinal,
+    affectedParlaysPastExpectedFinal,
     cliffRisk,
     lookbackDays: RESULTS_LOOKBACK_DAYS,
     cliffWarningDays: RESULTS_CLIFF_WARNING_DAYS,

@@ -69,10 +69,17 @@ export default async function AdminGradingPage() {
             <dd className="scl-data mt-1 text-sm font-semibold tabular-nums">
               {health.status}
               <span className="text-muted-foreground ml-2 font-normal">
-                ({health.pendingPastExpectedFinal} past expected final /{" "}
-                {health.pendingPast24h} &gt;24h)
+                ({health.pendingPastExpectedFinal} straight /{" "}
+                {health.pendingParlayLegsPastExpectedFinal} parlay legs past
+                expected final / {health.pendingPast24h} positions &gt;24h)
               </span>
             </dd>
+            {health.affectedParlaysPastExpectedFinal > 0 ? (
+              <p className="text-neg mt-1 text-xs">
+                {health.affectedParlaysPastExpectedFinal} parlay ticket(s)
+                blocked by overdue legs
+              </p>
+            ) : null}
           </div>
           <div>
             <dt className="text-muted-foreground text-xs tracking-wide uppercase">
