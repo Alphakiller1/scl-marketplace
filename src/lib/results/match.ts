@@ -248,6 +248,16 @@ const SAME_FIXTURE_WINDOW_MS = 4 * 60 * 60 * 1000;
 const BOUND_CROSS_PROVIDER_WINDOW_MS = 90 * 60 * 1000;
 
 /**
+ * College football kickoffs can move well past the listed time during severe
+ * weather. ESPN records the actual kickoff while the Odds API id on the slip
+ * keeps the scheduled one. Alabama–Florida State moved by 105 minutes, which
+ * put the correct final just outside the generic 90-minute cross-provider
+ * window. A college team cannot play two fixtures inside four hours, so the
+ * ordinary same-fixture window remains unambiguous for NCAAF.
+ */
+const NCAAF_BOUND_WINDOW_MS = SAME_FIXTURE_WINDOW_MS;
+
+/**
  * A postponed soccer fixture can move to the next day without preserving its
  * provider event id. Permit that wider join only when the board stored BOTH
  * clubs. A selection naming one club is not enough evidence for this window.
@@ -310,6 +320,7 @@ function boundWindowMs(sport: string): number {
   const key = sport.trim().toUpperCase();
   if (key === "MMA") return MMA_FIXTURE_WINDOW_MS;
   if (key === "TENNIS") return TENNIS_BOUND_WINDOW_MS;
+  if (key === "NCAAF") return NCAAF_BOUND_WINDOW_MS;
   return BOUND_CROSS_PROVIDER_WINDOW_MS;
 }
 

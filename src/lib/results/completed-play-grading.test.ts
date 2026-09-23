@@ -82,12 +82,14 @@ test("the production Alabama -19.5 parlay leg grades from the full NCAAF scorebo
     events: [
       {
         id: "401856685",
-        date: "2026-09-19T19:30:00.000Z",
+        // ESPN records the weather-delayed actual kickoff, 105 minutes after
+        // the Odds API schedule stored on the production parlay leg.
+        date: "2026-09-19T21:15:00.000Z",
         status: { type: { completed: true, name: "STATUS_FINAL" } },
         competitions: [
           {
             id: "401856685",
-            date: "2026-09-19T19:30:00.000Z",
+            date: "2026-09-19T21:15:00.000Z",
             status: { type: { completed: true, name: "STATUS_FINAL" } },
             competitors: [
               {
