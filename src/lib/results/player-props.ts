@@ -121,8 +121,8 @@ const MARKET_STAT_KEY: Record<string, string> = {
   "rush attempts": "rushAttempts",
   "rush+rec yds": "rushReceivingYards",
   "fg made": "fieldGoalsMade",
-  // Lineless Yes/No market. The mapping keeps the market in the prop registry;
-  // a missing numeric line makes resolvePlayerProp defer it for manual grading.
+  // Lineless Yes/No market. `resolvePlayerProp` handles its boolean threshold
+  // explicitly because the board correctly stores no fabricated numeric line.
   "anytime touchdown": "touchdownsScored",
   // Hockey, mapped for the same reason and already parsed out of the box score
   // as `shotsOnGoal`.
@@ -222,8 +222,9 @@ export function normalizeName(raw: string): string {
  * must not guess.
  */
 export function playerNameFromSelection(selection: string): string | null {
-  const m = selection.match(/^(.*?)\s+(over|under|o|u)\b/i);
-  const name = m?.[1]?.trim();
+  const lined = selection.match(/^(.*?)\s+(over|under|o|u)\b/i);
+  const lineless = selection.match(/^(.*?)\s+anytime touchdown\s*$/i);
+  const name = (lined?.[1] ?? lineless?.[1])?.trim();
   if (!name) return null;
   // A single token is not a player name ("Team Total Over 4.5").
   if (normalizeName(name).split(" ").filter(Boolean).length < 2) return null;
@@ -285,8 +286,9 @@ export function resolvePlayerProp(
   const statKey = statKeyForMarket(play.market);
   if (!statKey) return null;
 
+  const anytimeTouchdown = statKey === "touchdownsScored";
   const line = typeof play.line === "number" ? play.line : null;
-  if (line == null) return null;
+  if (!anytimeTouchdown && line == null) return null;
 
   const rawSide = (play.side ?? "").trim().toLowerCase();
   const side =
@@ -295,7 +297,7 @@ export function resolvePlayerProp(
       : rawSide === "under" || rawSide === "u"
         ? "under"
         : sideFromSelection(play.selection);
-  if (!side) return null;
+  if (!anytimeTouchdown && !side) return null;
 
   const name = playerNameFromSelection(play.selection);
   if (!name) return null;
@@ -307,5 +309,11 @@ export function resolvePlayerProp(
   const actual = statValue(found.stats, statKey);
   if (actual == null) return null;
 
-  return overUnderOutcome(actual, line, side);
+  if (anytimeTouchdown) {
+    const wantsNo = rawSide === "no";
+    const scored = actual > 0;
+    return scored === !wantsNo ? "WIN" : "LOSS";
+  }
+
+  return overUnderOutcome(actual, line!, side!);
 }

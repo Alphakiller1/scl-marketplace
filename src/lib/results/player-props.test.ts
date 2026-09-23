@@ -676,6 +676,48 @@ test("board-written football props settle against the box score", () => {
   );
 });
 
+test("lineless Anytime Touchdown grades yes/no and excludes passing touchdowns", () => {
+  const box: PlayerBoxScore = {
+    players: [
+      {
+        name: "Bryce Young",
+        team: "Carolina Panthers",
+        played: true,
+        stats: { passingTds: 3, rushingTds: 0, touchdownsScored: 0 },
+      },
+      {
+        name: "Zach Charbonnet",
+        team: "Seattle Seahawks",
+        played: true,
+        stats: { rushingTds: 1, touchdownsScored: 1 },
+      },
+    ],
+  };
+
+  assert.equal(
+    resolvePlayerProp(
+      {
+        market: "Anytime Touchdown",
+        selection: "Bryce Young Anytime Touchdown",
+        side: "Yes",
+      },
+      box,
+    ),
+    "LOSS",
+  );
+  assert.equal(
+    resolvePlayerProp(
+      {
+        market: "Anytime Touchdown",
+        selection: "Zach Charbonnet Anytime Touchdown",
+        side: "Yes",
+      },
+      box,
+    ),
+    "WIN",
+  );
+});
+
 test("every prop label the board can write has a stat key", () => {
   // The gap this closes: `isDeferredProp` recognises a prop by its LABEL, so an
   // unmapped label defers correctly and then never grades — the play sits
@@ -713,6 +755,10 @@ test("the football card reads every column the owners asked for", () => {
               name: "rushing",
               labels: ["CAR", "YDS", "AVG", "TD", "LONG"],
               athletes: [
+                {
+                  athlete: { displayName: "Sam Darnold" },
+                  stats: ["2", "8", "4.0", "0", "6"],
+                },
                 {
                   athlete: { displayName: "Zach Charbonnet" },
                   stats: ["7", "46", "6.6", "1", "18"],
@@ -755,11 +801,14 @@ test("the football card reads every column the owners asked for", () => {
   assert.equal(darnold?.stats.passAttempts, 30);
   assert.equal(darnold?.stats.passingTds, 3);
   assert.equal(darnold?.stats.passingYards, 249);
+  // Throwing a touchdown never wins an Anytime TD scorer ticket.
+  assert.equal(darnold?.stats.touchdownsScored, 0);
 
   const charbonnet = box.players.find((p) => p.name === "Zach Charbonnet");
   assert.equal(charbonnet?.stats.rushAttempts, 7);
   assert.equal(charbonnet?.stats.rushingYards, 46);
   assert.equal(charbonnet?.stats.receivingYards, 20);
+  assert.equal(charbonnet?.stats.touchdownsScored, 1);
 
   const myers = box.players.find((p) => p.name === "Jason Myers");
   assert.equal(myers?.stats.fieldGoalsMade, 3);
