@@ -41,6 +41,8 @@ const PROP_LABELS = new Set(
 /** Gap labels the team-total rule writes, and the top-up keys off. */
 export const TEAM_TOTALS_GAP = "team totals";
 export const ALTERNATE_TEAM_TOTALS_GAP = "alternate team totals";
+export const DRAFTKINGS_ALTERNATE_SPREADS_GAP = "DraftKings alternate spreads";
+export const DRAFTKINGS_ALTERNATE_TOTALS_GAP = "DraftKings alternate totals";
 
 function requestsHalves(markets: readonly string[]): boolean {
   return markets.some((key) => /_h[12]$/.test(key));
@@ -102,6 +104,9 @@ export function summarizeEventMarketCoverage(
   let alternateGameLines = 0;
   let alternateSpreads = 0;
   let alternateTotals = 0;
+  let draftKingsAlternateSpreads = 0;
+  let draftKingsAlternateTotals = 0;
+  let draftKingsSelections = 0;
   let teamTotals = 0;
   const teamTotalLines = new Set<number>();
   const teamTotalLinesByClub = new Map<string, Set<number>>();
@@ -112,6 +117,8 @@ export function summarizeEventMarketCoverage(
   let halves = 0;
 
   for (const selection of selections) {
+    const hasDraftKings = typeof selection.bookPrices?.draftkings === "number";
+    if (hasDraftKings) draftKingsSelections++;
     const period = parsePeriodMarket(selection.market);
     if (
       selection.player ||
@@ -128,6 +135,12 @@ export function summarizeEventMarketCoverage(
       alternateGameLines++;
       if (selection.market === "Spread") alternateSpreads++;
       if (selection.market === "Total") alternateTotals++;
+      if (selection.market === "Spread" && hasDraftKings) {
+        draftKingsAlternateSpreads++;
+      }
+      if (selection.market === "Total" && hasDraftKings) {
+        draftKingsAlternateTotals++;
+      }
     }
     if (isTeamTotalMarket(selection.market)) {
       teamTotals++;
@@ -177,6 +190,28 @@ export function summarizeEventMarketCoverage(
     }
     if (wanted.includes("alternate_totals") && alternateTotals === 0) {
       missing.push("alternate totals");
+    }
+    // DraftKings publishes MLB/NCAAF alternate rungs under the featured
+    // spreads/totals keys. A board can therefore look complete because another
+    // book filled `alternate_spreads` while every DK chip is disabled. Only
+    // demand the companion when DK prices something on this event at all.
+    if (
+      (sport === "MLB" || sport === "NCAAF") &&
+      draftKingsSelections > 0 &&
+      wanted.includes("alternate_spreads") &&
+      alternateSpreads > 0 &&
+      draftKingsAlternateSpreads === 0
+    ) {
+      missing.push(DRAFTKINGS_ALTERNATE_SPREADS_GAP);
+    }
+    if (
+      (sport === "MLB" || sport === "NCAAF") &&
+      draftKingsSelections > 0 &&
+      wanted.includes("alternate_totals") &&
+      alternateTotals > 0 &&
+      draftKingsAlternateTotals === 0
+    ) {
+      missing.push(DRAFTKINGS_ALTERNATE_TOTALS_GAP);
     }
   }
   if (requestsPlayerProps(wanted) && props === 0) {
@@ -310,4 +345,22 @@ export function teamTotalGapMarkets(
   return missing.includes(TEAM_TOTALS_GAP)
     ? [...TEAM_TOTAL_MARKET_KEYS]
     : [ALTERNATE_TEAM_TOTAL_MARKET_KEY];
+}
+
+/**
+ * Cheap companion-market top-up for a board whose only missing coverage is
+ * DraftKings' alternate game ladder. This asks for one or two featured keys,
+ * not the entire MLB prop card, and is safe even after the daily board cap.
+ */
+export function draftKingsCompanionGapMarkets(
+  missing: readonly string[],
+): string[] | null {
+  const markets = [
+    ...(missing.includes(DRAFTKINGS_ALTERNATE_SPREADS_GAP) ? ["spreads"] : []),
+    ...(missing.includes(DRAFTKINGS_ALTERNATE_TOTALS_GAP) ? ["totals"] : []),
+  ];
+  // Unlike a full-board refresh, this costs only one credit per returned key.
+  // It can repair DK now even when an unrelated prop family is also missing
+  // and today's full-board buy cap correctly prevents another expensive pass.
+  return markets.length > 0 ? markets : null;
 }

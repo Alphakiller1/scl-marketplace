@@ -51,13 +51,23 @@ async function fetchEspnScoreboardDay(
     : ESPN_SPORT_PATH[sclSport];
   if (!path) return [];
 
+  // `site.api.espn.com` now returns an Akamai 403 from production and local
+  // server runtimes. ESPN's web API hostname serves the same public scoreboard
+  // contract without that block. NCAAF also needs an explicit FBS group and a
+  // high limit; the default card is curated and can omit an unranked opponent,
+  // leaving a perfectly final spread unmatched until it ages out.
+  const query = [`dates=${yyyymmdd}`];
+  if (sclSport === "NCAAF") {
+    query.push("groups=80", "limit=1000");
+  }
   const url =
-    `https://site.api.espn.com/apis/site/v2/sports/${path.sport}/${path.league}/scoreboard` +
-    `?dates=${yyyymmdd}`;
+    `https://site.web.api.espn.com/apis/site/v2/sports/${path.sport}/${path.league}/scoreboard` +
+    `?${query.join("&")}`;
   try {
     const res = await fetch(url, {
       cache: "no-store",
       headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) {
       console.error(
@@ -81,7 +91,7 @@ async function fetchEspnTennisTour(
   day?: string,
 ): Promise<SettledGame[]> {
   const url =
-    `https://site.api.espn.com/apis/site/v2/sports/tennis/${tour}/scoreboard` +
+    `https://site.web.api.espn.com/apis/site/v2/sports/tennis/${tour}/scoreboard` +
     (day ? `?dates=${day}` : "");
   try {
     const res = await fetch(url, {

@@ -4,6 +4,9 @@ import test from "node:test";
 import type { OddsEvent, OddsSelection } from "@/lib/odds-board";
 import {
   buildOddsCoverageReport,
+  draftKingsCompanionGapMarkets,
+  DRAFTKINGS_ALTERNATE_SPREADS_GAP,
+  DRAFTKINGS_ALTERNATE_TOTALS_GAP,
   summarizeEventMarketCoverage,
   teamTotalGapMarkets,
 } from "@/lib/odds-market-coverage";
@@ -344,6 +347,69 @@ test("a top-up is offered only when team totals are the whole gap", () => {
   // Anything else missing needs a real refresh, which asks for team totals too.
   assert.equal(teamTotalGapMarkets(["alternate team totals", "F7"]), null);
   assert.equal(teamTotalGapMarkets([]), null);
+});
+
+test("an MLB board with DraftKings but no DK alternate rungs gets a cheap companion top-up", () => {
+  const coverage = summarizeEventMarketCoverage(
+    event,
+    [
+      selection("Spread", {
+        featured: false,
+        line: -1,
+        bookPrices: { fanduel: -108 },
+      }),
+      selection("Total", {
+        featured: false,
+        line: 8.5,
+        bookPrices: { fanduel: -110 },
+      }),
+      selection("Moneyline", {
+        side: "Arizona Diamondbacks",
+        bookPrices: { draftkings: -105 },
+      }),
+    ],
+    "runtime_cache",
+    false,
+    ["alternate_spreads", "alternate_totals"],
+  );
+
+  assert.ok(coverage.missing.includes(DRAFTKINGS_ALTERNATE_SPREADS_GAP));
+  assert.ok(coverage.missing.includes(DRAFTKINGS_ALTERNATE_TOTALS_GAP));
+  assert.deepEqual(draftKingsCompanionGapMarkets(coverage.missing), [
+    "spreads",
+    "totals",
+  ]);
+});
+
+test("DraftKings companion coverage passes once its -1 rung is present", () => {
+  const coverage = summarizeEventMarketCoverage(
+    event,
+    [
+      selection("Spread", {
+        featured: false,
+        line: -1,
+        bookPrices: { draftkings: -172, fanduel: -168 },
+      }),
+      selection("Total", {
+        featured: false,
+        line: 8.5,
+        bookPrices: { draftkings: -110, fanduel: -108 },
+      }),
+    ],
+    "runtime_cache",
+    false,
+    ["alternate_spreads", "alternate_totals"],
+  );
+
+  assert.deepEqual(coverage.missing, []);
+  assert.equal(draftKingsCompanionGapMarkets(coverage.missing), null);
+  assert.deepEqual(
+    draftKingsCompanionGapMarkets([
+      DRAFTKINGS_ALTERNATE_SPREADS_GAP,
+      "player props",
+    ]),
+    ["spreads"],
+  );
 });
 
 test("NFL coverage does not demand the game ladder unless those keys were requested", () => {
