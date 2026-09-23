@@ -57,6 +57,53 @@ test("moneyline prefers eventId join when both sides have it", () => {
   assert.equal(resolveOutcome(win, GAMES), "WIN");
 });
 
+test("a postponed fixture voids every market across provider ids", () => {
+  const startsAt = new Date("2026-09-22T22:36:00Z");
+  const postponed: SettledGame[] = [
+    {
+      sport: "MLB",
+      home: "Baltimore Orioles",
+      away: "Toronto Blue Jays",
+      homeScore: 0,
+      awayScore: 0,
+      completed: true,
+      voided: true,
+      eventId: "espn:401817035",
+      startsAt: new Date("2026-09-22T22:35:00Z"),
+    },
+  ];
+  const fixture = {
+    sport: "MLB",
+    eventId: "7fafa79a573ac098f38c8c6c4293b93e",
+    eventStartsAt: startsAt,
+    homeTeam: "Baltimore Orioles",
+    awayTeam: "Toronto Blue Jays",
+  };
+
+  assert.equal(
+    resolveOutcome(
+      play({
+        ...fixture,
+        market: "Moneyline",
+        selection: "Baltimore Orioles",
+      }),
+      postponed,
+    ),
+    "VOID",
+  );
+  assert.equal(
+    resolveOutcome(
+      play({
+        ...fixture,
+        market: "Batter Hits",
+        selection: "Gunnar Henderson Over 1.5 Hits",
+      }),
+      postponed,
+    ),
+    "VOID",
+  );
+});
+
 test("totals: over/under vs the combined score, with push on the number", () => {
   const base = { sport: "NBA", market: "Celtics/Lakers Total" };
   assert.equal(

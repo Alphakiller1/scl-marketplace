@@ -30,16 +30,19 @@ export function mapMlbOfficialSchedule(
       const final =
         game.status?.abstractGameState === "Final" ||
         /final|completed/i.test(game.status?.detailedState ?? "");
+      const voided = /postponed|cancelled|canceled|no contest/i.test(
+        game.status?.detailedState ?? "",
+      );
       const home = game.teams?.home;
       const away = game.teams?.away;
       if (
-        !final ||
+        (!final && !voided) ||
         game.gamePk == null ||
         !game.gameDate ||
         !home?.team?.name ||
         !away?.team?.name ||
-        typeof home.score !== "number" ||
-        typeof away.score !== "number"
+        (!voided &&
+          (typeof home.score !== "number" || typeof away.score !== "number"))
       ) {
         continue;
       }
@@ -56,9 +59,10 @@ export function mapMlbOfficialSchedule(
         sport: "MLB",
         home: home.team.name,
         away: away.team.name,
-        homeScore: home.score,
-        awayScore: away.score,
+        homeScore: voided ? 0 : home.score!,
+        awayScore: voided ? 0 : away.score!,
         completed: true,
+        ...(voided ? { voided: true } : {}),
         eventId: `mlb:${game.gamePk}`,
         mlbGamePk: String(game.gamePk),
         startsAt,

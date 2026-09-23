@@ -86,6 +86,39 @@ test("mapEspnScoreboard extracts completed finals", () => {
   assert.deepEqual(games[0]!.awayPeriods, [2, 0]);
 });
 
+test("mapEspnScoreboard maps postponed fixtures as voidable results", () => {
+  const games = mapEspnScoreboard("MLB", {
+    events: [
+      {
+        id: "401817035",
+        date: "2026-09-22T22:35:00Z",
+        status: { type: { completed: false, name: "STATUS_POSTPONED" } },
+        competitions: [
+          {
+            competitors: [
+              {
+                homeAway: "home",
+                score: "0",
+                team: { displayName: "Baltimore Orioles" },
+              },
+              {
+                homeAway: "away",
+                score: "0",
+                team: { displayName: "Toronto Blue Jays" },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+
+  assert.equal(games.length, 1);
+  assert.equal(games[0]!.voided, true);
+  assert.equal(games[0]!.completed, true);
+  assert.equal(games[0]!.eventId, "espn:401817035");
+});
+
 test("mapEspnScoreboard maps every completed UFC bout on a card", () => {
   const games = mapEspnScoreboard("MMA", {
     events: [

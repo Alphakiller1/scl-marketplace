@@ -6,6 +6,8 @@ export type SettledGame = {
   homeScore: number;
   awayScore: number;
   completed: boolean;
+  /** Provider confirmed the fixture will not be played; every market is VOID. */
+  voided?: boolean;
   /** Odds API event id when available — preferred join key for grading. */
   eventId?: string;
   /**

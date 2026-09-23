@@ -63,6 +63,22 @@ test("the winning copy keeps MLB's official gamePk for Plan C box scores", () =>
   assert.equal(merged[0]!.mlbGamePk, "824240");
 });
 
+test("a confirmed final is not overwritten by a stale backstop postponement", () => {
+  const oddsApi = game({ eventId: "7fafa79a573ac098f38c8c6c4293b93e" });
+  const official = game({
+    eventId: "mlb:824785",
+    mlbGamePk: "824785",
+    voided: true,
+  });
+  const merged = mergeSettledGames([oddsApi], [official]);
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0]!.eventId, "7fafa79a573ac098f38c8c6c4293b93e");
+  assert.equal(merged[0]!.voided, undefined);
+
+  const backstopOnly = mergeSettledGames([], [official]);
+  assert.equal(backstopOnly[0]!.voided, true);
+});
+
 test("espnIdOf reads both shapes, and reports none when there is none", () => {
   assert.equal(espnIdOf(game({ eventId: "espn:401816405" })), "401816405");
   assert.equal(espnIdOf(game({ espnEventId: "401816405" })), "401816405");

@@ -48,6 +48,30 @@ test("MLB official Plan C accepts only final games and retains innings/gamePk", 
   assert.deepEqual(games[0]!.awayPeriods, [0, 2]);
 });
 
+test("MLB official Plan C maps a postponed fixture as voidable", () => {
+  const games = mapMlbOfficialSchedule({
+    dates: [
+      {
+        games: [
+          {
+            gamePk: 824785,
+            gameDate: "2026-09-22T22:35:00Z",
+            status: { detailedState: "Postponed" },
+            teams: {
+              home: { team: { name: "Baltimore Orioles" } },
+              away: { team: { name: "Toronto Blue Jays" } },
+            },
+          },
+        ],
+      },
+    ],
+  });
+
+  assert.equal(games.length, 1);
+  assert.equal(games[0]!.voided, true);
+  assert.equal(games[0]!.mlbGamePk, "824785");
+});
+
 test("broad-sport Plan C never maps scheduled games as finals", () => {
   const games = mapSportsPuffScores("WNBA", {
     scores: [

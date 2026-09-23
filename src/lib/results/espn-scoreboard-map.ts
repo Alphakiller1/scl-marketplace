@@ -129,6 +129,17 @@ function competitionCompleted(
   );
 }
 
+const VOID_STATUS = /STATUS_(?:POSTPONED|CANCELLED|CANCELED|NO_CONTEST)/i;
+
+function competitionVoided(
+  event: EspnEvent,
+  comp: NonNullable<EspnEvent["competitions"]>[number] | undefined,
+): boolean {
+  const competitionStatus = comp?.status?.type?.name;
+  if (competitionStatus) return VOID_STATUS.test(competitionStatus);
+  return VOID_STATUS.test(event.status?.type?.name ?? "");
+}
+
 export type EspnScoreboardPayload = { events?: EspnEvent[] };
 
 export function mapEspnScoreboard(
@@ -142,7 +153,8 @@ export function mapEspnScoreboard(
         ? event.competitions
         : [undefined];
     for (const comp of competitions) {
-      if (!competitionCompleted(event, comp)) continue;
+      const voided = competitionVoided(event, comp);
+      if (!voided && !competitionCompleted(event, comp)) continue;
 
       const teams = comp?.competitors ?? [];
       const { home, away } = pickHomeAway(teams);
@@ -157,9 +169,11 @@ export function mapEspnScoreboard(
         away?.winner === true ||
         (home?.score != null && String(home.score).trim() !== "") ||
         (away?.score != null && String(away.score).trim() !== "");
-      const homeScore = competitorScore(home);
-      const awayScore = competitorScore(away);
-      if (!decided || homeScore == null || awayScore == null) continue;
+      const homeScore = voided ? 0 : competitorScore(home);
+      const awayScore = voided ? 0 : competitorScore(away);
+      if ((!voided && !decided) || homeScore == null || awayScore == null) {
+        continue;
+      }
 
       const regulationPeriods = comp?.format?.regulation?.periods;
       const providerId = comp?.id ?? event.id;
@@ -173,6 +187,7 @@ export function mapEspnScoreboard(
         homeScore,
         awayScore,
         completed: true,
+        ...(voided ? { voided: true } : {}),
         eventId: providerId ? `espn:${providerId}` : undefined,
         // The bare id box-score grading needs, kept where the merge can carry it
         // onto the Odds API copy of the same fixture.
