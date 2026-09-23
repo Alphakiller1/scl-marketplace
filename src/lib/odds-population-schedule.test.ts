@@ -316,6 +316,12 @@ test("owner scheduling is a signed, dormant-by-default dispatcher", () => {
   assert.match(route, /!readOnlyAudit/);
 });
 
+test("trusted manual population can bypass the scheduler and target a market repair", () => {
+  assert.match(workflow, /expanded_markets:/);
+  assert.match(workflow, /x-scl-managed-run: 1/);
+  assert.match(workflow, /x-scl-expanded-markets: \$EXPANDED_MARKETS/);
+});
+
 test("owner mutations authenticate and immediate runs retain every guardrail", () => {
   assert.ok(
     (controlActions.match(/requireAdmin\(\)/g) ?? []).length >= 3,
