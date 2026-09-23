@@ -160,7 +160,9 @@ test("cost preview is a conservative upper bound for surface and expanded runs",
       leagues: [],
       maxEventsPerRun: 12,
     }),
-    24,
+    // DraftKings publishes MLB alternate rungs under the featured keys, so
+    // two owner toggles buy four provider markets per event.
+    48,
   );
   assert.equal(
     estimatedRunCredits({

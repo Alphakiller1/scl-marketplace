@@ -248,7 +248,14 @@ test("expanded football boards carry props plus an owner-toggled game ladder", (
   );
   assert.deepEqual(
     withFeaturedGameLineCompanions("MLB", ["alternate_spreads"]),
-    ["alternate_spreads"],
+    ["spreads", "alternate_spreads"],
+  );
+  assert.deepEqual(
+    withFeaturedGameLineCompanions("MLB", [
+      "alternate_spreads",
+      "alternate_totals",
+    ]),
+    ["spreads", "alternate_spreads", "totals", "alternate_totals"],
   );
 });
 

@@ -5,7 +5,6 @@ import test from "node:test";
 import {
   DEFAULT_EVENT_BUYS_PER_DAY,
   EVENT_BUY_DAY_START_HOUR_ET,
-  HARD_MAX_EVENT_BUYS_PER_DAY,
   SAME_DAY_EXPANDED_RUNS,
 } from "@/lib/odds-event-buy-budget";
 import { REFRESH_MAX_GAP_MINUTES } from "@/lib/strategic-odds-policy";
@@ -48,6 +47,7 @@ test("the workflow schedules the free audit and no paid population", () => {
   // route answers without calling the provider.
   assert.match(workflow, /audit:\n\s+if: github\.event_name == 'schedule'/);
   assert.match(workflow, /expanded=0&surface=0/);
+  assert.match(workflow, /NFL,NCAAF&expanded=0&surface=0/);
   // Nothing else may run on a schedule — that is what double-billed.
   for (const job of ["populate", "populate-temp-key", "write-snapshots"]) {
     const start = workflow.indexOf(`\n  ${job}:`);
@@ -62,6 +62,7 @@ test("the workflow schedules the free audit and no paid population", () => {
 });
 
 test("the audit fails loudly on a spent key or a board that stopped moving", () => {
+  assert.match(workflow, /\.provider != null/);
   assert.match(workflow, /\.provider\.exhausted/);
   assert.match(workflow, /\.provider\.staleSports/);
   assert.match(
@@ -311,6 +312,8 @@ test("owner scheduling is a signed, dormant-by-default dispatcher", () => {
   assert.match(dispatcher, /status: ok \? 200 : 502/);
   assert.match(route, /managedOddsSchedulingEnabled/);
   assert.match(route, /managed_scheduler_active/);
+  assert.match(route, /const readOnlyAudit =/);
+  assert.match(route, /!readOnlyAudit/);
 });
 
 test("owner mutations authenticate and immediate runs retain every guardrail", () => {

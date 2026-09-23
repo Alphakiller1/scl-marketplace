@@ -273,18 +273,19 @@ export function expandedBoardMarkets(sclSport: string): string[] {
  * Extra Odds API keys a requested expanded list must actually buy.
  *
  * The dashboard can ask for only `alternate_spreads` / `alternate_totals`.
- * DraftKings files NCAAF alt rungs on the featured `spreads` / `totals` keys
- * (same shape as MLB). Buying the alternate keys alone leaves a Saturday
- * night game looking surface-only on the DK rail even after a green expanded
- * run. Companions stay off the owner-facing market list so the dashboard
- * still shows the two ladders they opted into; they are billed because they
- * are fetched.
+ * DraftKings files MLB and NCAAF alt rungs on the featured `spreads` /
+ * `totals` keys. Buying the alternate keys alone leaves those rungs absent on
+ * the DK rail even after a green expanded run. Companions stay off the
+ * owner-facing market list so the dashboard still shows the two ladders they
+ * opted into; they are billed because they are fetched.
  */
 export function withFeaturedGameLineCompanions(
   sport: string,
   markets: readonly string[],
 ): string[] {
-  const ncaaf = sport.trim().toUpperCase() === "NCAAF";
+  const companionGameLines = new Set(["MLB", "NCAAF"]).has(
+    sport.trim().toUpperCase(),
+  );
   const ordered: string[] = [];
   const seen = new Set<string>();
   const add = (key: string) => {
@@ -293,8 +294,8 @@ export function withFeaturedGameLineCompanions(
     ordered.push(key);
   };
   for (const market of markets) {
-    if (ncaaf && market === "alternate_spreads") add("spreads");
-    if (ncaaf && market === "alternate_totals") add("totals");
+    if (companionGameLines && market === "alternate_spreads") add("spreads");
+    if (companionGameLines && market === "alternate_totals") add("totals");
     add(market);
   }
   return ordered;

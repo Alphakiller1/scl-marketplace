@@ -886,6 +886,57 @@ test("MLB juiced main run line stays featured while DraftKings alt keeps its pri
   assert.equal(selectionAllowedForMarkets(alt!, ["alternate_spreads"]), true);
 });
 
+test("DraftKings Arizona -1 survives normalization as a selectable MLB alternate", () => {
+  const board = normalizeEventBoard(
+    {
+      id: "diamondbacks-rockies",
+      bookmakers: [
+        {
+          key: "draftkings",
+          markets: [
+            {
+              key: "spreads",
+              outcomes: [
+                { name: "Arizona Diamondbacks", price: -172, point: -1 },
+                { name: "Colorado Rockies", price: 145, point: 1 },
+                { name: "Arizona Diamondbacks", price: -108, point: -1.5 },
+                { name: "Colorado Rockies", price: -112, point: 1.5 },
+              ],
+            },
+          ],
+        },
+        {
+          key: "fanduel",
+          markets: [
+            {
+              key: "spreads",
+              outcomes: [
+                { name: "Arizona Diamondbacks", price: -110, point: -1.5 },
+                { name: "Colorado Rockies", price: -110, point: 1.5 },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    { sport: "MLB" },
+  );
+
+  const minusOne = board.find(
+    (selection) =>
+      selection.market === "Spread" &&
+      selection.side === "Arizona Diamondbacks" &&
+      selection.line === -1,
+  );
+  assert.ok(minusOne);
+  assert.equal(minusOne.featured, false);
+  assert.equal(getOddsForBook(minusOne, "draftkings"), -172);
+  assert.equal(
+    selectionAllowedForMarkets(minusOne, ["alternate_spreads"]),
+    true,
+  );
+});
+
 test("surface DK extras union into expanded FanDuel alts instead of replacing them", () => {
   const surface: OddsSelection = {
     label: "Dodgers +1.5",

@@ -77,6 +77,52 @@ test("a DFB Pokal moneyline grades against ESPN's anglicised club name", () => {
   assert.equal(resolveOutcome(play, games), "WIN");
 });
 
+test("the production Alabama -19.5 parlay leg grades from the full NCAAF scoreboard", () => {
+  const games = mapEspnScoreboard("NCAAF", {
+    events: [
+      {
+        id: "401856685",
+        date: "2026-09-19T19:30:00.000Z",
+        status: { type: { completed: true, name: "STATUS_FINAL" } },
+        competitions: [
+          {
+            id: "401856685",
+            date: "2026-09-19T19:30:00.000Z",
+            status: { type: { completed: true, name: "STATUS_FINAL" } },
+            competitors: [
+              {
+                homeAway: "away",
+                score: "36",
+                team: { displayName: "Florida State Seminoles" },
+              },
+              {
+                homeAway: "home",
+                score: "50",
+                team: { displayName: "Alabama Crimson Tide" },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+  const play: GradablePlay = {
+    id: "alabama-production-parlay-leg",
+    sport: "NCAAF",
+    market: "Spread",
+    selection: "Alabama Crimson Tide -19.5",
+    side: "Alabama Crimson Tide",
+    line: -19.5,
+    oddsAmerican: -108,
+    units: 0,
+    eventId: "a85cea77fbd44d9135461815777f6a9c",
+    eventStartsAt: new Date("2026-09-19T19:30:00.000Z"),
+  };
+
+  assert.equal(findGame(play, games)?.espnEventId, "401856685");
+  assert.equal(resolveOutcome(play, games), "LOSS");
+});
+
 /** ESPN WTA Monterrey: Vidmanova bt Udvardy 6-3 3-6 6-3 — 15 games to 12. */
 const MONTERREY_SCOREBOARD = {
   events: [

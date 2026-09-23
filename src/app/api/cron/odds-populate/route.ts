@@ -26,6 +26,7 @@ import {
   topUpEventBoard,
 } from "@/lib/odds-event-board-cache";
 import {
+  draftKingsCompanionGapMarkets,
   summarizeEventMarketCoverage,
   teamTotalGapMarkets,
 } from "@/lib/odds-market-coverage";
@@ -189,8 +190,16 @@ async function populate(req: NextRequest) {
     );
   }
 
+  // The scheduled GitHub audit is a signed, zero-credit cache read. Managed
+  // scheduling must suppress legacy PAID runs, not blind the one monitor that
+  // detects a stale board or exhausted key. Both zeroes are required so an
+  // accidental partial request cannot slip through this exception and spend.
+  const readOnlyAudit =
+    req.nextUrl.searchParams.get("surface") === "0" &&
+    req.nextUrl.searchParams.get("expanded") === "0";
   if (
     managedSchedulingEnabled &&
+    !readOnlyAudit &&
     req.headers.get("x-scl-managed-run") !== "1"
   ) {
     return NextResponse.json({
@@ -395,11 +404,20 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
         // ladder, and no Over 2.5 for either club. Rebuying fifty-odd markets
         // to fetch one is the wrong trade, so the ladder is asked for on its
         // own and added to the board without moving a price it already holds.
-        const ladderGap =
+        const teamTotalGap = teamTotalGapMarkets(coverage.missing);
+        const draftKingsGap = draftKingsCompanionGapMarkets(coverage.missing);
+        const targetedGap = teamTotalTopUpOnly
+          ? teamTotalGap
+          : (draftKingsGap ?? teamTotalGap);
+        const topUpMarkets =
           cached.savedAt == null
             ? null
-            : (teamTotalGapMarkets(coverage.missing)?.filter((key) =>
-                sportMarkets.includes(key),
+            : (targetedGap?.filter(
+                (key) =>
+                  // Companion keys are deliberately absent from the owner's
+                  // checkbox list; the alternate toggle authorizes their
+                  // targeted fetch. Team totals remain owner-list filtered.
+                  draftKingsGap?.includes(key) || sportMarkets.includes(key),
               ) ?? null);
         const boardWithinAge =
           cached.savedAt != null &&
@@ -416,7 +434,7 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
         // attempt logged, the catch-up scheduler would wake a pass every half
         // hour to find it capped again.
         if (
-          ladderGap?.length &&
+          topUpMarkets?.length &&
           (teamTotalTopUpOnly || boardWithinAge || boardCapped)
         ) {
           const dueAt = topUpForce ? Date.now() : nextTopUpAt(cached.topUps);
@@ -429,7 +447,7 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
           if (
             shouldHoldCreditsForLater(
               getLastOddsApiRemaining(),
-              ladderGap.length,
+              topUpMarkets.length,
               laterCredits,
               MIN_CIRCUIT_BREAK_RESERVE,
             )
@@ -439,7 +457,7 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
           }
           const topUp = await topUpEventBoard(sport, event.id, {
             league: event.league,
-            markets: ladderGap,
+            markets: topUpMarkets,
           });
           topUpAttempts += 1;
           if (topUp.added > 0) toppedUp += 1;
@@ -582,9 +600,7 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
     // that did not buy the ladder should not scan or chase it.
     const sportMarkets = withFeaturedGameLineCompanions(
       sport,
-      expandedMarkets.length
-        ? expandedMarkets
-        : defaultExpandedMarkets(sport),
+      expandedMarkets.length ? expandedMarkets : defaultExpandedMarkets(sport),
     );
     let ladderGaps = 0;
     let ladderRetryAt: number | null = null;
