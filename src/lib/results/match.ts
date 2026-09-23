@@ -637,13 +637,14 @@ function resolveTennisGamesMarket(
 export function resolveOutcome(
   play: GradablePlay,
   games: SettledGame[],
-): "WIN" | "LOSS" | "PUSH" | null {
+): "WIN" | "LOSS" | "PUSH" | "VOID" | null {
+  const game = findGame(play, games);
+  if (!game) return null;
+  if (game.voided) return "VOID";
   if (isDeferredProp(play)) return null;
 
   const market = norm(play.market);
   const selection = norm(play.selection);
-  const game = findGame(play, games);
-  if (!game) return null;
 
   // ---- tennis: moneyline here, games markets on the line scores ----
   //

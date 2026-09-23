@@ -452,6 +452,10 @@ async function resolvePendingPlay(
 }> {
   const fixture = await cachedRecoveredFixture(fixtureCache, play, games);
   const boundPlay = fixture ? { ...play, ...fixture } : play;
+  const matchedGame = findSettledGame(boundPlay, games);
+  if (matchedGame?.voided) {
+    return { outcome: "VOID", reason: "market_unhandled", fixture };
+  }
   const deferredMarket =
     parsePeriodMarket(boundPlay.market) || isDeferredProp(boundPlay);
   if (deferredMarket) {
@@ -468,7 +472,7 @@ async function resolvePendingPlay(
     // feed has no such game" too, so a prop stuck on a missing fixture was
     // indistinguishable from one whose box score could not be read — and the
     // health report counted it as normal prop behaviour either way.
-    const gameFound = findSettledGame(boundPlay, games) != null;
+    const gameFound = matchedGame != null;
     return {
       outcome: null,
       reason: gameFound
