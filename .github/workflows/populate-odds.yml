@@ -55,6 +55,11 @@ on:
         required: false
         default: "120"
         type: string
+      expanded_markets:
+        description: "Optional comma-separated expanded market keys for a targeted repair"
+        required: false
+        default: ""
+        type: string
       budget_floor:
         description: "Stop spending once remaining credits hit this (temp-key runs)"
         required: false
@@ -265,6 +270,7 @@ jobs:
           SPORTS: ${{ github.event.client_payload.sports || github.event.inputs.sports || 'MLB,WNBA,TENNIS,SOCCER,NFL' }}
           EXPANDED: ${{ github.event.client_payload.expanded || github.event.inputs.expanded || '99' }}
           EXPANDED_DAYS: ${{ github.event.client_payload.expanded_days || github.event.inputs.expanded_days || 'today' }}
+          EXPANDED_MARKETS: ${{ github.event.client_payload.expanded_markets || github.event.inputs.expanded_markets || '' }}
           SURFACE: ${{ github.event.client_payload.surface || '1' }}
           SKIP_POPULATED: ${{ github.event.client_payload.skipPopulated || '1' }}
           EXPANDED_ORDER: ${{ github.event.client_payload.expandedOrder || 'MLB,WNBA,TENNIS,SOCCER' }}
@@ -280,9 +286,15 @@ jobs:
           encoded_sports=$(jq -rn --arg value "$SPORTS" '$value|@uri')
           encoded_days=$(jq -rn --arg value "$EXPANDED_DAYS" '$value|@uri')
           encoded_order=$(jq -rn --arg value "$EXPANDED_ORDER" '$value|@uri')
+          market_header=()
+          if [ -n "$EXPANDED_MARKETS" ]; then
+            market_header+=(--header "x-scl-expanded-markets: $EXPANDED_MARKETS")
+          fi
           curl --fail --silent --show-error \
             --header "Authorization: Bearer $CRON_SECRET" \
             --header "x-scl-odds-key: $ODDS_KEY" \
+            --header "x-scl-managed-run: 1" \
+            "${market_header[@]}" \
             --request POST \
             "https://sportscappersleaderboard.com/api/cron/odds-populate?sports=${encoded_sports}&expanded=${EXPANDED}&expandedDays=${encoded_days}&surface=${SURFACE}&skipPopulated=${SKIP_POPULATED}&expandedOrder=${encoded_order}" \
             --output /tmp/populate.json
@@ -323,6 +335,7 @@ jobs:
           SPORTS: ${{ inputs.sports || 'MLB,WNBA,TENNIS,SOCCER,NFL' }}
           EXPANDED: ${{ inputs.expanded }}
           EXPANDED_DAYS: ${{ inputs.expanded_days || 'tomorrow' }}
+          EXPANDED_MARKETS: ${{ inputs.expanded_markets || '' }}
           SURFACE: ${{ inputs.surface && '1' || '0' }}
           MAX_AGE: ${{ inputs.expanded_max_age_minutes || '120' }}
         run: |
@@ -332,8 +345,14 @@ jobs:
           fi
           encoded_sports=$(jq -rn --arg value "$SPORTS" '$value|@uri')
           encoded_days=$(jq -rn --arg value "$EXPANDED_DAYS" '$value|@uri')
+          market_header=()
+          if [ -n "$EXPANDED_MARKETS" ]; then
+            market_header+=(--header "x-scl-expanded-markets: $EXPANDED_MARKETS")
+          fi
           curl --fail --silent --show-error \
             --header "Authorization: Bearer $CRON_SECRET" \
+            --header "x-scl-managed-run: 1" \
+            "${market_header[@]}" \
             --request POST \
             "https://sportscappersleaderboard.com/api/cron/odds-populate?sports=${encoded_sports}&expanded=${EXPANDED}&expandedDays=${encoded_days}&surface=${SURFACE}&expandedMaxAgeMinutes=${MAX_AGE}" \
             --output /tmp/populate.json
