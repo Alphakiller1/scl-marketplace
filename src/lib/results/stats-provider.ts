@@ -50,8 +50,12 @@ export async function fetchPeriodBoxScore(
 
   try {
     const res = await fetchImpl(
-      `https://site.api.espn.com/apis/site/v2/sports/${path}/summary?event=${encodeURIComponent(eventId)}`,
-      { headers: { accept: "application/json" } },
+      `https://site.web.api.espn.com/apis/site/v2/sports/${path}/summary?event=${encodeURIComponent(eventId)}`,
+      {
+        cache: "no-store",
+        headers: { accept: "application/json" },
+        signal: AbortSignal.timeout(10_000),
+      },
     );
     if (!res.ok) return null;
     const data: unknown = await res.json();
@@ -72,8 +76,12 @@ export async function fetchPlayerBoxScore(
 
   try {
     const res = await fetchImpl(
-      `https://site.api.espn.com/apis/site/v2/sports/${path}/summary?event=${encodeURIComponent(eventId)}`,
-      { headers: { accept: "application/json" } },
+      `https://site.web.api.espn.com/apis/site/v2/sports/${path}/summary?event=${encodeURIComponent(eventId)}`,
+      {
+        cache: "no-store",
+        headers: { accept: "application/json" },
+        signal: AbortSignal.timeout(10_000),
+      },
     );
     if (!res.ok) return null;
     const data: unknown = await res.json();
@@ -237,6 +245,10 @@ const STATS_BY_GROUP: Record<string, Record<string, string>> = {
     YDS: "receivingYards",
     TD: "receivingTds",
   },
+  defensive: { TD: "defensiveTds" },
+  interceptions: { TD: "interceptionReturnTds" },
+  kickreturns: { TD: "kickReturnTds" },
+  puntreturns: { TD: "puntReturnTds" },
   // "FG" is read below as made-of-attempts; "PTS" here is the kicker's scoring
   // and must not reach the basketball map, which would file it as a points
   // line for a player who never took a shot.
@@ -379,6 +391,21 @@ export function mapSummaryToPlayerBox(data: unknown): PlayerBoxScore | null {
 
   for (const entry of byName.values()) {
     const { stats } = entry;
+    // Anytime TD is a yes/no market and excludes a quarterback merely
+    // throwing the score. ESPN can list the same return touchdown in both a
+    // defensive group and its specific return group, so use the maximum rather
+    // than summing categories; all the resolver needs is zero versus non-zero.
+    const nonPassingTouchdowns = [
+      stats.rushingTds,
+      stats.receivingTds,
+      stats.defensiveTds,
+      stats.interceptionReturnTds,
+      stats.kickReturnTds,
+      stats.puntReturnTds,
+    ].filter((value): value is number => typeof value === "number");
+    if (nonPassingTouchdowns.length > 0) {
+      stats.touchdownsScored = Math.max(...nonPassingTouchdowns);
+    }
     if (
       stats.totalBases == null &&
       stats.hits != null &&

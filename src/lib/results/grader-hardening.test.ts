@@ -93,6 +93,14 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
   assert.match(espn, /query\.push\("groups=80", "limit=1000"\)/);
   assert.match(espn, /AbortSignal\.timeout\(10_000\)/);
 
+  const statsProvider = fs.readFileSync(
+    path.join(root, "src/lib/results/stats-provider.ts"),
+    "utf8",
+  );
+  assert.match(statsProvider, /site\.web\.api\.espn\.com/);
+  assert.doesNotMatch(statsProvider, /https:\/\/site\.api\.espn\.com/);
+  assert.match(statsProvider, /AbortSignal\.timeout\(10_000\)/);
+
   const cflCa = fs.readFileSync(
     path.join(root, "src/lib/results/cfl-ca-scores.ts"),
     "utf8",
