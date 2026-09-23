@@ -139,6 +139,70 @@ export async function listOverduePendingPlays(
     }));
 }
 
+/**
+ * Pending parlay legs whose sport-specific final deadline has passed.
+ *
+ * This is deliberately separate from `listOverduePendingPlays`: parlay legs
+ * carry zero units and are not independent positions, but a leg that remains
+ * pending can hold its entire ticket open. Keeping a dedicated inventory makes
+ * that grading failure alertable without inflating straight-play health counts.
+ */
+export async function listOverduePendingParlayLegs(
+  now = new Date(),
+  take = 50,
+): Promise<StuckPlayRow[]> {
+  const excludedUsers = await prismaExcludeTestHandlesLive();
+  const rows = await prisma.play.findMany({
+    where: {
+      outcome: "PENDING",
+      status: "COMMITTED",
+      parlayId: { not: null },
+      capper: {
+        user: {
+          accountStatus: "ACTIVE",
+          username: { not: null },
+          ...excludedUsers,
+        },
+      },
+    },
+    select: {
+      id: true,
+      sport: true,
+      market: true,
+      selection: true,
+      oddsAmerican: true,
+      units: true,
+      eventId: true,
+      eventStartsAt: true,
+      parlayId: true,
+      capper: { select: { user: { select: { username: true } } } },
+    },
+    orderBy: { eventStartsAt: "asc" },
+    take: 1_000,
+  });
+
+  return rows
+    .filter(
+      (play) =>
+        play.eventStartsAt != null &&
+        !isAutoGradeBlocked(play) &&
+        expectedFinalAt(play.sport, play.eventStartsAt) <= now,
+    )
+    .slice(0, take)
+    .map((play) => ({
+      id: play.id,
+      handle: play.capper.user.username,
+      sport: play.sport,
+      market: play.market,
+      selection: play.selection,
+      oddsAmerican: play.oddsAmerican,
+      units: Number(play.units),
+      eventId: play.eventId,
+      eventStartsAt: play.eventStartsAt?.toISOString() ?? null,
+      parlayId: play.parlayId,
+    }));
+}
+
 /** Every pending committed play, aged out or not — the number ops actually needs. */
 export async function countPendingPlays(): Promise<number> {
   return prisma.play.count({
@@ -223,9 +287,10 @@ export async function listGradingWorkQueue(
   now = new Date(),
   take = 50,
 ): Promise<(StuckPlayRow & { reason: string; manualOnly: boolean })[]> {
-  const [manual, overdue] = await Promise.all([
+  const [manual, overdue, overdueParlayLegs] = await Promise.all([
     listManualGradingQueue(now, take),
     listOverduePendingPlays(now, take),
+    listOverduePendingParlayLegs(now, take),
   ]);
   const seen = new Set(manual.map((play) => play.id));
   return [
@@ -236,6 +301,13 @@ export async function listGradingWorkQueue(
         ...play,
         manualOnly: false,
         reason: `${play.market} is past its expected final for ${play.sport} — automatic retries continue`,
+      })),
+    ...overdueParlayLegs
+      .filter((play) => !seen.has(play.id))
+      .map((play) => ({
+        ...play,
+        manualOnly: false,
+        reason: `${play.market} parlay leg is past its expected final for ${play.sport} — automatic retries continue`,
       })),
   ].slice(0, take);
 }

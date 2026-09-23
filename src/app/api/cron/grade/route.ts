@@ -10,6 +10,7 @@ import { getGradingResultsProvider } from "@/lib/results/provider";
 import {
   listAgedOutPendingPlays,
   listManualGradingQueue,
+  listOverduePendingParlayLegs,
   listOverduePendingPlays,
 } from "@/lib/results/stuck-plays";
 
@@ -107,6 +108,7 @@ async function runGrade(req: NextRequest) {
         ? await listAgedOutPendingPlays()
         : [];
     const overduePending = await listOverduePendingPlays();
+    const overdueParlayLegs = await listOverduePendingParlayLegs();
     // Plays auto-grading has permanently given up on, and a human must
     // settle. Reported apart from overduePending on purpose: these never
     // resolve on their own, so folding them into the health signal would
@@ -116,7 +118,9 @@ async function runGrade(req: NextRequest) {
     // human reads, not only on a page nobody opens.
     const manualQueue = await listManualGradingQueue();
     const gradeOk =
-      health.status !== "UNHEALTHY" && overduePending.length === 0;
+      health.status !== "UNHEALTHY" &&
+      overduePending.length === 0 &&
+      overdueParlayLegs.length === 0;
 
     // Update job run with final stats
     await prisma.gradeJobRun.update({
@@ -130,10 +134,11 @@ async function runGrade(req: NextRequest) {
         skippedByReason: result.skippedByReason ?? {},
         error: gradeOk
           ? null
-          : `${overduePending.length} plays remain pending past expected final time`,
+          : `${overduePending.length} straight play(s) and ${overdueParlayLegs.length} parlay leg(s) remain pending past expected final time`,
         meta: {
           health,
           overduePending: overduePending.length,
+          overdueParlayLegs: overdueParlayLegs.length,
           needsManualGrading: manualQueue.length,
         },
       },
@@ -163,6 +168,8 @@ async function runGrade(req: NextRequest) {
     if (health.status === "UNHEALTHY") {
       console.warn(
         `[cron/grade] health=UNHEALTHY pendingPastExpectedFinal=${health.pendingPastExpectedFinal}` +
+          ` pendingParlayLegsPastExpectedFinal=${health.pendingParlayLegsPastExpectedFinal}` +
+          ` affectedParlaysPastExpectedFinal=${health.affectedParlaysPastExpectedFinal}` +
           ` pendingPast24h=${health.pendingPast24h}` +
           ` cliffRisk=${health.cliffRisk}` +
           ` skippedByReason=${JSON.stringify(result.skippedByReason)}`,
@@ -176,6 +183,7 @@ async function runGrade(req: NextRequest) {
         ...result,
         health,
         overduePending,
+        overdueParlayLegs,
         needsManualGrading: manualQueue,
         stuckPlays,
       },
