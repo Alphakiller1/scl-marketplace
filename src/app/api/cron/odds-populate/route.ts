@@ -27,6 +27,7 @@ import {
 } from "@/lib/odds-event-board-cache";
 import {
   draftKingsCompanionGapMarkets,
+  onlyTopUpGaps,
   summarizeEventMarketCoverage,
   teamTotalGapMarkets,
 } from "@/lib/odds-market-coverage";
@@ -406,9 +407,14 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
         // own and added to the board without moving a price it already holds.
         const teamTotalGap = teamTotalGapMarkets(coverage.missing);
         const draftKingsGap = draftKingsCompanionGapMarkets(coverage.missing);
+        // Both at once. Picking one let a DK gap that never closes (DK prices
+        // the featured line only) starve the ladder for the whole day.
+        const combinedGap = [...(draftKingsGap ?? []), ...(teamTotalGap ?? [])];
         const targetedGap = teamTotalTopUpOnly
           ? teamTotalGap
-          : (draftKingsGap ?? teamTotalGap);
+          : combinedGap.length
+            ? combinedGap
+            : null;
         const topUpMarkets =
           cached.savedAt == null
             ? null
@@ -433,9 +439,14 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
         // so a top-up is the only thing that can still fill it — and without an
         // attempt logged, the catch-up scheduler would wake a pass every half
         // hour to find it capped again.
+        // Other gaps on a board that may still be rebought go to the rebuy,
+        // which asks for these markets as well; a capped board cannot be, so
+        // the top-up is all it gets.
         if (
           topUpMarkets?.length &&
-          (teamTotalTopUpOnly || boardWithinAge || boardCapped)
+          (teamTotalTopUpOnly ||
+            boardCapped ||
+            (boardWithinAge && onlyTopUpGaps(coverage.missing)))
         ) {
           const dueAt = topUpForce ? Date.now() : nextTopUpAt(cached.topUps);
           if (dueAt == null || dueAt > Date.now()) {
