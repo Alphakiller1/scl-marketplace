@@ -8,6 +8,7 @@ import {
   DRAFTKINGS_ALTERNATE_SPREADS_GAP,
   DRAFTKINGS_ALTERNATE_TOTALS_GAP,
   summarizeEventMarketCoverage,
+  onlyTopUpGaps,
   teamTotalGapMarkets,
 } from "@/lib/odds-market-coverage";
 
@@ -336,7 +337,7 @@ test("one club's ladder does not cover the other club", () => {
   assert.ok(coverage.missing.includes("alternate team totals"));
 });
 
-test("a top-up is offered only when team totals are the whole gap", () => {
+test("a team-total gap names its top-up keys whatever else is missing", () => {
   assert.deepEqual(teamTotalGapMarkets(["alternate team totals"]), [
     "alternate_team_totals",
   ]);
@@ -344,9 +345,94 @@ test("a top-up is offered only when team totals are the whole gap", () => {
     "team_totals",
     "alternate_team_totals",
   ]);
-  // Anything else missing needs a real refresh, which asks for team totals too.
-  assert.equal(teamTotalGapMarkets(["alternate team totals", "F7"]), null);
+  // A second gap used to hide the ladder entirely — from the top-up AND from
+  // the gap count that schedules the catch-up.
+  assert.deepEqual(teamTotalGapMarkets(["alternate team totals", "F7"]), [
+    "alternate_team_totals",
+  ]);
+  assert.deepEqual(
+    teamTotalGapMarkets([
+      DRAFTKINGS_ALTERNATE_SPREADS_GAP,
+      DRAFTKINGS_ALTERNATE_TOTALS_GAP,
+      "alternate team totals",
+    ]),
+    ["alternate_team_totals"],
+  );
+  assert.equal(teamTotalGapMarkets(["F7"]), null);
   assert.equal(teamTotalGapMarkets([]), null);
+});
+
+test("only top-up gaps skip the rebuy; anything else still earns one", () => {
+  assert.equal(
+    onlyTopUpGaps([
+      DRAFTKINGS_ALTERNATE_SPREADS_GAP,
+      DRAFTKINGS_ALTERNATE_TOTALS_GAP,
+      "alternate team totals",
+    ]),
+    true,
+  );
+  assert.equal(onlyTopUpGaps(["team totals"]), true);
+  assert.equal(onlyTopUpGaps(["alternate team totals", "F7"]), false);
+  assert.equal(onlyTopUpGaps([]), false);
+});
+
+test("Braves@Reds 2026-09-24: a DK featured-only board still reports its thin ladder", () => {
+  // Shape of the live board: DraftKings prices props and the featured game
+  // line but no alternate rungs, and each club carries 2-3 team-total lines.
+  const teamTotal = (team: string, line: number, book: string) => [
+    selection("Team Total", {
+      selection: `${team} Over ${line}`,
+      side: "Over",
+      line,
+      featured: false,
+      bookPrices: { [book]: -110 },
+    }),
+    selection("Team Total", {
+      selection: `${team} Under ${line}`,
+      side: "Under",
+      line,
+      featured: false,
+      bookPrices: { [book]: -110 },
+    }),
+  ];
+  const coverage = summarizeEventMarketCoverage(
+    event,
+    [
+      selection("Spread", {
+        featured: true,
+        line: -1.5,
+        bookPrices: { draftkings: -150 },
+      }),
+      selection("Spread", {
+        featured: false,
+        line: -2.5,
+        bookPrices: { fanduel: 120 },
+      }),
+      selection("Total", {
+        featured: false,
+        line: 9.5,
+        bookPrices: { fanduel: -105 },
+      }),
+      ...teamTotal("Atlanta Braves", 2.5, "fanatics"),
+      ...teamTotal("Atlanta Braves", 4.5, "williamhill_us"),
+      ...teamTotal("Cincinnati Reds", 1.5, "fanatics"),
+      ...teamTotal("Cincinnati Reds", 2.5, "fanduel"),
+      ...teamTotal("Cincinnati Reds", 3.5, "williamhill_us"),
+    ],
+    "runtime_cache",
+    false,
+    [
+      "alternate_spreads",
+      "alternate_totals",
+      "team_totals",
+      "alternate_team_totals",
+    ],
+  );
+  assert.ok(coverage.missing.includes(DRAFTKINGS_ALTERNATE_SPREADS_GAP));
+  assert.ok(coverage.missing.includes("alternate team totals"));
+  assert.deepEqual(teamTotalGapMarkets(coverage.missing), [
+    "alternate_team_totals",
+  ]);
 });
 
 test("an MLB board with DraftKings but no DK alternate rungs gets a cheap companion top-up", () => {

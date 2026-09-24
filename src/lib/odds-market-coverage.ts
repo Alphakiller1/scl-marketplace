@@ -337,14 +337,36 @@ export type OddsCoverageReport = ReturnType<typeof buildOddsCoverageReport>;
 export function teamTotalGapMarkets(
   missing: readonly string[],
 ): string[] | null {
-  if (missing.length === 0) return null;
-  const onlyTeamTotals = missing.every(
-    (gap) => gap === TEAM_TOTALS_GAP || gap === ALTERNATE_TEAM_TOTALS_GAP,
-  );
-  if (!onlyTeamTotals) return null;
-  return missing.includes(TEAM_TOTALS_GAP)
-    ? [...TEAM_TOTAL_MARKET_KEYS]
-    : [ALTERNATE_TEAM_TOTAL_MARKET_KEY];
+  // Keyed off the team-total gap ALONE, whatever else the board is missing.
+  // This used to return null unless team totals were the whole gap, so any
+  // second gap hid the ladder from both the top-up and the gap count. The one
+  // that bit was permanent: DraftKings pricing a game's featured spread and
+  // total but no alternate rungs leaves "DraftKings alternate spreads" missing
+  // all day, so on 2026-09-24 Braves@Reds was topped up hourly for DK keys
+  // only, `alternate_team_totals` was never asked for, the run reported zero
+  // ladder gaps, no catch-up was scheduled — and no Braves Over 1.5 existed.
+  // Whether the rest of the gap needs a rebuy is `onlyTopUpGaps`' question.
+  if (missing.includes(TEAM_TOTALS_GAP)) return [...TEAM_TOTAL_MARKET_KEYS];
+  if (missing.includes(ALTERNATE_TEAM_TOTALS_GAP)) {
+    return [ALTERNATE_TEAM_TOTAL_MARKET_KEY];
+  }
+  return null;
+}
+
+const TOP_UP_GAPS = new Set([
+  TEAM_TOTALS_GAP,
+  ALTERNATE_TEAM_TOTALS_GAP,
+  DRAFTKINGS_ALTERNATE_SPREADS_GAP,
+  DRAFTKINGS_ALTERNATE_TOTALS_GAP,
+]);
+
+/**
+ * Can every gap on this board be closed by a targeted top-up? When it cannot
+ * (a prop family, F5, the whole board), a rebuy that is still allowed is the
+ * better spend — it asks for team totals and DK companions too.
+ */
+export function onlyTopUpGaps(missing: readonly string[]): boolean {
+  return missing.length > 0 && missing.every((gap) => TOP_UP_GAPS.has(gap));
 }
 
 /**
