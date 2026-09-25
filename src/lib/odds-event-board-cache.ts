@@ -416,7 +416,13 @@ export async function topUpEventBoard(
     });
   }
   const selections = addMissingEventBoardSelections(cached.selections, fresh);
-  const added = selections.length - cached.selections.length;
+  // Rungs added plus book prices added to rungs already on the board.
+  const bookSlots = (rows: readonly OddsSelection[]) =>
+    rows.reduce((n, row) => n + Object.keys(row.bookPrices ?? {}).length, 0);
+  const added =
+    selections.length -
+    cached.selections.length +
+    (bookSlots(selections) - bookSlots(cached.selections));
   // Written even when nothing was added: the attempt is what spaces and caps
   // the next one.
   await writeSnapshot(normalizedSport, eventId, selections, cached.buys ?? [], {

@@ -66,6 +66,13 @@ import {
   nextTopUpAt,
 } from "@/lib/odds-event-buy-budget";
 import { ALTERNATE_TEAM_TOTAL_MARKET_KEY } from "@/lib/team-total-markets";
+
+/** Owner toggles whose gaps a targeted top-up can close. */
+const LADDER_TOP_UP_MARKETS = [
+  ALTERNATE_TEAM_TOTAL_MARKET_KEY,
+  "alternate_spreads",
+  "alternate_totals",
+] as const;
 import { withFeaturedGameLineCompanions } from "@/lib/odds-verify";
 
 export const maxDuration = 300;
@@ -448,7 +455,9 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
             boardCapped ||
             (boardWithinAge && onlyTopUpGaps(coverage.missing)))
         ) {
-          const dueAt = topUpForce ? Date.now() : nextTopUpAt(cached.topUps);
+          const dueAt = topUpForce
+            ? Date.now()
+            : nextTopUpAt(cached.topUps, Date.now(), event.commenceTime);
           if (dueAt == null || dueAt > Date.now()) {
             ladderWaiting += 1;
             populated += 1;
@@ -580,6 +589,7 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
   // what tells the scheduler to come back.
   const uncovered: Record<string, number> = {};
   const teamTotalLadderGaps: Record<string, number> = {};
+  const draftKingsLadderGaps: Record<string, number> = {};
   const catchUp: Record<string, string> = {};
   for (const sport of expandedOrder) {
     const slate = selectExpandedSlateEvents(
@@ -614,34 +624,45 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
       expandedMarkets.length ? expandedMarkets : defaultExpandedMarkets(sport),
     );
     let ladderGaps = 0;
+    let draftKingsGaps = 0;
     let ladderRetryAt: number | null = null;
     if (
       !expandsFullSlate(sport) &&
-      sportMarkets.includes(ALTERNATE_TEAM_TOTAL_MARKET_KEY)
+      LADDER_TOP_UP_MARKETS.some((key) => sportMarkets.includes(key))
     ) {
       const missingIds = new Set(missing);
       for (const event of slate) {
         if (missingIds.has(event.id)) continue;
         const cached = await loadCachedEventBoard(sport, event.id);
-        const gap = teamTotalGapMarkets(
-          summarizeEventMarketCoverage(
-            event,
-            cached.selections,
-            cached.source,
-            cached.stale,
-            sportMarkets,
-          ).missing,
-        );
-        if (!gap?.length) continue;
+        const gaps = summarizeEventMarketCoverage(
+          event,
+          cached.selections,
+          cached.source,
+          cached.stale,
+          sportMarkets,
+        ).missing;
+        // DraftKings' alt run lines are chased like the team-total ladder.
+        // They were not, so a DK gap only ever retried when the regular
+        // cadence happened to come round — often after first pitch.
+        const draftKingsGap = draftKingsCompanionGapMarkets(gaps);
+        if (draftKingsGap?.length) draftKingsGaps += 1;
+        if (!teamTotalGapMarkets(gaps)?.length && !draftKingsGap?.length) {
+          continue;
+        }
         ladderGaps += 1;
         // Out of tries for the buy day: reported, but nothing to wake for.
-        const retryAt = nextTopUpAt(cached.topUps);
+        const retryAt = nextTopUpAt(
+          cached.topUps,
+          Date.now(),
+          event.commenceTime,
+        );
         if (retryAt == null) continue;
         ladderRetryAt =
           ladderRetryAt == null ? retryAt : Math.min(ladderRetryAt, retryAt);
       }
     }
     if (ladderGaps > 0) teamTotalLadderGaps[sport] = ladderGaps;
+    if (draftKingsGaps > 0) draftKingsLadderGaps[sport] = draftKingsGaps;
 
     // Only the managed scheduler owns `nextExpandedRunAt`. Under the fixed
     // `vercel.json` cadence there is no schedule row to move, and the next
@@ -663,7 +684,7 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
       // the owner still has the ladder switched on.
       const at = await scheduleExpandedCatchUp(sport, ladderGaps, new Date(), {
         notBefore: new Date(ladderRetryAt),
-        requireMarkets: [ALTERNATE_TEAM_TOTAL_MARKET_KEY],
+        requireMarkets: LADDER_TOP_UP_MARKETS,
       });
       if (at) catchUp[sport] = at.toISOString();
     }
@@ -720,6 +741,7 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
     expanded,
     uncovered,
     teamTotalLadderGaps,
+    draftKingsLadderGaps,
     catchUp,
     topUp: teamTotalTopUpOnly,
     provider,
