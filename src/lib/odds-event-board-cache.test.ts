@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import type { OddsSelection } from "@/lib/odds-board";
 import {
   addMissingEventBoardSelections,
   mergeEventBoardSelections,
@@ -219,6 +220,46 @@ test("a top-up adds missing rungs and leaves every existing price alone", () => 
     merged.some((row) => row.selection === "Philadelphia Phillies Over 2.5"),
     "the rung the owners asked for is on the board",
   );
+});
+
+test("a DK companion top-up adds DraftKings to rungs FanDuel already priced", () => {
+  const spread = (
+    selection: string,
+    line: number,
+    bookPrices: Record<string, number>,
+    featured = false,
+  ): OddsSelection => ({
+    label: selection,
+    market: "Spread",
+    selection,
+    side: selection.replace(/ [-+][\d.]+$/, ""),
+    line,
+    featured,
+    oddsAmerican: Object.values(bookPrices)[0]!,
+    book: Object.keys(bookPrices)[0]!,
+    bookPrices,
+  });
+  const cached = [
+    spread(
+      "Pittsburgh Pirates -1.5",
+      -1.5,
+      { fanduel: 160, draftkings: 158 },
+      true,
+    ),
+    spread("Pittsburgh Pirates -2.5", -2.5, { fanduel: 250 }),
+  ];
+  const fresh = [
+    spread("Pittsburgh Pirates -2.5", -2.5, { draftkings: 240, fanduel: 999 }),
+    // DK files alt run lines on the featured key, so they arrive featured.
+    spread("Pittsburgh Pirates -1", -1, { draftkings: 120 }, true),
+  ];
+  const merged = addMissingEventBoardSelections(cached, fresh);
+  const minus25 = merged.find((row) => row.line === -2.5);
+  assert.deepEqual(minus25?.bookPrices, { fanduel: 250, draftkings: 240 });
+  assert.equal(minus25?.oddsAmerican, 250, "no existing price moves");
+  const minus1 = merged.find((row) => row.line === -1);
+  assert.equal(minus1?.featured, false, "a DK rung is not a second main line");
+  assert.equal(merged.find((row) => row.line === -1.5)?.featured, true);
 });
 
 test("a top-up that finds nothing returns the board unchanged", () => {

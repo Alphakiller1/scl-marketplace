@@ -9,7 +9,9 @@ import {
   EVENT_BUY_DAY_START_HOUR_ET,
   HARD_MAX_EVENT_BUYS_PER_DAY,
   MAX_TOPUPS_PER_BUY_DAY,
+  LAST_CALL_TOPUPS,
   nextTopUpAt,
+  TOPUP_LAST_CALL_HOURS,
   recordEventBuy,
   recordTopUp,
   remainingEventBuys,
@@ -211,6 +213,31 @@ test("a game whose ladder never comes stops being asked for the day", () => {
   assert.equal(nextTopUpAt(attempts, et(15, 17)), null);
   // The next buy day starts at 08:00 ET with a fresh set of tries.
   assert.equal(nextTopUpAt(attempts, et(16, 8)), et(16, 8));
+});
+
+test("the hours before first pitch keep their own top-ups", () => {
+  // 2026-09-25: eight hourly asks from the morning spent the ceiling, and DK's
+  // alt run lines — posted closer to first pitch — never reached the board.
+  const attempts = Array.from({ length: MAX_TOPUPS_PER_BUY_DAY }, (_, index) =>
+    et(15, 8 + index),
+  );
+  const firstPitch = new Date(et(15, 19)).toISOString();
+  // Spent before the window: wait for it rather than give up.
+  assert.equal(
+    nextTopUpAt(attempts, et(15, 15, 30), firstPitch),
+    et(15, 19) - TOPUP_LAST_CALL_HOURS * 3_600_000,
+  );
+  // Inside the window: due now, then spaced, up to the reserve.
+  assert.equal(nextTopUpAt(attempts, et(15, 16), firstPitch), et(15, 16));
+  const inWindow = [
+    ...attempts,
+    ...Array.from({ length: LAST_CALL_TOPUPS }, (_, i) => et(15, 16 + i)),
+  ];
+  assert.equal(nextTopUpAt(inWindow, et(15, 18, 30), firstPitch), null);
+  // After first pitch nothing is asked.
+  assert.equal(nextTopUpAt(attempts, et(15, 20), firstPitch), null);
+  // Without a kickoff the ceiling is the ceiling.
+  assert.equal(nextTopUpAt(attempts, et(15, 17)), null);
 });
 
 test("the top-up log keeps only the current buy day", () => {

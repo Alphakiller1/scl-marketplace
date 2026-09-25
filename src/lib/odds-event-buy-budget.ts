@@ -177,18 +177,48 @@ export const TOPUP_MIN_INTERVAL_MINUTES = 60;
 export const MAX_TOPUPS_PER_BUY_DAY = 8;
 
 /**
- * When this game may next be topped up: now, a later moment, or null once the
- * day's ceiling is spent. Counted in buy days, like the buy allowance.
+ * Top-ups held back for the hours just before first pitch.
+ *
+ * Books post late ladders late. On 2026-09-25 four games spent all eight
+ * top-ups hourly from 23:25 ET the night before, so by the pre-game window —
+ * when DraftKings is likeliest to have hung its alt run lines — there was
+ * nothing left to ask with, and every DK alternate chip stayed greyed until
+ * first pitch. These are counted apart from the day's ceiling, only against
+ * asks made inside the window.
+ */
+export const LAST_CALL_TOPUPS = 3;
+
+/** How long before first pitch the reserved top-ups open. */
+export const TOPUP_LAST_CALL_HOURS = 3;
+
+/**
+ * When this game may next be topped up: now, a later moment, or null once
+ * nothing is left to ask with. Counted in buy days, like the buy allowance.
+ * With a kickoff, the last {@link TOPUP_LAST_CALL_HOURS} before it carry their
+ * own {@link LAST_CALL_TOPUPS}, and a game out of daytime asks waits for them.
  */
 export function nextTopUpAt(
   topUps: readonly number[] | undefined,
   now: number = Date.now(),
+  commenceTime?: string | null,
 ): number | null {
   const today = buysInBuyDay(topUps, now);
+  const spaced = () =>
+    today.length === 0
+      ? now
+      : Math.max(now, Math.max(...today) + TOPUP_MIN_INTERVAL_MINUTES * 60_000);
+  const kickoff = commenceTime ? Date.parse(commenceTime) : Number.NaN;
+  if (Number.isFinite(kickoff) && now < kickoff) {
+    const windowStart = kickoff - TOPUP_LAST_CALL_HOURS * 3_600_000;
+    if (now >= windowStart) {
+      const inWindow = today.filter((at) => at >= windowStart).length;
+      if (inWindow < LAST_CALL_TOPUPS) return spaced();
+    } else if (today.length >= MAX_TOPUPS_PER_BUY_DAY) {
+      return windowStart;
+    }
+  }
   if (today.length >= MAX_TOPUPS_PER_BUY_DAY) return null;
-  if (today.length === 0) return now;
-  const last = Math.max(...today);
-  return Math.max(now, last + TOPUP_MIN_INTERVAL_MINUTES * 60_000);
+  return spaced();
 }
 
 /** The top-up log after one more attempt; earlier buy days drop off. */

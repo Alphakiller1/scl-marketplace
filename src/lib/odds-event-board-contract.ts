@@ -44,21 +44,56 @@ function selectionIdentity(selection: OddsSelection): string {
  * one. The ladder request can come back with its own price for a line the board
  * already holds, from a different set of books, and letting it win would swap
  * the board's best price on a line nobody asked to reprice. A top-up adds
- * rungs; it moves no prices.
+ * rungs, and adds books to rungs; it moves no price a book already has.
  */
 export function addMissingEventBoardSelections(
   cached: readonly OddsSelection[],
   fresh: readonly OddsSelection[],
 ): OddsSelection[] {
-  const seen = new Set(cached.map(selectionIdentity));
-  const added: OddsSelection[] = [];
+  const index = new Map<string, number>();
+  cached.forEach((row, i) => index.set(selectionIdentity(row), i));
+  const rows = [...cached];
   for (const selection of fresh) {
     const identity = selectionIdentity(selection);
-    if (seen.has(identity)) continue;
-    seen.add(identity);
-    added.push(selection);
+    const at = index.get(identity);
+    if (at == null) {
+      index.set(identity, rows.length);
+      // A top-up adds rungs; the main line is the buy's to decide. DraftKings
+      // files its alt run lines on the featured `spreads` key, so its rungs
+      // arrive flagged featured — kept that way they would read as a second
+      // main line and never count as the DK alternates the gap check wants.
+      rows.push(
+        selection.market === "Spread" || selection.market === "Total"
+          ? { ...selection, featured: false }
+          : selection,
+      );
+      continue;
+    }
+    // A line the board already carries: add the books it is missing, and
+    // nothing else. Skipping the row outright is how a DraftKings companion
+    // top-up threw away DK's price on every rung FanDuel had already posted,
+    // leaving -2.5/+2.5 greyed on the DK tab however often it ran.
+    const row = rows[at]!;
+    const prices = { ...(row.bookPrices ?? {}) };
+    const captured = { ...(row.bookCapturedAt ?? {}) };
+    let changed = false;
+    for (const [book, price] of Object.entries(selection.bookPrices ?? {})) {
+      if (typeof price !== "number" || typeof prices[book] === "number") {
+        continue;
+      }
+      prices[book] = price;
+      const capturedAt = selection.bookCapturedAt?.[book];
+      if (typeof capturedAt === "string") captured[book] = capturedAt;
+      changed = true;
+    }
+    if (!changed) continue;
+    rows[at] = {
+      ...row,
+      bookPrices: prices,
+      ...(Object.keys(captured).length ? { bookCapturedAt: captured } : {}),
+    };
   }
-  return [...cached, ...added];
+  return rows;
 }
 
 /**
