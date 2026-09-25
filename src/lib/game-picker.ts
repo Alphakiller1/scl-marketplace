@@ -130,59 +130,66 @@ export function categoryCounts(
   return { all: near.length, bySport: countEventsBySport(near) };
 }
 
+/** The most bettor-favorable price among the rail books (Best). */
+function bestRailPrice(
+  selection: OddsSelection,
+  sport?: string,
+): { oddsAmerican: number | null; book?: string; oddsCapturedAt?: string } {
+  const byBook = new Map(
+    Object.entries(selection.bookPrices ?? {}).filter(
+      (entry): entry is [string, number] => typeof entry[1] === "number",
+    ),
+  );
+  const lastUpdateByBook = selection.bookCapturedAt
+    ? new Map(
+        Object.entries(selection.bookCapturedAt).filter(
+          ([, value]) => typeof value === "string",
+        ),
+      )
+    : undefined;
+  const best = preferredThenAll(byBook, PICK_BOARD_BOOKS, lastUpdateByBook, {
+    fallbackToAll: pickFormFallsBackOutsideRail(sport),
+  });
+  if (best) {
+    return {
+      oddsAmerican: best.price,
+      book: best.book,
+      ...(best.capturedAt ? { oddsCapturedAt: best.capturedAt } : {}),
+    };
+  }
+  if (
+    selection.book &&
+    (isPickBoardBook(selection.book) || pickFormFallsBackOutsideRail(sport))
+  ) {
+    return {
+      oddsAmerican: selection.oddsAmerican,
+      book: selection.book,
+      ...(selection.oddsCapturedAt
+        ? { oddsCapturedAt: selection.oddsCapturedAt }
+        : {}),
+    };
+  }
+  return { oddsAmerican: null };
+}
+
 /**
  * Resolve the displayed American price for a board selection under an active book.
- * Honest null when that book has no line (UI renders "—"; never substitutes).
- * When no active book, Best is the most bettor-favorable price among
- * {@link PICK_BOARD_BOOKS}. Tennis also falls back to other US books because
- * the five usually post moneyline only for that sport.
+ *
+ * When the active book has no line, the chip falls back to Best and carries
+ * THAT book, so the tag reads FD (not DK) and the pick is logged at a price a
+ * book actually posted. Owner decision, 2026-09-25: a DraftKings tab of greyed
+ * alternate chips — DK hangs no alt run lines on some games — read as broken,
+ * and a substitute attributed to its real book is not a made-up DK price.
+ * Null only when no rail book prices the line at all (UI renders "—").
  */
 export function selectionForActiveBook(
   selection: OddsSelection,
   activeBook: string | null | undefined,
   sport?: string,
 ): { oddsAmerican: number | null; book?: string; oddsCapturedAt?: string } {
-  if (!activeBook) {
-    const byBook = new Map(
-      Object.entries(selection.bookPrices ?? {}).filter(
-        (entry): entry is [string, number] => typeof entry[1] === "number",
-      ),
-    );
-    const lastUpdateByBook = selection.bookCapturedAt
-      ? new Map(
-          Object.entries(selection.bookCapturedAt).filter(
-            ([, value]) => typeof value === "string",
-          ),
-        )
-      : undefined;
-    const best = preferredThenAll(byBook, PICK_BOARD_BOOKS, lastUpdateByBook, {
-      fallbackToAll: pickFormFallsBackOutsideRail(sport),
-    });
-    if (best) {
-      return {
-        oddsAmerican: best.price,
-        book: best.book,
-        ...(best.capturedAt ? { oddsCapturedAt: best.capturedAt } : {}),
-      };
-    }
-    if (
-      selection.book &&
-      (isPickBoardBook(selection.book) || pickFormFallsBackOutsideRail(sport))
-    ) {
-      return {
-        oddsAmerican: selection.oddsAmerican,
-        book: selection.book,
-        ...(selection.oddsCapturedAt
-          ? { oddsCapturedAt: selection.oddsCapturedAt }
-          : {}),
-      };
-    }
-    return { oddsAmerican: null };
-  }
+  if (!activeBook) return bestRailPrice(selection, sport);
   const price = getOddsForBook(selection, activeBook);
-  if (price === null) {
-    return { oddsAmerican: null, book: activeBook };
-  }
+  if (price === null) return bestRailPrice(selection, sport);
   const oddsCapturedAt =
     selection.bookCapturedAt?.[activeBook] ??
     (selection.book === activeBook ? selection.oddsCapturedAt : undefined);

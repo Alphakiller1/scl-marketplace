@@ -103,7 +103,7 @@ test("categoryCounts totals near-term slate", () => {
   assert.ok(localDateKey(now).length > 0);
 });
 
-test("selectionForActiveBook is honest null (no silent substitute)", () => {
+test("a book tab with no line falls back to Best, tagged with the real book", () => {
   const sel: OddsSelection = {
     label: "Lakers ML",
     market: "Moneyline",
@@ -129,9 +129,11 @@ test("selectionForActiveBook is honest null (no silent substitute)", () => {
     book: "draftkings",
     oddsCapturedAt: "2026-07-18T17:55:00Z",
   });
+  // MGM has no line: the chip shows FanDuel's price AS FanDuel — never as MGM.
   assert.deepEqual(selectionForActiveBook(sel, "betmgm"), {
-    oddsAmerican: null,
-    book: "betmgm",
+    oddsAmerican: -105,
+    book: "fanduel",
+    oddsCapturedAt: "2026-07-18T18:00:00Z",
   });
 });
 
@@ -202,8 +204,9 @@ test("best-available shows a price where a single book has none", () => {
     book: "fanduel",
     bookPrices: { fanduel: -120 },
   };
-  // Pinned to a book with no line: honest null (chip renders "—").
-  assert.equal(selectionForActiveBook(selection, "betmgm").oddsAmerican, null);
+  // Pinned to a book with no line: the real book's price, attributed to it.
+  assert.equal(selectionForActiveBook(selection, "betmgm").oddsAmerican, -120);
+  assert.equal(selectionForActiveBook(selection, "betmgm").book, "fanduel");
   // Best-available: a real number, which is why it is the default.
   assert.equal(selectionForActiveBook(selection, null).oddsAmerican, -120);
   assert.equal(selectionForActiveBook(selection, null).book, "fanduel");
@@ -241,5 +244,10 @@ test("tennis Best falls back to Bovada when the five have no game line", () => {
   assert.equal(tennis.oddsAmerican, -110);
   assert.equal(tennis.book, "bovada");
   const fanduelTab = selectionForActiveBook(selection, "fanduel", "TENNIS");
-  assert.equal(fanduelTab.oddsAmerican, null);
+  assert.equal(fanduelTab.book, "bovada");
+  // MLB keeps the rail: a line only an off-rail book prices stays "—".
+  assert.equal(
+    selectionForActiveBook(selection, "fanduel", "MLB").oddsAmerican,
+    null,
+  );
 });
