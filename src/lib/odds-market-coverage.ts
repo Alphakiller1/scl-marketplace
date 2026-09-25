@@ -377,9 +377,18 @@ export function onlyTopUpGaps(missing: readonly string[]): boolean {
 export function draftKingsCompanionGapMarkets(
   missing: readonly string[],
 ): string[] | null {
+  // Both keys. DraftKings usually files MLB alt run lines on the featured key,
+  // but not always: on 2026-09-25 DK hung Phillies -1 at -122 while nine
+  // `spreads,totals` top-ups came back with only its ±1.5 — the one full buy
+  // that asked `alternate_spreads` ran before DK posted, and no retry asked
+  // again. One credit per key that returns anything.
   const markets = [
-    ...(missing.includes(DRAFTKINGS_ALTERNATE_SPREADS_GAP) ? ["spreads"] : []),
-    ...(missing.includes(DRAFTKINGS_ALTERNATE_TOTALS_GAP) ? ["totals"] : []),
+    ...(missing.includes(DRAFTKINGS_ALTERNATE_SPREADS_GAP)
+      ? ["spreads", "alternate_spreads"]
+      : []),
+    ...(missing.includes(DRAFTKINGS_ALTERNATE_TOTALS_GAP)
+      ? ["totals", "alternate_totals"]
+      : []),
   ];
   // Unlike a full-board refresh, this costs only one credit per returned key.
   // It can repair DK now even when an unrelated prop family is also missing

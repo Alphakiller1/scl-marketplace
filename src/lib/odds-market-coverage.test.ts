@@ -463,7 +463,9 @@ test("an MLB board with DraftKings but no DK alternate rungs gets a cheap compan
   assert.ok(coverage.missing.includes(DRAFTKINGS_ALTERNATE_TOTALS_GAP));
   assert.deepEqual(draftKingsCompanionGapMarkets(coverage.missing), [
     "spreads",
+    "alternate_spreads",
     "totals",
+    "alternate_totals",
   ]);
 });
 
@@ -494,7 +496,7 @@ test("DraftKings companion coverage passes once its -1 rung is present", () => {
       DRAFTKINGS_ALTERNATE_SPREADS_GAP,
       "player props",
     ]),
-    ["spreads"],
+    ["spreads", "alternate_spreads"],
   );
 });
 
