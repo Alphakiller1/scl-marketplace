@@ -140,6 +140,7 @@ async function runGrade(req: NextRequest) {
           overduePending: overduePending.length,
           overdueParlayLegs: overdueParlayLegs.length,
           needsManualGrading: manualQueue.length,
+          reconciled: result.reconciled ?? null,
         },
       },
     });

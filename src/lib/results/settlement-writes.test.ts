@@ -9,6 +9,8 @@ import * as schema from "@/lib/schemas/grading.schema";
 import * as parlaySchema from "@/lib/schemas/parlay.schema";
 import * as match from "@/lib/results/match";
 import * as skip from "@/lib/results/skip-reason";
+import * as gate from "@/lib/results/publication-gate";
+import * as settled from "@/lib/results/settled-game";
 import type * as Auto from "@/lib/results/auto-grade";
 import type * as Manual from "@/lib/actions/grading.action";
 import type * as Parlay from "@/lib/actions/parlay.action";
@@ -43,6 +45,7 @@ test("auto-grading cannot overwrite a manual result saved after the pending snap
   for (const parlayId of [null, "ticket"]) {
     let locked = false;
     let audited = false;
+    let attempted = false;
     const file = "src/lib/results/auto-grade.ts";
     const auto = loadTestModule<typeof Auto>(file, {
       ...importsFor(file),
@@ -51,6 +54,9 @@ test("auto-grading cannot overwrite a manual result saved after the pending snap
       "@/lib/odds": odds,
       "@/lib/results/match": match,
       "@/lib/results/skip-reason": skip,
+      "@/lib/results/publication-gate": gate,
+      "@/lib/results/settled-game": settled,
+      "@/lib/results/provider": { ODDS_SCORES_ONLY_SPORTS: [] },
       "@/lib/period-markets": { parsePeriodMarket: () => null },
       "@/lib/results/schema-features": { hasClvColumns: async () => false },
       "@/lib/results/settlement-lock": {
@@ -67,14 +73,17 @@ test("auto-grading cannot overwrite a manual result saved after the pending snap
               where,
             }: {
               select: { sport?: boolean; id?: boolean };
-              where: { parlayId?: unknown };
+              where: { parlayId?: unknown; gradedAt?: unknown };
             }) =>
-              !select.id ||
-              (parlayId === null
-                ? where.parlayId === null
-                : where.parlayId !== null)
-                ? [{ ...single, parlayId }]
-                : [],
+              // The reconcile pass re-reads graded plays; none exist here.
+              where.gradedAt
+                ? []
+                : !select.id ||
+                    (parlayId === null
+                      ? where.parlayId === null
+                      : where.parlayId !== null)
+                  ? [{ ...single, parlayId, eventId: "espn:final" }]
+                  : [],
           },
           parlay: { findMany: async () => [] },
           $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
@@ -87,6 +96,7 @@ test("auto-grading cannot overwrite a manual result saved after the pending snap
                 }) => {
                   assert.equal(where.outcome, "PENDING");
                   if (parlayId) assert.ok(locked);
+                  attempted = true;
                   // DB row is already manually VOID; the conditional update loses.
                   return { count: 0 };
                 },
@@ -108,7 +118,8 @@ test("auto-grading cannot overwrite a manual result saved after the pending snap
         return [
           {
             sport: "TENNIS",
-            eventId: "final",
+            // A primary feed: the publication gate refuses unknown sources.
+            eventId: "espn:final",
             home: "Iga Swiatek",
             away: "Elena Rybakina",
             homeScore: 2,
@@ -118,6 +129,7 @@ test("auto-grading cannot overwrite a manual result saved after the pending snap
         ];
       },
     });
+    assert.equal(attempted, true, "the grade reached the conditional write");
     assert.equal(result.graded, 0);
     assert.equal(audited, false);
   }
