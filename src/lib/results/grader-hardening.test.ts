@@ -133,3 +133,27 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
   );
   assert.match(boardCache, /archiveOddsEventIdentities\(events\)/);
 });
+
+/**
+ * GitHub throttles the scheduled grade workflow to about one run in three
+ * hours, so an external scheduler drives the 30-minute cadence. It needs a
+ * grade-only token and a form that answers before its ~30s request timeout.
+ */
+test("the grade route serves an external scheduler safely", () => {
+  const route = fs.readFileSync(
+    path.join(root, "src/app/api/cron/grade/route.ts"),
+    "utf8",
+  );
+  assert.match(route, /GRADE_CRON_SECRET/);
+  assert.match(
+    route,
+    /searchParams\.get\("async"\) === "1"[\s\S]*?afterResponse\(\(\) => runGrade\(req\)\)[\s\S]*?status: 202/,
+    "async mode must acknowledge with 202 and grade via afterResponse",
+  );
+  const authorizeAt = route.indexOf("if (!authorizeCron(req))");
+  const asyncAt = route.indexOf('searchParams.get("async")');
+  assert.ok(
+    authorizeAt > -1 && authorizeAt < asyncAt,
+    "the token is checked before any work is scheduled",
+  );
+});
