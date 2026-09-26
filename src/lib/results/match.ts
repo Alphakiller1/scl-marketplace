@@ -427,6 +427,14 @@ export function findGame(
         );
         if (rescheduled) return rescheduled;
       }
+
+      // The play names both clubs and no settled game holds both. Never fall
+      // back to matching one club: nicknames are shared across college
+      // football, so "Rutgers Scarlet Knights" mentions "Army Black Knights".
+      // With the four-hour NCAAF slot, Army–Temple (final) captured every
+      // Rutgers -41.5/-42.5 while Rutgers–Howard was still at half-time and
+      // settled them as LOSS against Army's margin. Wait for the real final.
+      return null;
     }
 
     const namedTeam = sameSlot.filter((game) => {

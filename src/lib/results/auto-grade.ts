@@ -24,6 +24,7 @@ import {
 import {
   espnIdForFixture,
   mlbGamePkForFixture,
+  reportsOf,
   type SettledGame,
 } from "@/lib/results/settled-game";
 import {
@@ -46,10 +47,15 @@ import {
   resolvePlayerProp,
   type PlayerBoxScore,
 } from "@/lib/results/player-props";
-import type {
-  ResultsProvider,
-  ResultsQueryScope,
+import {
+  ODDS_SCORES_ONLY_SPORTS,
+  type ResultsProvider,
+  type ResultsQueryScope,
 } from "@/lib/results/provider";
+import {
+  publicationVerdict,
+  tooEarlyToSettle,
+} from "@/lib/results/publication-gate";
 import { hasClvColumns } from "@/lib/results/schema-features";
 import { lockParlaySettlement } from "@/lib/results/settlement-lock";
 import { fetchWnbaOfficialPeriodBoxScore } from "@/lib/results/wnba-official";
@@ -74,6 +80,8 @@ export type AutoGradeResult = {
   skippedByReason: SkipReasonCounts;
   parlaysGraded: number;
   clvSnapshots?: number;
+  /** Published auto-grades re-checked this run, and how many were wrong. */
+  reconciled?: ReconcileResult;
   provider: string;
 };
 
@@ -427,6 +435,41 @@ async function resolvePeriodPlay(
 }
 
 /**
+ * Markets that never settle from the full-game score: F3/F5/F7 segments,
+ * period totals and player props. The one place that classification lives, so
+ * the grader and the reconciler cannot disagree about what a market is.
+ */
+function settlesFromBoxScore(play: GradablePlay): boolean {
+  return Boolean(parsePeriodMarket(play.market)) || isDeferredProp(play);
+}
+
+/**
+ * Why a resolved outcome must not publish yet, or null when it may.
+ *
+ * A prop settled from a box score can arrive with no matched scoreboard game;
+ * it still has to clear the kickoff floor, so a live box score never settles.
+ */
+function publicationHold(
+  play: GradablePlay,
+  game: SettledGame | null,
+  now: Date,
+): string | null {
+  if (!game) {
+    return tooEarlyToSettle(play, null, now)
+      ? `${play.sport} play cannot be final yet`
+      : null;
+  }
+  const verdict = publicationVerdict(play, game, now);
+  if (verdict.ok) return null;
+  console.warn("[auto-grade] publication held", {
+    playId: play.id,
+    block: verdict.block,
+    detail: verdict.detail,
+  });
+  return verdict.detail;
+}
+
+/**
  * Turn one pending play into an outcome — the ONE path, for straight plays and
  * parlay legs alike.
  *
@@ -453,12 +496,17 @@ async function resolvePendingPlay(
   const fixture = await cachedRecoveredFixture(fixtureCache, play, games);
   const boundPlay = fixture ? { ...play, ...fixture } : play;
   const matchedGame = findSettledGame(boundPlay, games);
+  // Every outcome leaves through here, so no market can skip the gate.
+  const publish = (outcome: Outcome, reason: keyof SkipReasonCounts) => {
+    const held = publicationHold(boundPlay, matchedGame, now);
+    if (held)
+      return { outcome: null, reason: "awaiting_final" as const, fixture };
+    return { outcome, reason, fixture };
+  };
   if (matchedGame?.voided) {
-    return { outcome: "VOID", reason: "market_unhandled", fixture };
+    return publish("VOID", "market_unhandled");
   }
-  const deferredMarket =
-    parsePeriodMarket(boundPlay.market) || isDeferredProp(boundPlay);
-  if (deferredMarket) {
+  if (settlesFromBoxScore(boundPlay)) {
     // F3/F5/F7 settle from line-scores only — never from the final score.
     // Period totals settle from line-scores; player props from the per-athlete
     // box score. Only a play neither resolver can settle still defers.
@@ -466,7 +514,7 @@ async function resolvePendingPlay(
       ? await resolvePeriodPlay(boundPlay, games)
       : ((await resolveDeferredPeriodTotal(boundPlay, games)) ??
         (await resolvePlayerPropPlay(boundPlay, games, boxCache)));
-    if (outcome) return { outcome, reason: "props_deferred", fixture };
+    if (outcome) return publish(outcome, "props_deferred");
 
     // Report WHY it deferred. `props_deferred` used to swallow "the results
     // feed has no such game" too, so a prop stuck on a missing fixture was
@@ -483,7 +531,7 @@ async function resolvePendingPlay(
   }
 
   const outcome = resolveOutcome(boundPlay, games);
-  if (outcome) return { outcome, reason: "market_unhandled", fixture };
+  if (outcome) return publish(outcome, "market_unhandled");
   return {
     outcome: null,
     reason: classifySkipReason({
@@ -853,14 +901,233 @@ export async function autoGradePending(
     });
   }
 
+  const reconciled = await reconcileRecentGrades(provider, now);
+
   const skipped = Object.values(skippedByReason).reduce((a, b) => a + b, 0);
   return {
     graded,
     skipped,
     skippedByReason,
     parlaysGraded,
+    reconciled,
     provider: provider.name,
   };
+}
+
+/** How far back published auto-grades are re-checked against fresh finals. */
+const RECONCILE_WINDOW_MS = 48 * 60 * 60 * 1_000;
+/** A play the grader has already reversed this often is left to a human. */
+const MAX_AUTO_CORRECTIONS = 1;
+const AUTO_CORRECTION_PREFIX = "Auto-corrected";
+
+export type ReconcileResult = {
+  checked: number;
+  corrected: number;
+  /** Disagreements the grader will not fix itself (see reasons in the log). */
+  needsHuman: number;
+};
+
+/**
+ * Re-check every recent auto-grade against the latest finals, and fix the
+ * ones that changed.
+ *
+ * Grading used to be fire-and-forget: once a play left PENDING nothing looked
+ * at it again, so every wrong result stayed public until a capper complained
+ * and an admin fixed it by hand. The Bucs misgrade sat for 17 hours. This pass
+ * resolves each recent grade again from fresh data through the same matcher
+ * and the same publication gate; when the confirmed answer differs, it
+ * corrects the play (and its parlay) with an audit row naming both results.
+ *
+ * Never touches a play a human has graded or overridden, and gives up on a
+ * play it has already reversed once — flip-flopping is a feed problem a human
+ * should look at, not something to keep publishing. Straight markets only:
+ * props and period markets settle from box scores this pass does not refetch.
+ */
+async function reconcileRecentGrades(
+  provider: ResultsProvider,
+  now: Date,
+): Promise<ReconcileResult> {
+  const result: ReconcileResult = { checked: 0, corrected: 0, needsHuman: 0 };
+  const recent = await prisma.play.findMany({
+    where: {
+      gradedAt: { gte: new Date(now.getTime() - RECONCILE_WINDOW_MS) },
+      outcome: { in: ["WIN", "LOSS", "PUSH", "VOID"] },
+    },
+    select: {
+      id: true,
+      sport: true,
+      market: true,
+      selection: true,
+      oddsAmerican: true,
+      units: true,
+      eventId: true,
+      eventLabel: true,
+      eventStartsAt: true,
+      homeTeam: true,
+      awayTeam: true,
+      createdAt: true,
+      side: true,
+      line: true,
+      league: true,
+      outcome: true,
+      profitUnits: true,
+      parlayId: true,
+      audits: {
+        select: { source: true, reason: true },
+        orderBy: { createdAt: "asc" },
+      },
+    },
+    take: GRADE_BATCH_SIZE,
+  });
+
+  // Odds API scores cost credits on every call; those sports are re-checked
+  // only when an admin runs "Grade completed", never on the cron cadence.
+  const paidSports = new Set<string>(ODDS_SCORES_ONLY_SPORTS);
+  const candidates = recent
+    .map((p) => ({
+      ...p,
+      units: Number(p.units),
+      line: p.line == null ? null : Number(p.line),
+    }))
+    .filter(
+      (p) =>
+        !paidSports.has(p.sport.toUpperCase()) &&
+        p.audits.length > 0 &&
+        p.audits.at(-1)!.source === "AUTO" &&
+        !settlesFromBoxScore(p),
+    );
+  if (candidates.length === 0) return result;
+
+  let games: SettledGame[];
+  try {
+    games = await provider.fetchSettledForSports(
+      [...new Set(candidates.map((p) => p.sport))],
+      resultsQueryScopeFor(candidates),
+    );
+  } catch (error) {
+    console.error("[auto-grade] reconcile fetch failed", error);
+    return result;
+  }
+
+  for (const play of candidates) {
+    result.checked++;
+    const game = findSettledGame(play, games);
+    if (!game) continue;
+    if (!publicationVerdict(play, game, now).ok) continue;
+    const confirmed: Outcome | null = game.voided
+      ? "VOID"
+      : resolveOutcome(play, games);
+    if (!confirmed || confirmed === play.outcome) continue;
+
+    const corrections = play.audits.filter((a) =>
+      a.reason?.startsWith(AUTO_CORRECTION_PREFIX),
+    ).length;
+    if (corrections >= MAX_AUTO_CORRECTIONS) {
+      result.needsHuman++;
+      console.error("[auto-grade] reconcile disagreement needs a human", {
+        playId: play.id,
+        published: play.outcome,
+        confirmed,
+      });
+      continue;
+    }
+
+    const profitUnits = profitUnitsForOutcome(
+      confirmed,
+      play.oddsAmerican,
+      play.units,
+    );
+    const final = `${game.away} ${game.awayScore} @ ${game.home} ${game.homeScore}`;
+    const sources = reportsOf(game)
+      .map((r) => r.source)
+      .join("+");
+    const applied = await prisma.$transaction(async (tx) => {
+      const updated = await tx.play.updateMany({
+        where: { id: play.id, outcome: play.outcome },
+        data: { outcome: confirmed, profitUnits, gradedAt: new Date() },
+      });
+      if (updated.count !== 1) return false;
+      await tx.gradingAudit.create({
+        data: {
+          playId: play.id,
+          previousOutcome: play.outcome,
+          newOutcome: confirmed,
+          previousProfitUnits: play.profitUnits,
+          newProfitUnits: profitUnits,
+          source: "AUTO",
+          gradedById: null,
+          reason: `${AUTO_CORRECTION_PREFIX} ${play.outcome} -> ${confirmed}: confirmed final ${final} (${sources})`,
+        },
+      });
+      if (play.parlayId) await resettleParlay(tx, play.parlayId);
+      return true;
+    });
+    if (applied) {
+      result.corrected++;
+      console.warn("[auto-grade] corrected a published grade", {
+        playId: play.id,
+        from: play.outcome,
+        to: confirmed,
+        final,
+        sources,
+      });
+    }
+  }
+  return result;
+}
+
+type GradeTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+/** Re-derive a settled parlay after one of its legs was corrected. */
+async function resettleParlay(tx: GradeTx, parlayId: string): Promise<void> {
+  await lockParlaySettlement(tx, parlayId);
+  const parlay = await tx.parlay.findUnique({
+    where: { id: parlayId },
+    select: {
+      outcome: true,
+      profitUnits: true,
+      units: true,
+      legs: { select: { outcome: true, oddsAmerican: true } },
+    },
+  });
+  // PENDING tickets settle through the normal pass.
+  if (!parlay || parlay.outcome === "PENDING") return;
+  // A human's settlement of the ticket stands.
+  const lastAudit = await tx.parlayGradingAudit.findFirst({
+    where: { parlayId },
+    orderBy: { createdAt: "desc" },
+    select: { source: true },
+  });
+  if (lastAudit && lastAudit.source !== "AUTO") return;
+  const settlement = settleParlay(
+    parlay.legs.map((l) => ({
+      outcome: l.outcome,
+      oddsAmerican: l.oddsAmerican,
+    })),
+    Number(parlay.units),
+  );
+  if (settlement.outcome === parlay.outcome) return;
+  await tx.parlay.update({
+    where: { id: parlayId },
+    data: {
+      outcome: settlement.outcome,
+      profitUnits: settlement.profitUnits,
+      combinedOddsAmerican: settlement.effectiveOddsAmerican,
+      gradedAt: settlement.outcome === "PENDING" ? null : new Date(),
+    },
+  });
+  await tx.parlayGradingAudit.create({
+    data: {
+      parlayId,
+      previousOutcome: parlay.outcome,
+      newOutcome: settlement.outcome,
+      previousProfitUnits: parlay.profitUnits,
+      newProfitUnits: settlement.profitUnits,
+      source: "AUTO",
+      gradedById: null,
+      reason: `${AUTO_CORRECTION_PREFIX}: a leg's published result was corrected`,
+    },
+  });
 }
 
 async function autoGradePendingRound(

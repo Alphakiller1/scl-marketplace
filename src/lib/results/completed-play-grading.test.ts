@@ -125,6 +125,91 @@ test("the production Alabama -19.5 parlay leg grades from the full NCAAF scorebo
   assert.equal(resolveOutcome(play, games), "LOSS");
 });
 
+test("a Rutgers spread never settles against Army Black Knights sharing its nickname", () => {
+  // Production, 2026-09-26 00:34Z: Army–Temple (final 21-17, 20:00Z kickoff)
+  // sat inside the four-hour NCAAF slot of Howard @ Rutgers (23:00Z, still at
+  // half-time). "Knights" matched Army, and four Rutgers -41.5/-42.5 plays
+  // were published as LOSS against Army's 4-point margin. Rutgers won 58-7.
+  const armyFinal = mapEspnScoreboard("NCAAF", {
+    events: [
+      {
+        id: "401862779",
+        date: "2026-09-25T20:00Z",
+        status: { type: { completed: true, name: "STATUS_FINAL" } },
+        competitions: [
+          {
+            id: "401862779",
+            date: "2026-09-25T20:00Z",
+            status: { type: { completed: true, name: "STATUS_FINAL" } },
+            competitors: [
+              {
+                homeAway: "home",
+                score: "17",
+                team: { displayName: "Temple Owls" },
+              },
+              {
+                homeAway: "away",
+                score: "21",
+                team: { displayName: "Army Black Knights" },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+  const play: GradablePlay = {
+    id: "cmuhk90bk0001js043o61obbh",
+    sport: "NCAAF",
+    market: "Spread",
+    selection: "Rutgers Scarlet Knights -41.5",
+    side: "Rutgers Scarlet Knights",
+    line: -41.5,
+    oddsAmerican: -112,
+    units: 10,
+    eventId: "36f0cf10805eed69c78f80697f766cc0",
+    eventLabel: "Howard Bison @ Rutgers Scarlet Knights",
+    homeTeam: "Rutgers Scarlet Knights",
+    awayTeam: "Howard Bison",
+    eventStartsAt: new Date("2026-09-25T23:00:00.000Z"),
+  };
+
+  assert.equal(findGame(play, armyFinal), null);
+  assert.equal(resolveOutcome(play, armyFinal), null);
+
+  const rutgersFinal = mapEspnScoreboard("NCAAF", {
+    events: [
+      {
+        id: "401858468",
+        date: "2026-09-25T23:00Z",
+        status: { type: { completed: true, name: "STATUS_FINAL" } },
+        competitions: [
+          {
+            id: "401858468",
+            date: "2026-09-25T23:00Z",
+            status: { type: { completed: true, name: "STATUS_FINAL" } },
+            competitors: [
+              {
+                homeAway: "home",
+                score: "58",
+                team: { displayName: "Rutgers Scarlet Knights" },
+              },
+              {
+                homeAway: "away",
+                score: "7",
+                team: { displayName: "Howard Bison" },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+  const both = [...armyFinal, ...rutgersFinal];
+  assert.equal(findGame(play, both)?.espnEventId, "401858468");
+  assert.equal(resolveOutcome(play, both), "WIN");
+});
+
 /** ESPN WTA Monterrey: Vidmanova bt Udvardy 6-3 3-6 6-3 — 15 games to 12. */
 const MONTERREY_SCOREBOARD = {
   events: [

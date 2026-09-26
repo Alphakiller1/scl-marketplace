@@ -44,7 +44,48 @@ export type SettledGame = {
    * and the two have very different game scores. See `tennisGamesWon`.
    */
   regulationPeriods?: number;
+  /**
+   * Every feed's copy of this final that the merge collapsed into this row.
+   *
+   * The merge keeps one copy and used to throw the rest away, so a stale
+   * "final" from one feed could publish with nothing to contradict it: the Bucs
+   * were graded 16-6 winners (a third-quarter score) while every other feed
+   * had the Browns winning 23-19. Keeping each copy lets the publication gate
+   * refuse a final the feeds disagree on. Absent = only this row's own feed.
+   */
+  reports?: ScoreReport[];
 };
+
+/** One feed's account of a final score, in the fixture's home/away order. */
+export type ScoreReport = {
+  source: string;
+  homeScore: number;
+  awayScore: number;
+  voided?: boolean;
+};
+
+/** The feed a settled row came from, read off the id its mapper stamps. */
+export function sourceOf(game: SettledGame): string {
+  const id = game.eventId ?? "";
+  const prefix = id.match(/^([a-z]+):/)?.[1];
+  if (prefix) return prefix;
+  if (/^[0-9a-f]{32}$/i.test(id)) return "odds-api";
+  return "unknown";
+}
+
+/** Each feed's copy behind a settled row (its own, when nothing merged in). */
+export function reportsOf(game: SettledGame): ScoreReport[] {
+  return (
+    game.reports ?? [
+      {
+        source: sourceOf(game),
+        homeScore: game.homeScore,
+        awayScore: game.awayScore,
+        ...(game.voided ? { voided: true } : {}),
+      },
+    ]
+  );
+}
 
 /**
  * Identity of a FIXTURE, not of a provider's record of it.
@@ -59,18 +100,58 @@ export type SettledGame = {
  * The date keeps a series apart when two games between the same clubs end on
  * the same score; scores stand in when a provider omits the start time.
  */
-function fixtureKey(g: SettledGame): string {
+const EASTERN_DAY = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/New_York",
+});
+
+/**
+ * Keys for one feed's rows: clubs + Eastern calendar day + game number.
+ *
+ * The Eastern day, not the UTC one: an 8:05pm ET first pitch is 00:05Z the
+ * next day, and keying on the UTC date collapsed consecutive games of a series.
+ *
+ * The game number, not the start hour: this used to bucket by the hour, which
+ * split one game whenever two feeds disagreed on first pitch (ESPN's actual
+ * weather-delayed kickoff vs the scheduled one) and — worse — merged the two
+ * games of a doubleheader, because MLB's feed lists game 2 at a placeholder
+ * five minutes after game 1 (Orioles @ Yankees, 2026-09-25: 20:05Z and 20:10Z;
+ * ESPN has 23:30Z). Both finals, 10-2 and 3-6, fell into one row and whichever
+ * copy merged last decided every play on either game. Numbering a feed's games
+ * between the same clubs on the same day, in start order, is how the league
+ * itself tells them apart. Copies of one event (same id) share a number.
+ *
+ * Scores stand in for the day when a provider omits the start time.
+ */
+function fixtureKeys(games: readonly SettledGame[]): string[] {
   const team = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, "");
-  // Hour bucket, NOT the calendar date. A late Eastern game rolls into the next
-  // UTC day — an 8:05pm ET first pitch is 00:05Z tomorrow — so keying on the date
-  // collapsed consecutive games of a series between the same clubs into one, and
-  // the wrong one survived. Rounding absorbs small disagreements between
-  // providers (22:59 vs 23:01) while staying finer than the fixture window, so a
-  // doubleheader's two games remain distinct.
-  const when = g.startsAt
-    ? String(Math.round(g.startsAt.getTime() / 3_600_000))
-    : `${g.homeScore}-${g.awayScore}`;
-  return [g.sport.toLowerCase(), team(g.home), team(g.away), when].join("|");
+  const base = games.map((g) =>
+    [
+      g.sport.toLowerCase(),
+      team(g.home),
+      team(g.away),
+      g.startsAt
+        ? EASTERN_DAY.format(g.startsAt)
+        : `${g.homeScore}-${g.awayScore}`,
+    ].join("|"),
+  );
+  const eventsByBase = new Map<string, { id: string; at: number }[]>();
+  games.forEach((g, i) => {
+    const id = g.eventId ?? `row${i}`;
+    const events = eventsByBase.get(base[i]!) ?? [];
+    if (!events.some((e) => e.id === id)) {
+      events.push({ id, at: g.startsAt?.getTime() ?? 0 });
+    }
+    eventsByBase.set(base[i]!, events);
+  });
+  for (const events of eventsByBase.values()) {
+    events.sort((a, b) => a.at - b.at);
+  }
+  return games.map((g, i) => {
+    const id = g.eventId ?? `row${i}`;
+    const number =
+      eventsByBase.get(base[i]!)!.findIndex((e) => e.id === id) + 1;
+    return `${base[i]}|${number}`;
+  });
 }
 
 /**
@@ -95,7 +176,7 @@ const SAME_GAME_HOURS = 12;
 /**
  * The ESPN id for a fixture, looking past the merge when it did not collapse.
  *
- * `fixtureKey` buckets by the hour, so if the two feeds disagree about first
+ * `fixtureKey` used to bucket by the hour, so if the two feeds disagreed about first
  * pitch by more than the rounding absorbs — a delayed start one of them updated
  * — the same game stays as two entries. The Odds API copy is the one an
  * event-bound play matches (it carries the hash), and it has no ESPN id, so
@@ -218,7 +299,8 @@ export function mergeSettledGames(
   secondary: SettledGame[],
 ): SettledGame[] {
   const byKey = new Map<string, SettledGame>();
-  for (const g of secondary) byKey.set(fixtureKey(g), g);
+  const secondaryKeys = fixtureKeys(secondary);
+  secondary.forEach((g, i) => byKey.set(secondaryKeys[i]!, g));
   // Primary last so its copy wins: it carries the eventId that event-bound
   // plays are matched on. When only the backstop has the game — anything past
   // the Odds API lookback — its copy is the one that survives, which is the
@@ -230,8 +312,9 @@ export function mergeSettledGames(
   // fixture inside its 3-day scores window, has only a hash. Dropping the ESPN
   // id here meant no recent prop could EVER auto-grade: the grader read the
   // merged game, found no ESPN id, and deferred the play every single run.
-  for (const g of primary) {
-    const key = fixtureKey(g);
+  const primaryKeys = fixtureKeys(primary);
+  primary.forEach((g, i) => {
+    const key = primaryKeys[i]!;
     const secondaryCopy = byKey.get(key);
     const espnEventId = espnIdOf(g) ?? espnIdOf(secondaryCopy ?? g);
     const mlbGamePk = g.mlbGamePk ?? secondaryCopy?.mlbGamePk;
@@ -241,8 +324,12 @@ export function mergeSettledGames(
     const awayPeriods = g.awayPeriods ?? secondaryCopy?.awayPeriods;
     const regulationPeriods =
       g.regulationPeriods ?? secondaryCopy?.regulationPeriods;
+    const reports = secondaryCopy
+      ? [...reportsOf(secondaryCopy), ...reportsOf(g)]
+      : g.reports;
     byKey.set(key, {
       ...g,
+      ...(reports ? { reports } : {}),
       ...(espnEventId ? { espnEventId } : {}),
       ...(mlbGamePk ? { mlbGamePk } : {}),
       ...(wnbaGameId ? { wnbaGameId } : {}),
@@ -251,6 +338,6 @@ export function mergeSettledGames(
       ...(awayPeriods ? { awayPeriods } : {}),
       ...(regulationPeriods ? { regulationPeriods } : {}),
     });
-  }
+  });
   return [...byKey.values()];
 }

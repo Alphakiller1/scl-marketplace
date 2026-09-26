@@ -285,8 +285,16 @@ test("both grading loops resolve through the same function", () => {
   assert.match(src, /lookbackDays\?: number/);
   assert.equal(
     count(/eventLabel: true/g),
-    2,
-    "Straight plays and parlay legs must both load the board fixture label " +
-      "needed to match ESPN when the primary results provider is unavailable.",
+    3,
+    "Straight plays, parlay legs and the reconcile pass must all load the " +
+      "board fixture label needed to match ESPN when the primary results " +
+      "provider is unavailable.",
+  );
+  assert.equal(
+    count(/settlesFromBoxScore\(/g),
+    3,
+    "The grader and the reconcile pass must share one box-score market " +
+      "classifier (definition + two call sites); the reconciler re-grades " +
+      "from the full-game score and must never reach a prop or F5 market.",
   );
 });

@@ -5,6 +5,7 @@ import {
   espnIdForFixture,
   espnIdOf,
   mergeSettledGames,
+  reportsOf,
 } from "@/lib/results/settled-game";
 import { findGame, type GradablePlay } from "@/lib/results/match";
 import type { SettledGame } from "@/lib/results/settled-game";
@@ -207,9 +208,80 @@ test("the ESPN id is still found when the two feeds disagree on first pitch", ()
     startsAt: new Date("2026-08-07T22:40:00Z"),
   });
 
+  // Same clubs, same Eastern day, first game of the day in both feeds: one
+  // fixture, whatever the feeds say about first pitch. The merged copy carries
+  // ESPN's id directly.
   const merged = mergeSettledGames([oddsApi], [espn]);
-  assert.equal(merged.length, 2, "different buckets — deliberately not merged");
-  assert.equal(espnIdForFixture(merged[1]!, merged), "401816429");
+  assert.equal(merged.length, 1);
+  assert.equal(espnIdForFixture(merged[0]!, merged), "401816429");
+});
+
+test("a doubleheader listed at a placeholder time stays two games", () => {
+  // Orioles @ Yankees, 2026-09-25. MLB's feed puts game 2 five minutes after
+  // game 1; ESPN has its real 23:30Z start. Hour buckets merged the two finals.
+  const matchup = { home: "New York Yankees", away: "Baltimore Orioles" };
+  const mlb = [
+    game({
+      ...matchup,
+      eventId: "mlb:823491",
+      mlbGamePk: "823491",
+      homeScore: 2,
+      awayScore: 10,
+      startsAt: new Date("2026-09-25T20:05:00Z"),
+    }),
+    game({
+      ...matchup,
+      eventId: "mlb:823489",
+      mlbGamePk: "823489",
+      homeScore: 6,
+      awayScore: 3,
+      startsAt: new Date("2026-09-25T20:10:00Z"),
+    }),
+  ];
+  const espn = [
+    game({
+      ...matchup,
+      eventId: "espn:401817088",
+      homeScore: 2,
+      awayScore: 10,
+      startsAt: new Date("2026-09-25T20:05:00Z"),
+    }),
+    game({
+      ...matchup,
+      eventId: "espn:401817073",
+      homeScore: 6,
+      awayScore: 3,
+      startsAt: new Date("2026-09-25T23:30:00Z"),
+    }),
+  ];
+
+  const merged = mergeSettledGames(espn, mlb);
+  assert.equal(merged.length, 2);
+  const first = merged.find((g) => g.eventId === "espn:401817088")!;
+  const second = merged.find((g) => g.eventId === "espn:401817073")!;
+  assert.equal(first.mlbGamePk, "823491");
+  assert.equal(second.mlbGamePk, "823489");
+  for (const g of merged) {
+    const scores = new Set(
+      reportsOf(g).map((r) => `${r.awayScore}-${r.homeScore}`),
+    );
+    assert.equal(scores.size, 1, "each row holds one game's final only");
+  }
+
+  const play: GradablePlay = {
+    id: "orioles-game-1",
+    sport: "MLB",
+    market: "Moneyline",
+    selection: "Baltimore Orioles",
+    side: "Baltimore Orioles",
+    oddsAmerican: 120,
+    units: 1,
+    eventId: "d4b069a134ec3ae75f0a644498b793c6",
+    homeTeam: "New York Yankees",
+    awayTeam: "Baltimore Orioles",
+    eventStartsAt: new Date("2026-09-25T20:05:00Z"),
+  };
+  assert.equal(findGame(play, merged)?.eventId, "espn:401817088");
 });
 
 test("a doubleheader refuses to guess which game the id belongs to", () => {
