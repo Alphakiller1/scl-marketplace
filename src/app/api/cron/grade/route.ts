@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
+import { afterResponse } from "@/lib/after-response";
 import { prisma } from "@/lib/prisma";
 import { getGradingHealthReport } from "@/lib/grading-health";
 import { pinOddsApiKey } from "@/lib/odds-config";
@@ -18,8 +19,16 @@ export const maxDuration = 300;
 
 function authorizeCron(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET?.trim();
+  // A token that can trigger grading and nothing else, for the external
+  // scheduler. GitHub throttles the scheduled workflow to roughly one run every
+  // three hours, so an outside cron keeps the intended 30-minute cadence; it
+  // should never hold the CRON_SECRET that also opens the other admin routes.
+  const gradeOnly = process.env.GRADE_CRON_SECRET?.trim();
   const auth = req.headers.get("authorization");
 
+  if (gradeOnly && (auth === gradeOnly || auth === `Bearer ${gradeOnly}`)) {
+    return true;
+  }
   if (secret) {
     return auth === secret || auth === `Bearer ${secret}`;
   }
@@ -34,18 +43,32 @@ function authorizeCron(req: NextRequest): boolean {
 }
 
 export async function GET(req: NextRequest) {
-  return runGrade(req);
+  return handle(req);
 }
 
 export async function POST(req: NextRequest) {
-  return runGrade(req);
+  return handle(req);
 }
 
-async function runGrade(req: NextRequest) {
+async function handle(req: NextRequest) {
   if (!authorizeCron(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // `?async=1` acknowledges at once and grades after the response. External
+  // schedulers give up on a request after ~30 seconds and count every non-2xx
+  // as a failure (and eventually disable the job), while a run takes 15-30s
+  // today and reports 503 whenever anything is overdue. The run's outcome is
+  // recorded in GradeJobRun either way; the GitHub workflow keeps the blocking
+  // form so its health checks still read the full result.
+  if (req.nextUrl.searchParams.get("async") === "1") {
+    afterResponse(() => runGrade(req));
+    return NextResponse.json({ accepted: true }, { status: 202 });
+  }
+  return runGrade(req);
+}
+
+async function runGrade(req: NextRequest) {
   // A signed owner-triggered run may carry a temporary provider key. Keep it
   // in the request header rather than GitHub/Vercel storage, and reset a warm
   // isolate's preferred-key cursor so a previously exhausted key cannot win.
