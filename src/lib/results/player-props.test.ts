@@ -9,11 +9,14 @@ import {
   resolvePlayerProp,
   statKeyForMarket,
   type PlayerBoxScore,
+  resolveAbsentPlayerProp,
 } from "@/lib/results/player-props";
 import {
   inningsToOuts,
   mapSummaryToPlayerBox,
+  fetchNflParticipation,
 } from "@/lib/results/stats-provider";
+import { halfBox } from "@/lib/results/prop-resolve";
 import { PROP_MARKET_LABEL } from "@/lib/odds-verify";
 
 test("legacy player props inspect only nearby settled ESPN events", () => {
@@ -842,5 +845,162 @@ test("the football card reads every column the owners asked for", () => {
       box,
     ),
     "WIN",
+  );
+});
+
+test("a surname fallback needs the same first initial", () => {
+  const box: PlayerBoxScore = {
+    players: [
+      {
+        name: "Trey Palmer",
+        team: "BUF",
+        played: true,
+        stats: { receptions: 3 },
+      },
+      { name: "DJ Moore", team: "BUF", played: true, stats: { receptions: 5 } },
+    ],
+  };
+  // Joshua Palmer played without a catch and is absent: never Trey's line.
+  assert.equal(findPlayer(box, "Joshua Palmer"), null);
+  assert.equal(
+    (findPlayer(box, "D.J. Moore") as { name: string }).name,
+    "DJ Moore",
+  );
+});
+
+test("an NFL player missing from the box score settles from game-day status", () => {
+  const over = {
+    market: "Receiving Yds",
+    selection: "Joshua Palmer Over 24.5",
+    side: "Over",
+    line: 24.5,
+  };
+  const under = {
+    market: "Rushing Yds",
+    selection: "Ray Davis Under 9.5",
+    side: "Under",
+    line: 9.5,
+  };
+  const atd = {
+    market: "Anytime Touchdown",
+    selection: "Ray Davis Anytime Touchdown",
+    side: "Yes",
+    line: null,
+  };
+  const rushRec = {
+    market: "Rush+Rec Yds",
+    selection: "Ray Davis Over 20.5",
+    side: "Over",
+    line: 20.5,
+  };
+  assert.equal(resolveAbsentPlayerProp(over, "played_no_stats"), "LOSS");
+  assert.equal(resolveAbsentPlayerProp(under, "played_no_stats"), "WIN");
+  assert.equal(resolveAbsentPlayerProp(atd, "played_no_stats"), "LOSS");
+  assert.equal(resolveAbsentPlayerProp(rushRec, "played_no_stats"), "LOSS");
+  assert.equal(resolveAbsentPlayerProp(over, "did_not_play"), "VOID");
+  // A non-football market is never zero-filled.
+  assert.equal(
+    resolveAbsentPlayerProp(
+      {
+        market: "Points",
+        selection: "A Wilson Over 19.5",
+        side: "Over",
+        line: 19.5,
+      },
+      "played_no_stats",
+    ),
+    null,
+  );
+});
+
+test("NFL roster participation requires one exact full-name match off the box score", async () => {
+  const box: PlayerBoxScore = {
+    espnTeamIds: ["24", "2"],
+    players: [
+      {
+        name: "Josh Allen",
+        team: "BUF",
+        played: true,
+        stats: {},
+        espnId: "3918298",
+      },
+    ],
+  };
+  const athletes: Record<string, string> = {
+    a1: "Joshua Palmer",
+    a2: "Trey Lance",
+    a3: "Josh Allen",
+  };
+  const rosters: Record<string, unknown[]> = {
+    "24": [
+      {
+        playerId: 1,
+        didNotPlay: false,
+        displayName: "Palmer",
+        athlete: { $ref: "http://x/a1" },
+      },
+      {
+        playerId: 2,
+        didNotPlay: true,
+        displayName: "Lance",
+        athlete: { $ref: "http://x/a2" },
+      },
+    ],
+    "2": [
+      {
+        playerId: 3918298,
+        didNotPlay: false,
+        displayName: "Allen",
+        athlete: { $ref: "http://x/a3" },
+      },
+    ],
+  };
+  const fakeFetch = (async (url: string) => {
+    const team = url.match(/competitors\/(\d+)\/roster/)?.[1];
+    const body = team
+      ? { entries: rosters[team] }
+      : { fullName: athletes[url.split("/").pop()!] };
+    return new Response(JSON.stringify(body), { status: 200 });
+  }) as typeof fetch;
+  assert.equal(
+    await fetchNflParticipation("9", box, "Joshua Palmer", fakeFetch),
+    "played_no_stats",
+  );
+  assert.equal(
+    await fetchNflParticipation("9", box, "Trey Lance", fakeFetch),
+    "did_not_play",
+  );
+  // In the box score already: never zero-filled from the roster.
+  assert.equal(
+    await fetchNflParticipation("9", box, "Josh Allen", fakeFetch),
+    null,
+  );
+  // Surname on the roster, full name not: defer.
+  assert.equal(
+    await fetchNflParticipation("9", box, "Hollywood Palmer", fakeFetch),
+    null,
+  );
+});
+
+test("the second half includes overtime; NCAAB halves are single periods", () => {
+  // GB @ NYJ, 2026-09-14: NYJ 0,7,7,3,0 / GB 0,7,0,10,3 — GB won the 2nd half 13-10.
+  const box = { homePeriods: [0, 7, 7, 3, 0], awayPeriods: [0, 7, 0, 10, 3] };
+  assert.deepEqual(halfBox(box, "NFL", true), {
+    homePeriods: [7, 3, 0],
+    awayPeriods: [0, 10, 3],
+  });
+  assert.deepEqual(halfBox(box, "NFL", false), {
+    homePeriods: [0, 7],
+    awayPeriods: [0, 7],
+  });
+  const ncaab = { homePeriods: [30, 41], awayPeriods: [35, 33] };
+  assert.deepEqual(halfBox(ncaab, "NCAAB", false), {
+    homePeriods: [30],
+    awayPeriods: [35],
+  });
+  // Not played far enough yet: defer.
+  assert.equal(
+    halfBox({ homePeriods: [7, 3], awayPeriods: [0, 3] }, "NFL", true),
+    null,
   );
 });

@@ -20,9 +20,15 @@ export type PlayerStatLine = {
   /** Whether the athlete actually appeared. A DNP row carries no stats. */
   played: boolean;
   stats: Record<string, number>;
+  /** ESPN athlete id, when the feed carries one. */
+  espnId?: string;
 };
 
-export type PlayerBoxScore = { players: PlayerStatLine[] };
+export type PlayerBoxScore = {
+  players: PlayerStatLine[];
+  /** ESPN team ids of both clubs, used to read the game-day roster. */
+  espnTeamIds?: string[];
+};
 
 const PLAYER_PROP_FIXTURE_WINDOW_MS = 90 * 60 * 1_000;
 
@@ -246,13 +252,70 @@ export function findPlayer(
   if (exact.length === 1) return exact[0];
   if (exact.length > 1) return "AMBIGUOUS";
 
-  // Fall back to surname, which is how books and cappers usually shorten it.
-  const surname = target.split(" ").slice(-1)[0];
-  const bySurname = box.players.filter(
-    (p) => normalizeName(p.name).split(" ").slice(-1)[0] === surname,
-  );
+  // Fall back to surname, which is how books and cappers usually shorten it
+  // ("Josh" for "Joshua", "D.J." for "DJ") - but only when the first initial
+  // agrees. A surname alone graded "Joshua Palmer", who played without a touch
+  // and so is absent from the box score, on whichever other Palmer caught a
+  // pass. A different first initial is a different player: defer.
+  const tokens = target.split(" ");
+  const surname = tokens.slice(-1)[0];
+  // A bare surname carries no first name to check against.
+  const initial = tokens.length > 1 ? target[0] : null;
+  const bySurname = box.players.filter((p) => {
+    const candidate = normalizeName(p.name);
+    return (
+      candidate.split(" ").slice(-1)[0] === surname &&
+      (initial == null || candidate[0] === initial)
+    );
+  });
   if (bySurname.length === 1) return bySurname[0];
   return bySurname.length > 1 ? "AMBIGUOUS" : null;
+}
+
+/** Game-day participation of a player the box score does not list. */
+export type AbsentPlayerStatus = "did_not_play" | "played_no_stats";
+
+/** Every counting stat a football prop settles on, at zero. */
+const ZERO_STAT_LINE: Record<string, number> = {
+  passingYards: 0,
+  passAttempts: 0,
+  passingTds: 0,
+  rushingYards: 0,
+  rushAttempts: 0,
+  receptions: 0,
+  receivingYards: 0,
+  fieldGoalsMade: 0,
+  touchdownsScored: 0,
+};
+
+/**
+ * Settle a prop on a player who is missing from the box score.
+ *
+ * ESPN's football box score lists only players who recorded a stat, so a
+ * receiver who played without a catch, and an inactive player, are both simply
+ * absent - and a prop on either used to sit PENDING until a human graded it.
+ * The game-day roster tells them apart (see `fetchNflParticipation`):
+ *
+ * - did not play (inactive, or dressed and never entered) -> VOID, the book rule;
+ * - played with no stat line -> every counting stat is zero.
+ */
+export function resolveAbsentPlayerProp(
+  play: PlayerPropPlay,
+  status: AbsentPlayerStatus,
+): Outcome | null {
+  const statKey = statKeyForMarket(play.market);
+  if (
+    !statKey ||
+    !(statKey in ZERO_STAT_LINE || statKey === "rushReceivingYards")
+  ) {
+    return null;
+  }
+  if (status === "did_not_play") return "VOID";
+  const name = playerNameFromSelection(play.selection);
+  if (!name) return null;
+  return resolvePlayerProp(play, {
+    players: [{ name, team: "", played: true, stats: ZERO_STAT_LINE }],
+  });
 }
 
 export type PlayerPropPlay = {

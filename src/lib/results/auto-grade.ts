@@ -34,9 +34,11 @@ import {
   resolvePeriodMoneyline,
   resolvePeriodSpread,
   resolvePeriodTotal,
+  halfBox,
 } from "@/lib/results/prop-resolve";
 import {
   fetchPeriodBoxScore,
+  fetchNflParticipation,
   fetchPlayerBoxScore,
   fetchMlbOfficialPlayerBoxScore,
 } from "@/lib/results/stats-provider";
@@ -44,6 +46,7 @@ import {
   findPlayer,
   playerNameFromSelection,
   playerPropCandidateEventIds,
+  resolveAbsentPlayerProp,
   resolvePlayerProp,
   type PlayerBoxScore,
 } from "@/lib/results/player-props";
@@ -271,6 +274,34 @@ function espnEventIdFor(
 }
 
 /**
+ * An NFL prop on a player the box score does not list at all.
+ *
+ * ESPN lists only players who recorded a stat, so "played, never touched the
+ * ball" and "inactive" look identical there. The game-day roster separates
+ * them; anything short of one exact full-name match keeps deferring.
+ */
+async function resolveAbsentNflPlayer(
+  play: GradablePlay,
+  espnId: string,
+  box: PlayerBoxScore,
+): Promise<Outcome | null> {
+  if (play.sport.toUpperCase() !== "NFL") return null;
+  const name = playerNameFromSelection(play.selection);
+  if (!name || findPlayer(box, name) !== null) return null;
+  const status = await fetchNflParticipation(espnId, box, name);
+  if (!status) return null;
+  return resolveAbsentPlayerProp(
+    {
+      market: play.market,
+      selection: play.selection,
+      side: play.side,
+      line: play.line ?? null,
+    },
+    status,
+  );
+}
+
+/**
  * Settle a player prop from the box score, or defer.
  *
  * This is the class of play that used to route straight to the manual queue:
@@ -297,6 +328,8 @@ async function resolvePlayerPropPlay(
         box,
       );
       if (outcome) return outcome;
+      const absent = await resolveAbsentNflPlayer(play, espnId, box);
+      if (absent) return absent;
     }
   }
 
@@ -369,19 +402,11 @@ async function resolvePeriodPlay(
   if (!rawBox) return null;
   const isHalf = period.innings === 0;
   const secondHalf = /\b(2nd|second)\s*half\b|\bh2\b/i.test(play.market);
-  const box = isHalf
-    ? {
-        homePeriods: rawBox.homePeriods.slice(
-          secondHalf ? 2 : 0,
-          secondHalf ? 4 : 2,
-        ),
-        awayPeriods: rawBox.awayPeriods.slice(
-          secondHalf ? 2 : 0,
-          secondHalf ? 4 : 2,
-        ),
-      }
-    : rawBox;
-  const segmentPeriods = isHalf ? 2 : period.innings;
+  const box = isHalf ? halfBox(rawBox, play.sport, secondHalf) : rawBox;
+  if (!box) return null;
+  const segmentPeriods = isHalf
+    ? Math.min(box.homePeriods.length, box.awayPeriods.length)
+    : period.innings;
 
   if (period.kind === "total") {
     // The segment is already known from the market, so the line/side only has

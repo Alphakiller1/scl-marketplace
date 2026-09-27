@@ -137,3 +137,27 @@ export function resolvePeriodTotal(
 
   return overUnderOutcome(scores.home + scores.away, line, side);
 }
+
+/**
+ * One half of a game's line-scores, or null when it cannot be read.
+ *
+ * The 2nd half runs to the END of the game, overtime included — the US book
+ * rule for football and basketball. Cutting it at the 4th quarter graded GB @
+ * NYJ (2026-09-14, OT 3-0) as a 10-10 second half: a Packers 2H moneyline
+ * PUSHed instead of winning, and every 2H total came in three points short.
+ * College basketball plays two halves, not four quarters, so its first half is
+ * ONE period; slicing two there graded a "1st Half" bet on the whole game.
+ */
+export function halfBox(
+  box: BoxScore,
+  sport: string,
+  secondHalf: boolean,
+): BoxScore | null {
+  const perHalf = sport.trim().toUpperCase() === "NCAAB" ? 1 : 2;
+  const cut = (periods: number[]) =>
+    secondHalf ? periods.slice(perHalf) : periods.slice(0, perHalf);
+  const home = cut(box.homePeriods);
+  const away = cut(box.awayPeriods);
+  if (home.length < perHalf || away.length !== home.length) return null;
+  return { homePeriods: home, awayPeriods: away };
+}
