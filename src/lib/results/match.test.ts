@@ -626,3 +626,42 @@ test("Inter Miami is not graded from an Internazionale final", () => {
     null,
   );
 });
+
+test("a shared nickname does not leave a spread or moneyline undecided", () => {
+  // Boise State Broncos @ Western Michigan Broncos, 2026-09-26. Both picks
+  // "mentioned" both clubs through "broncos" and sat PENDING for a day.
+  const game: SettledGame = {
+    sport: "NCAAF",
+    away: "Boise State Broncos",
+    home: "Western Michigan Broncos",
+    awayScore: 32,
+    homeScore: 7,
+    completed: true,
+    startsAt: new Date("2026-09-26T19:30:00Z"),
+  };
+  const play = (market: string, selection: string): GradablePlay => ({
+    id: selection,
+    sport: "NCAAF",
+    market,
+    selection,
+    oddsAmerican: -110,
+    units: 1,
+    homeTeam: game.home,
+    awayTeam: game.away,
+    eventStartsAt: game.startsAt,
+  });
+  assert.equal(
+    resolveOutcome(play("Spread", "Boise State Broncos -7"), [game]),
+    "WIN",
+  );
+  assert.equal(
+    resolveOutcome(play("Spread", "Western Michigan Broncos +7.5"), [game]),
+    "LOSS",
+  );
+  assert.equal(
+    resolveOutcome(play("Moneyline", "Boise State Broncos"), [game]),
+    "WIN",
+  );
+  // Nickname alone still names neither club — stays PENDING, never guessed.
+  assert.equal(resolveOutcome(play("Spread", "Broncos -7"), [game]), null);
+});

@@ -521,8 +521,34 @@ export function pickedSideForGame(
   const away =
     mentions(play.selection, game.away, game.sport) ||
     mentions(play.side ?? "", game.away, game.sport);
-  if (home === away) return undefined;
+  if (home === away) return home ? fullNameSide(text, game) : undefined;
   return home;
+}
+
+/**
+ * Break a tie when a pick "mentions" both clubs only through a shared nickname.
+ *
+ * Boise State Broncos @ Western Michigan Broncos: "Boise State Broncos -7"
+ * contains "broncos", which is both clubs' nickname, so the pick named both
+ * sides and sat PENDING forever. The club whose FULL name the pick spells out
+ * is the one picked; if it spells out both, or neither, it stays undecided.
+ */
+function fullNameSide(text: string, game: SettledGame): boolean | undefined {
+  const t = norm(text);
+  const home = norm(game.home);
+  const away = norm(game.away);
+  const hasHome = Boolean(home) && t.includes(home);
+  const hasAway = Boolean(away) && t.includes(away);
+  if (hasHome === hasAway) return undefined;
+  return hasHome;
+}
+
+/** Which club a bare team name backs: true = home, false = away, undefined = can't tell. */
+function teamSide(team: string, game: SettledGame): boolean | undefined {
+  const home = mentions(team, game.home, game.sport);
+  const away = mentions(team, game.away, game.sport);
+  if (home !== away) return home;
+  return home ? fullNameSide(team, game) : undefined;
 }
 
 /** Read "Over 21.5" / "u 7" off a selection. */
@@ -565,9 +591,8 @@ function gradeSpread(
   pickedTeam: string,
   line: number,
 ): "WIN" | "LOSS" | "PUSH" | null {
-  const pickedHome = mentions(pickedTeam, game.home, game.sport);
-  const pickedAway = mentions(pickedTeam, game.away, game.sport);
-  if (pickedHome === pickedAway) return null;
+  const pickedHome = teamSide(pickedTeam, game);
+  if (pickedHome === undefined) return null;
 
   const teamMargin = pickedHome
     ? game.homeScore - game.awayScore
@@ -684,9 +709,8 @@ export function resolveOutcome(
     const isDraw = game.homeScore === game.awayScore;
     if (parsed.kind === "either-team") return isDraw ? "LOSS" : "WIN";
     if (isDraw) return "WIN";
-    const pickedHome = mentions(parsed.team, game.home, game.sport);
-    const pickedAway = mentions(parsed.team, game.away, game.sport);
-    if (pickedHome === pickedAway) return null;
+    const pickedHome = teamSide(parsed.team, game);
+    if (pickedHome === undefined) return null;
     const homeWon = game.homeScore > game.awayScore;
     return pickedHome === homeWon ? "WIN" : "LOSS";
   }
@@ -704,9 +728,8 @@ export function resolveOutcome(
     // ("Nats TT O4.5") returns null and stays PENDING rather than being graded
     // on a guess about which club it names.
     if (!parsed) return null;
-    const pickedHome = mentions(parsed.team, game.home, game.sport);
-    const pickedAway = mentions(parsed.team, game.away, game.sport);
-    if (pickedHome === pickedAway) return null;
+    const pickedHome = teamSide(parsed.team, game);
+    if (pickedHome === undefined) return null;
     const teamScore = pickedHome ? game.homeScore : game.awayScore;
     if (teamScore === parsed.line) return "PUSH";
     const wentOver = teamScore > parsed.line;
