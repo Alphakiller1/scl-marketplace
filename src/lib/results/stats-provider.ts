@@ -1,7 +1,9 @@
 import type { BoxScore } from "@/lib/results/prop-resolve";
-import type {
-  PlayerBoxScore,
-  PlayerStatLine,
+import {
+  normalizeName,
+  type AbsentPlayerStatus,
+  type PlayerBoxScore,
+  type PlayerStatLine,
 } from "@/lib/results/player-props";
 
 /**
@@ -281,7 +283,7 @@ function statGroupKey(group: EspnStatGroup): string {
 }
 
 type EspnAthleteRow = {
-  athlete?: { displayName?: string };
+  athlete?: { displayName?: string; id?: string | number };
   stats?: (string | number | null)[];
 };
 type EspnStatGroup = {
@@ -292,7 +294,7 @@ type EspnStatGroup = {
   athletes?: EspnAthleteRow[];
 };
 type EspnPlayerTeam = {
-  team?: { displayName?: string; abbreviation?: string };
+  team?: { displayName?: string; abbreviation?: string; id?: string | number };
   statistics?: EspnStatGroup[];
 };
 
@@ -341,11 +343,14 @@ export function mapSummaryToPlayerBox(data: unknown): PlayerBoxScore | null {
         // DNP signal, and the only thing that distinguishes it from a zero.
         const played = raw.some((v) => v != null && String(v).trim() !== "");
 
-        const entry = byName.get(name) ?? {
+        const entry: PlayerStatLine = byName.get(name) ?? {
           name,
           team: teamName,
           played: false,
           stats: {},
+          ...(row.athlete?.id != null
+            ? { espnId: String(row.athlete.id) }
+            : {}),
         };
         entry.played = entry.played || played;
 
@@ -434,7 +439,100 @@ export function mapSummaryToPlayerBox(data: unknown): PlayerBoxScore | null {
     }
   }
 
-  return byName.size > 0 ? { players: [...byName.values()] } : null;
+  if (byName.size === 0) return null;
+  const espnTeamIds = teams
+    .map((team) => team.team?.id)
+    .filter((id): id is string | number => id != null)
+    .map(String);
+  return {
+    players: [...byName.values()],
+    ...(espnTeamIds.length === 2 ? { espnTeamIds } : {}),
+  };
+}
+
+type EspnRosterEntry = {
+  playerId?: number | string;
+  didNotPlay?: boolean;
+  /** The core roster writes the SURNAME here ("Dawkins"), not the full name. */
+  displayName?: string;
+  athlete?: { $ref?: string };
+};
+
+/**
+ * Game-day status of a player absent from the NFL box score, or null to defer.
+ *
+ * Reads ESPN's per-game roster (sports.core.api), whose `didNotPlay` marks
+ * inactives AND dressed players who never entered - measured 2026-09-27: LAC's
+ * two backup QBs were flagged, while linemen and a receiver with no catch were
+ * not. The roster names only the surname, so each surname candidate's athlete
+ * record is fetched and the FULL name must match exactly one of them. A player
+ * the box score does list is never considered here - that would turn a name
+ * spelling mismatch into a zero stat line.
+ */
+export async function fetchNflParticipation(
+  eventId: string,
+  box: PlayerBoxScore,
+  playerName: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<AbsentPlayerStatus | null> {
+  const teamIds = box.espnTeamIds;
+  if (!teamIds || teamIds.length !== 2) return null;
+  const target = normalizeName(playerName);
+  const surname = target.split(" ").slice(-1)[0];
+  if (!surname) return null;
+  const inBox = new Set(
+    box.players.map((p) => p.espnId).filter((id): id is string => !!id),
+  );
+  const getJson = async (url: string): Promise<unknown> => {
+    const res = await fetchImpl(url, {
+      cache: "no-store",
+      headers: { accept: "application/json" },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  };
+
+  try {
+    const event = encodeURIComponent(eventId);
+    const rosters = (await Promise.all(
+      teamIds.map((teamId) =>
+        getJson(
+          `https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/events/${event}/competitions/${event}/competitors/${encodeURIComponent(teamId)}/roster?limit=200`,
+        ),
+      ),
+    )) as { entries?: EspnRosterEntry[] }[];
+    // Both clubs' rosters must be readable, or "not found" means nothing.
+    if (rosters.some((r) => !Array.isArray(r.entries) || !r.entries.length)) {
+      return null;
+    }
+    const candidates = rosters
+      .flatMap((r) => r.entries ?? [])
+      .filter(
+        (entry) =>
+          entry.playerId != null &&
+          !inBox.has(String(entry.playerId)) &&
+          normalizeName(entry.displayName ?? "")
+            .split(" ")
+            .slice(-1)[0] === surname &&
+          Boolean(entry.athlete?.$ref),
+      );
+    const named = await Promise.all(
+      candidates.map(async (entry) => {
+        const ref = entry.athlete!.$ref!.replace(/^http:/, "https:");
+        const athlete = (await getJson(ref)) as { fullName?: string };
+        return { entry, fullName: normalizeName(athlete.fullName ?? "") };
+      }),
+    );
+    const matches = named.filter((n) => n.fullName === target);
+    if (matches.length !== 1) return null;
+    const flag = matches[0]!.entry.didNotPlay;
+    if (flag === true) return "did_not_play";
+    if (flag === false) return "played_no_stats";
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /** Pure mapper (unit-testable) — ESPN summary JSON → per-period line-scores. */
