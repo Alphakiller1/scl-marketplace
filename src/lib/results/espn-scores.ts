@@ -39,10 +39,25 @@ const ESPN_SPORT_PATH: Record<string, { sport: string; league: string }> = {
 /** Current ATP / WTA tournament cards — matches live under groupings. */
 const ESPN_TENNIS_TOURS = ["atp", "wta"] as const;
 
+/**
+ * Page sizes for the FBS card. ESPN silently IGNORES `groups=80` once `limit`
+ * passes its cap (somewhere between 500 and 900) and answers with the curated
+ * 25-game Top-25 card instead — same 200, same shape, `groups: ["80"]` echoed
+ * back, nothing to tell it apart. A limit of 1000 did exactly that from #680
+ * (2026-09-23) on: Saturday 2026-09-26 returned 25 of 65 FBS finals and 26
+ * plays sat PENDING a day while the grade job failed on every run.
+ *
+ * Two independent requests per day, merged: an explicit in-cap page and ESPN's
+ * own default page. Either one alone covers the slate today; asking both means
+ * one more silent contract change on ESPN's side cannot empty the card again.
+ */
+const NCAAF_FBS_LIMITS: readonly (number | null)[] = [300, null];
+
 async function fetchEspnScoreboardDay(
   sclSport: string,
   yyyymmdd: string,
   soccerLeague?: string,
+  fbsLimit: number | null = null,
 ): Promise<SettledGame[]> {
   const soccerSlug =
     sclSport === "SOCCER" ? espnSoccerLeagueSlug(soccerLeague) : null;
@@ -53,12 +68,13 @@ async function fetchEspnScoreboardDay(
 
   // `site.api.espn.com` now returns an Akamai 403 from production and local
   // server runtimes. ESPN's web API hostname serves the same public scoreboard
-  // contract without that block. NCAAF also needs an explicit FBS group and a
-  // high limit; the default card is curated and can omit an unranked opponent,
-  // leaving a perfectly final spread unmatched until it ages out.
+  // contract without that block. NCAAF also needs an explicit FBS group; the
+  // default card is curated and can omit an unranked opponent, leaving a
+  // perfectly final spread unmatched until it ages out.
   const query = [`dates=${yyyymmdd}`];
   if (sclSport === "NCAAF") {
-    query.push("groups=80", "limit=1000");
+    query.push("groups=80");
+    if (fbsLimit != null) query.push(`limit=${fbsLimit}`);
   }
   const url =
     `https://site.web.api.espn.com/apis/site/v2/sports/${path.sport}/${path.league}/scoreboard` +
@@ -153,7 +169,13 @@ export function espnHistoricalResultsProvider(
       );
       const requests = [
         ...standardSports.flatMap((sport) =>
-          dates.map((day) => fetchEspnScoreboardDay(sport, day)),
+          dates.flatMap((day) =>
+            sport === "NCAAF"
+              ? NCAAF_FBS_LIMITS.map((limit) =>
+                  fetchEspnScoreboardDay(sport, day, undefined, limit),
+                )
+              : [fetchEspnScoreboardDay(sport, day)],
+          ),
         ),
         ...(distinct.includes("SOCCER")
           ? soccerLeagues.flatMap((league) =>

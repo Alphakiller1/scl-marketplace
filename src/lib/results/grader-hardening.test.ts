@@ -97,7 +97,15 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
   assert.match(espn, /"wta"/);
   assert.match(espn, /site\.web\.api\.espn\.com/);
   assert.doesNotMatch(espn, /https:\/\/site\.api\.espn\.com/);
-  assert.match(espn, /query\.push\("groups=80", "limit=1000"\)/);
+  assert.match(espn, /query\.push\("groups=80"\)/);
+  // Past ESPN's cap (500 < cap < 900) groups=80 is dropped for the curated
+  // 25-game card — 26 plays stuck PENDING on 2026-09-26 behind limit=1000.
+  const limits = espn.match(/NCAAF_FBS_LIMITS[^=]*=\s*\[([^\]]*)\]/);
+  assert.ok(limits, "NCAAF_FBS_LIMITS must be declared");
+  for (const n of limits[1].match(/\d+/g) ?? []) {
+    assert.ok(Number(n) <= 500, `NCAAF limit ${n} exceeds ESPN's honoured cap`);
+  }
+  assert.doesNotMatch(espn, /limit=1000/);
   assert.match(espn, /AbortSignal\.timeout\(10_000\)/);
 
   const statsProvider = fs.readFileSync(
