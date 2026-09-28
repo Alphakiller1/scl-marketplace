@@ -337,7 +337,7 @@ export function BetSlip({
                         placeholder="Optional. Why this number — keep it factual."
                         maxLength={1000}
                         rows={3}
-                        className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring min-h-20 w-full resize-y rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
+                        className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring min-h-20 w-full resize-y rounded-md border px-3 py-2 text-base focus-visible:ring-2 focus-visible:outline-none lg:text-sm"
                       />
                       <label className="flex min-h-10 cursor-pointer items-center gap-2 text-sm">
                         <input

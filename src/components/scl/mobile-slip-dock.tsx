@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useSyncExternalStore, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 
 /** Never changes, so the store never notifies. Hoisted to keep it referentially stable. */
@@ -31,7 +37,53 @@ import { cn } from "@/lib/utils";
  *
  * The spacer stays in flow, where the component actually sits, so the last rows
  * of the board still clear the bar.
+ *
+ * The portal fixes the ancestor case; it does not fix the viewport case.
+ * `bottom: 0` means the bottom of the *layout* viewport, and on a phone the
+ * visible area (the *visual* viewport) can be smaller than that: pinch-zoom,
+ * iOS auto-zooming into any input under 16px, and the on-screen keyboard all
+ * leave the bar parked at a bottom the user is no longer looking at — i.e.
+ * floating mid-board. `useVisualViewportAnchor` shifts the bar onto the visible
+ * bottom edge whenever the two differ, and hides it while the keyboard is up
+ * so it does not sit on top of the field being typed into.
  */
+function useVisualViewportAnchor(mounted: boolean) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const el = ref.current;
+    if (!mounted || !vv || !el) return;
+
+    let frame = 0;
+    const sync = () => {
+      frame = 0;
+      const layoutHeight = document.documentElement.clientHeight;
+      // Distance from the visible bottom edge down to the layout bottom edge.
+      const gap = Math.max(0, layoutHeight - (vv.offsetTop + vv.height));
+      // Unzoomed, yet a quarter of the screen gone: that is the keyboard.
+      const keyboardOpen = vv.scale < 1.05 && vv.height < layoutHeight * 0.75;
+      el.style.transform = gap > 0.5 ? `translate3d(0, ${-gap}px, 0)` : "";
+      el.style.visibility = keyboardOpen ? "hidden" : "";
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(sync);
+    };
+
+    sync();
+    vv.addEventListener("resize", schedule);
+    vv.addEventListener("scroll", schedule);
+    window.addEventListener("scroll", schedule, { passive: true });
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      vv.removeEventListener("resize", schedule);
+      vv.removeEventListener("scroll", schedule);
+      window.removeEventListener("scroll", schedule);
+    };
+  }, [mounted]);
+
+  return ref;
+}
 export function MobileSlipDock({
   title,
   countLabel,
@@ -58,9 +110,11 @@ export function MobileSlipDock({
     () => true,
     () => false,
   );
+  const anchorRef = useVisualViewportAnchor(mounted);
 
   const bar = (
     <div
+      ref={anchorRef}
       // `lg:hidden` is repeated here because the portal lifts this out of the
       // wrapper below that carries it.
       className="fixed inset-x-0 bottom-0 z-40 px-3 lg:hidden"
