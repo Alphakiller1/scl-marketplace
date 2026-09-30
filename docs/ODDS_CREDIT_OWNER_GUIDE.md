@@ -47,6 +47,13 @@ to open each league to find out what is set:
 The status band at the top carries provider remaining, when the balance was last
 observed, how many leagues are enabled, and the projected 30-day total.
 
+Opening **Admin → API Credits** now checks every configured Odds API key against
+the provider's free sports endpoint. This refresh uses **zero credits**, so a
+renewal or top-up should appear on the next page load. The timestamp says
+**live, free quota check** when all keys answered. If any key cannot be checked,
+the dashboard keeps the last stored provider balance rather than showing an
+incomplete account total.
+
 **Usage & budget** measures what that configuration actually spent: used today,
 last 7 days and last 30 days, the projected 30-day total, the 30-day chart, and
 credits by league, by purpose and by market.

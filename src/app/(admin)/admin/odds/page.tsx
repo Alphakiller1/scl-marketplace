@@ -430,7 +430,9 @@ export default async function AdminOddsPage() {
                         : `${data.summary.provider.ageMinutes} min ago`
                       : "Never",
                   sub: data.summary.provider.updatedAt
-                    ? formatEasternDateTime(data.summary.provider.updatedAt)
+                    ? data.summary.provider.source === "live"
+                      ? `${formatEasternDateTime(data.summary.provider.updatedAt)} · live, free quota check`
+                      : `${formatEasternDateTime(data.summary.provider.updatedAt)} · stored provider response`
                     : "No provider observation",
                 },
                 {
