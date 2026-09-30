@@ -2,10 +2,10 @@ import { HonorsSpotlight } from "@/components/scl/honors-spotlight";
 import { HonorCard } from "@/components/scl/honor-card";
 import {
   ANNUAL_MINIMUM,
-  AWARD_PERIODS,
   CROSS_SPORTS_MINIMUM,
   honorsCriteria,
   honorsRules,
+  pastAnnualHonors,
 } from "@/lib/honors";
 import { HonorGlyph } from "@/components/scl/honor-icons";
 import { getAllHonors, getFeaturedHonors } from "@/lib/queries/honors";
@@ -23,12 +23,7 @@ export default async function HonorsPage() {
     getAllHonors(),
     getHonorsContent(),
   ]);
-  const featuredIds = new Set(
-    [...featured.annual, ...featured.season, ...featured.monthly].map(
-      (award) => award.id,
-    ),
-  );
-  const past = all.filter((award) => !featuredIds.has(award.id));
+  const pastAnnual = pastAnnualHonors(all, featured.annual);
   return (
     <main className="mx-auto max-w-[1400px] space-y-8 px-4 py-8 sm:px-6 lg:px-8">
       <header className="max-w-3xl">
@@ -120,27 +115,23 @@ export default async function HonorsPage() {
           </table>
         </div>
       </section>
-      {past.length ? (
+      {pastAnnual.length ? (
         <section aria-labelledby="honors-past-title" className="space-y-4">
           <h2 id="honors-past-title" className="scl-display text-xl font-bold">
-            Past winners
+            Past annual winners
           </h2>
-          {AWARD_PERIODS.map(({ key, label }) => {
-            const awards = past.filter((award) => award.period === key);
-            if (!awards.length) return null;
-            return (
-              <div key={key} className="space-y-2">
-                <h3 className="scl-eyebrow text-foreground">{label}</h3>
-                <ul className="flex flex-wrap gap-2">
-                  {awards.map((award) => (
-                    <li key={award.id} className="w-full min-w-0 sm:w-auto">
-                      <HonorCard award={award} />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
+          <p className="text-muted-foreground max-w-3xl text-sm">
+            The permanent archive below stays focused on SCL&apos;s annual
+            champions. Season and monthly awards remain in each winner&apos;s
+            Trophy Case.
+          </p>
+          <ul className="flex flex-wrap gap-2">
+            {pastAnnual.map((award) => (
+              <li key={award.id} className="w-full min-w-0 sm:w-auto">
+                <HonorCard award={award} />
+              </li>
+            ))}
+          </ul>
         </section>
       ) : null}
     </main>

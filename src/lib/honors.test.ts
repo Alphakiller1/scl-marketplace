@@ -12,6 +12,7 @@ import {
   honorMinimum,
   honorsCriteria,
   honorsRules,
+  pastAnnualHonors,
   seasonPeriod,
   type HonorCapper,
   type HonorLegacyTotal,
@@ -257,6 +258,27 @@ test("featured: last year, last month, and seasons for sports in season", () => 
   assert.equal(
     featuredHonors(awards, new Date("2027-01-15T12:00:00Z")).annual.length,
     0,
+  );
+});
+
+test("the page archive keeps only past annual winners", () => {
+  const now = new Date("2028-09-16T16:00:00Z");
+  const awards = computeHonors({
+    cappers: [ALICE],
+    positions: [],
+    legacy: [
+      legacyRow("a", "ALL", 300, 200, 1500, 450),
+      legacyRow("a", "NFL", 30, 20, 100, 50),
+    ],
+    now,
+  });
+  const archive = pastAnnualHonors(awards, featuredHonors(awards, now).annual);
+
+  assert.equal(archive.length, 2);
+  assert.ok(archive.every((award) => award.period === "annual"));
+  assert.deepEqual(
+    archive.map((award) => award.abbreviation),
+    ["2025 COTY", "2025 ROI"],
   );
 });
 
