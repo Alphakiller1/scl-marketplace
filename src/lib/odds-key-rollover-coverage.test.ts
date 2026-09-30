@@ -29,10 +29,7 @@ const LIB = join(process.cwd(), "src", "lib");
  * exception: it intentionally checks every configured key independently so it
  * can total the account rather than stopping after the first usable key.
  */
-const ALLOWED = new Set([
-  "odds-key-rollover.ts",
-  "odds-provider-balance.ts",
-]);
+const ALLOWED = new Set(["odds-key-rollover.ts", "odds-provider-balance.ts"]);
 
 function sourceFiles(dir: string): string[] {
   const out: string[] = [];
