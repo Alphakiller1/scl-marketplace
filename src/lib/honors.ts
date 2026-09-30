@@ -701,6 +701,22 @@ export function featuredList(
   return [...featured.annual, ...featured.season, ...featured.monthly];
 }
 
+/**
+ * Compact archive used at the foot of the Honors page.
+ *
+ * Monthly and season awards remain permanent in capper Trophy Cases and at
+ * their direct award URLs; repeating them all here would grow without bound.
+ */
+export function pastAnnualHonors(
+  awards: readonly HonorAward[],
+  featuredAnnual: readonly HonorAward[],
+): HonorAward[] {
+  const featuredIds = new Set(featuredAnnual.map((award) => award.id));
+  return awards.filter(
+    (award) => award.period === "annual" && !featuredIds.has(award.id),
+  );
+}
+
 export function awardsForCapper(
   awards: readonly HonorAward[],
   capperId: string,
