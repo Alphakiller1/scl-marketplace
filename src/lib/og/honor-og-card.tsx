@@ -6,19 +6,19 @@ import {
 } from "@/components/scl/honor-icons";
 import { formatRecord, formatRoi, formatUnits } from "@/lib/format";
 import { ALL_SPORTS, SUPERMAX, type HonorAward } from "@/lib/honors";
-import { NeonTrophy } from "@/lib/og/honor-neon-trophy";
+import { HonorNeonStage, NeonTrophy } from "@/lib/og/honor-neon-trophy";
 import { OG } from "@/lib/og/tokens";
 import { CROSS_SPORTS } from "@/lib/parlay-sport";
 
 export const HONOR_OG_SIZE = { width: 1080, height: 1350 } as const;
+export const HONOR_OG_VERSION = "20260930b";
 
-/**
- * Spec palette only: ink surfaces, pink conviction marks (the rank-medal
- * treatment), AA text tokens. No gold, no per-award hue.
- */
-const PINK = "#BA008E";
-const PINK_TEXT = "#FF74C8";
+const PINK = "#D000A0";
+const PINK_BRIGHT = "#FF65CB";
 const PINK_INK = "#FFF3FC";
+const BLUE = "#1688FF";
+const PURPLE = "#7B2BFF";
+const EMBLEM_BG = "#111A2A";
 
 function titleLines(award: HonorAward): [string, string] {
   if (award.sport === SUPERMAX) {
@@ -80,13 +80,13 @@ function ribbon(award: HonorAward): string {
 function Emblem({ award }: { award: HonorAward }) {
   const glyph =
     award.sport === ALL_SPORTS ? (
-      <AnnualMark metric={award.metric} size={170} color={PINK_TEXT} />
+      <AnnualMark metric={award.metric} size={160} color={PINK_BRIGHT} />
     ) : award.sport === "NCAAF" ? (
-      <HelmetIcon size={170} />
+      <HelmetIcon size={164} />
     ) : award.sport === "NCAAB" ? (
-      <HoopIcon size={170} />
+      <HoopIcon size={164} />
     ) : (
-      <span style={{ fontSize: 150, lineHeight: 1 }}>{honorEmoji(award)}</span>
+      <span style={{ fontSize: 146, lineHeight: 1 }}>{honorEmoji(award)}</span>
     );
   return (
     <div
@@ -98,8 +98,9 @@ function Emblem({ award }: { award: HonorAward }) {
         height: 300,
         borderRadius: 150,
         border: `12px solid ${PINK}`,
-        backgroundColor: OG.card,
-        boxShadow: "0 12px 30px rgba(0,0,0,.55)",
+        backgroundColor: EMBLEM_BG,
+        boxShadow:
+          "0 0 0 4px rgba(255,101,203,.2), 0 0 44px rgba(208,0,160,.48), 0 16px 36px rgba(0,0,0,.62)",
       }}
     >
       {glyph}
@@ -107,24 +108,55 @@ function Emblem({ award }: { award: HonorAward }) {
   );
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
+function Stat({
+  value,
+  label,
+  divider,
+}: {
+  value: string;
+  label: string;
+  divider?: boolean;
+}) {
   return (
     <div
       style={{
+        position: "relative",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
+        justifyContent: "center",
         flex: 1,
+        minWidth: 0,
       }}
     >
-      <span style={{ fontSize: 50, color: OG.text, fontFamily: "Inter" }}>
+      {divider ? (
+        <span
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 10,
+            width: 2,
+            height: 76,
+            backgroundColor: OG.line,
+          }}
+        />
+      ) : null}
+      <span
+        style={{
+          fontSize: 50,
+          color: OG.text,
+          fontFamily: "Inter",
+          letterSpacing: -2,
+        }}
+      >
         {value}
       </span>
       <span
         style={{
-          fontSize: 22,
+          marginTop: 6,
+          fontSize: 21,
           color: OG.mutedData,
-          letterSpacing: 3,
+          letterSpacing: 4,
           textTransform: "uppercase",
         }}
       >
@@ -132,6 +164,13 @@ function Stat({ value, label }: { value: string; label: string }) {
       </span>
     </div>
   );
+}
+
+function handleSize(handle: string): number {
+  const length = handle.length + 1;
+  if (length <= 17) return 76;
+  if (length <= 22) return 62;
+  return 50;
 }
 
 /** 1080×1350 (4:5) share graphic for one award. Inline styles for next/og. */
@@ -153,23 +192,42 @@ export function HonorOgCard({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        padding: "56px 64px 44px",
+        overflow: "hidden",
+        padding: "48px 64px 38px",
         color: OG.text,
         fontFamily: "Barlow Condensed",
         backgroundColor: OG.bg,
+        backgroundImage:
+          "linear-gradient(180deg, #07090F 0%, #07101D 52%, #05070D 100%)",
         borderTop: `10px solid ${PINK}`,
       }}
     >
-      {/* Neon trophy behind the record, per the owner's reference art. */}
       <div
         style={{
           position: "absolute",
-          top: 232,
-          left: 235,
+          inset: 0,
           display: "flex",
         }}
       >
-        <NeonTrophy width={610} height={610} color={PINK} core={PINK_INK} />
+        <HonorNeonStage />
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          top: 358,
+          left: 70,
+          display: "flex",
+        }}
+      >
+        <NeonTrophy
+          width={940}
+          height={590}
+          blue={BLUE}
+          purple={PURPLE}
+          pink={PINK_BRIGHT}
+          core={PINK_INK}
+        />
       </div>
 
       <div
@@ -180,14 +238,19 @@ export function HonorOgCard({
         }}
       >
         <span
-          style={{ fontSize: 40, letterSpacing: 4, textTransform: "uppercase" }}
+          style={{
+            fontSize: 38,
+            letterSpacing: 5,
+            textTransform: "uppercase",
+          }}
         >
           Sports Cappers Leaderboard
         </span>
         <span
           style={{
-            fontSize: 20,
-            letterSpacing: 6,
+            marginTop: 2,
+            fontSize: 19,
+            letterSpacing: 7,
             color: OG.mutedData,
             textTransform: "uppercase",
           }}
@@ -201,18 +264,36 @@ export function HonorOgCard({
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          marginTop: 34,
+          marginTop: 32,
           textTransform: "uppercase",
-          lineHeight: 0.95,
+          lineHeight: 0.92,
         }}
       >
-        <span style={{ fontSize: 118, color: OG.text }}>{line1}</span>
-        <span style={{ fontSize: 84, color: PINK_TEXT }}>{line2}</span>
         <span
           style={{
-            marginTop: 16,
-            fontSize: 28,
-            letterSpacing: 3,
+            fontSize: 112,
+            color: OG.text,
+            letterSpacing: 1,
+            textShadow: "0 5px 20px rgba(0,0,0,.8)",
+          }}
+        >
+          {line1}
+        </span>
+        <span
+          style={{
+            fontSize: 82,
+            color: PINK_BRIGHT,
+            letterSpacing: 1,
+            textShadow: "0 0 24px rgba(208,0,160,.35)",
+          }}
+        >
+          {line2}
+        </span>
+        <span
+          style={{
+            marginTop: 18,
+            fontSize: 27,
+            letterSpacing: 4,
             color: OG.mutedData,
           }}
         >
@@ -225,20 +306,24 @@ export function HonorOgCard({
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          marginTop: 36,
+          marginTop: 34,
         }}
       >
         <Emblem award={award} />
         <div
           style={{
             display: "flex",
-            marginTop: -26,
-            padding: "8px 40px",
-            backgroundColor: PINK,
-            color: PINK_INK,
-            fontSize: 40,
-            textTransform: "uppercase",
+            marginTop: -25,
+            padding: "9px 38px 10px",
+            border: "2px solid rgba(255,255,255,.18)",
             borderRadius: 8,
+            backgroundColor: PINK,
+            backgroundImage:
+              "linear-gradient(180deg, #E016B6 0%, #C00092 58%, #990073 100%)",
+            color: PINK_INK,
+            boxShadow: "0 10px 28px rgba(0,0,0,.45)",
+            fontSize: 39,
+            textTransform: "uppercase",
           }}
         >
           {ribbon(award)}
@@ -247,10 +332,19 @@ export function HonorOgCard({
 
       <span
         style={{
-          marginTop: 40,
-          fontSize: 76,
+          marginTop: 30,
+          maxWidth: 950,
+          overflow: "hidden",
+          padding: "5px 22px 8px",
+          borderRadius: 8,
+          backgroundColor: "rgba(5,9,17,.46)",
+          fontSize: handleSize(winner.handle),
+          lineHeight: 1,
+          textAlign: "center",
           textTransform: "uppercase",
+          whiteSpace: "nowrap",
           color: OG.text,
+          textShadow: "0 4px 20px rgba(0,0,0,.95)",
         }}
       >
         @{winner.handle}
@@ -261,9 +355,10 @@ export function HonorOgCard({
           display: "flex",
           width: "100%",
           marginTop: 18,
-          padding: "20px 0",
+          padding: "18px 0 16px",
           borderTop: `2px solid ${OG.line}`,
           borderBottom: `2px solid ${OG.line}`,
+          backgroundColor: "rgba(5,9,17,.46)",
         }}
       >
         <Stat value={formatUnits(winner.units)} label="Units" />
@@ -274,18 +369,20 @@ export function HonorOgCard({
             winner.record.p,
           )}
           label="Record"
+          divider
         />
-        <Stat value={formatRoi(winner.roi)} label="ROI" />
+        <Stat value={formatRoi(winner.roi)} label="ROI" divider />
       </div>
 
       <span
         style={{
-          marginTop: 26,
-          fontSize: 30,
+          marginTop: 23,
+          maxWidth: 880,
+          fontFamily: "Inter",
+          fontSize: 28,
+          lineHeight: 1.25,
           color: OG.mutedData,
           textAlign: "center",
-          fontFamily: "Inter",
-          maxWidth: 860,
         }}
       >
         {blurb(award)}
@@ -295,10 +392,11 @@ export function HonorOgCard({
         style={{
           marginTop: "auto",
           alignSelf: "center",
-          fontSize: 24,
-          letterSpacing: 6,
+          fontSize: 23,
+          letterSpacing: 7,
           color: OG.mutedData,
           textTransform: "uppercase",
+          textShadow: "0 2px 8px rgba(0,0,0,.9)",
         }}
       >
         {host}

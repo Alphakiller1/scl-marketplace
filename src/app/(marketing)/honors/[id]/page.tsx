@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Download } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { HONOR_OG_VERSION } from "@/lib/og/honor-og-card";
 import { getHonorAwardById } from "@/lib/queries/honors";
 
 type PageProps = { params: Promise<{ id: string }> };
@@ -18,7 +19,7 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
   const award = await loadAward(params);
   if (!award) return { title: "SCL Honors" };
-  const image = `/api/og/honor/${award.id}`;
+  const image = `/api/og/honor/${award.id}?v=${HONOR_OG_VERSION}`;
   const title = `${award.name} — @${award.winner.handle}`;
   return {
     title,
@@ -35,7 +36,7 @@ export async function generateMetadata({
 export default async function ShareableHonorPage({ params }: PageProps) {
   const award = await loadAward(params);
   if (!award) notFound();
-  const image = `/api/og/honor/${award.id}`;
+  const image = `/api/og/honor/${award.id}?v=${HONOR_OG_VERSION}`;
   return (
     <main className="mx-auto flex max-w-xl flex-col items-center gap-4 px-4 py-8">
       <h1 className="sr-only">{award.name}</h1>
@@ -50,7 +51,7 @@ export default async function ShareableHonorPage({ params }: PageProps) {
       />
       <div className="flex flex-wrap justify-center gap-2">
         <Button
-          render={<a href={`${image}?download=1`} download />}
+          render={<a href={`${image}&download=1`} download />}
           nativeButton={false}
           className="min-h-10"
         >
