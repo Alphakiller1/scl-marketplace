@@ -24,10 +24,15 @@ const ODDS_HOST = "api.the-odds-api.com";
 const LIB = join(process.cwd(), "src", "lib");
 
 /**
- * The rollover module itself is the one place that may call `fetch` directly —
- * it is what every other caller is required to go through.
+ * The rollover module may call `fetch` directly because it is what every other
+ * production caller is required to use. The balance probe is the other narrow
+ * exception: it intentionally checks every configured key independently so it
+ * can total the account rather than stopping after the first usable key.
  */
-const ALLOWED = new Set(["odds-key-rollover.ts"]);
+const ALLOWED = new Set([
+  "odds-key-rollover.ts",
+  "odds-provider-balance.ts",
+]);
 
 function sourceFiles(dir: string): string[] {
   const out: string[] = [];

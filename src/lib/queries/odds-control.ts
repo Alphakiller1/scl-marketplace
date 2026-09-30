@@ -23,6 +23,7 @@ import {
   summarizeLeaguePickDemand,
 } from "@/lib/odds-demand";
 import { loadLeagueBuyLimits } from "@/lib/odds-league-buy-limits";
+import { probeOddsProviderBalance } from "@/lib/odds-provider-balance";
 import { prisma } from "@/lib/prisma";
 
 function isoOrNull(value: Date | null): string | null {
@@ -248,9 +249,12 @@ export async function getOddsCreditDashboard() {
         projectedMonth: 0,
         provider: {
           state: "unknown" as const,
+          source: "unavailable" as const,
           capacity: null as number | null,
           updatedAt: null as string | null,
           ageMinutes: null as number | null,
+          reachedKeys: 0,
+          configuredKeys: 0,
           refreshedSports: 0,
           staleSports: [] as string[],
           lastRunAt: null as string | null,
@@ -289,6 +293,7 @@ export async function getOddsCreditDashboard() {
     surfaceRuns,
     expandedRuns,
     latestRuns,
+    liveProviderBalance,
   ] = await Promise.all([
     prisma.oddsUsageDaily.findMany({
       where: { date: { gte: usageStart } },
@@ -345,6 +350,7 @@ export async function getOddsCreditDashboard() {
         WHERE "trigger" <> 'DRY_RUN' AND "status" <> 'BLOCKED'
         ORDER BY "sport", "tier", "startedAt" DESC
       `,
+    probeOddsProviderBalance(),
   ]);
 
   const creditsSince = (start: Date) =>
@@ -378,7 +384,12 @@ export async function getOddsCreditDashboard() {
   // NOT the last row: every cold isolate probes the head of the rollover list
   // first, so a spent key there writes a near-zero reading more recently than
   // the key actually serving traffic. See `accountRemainingCredits`.
-  const latestRemaining = adjustedOddsRemaining(accountRemainingCredits(usage));
+  const storedRemaining = adjustedOddsRemaining(accountRemainingCredits(usage));
+  const hasLiveBalance =
+    liveProviderBalance.complete && liveProviderBalance.remaining != null;
+  const latestRemaining = hasLiveBalance
+    ? adjustedOddsRemaining(liveProviderBalance.remaining)
+    : storedRemaining;
 
   const sportCredits = new Map<string, number>();
   const purposeUsage = new Map<string, { credits: number; calls: number }>();
@@ -420,14 +431,16 @@ export async function getOddsCreditDashboard() {
   );
   const newestRun = recentRuns.find((run) => run.trigger !== "DRY_RUN");
   const newestDetails = summarizeOddsRunDetails(newestRun?.details);
-  const providerAgeMinutes = latestProviderUsage
-    ? Math.max(
-        0,
-        Math.round(
-          (now.getTime() - latestProviderUsage.updatedAt.getTime()) / 60_000,
-        ),
-      )
-    : null;
+  const providerAgeMinutes = hasLiveBalance
+    ? 0
+    : latestProviderUsage
+      ? Math.max(
+          0,
+          Math.round(
+            (now.getTime() - latestProviderUsage.updatedAt.getTime()) / 60_000,
+          ),
+        )
+      : null;
   const providerState =
     latestRemaining == null
       ? ("unknown" as const)
@@ -454,9 +467,16 @@ export async function getOddsCreditDashboard() {
       ),
       provider: {
         state: providerState,
-        capacity: latestProviderUsage?.capacity ?? null,
-        updatedAt: latestProviderUsage?.updatedAt.toISOString() ?? null,
+        source: hasLiveBalance ? ("live" as const) : ("stored" as const),
+        capacity: hasLiveBalance
+          ? adjustedOddsRemaining(liveProviderBalance.capacity)
+          : (latestProviderUsage?.capacity ?? null),
+        updatedAt: hasLiveBalance
+          ? liveProviderBalance.checkedAt
+          : (latestProviderUsage?.updatedAt.toISOString() ?? null),
         ageMinutes: providerAgeMinutes,
+        reachedKeys: liveProviderBalance.reachedKeys,
+        configuredKeys: liveProviderBalance.configuredKeys,
         refreshedSports: newestDetails.refreshedSports,
         staleSports: newestDetails.staleSports,
         lastRunAt: newestRun?.completedAt?.toISOString() ?? null,
