@@ -3,6 +3,7 @@
  * No network / no server-only — unit-testable. Fetch lives in odds-api.ts.
  */
 
+import { etYmd } from "@/lib/et-day";
 import { resolveKnownTeam } from "@/lib/teams";
 import {
   isBookKey,
@@ -511,6 +512,50 @@ export function oddsEventMatchupKey(
     event.away.trim().toLowerCase(),
     event.home.trim().toLowerCase(),
     event.commenceTime.trim(),
+  ].join("|");
+}
+
+/**
+ * Whether a fresh provider response has replaced a retained last-good event.
+ *
+ * The last-good merge keeps every future event a refresh omitted, keyed by
+ * provider id, so a partial response cannot empty the board. When the provider
+ * reschedules a game it can also reissue its id: on Oct 1 Phillies @ Braves
+ * moved from 2:00 PM to 8:11 PM ET under a new id, and the board showed both
+ * rows until the old start time passed. A capper could pick the ghost, and its
+ * id no longer matched anything the provider would grade.
+ *
+ * So the fresh response is authoritative for a matchup's slate day: a retained
+ * row whose teams appear in it on the same ET day is dropped. A doubleheader
+ * whose first game the provider omits loses that row until the next refresh,
+ * which is the safer failure than a game that is not happening.
+ */
+export function isSupersededByFresh(
+  fresh: readonly OddsEvent[],
+): (retained: OddsEvent) => boolean {
+  const freshIds = new Set(fresh.map((event) => event.id));
+  const freshSlate = new Set<string>();
+  for (const event of fresh) {
+    const key = slateMatchupKey(event);
+    if (key) freshSlate.add(key);
+  }
+  return (retained) => {
+    if (freshIds.has(retained.id)) return true;
+    const key = slateMatchupKey(retained);
+    return key != null && freshSlate.has(key);
+  };
+}
+
+function slateMatchupKey(
+  event: Pick<OddsEvent, "sport" | "home" | "away" | "commenceTime">,
+): string | null {
+  const kickoff = Date.parse(event.commenceTime);
+  if (!Number.isFinite(kickoff)) return null;
+  return [
+    event.sport.trim().toLowerCase(),
+    event.away.trim().toLowerCase(),
+    event.home.trim().toLowerCase(),
+    etYmd(new Date(kickoff)),
   ].join("|");
 }
 

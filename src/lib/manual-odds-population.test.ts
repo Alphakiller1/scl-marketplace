@@ -100,6 +100,31 @@ test("a partial refresh retains future last-good fixtures", () => {
   );
 });
 
+test("a rescheduled game under a new provider id replaces its last-good row", () => {
+  // Production, Oct 1: the provider moved Phillies @ Braves from 2:00 PM to
+  // 8:11 PM ET and reissued the event id. Keyed on id alone, the 2:00 PM row
+  // was retained as an "omitted" fixture and the board listed the game twice.
+  const now = new Date("2026-10-01T13:00:00.000Z");
+  const matchup = (id: string, commenceTime: string): OddsEvent => ({
+    ...event(id, commenceTime),
+    home: "Atlanta Braves",
+    away: "Philadelphia Phillies",
+  });
+  const fresh = [
+    matchup("5524c44b05e28aa899909c9e001184ec", "2026-10-02T00:11:00Z"),
+  ];
+  const prior = [
+    matchup("2b7c78b3c1a232ece3e9752493924b6c", "2026-10-01T18:00:00Z"),
+    // Same teams on a later slate day is a different game, and stays.
+    matchup("next-day", "2026-10-02T22:00:00Z"),
+    event("omitted", "2026-10-01T23:00:00Z"),
+  ];
+  assert.deepEqual(
+    mergeLastGoodBoardEvents(fresh, prior, now).map((row) => row.id),
+    ["omitted", "5524c44b05e28aa899909c9e001184ec", "next-day"],
+  );
+});
+
 test("expanded order includes NCAAF and ignores sports without event markets", () => {
   // This list is the gate as well as the order: a sport missing from it never
   // has an expanded board bought, whatever its config says. NFL was absent for
