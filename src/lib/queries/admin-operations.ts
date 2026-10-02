@@ -7,18 +7,13 @@ import {
 import { prisma } from "@/lib/prisma";
 import { loadAudienceSnapshots } from "@/lib/queries/admin-audience";
 import { countStorefrontQueue } from "@/lib/queries/store";
+import { listGradingWorkQueue } from "@/lib/results/stuck-plays";
 import {
   emptyAudienceFilters,
   type AudienceFilters,
 } from "@/lib/schemas/audience.schema";
 
 const DAY_MS = 86_400_000;
-/**
- * A play with no scheduled start (legacy imports, free-text entries) cannot be
- * proven to have started. After this long it is treated as needing a grade so
- * it cannot sit unresolved and invisible forever.
- */
-const UNSCHEDULED_GRADE_AFTER_MS = 12 * 60 * 60_000;
 
 function filters(overrides: Partial<AudienceFilters>): AudienceFilters {
   return { ...emptyAudienceFilters(), ...overrides };
@@ -66,9 +61,8 @@ export type AudienceMetric = {
  * - Active plays: every unresolved committed position — straight plays plus
  *   parlays (a parlay is one position, not its legs) — whether the event is
  *   upcoming or underway. Grading or closing it removes it.
- * - Pending grades: the subset that now needs a grading action — the event has
- *   started (for a parlay, every leg has), or no start is known and it has been
- *   open longer than {@link UNSCHEDULED_GRADE_AFTER_MS}.
+ * - Pending grades: the same actionable work queue shown on `/admin/grading` —
+ *   plays past their expected final or permanently blocked from auto-grading.
  */
 export async function getAdminOperationalOverview() {
   const now = new Date();
@@ -78,15 +72,6 @@ export async function getAdminOperationalOverview() {
     status: "COMMITTED" as const,
     parlayId: null,
     capper: realCapper,
-  };
-  const needsGradeStart = {
-    OR: [
-      { eventStartsAt: { lt: now } },
-      {
-        eventStartsAt: null,
-        createdAt: { lt: new Date(now.getTime() - UNSCHEDULED_GRADE_AFTER_MS) },
-      },
-    ],
   };
   const since = (days: number) => new Date(now.getTime() - days * DAY_MS);
   const submitted = (days: number) =>
@@ -110,8 +95,7 @@ export async function getAdminOperationalOverview() {
     activeParlays,
     plays7,
     plays30,
-    pendingStraight,
-    pendingParlays,
+    gradingWorkQueue,
     storefrontQueue,
   ] = await Promise.all([
     loadAudienceSnapshots(),
@@ -121,16 +105,7 @@ export async function getAdminOperationalOverview() {
     }),
     submitted(7),
     submitted(30),
-    prisma.play.count({
-      where: { ...activeStraightWhere, ...needsGradeStart },
-    }),
-    prisma.parlay.count({
-      where: {
-        outcome: "PENDING",
-        capper: realCapper,
-        legs: { some: {}, every: needsGradeStart },
-      },
-    }),
+    listGradingWorkQueue(),
     countStorefrontQueue(),
   ]);
 
@@ -150,7 +125,7 @@ export async function getAdminOperationalOverview() {
       activePlays: activeStraight + activeParlays,
       plays7,
       plays30,
-      pendingGrades: pendingStraight + pendingParlays,
+      pendingGrades: gradingWorkQueue.length,
       storefrontQueue,
     },
     audiences,
