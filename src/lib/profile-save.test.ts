@@ -176,7 +176,7 @@ test("public profile lookup resolves handles that differ only by case", () => {
   );
 });
 
-test("libvips ships with the functions that resize profile media", () => {
+test("libvips ships with every route that resizes uploaded media", () => {
   const config = read("next.config.ts");
 
   // sharp is auto-externalised by Next, so its native binary is only present
@@ -187,7 +187,26 @@ test("libvips ships with the functions that resize profile media", () => {
     config,
     /"\/dashboard\/profile": \["\.\/node_modules\/@img\/\*\*\/\*"\]/,
   );
+  assert.match(
+    config,
+    /"\/admin\/messages": \["\.\/node_modules\/@img\/\*\*\/\*"\]/,
+  );
+  assert.match(
+    config,
+    /"\/admin\/emails": \["\.\/node_modules\/@img\/\*\*\/\*"\]/,
+  );
   assert.match(config, /"\/api\/\*": \["\.\/node_modules\/@img\/\*\*\/\*"\]/);
+});
+
+test("email image processing loads only when an upload reaches that boundary", () => {
+  const action = read("src/lib/actions/email-image.action.ts");
+
+  assert.doesNotMatch(
+    action,
+    /^import .*email-image-process/m,
+    "audience preview and other composer actions must not eagerly load sharp",
+  );
+  assert.match(action, /await import\("@\/lib\/email-image-process"\)/);
 });
 
 test("the dashboard greeting follows a rename without a new sign-in", () => {
