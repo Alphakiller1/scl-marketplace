@@ -1,4 +1,8 @@
-import { SURFACE_BOARD_EVENT_LIMIT, type OddsEvent } from "@/lib/odds-board";
+import {
+  isSupersededByFresh,
+  SURFACE_BOARD_EVENT_LIMIT,
+  type OddsEvent,
+} from "@/lib/odds-board";
 import { HARD_MAX_EVENT_BUYS_PER_DAY } from "@/lib/odds-event-buy-budget";
 import {
   expandedBoardMarkets,
@@ -328,12 +332,12 @@ export function mergeLastGoodBoardEvents(
   prior: readonly OddsEvent[],
   now = new Date(),
 ): OddsEvent[] {
-  const freshIds = new Set(fresh.map((event) => event.id));
+  const superseded = isSupersededByFresh(fresh);
   return [
     ...fresh,
     ...prior.filter(
       (event) =>
-        !freshIds.has(event.id) &&
+        !superseded(event) &&
         Date.parse(event.commenceTime) > now.getTime() &&
         event.selections.length > 0,
     ),

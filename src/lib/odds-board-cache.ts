@@ -7,7 +7,7 @@ import {
   getLastOddsApiCapacity,
   getLastOddsApiRemaining,
 } from "@/lib/odds-api";
-import type { OddsEvent } from "@/lib/odds-board";
+import { isSupersededByFresh, type OddsEvent } from "@/lib/odds-board";
 import {
   shouldCircuitBreak,
   shouldCircuitBreakTennisSurface,
@@ -192,11 +192,13 @@ export async function updateOddsBoardSegment(
       : { events: [], source: "provider_empty", savedAt: null, stale: false };
   }
   const now = Date.now();
+  const superseded = isSupersededByFresh(events);
   const retained = (cached?.events ?? []).filter((event) => {
     if (Date.parse(event.commenceTime) <= now) return false;
-    // Preserve every future last-good event omitted by a partial response.
-    // New events are placed first below, so matching IDs still receive fresh prices.
-    return true;
+    // Preserve every future last-good event omitted by a partial response,
+    // unless the response re-listed it — same id, or the same matchup on the
+    // same slate day under a new id (a rescheduled game).
+    return !superseded(event);
   });
   const merged = [...events, ...retained]
     .filter(
