@@ -233,10 +233,11 @@ console.log(`[migrate] VERCEL_ENV=${env ?? "(local)"} — applying migrations.`)
 const result = runPrisma(["migrate", "deploy"]);
 if (result.status !== 0) {
   console.error(
-    "[migrate] prisma migrate deploy failed — continuing to next build",
+    "[migrate] prisma migrate deploy failed — refusing to build against a stale schema",
   );
   console.error(result.stdout ?? "");
   console.error(result.stderr ?? "");
+  process.exit(1);
 }
 
 console.log("[migrate] verifying production legacy package integrity.");

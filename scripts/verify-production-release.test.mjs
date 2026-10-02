@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
@@ -9,11 +10,24 @@ import {
 
 const release = "a".repeat(40);
 
+test("production builds stop when Prisma migrations fail", () => {
+  const migrationScript = readFileSync(
+    new URL("./migrate-on-production-only.mjs", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(
+    migrationScript,
+    /if \(result\.status !== 0\) \{[\s\S]*?process\.exit\(1\);\s*\}/,
+  );
+});
+
 test("public health requires a reachable provider and concurrency-safe pool", () => {
   const healthy = {
     status: "ok",
     release,
     database: "reachable",
+    schema: { campaignQueue: true },
     databasePool: { pooled: true, connectionLimit: 5 },
     odds: { configured: true, reachable: true },
   };
@@ -28,6 +42,14 @@ test("public health requires a reachable provider and concurrency-safe pool", ()
         release,
       ),
     /Fluid Compute safe/,
+  );
+  assert.throws(
+    () =>
+      verifyPublicHealth(
+        { ...healthy, schema: { campaignQueue: false } },
+        release,
+      ),
+    /campaign queue schema is not ready/,
   );
 });
 

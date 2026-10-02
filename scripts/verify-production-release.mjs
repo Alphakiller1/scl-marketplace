@@ -13,6 +13,10 @@ export function verifyPublicHealth(health, expectedRelease) {
   );
   invariant(health?.database === "reachable", "database is not reachable");
   invariant(
+    health?.schema?.campaignQueue === true,
+    "campaign queue schema is not ready",
+  );
+  invariant(
     health?.databasePool?.pooled === true &&
       Number(health?.databasePool?.connectionLimit) >= 5,
     "database pool is not Fluid Compute safe",
