@@ -78,6 +78,7 @@ model User {
   storefrontMessages        StorefrontMessage[]        @relation("StorefrontMessageSender")
   broadcastsSent            AdminBroadcast[]           @relation("AdminBroadcastSender")
   broadcastsReceived        AdminBroadcastRecipient[]  @relation("AdminBroadcastRecipientUser")
+  audienceGroupsCreated     AudienceGroup[]            @relation("AudienceGroupCreator")
   oddsControlUpdates        OddsControlConfig[]        @relation("OddsControlUpdatedBy")
   oddsSportUpdates          OddsSportControl[]         @relation("OddsSportControlUpdatedBy")
   oddsControlAudits         OddsControlAuditEvent[]    @relation("OddsControlAuditActor")
@@ -1154,40 +1155,112 @@ enum BroadcastAudience {
   ALL_CAPPERS
   VERIFIED_CAPPERS
   SINGLE_CAPPER
+  FILTERED_CAPPERS
+}
+
+enum AdminBroadcastStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  PARTIAL_FAILED
+  CANCELLED
+}
+
+enum AdminBroadcastRecipientStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  OPENED
+  BOUNCED
+  FAILED
+  UNSUBSCRIBED
+  SKIPPED
+}
+
+/// A reusable, owner-defined slice of the capper roster. The JSON payload is
+/// validated against the shared audience schema every time it is read.
+model AudienceGroup {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  filters     Json
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy  User             @relation("AudienceGroupCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  broadcasts AdminBroadcast[]
+
+  @@unique([createdById, name])
+  @@index([updatedAt])
 }
 
 /// One admin send: the roster, a filtered slice of it, or a single capper.
 /// Kept as a record because "did we tell them?" is a question that gets asked
 /// after the fact, and a mail provider's dashboard is not part of the product.
 model AdminBroadcast {
-  id             String                    @id @default(cuid())
-  subject        String
-  body           String
-  audience       BroadcastAudience
-  sentById       String
-  sentBy         User                      @relation("AdminBroadcastSender", fields: [sentById], references: [id], onDelete: Cascade)
-  recipientCount Int                       @default(0)
-  deliveredCount Int                       @default(0)
-  failedCount    Int                       @default(0)
-  createdAt      DateTime                  @default(now())
-  completedAt    DateTime?
-  recipients     AdminBroadcastRecipient[]
+  id                String                    @id @default(cuid())
+  subject           String
+  body              String
+  audience          BroadcastAudience
+  audienceName      String?
+  filters           Json?
+  groupId           String?
+  group             AudienceGroup?            @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  sentById          String
+  sentBy            User                      @relation("AdminBroadcastSender", fields: [sentById], references: [id], onDelete: Cascade)
+  recipientCount    Int                       @default(0)
+  deliveredCount    Int                       @default(0)
+  sentCount         Int                       @default(0)
+  openedCount       Int                       @default(0)
+  bouncedCount      Int                       @default(0)
+  unsubscribedCount Int                       @default(0)
+  failedCount       Int                       @default(0)
+  queuedCount       Int                       @default(0)
+  status            AdminBroadcastStatus      @default(QUEUED)
+  /// Rows written by the pre-queue Resend sender keep "RESEND"; only the queue
+  /// path sets "BREVO" explicitly, so an old deployment can never create a row
+  /// the Brevo worker would pick up and send a second time.
+  provider          String                    @default("RESEND")
+  /// One per composer submission. A double click or a retried request maps to
+  /// the same campaign instead of creating a second one.
+  requestKey        String?                   @unique
+  scheduledAt       DateTime                  @default(now())
+  startedAt         DateTime?
+  createdAt         DateTime                  @default(now())
+  completedAt       DateTime?
+  recipients        AdminBroadcastRecipient[]
 
   @@index([createdAt])
+  @@index([status, scheduledAt])
+  @@index([groupId])
 }
 
 /// Per-recipient outcome, so "did this capper get it?" is answerable.
 model AdminBroadcastRecipient {
-  id          String         @id @default(cuid())
-  broadcastId String
-  broadcast   AdminBroadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
-  userId      String?
-  user        User?          @relation("AdminBroadcastRecipientUser", fields: [userId], references: [id], onDelete: SetNull)
-  address     String
-  delivered   Boolean        @default(false)
-  error       String?
-  createdAt   DateTime       @default(now())
+  id                String                        @id @default(cuid())
+  broadcastId       String
+  broadcast         AdminBroadcast                @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+  userId            String?
+  user              User?                         @relation("AdminBroadcastRecipientUser", fields: [userId], references: [id], onDelete: SetNull)
+  address           String
+  delivered         Boolean                       @default(false)
+  status            AdminBroadcastRecipientStatus @default(QUEUED)
+  providerMessageId String?
+  error             String?
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  openedAt          DateTime?
+  bouncedAt         DateTime?
+  unsubscribedAt    DateTime?
+  /// Provider calls that were definitively refused (429/5xx) and re-queued.
+  attempts          Int                           @default(0)
+  createdAt         DateTime                      @default(now())
 
+  @@unique([broadcastId, address])
   @@index([broadcastId])
   @@index([userId])
+  @@index([status, createdAt])
+  @@index([providerMessageId])
+  @@index([sentAt])
 }

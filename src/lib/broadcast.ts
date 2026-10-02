@@ -25,7 +25,8 @@ import { hasDeliverableEmail } from "@/lib/account-claim";
 export type BroadcastAudienceKind =
   | "ALL_CAPPERS"
   | "VERIFIED_CAPPERS"
-  | "SINGLE_CAPPER";
+  | "SINGLE_CAPPER"
+  | "FILTERED_CAPPERS";
 
 /** The account fields an audience decision needs. */
 export type BroadcastCandidate = {
@@ -93,6 +94,31 @@ export function resolveBroadcastRecipients(
     out.push({ userId: c.id, email: c.email, username: c.username });
   }
   return out;
+}
+
+/**
+ * Re-check one queued recipient at send time. A campaign can wait in the queue
+ * for days behind the daily limit, and in that time the capper may have opted
+ * out, been suspended, changed address, or hard-bounced another campaign.
+ *
+ * Returns null when the send may go ahead, else why it must not.
+ */
+export function queuedRecipientBlock(
+  audience: BroadcastAudienceKind,
+  address: string,
+  candidate: BroadcastCandidate | null,
+  suppressedAddresses: ReadonlySet<string>,
+): "unsubscribed" | "ineligible" | "address_changed" | "suppressed" | null {
+  if (!candidate) return "ineligible";
+  const queued = address.trim().toLowerCase();
+  if (candidate.email.trim().toLowerCase() !== queued) return "address_changed";
+  if (suppressedAddresses.has(queued)) return "suppressed";
+  if (resolveBroadcastRecipients(audience, [candidate]).length === 1) {
+    return null;
+  }
+  return audience !== "SINGLE_CAPPER" && candidate.marketingOptOut
+    ? "unsubscribed"
+    : "ineligible";
 }
 
 /** Split into batches the provider will accept. */

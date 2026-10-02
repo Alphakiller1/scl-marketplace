@@ -143,6 +143,7 @@ describe("broadcastSchema", () => {
   const message = {
     subject: "Roster update",
     body: "Here is this week's update for SCL cappers.",
+    requestKey: "req-0123456789",
   };
 
   it("requires a previewed recipient count for a mass email", () => {
@@ -157,14 +158,37 @@ describe("broadcastSchema", () => {
     }
   });
 
-  it("accepts a mass email after its recipient count is confirmed", () => {
+  it("accepts a mass email after its recipient set is confirmed", () => {
+    const result = broadcastSchema.safeParse({
+      audience: "ALL_CAPPERS",
+      confirmRecipientCount: 100,
+      confirmFingerprint: "abc123",
+      ...message,
+    });
+
+    assert.equal(result.success, true);
+  });
+
+  it("rejects a count without the reviewed recipient fingerprint", () => {
     const result = broadcastSchema.safeParse({
       audience: "ALL_CAPPERS",
       confirmRecipientCount: 100,
       ...message,
     });
 
-    assert.equal(result.success, true);
+    assert.equal(result.success, false);
+  });
+
+  it("requires a request key so a retried submit cannot double-send", () => {
+    const { requestKey: _omit, ...withoutKey } = message;
+    void _omit;
+    const result = broadcastSchema.safeParse({
+      audience: "SINGLE_CAPPER",
+      userId: "capper-1",
+      ...withoutKey,
+    });
+
+    assert.equal(result.success, false);
   });
 
   it("does not require a recipient count for one capper", () => {
