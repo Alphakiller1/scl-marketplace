@@ -15,13 +15,12 @@ import {
   Users,
 } from "lucide-react";
 
-import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/card";
+import { AdminOperationsOverview } from "@/components/scl/admin-operations-overview";
 import { AdminReleaseReadiness } from "@/components/scl/admin-release-readiness";
-import { StatBlock } from "@/components/scl/stat";
 import { SectionHeader } from "@/components/scl/section";
+import { getAdminOperationalOverview } from "@/lib/queries/admin-operations";
 import { getReleaseReadinessReport } from "@/lib/queries/release-readiness";
-import { countStorefrontQueue } from "@/lib/queries/store";
 
 export const metadata = { title: "Admin" };
 
@@ -70,9 +69,9 @@ const ADMIN_TOOLS = [
   },
   {
     href: "/admin/messages",
-    title: "Mass email",
+    title: "Campaigns & audiences",
     description:
-      "Send an announcement to the active capper roster in private batches of up to 100, with recipient preview and delivery reporting.",
+      "Combine capper activity and storefront filters, save groups, review recipients, and schedule tracked Brevo campaigns.",
     icon: Send,
   },
   {
@@ -131,7 +130,7 @@ const OWNER_CAPABILITIES = [
     capability: "Bulk capper email",
     status: "live",
     detail:
-      "Send privately to the active roster in provider-safe batches after reviewing the recipient count. Opt-outs, unsubscribe links, and delivery reporting are enforced.",
+      "Build reusable activity and storefront audiences, then send privately through a daily-limit-aware queue with opt-outs and delivery reporting enforced.",
   },
   {
     capability: "Customer accounts and customer email",
@@ -142,14 +141,10 @@ const OWNER_CAPABILITIES = [
 ] as const;
 
 export default async function AdminOverviewPage() {
-  const [cappers, plays, pending, storeQueue, releaseReadiness] =
-    await Promise.all([
-      prisma.capperProfile.count(),
-      prisma.play.count(),
-      prisma.play.count({ where: { outcome: "PENDING" } }),
-      countStorefrontQueue(),
-      getReleaseReadinessReport(),
-    ]);
+  const [operations, releaseReadiness] = await Promise.all([
+    getAdminOperationalOverview(),
+    getReleaseReadinessReport(),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -158,30 +153,7 @@ export default async function AdminOverviewPage() {
         title="Admin Overview"
         subtitle="Operations across the SCL marketplace"
       />
-      <Card className="p-4">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatBlock label="Cappers" value={cappers} />
-          <StatBlock label="Plays" value={plays} />
-          <StatBlock label="Pending grade" value={pending} tone="pink" />
-          <StatBlock
-            label="Storefronts awaiting SCL"
-            value={storeQueue}
-            tone={storeQueue > 0 ? "pink" : "default"}
-            sub={
-              storeQueue > 0 ? (
-                <Link
-                  href="/admin/store-setup?requiresAttention=true"
-                  className="hover:text-foreground underline underline-offset-2"
-                >
-                  Review queue
-                </Link>
-              ) : (
-                "Queue clear"
-              )
-            }
-          />
-        </div>
-      </Card>
+      <AdminOperationsOverview data={operations} />
 
       <AdminReleaseReadiness
         checks={releaseReadiness.checks}

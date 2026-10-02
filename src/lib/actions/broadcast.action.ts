@@ -2,31 +2,45 @@
 
 import { revalidatePath } from "next/cache";
 
-import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/session";
+import { audienceLabel } from "@/lib/admin-audience";
 import { afterResponse } from "@/lib/after-response";
-import { appUrl } from "@/lib/app-url";
-import { renderBroadcastHtml, sendBroadcastBatch } from "@/lib/email";
-import {
-  emailImageUrlResolver,
-  verifyEmailImagesDeliverable,
-} from "@/lib/email-image-url";
-import { mailerConfigured } from "@/lib/email-verification-policy";
+import { brevoConfigured } from "@/lib/brevo";
 import {
   BROADCAST_MAX_RECIPIENTS,
-  chunkRecipients,
   resolveBroadcastRecipients,
-  signUnsubscribeToken,
   type BroadcastCandidate,
+  type BroadcastRecipient,
 } from "@/lib/broadcast";
+import { processBroadcastQueue } from "@/lib/broadcast-queue";
+import { verifyEmailImagesDeliverable } from "@/lib/email-image-url";
+import { prisma } from "@/lib/prisma";
+import {
+  listCampaignSuppressedAddresses,
+  listEligibleAudienceMembers,
+} from "@/lib/queries/admin-audience";
+import {
+  audienceFiltersSchema,
+  saveAudienceGroupSchema,
+  type AudienceFilters,
+} from "@/lib/schemas/audience.schema";
 import {
   broadcastSchema,
   type BroadcastInput,
 } from "@/lib/schemas/broadcast.schema";
+import { requireAdmin } from "@/lib/session";
 
 type BroadcastResult =
   | { ok: true; broadcastId: string; recipientCount: number }
   | { ok: false; error: string };
+
+type PreviewMember = {
+  id: string;
+  label: string;
+  email: string;
+  lastPlayAt: string | null;
+  playCount: number;
+  hasConnectedStorefront: boolean;
+};
 
 const CANDIDATE_SELECT = {
   id: true,
@@ -38,53 +52,153 @@ const CANDIDATE_SELECT = {
   marketingOptOut: true,
 } as const;
 
-/** Preview the audience before committing to a send. */
+async function loadRecipients(input: {
+  audience: BroadcastInput["audience"];
+  userId?: string;
+  filters?: unknown;
+}): Promise<{
+  recipients: BroadcastRecipient[];
+  members: PreviewMember[];
+  filters: AudienceFilters | null;
+}> {
+  if (input.audience === "FILTERED_CAPPERS") {
+    const parsed = audienceFiltersSchema.safeParse(input.filters ?? {});
+    if (!parsed.success) throw new Error("Those audience filters are invalid.");
+    const members = await listEligibleAudienceMembers(parsed.data);
+    return {
+      filters: parsed.data,
+      recipients: members.map((member) => ({
+        userId: member.id,
+        email: member.email,
+        username: member.username,
+      })),
+      members: members.map((member) => ({
+        id: member.id,
+        label: member.username
+          ? `@${member.username}`
+          : member.displayName || member.email,
+        email: member.email,
+        lastPlayAt: member.lastPlayAt?.toISOString() ?? null,
+        playCount: member.playCount + member.parlayCount,
+        hasConnectedStorefront: member.hasConnectedStorefront,
+      })),
+    };
+  }
+
+  const [candidates, suppressedAddresses]: [BroadcastCandidate[], Set<string>] =
+    await Promise.all([
+      prisma.user.findMany({
+        where:
+          input.audience === "SINGLE_CAPPER"
+            ? { id: input.userId, role: "CAPPER" }
+            : { role: "CAPPER" },
+        select: CANDIDATE_SELECT,
+        orderBy: { createdAt: "asc" },
+      }),
+      listCampaignSuppressedAddresses(),
+    ]);
+  const exclusions = audienceFiltersSchema.safeParse(input.filters ?? {});
+  const excludedIds = new Set(
+    exclusions.success ? exclusions.data.excludeUserIds : [],
+  );
+  const recipients = resolveBroadcastRecipients(
+    input.audience,
+    candidates,
+  ).filter(
+    (recipient) =>
+      !excludedIds.has(recipient.userId) &&
+      !suppressedAddresses.has(recipient.email.trim().toLowerCase()),
+  );
+  return {
+    recipients,
+    filters: null,
+    members: recipients.map((recipient) => ({
+      id: recipient.userId,
+      label: recipient.username ? `@${recipient.username}` : recipient.email,
+      email: recipient.email,
+      lastPlayAt: null,
+      playCount: 0,
+      hasConnectedStorefront: false,
+    })),
+  };
+}
+
 export async function previewBroadcastAudienceAction(input: {
   audience: BroadcastInput["audience"];
   userId?: string;
-}): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
+  filters?: unknown;
+}): Promise<
+  | { ok: true; count: number; members: PreviewMember[] }
+  | { ok: false; error: string }
+> {
   await requireAdmin();
   if (input.audience === "SINGLE_CAPPER" && !input.userId) {
     return { ok: false, error: "Choose which capper to message." };
   }
   try {
-    const recipients = await loadRecipients(input.audience, input.userId);
-    return { ok: true, count: recipients.length };
-  } catch {
-    return { ok: false, error: "Couldn't work out who that would reach." };
+    const result = await loadRecipients(input);
+    return {
+      ok: true,
+      count: result.recipients.length,
+      members: result.members,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Couldn't work out who that would reach.",
+    };
   }
 }
 
-async function loadRecipients(
-  audience: BroadcastInput["audience"],
-  userId?: string,
-) {
-  const candidates: BroadcastCandidate[] = await prisma.user.findMany({
-    where:
-      audience === "SINGLE_CAPPER"
-        ? { id: userId, role: "CAPPER" }
-        : { role: "CAPPER" },
-    select: CANDIDATE_SELECT,
-    orderBy: { createdAt: "asc" },
-  });
-  return resolveBroadcastRecipients(audience, candidates);
+export async function saveAudienceGroupAction(input: unknown) {
+  const admin = await requireAdmin();
+  const parsed = saveAudienceGroupSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false as const,
+      error: parsed.error.issues[0]?.message ?? "Check the group.",
+    };
+  }
+  try {
+    const group = await prisma.audienceGroup.upsert({
+      where: {
+        createdById_name: { createdById: admin.id, name: parsed.data.name },
+      },
+      create: {
+        name: parsed.data.name,
+        description: parsed.data.description || null,
+        filters: parsed.data.filters,
+        createdById: admin.id,
+      },
+      update: {
+        description: parsed.data.description || null,
+        filters: parsed.data.filters,
+      },
+      select: { id: true, name: true },
+    });
+    revalidatePath("/admin/messages");
+    return { ok: true as const, group };
+  } catch {
+    return { ok: false as const, error: "Couldn't save that group." };
+  }
 }
 
-/**
- * Send an admin broadcast.
- *
- * The send itself runs in `afterResponse`: mailing the roster takes several
- * provider round trips, and holding the admin's request open for them would
- * risk the invocation timing out mid-send with half the roster mailed and no
- * record of which half. The audit rows are written FIRST, inside the request, so
- * the record exists even if delivery later fails — a broadcast that was
- * attempted is a fact worth keeping whatever the provider does with it.
- */
+export async function deleteAudienceGroupAction(groupId: string) {
+  const admin = await requireAdmin();
+  await prisma.audienceGroup.deleteMany({
+    where: { id: groupId, createdById: admin.id },
+  });
+  revalidatePath("/admin/messages");
+  return { ok: true as const };
+}
+
 export async function sendBroadcastAction(
   input: BroadcastInput,
 ): Promise<BroadcastResult> {
   const admin = await requireAdmin();
-
   const parsed = broadcastSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -92,36 +206,56 @@ export async function sendBroadcastAction(
       error: parsed.error.issues[0]?.message ?? "Check the message.",
     };
   }
-  const { audience, userId, subject, body, confirmRecipientCount } =
-    parsed.data;
+  const {
+    audience,
+    userId,
+    subject,
+    body,
+    confirmRecipientCount,
+    scheduledAt,
+    groupId,
+  } = parsed.data;
 
-  if (!mailerConfigured()) {
+  if (!brevoConfigured()) {
     return {
       ok: false,
       error:
-        "Email delivery is not configured. Check Resend before sending this message.",
+        "Campaign delivery is not configured. Add the Brevo settings first.",
     };
   }
-
-  // Before anyone is mailed: every inserted image must actually be fetchable.
-  // The send is one-way, so a picture that 404s is a broken frame in every inbox
-  // permanently — this is the last moment the answer can still change anything.
+  if (audience !== "SINGLE_CAPPER" && !process.env.AUTH_SECRET?.trim()) {
+    return {
+      ok: false,
+      error:
+        "Campaign delivery needs AUTH_SECRET so every mass email has a secure unsubscribe link.",
+    };
+  }
   const imagesOk = await verifyEmailImagesDeliverable(body);
   if (!imagesOk.ok) return imagesOk;
 
-  const recipients = await loadRecipients(audience, userId);
+  let loaded;
+  try {
+    loaded = await loadRecipients({
+      audience,
+      userId,
+      filters: parsed.data.filters,
+    });
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Invalid audience.",
+    };
+  }
+  const { recipients, filters } = loaded;
   if (recipients.length === 0) {
     return { ok: false, error: "That audience has nobody in it." };
   }
   if (recipients.length > BROADCAST_MAX_RECIPIENTS) {
     return {
       ok: false,
-      error: `That would reach ${recipients.length} people, above the ${BROADCAST_MAX_RECIPIENTS} cap.`,
+      error: `That would reach ${recipients.length} people, above the ${BROADCAST_MAX_RECIPIENTS} safety cap.`,
     };
   }
-  // A mass mail cannot be recalled. The count the admin confirmed must still be
-  // the count being sent — if the roster changed between preview and submit,
-  // stop and show the new number rather than mailing more people than they saw.
   if (
     audience !== "SINGLE_CAPPER" &&
     confirmRecipientCount !== recipients.length
@@ -132,69 +266,49 @@ export async function sendBroadcastAction(
     };
   }
 
+  let group: { id: string; name: string } | null = null;
+  if (groupId) {
+    group = await prisma.audienceGroup.findFirst({
+      where: { id: groupId, createdById: admin.id },
+      select: { id: true, name: true },
+    });
+    if (!group)
+      return { ok: false, error: "That saved group no longer exists." };
+  }
+
+  const now = new Date();
+  const sendAt = scheduledAt && scheduledAt > now ? scheduledAt : now;
   const broadcast = await prisma.adminBroadcast.create({
     data: {
       subject,
       body,
       audience,
+      audienceName:
+        group?.name ?? (filters ? audienceLabel(filters) : undefined),
+      filters: filters ?? undefined,
+      groupId: group?.id,
       sentById: admin.id,
       recipientCount: recipients.length,
+      scheduledAt: sendAt,
       recipients: {
-        create: recipients.map((r) => ({
-          userId: r.userId,
-          address: r.email,
+        create: recipients.map((recipient) => ({
+          userId: recipient.userId,
+          address: recipient.email.trim().toLowerCase(),
         })),
       },
     },
     select: { id: true },
   });
 
-  const secret = process.env.AUTH_SECRET ?? "";
-  const isMass = audience !== "SINGLE_CAPPER";
-  // Resolved once, outside the loop: every recipient must be sent the same
-  // pictures, from the same bucket.
-  const imageUrl = emailImageUrlResolver();
-
-  afterResponse(async () => {
-    let delivered = 0;
-    let failed = 0;
-
-    for (const batch of chunkRecipients(recipients)) {
-      const results = await sendBroadcastBatch(
-        batch.map((r) => ({
-          to: r.email,
-          username: r.username,
-          subject,
-          html: renderBroadcastHtml({
-            body,
-            imageUrl,
-            unsubscribeUrl:
-              isMass && secret
-                ? `${appUrl()}/unsubscribe?token=${signUnsubscribeToken(r.userId, secret)}`
-                : undefined,
-          }),
-        })),
-      );
-
-      for (const result of results) {
-        if (result.delivered) delivered += 1;
-        else failed += 1;
-        await prisma.adminBroadcastRecipient.updateMany({
-          where: { broadcastId: broadcast.id, address: result.address },
-          data: { delivered: result.delivered, error: result.error ?? null },
-        });
+  if (sendAt.getTime() <= now.getTime() + 60_000) {
+    afterResponse(async () => {
+      try {
+        await processBroadcastQueue();
+      } catch (error) {
+        console.error("[broadcast-queue] immediate run failed", error);
       }
-    }
-
-    await prisma.adminBroadcast.update({
-      where: { id: broadcast.id },
-      data: {
-        deliveredCount: delivered,
-        failedCount: failed,
-        completedAt: new Date(),
-      },
     });
-  });
+  }
 
   revalidatePath("/admin/messages");
   return {
@@ -204,13 +318,18 @@ export async function sendBroadcastAction(
   };
 }
 
-/** Honour an unsubscribe link. Never throws — the page reports the outcome. */
 export async function applyUnsubscribeAction(userId: string): Promise<boolean> {
   try {
-    await prisma.user.update({
-      where: { id: userId },
-      data: { marketingOptOut: true },
-    });
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: userId },
+        data: { marketingOptOut: true },
+      }),
+      prisma.adminBroadcastRecipient.updateMany({
+        where: { userId, status: "QUEUED" },
+        data: { status: "UNSUBSCRIBED", unsubscribedAt: new Date() },
+      }),
+    ]);
     return true;
   } catch {
     return false;

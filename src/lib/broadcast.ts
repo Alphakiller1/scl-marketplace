@@ -23,9 +23,7 @@ import { hasDeliverableEmail } from "@/lib/account-claim";
  */
 
 export type BroadcastAudienceKind =
-  | "ALL_CAPPERS"
-  | "VERIFIED_CAPPERS"
-  | "SINGLE_CAPPER";
+  "ALL_CAPPERS" | "VERIFIED_CAPPERS" | "SINGLE_CAPPER" | "FILTERED_CAPPERS";
 
 /** The account fields an audience decision needs. */
 export type BroadcastCandidate = {

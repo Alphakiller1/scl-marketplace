@@ -4,6 +4,7 @@ export const broadcastAudienceSchema = z.enum([
   "ALL_CAPPERS",
   "VERIFIED_CAPPERS",
   "SINGLE_CAPPER",
+  "FILTERED_CAPPERS",
 ]);
 
 export const broadcastSchema = z
@@ -11,6 +12,8 @@ export const broadcastSchema = z
     audience: broadcastAudienceSchema,
     /** Required when audience is SINGLE_CAPPER; ignored otherwise. */
     userId: z.string().min(1).optional(),
+    filters: z.unknown().optional(),
+    groupId: z.string().min(1).optional(),
     subject: z
       .string()
       .trim()
@@ -26,6 +29,7 @@ export const broadcastSchema = z
      * be recalled, so the count is previewed and sent back to the server.
      */
     confirmRecipientCount: z.number().int().nonnegative().optional(),
+    scheduledAt: z.coerce.date().optional(),
   })
   .refine((v) => v.audience !== "SINGLE_CAPPER" || Boolean(v.userId), {
     message: "Choose which capper to message.",
