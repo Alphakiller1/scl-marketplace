@@ -13,6 +13,7 @@ type CoreSchemaRow = {
   eventLabel: boolean;
   policyAcceptance: boolean;
   refundPolicy: boolean;
+  campaignQueue: boolean;
 };
 
 export type CoreSchemaHealth = CoreSchemaRow & {
@@ -78,7 +79,24 @@ export async function getCoreSchemaHealth(): Promise<CoreSchemaHealth> {
           WHERE enum_namespace.nspname = ${schemaName}::text
             AND enum_type.typname = 'PolicySlug'
             AND enum_value.enumlabel = 'REFUND'
-        ) AS "refundPolicy"
+        ) AS "refundPolicy",
+        (
+          to_regclass(format('%I."AudienceGroup"', ${schemaName}::text)) IS NOT NULL
+          AND (
+            SELECT count(*) = 2
+            FROM information_schema.columns
+            WHERE table_schema = ${schemaName}::text
+              AND table_name = 'AdminBroadcast'
+              AND column_name IN ('queuedCount', 'requestKey')
+          )
+          AND (
+            SELECT count(*) = 2
+            FROM information_schema.columns
+            WHERE table_schema = ${schemaName}::text
+              AND table_name = 'AdminBroadcastRecipient'
+              AND column_name IN ('attempts', 'sentAt')
+          )
+        ) AS "campaignQueue"
     `;
     const schema = row ?? {
       playPackage: false,
@@ -86,6 +104,7 @@ export async function getCoreSchemaHealth(): Promise<CoreSchemaHealth> {
       eventLabel: false,
       policyAcceptance: false,
       refundPolicy: false,
+      campaignQueue: false,
     };
     return {
       database: true,
@@ -95,7 +114,8 @@ export async function getCoreSchemaHealth(): Promise<CoreSchemaHealth> {
         schema.parlayPackage &&
         schema.eventLabel &&
         schema.policyAcceptance &&
-        schema.refundPolicy,
+        schema.refundPolicy &&
+        schema.campaignQueue,
     };
   } catch (error) {
     console.error("[release-readiness] database health check failed", error);
@@ -106,6 +126,7 @@ export async function getCoreSchemaHealth(): Promise<CoreSchemaHealth> {
       eventLabel: false,
       policyAcceptance: false,
       refundPolicy: false,
+      campaignQueue: false,
       ready: false,
     };
   }
@@ -164,8 +185,8 @@ export async function getReleaseReadinessReport() {
         label: "Launch database migration",
         status: schema.ready ? "ready" : "blocked",
         detail: schema.ready
-          ? "Package attribution, event labels, refund policies, and versioned policy acceptance are live."
-          : "One or more launch migrations for packages, event labels, or policy acceptance has not completed.",
+          ? "Package attribution, event labels, refund policies, versioned policy acceptance, and the campaign queue are live."
+          : "One or more launch migrations for packages, event labels, policy acceptance, or the campaign queue has not completed.",
       },
       {
         id: "package-links",

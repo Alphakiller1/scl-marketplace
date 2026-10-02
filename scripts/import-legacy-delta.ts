@@ -82,9 +82,6 @@ async function main() {
   for (const capper of parsed.data) {
     if (!capper.plays?.length) continue;
 
-    const email = (
-      capper.email ?? `${capper.username}@legacy.scl`
-    ).toLowerCase();
     const user = await prisma.user.findFirst({
       where: { username: capper.username },
       include: { capperProfile: { select: { id: true } } },

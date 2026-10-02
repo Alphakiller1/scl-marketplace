@@ -8,6 +8,7 @@ import { SectionHeader } from "@/components/scl/section";
 import { BroadcastComposer } from "@/components/scl/broadcast-composer";
 import { requireAdmin } from "@/lib/session";
 import { emailImageBaseUrl } from "@/lib/email-image-url";
+import { formatAdminBroadcastDate } from "@/lib/admin-broadcast-date";
 import {
   audienceFiltersSchema,
   parseAudienceFiltersParam,
@@ -72,12 +73,6 @@ export default async function AdminMessagesPage({
     }),
   ]);
 
-  const dateTime = new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZoneName: "short",
-  });
-
   return (
     <div className="space-y-6">
       <SectionHeader
@@ -132,14 +127,14 @@ export default async function AdminMessagesPage({
                         ).toLowerCase()}{" "}
                         ·{" "}
                         {b.sentBy?.username ? `@${b.sentBy.username}` : "admin"}{" "}
-                        · created {dateTime.format(b.createdAt)}
+                        · created {formatAdminBroadcastDate(b.createdAt)}
                       </p>
                       <p className="text-muted-foreground text-xs">
                         {scheduled
-                          ? `${open ? "Scheduled for" : "Scheduled"} ${dateTime.format(b.scheduledAt)}`
+                          ? `${open ? "Scheduled for" : "Scheduled"} ${formatAdminBroadcastDate(b.scheduledAt)}`
                           : null}
                         {b.completedAt
-                          ? `${scheduled ? " · " : ""}${b.status === "CANCELLED" ? "Cancelled" : "Finished"} ${dateTime.format(b.completedAt)}`
+                          ? `${scheduled ? " · " : ""}${b.status === "CANCELLED" ? "Cancelled" : "Finished"} ${formatAdminBroadcastDate(b.completedAt)}`
                           : null}
                       </p>
                     </div>

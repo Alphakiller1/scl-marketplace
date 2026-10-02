@@ -63,6 +63,7 @@ export async function GET() {
         eventLabels: health.eventLabel,
         policyAcceptance: health.policyAcceptance,
         refundPolicy: health.refundPolicy,
+        campaignQueue: health.campaignQueue,
       },
       deployment: { releaseIdentified },
       supabase,
