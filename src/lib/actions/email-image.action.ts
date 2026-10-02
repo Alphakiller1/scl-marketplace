@@ -7,7 +7,6 @@ import {
   buildEmailImageId,
   emailImageObjectPath,
 } from "@/lib/email-image";
-import { optimizeEmailImage } from "@/lib/email-image-process";
 import { emailImageUploadSchema } from "@/lib/schemas/email-image.schema";
 import { fetchRemoteImage } from "@/lib/remote-image-fetch";
 import { requireAdmin } from "@/lib/session";
@@ -113,6 +112,10 @@ async function storeEmailImage(
 
   let processed: { data: Buffer; width: number };
   try {
+    // The composer also loads this action module for ordinary audience
+    // previews. Keep sharp's native binding behind the upload boundary so a
+    // missing platform library can never break unrelated campaign actions.
+    const { optimizeEmailImage } = await import("@/lib/email-image-process");
     processed = await optimizeEmailImage(input);
   } catch (error) {
     console.error("[email-image] processing failed:", error);

@@ -33,7 +33,7 @@ function supabaseImagePatterns(): NonNullable<
 
 const nextConfig: NextConfig = {
   /**
-   * Ship libvips with the functions that resize profile media.
+   * Ship libvips with the functions that resize uploaded media.
    *
    * `sharp` is already on Next's auto-external list, so it is loaded with a
    * native `require` at runtime rather than bundled — but its platform binary
@@ -46,13 +46,16 @@ const nextConfig: NextConfig = {
    *   Could not load the "sharp" module using the linux-x64 runtime
    *   ERR_DLOPEN_FAILED: libvips-cpp.so.8.18.3: cannot open shared object file
    *
-   * Keyed by route because tracing is per-function: the upload action is
-   * reached from the capper profile page, and `/api/*` covers any future
-   * route handler that resizes. Globbed across every `@img` platform package
-   * so a sharp upgrade that renames the binary cannot silently re-break it.
+   * Keyed by route because tracing is per-function: upload actions are reached
+   * from the capper profile and admin email pages, while `/api/*` covers any
+   * future route handler that resizes. Globbed across every `@img` platform
+   * package so a sharp upgrade that renames the binary cannot silently
+   * re-break it.
    */
   outputFileTracingIncludes: {
     "/dashboard/profile": ["./node_modules/@img/**/*"],
+    "/admin/messages": ["./node_modules/@img/**/*"],
+    "/admin/emails": ["./node_modules/@img/**/*"],
     "/api/*": ["./node_modules/@img/**/*"],
     "/api/cron/odds-replay": [
       "./data/odds-snapshots/2026-08-25T15-08Z.json.gz",
