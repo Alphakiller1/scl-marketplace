@@ -1,12 +1,17 @@
 import { Send } from "lucide-react";
 
+import { CancelBroadcastButton } from "@/components/scl/cancel-broadcast-button";
+
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/card";
 import { SectionHeader } from "@/components/scl/section";
 import { BroadcastComposer } from "@/components/scl/broadcast-composer";
 import { requireAdmin } from "@/lib/session";
 import { emailImageBaseUrl } from "@/lib/email-image-url";
-import { audienceFiltersSchema } from "@/lib/schemas/audience.schema";
+import {
+  audienceFiltersSchema,
+  parseAudienceFiltersParam,
+} from "@/lib/schemas/audience.schema";
 
 export const metadata = { title: "Mass email" };
 export const maxDuration = 300;
@@ -17,16 +22,9 @@ export default async function AdminMessagesPage({
   searchParams: Promise<{ filters?: string }>;
 }) {
   const admin = await requireAdmin();
-  const rawFilters = (await searchParams).filters;
-  let initialFilters;
-  if (rawFilters) {
-    try {
-      const parsed = audienceFiltersSchema.safeParse(JSON.parse(rawFilters));
-      if (parsed.success) initialFilters = parsed.data;
-    } catch {
-      // Ignore malformed dashboard links and show the normal composer.
-    }
-  }
+  // A malformed dashboard link falls back to the normal composer.
+  const initialFilters =
+    parseAudienceFiltersParam((await searchParams).filters) ?? undefined;
 
   const [cappers, recent, savedGroups] = await Promise.all([
     prisma.user.findMany({
@@ -39,10 +37,13 @@ export default async function AdminMessagesPage({
     }),
     prisma.adminBroadcast.findMany({
       orderBy: { createdAt: "desc" },
-      take: 10,
+      take: 20,
       select: {
         id: true,
         subject: true,
+        body: true,
+        provider: true,
+        queuedCount: true,
         audience: true,
         recipientCount: true,
         deliveredCount: true,
@@ -74,6 +75,7 @@ export default async function AdminMessagesPage({
   const dateTime = new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZoneName: "short",
   });
 
   return (
@@ -101,7 +103,7 @@ export default async function AdminMessagesPage({
 
       <Card className="p-4">
         <h2 className="scl-display text-sm font-semibold tracking-wide">
-          Recent sends
+          Email history
         </h2>
         {recent.length === 0 ? (
           <p className="text-muted-foreground mt-2 text-sm">
@@ -109,43 +111,79 @@ export default async function AdminMessagesPage({
           </p>
         ) : (
           <ul className="mt-3 space-y-3">
-            {recent.map((b) => (
-              <li
-                key={b.id}
-                className="border-border flex flex-wrap items-baseline justify-between gap-2 border-b pb-3 last:border-0 last:pb-0"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{b.subject}</p>
-                  <p className="text-muted-foreground text-xs">
-                    {(
-                      b.audienceName ?? b.audience.replace(/_/g, " ")
-                    ).toLowerCase()}{" "}
-                    · {b.sentBy?.username ? `@${b.sentBy.username}` : "admin"} ·{" "}
-                    {dateTime.format(b.createdAt)}
-                  </p>
-                  {b.scheduledAt > b.createdAt ? (
-                    <p className="text-muted-foreground text-xs">
-                      Scheduled for {dateTime.format(b.scheduledAt)}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="text-right text-xs tabular-nums">
-                  <p className="font-medium">
-                    {b.status.replace(/_/g, " ").toLowerCase()} ·{" "}
-                    {b.recipientCount} recipients
-                  </p>
-                  <p className="text-muted-foreground">
-                    {b.sentCount} sent · {b.deliveredCount} delivered ·{" "}
-                    {b.openedCount} opened
-                    {b.bouncedCount ? ` · ${b.bouncedCount} bounced` : ""}
-                    {b.unsubscribedCount
-                      ? ` · ${b.unsubscribedCount} unsubscribed`
-                      : ""}
-                    {b.failedCount ? ` · ${b.failedCount} failed` : ""}
-                  </p>
-                </div>
-              </li>
-            ))}
+            {recent.map((b) => {
+              const legacy = b.provider !== "BREVO";
+              const open = b.status === "QUEUED" || b.status === "PROCESSING";
+              const scheduled =
+                b.scheduledAt.getTime() - b.createdAt.getTime() > 60_000;
+              return (
+                <li
+                  key={b.id}
+                  className="border-border space-y-2 border-b pb-3 last:border-0 last:pb-0"
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">
+                        {b.subject}
+                      </p>
+                      <p className="text-muted-foreground text-xs">
+                        {(
+                          b.audienceName ?? b.audience.replace(/_/g, " ")
+                        ).toLowerCase()}{" "}
+                        ·{" "}
+                        {b.sentBy?.username ? `@${b.sentBy.username}` : "admin"}{" "}
+                        · created {dateTime.format(b.createdAt)}
+                      </p>
+                      <p className="text-muted-foreground text-xs">
+                        {scheduled
+                          ? `${open ? "Scheduled for" : "Scheduled"} ${dateTime.format(b.scheduledAt)}`
+                          : null}
+                        {b.completedAt
+                          ? `${scheduled ? " · " : ""}${b.status === "CANCELLED" ? "Cancelled" : "Finished"} ${dateTime.format(b.completedAt)}`
+                          : null}
+                      </p>
+                    </div>
+                    <div className="text-right text-xs tabular-nums">
+                      <p className="font-medium">
+                        {b.status.replace(/_/g, " ").toLowerCase()} ·{" "}
+                        {b.recipientCount} recipients
+                      </p>
+                      <p className="text-muted-foreground">
+                        {legacy
+                          ? `${b.sentCount} sent via Resend${b.failedCount ? ` · ${b.failedCount} failed` : ""}`
+                          : [
+                              `${b.queuedCount} queued`,
+                              `${b.sentCount} sent`,
+                              `${b.deliveredCount} delivered`,
+                              `${b.openedCount} opened`,
+                              `${b.bouncedCount} bounced`,
+                              `${b.unsubscribedCount} unsubscribed`,
+                              ...(b.failedCount
+                                ? [`${b.failedCount} failed`]
+                                : []),
+                            ].join(" · ")}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <details className="min-w-0 flex-1 text-xs">
+                      <summary className="text-muted-foreground hover:text-foreground cursor-pointer">
+                        View message
+                      </summary>
+                      <p className="bg-surface-2 mt-2 max-h-64 overflow-y-auto rounded-lg p-3 whitespace-pre-wrap">
+                        {b.body}
+                      </p>
+                    </details>
+                    {open && !legacy ? (
+                      <CancelBroadcastButton
+                        broadcastId={b.id}
+                        subject={b.subject}
+                      />
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </Card>

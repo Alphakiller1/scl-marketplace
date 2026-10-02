@@ -1,11 +1,9 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
-import {
-  matchesAudienceFilters,
-  type AudienceSnapshot,
-} from "@/lib/admin-audience";
-import { resolveBroadcastRecipients } from "@/lib/broadcast";
+import type { AudienceSnapshot } from "@/lib/admin-audience";
+import { resolveAudienceMembers } from "@/lib/admin-audience-members";
+import { SUPPRESSING_BOUNCE_ERRORS } from "@/lib/brevo-send";
 import type { AudienceFilters } from "@/lib/schemas/audience.schema";
 
 const PENDING_STOREFRONT_STATUSES = new Set([
@@ -13,15 +11,14 @@ const PENDING_STOREFRONT_STATUSES = new Set([
   "PENDING_SCL_LINK_IMPORT",
 ]);
 
-export type AudienceMember = AudienceSnapshot & {
-  eligible: boolean;
-};
+/** Demo roster — never a real capper, never counted, never mailed. */
+const GHOST_DOMAIN = "@ghost.scl.demo";
 
 export async function listCampaignSuppressedAddresses(): Promise<Set<string>> {
   const rows = await prisma.adminBroadcastRecipient.findMany({
     where: {
       bouncedAt: { not: null },
-      error: { in: ["hard_bounce", "blocked", "invalid"] },
+      error: { in: [...SUPPRESSING_BOUNCE_ERRORS] },
     },
     distinct: ["address"],
     select: { address: true },
@@ -29,59 +26,72 @@ export async function listCampaignSuppressedAddresses(): Promise<Set<string>> {
   return new Set(rows.map((row) => row.address.trim().toLowerCase()));
 }
 
+/**
+ * One row per real capper with everything the filters read.
+ *
+ * Play volume comes from two grouped aggregates rather than nested relation
+ * reads: a nested `take: 1` is sliced in memory by Prisma, which would pull
+ * every play on every dashboard load and every audience preview.
+ */
 export async function loadAudienceSnapshots(): Promise<AudienceSnapshot[]> {
-  const [users, suppressedAddresses] = await Promise.all([
-    prisma.user.findMany({
-      where: { role: "CAPPER" },
-      orderBy: [{ username: "asc" }, { createdAt: "asc" }],
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        displayName: true,
-        emailVerified: true,
-        accountStatus: true,
-        isTest: true,
-        marketingOptOut: true,
-        createdAt: true,
-        capperProfile: {
-          select: {
-            plays: {
-              where: { parlayId: null, status: "COMMITTED" },
-              orderBy: { createdAt: "desc" },
-              take: 1,
-              select: { createdAt: true },
-            },
-            parlays: {
-              orderBy: { createdAt: "desc" },
-              take: 1,
-              select: { createdAt: true },
-            },
-            _count: {
-              select: {
-                plays: { where: { parlayId: null, status: "COMMITTED" } },
-                parlays: true,
+  const [users, straightStats, parlayStats, suppressedAddresses] =
+    await Promise.all([
+      prisma.user.findMany({
+        where: {
+          role: "CAPPER",
+          NOT: { email: { endsWith: GHOST_DOMAIN } },
+        },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          displayName: true,
+          emailVerified: true,
+          accountStatus: true,
+          isTest: true,
+          marketingOptOut: true,
+          createdAt: true,
+          capperProfile: {
+            select: {
+              id: true,
+              storeConnections: {
+                select: { status: true, requiresAttention: true },
               },
-            },
-            storeConnections: {
-              select: { status: true, requiresAttention: true },
-            },
-            packages: {
-              where: { isActive: true, checkoutUrl: { not: null } },
-              take: 1,
-              select: { id: true },
+              _count: {
+                select: {
+                  packages: {
+                    where: { isActive: true, checkoutUrl: { not: null } },
+                  },
+                },
+              },
             },
           },
         },
-      },
-    }),
-    listCampaignSuppressedAddresses(),
-  ]);
+      }),
+      prisma.play.groupBy({
+        by: ["capperId"],
+        where: { parlayId: null, status: "COMMITTED" },
+        _count: { _all: true },
+        _max: { createdAt: true },
+      }),
+      prisma.parlay.groupBy({
+        by: ["capperId"],
+        _count: { _all: true },
+        _max: { createdAt: true },
+      }),
+      listCampaignSuppressedAddresses(),
+    ]);
+
+  const straight = new Map(straightStats.map((row) => [row.capperId, row]));
+  const parlays = new Map(parlayStats.map((row) => [row.capperId, row]));
 
   return users.map((user) => {
     const profile = user.capperProfile;
-    const straightAt = profile?.plays[0]?.createdAt ?? null;
-    const parlayAt = profile?.parlays[0]?.createdAt ?? null;
+    const plays = profile ? straight.get(profile.id) : undefined;
+    const tickets = profile ? parlays.get(profile.id) : undefined;
+    const straightAt = plays?._max.createdAt ?? null;
+    const parlayAt = tickets?._max.createdAt ?? null;
     const lastPlayAt =
       straightAt && parlayAt
         ? straightAt > parlayAt
@@ -103,12 +113,12 @@ export async function loadAudienceSnapshots(): Promise<AudienceSnapshot[]> {
         user.email.trim().toLowerCase(),
       ),
       createdAt: user.createdAt,
-      playCount: profile?._count.plays ?? 0,
-      parlayCount: profile?._count.parlays ?? 0,
+      playCount: plays?._count._all ?? 0,
+      parlayCount: tickets?._count._all ?? 0,
       lastPlayAt,
       hasConnectedStorefront:
         connections.some((connection) => connection.status === "LIVE") ||
-        Boolean(profile?.packages.length),
+        (profile?._count.packages ?? 0) > 0,
       storefrontAwaitingReview: connections.some(
         (connection) =>
           connection.requiresAttention ||
@@ -116,26 +126,6 @@ export async function loadAudienceSnapshots(): Promise<AudienceSnapshot[]> {
       ),
     };
   });
-}
-
-export function resolveAudienceMembers(
-  snapshots: readonly AudienceSnapshot[],
-  filters: AudienceFilters,
-  now: Date = new Date(),
-): AudienceMember[] {
-  const matching = snapshots.filter((capper) =>
-    matchesAudienceFilters(capper, filters, now),
-  );
-  const eligibleIds = new Set(
-    resolveBroadcastRecipients(
-      "FILTERED_CAPPERS",
-      matching.filter((capper) => !capper.campaignUndeliverable),
-    ).map((recipient) => recipient.userId),
-  );
-  return matching.map((capper) => ({
-    ...capper,
-    eligible: eligibleIds.has(capper.id),
-  }));
 }
 
 export async function listAudienceMembers(filters: AudienceFilters) {

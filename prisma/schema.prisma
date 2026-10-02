@@ -1216,8 +1216,15 @@ model AdminBroadcast {
   bouncedCount      Int                       @default(0)
   unsubscribedCount Int                       @default(0)
   failedCount       Int                       @default(0)
+  queuedCount       Int                       @default(0)
   status            AdminBroadcastStatus      @default(QUEUED)
-  provider          String                    @default("BREVO")
+  /// Rows written by the pre-queue Resend sender keep "RESEND"; only the queue
+  /// path sets "BREVO" explicitly, so an old deployment can never create a row
+  /// the Brevo worker would pick up and send a second time.
+  provider          String                    @default("RESEND")
+  /// One per composer submission. A double click or a retried request maps to
+  /// the same campaign instead of creating a second one.
+  requestKey        String?                   @unique
   scheduledAt       DateTime                  @default(now())
   startedAt         DateTime?
   createdAt         DateTime                  @default(now())
@@ -1246,6 +1253,8 @@ model AdminBroadcastRecipient {
   openedAt          DateTime?
   bouncedAt         DateTime?
   unsubscribedAt    DateTime?
+  /// Provider calls that were definitively refused (429/5xx) and re-queued.
+  attempts          Int                           @default(0)
   createdAt         DateTime                      @default(now())
 
   @@unique([broadcastId, address])
@@ -1253,4 +1262,5 @@ model AdminBroadcastRecipient {
   @@index([userId])
   @@index([status, createdAt])
   @@index([providerMessageId])
+  @@index([sentAt])
 }

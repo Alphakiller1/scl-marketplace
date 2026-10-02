@@ -68,6 +68,13 @@ const ADMIN_TOOLS = [
     icon: Mail,
   },
   {
+    href: "/admin/audiences",
+    title: "Capper audiences",
+    description:
+      "Combine activity, verification, and storefront filters to see exactly which cappers are in a group, then email that same group.",
+    icon: Users,
+  },
+  {
     href: "/admin/messages",
     title: "Campaigns & audiences",
     description:
@@ -142,7 +149,12 @@ const OWNER_CAPABILITIES = [
 
 export default async function AdminOverviewPage() {
   const [operations, releaseReadiness] = await Promise.all([
-    getAdminOperationalOverview(),
+    // The overview is informational; a failed query must not take down the
+    // admin home and the tools linked from it.
+    getAdminOperationalOverview().catch((error) => {
+      console.error("[admin] operational overview failed", error);
+      return null;
+    }),
     getReleaseReadinessReport(),
   ]);
 
@@ -153,7 +165,13 @@ export default async function AdminOverviewPage() {
         title="Admin Overview"
         subtitle="Operations across the SCL marketplace"
       />
-      <AdminOperationsOverview data={operations} />
+      {operations ? (
+        <AdminOperationsOverview data={operations} />
+      ) : (
+        <Card className="text-muted-foreground p-4 text-sm" role="status">
+          Operational metrics could not be loaded. Refresh to try again.
+        </Card>
+      )}
 
       <AdminReleaseReadiness
         checks={releaseReadiness.checks}

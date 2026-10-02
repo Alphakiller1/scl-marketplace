@@ -3,10 +3,18 @@ import { describe, it } from "node:test";
 
 import {
   audienceLabel,
+  audienceListHref,
   matchesAudienceFilters,
   type AudienceSnapshot,
 } from "@/lib/admin-audience";
-import { emptyAudienceFilters } from "@/lib/schemas/audience.schema";
+import {
+  audienceCounts,
+  resolveAudienceMembers,
+} from "@/lib/admin-audience-members";
+import {
+  emptyAudienceFilters,
+  parseAudienceFiltersParam,
+} from "@/lib/schemas/audience.schema";
 
 const NOW = new Date("2026-10-01T12:00:00.000Z");
 
@@ -106,13 +114,91 @@ describe("shared admin audience filters", () => {
       ),
       false,
     );
+  });
+
+  it("keeps bounced cappers in the group but not in the recipients", () => {
+    const [member] = resolveAudienceMembers(
+      [capper({ campaignUndeliverable: true })],
+      emptyAudienceFilters(),
+      NOW,
+    );
+    assert.equal(member?.eligible, false);
+    assert.equal(member?.ineligibleReason, "bounced");
+  });
+
+  it("filters to cappers who played inside the window", () => {
+    const filters = { ...emptyAudienceFilters(), playedWithinDays: 3 as const };
+    assert.equal(matchesAudienceFilters(capper(), filters, NOW), true);
+    assert.equal(
+      matchesAudienceFilters(capper({ lastPlayAt: null }), filters, NOW),
+      false,
+    );
     assert.equal(
       matchesAudienceFilters(
-        capper({ campaignUndeliverable: true }),
-        emptyAudienceFilters(),
+        capper({ lastPlayAt: new Date("2026-09-20T12:00:00.000Z") }),
+        filters,
         NOW,
       ),
       false,
     );
+  });
+});
+
+describe("audience membership vs. email eligibility", () => {
+  it("counts the whole group and explains who cannot be emailed", () => {
+    const members = resolveAudienceMembers(
+      [
+        capper({ id: "a", email: "a@scl.com" }),
+        capper({ id: "b", email: "b@scl.com", marketingOptOut: true }),
+        capper({ id: "c", email: "c@scl.com", accountStatus: "SUSPENDED" }),
+        capper({ id: "d", email: "A@scl.com" }),
+        capper({ id: "t", email: "t@scl.com", isTest: true }),
+      ],
+      emptyAudienceFilters(),
+      NOW,
+    );
+    assert.deepEqual(audienceCounts(members), { total: 4, emailable: 1 });
+    const reasons = Object.fromEntries(
+      members.map((member) => [member.id, member.ineligibleReason]),
+    );
+    assert.deepEqual(reasons, {
+      a: null,
+      b: "opted_out",
+      c: "restricted",
+      d: "duplicate_inbox",
+    });
+  });
+
+  it("removing one account withdraws its shared inbox entirely", () => {
+    const members = resolveAudienceMembers(
+      [
+        capper({ id: "old", email: "shared@scl.com" }),
+        capper({ id: "new", email: "Shared@scl.com" }),
+        capper({ id: "other", email: "other@scl.com" }),
+      ],
+      { ...emptyAudienceFilters(), excludeUserIds: ["old"] },
+      NOW,
+    );
+    assert.deepEqual(
+      members.filter((member) => member.eligible).map((member) => member.id),
+      ["other"],
+    );
+  });
+
+  it("dashboard links omit default filters and round-trip", () => {
+    const filters = {
+      ...emptyAudienceFilters(),
+      playHistory: "HAS_PLAYS" as const,
+      storefront: "NOT_CONNECTED" as const,
+    };
+    const href = audienceListHref(filters);
+    assert.match(href, /^\/admin\/audiences\?filters=/);
+    const raw = decodeURIComponent(href.split("filters=")[1]!);
+    assert.deepEqual(JSON.parse(raw), {
+      playHistory: "HAS_PLAYS",
+      storefront: "NOT_CONNECTED",
+    });
+    assert.deepEqual(parseAudienceFiltersParam(raw), filters);
+    assert.equal(parseAudienceFiltersParam("{not json"), null);
   });
 });

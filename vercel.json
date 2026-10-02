@@ -36,7 +36,7 @@
     },
     {
       "path": "/api/cron/broadcast-queue",
-      "schedule": "*/15 * * * *"
+      "schedule": "*/5 * * * *"
     }
   ]
 }

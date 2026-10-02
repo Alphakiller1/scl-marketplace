@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, MailX, XCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { AuthHeader, AuthStatusNotice } from "@/components/scl/auth-header";
-import { verifyUnsubscribeToken } from "@/lib/broadcast";
-import { applyUnsubscribeAction } from "@/lib/actions/broadcast.action";
+import { confirmUnsubscribeAction } from "@/lib/actions/unsubscribe.action";
+import { prisma } from "@/lib/prisma";
+import { unsubscribeTokenUserId } from "@/lib/unsubscribe";
 
 export const metadata = { title: "Unsubscribe" };
 
@@ -14,18 +15,61 @@ export const metadata = { title: "Unsubscribe" };
  * No sign-in required — demanding a login to stop receiving mail is the pattern
  * that gets senders reported as spam. The token is HMAC-signed, so it identifies
  * one account and cannot be edited into somebody else's.
+ *
+ * Loading the page changes nothing: link scanners pre-fetch every URL in a
+ * message, so the opt-out happens on the confirm button's POST instead.
  */
 export default async function UnsubscribePage({
   searchParams,
 }: {
-  searchParams: Promise<{ token?: string }>;
+  searchParams: Promise<{ token?: string; result?: string }>;
 }) {
-  const { token } = await searchParams;
-  const userId = token
-    ? verifyUnsubscribeToken(token, process.env.AUTH_SECRET ?? "")
+  const { token, result } = await searchParams;
+  const userId = unsubscribeTokenUserId(token);
+  const account = userId
+    ? await prisma.user
+        .findUnique({
+          where: { id: userId },
+          select: { marketingOptOut: true },
+        })
+        .catch(() => null)
     : null;
-  const done = userId ? await applyUnsubscribeAction(userId) : false;
 
+  const state: "invalid" | "confirm" | "done" =
+    !userId || !account || result === "failed"
+      ? "invalid"
+      : account.marketingOptOut
+        ? "done"
+        : "confirm";
+
+  if (state === "confirm") {
+    return (
+      <>
+        <AuthHeader
+          icon={MailX}
+          eyebrow="Email preferences"
+          title="Stop SCL announcements?"
+          description="You will stop receiving announcement and campaign email from SCL."
+        />
+        <form action={confirmUnsubscribeAction} className="mt-5 space-y-3">
+          <input type="hidden" name="token" value={token ?? ""} />
+          <Button type="submit" className="min-h-10 w-full">
+            Unsubscribe
+          </Button>
+          <Button
+            render={<Link href="/" />}
+            nativeButton={false}
+            variant="outline"
+            className="min-h-10 w-full"
+          >
+            Keep receiving announcements
+          </Button>
+        </form>
+      </>
+    );
+  }
+
+  const done = state === "done";
   return (
     <>
       <AuthHeader

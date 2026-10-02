@@ -29,7 +29,16 @@ export const broadcastSchema = z
      * be recalled, so the count is previewed and sent back to the server.
      */
     confirmRecipientCount: z.number().int().nonnegative().optional(),
+    /** Fingerprint of the exact recipient set the preview showed. */
+    confirmFingerprint: z.string().max(64).optional(),
     scheduledAt: z.coerce.date().optional(),
+    /**
+     * One per composer submission, generated in the browser. A double click or
+     * a retried request resolves to the campaign already created.
+     */
+    requestKey: z.string().trim().min(8).max(100),
+    /** Set after the admin is warned this exact message was just sent. */
+    confirmDuplicate: z.boolean().optional(),
   })
   .refine((v) => v.audience !== "SINGLE_CAPPER" || Boolean(v.userId), {
     message: "Choose which capper to message.",
@@ -37,7 +46,9 @@ export const broadcastSchema = z
   })
   .refine(
     (v) =>
-      v.audience === "SINGLE_CAPPER" || v.confirmRecipientCount !== undefined,
+      v.audience === "SINGLE_CAPPER" ||
+      (v.confirmRecipientCount !== undefined &&
+        v.confirmFingerprint !== undefined),
     {
       message: "Check the recipient count before sending a mass email.",
       path: ["confirmRecipientCount"],
