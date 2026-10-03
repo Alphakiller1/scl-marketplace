@@ -1,5 +1,6 @@
 import "server-only";
 
+import { brevoApiKeys } from "@/lib/brevo-config";
 import { normalizeBrevoMessageId } from "@/lib/brevo-message-id";
 import { classifyBrevoFailure, type BrevoFailureKind } from "@/lib/brevo-send";
 
@@ -15,7 +16,7 @@ function parseSender(raw: string): { name?: string; email: string } {
 
 export function brevoConfigured(): boolean {
   return Boolean(
-    process.env.BREVO_API_KEY?.trim() &&
+    brevoApiKeys().length > 0 &&
     (process.env.BREVO_EMAIL_FROM?.trim() || process.env.EMAIL_FROM?.trim()),
   );
 }
@@ -42,10 +43,10 @@ export async function sendBrevoCampaignEmail(input: {
   /** RFC 8058 one-click target; mass campaigns only. */
   unsubscribeUrl?: string;
 }): Promise<BrevoSendResult> {
-  const apiKey = process.env.BREVO_API_KEY?.trim();
+  const apiKeys = brevoApiKeys();
   const from =
     process.env.BREVO_EMAIL_FROM?.trim() || process.env.EMAIL_FROM?.trim();
-  if (!apiKey || !from) {
+  if (apiKeys.length === 0 || !from) {
     return {
       accepted: false,
       error: "Brevo is not configured",
@@ -62,53 +63,69 @@ export async function sendBrevoCampaignEmail(input: {
     headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
   }
 
-  let response: Response;
-  try {
-    response = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      signal: AbortSignal.timeout(20_000),
-      headers: {
-        accept: "application/json",
-        "api-key": apiKey,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        sender: parseSender(from),
-        to: [{ email: input.to, name: input.name ?? undefined }],
-        replyTo: process.env.SUPPORT_EMAIL_TO?.trim()
-          ? { email: process.env.SUPPORT_EMAIL_TO.trim() }
-          : undefined,
-        subject: input.subject,
-        htmlContent: input.html,
-        tags: ["scl-admin-broadcast"],
-        headers,
-      }),
-    });
-  } catch (error) {
-    // The request may have reached Brevo before the connection failed, so the
-    // outcome is unknown. Retrying could mail the person twice.
+  const body = JSON.stringify({
+    sender: parseSender(from),
+    to: [{ email: input.to, name: input.name ?? undefined }],
+    replyTo: process.env.SUPPORT_EMAIL_TO?.trim()
+      ? { email: process.env.SUPPORT_EMAIL_TO.trim() }
+      : undefined,
+    subject: input.subject,
+    htmlContent: input.html,
+    tags: ["scl-admin-broadcast"],
+    headers,
+  });
+
+  for (const [index, apiKey] of apiKeys.entries()) {
+    let response: Response;
+    try {
+      response = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        signal: AbortSignal.timeout(20_000),
+        headers: {
+          accept: "application/json",
+          "api-key": apiKey,
+          "content-type": "application/json",
+        },
+        body,
+      });
+    } catch (error) {
+      // The request may have reached Brevo before the connection failed, so the
+      // outcome is unknown. Retrying could mail the person twice.
+      return {
+        accepted: false,
+        error: `Outcome unknown: ${error instanceof Error ? error.message : "Brevo request failed"}`,
+        kind: "permanent",
+      };
+    }
+
+    const payload = (await response.json().catch(() => null)) as {
+      messageId?: string;
+      message?: string;
+      code?: string;
+    } | null;
+    if (response.ok && payload?.messageId) {
+      return {
+        accepted: true,
+        messageId: normalizeBrevoMessageId(payload.messageId),
+      };
+    }
+    // A rejected key cannot have sent the message, so trying the rotated key is
+    // safe. No other response is safe to repeat.
+    if (
+      (response.status === 401 || response.status === 403) &&
+      index < apiKeys.length - 1
+    ) {
+      continue;
+    }
     return {
       accepted: false,
-      error: `Outcome unknown: ${error instanceof Error ? error.message : "Brevo request failed"}`,
-      kind: "permanent",
+      error:
+        payload?.message ??
+        payload?.code ??
+        `Brevo returned ${response.status}`,
+      kind: classifyBrevoFailure(response.status),
     };
   }
 
-  const payload = (await response.json().catch(() => null)) as {
-    messageId?: string;
-    message?: string;
-    code?: string;
-  } | null;
-  if (response.ok && payload?.messageId) {
-    return {
-      accepted: true,
-      messageId: normalizeBrevoMessageId(payload.messageId),
-    };
-  }
-  return {
-    accepted: false,
-    error:
-      payload?.message ?? payload?.code ?? `Brevo returned ${response.status}`,
-    kind: classifyBrevoFailure(response.status),
-  };
+  return { accepted: false, error: "Brevo rejected every key", kind: "fatal" };
 }

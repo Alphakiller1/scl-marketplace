@@ -5,6 +5,7 @@ import { probeBrevo, resetBrevoProbeCache } from "@/lib/brevo-health";
 
 const ENV_KEYS = [
   "BREVO_API_KEY",
+  "BREVO_EMAIL_SEND",
   "BREVO_EMAIL_FROM",
   "BREVO_WEBHOOK_SECRET",
   "BREVO_DAILY_LIMIT",
@@ -96,6 +97,26 @@ describe("probeBrevo", () => {
     const probe = await probeBrevo();
     assert.equal(probe.authenticated, false);
     assert.match(probe.reason ?? "", /rejected/);
+  });
+
+  it("prefers the write-only rotation over the old key", async () => {
+    setEnv({
+      BREVO_API_KEY: "old-key",
+      BREVO_EMAIL_SEND: "rotated-key",
+      BREVO_EMAIL_FROM: "no-reply@sportscappersleaderboard.com",
+      BREVO_WEBHOOK_SECRET: "webhook-secret",
+    });
+    const seen: string[] = [];
+    globalThis.fetch = (async (_input, init) => {
+      const key = String((init?.headers as Record<string, string>)["api-key"]);
+      seen.push(key);
+      return key === "rotated-key"
+        ? new Response(JSON.stringify({ plan: [] }), { status: 200 })
+        : new Response(null, { status: 401 });
+    }) as typeof fetch;
+    const probe = await probeBrevo();
+    assert.equal(probe.authenticated, true);
+    assert.deepEqual(seen, ["rotated-key"]);
   });
 
   it("treats provider reachability as unknown rather than a bad key", async () => {
