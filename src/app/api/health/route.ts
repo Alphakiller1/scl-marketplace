@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { probeBrevo } from "@/lib/brevo-health";
 import { probeMailer } from "@/lib/email-deliverability";
 import { emailSenderStatus } from "@/lib/email-sender";
 import { emailVerificationEnforced } from "@/lib/email-verification-policy";
@@ -21,17 +22,25 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const [health, storageProbe, mailer, odds] = await Promise.all([
-    getCoreSchemaHealth(),
-    probeProfileMediaStorage(),
-    probeMailer(),
-    probeOddsProvider(),
-  ]);
+  const [health, storageProbe, mailer, campaignEmail, odds] = await Promise.all(
+    [
+      getCoreSchemaHealth(),
+      probeProfileMediaStorage(),
+      probeMailer(),
+      probeBrevo(),
+      probeOddsProvider(),
+    ],
+  );
   const release = process.env.VERCEL_GIT_COMMIT_SHA ?? "local";
   const releaseIdentified =
     process.env.VERCEL_ENV !== "production" || release !== "local";
   const ready =
-    health.ready && odds.configured && odds.reachable && releaseIdentified;
+    health.ready &&
+    odds.configured &&
+    odds.reachable &&
+    mailer.deliverable !== false &&
+    campaignEmail.authenticated !== false &&
+    releaseIdentified;
   const status = ready ? "ok" : "degraded";
   // Project refs, not keys. A cross-project URL/key pair fails as "bucket not
   // found", which sends you hunting in whichever project you happen to open —
@@ -78,6 +87,7 @@ export async function GET() {
         // writes `emailVerified`, so this is the only thing that gates access.
         verificationEnforced: emailVerificationEnforced(),
       },
+      campaignEmail,
       odds,
       whop: {
         ...whopIntegrationStatus(),

@@ -65,6 +65,11 @@ export function evaluateReleaseConfiguration(
     isConfigured(env.RESEND_API_KEY) &&
     isEmailAddress(senderAddress ?? undefined) &&
     !/@scl\.local$/i.test(senderAddress ?? "");
+  const campaignEmailConfigured =
+    isConfigured(env.BREVO_API_KEY) &&
+    isConfigured(env.BREVO_EMAIL_FROM?.trim() || env.EMAIL_FROM?.trim()) &&
+    isConfigured(env.BREVO_WEBHOOK_SECRET) &&
+    isConfigured(env.CRON_SECRET);
   // A correct-looking address on somebody else's domain still delivers, so this
   // is a warning, not a block — but a capper reading the from line is the person
   // who otherwise finds it, and by then it reads as a phish.
@@ -132,6 +137,14 @@ export function evaluateReleaseConfiguration(
         : senderIsForeign
           ? `Mail is sent from ${senderHost}, not ${siteHost}. Verify ${siteHost} with the mail provider and move EMAIL_FROM onto it — cappers read the from line, and a link from an unrelated company reads as a phish.`
           : "Resend delivery uses an explicit, non-.local sender address on the site's own domain.",
+    },
+    {
+      id: "campaign-email",
+      label: "Campaign email",
+      status: campaignEmailConfigured ? "ready" : "blocked",
+      detail: campaignEmailConfigured
+        ? "Brevo delivery, webhook tracking, and the scheduled campaign queue are configured."
+        : "Set BREVO_API_KEY, a campaign sender, BREVO_WEBHOOK_SECRET, and CRON_SECRET before campaigns can be queued safely.",
     },
     {
       id: "support-mailbox",
