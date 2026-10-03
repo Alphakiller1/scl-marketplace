@@ -1,5 +1,6 @@
 import "server-only";
 
+import { probeBrevo } from "@/lib/brevo-health";
 import { prisma } from "@/lib/prisma";
 import {
   evaluateReleaseConfiguration,
@@ -136,30 +137,65 @@ export async function getReleaseReadinessReport() {
   const configurationChecks = evaluateReleaseConfiguration(process.env);
 
   try {
-    const [schema, realAdmins, enabledSeedAdmins, incompletePackages] =
-      await Promise.all([
-        getCoreSchemaHealth(),
-        prisma.user.count({
-          where: {
-            role: "ADMIN",
-            accountStatus: "ACTIVE",
-            emailVerified: { not: null },
-            NOT: { email: { endsWith: "@scl.local" } },
-          },
-        }),
-        prisma.user.count({
-          where: {
-            email: { endsWith: "@scl.local" },
-            accountStatus: { not: "DISABLED" },
-          },
-        }),
-        prisma.package.count({
-          where: {
-            isActive: true,
-            OR: [{ checkoutUrl: null }, { trackingUrls: { none: {} } }],
-          },
-        }),
-      ]);
+    const [
+      schema,
+      realAdmins,
+      enabledSeedAdmins,
+      incompletePackages,
+      campaignEmail,
+    ] = await Promise.all([
+      getCoreSchemaHealth(),
+      prisma.user.count({
+        where: {
+          role: "ADMIN",
+          accountStatus: "ACTIVE",
+          emailVerified: { not: null },
+          NOT: { email: { endsWith: "@scl.local" } },
+        },
+      }),
+      prisma.user.count({
+        where: {
+          email: { endsWith: "@scl.local" },
+          accountStatus: { not: "DISABLED" },
+        },
+      }),
+      prisma.package.count({
+        where: {
+          isActive: true,
+          OR: [{ checkoutUrl: null }, { trackingUrls: { none: {} } }],
+        },
+      }),
+      probeBrevo(),
+    ]);
+
+    const liveConfigurationChecks = configurationChecks.map((check) => {
+      if (check.id !== "campaign-email" || check.status !== "ready") {
+        return check;
+      }
+      if (campaignEmail.authenticated === true) {
+        return {
+          ...check,
+          detail:
+            "Brevo accepted the API key; webhook tracking and the five-minute campaign queue are configured.",
+        };
+      }
+      if (campaignEmail.authenticated === null) {
+        return {
+          ...check,
+          status: "warning" as const,
+          detail:
+            campaignEmail.reason ??
+            "Brevo could not be reached, so campaign delivery is currently unconfirmed.",
+        };
+      }
+      return {
+        ...check,
+        status: "blocked" as const,
+        detail:
+          campaignEmail.reason ??
+          "Brevo rejected the campaign delivery configuration.",
+      };
+    });
 
     const dataChecks: ReleaseReadinessCheck[] = [
       {
@@ -199,7 +235,7 @@ export async function getReleaseReadinessReport() {
       },
     ];
 
-    const checks = [...dataChecks, ...configurationChecks];
+    const checks = [...dataChecks, ...liveConfigurationChecks];
     return {
       checks,
       summary: releaseReadinessSummary(checks),

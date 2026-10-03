@@ -15,6 +15,8 @@ const READY_ENV = {
   AUTH_URL: "https://scl-marketplace.vercel.app",
   RESEND_API_KEY: "re_test",
   EMAIL_FROM: "no-reply@scl.example",
+  BREVO_API_KEY: "brevo-key",
+  BREVO_WEBHOOK_SECRET: "brevo-webhook-secret",
   SUPPORT_EMAIL_TO: "support@scl.example",
   SUPABASE_URL: "https://example.supabase.co",
   SUPABASE_SERVICE_ROLE_KEY: "service-role",
@@ -29,7 +31,7 @@ const READY_ENV = {
 test("release configuration is ready when launch-critical services exist", () => {
   const checks = evaluateReleaseConfiguration(READY_ENV);
   assert.deepEqual(releaseReadinessSummary(checks), {
-    ready: 10,
+    ready: 11,
     warning: 0,
     blocked: 0,
   });
@@ -41,6 +43,8 @@ test("release configuration blocks unsafe launch defaults", () => {
     DIRECT_URL: undefined,
     AUTH_SECRET: "short",
     EMAIL_FROM: "no-reply@scl.local",
+    BREVO_API_KEY: undefined,
+    BREVO_WEBHOOK_SECRET: undefined,
     SUPPORT_EMAIL_TO: undefined,
     ODDS_API_KEY: undefined,
     CRON_SECRET: undefined,
@@ -55,6 +59,7 @@ test("release configuration blocks unsafe launch defaults", () => {
     "database-config",
     "authentication-config",
     "transactional-email",
+    "campaign-email",
     "support-mailbox",
     "odds-provider",
     "grading-cron",
