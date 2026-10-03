@@ -14,6 +14,35 @@ export function withSclSchema(raw) {
 }
 
 /**
+ * Route a Supabase direct URL through the project's regional IPv4 pooler.
+ * Credentials stay inside the URL object and are never logged.
+ */
+export function toSupabasePoolerDatabaseUrl(raw, poolerHost) {
+  const normalized = withSclSchema(raw);
+  const url = new URL(normalized);
+  const direct = url.hostname.match(/^db\.([a-z0-9]+)\.supabase\.co$/i);
+
+  if (direct) {
+    if (!poolerHost?.endsWith(".pooler.supabase.com")) {
+      throw new Error(
+        "A valid Supabase pooler host is required for a direct URL",
+      );
+    }
+    url.hostname = poolerHost;
+    if (url.username === "postgres") {
+      url.username = `postgres.${direct[1]}`;
+    }
+  }
+
+  if (url.hostname.endsWith(".pooler.supabase.com")) {
+    url.port = "6543";
+    url.searchParams.set("pgbouncer", "true");
+  }
+
+  return url.toString();
+}
+
+/**
  * Convert Supabase's transaction-pooler URL into its session-pooler URL.
  *
  * Supabase's `db.<ref>.supabase.co` direct endpoint can be IPv6-only, which
@@ -21,7 +50,10 @@ export function withSclSchema(raw) {
  * port 5432 provides session mode and is appropriate for Prisma migrations.
  */
 export function toSessionDatabaseUrl(raw) {
-  const normalized = withSclSchema(raw);
+  const normalized = toSupabasePoolerDatabaseUrl(
+    raw,
+    process.env.SUPABASE_POOLER_HOST,
+  );
   const url = new URL(normalized);
 
   if (url.hostname.endsWith(".pooler.supabase.com")) {
@@ -38,6 +70,11 @@ if (process.env.NORMALIZE_SCL_DATABASE_URL) {
   process.stdout.write(
     process.argv.includes("--session")
       ? toSessionDatabaseUrl(process.env.NORMALIZE_SCL_DATABASE_URL.trim())
-      : withSclSchema(process.env.NORMALIZE_SCL_DATABASE_URL.trim()),
+      : process.argv.includes("--pooler")
+        ? toSupabasePoolerDatabaseUrl(
+            process.env.NORMALIZE_SCL_DATABASE_URL.trim(),
+            process.env.SUPABASE_POOLER_HOST,
+          )
+        : withSclSchema(process.env.NORMALIZE_SCL_DATABASE_URL.trim()),
   );
 }

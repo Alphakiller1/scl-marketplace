@@ -55,6 +55,9 @@ jobs:
           SUPABASE_PROFILE_MEDIA_BUCKET: ${{ secrets.SUPABASE_PROFILE_MEDIA_BUCKET }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          # The production Supabase project resolves its direct database host
+          # only over IPv6. Vercel builds use this regional IPv4 pooler.
+          SUPABASE_POOLER_HOST: ${{ vars.SUPABASE_POOLER_HOST || 'aws-0-us-west-2.pooler.supabase.com' }}
         run: |
           npm install -g vercel@latest
           mkdir -p .vercel
@@ -78,13 +81,15 @@ jobs:
             if [ -z "$value" ]; then
               return 0
             fi
-            NORMALIZE_SCL_DATABASE_URL="$value" node scripts/normalize-database-url.mjs $mode
+            NORMALIZE_SCL_DATABASE_URL="$value" \
+              SUPABASE_POOLER_HOST="$SUPABASE_POOLER_HOST" \
+              node scripts/normalize-database-url.mjs $mode
           }
 
           # Prisma must explicitly target the scl schema in both runtime and
           # migration connections. Preserve every credential/query parameter
           # while adding or correcting only the schema parameter.
-          DATABASE_URL="$(normalize_database_url "$DATABASE_URL")"
+          DATABASE_URL="$(normalize_database_url "$DATABASE_URL" --pooler)"
           # Use Supabase's IPv4-compatible session pooler for migrations. Its
           # direct db.<ref>.supabase.co endpoint can be IPv6-only and therefore
           # unreachable from Vercel's build runners.
