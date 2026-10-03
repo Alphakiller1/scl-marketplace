@@ -13,10 +13,6 @@ on:
         description: Trigger a production redeploy after syncing
         type: boolean
         default: true
-      recover_database_from_preview:
-        description: Recover the known-working database URLs from Vercel Preview
-        type: boolean
-        default: false
 
 concurrency:
   group: sync-supabase-vercel-env
@@ -57,38 +53,11 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SUPABASE_PROFILE_MEDIA_BUCKET: ${{ secrets.SUPABASE_PROFILE_MEDIA_BUCKET }}
-          # The production Supabase project resolves its direct database host
-          # only over IPv6. Vercel builds use this regional IPv4 pooler.
-          SUPABASE_POOLER_HOST: ${{ vars.SUPABASE_POOLER_HOST || 'aws-0-us-west-2.pooler.supabase.com' }}
-          RECOVER_DATABASE_FROM_PREVIEW: ${{ inputs.recover_database_from_preview }}
         run: |
           set -euo pipefail
           npm install -g vercel@latest
-          npm ci --ignore-scripts
           mkdir -p .vercel
           printf '{"orgId":"%s","projectId":"%s"}' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
-
-          SOURCE_ENV=production
-          if [ "$RECOVER_DATABASE_FROM_PREVIEW" = "true" ]; then
-            SOURCE_ENV=preview
-          fi
-          SOURCE_FILE="$(mktemp)"
-          trap 'rm -f "$SOURCE_FILE"' EXIT
-          chmod 600 "$SOURCE_FILE"
-          echo "Reading existing database credentials from Vercel $SOURCE_ENV without logging their values"
-          vercel env pull "$SOURCE_FILE" \
-            --environment="$SOURCE_ENV" \
-            --yes \
-            --token="$VERCEL_TOKEN" >/dev/null
-
-          DATABASE_URL="$(node scripts/read-dotenv-value.mjs "$SOURCE_FILE" DATABASE_URL)"
-          DIRECT_URL="$(node scripts/read-dotenv-value.mjs "$SOURCE_FILE" DIRECT_URL)"
-          if [ -z "$DATABASE_URL" ] || [ -z "$DIRECT_URL" ]; then
-            echo "DATABASE_URL and DIRECT_URL must both exist in Vercel $SOURCE_ENV; Production was not changed."
-            exit 1
-          fi
-          echo "::add-mask::$DATABASE_URL"
-          echo "::add-mask::$DIRECT_URL"
 
           upsert_env() {
             local key="$1"
@@ -105,50 +74,15 @@ jobs:
               --token="$VERCEL_TOKEN" >/dev/null
           }
 
-          normalize_database_url() {
-            local value="$1"
-            local mode="${2:-}"
-            if [ -z "$value" ]; then
-              return 0
-            fi
-            NORMALIZE_SCL_DATABASE_URL="$value" \
-              SUPABASE_POOLER_HOST="$SUPABASE_POOLER_HOST" \
-              node scripts/normalize-database-url.mjs $mode
-          }
-
-          # Prisma must explicitly target the scl schema in both runtime and
-          # migration connections. Preserve every credential/query parameter
-          # while adding or correcting only the schema parameter.
-          DATABASE_URL="$(normalize_database_url "$DATABASE_URL" --pooler)"
-          # Use Supabase's IPv4-compatible session pooler for migrations. Its
-          # direct db.<ref>.supabase.co endpoint can be IPv6-only and therefore
-          # unreachable from Vercel's build runners.
-          DIRECT_URL="$(normalize_database_url "$DIRECT_URL" --session)"
-          echo "::add-mask::$DATABASE_URL"
-          echo "::add-mask::$DIRECT_URL"
-
-          echo "Validating runtime and migration database connections before changing Production"
-          if ! printf 'SELECT 1;' | npx --no-install prisma db execute --url "$DATABASE_URL" --stdin >/dev/null 2>&1; then
-            echo "Runtime database validation failed; Production was not changed."
-            exit 1
-          fi
-          if ! printf 'SELECT 1;' | npx --no-install prisma db execute --url "$DIRECT_URL" --stdin >/dev/null 2>&1; then
-            echo "Migration database validation failed; Production was not changed."
-            exit 1
-          fi
-          echo "Both database connections validated successfully"
-
           upsert_env SUPABASE_URL "$SUPABASE_URL"
           upsert_env SUPABASE_SERVICE_ROLE_KEY "$SUPABASE_SERVICE_ROLE_KEY"
           upsert_env SUPABASE_PROFILE_MEDIA_BUCKET "$SUPABASE_PROFILE_MEDIA_BUCKET"
-          upsert_env DATABASE_URL "$DATABASE_URL"
-          upsert_env DIRECT_URL "$DIRECT_URL"
 
           {
             echo "### Supabase env synced to Vercel Production"
             echo ""
-            echo "Validated and atomically upserted the Vercel database URLs without logging their values."
-            echo "Other Supabase secrets continue to come from GitHub → Environments → **Production**."
+            echo "Atomically upserted any Supabase Storage secrets that exist under GitHub → Environments → **Production**."
+            echo "Database URLs are write-only Vercel Sensitive variables and are intentionally not modified by this workflow."
             echo "Redeploy is required before \`/api/health\` reports \`supabase.storage: true\`."
           } >> "$GITHUB_STEP_SUMMARY"
 
