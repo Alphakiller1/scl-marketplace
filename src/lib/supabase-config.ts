@@ -24,6 +24,20 @@ function withSclSchema(connectionUrl: string): string {
   }
 }
 
+/** Supabase's pooler uses 6543 for transactions and 5432 for sessions. */
+function sessionUrlFromPooled(connectionUrl: string): string | null {
+  try {
+    const url = new URL(connectionUrl);
+    if (!url.hostname.endsWith(".pooler.supabase.com")) return null;
+    url.port = "5432";
+    url.searchParams.delete("pgbouncer");
+    url.searchParams.set("schema", "scl");
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 /** Public Supabase project URL (Storage + API). */
 export function supabaseProjectUrl(): string | null {
   return (
@@ -139,23 +153,23 @@ export function supabaseIntegrationStatus(): SupabaseIntegrationStatus {
 }
 
 /**
- * Map Supabase Vercel integration vars onto Prisma's `DATABASE_URL` /
- * `DIRECT_URL` when the SCL-specific names are unset.
+ * Normalize Prisma's runtime URL and derive its session URL from the same
+ * Supabase pooler credential. Integration-provided aliases remain fallbacks.
  */
 export function ensureSupabaseDatabaseEnvAliases(): void {
-  if (!trimmed(process.env.DATABASE_URL)) {
-    const pooled =
-      trimmed(process.env.POSTGRES_PRISMA_URL) ??
-      trimmed(process.env.POSTGRES_URL);
-    if (pooled) {
-      process.env.DATABASE_URL = withSclSchema(pooled);
-    }
-  }
+  const pooled =
+    trimmed(process.env.DATABASE_URL) ??
+    trimmed(process.env.POSTGRES_PRISMA_URL) ??
+    trimmed(process.env.POSTGRES_URL);
+  if (pooled) process.env.DATABASE_URL = withSclSchema(pooled);
 
-  if (!trimmed(process.env.DIRECT_URL)) {
-    const direct = trimmed(process.env.POSTGRES_URL_NON_POOLING);
-    if (direct) {
-      process.env.DIRECT_URL = withSclSchema(direct);
-    }
-  }
+  // Derive the migration/session connection from the validated runtime pooler.
+  // This prevents a stale separately-stored DIRECT_URL from breaking builds
+  // after a database credential rotation.
+  const directFromPooler = pooled ? sessionUrlFromPooled(pooled) : null;
+  const direct =
+    directFromPooler ??
+    trimmed(process.env.DIRECT_URL) ??
+    trimmed(process.env.POSTGRES_URL_NON_POOLING);
+  if (direct) process.env.DIRECT_URL = withSclSchema(direct);
 }

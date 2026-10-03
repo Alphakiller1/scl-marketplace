@@ -78,11 +78,16 @@ function ensureDatabaseEnvForMigrate() {
     process.env.DATABASE_URL = withSclSchema(process.env.DATABASE_URL);
   }
 
-  if (!trimmed(process.env.DIRECT_URL)) {
+  const directFromRuntime = deriveDirectFromPooled(
+    trimmed(process.env.DATABASE_URL),
+  );
+  if (directFromRuntime) {
+    process.env.DIRECT_URL = withSclSchema(directFromRuntime);
+    console.log("[migrate] derived DIRECT_URL from the runtime pooler");
+  } else if (!trimmed(process.env.DIRECT_URL)) {
     const direct =
       trimmed(process.env.POSTGRES_URL_NON_POOLING) ??
-      trimmed(process.env.POSTGRES_URL_DIRECT) ??
-      deriveDirectFromPooled(trimmed(process.env.DATABASE_URL));
+      trimmed(process.env.POSTGRES_URL_DIRECT);
     if (direct) {
       process.env.DIRECT_URL = withSclSchema(direct);
       console.log("[migrate] mapped DIRECT_URL for migration CLI");

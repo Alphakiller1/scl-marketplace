@@ -65,6 +65,25 @@ test("ensureSupabaseDatabaseEnvAliases maps POSTGRES vars with schema=scl", () =
   assert.match(process.env.DIRECT_URL ?? "", /schema=scl/);
 });
 
+test("ensureSupabaseDatabaseEnvAliases normalizes existing pooled URLs and replaces a stale direct URL", () => {
+  restoreEnv();
+  process.env.DATABASE_URL =
+    "postgresql://postgres.project:pass@aws-1-us-west-2.pooler.supabase.com:6543/postgres?pgbouncer=true";
+  process.env.DIRECT_URL =
+    "postgresql://postgres.project:stale@db.project.supabase.co:5432/postgres";
+
+  ensureSupabaseDatabaseEnvAliases();
+
+  const runtime = new URL(process.env.DATABASE_URL ?? "");
+  const migration = new URL(process.env.DIRECT_URL ?? "");
+  assert.equal(runtime.searchParams.get("schema"), "scl");
+  assert.equal(migration.hostname, runtime.hostname);
+  assert.equal(migration.port, "5432");
+  assert.equal(migration.searchParams.get("pgbouncer"), null);
+  assert.equal(migration.searchParams.get("schema"), "scl");
+  assert.equal(migration.password, runtime.password);
+});
+
 test("supabaseIntegrationStatus reports storage readiness", () => {
   restoreEnv();
   process.env.SUPABASE_URL = "https://abc.supabase.co";
