@@ -5,6 +5,8 @@
  * endpoint proves that Brevo still accepts the key without contacting a capper.
  */
 
+import { brevoApiKeys } from "@/lib/brevo-config";
+
 const PROBE_TIMEOUT_MS = 3_000;
 const PROBE_CACHE_MS = 60_000;
 
@@ -40,13 +42,15 @@ function sendLimitCredits(payload: unknown): number | null {
 }
 
 async function runProbe(): Promise<BrevoProbe> {
-  const apiKey = process.env.BREVO_API_KEY?.trim();
+  const apiKeys = brevoApiKeys();
   const senderConfigured = Boolean(
     process.env.BREVO_EMAIL_FROM?.trim() || process.env.EMAIL_FROM?.trim(),
   );
   const webhookConfigured = Boolean(process.env.BREVO_WEBHOOK_SECRET?.trim());
   const dailyLimit = configuredDailyLimit();
-  const configured = Boolean(apiKey && senderConfigured && webhookConfigured);
+  const configured = Boolean(
+    apiKeys.length > 0 && senderConfigured && webhookConfigured,
+  );
   const base = {
     configured,
     webhookConfigured,
@@ -55,54 +59,61 @@ async function runProbe(): Promise<BrevoProbe> {
     providerCredits: null,
   };
 
-  if (!apiKey || !senderConfigured || !webhookConfigured) {
+  if (apiKeys.length === 0 || !senderConfigured || !webhookConfigured) {
     return {
       ...base,
       authenticated: false,
-      reason: !apiKey
-        ? "BREVO_API_KEY is not set"
-        : !senderConfigured
-          ? "BREVO_EMAIL_FROM or EMAIL_FROM is not set"
-          : "BREVO_WEBHOOK_SECRET is not set",
+      reason:
+        apiKeys.length === 0
+          ? "BREVO_EMAIL_SEND or BREVO_API_KEY is not set"
+          : !senderConfigured
+            ? "BREVO_EMAIL_FROM or EMAIL_FROM is not set"
+            : "BREVO_WEBHOOK_SECRET is not set",
     };
   }
 
-  let response: Response;
-  try {
-    response = await fetch("https://api.brevo.com/v3/account", {
-      headers: { accept: "application/json", "api-key": apiKey },
-      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
-      cache: "no-store",
-    });
-  } catch {
+  let rejectedStatus: number | null = null;
+  for (const apiKey of apiKeys) {
+    let response: Response;
+    try {
+      response = await fetch("https://api.brevo.com/v3/account", {
+        headers: { accept: "application/json", "api-key": apiKey },
+        signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+        cache: "no-store",
+      });
+    } catch {
+      return {
+        ...base,
+        authenticated: null,
+        reason: "could not reach the Brevo API",
+      };
+    }
+
+    if (response.status === 401 || response.status === 403) {
+      rejectedStatus = response.status;
+      continue;
+    }
+    if (!response.ok) {
+      return {
+        ...base,
+        authenticated: null,
+        reason: `Brevo API returned ${response.status}`,
+      };
+    }
+
+    const payload = await response.json().catch(() => null);
     return {
       ...base,
-      authenticated: null,
-      reason: "could not reach the Brevo API",
+      authenticated: true,
+      providerCredits: sendLimitCredits(payload),
+      reason: null,
     };
   }
 
-  if (response.status === 401 || response.status === 403) {
-    return {
-      ...base,
-      authenticated: false,
-      reason: `BREVO_API_KEY rejected (${response.status}) — rotate or re-set it`,
-    };
-  }
-  if (!response.ok) {
-    return {
-      ...base,
-      authenticated: null,
-      reason: `Brevo API returned ${response.status}`,
-    };
-  }
-
-  const payload = await response.json().catch(() => null);
   return {
     ...base,
-    authenticated: true,
-    providerCredits: sendLimitCredits(payload),
-    reason: null,
+    authenticated: false,
+    reason: `Brevo API credentials rejected (${rejectedStatus ?? "unknown"}) — rotate or re-set them`,
   };
 }
 

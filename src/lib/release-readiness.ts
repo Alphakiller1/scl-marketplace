@@ -66,7 +66,7 @@ export function evaluateReleaseConfiguration(
     isEmailAddress(senderAddress ?? undefined) &&
     !/@scl\.local$/i.test(senderAddress ?? "");
   const campaignEmailConfigured =
-    isConfigured(env.BREVO_API_KEY) &&
+    (isConfigured(env.BREVO_EMAIL_SEND) || isConfigured(env.BREVO_API_KEY)) &&
     isConfigured(env.BREVO_EMAIL_FROM?.trim() || env.EMAIL_FROM?.trim()) &&
     isConfigured(env.BREVO_WEBHOOK_SECRET) &&
     isConfigured(env.CRON_SECRET);
@@ -144,7 +144,7 @@ export function evaluateReleaseConfiguration(
       status: campaignEmailConfigured ? "ready" : "blocked",
       detail: campaignEmailConfigured
         ? "Brevo delivery, webhook tracking, and the scheduled campaign queue are configured."
-        : "Set BREVO_API_KEY, a campaign sender, BREVO_WEBHOOK_SECRET, and CRON_SECRET before campaigns can be queued safely.",
+        : "Set BREVO_EMAIL_SEND (or BREVO_API_KEY), a campaign sender, BREVO_WEBHOOK_SECRET, and CRON_SECRET before campaigns can be queued safely.",
     },
     {
       id: "support-mailbox",
