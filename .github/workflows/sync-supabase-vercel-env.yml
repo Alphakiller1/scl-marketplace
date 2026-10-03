@@ -74,17 +74,21 @@ jobs:
 
           normalize_database_url() {
             local value="$1"
+            local mode="${2:-}"
             if [ -z "$value" ]; then
               return 0
             fi
-            NORMALIZE_SCL_DATABASE_URL="$value" node scripts/normalize-database-url.mjs
+            NORMALIZE_SCL_DATABASE_URL="$value" node scripts/normalize-database-url.mjs $mode
           }
 
           # Prisma must explicitly target the scl schema in both runtime and
           # migration connections. Preserve every credential/query parameter
           # while adding or correcting only the schema parameter.
           DATABASE_URL="$(normalize_database_url "$DATABASE_URL")"
-          DIRECT_URL="$(normalize_database_url "$DIRECT_URL")"
+          # Use Supabase's IPv4-compatible session pooler for migrations. Its
+          # direct db.<ref>.supabase.co endpoint can be IPv6-only and therefore
+          # unreachable from Vercel's build runners.
+          DIRECT_URL="$(normalize_database_url "$DATABASE_URL" --session)"
 
           upsert_env SUPABASE_URL "$SUPABASE_URL"
           upsert_env SUPABASE_SERVICE_ROLE_KEY "$SUPABASE_SERVICE_ROLE_KEY"
