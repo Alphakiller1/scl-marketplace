@@ -72,6 +72,20 @@ jobs:
             printf '%s' "$value" | vercel env add "$key" production --token="$VERCEL_TOKEN"
           }
 
+          normalize_database_url() {
+            local value="$1"
+            if [ -z "$value" ]; then
+              return 0
+            fi
+            NORMALIZE_SCL_DATABASE_URL="$value" node scripts/normalize-database-url.mjs
+          }
+
+          # Prisma must explicitly target the scl schema in both runtime and
+          # migration connections. Preserve every credential/query parameter
+          # while adding or correcting only the schema parameter.
+          DATABASE_URL="$(normalize_database_url "$DATABASE_URL")"
+          DIRECT_URL="$(normalize_database_url "$DIRECT_URL")"
+
           upsert_env SUPABASE_URL "$SUPABASE_URL"
           upsert_env SUPABASE_SERVICE_ROLE_KEY "$SUPABASE_SERVICE_ROLE_KEY"
           upsert_env SUPABASE_PROFILE_MEDIA_BUCKET "$SUPABASE_PROFILE_MEDIA_BUCKET"
