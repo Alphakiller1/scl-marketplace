@@ -50,9 +50,8 @@ function deriveDirectFromPooled(pooledUrl) {
   try {
     const url = new URL(pooledUrl);
     if (url.port === "6543") url.port = "5432";
-    if (url.hostname.includes(".pooler.")) {
-      url.hostname = url.hostname.replace(".pooler.", ".");
-    }
+    // Keep the Supabase pooler host. Port 5432 is session mode and remains
+    // IPv4-compatible; db.<ref>.supabase.co may be IPv6-only on build runners.
     url.searchParams.delete("pgbouncer");
     if (!url.searchParams.has("schema")) {
       url.searchParams.set("schema", "scl");

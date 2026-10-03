@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { withSclSchema } from "./normalize-database-url.mjs";
+import {
+  toSessionDatabaseUrl,
+  withSclSchema,
+} from "./normalize-database-url.mjs";
 
 test("adds schema=scl while preserving pooler parameters", () => {
   assert.equal(
@@ -26,5 +29,21 @@ test("rejects malformed and non-Postgres values", () => {
   assert.throws(
     () => withSclSchema("prisma://accelerate.example/key"),
     /postgres/i,
+  );
+});
+
+test("derives Supabase session-pooler URL for migrations", () => {
+  assert.equal(
+    toSessionDatabaseUrl(
+      "postgresql://postgres.ref:p%40ss@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=5",
+    ),
+    "postgresql://postgres.ref:p%40ss@aws-0-us-east-1.pooler.supabase.com:5432/postgres?connection_limit=5&schema=scl",
+  );
+});
+
+test("leaves non-Supabase hosts unchanged apart from the SCL schema", () => {
+  assert.equal(
+    toSessionDatabaseUrl("postgresql://user:pass@example.com:6543/db"),
+    "postgresql://user:pass@example.com:6543/db?schema=scl",
   );
 });
