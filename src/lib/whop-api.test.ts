@@ -30,14 +30,14 @@ describe("whop api helpers", () => {
     }) as typeof fetch;
 
     try {
-      assert.deepEqual(await listWhopCompanies("token"), [
+      assert.deepEqual(await listWhopCompanies("token", "biz_test"), [
         { id: "biz_test", route: "test-shop" },
       ]);
       assert.deepEqual(await retrieveWhopCompany("token", "biz_test"), {
         id: "biz_test",
         route: "test-shop",
       });
-      assert.match(urls[0]!, /\/accounts\?first=10$/);
+      assert.match(urls[0]!, /\/accounts\?first=50&query=biz_test$/);
       assert.match(urls[1]!, /\/accounts\/biz_test$/);
     } finally {
       globalThis.fetch = originalFetch;
