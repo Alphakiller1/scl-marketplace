@@ -4,6 +4,22 @@
  */
 
 const WHOP_API_BASE = "https://api.whop.com/api/v1";
+// Pin app-management requests to the REST contract SCL was verified against.
+// Without this header Whop may route credentials through an older compatibility
+// layer, which rejects app settings updates with a misleading GraphQL error.
+const WHOP_API_VERSION_DATE = "2026-09-29";
+
+function whopHeaders(
+  accessToken: string,
+  contentType?: "application/json",
+): HeadersInit {
+  return {
+    Authorization: `Bearer ${accessToken}`,
+    Accept: "application/json",
+    "Api-Version-Date": WHOP_API_VERSION_DATE,
+    ...(contentType && { "Content-Type": contentType }),
+  };
+}
 
 /** A real Error so callers and production logs retain Whop's HTTP detail. */
 export class WhopApiError extends Error {
@@ -73,10 +89,7 @@ async function whopFetch<T>(
   }
 
   const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      Accept: "application/json",
-    },
+    headers: whopHeaders(accessToken),
     cache: "no-store",
   });
 
@@ -254,11 +267,7 @@ export async function updateWhopAppRequestedPermissions(input: {
     `${WHOP_API_BASE}/apps/${encodeURIComponent(input.appId)}/permissions`,
     {
       method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${input.accessToken}`,
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
+      headers: whopHeaders(input.accessToken, "application/json"),
       body: JSON.stringify({
         requested_permissions: input.requestedPermissions,
       }),
@@ -306,11 +315,7 @@ export async function mergeWhopAppRedirectUris(input: {
       `${WHOP_API_BASE}/apps/${encodeURIComponent(input.appId)}`,
       {
         method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${input.accessToken}`,
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
+        headers: whopHeaders(input.accessToken, "application/json"),
         body: JSON.stringify({ redirect_uris: merged }),
         cache: "no-store",
       },
@@ -368,10 +373,7 @@ export async function updateWhopProduct(input: {
       `${WHOP_API_BASE}/products/${encodeURIComponent(input.productId)}`,
       {
         method: "PATCH",
-        headers: {
-          authorization: `Bearer ${input.accessToken}`,
-          "content-type": "application/json",
-        },
+        headers: whopHeaders(input.accessToken, "application/json"),
         body: JSON.stringify(input.update),
         cache: "no-store",
       },

@@ -30,8 +30,10 @@ describe("whop api helpers", () => {
   it("sends only fields supported by Whop's product update schema", async () => {
     const originalFetch = globalThis.fetch;
     let body: unknown;
+    let headers = new Headers();
     globalThis.fetch = (async (_input, init) => {
       body = JSON.parse(String(init?.body));
+      headers = new Headers(init?.headers);
       return new Response("{}", { status: 200 });
     }) as typeof fetch;
 
@@ -58,6 +60,7 @@ describe("whop api helpers", () => {
         false,
         "Whop's product update endpoint does not accept metadata",
       );
+      assert.equal(headers.get("api-version-date"), "2026-09-29");
     } finally {
       globalThis.fetch = originalFetch;
     }

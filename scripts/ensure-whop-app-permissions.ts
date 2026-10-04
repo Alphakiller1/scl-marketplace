@@ -10,6 +10,7 @@ import {
   WHOP_PLAN_READ_PERMISSION,
 } from "@/lib/whop-app-permissions";
 import { whopAccountApiKey, whopAppApiKey, whopAppId } from "@/lib/whop-config";
+import { ensureWhopOAuthRedirectRegistered } from "@/lib/whop-oauth-register";
 
 async function main() {
   const appId = whopAppId();
@@ -31,14 +32,18 @@ async function main() {
   );
 
   const failures: string[] = [];
+  let permissionReady = false;
+  let observedRedirectUris: string[] = [];
   for (const credential of credentials) {
     try {
       const app = await retrieveWhopApp(credential.token, appId);
+      observedRedirectUris = app.redirect_uris ?? [];
       if (hasRequiredWhopAppPermission(app.requested_permissions)) {
         console.info(
           `${WHOP_PLAN_READ_PERMISSION} is already a required permission on ${appId}.`,
         );
-        return;
+        permissionReady = true;
+        break;
       }
 
       await updateWhopAppRequestedPermissions({
@@ -57,16 +62,31 @@ async function main() {
       console.info(
         `Added ${WHOP_PLAN_READ_PERMISSION} as a required install permission on ${appId}; existing permissions were preserved.`,
       );
-      return;
+      permissionReady = true;
+      break;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       failures.push(`${credential.kind}: ${message}`);
     }
   }
 
-  throw new Error(
-    `No configured Whop credential could update ${appId}. ${failures.join(" | ")}`,
+  if (!permissionReady) {
+    throw new Error(
+      `No configured Whop credential could update ${appId}. ${failures.join(" | ")}`,
+    );
+  }
+
+  console.info(
+    `Whop currently allows these OAuth callbacks: ${observedRedirectUris.length > 0 ? observedRedirectUris.join(", ") : "(none)"}`,
   );
+
+  const redirectStatus = await ensureWhopOAuthRedirectRegistered();
+  assert.equal(
+    redirectStatus,
+    "ok",
+    "Whop OAuth callback is not registered. WHOP_API_KEY must carry developer:update_app so SCL can repair the app allowlist.",
+  );
+  console.info("SCL's production Whop OAuth callback is registered.");
 }
 
 main().catch((error) => {

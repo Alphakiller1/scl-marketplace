@@ -64,7 +64,7 @@ test("falls back to the account key when the app key cannot update callbacks", a
   ]);
 });
 
-test("stops after the first credential verifies an existing callback", async () => {
+test("the first credential keeps the full callback allowlist registered", async () => {
   configureCredentials();
   const authorizationHeaders: string[] = [];
   globalThis.fetch = async (_input, init) => {
@@ -81,7 +81,7 @@ test("stops after the first credential verifies an existing callback", async () 
     await ensureWhopOAuthRedirectRegistered("https://example.com/callback"),
     "ok",
   );
-  assert.deepEqual(authorizationHeaders, ["Bearer app-key"]);
+  assert.deepEqual(authorizationHeaders, ["Bearer app-key", "Bearer app-key"]);
 });
 
 test("reports missing only after a credential read the allowlist", async () => {
