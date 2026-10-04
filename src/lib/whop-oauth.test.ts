@@ -39,6 +39,10 @@ describe("whop oauth helpers", () => {
       "https://sportscappersleaderboard.com/api/whop/callback",
     );
     assert.equal(parsed.searchParams.get("company_id"), "biz_test123");
+    assert.equal(
+      parsed.searchParams.get("scope"),
+      "openid profile email company:basic:read access_pass:basic:read plan:basic:read",
+    );
   });
 
   it("accepts only Whop business IDs", () => {

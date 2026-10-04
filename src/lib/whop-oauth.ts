@@ -1,7 +1,13 @@
 import { createHash, randomBytes } from "node:crypto";
 
-/** Identity scopes used alongside the app's Whop product permissions. */
-export const WHOP_OAUTH_SCOPES = "openid profile email";
+/**
+ * Identity plus the read-only business scopes required to verify the selected
+ * Whop business and import its storefront catalog. The OAuth grant is scoped
+ * to the explicit `company_id` supplied by the capper, so these permissions do
+ * not expose any of their other businesses.
+ */
+export const WHOP_OAUTH_SCOPES =
+  "openid profile email company:basic:read access_pass:basic:read plan:basic:read";
 
 const WHOP_AUTHORIZE_URL = "https://api.whop.com/oauth/authorize";
 const WHOP_TOKEN_URL = "https://api.whop.com/oauth/token";

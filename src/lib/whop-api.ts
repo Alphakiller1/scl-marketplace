@@ -150,7 +150,7 @@ export async function listWhopProducts(input: {
       "/products",
       input.accessToken,
       {
-        company_id: input.companyId,
+        account_id: input.companyId,
         first: 50,
         after,
       },
@@ -183,7 +183,7 @@ export async function listWhopPlans(input: {
       "/plans",
       input.accessToken,
       {
-        company_id: input.companyId,
+        account_id: input.companyId,
         first: 50,
         after,
       },

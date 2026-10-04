@@ -5,6 +5,7 @@ import {
   buildWhopProductCheckoutUrl,
   listWhopCompanies,
   listWhopPlans,
+  listWhopProducts,
   retrieveWhopCompany,
   updateWhopProduct,
   WhopApiError,
@@ -191,9 +192,29 @@ describe("whop api helpers", () => {
       );
       assert.equal(urls.length, 2);
       assert.match(urls[0]!, /\/api\/v1\/plans\?/);
-      assert.match(urls[0]!, /company_id=biz_test/);
+      assert.match(urls[0]!, /account_id=biz_test/);
       assert.match(urls[0]!, /first=50/);
       assert.match(urls[1]!, /after=cursor-1/);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("uses Whop's current account_id filter for storefront products", async () => {
+    const originalFetch = globalThis.fetch;
+    let requestedUrl = "";
+    globalThis.fetch = (async (input) => {
+      requestedUrl = String(input);
+      return Response.json({ data: [], page_info: { has_next_page: false } });
+    }) as typeof fetch;
+
+    try {
+      await listWhopProducts({
+        accessToken: "test-token",
+        companyId: "biz_test",
+      });
+      assert.match(requestedUrl, /account_id=biz_test/);
+      assert.doesNotMatch(requestedUrl, /company_id=/);
     } finally {
       globalThis.fetch = originalFetch;
     }
