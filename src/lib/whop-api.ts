@@ -108,11 +108,12 @@ async function whopFetch<T>(
 
 export async function listWhopCompanies(
   accessToken: string,
+  query?: string,
 ): Promise<WhopCompanyListItem[]> {
   const res = await whopFetch<WhopListResponse<WhopCompanyListItem>>(
     "/accounts",
     accessToken,
-    { first: 10 },
+    { first: 50, query },
   );
   return res.data ?? [];
 }
