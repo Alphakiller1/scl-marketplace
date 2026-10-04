@@ -41,7 +41,7 @@ describe("whop oauth helpers", () => {
     assert.equal(parsed.searchParams.get("company_id"), "biz_test123");
     assert.equal(
       parsed.searchParams.get("scope"),
-      "openid profile email company:basic:read access_pass:basic:read plan:basic:read",
+      "openid profile email access_pass:basic:read plan:basic:read",
     );
   });
 
