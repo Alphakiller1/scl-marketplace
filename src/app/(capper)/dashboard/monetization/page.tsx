@@ -108,6 +108,7 @@ export default async function MonetizationPage({ searchParams }: Search) {
           status: c.status,
           packageImportStatus: c.packageImportStatus,
           submittedAt: c.submittedAt,
+          whopCompanyId: c.whopCompanyId,
         }))}
         messagesByConnection={serializedMessages}
         activeThreadId={sp.thread ?? null}

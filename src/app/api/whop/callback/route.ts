@@ -13,7 +13,11 @@ import {
   type WhopPkceState,
 } from "@/lib/whop-oauth";
 import { whopOAuthRedirectUri } from "@/lib/whop-oauth-redirect";
-import { listWhopCompanies, listWhopPlans } from "@/lib/whop-api";
+import {
+  listWhopCompanies,
+  listWhopPlans,
+  retrieveWhopCompany,
+} from "@/lib/whop-api";
 import { isWhopPlanReadPermissionError } from "@/lib/whop-app-permissions";
 import { persistWhopOAuthCredentials } from "@/lib/whop-sync";
 import {
@@ -125,7 +129,9 @@ export async function GET(req: NextRequest) {
 
   let companies: Array<{ id: string; route: string }> = [];
   try {
-    companies = await listWhopCompanies(tokens.access_token);
+    companies = pkce.companyId
+      ? [await retrieveWhopCompany(tokens.access_token, pkce.companyId)]
+      : await listWhopCompanies(tokens.access_token);
   } catch (error) {
     console.error("[whop/callback] company lookup failed:", error);
     return NextResponse.redirect(

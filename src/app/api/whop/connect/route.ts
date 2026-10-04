@@ -7,7 +7,11 @@ import {
   serializeWhopPkceCookie,
   whopOAuthCookieDomain,
 } from "@/lib/whop-oauth-cookie";
-import { buildWhopAuthorizeUrl, generatePkceState } from "@/lib/whop-oauth";
+import {
+  buildWhopAuthorizeUrl,
+  generatePkceState,
+  normalizeWhopCompanyId,
+} from "@/lib/whop-oauth";
 import { readWhopAppPermissionReadiness } from "@/lib/whop-app-permissions";
 import { ensureWhopOAuthRedirectRegistered } from "@/lib/whop-oauth-register";
 import { whopOAuthRedirectUri } from "@/lib/whop-oauth-redirect";
@@ -38,6 +42,12 @@ function monetizationRedirect(code: string, origin: string) {
 export async function GET(req: NextRequest) {
   const origin = req.nextUrl.origin;
   const redirectUri = whopOAuthRedirectUri();
+  const companyId = normalizeWhopCompanyId(
+    req.nextUrl.searchParams.get("companyId"),
+  );
+  if (!companyId) {
+    return monetizationRedirect("company-required", origin);
+  }
   if (!whopOAuthConfigured()) {
     return monetizationRedirect("not-configured", origin);
   }
@@ -89,7 +99,7 @@ export async function GET(req: NextRequest) {
     return monetizationRedirect("oauth-misconfigured", origin);
   }
 
-  const pkce = generatePkceState(profile.id, connection.id, origin);
+  const pkce = generatePkceState(profile.id, connection.id, origin, companyId);
   const cookieStore = await cookies();
   const cookieDomain = whopOAuthCookieDomain(origin);
   cookieStore.delete(PKCE_COOKIE);
@@ -106,6 +116,7 @@ export async function GET(req: NextRequest) {
     clientId: appId,
     redirectUri,
     pkce,
+    companyId,
   });
 
   return NextResponse.redirect(authorizeUrl);

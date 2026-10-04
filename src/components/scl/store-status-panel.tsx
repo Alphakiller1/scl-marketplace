@@ -1,9 +1,7 @@
 import type { StoreConnectionStatus, StoreProvider } from "@prisma/client";
-import { ExternalLink } from "lucide-react";
-
 import { ProviderBadge } from "@/components/scl/provider-badge";
 import { StoreStatusChip } from "@/components/scl/store-status-chip";
-import { Button } from "@/components/ui/button";
+import { WhopConnectControls } from "@/components/scl/whop-connect-controls";
 import { isPendingStoreStatus, providerLabel } from "@/lib/store-connection";
 import { cn } from "@/lib/utils";
 
@@ -89,10 +87,12 @@ function messageFor(
 export function StoreStatusPanel({
   provider,
   status,
+  whopCompanyId,
   className,
 }: {
   provider: StoreProvider;
   status: StoreConnectionStatus;
+  whopCompanyId?: string | null;
   className?: string;
 }) {
   const copy = messageFor(provider, status);
@@ -120,15 +120,7 @@ export function StoreStatusPanel({
         {copy.body}
       </p>
       {provider === "WHOP" && status !== "DISABLED" ? (
-        <Button
-          variant="outline"
-          className="mt-3 min-h-10"
-          render={<a href="/api/whop/connect" rel="noreferrer" />}
-          nativeButton={false}
-        >
-          Connect or reconnect Whop API
-          <ExternalLink className="size-4" />
-        </Button>
+        <WhopConnectControls companyId={whopCompanyId} compact />
       ) : null}
       <ol className="mt-4 space-y-2.5">
         {steps.map((step) => (

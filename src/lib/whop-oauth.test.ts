@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   buildWhopAuthorizeUrl,
   generatePkceState,
+  normalizeWhopCompanyId,
   pkceCodeChallenge,
 } from "@/lib/whop-oauth";
 
@@ -22,6 +23,7 @@ describe("whop oauth helpers", () => {
       clientId: "app_test",
       redirectUri: "https://sportscappersleaderboard.com/api/whop/callback",
       pkce,
+      companyId: "biz_test123",
     });
     const parsed = new URL(url);
     assert.equal(parsed.hostname, "api.whop.com");
@@ -36,5 +38,12 @@ describe("whop oauth helpers", () => {
       parsed.searchParams.get("redirect_uri"),
       "https://sportscappersleaderboard.com/api/whop/callback",
     );
+    assert.equal(parsed.searchParams.get("company_id"), "biz_test123");
+  });
+
+  it("accepts only Whop business IDs", () => {
+    assert.equal(normalizeWhopCompanyId(" biz_ABC123 "), "biz_ABC123");
+    assert.equal(normalizeWhopCompanyId("company_ABC123"), null);
+    assert.equal(normalizeWhopCompanyId("biz_bad-value"), null);
   });
 });

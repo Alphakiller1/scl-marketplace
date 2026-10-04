@@ -3,7 +3,9 @@ import { describe, it } from "node:test";
 
 import {
   buildWhopProductCheckoutUrl,
+  listWhopCompanies,
   listWhopPlans,
+  retrieveWhopCompany,
   updateWhopProduct,
   WhopApiError,
 } from "@/lib/whop-api";
@@ -15,6 +17,33 @@ import {
 } from "@/lib/whop-sync";
 
 describe("whop api helpers", () => {
+  it("uses Whop's current accounts endpoints for business discovery", async () => {
+    const originalFetch = globalThis.fetch;
+    const urls: string[] = [];
+    globalThis.fetch = (async (input) => {
+      urls.push(String(input));
+      return Response.json(
+        String(input).includes("/accounts/biz_test")
+          ? { id: "biz_test", route: "test-shop" }
+          : { data: [{ id: "biz_test", route: "test-shop" }] },
+      );
+    }) as typeof fetch;
+
+    try {
+      assert.deepEqual(await listWhopCompanies("token"), [
+        { id: "biz_test", route: "test-shop" },
+      ]);
+      assert.deepEqual(await retrieveWhopCompany("token", "biz_test"), {
+        id: "biz_test",
+        route: "test-shop",
+      });
+      assert.match(urls[0]!, /\/accounts\?first=10$/);
+      assert.match(urls[1]!, /\/accounts\/biz_test$/);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it("builds attributed checkout URLs", () => {
     const url = buildWhopProductCheckoutUrl({
       companyRoute: "pickaxe",

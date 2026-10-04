@@ -186,6 +186,7 @@ export async function syncWhopStorefront(input: {
         refreshToken: connection.whopRefreshToken,
         clientId,
         clientSecret,
+        companyId: connection.whopCompanyId,
       });
       accessToken = refreshed.access_token;
       await prisma.storeConnection.update({

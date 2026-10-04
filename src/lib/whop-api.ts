@@ -110,7 +110,7 @@ export async function listWhopCompanies(
   accessToken: string,
 ): Promise<WhopCompanyListItem[]> {
   const res = await whopFetch<WhopListResponse<WhopCompanyListItem>>(
-    "/companies",
+    "/accounts",
     accessToken,
     { first: 10 },
   );
@@ -122,7 +122,7 @@ export async function retrieveWhopCompany(
   companyId: string,
 ): Promise<WhopCompanyListItem> {
   return whopFetch<WhopCompanyListItem>(
-    `/companies/${encodeURIComponent(companyId)}`,
+    `/accounts/${encodeURIComponent(companyId)}`,
     accessToken,
   );
 }

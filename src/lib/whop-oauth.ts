@@ -12,6 +12,7 @@ export type WhopPkceState = {
   nonce: string;
   capperProfileId: string;
   connectionId: string;
+  companyId?: string;
   returnOrigin?: string;
 };
 
@@ -35,6 +36,7 @@ export function generatePkceState(
   capperProfileId: string,
   connectionId: string,
   returnOrigin?: string,
+  companyId?: string,
 ): WhopPkceState {
   return {
     codeVerifier: base64url(randomBytes(32)),
@@ -42,8 +44,15 @@ export function generatePkceState(
     nonce: base64url(randomBytes(16)),
     capperProfileId,
     connectionId,
+    ...(companyId && { companyId }),
     ...(returnOrigin && { returnOrigin }),
   };
+}
+
+/** Whop business IDs are visible in dashboard URLs as `biz_...`. */
+export function normalizeWhopCompanyId(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed && /^biz_[A-Za-z0-9]+$/.test(trimmed) ? trimmed : null;
 }
 
 export function pkceCodeChallenge(codeVerifier: string): string {
@@ -54,6 +63,7 @@ export function buildWhopAuthorizeUrl(input: {
   clientId: string;
   redirectUri: string;
   pkce: WhopPkceState;
+  companyId?: string;
 }): string {
   const params = new URLSearchParams({
     response_type: "code",
@@ -64,6 +74,7 @@ export function buildWhopAuthorizeUrl(input: {
     nonce: input.pkce.nonce,
     code_challenge: pkceCodeChallenge(input.pkce.codeVerifier),
     code_challenge_method: "S256",
+    ...(input.companyId && { company_id: input.companyId }),
   });
   return `${WHOP_AUTHORIZE_URL}?${params.toString()}`;
 }
@@ -108,6 +119,7 @@ export async function refreshWhopAccessToken(input: {
   refreshToken: string;
   clientId: string;
   clientSecret: string;
+  companyId?: string;
 }): Promise<WhopTokenResponse> {
   const res = await fetch(WHOP_TOKEN_URL, {
     method: "POST",
@@ -117,6 +129,7 @@ export async function refreshWhopAccessToken(input: {
       refresh_token: input.refreshToken,
       client_id: input.clientId,
       client_secret: input.clientSecret,
+      ...(input.companyId && { company_id: input.companyId }),
     }),
   });
 

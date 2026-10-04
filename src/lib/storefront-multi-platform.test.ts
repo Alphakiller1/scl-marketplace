@@ -71,6 +71,10 @@ test("Whop connection copy explains the capper experience", () => {
     path.join(process.cwd(), "src/components/scl/monetization-wizard.tsx"),
     "utf8",
   );
+  const controls = fs.readFileSync(
+    path.join(process.cwd(), "src/components/scl/whop-connect-controls.tsx"),
+    "utf8",
+  );
   assert.match(
     source,
     /Add SCL as an affiliate on \$\{label\}\. After you submit, our team verifies the relationship/,
@@ -80,14 +84,12 @@ test("Whop connection copy explains the capper experience", () => {
     /checkout, subscriptions, and payments stay on \$\{label\}\./,
   );
   assert.match(source, /Continue to Connect Whop/);
-  assert.match(source, /Connect Whop API/);
+  assert.match(source, /WhopConnectControls/);
+  assert.match(controls, /Connect Whop API/);
   assert.match(source, /SCL_WHOP_AFFILIATE_PAGE_URL/);
-  assert.match(source, /href="\/api\/whop\/connect"/);
-  assert.doesNotMatch(
-    source,
-    /href="\/api\/whop\/connect"[\s\S]{0,40}target="_blank"/,
-    "OAuth in a new tab is how iOS showed Whop's raw JSON error",
-  );
+  assert.match(controls, /action="\/api\/whop\/connect"/);
+  assert.match(controls, /href="\/api\/whop\/install"/);
+  assert.match(controls, /name="companyId"/);
   const notice = fs.readFileSync(
     path.join(process.cwd(), "src/components/scl/whop-oauth-notice.tsx"),
     "utf8",
@@ -191,7 +193,7 @@ test("Whop setup instructions focus on the capper workflow", () => {
   assert.match(normalized, /4\. Connect Whop to SCL through the API/);
   assert.match(
     normalized,
-    /This authorizes an API connection; nothing is installed on Whop or your device/,
+    /Install SCL Marketplace on the correct Whop business/,
   );
   assert.match(
     normalized,
@@ -203,7 +205,6 @@ test("Whop setup instructions focus on the capper workflow", () => {
   assert.doesNotMatch(normalized, /Refer Buyers/);
   assert.doesNotMatch(normalized, /optional but recommended/);
   assert.doesNotMatch(normalized, /3\. Use package-specific affiliate links/);
-  assert.doesNotMatch(normalized, /\bapp\b/i);
   assert.doesNotMatch(normalized, /It is read-only/);
 });
 
@@ -245,6 +246,8 @@ test("Whop OAuth callback route exists for storefront connection", () => {
   assert.match(connect, /oauth-misconfigured/);
   assert.match(connect, /serializeWhopPkceCookie/);
   assert.match(connect, /whopOAuthCookieDomain/);
+  assert.match(connect, /normalizeWhopCompanyId/);
+  assert.match(connect, /company-required/);
   assert.match(callback, /whopOAuthRedirectUri/);
   assert.match(callback, /parseWhopPkceCookie/);
   assert.match(callback, /whopOAuthReturnOrigin/);
@@ -255,13 +258,18 @@ test("Whop OAuth callback route exists for storefront connection", () => {
 });
 
 test("existing Whop storefronts can connect or repair their API connection", () => {
-  const source = fs.readFileSync(
+  const statusPanel = fs.readFileSync(
     path.join(process.cwd(), "src/components/scl/store-status-panel.tsx"),
     "utf8",
   );
+  const controls = fs.readFileSync(
+    path.join(process.cwd(), "src/components/scl/whop-connect-controls.tsx"),
+    "utf8",
+  );
 
-  assert.match(source, /provider === "WHOP" && status !== "DISABLED"/);
-  assert.match(source, /href="\/api\/whop\/connect"/);
-  assert.match(source, /Connect or reconnect Whop API/);
-  assert.doesNotMatch(source, /\bSCL app\b/i);
+  assert.match(statusPanel, /provider === "WHOP" && status !== "DISABLED"/);
+  assert.match(statusPanel, /WhopConnectControls/);
+  assert.match(controls, /action="\/api\/whop\/connect"/);
+  assert.match(controls, /href="\/api\/whop\/install"/);
+  assert.match(controls, /name="companyId"/);
 });
