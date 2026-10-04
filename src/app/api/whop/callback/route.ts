@@ -13,7 +13,7 @@ import {
   type WhopPkceState,
 } from "@/lib/whop-oauth";
 import { whopOAuthRedirectUri } from "@/lib/whop-oauth-redirect";
-import { listWhopCompanies, listWhopPlans } from "@/lib/whop-api";
+import { listWhopPlans, retrieveWhopCompany } from "@/lib/whop-api";
 import { isWhopPlanReadPermissionError } from "@/lib/whop-app-permissions";
 import { persistWhopOAuthCredentials } from "@/lib/whop-sync";
 import {
@@ -125,13 +125,19 @@ export async function GET(req: NextRequest) {
 
   let companies: Array<{ id: string; route: string }> = [];
   try {
-    const visibleCompanies = await listWhopCompanies(
+    if (!pkce.companyId) {
+      throw new Error("The OAuth handoff did not include a Whop business ID.");
+    }
+    const company = await retrieveWhopCompany(
       tokens.access_token,
       pkce.companyId,
     );
-    companies = pkce.companyId
-      ? visibleCompanies.filter((company) => company.id === pkce.companyId)
-      : visibleCompanies;
+    if (company.id !== pkce.companyId) {
+      throw new Error(
+        "Whop returned a different business than the one selected.",
+      );
+    }
+    companies = [company];
   } catch (error) {
     console.error("[whop/callback] company lookup failed:", error);
     return NextResponse.redirect(
