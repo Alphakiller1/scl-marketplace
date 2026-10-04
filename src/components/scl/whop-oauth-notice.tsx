@@ -18,6 +18,8 @@ const MESSAGES: Record<string, string> = {
   "state-mismatch": "Whop connection could not be verified. Please try again.",
   "company-missing":
     "Whop connected but no business was returned. Reconnect the Whop API or contact support.",
+  "company-required":
+    "Enter your Whop business ID (biz_...) before connecting the Whop API.",
   "not-configured":
     "Whop connection is temporarily unavailable. Complete the affiliate steps and submit — SCL will review manually.",
   "oauth-misconfigured":

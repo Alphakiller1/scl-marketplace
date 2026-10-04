@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { StoreStatusPanel } from "@/components/scl/store-status-panel";
 import { StorefrontConversationPanel } from "@/components/scl/storefront-conversation-panel";
+import { WhopConnectControls } from "@/components/scl/whop-connect-controls";
 import { ProviderBadge } from "@/components/scl/provider-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -84,7 +85,7 @@ function storefrontConnectionBenefits(provider: StoreProvider): string[] {
 type Conn = Pick<
   StoreConnection,
   "id" | "provider" | "status" | "packageImportStatus" | "submittedAt"
->;
+> & { whopCompanyId?: string | null };
 
 type ThreadMessage = {
   id: string;
@@ -199,6 +200,7 @@ export function MonetizationWizard({
             : "PENDING_SCL_ACCEPTANCE",
         packageImportStatus: "NOT_STARTED",
         submittedAt: new Date(),
+        whopCompanyId: null,
       };
       setConnection(submitted);
       setAllConnections((current) => [
@@ -279,6 +281,7 @@ export function MonetizationWizard({
                 key={item.provider}
                 provider={item.provider}
                 status={item.status}
+                whopCompanyId={item.whopCompanyId}
                 className="h-full"
               />
             ))}
@@ -584,21 +587,14 @@ export function MonetizationWizard({
                     4. Connect Whop to SCL through the API
                   </p>
                   <p className="text-muted-foreground mt-1">
-                    Use the button below from SCL, sign in to the correct Whop
-                    business, and authorize secure API access so SCL can sync
-                    your packages. This authorizes an API connection; nothing is
-                    installed on Whop or your device. Hiding a mapped product on
-                    Whop also takes its SCL offer down. Prices remain controlled
-                    in Whop.
+                    Install SCL Marketplace on the correct Whop business, copy
+                    that business&apos;s ID from its dashboard URL, and
+                    authorize secure API access so SCL can sync your packages.
+                    Nothing is installed on your device. Hiding a mapped product
+                    on Whop also takes its SCL offer down. Prices remain
+                    controlled in Whop.
                   </p>
-                  <Button
-                    variant="outline"
-                    className="mt-2 min-h-10"
-                    render={<a href="/api/whop/connect" />}
-                    nativeButton={false}
-                  >
-                    Connect Whop API
-                  </Button>
+                  <WhopConnectControls />
                 </li>
               </ol>
             </div>
