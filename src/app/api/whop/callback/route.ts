@@ -13,7 +13,7 @@ import {
   type WhopPkceState,
 } from "@/lib/whop-oauth";
 import { whopOAuthRedirectUri } from "@/lib/whop-oauth-redirect";
-import { listWhopPlans, retrieveWhopCompany } from "@/lib/whop-api";
+import { listWhopPlans } from "@/lib/whop-api";
 import { isWhopPlanReadPermissionError } from "@/lib/whop-app-permissions";
 import { persistWhopOAuthCredentials } from "@/lib/whop-sync";
 import {
@@ -123,27 +123,29 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  let companies: Array<{ id: string; route: string }> = [];
-  try {
-    if (!pkce.companyId) {
-      throw new Error("The OAuth handoff did not include a Whop business ID.");
-    }
-    const company = await retrieveWhopCompany(
-      tokens.access_token,
-      pkce.companyId,
-    );
-    if (company.id !== pkce.companyId) {
-      throw new Error(
-        "Whop returned a different business than the one selected.",
-      );
-    }
-    companies = [company];
-  } catch (error) {
-    console.error("[whop/callback] company lookup failed:", error);
+  if (!pkce.companyId) {
     return NextResponse.redirect(
       monetizationUrl(returnOrigin, { whop: "company-missing" }),
     );
   }
+
+  // Whop only mints an account-scoped authorization code when the signed-in
+  // user can authorize the exact `company_id` sent to /oauth/authorize. That
+  // grant is the ownership proof; calling /accounts here would additionally
+  // require financial balance access that storefront sync does not need.
+  const currentConnection = await prisma.storeConnection.findUnique({
+    where: { id: pkce.connectionId },
+    select: { whopCompanyId: true, whopCompanyRoute: true },
+  });
+  const companies: Array<{ id: string; route: string | null }> = [
+    {
+      id: pkce.companyId,
+      route:
+        currentConnection?.whopCompanyId === pkce.companyId
+          ? currentConnection.whopCompanyRoute
+          : null,
+    },
+  ];
 
   const persisted = await persistWhopOAuthCredentials({
     storeConnectionId: pkce.connectionId,

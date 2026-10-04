@@ -47,6 +47,17 @@ export function whopProductDescription(
   return headline || null;
 }
 
+export function whopCompanyRouteFromProducts(
+  products: WhopProductListItem[],
+  companyId: string,
+): string | null {
+  const company = products.find(
+    (product) =>
+      product.company?.id === companyId && product.company.route?.trim(),
+  )?.company;
+  return company?.route?.trim() || null;
+}
+
 /**
  * Whop's list endpoint omits the dashboard-editable rich description. Hydrate
  * that field from product detail in small batches while retaining list data if
@@ -81,6 +92,7 @@ export async function hydrateWhopProductDescriptions(input: {
               ...product,
               description: detail.description,
               headline: detail.headline ?? product.headline,
+              company: detail.company ?? product.company,
             };
           } catch (error) {
             const message =
@@ -144,14 +156,6 @@ export async function syncWhopStorefront(input: {
         "Capper has not connected a Whop business yet. They must authorize the Whop API connection from Dashboard → Storefront.",
     };
   }
-  if (!connection.whopCompanyRoute) {
-    return {
-      ok: false,
-      error:
-        "Whop company route is missing. Ask the capper to reconnect the Whop API.",
-    };
-  }
-
   let accessToken = whopStorefrontApiKey(connection.whopAccessToken);
   if (!accessToken) {
     return {
@@ -226,6 +230,30 @@ export async function syncWhopStorefront(input: {
 
   products = await hydrateWhopProductDescriptions({ accessToken, products });
 
+  let companyRoute =
+    connection.whopCompanyRoute?.trim() ||
+    whopCompanyRouteFromProducts(products, connection.whopCompanyId);
+  if (!companyRoute && products[0]) {
+    try {
+      const detail = await retrieveWhopProduct(accessToken, products[0].id);
+      companyRoute = whopCompanyRouteFromProducts(
+        [detail],
+        connection.whopCompanyId,
+      );
+    } catch (error) {
+      console.warn(
+        `[whop-sync] company route lookup unavailable for ${connection.whopCompanyId}:`,
+        error,
+      );
+    }
+  }
+  if (companyRoute && companyRoute !== connection.whopCompanyRoute) {
+    await prisma.storeConnection.update({
+      where: { id: connection.id },
+      data: { whopCompanyRoute: companyRoute },
+    });
+  }
+
   // Product presentation can still reconcile if the installed app has not yet
   // been re-approved with plan:basic:read. In that case preserve existing SCL
   // prices; new imports use the explicit unknown-price sentinel instead of
@@ -263,6 +291,13 @@ export async function syncWhopStorefront(input: {
         error: "No visible Whop products found for this capper's business.",
       };
     }
+  }
+  if (!companyRoute) {
+    return {
+      ok: false,
+      error:
+        "Whop did not return a public business route for these products. Reconnect the Whop API or contact support.",
+    };
   }
 
   let imported = 0;
@@ -338,7 +373,7 @@ export async function syncWhopStorefront(input: {
       }
 
       const checkoutUrl = buildWhopProductCheckoutUrl({
-        companyRoute: connection.whopCompanyRoute!,
+        companyRoute,
         productRoute: product.route,
         affiliateUsername,
       });
@@ -561,7 +596,7 @@ export async function persistWhopOAuthCredentials(input: {
   accessToken: string;
   refreshToken?: string;
   expiresIn: number;
-  companies: Array<{ id: string; route: string }>;
+  companies: Array<{ id: string; route: string | null }>;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const company = input.companies[0];
   if (!company) {

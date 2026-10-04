@@ -12,6 +12,7 @@ import {
 } from "@/lib/whop-api";
 import {
   hydrateWhopProductDescriptions,
+  whopCompanyRouteFromProducts,
   whopProductDescription,
   whopWebhookCompanyId,
   whopWebhookEventName,
@@ -162,6 +163,44 @@ describe("whop api helpers", () => {
     } finally {
       globalThis.fetch = originalFetch;
     }
+  });
+
+  it("recovers a verified company route from product details", () => {
+    assert.equal(
+      whopCompanyRouteFromProducts(
+        [
+          {
+            id: "prod_test",
+            route: "offer",
+            title: "Offer",
+            company: {
+              id: "biz_test",
+              route: "test-business",
+              title: "Test business",
+            },
+          },
+        ],
+        "biz_test",
+      ),
+      "test-business",
+    );
+    assert.equal(
+      whopCompanyRouteFromProducts(
+        [
+          {
+            id: "prod_test",
+            route: "offer",
+            title: "Offer",
+            company: {
+              id: "biz_other",
+              route: "other-business",
+            },
+          },
+        ],
+        "biz_test",
+      ),
+      null,
+    );
   });
 
   it("lists every Whop plan page for the connected company", async () => {
