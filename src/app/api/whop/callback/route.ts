@@ -107,6 +107,40 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  if (!pkce.companyId) {
+    return NextResponse.redirect(
+      monetizationUrl(returnOrigin, { whop: "company-missing" }),
+    );
+  }
+
+  // The signed PKCE payload identifies both the capper and the exact
+  // StoreConnection that initiated OAuth. Re-check that database relationship
+  // before exchanging or persisting credentials so an authorization can never
+  // be attached to a different capper's storefront.
+  const currentConnection = await prisma.storeConnection.findUnique({
+    where: { id: pkce.connectionId },
+    select: {
+      provider: true,
+      capperId: true,
+      whopCompanyId: true,
+      whopCompanyRoute: true,
+    },
+  });
+  if (
+    !currentConnection ||
+    currentConnection.provider !== "WHOP" ||
+    currentConnection.capperId !== pkce.capperProfileId
+  ) {
+    console.error("[whop/callback] signed connection binding is invalid", {
+      connectionId: pkce.connectionId,
+      capperProfileId: pkce.capperProfileId,
+      connectionFound: Boolean(currentConnection),
+    });
+    return NextResponse.redirect(
+      monetizationUrl(returnOrigin, { whop: "connection-mismatch" }),
+    );
+  }
+
   let tokens;
   try {
     tokens = await exchangeWhopAuthorizationCode({
@@ -123,20 +157,10 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  if (!pkce.companyId) {
-    return NextResponse.redirect(
-      monetizationUrl(returnOrigin, { whop: "company-missing" }),
-    );
-  }
-
   // Whop only mints an account-scoped authorization code when the signed-in
   // user can authorize the exact `company_id` sent to /oauth/authorize. That
   // grant is the ownership proof; calling /accounts here would additionally
   // require financial balance access that storefront sync does not need.
-  const currentConnection = await prisma.storeConnection.findUnique({
-    where: { id: pkce.connectionId },
-    select: { whopCompanyId: true, whopCompanyRoute: true },
-  });
   const companies: Array<{ id: string; route: string | null }> = [
     {
       id: pkce.companyId,

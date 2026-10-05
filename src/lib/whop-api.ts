@@ -45,6 +45,9 @@ export type WhopProductListItem = {
   headline?: string | null;
   description?: string | null;
   visibility?: string | null;
+  /** Current Whop API name for the business that sells this product. */
+  account?: WhopCompanyListItem | null;
+  /** Legacy compatibility name returned by older Whop API versions. */
   company?: WhopCompanyListItem | null;
 };
 

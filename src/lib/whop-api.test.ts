@@ -132,6 +132,10 @@ describe("whop api helpers", () => {
         headline: "Detail headline",
         description: "Dashboard description",
         visibility: "visible",
+        account: {
+          id: "biz_test",
+          route: "current-business",
+        },
       });
     }) as typeof fetch;
 
@@ -156,6 +160,7 @@ describe("whop api helpers", () => {
 
       assert.equal(products[0]?.description, "Dashboard description");
       assert.equal(products[0]?.headline, "Detail headline");
+      assert.equal(products[0]?.account?.route, "current-business");
       assert.equal(products[1]?.description, "Already present");
       assert.deepEqual(urls, [
         "https://api.whop.com/api/v1/products/prod_detail",
@@ -166,6 +171,27 @@ describe("whop api helpers", () => {
   });
 
   it("recovers a verified company route from product details", () => {
+    assert.equal(
+      whopCompanyRouteFromProducts(
+        [
+          {
+            id: "prod_current",
+            route: "current-offer",
+            title: "Current offer",
+            account: {
+              id: "biz_test",
+              route: "current-business",
+              title: "Current business",
+            },
+          },
+        ],
+        "biz_test",
+      ),
+      "current-business",
+    );
+
+    // Preserve older versioned responses while Whop finishes the account-name
+    // migration across every endpoint.
     assert.equal(
       whopCompanyRouteFromProducts(
         [
