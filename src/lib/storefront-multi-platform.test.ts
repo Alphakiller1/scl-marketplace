@@ -75,6 +75,10 @@ test("Whop connection copy explains the capper experience", () => {
     path.join(process.cwd(), "src/components/scl/whop-connect-controls.tsx"),
     "utf8",
   );
+  const notice = fs.readFileSync(
+    path.join(process.cwd(), "src/components/scl/whop-oauth-notice.tsx"),
+    "utf8",
+  );
   assert.match(
     source,
     /Add SCL as an affiliate on \$\{label\}\. After you submit, our team verifies the relationship/,
@@ -90,10 +94,6 @@ test("Whop connection copy explains the capper experience", () => {
   assert.match(controls, /action="\/api\/whop\/connect"/);
   assert.match(controls, /href="\/api\/whop\/install"/);
   assert.match(controls, /name="companyId"/);
-  const notice = fs.readFileSync(
-    path.join(process.cwd(), "src/components/scl/whop-oauth-notice.tsx"),
-    "utf8",
-  );
   assert.match(notice, /oauth-misconfigured/);
   assert.doesNotMatch(notice, /Authorized apps/);
   assert.match(
@@ -254,6 +254,11 @@ test("Whop OAuth callback route exists for storefront connection", () => {
   assert.match(callback, /listWhopPlans/);
   assert.match(callback, /permissions-required/);
   assert.match(callback, /status: "NEEDS_ACTION"/);
+  assert.match(
+    callback,
+    /currentConnection\.capperId !== pkce\.capperProfileId/,
+  );
+  assert.match(callback, /connection-mismatch/);
   assert.doesNotMatch(connect, /\$\{siteUrl\(\)\} \/api\/whop\/callback/);
 });
 
@@ -266,10 +271,15 @@ test("existing Whop storefronts can connect or repair their API connection", () 
     path.join(process.cwd(), "src/components/scl/whop-connect-controls.tsx"),
     "utf8",
   );
+  const notice = fs.readFileSync(
+    path.join(process.cwd(), "src/components/scl/whop-oauth-notice.tsx"),
+    "utf8",
+  );
 
   assert.match(statusPanel, /provider === "WHOP" && status !== "DISABLED"/);
   assert.match(statusPanel, /WhopConnectControls/);
   assert.match(controls, /action="\/api\/whop\/connect"/);
   assert.match(controls, /href="\/api\/whop\/install"/);
   assert.match(controls, /name="companyId"/);
+  assert.match(notice, /"connection-mismatch"/);
 });

@@ -39,6 +39,8 @@ const MESSAGES: Record<string, string> = {
     "Whop returned an incomplete response. Click Connect Whop API to retry.",
   "connection-missing":
     "Your Whop storefront setup was not found. Restart setup from Dashboard → Storefront.",
+  "connection-mismatch":
+    "This Whop authorization belongs to a different SCL storefront session. Sign in to the capper account that owns this storefront, then reconnect Whop.",
 };
 
 export function WhopOAuthNotice() {

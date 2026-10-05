@@ -51,11 +51,16 @@ export function whopCompanyRouteFromProducts(
   products: WhopProductListItem[],
   companyId: string,
 ): string | null {
-  const company = products.find(
-    (product) =>
-      product.company?.id === companyId && product.company.route?.trim(),
-  )?.company;
-  return company?.route?.trim() || null;
+  for (const product of products) {
+    // Whop's current Product schema calls the owning business `account`.
+    // Keep `company` as a legacy fallback so older versioned responses and
+    // existing fixtures continue to reconcile safely during the migration.
+    const business = product.account ?? product.company;
+    if (business?.id === companyId && business.route?.trim()) {
+      return business.route.trim();
+    }
+  }
+  return null;
 }
 
 /**
@@ -92,6 +97,7 @@ export async function hydrateWhopProductDescriptions(input: {
               ...product,
               description: detail.description,
               headline: detail.headline ?? product.headline,
+              account: detail.account ?? product.account,
               company: detail.company ?? product.company,
             };
           } catch (error) {
