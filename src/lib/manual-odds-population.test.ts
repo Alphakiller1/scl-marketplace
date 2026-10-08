@@ -9,6 +9,7 @@ import {
   HARD_MAX_EVENT_BUYS_PER_DAY,
 } from "@/lib/odds-event-buy-budget";
 import {
+  marketsToBuyNow,
   shouldSpendExpandedBuy,
   withinExpandedBuyWindow,
   DEFAULT_EXPANDED_SPORT_ORDER,
@@ -733,5 +734,42 @@ test("NFL sees the whole week, not just today and tomorrow", () => {
   assert.equal(
     isEarlyExpandedEvent("2026-09-20T17:00:00Z", "MLB", +now),
     false,
+  );
+});
+
+test("pulled props do not hold a game's alternate ladders", () => {
+  const now = Date.parse("2026-10-07T23:00:00Z");
+  const commenceTime = "2026-10-11T17:00:00Z";
+  const wanted = [
+    "h2h",
+    "spreads",
+    "totals",
+    "player_pass_yds",
+    "player_rush_yds",
+    "player_reception_yds",
+    "player_anytime_td",
+    "alternate_spreads",
+    "alternate_totals",
+  ];
+  const gameLines = ["h2h", "spreads", "totals", "alternate_spreads"];
+  // Props off the board: the full buy holds, the game lines still buy.
+  assert.deepEqual(
+    marketsToBuyNow({ priced: gameLines, wanted, commenceTime, now }),
+    gameLines,
+  );
+  // No alternate ladder priced: nothing worth a partial buy, keep waiting.
+  assert.deepEqual(
+    marketsToBuyNow({
+      priced: ["h2h", "spreads", "totals"],
+      wanted,
+      commenceTime,
+      now,
+    }),
+    [],
+  );
+  // Full card open: everything priced, as before.
+  assert.deepEqual(
+    marketsToBuyNow({ priced: wanted, wanted, commenceTime, now }),
+    wanted,
   );
 });
