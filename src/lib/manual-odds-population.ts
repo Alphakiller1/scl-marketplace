@@ -263,6 +263,30 @@ export function shouldSpendExpandedBuy(input: {
   return pricedCore.length / wantedCore.length >= EXPANDED_MIN_COVERAGE;
 }
 
+/**
+ * Which priced markets to buy on this pass, or [] to hold.
+ *
+ * The coverage rule counts player props, so a game whose props are pulled
+ * (a questionable QB, say) never reaches two thirds before last call — and its
+ * alternate spread and total ladders, posted with every other game's, were held
+ * with them. On 2026-10-07 Bengals @ Dolphins was the one NFL game of fifteen
+ * with no expanded board, four days out, while books priced its alt lines.
+ *
+ * So when the full buy is held and an alternate game ladder is priced, the game
+ * lines alone are bought. Props still wait for the coverage rule; the merge on
+ * the next buy keeps these rows.
+ */
+export function marketsToBuyNow(input: {
+  priced: readonly string[];
+  wanted: readonly string[];
+  commenceTime: string;
+  now?: number;
+}): string[] {
+  if (shouldSpendExpandedBuy(input)) return [...input.priced];
+  const gameLines = input.priced.filter((key) => !key.startsWith("player_"));
+  return gameLines.some(isAlternate) ? gameLines : [];
+}
+
 /** The Odds API spells alternate ladders both ways depending on the market family. */
 function isAlternate(key: string): boolean {
   return key.startsWith("alternate_") || key.endsWith("_alternate");

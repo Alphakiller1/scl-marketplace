@@ -49,7 +49,7 @@ import {
   type OddsEvent,
   type OddsSelection,
 } from "@/lib/odds-board";
-import { shouldSpendExpandedBuy } from "@/lib/manual-odds-population";
+import { marketsToBuyNow } from "@/lib/manual-odds-population";
 import {
   VERIFY_REGIONS,
   VERIFY_TTL_SECONDS,
@@ -1220,21 +1220,17 @@ export async function fetchEventBoard(
       : defaultExpandedBoardMarkets(sclSport),
   );
   if (wanted.length === 0) return [];
-  const markets = await pricedExpandedMarkets(sclSport, eventId, wanted, opts);
+  const priced = await pricedExpandedMarkets(sclSport, eventId, wanted, opts);
   // Every wanted market read the catalog and none came back: no covered book is
   // pricing this fixture's expanded card. The odds call would bill for all of
   // them and return nothing, so it is not worth making.
+  if (priced.length === 0) return [];
+  // A held buy still takes the priced game lines when an alternate ladder is
+  // open, so pulled props cannot hide a game's alt spreads and totals.
+  const markets = opts?.commenceTime
+    ? marketsToBuyNow({ priced, wanted, commenceTime: opts.commenceTime })
+    : priced;
   if (markets.length === 0) return [];
-  if (
-    opts?.commenceTime &&
-    !shouldSpendExpandedBuy({
-      priced: markets,
-      wanted,
-      commenceTime: opts.commenceTime,
-    })
-  ) {
-    return [];
-  }
   const event = await fetchEventOddsForVerification(sclSport, eventId, {
     ...opts,
     markets,
