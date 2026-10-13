@@ -48,7 +48,8 @@ export type SlipConflictKind =
   | "spread"
   | "total"
   | "team_total"
-  | "player_prop";
+  | "player_prop"
+  | "same_team_ml_spread";
 
 export type SlipConflict = {
   kind: SlipConflictKind;
@@ -150,9 +151,31 @@ export function conflictKey(p: {
   return `${p.eventId}|prop|${p.market}|${p.player ?? ""}`;
 }
 
+const SAME_TEAM_ML_SPREAD_MESSAGE =
+  "A Moneyline and a Spread on the same team can't be in one parlay.";
+
+/**
+ * Owner rule: a parlay may not hold a game Moneyline and a game Spread on the
+ * same team in the same event (e.g. Bengals ML + Bengals -6). Each market has
+ * its own conflict bucket, so this is a cross-bucket check on event + team.
+ * Opposite teams (Bengals ML + Dolphins +6) stay allowed.
+ */
+function isSameTeamMlSpread(
+  a: Pick<SlipPick, "eventId" | "market" | "side">,
+  b: Pick<SlipPick, "eventId" | "market" | "side">,
+): boolean {
+  if (a.eventId !== b.eventId) return false;
+  const pair =
+    (a.market === "Moneyline" && b.market === "Spread") ||
+    (a.market === "Spread" && b.market === "Moneyline");
+  if (!pair) return false;
+  const teamA = a.side.trim().toLowerCase();
+  return teamA !== "" && teamA === b.side.trim().toLowerCase();
+}
+
 function conflictKindFor(
   market: string,
-): Exclude<SlipConflictKind, "duplicate"> {
+): Exclude<SlipConflictKind, "duplicate" | "same_team_ml_spread"> {
   if (market === "Moneyline") return "moneyline";
   if (market === "Spread") return "spread";
   if (market === "Total") return "total";
@@ -161,7 +184,7 @@ function conflictKindFor(
 }
 
 function conflictMessage(
-  kind: Exclude<SlipConflictKind, "duplicate">,
+  kind: Exclude<SlipConflictKind, "duplicate" | "same_team_ml_spread">,
   market: string,
 ): string {
   switch (kind) {
@@ -210,6 +233,18 @@ export function findConflict(
         kind,
         index: i,
         message: conflictMessage(kind, pick.market),
+      };
+    }
+  }
+
+  for (let i = 0; i < existingLegs.length; i++) {
+    const leg = existingLegs[i];
+    if (!leg) continue;
+    if (isSameTeamMlSpread(leg, pick)) {
+      return {
+        kind: "same_team_ml_spread",
+        index: i,
+        message: SAME_TEAM_ML_SPREAD_MESSAGE,
       };
     }
   }
@@ -281,8 +316,10 @@ export function toSlipSelection(
 }
 
 /**
- * Same-market conflicts already present in the slip (for Singles→Parlay mode switch).
- * Returns pairs of indices that share a conflictKey but are not exact duplicates.
+ * Parlay conflicts already present in the slip (Singles→Parlay mode switch, and
+ * the server-side guard in `createParlay`). Returns pairs of indices that share
+ * a conflictKey, or pair a Moneyline with a Spread on the same team, but are not
+ * exact duplicates.
  */
 export function findInternalParlayConflicts(
   selections: readonly SlipPick[],
@@ -293,6 +330,10 @@ export function findInternalParlayConflicts(
       const a = selections[i]!;
       const b = selections[j]!;
       if (pickKey(a) === pickKey(b)) continue;
+      if (isSameTeamMlSpread(a, b)) {
+        out.push({ a: i, b: j, message: SAME_TEAM_ML_SPREAD_MESSAGE });
+        continue;
+      }
       if (conflictKey(a) !== conflictKey(b)) continue;
       const kind = conflictKindFor(b.market);
       out.push({ a: i, b: j, message: conflictMessage(kind, b.market) });
