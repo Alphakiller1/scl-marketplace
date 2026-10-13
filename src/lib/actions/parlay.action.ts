@@ -22,6 +22,7 @@ import {
   type GradeParlayInput,
 } from "@/lib/schemas/parlay.schema";
 import { getCurrentAccount, requireAdmin } from "@/lib/session";
+import { findInternalParlayConflicts } from "@/lib/slip";
 import { lockParlaySettlement } from "@/lib/results/settlement-lock";
 import {
   hasSupermaxForDay,
@@ -62,6 +63,23 @@ export async function createParlay(
         parsed.error.issues[0]?.message ??
         "Please check the form and try again.",
     };
+  }
+
+  // The slip enforces these rules in the browser, but that is not a guard: a
+  // stale tab, a replace that leaves a pair behind, or a direct action call all
+  // reach here. Same rules, re-checked on the server before anything is written.
+  const boundLegs = parsed.data.legs.flatMap((l, index) =>
+    l.eventId && l.side
+      ? [{ index, pick: { ...l, eventId: l.eventId, side: l.side } }]
+      : [],
+  );
+  const [legConflict] = findInternalParlayConflicts(
+    boundLegs.map((b) => b.pick),
+  );
+  if (legConflict) {
+    const a = boundLegs[legConflict.a]!.index + 1;
+    const b = boundLegs[legConflict.b]!.index + 1;
+    return { ok: false, error: `Legs ${a} and ${b}: ${legConflict.message}` };
   }
 
   const profile = await prisma.capperProfile.findUnique({

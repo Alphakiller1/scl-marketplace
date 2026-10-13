@@ -221,22 +221,77 @@ test("mode switch does not flag mixed-sportsbook parlay legs", () => {
   assert.equal(conflicts.length, 0);
 });
 
-test("different market families on same game are allowed", () => {
-  const ml = leg({ market: "Moneyline", side: "Lakers", oddsAmerican: -140 });
+test("Moneyline + Spread on the same team is blocked in a parlay (either order)", () => {
+  const ml = leg({
+    market: "Moneyline",
+    side: "Cincinnati Bengals",
+    oddsAmerican: -345,
+  });
   const spread = leg({
+    market: "Spread",
+    side: "Cincinnati Bengals",
+    line: -6,
+    oddsAmerican: -140,
+  });
+
+  const mlThenSpread = findConflict([ml], spread);
+  assert.ok(mlThenSpread);
+  assert.equal(mlThenSpread.kind, "same_team_ml_spread");
+  assert.equal(mlThenSpread.index, 0);
+  assert.match(mlThenSpread.message, /same team/i);
+
+  assert.equal(findConflict([spread], ml)?.kind, "same_team_ml_spread");
+  assert.equal(canAddLeg([ml], spread), false);
+});
+
+test("same-team ML + Spread match ignores case, whitespace, and book", () => {
+  const ml = leg({ market: "Moneyline", side: "Lakers", book: "draftkings" });
+  const spread = leg({
+    market: "Spread",
+    side: "  lakers ",
+    line: -3.5,
+    book: "fanduel",
+  });
+  assert.equal(canAddLeg([ml], spread), false);
+});
+
+test("ML on one team + Spread on the other team stays allowed", () => {
+  const ml = leg({ market: "Moneyline", side: "Cincinnati Bengals" });
+  const spread = leg({ market: "Spread", side: "Miami Dolphins", line: 6 });
+  assert.equal(canAddLeg([ml], spread), true);
+  assert.equal(findInternalParlayConflicts([ml, spread]).length, 0);
+});
+
+test("same team ML + Spread in different games stays allowed", () => {
+  const ml = leg({ market: "Moneyline", side: "Lakers" });
+  const spread = leg({
+    eventId: "evt-2",
     market: "Spread",
     side: "Lakers",
     line: -3.5,
-    oddsAmerican: -110,
-  });
-  const total = leg({
-    market: "Total",
-    side: "Over",
-    line: 220.5,
-    oddsAmerican: -110,
   });
   assert.equal(canAddLeg([ml], spread), true);
+});
+
+test("Moneyline + Total and Spread + Total on the same game stay allowed", () => {
+  const ml = leg({ market: "Moneyline", side: "Lakers", oddsAmerican: -140 });
+  const spread = leg({ market: "Spread", side: "Celtics", line: 3.5 });
+  const total = leg({ market: "Total", side: "Over", line: 220.5 });
+  assert.equal(canAddLeg([ml], total), true);
   assert.equal(canAddLeg([ml, spread], total), true);
+});
+
+test("findInternalParlayConflicts flags a same-team ML + Spread already on the slip", () => {
+  // The slip from the owner report: Bengals -6 and Bengals ML in one parlay.
+  const conflicts = findInternalParlayConflicts([
+    leg({ market: "Spread", side: "Cincinnati Bengals", line: -6 }),
+    leg({ eventId: "evt-2", market: "Moneyline", side: "Buffalo Bills" }),
+    leg({ market: "Moneyline", side: "Cincinnati Bengals" }),
+  ]);
+  assert.equal(conflicts.length, 1);
+  assert.equal(conflicts[0]!.a, 0);
+  assert.equal(conflicts[0]!.b, 2);
+  assert.match(conflicts[0]!.message, /same team/i);
 });
 
 test("toSlipLeg carries sport + book from the board pick", () => {
