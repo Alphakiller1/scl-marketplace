@@ -165,3 +165,22 @@ test("the grade route serves an external scheduler safely", () => {
     "the token is checked before any work is scheduled",
   );
 });
+
+test("grading runs on the Vercel cron, not only GitHub's throttled schedule", () => {
+  // GitHub fired the 30-minute grade workflow about every five hours, so
+  // finished games sat ungraded for hours. Vercel's scheduler is reliable.
+  const vercel = JSON.parse(
+    fs.readFileSync(path.join(root, "vercel.json"), "utf8"),
+  ) as { crons: { path: string; schedule: string }[] };
+  const grade = vercel.crons.find((c) => c.path.startsWith("/api/cron/grade"));
+  assert.ok(grade, "vercel.json must schedule /api/cron/grade");
+  const minutes = grade.schedule.split(" ")[0]!.split(",");
+  assert.ok(minutes.length >= 2, "grade at least twice an hour");
+
+  // The backup workflow must not fail when the Vercel run holds the lock.
+  const workflow = fs.readFileSync(
+    path.join(root, ".github/workflows/grade-cron.yml"),
+    "utf8",
+  );
+  assert.match(workflow, /"\$code" = "409"/);
+});
