@@ -1,5 +1,5 @@
 import { HonorsSpotlight } from "@/components/scl/honors-spotlight";
-import { HonorCard } from "@/components/scl/honor-card";
+import { HonorAccolade } from "@/components/scl/honor-accolade";
 import {
   ANNUAL_MINIMUM,
   CROSS_SPORTS_MINIMUM,
@@ -125,10 +125,14 @@ export default async function HonorsPage() {
             champions. Season and monthly awards remain in each winner&apos;s
             Trophy Case.
           </p>
-          <ul className="flex flex-wrap gap-2">
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {pastAnnual.map((award) => (
-              <li key={award.id} className="w-full min-w-0 sm:w-auto">
-                <HonorCard award={award} />
+              <li key={award.id} className="min-w-0">
+                <HonorAccolade
+                  award={award}
+                  href={`/honors/${award.id}`}
+                  sizes="(min-width: 1280px) 260px, (min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+                />
               </li>
             ))}
           </ul>

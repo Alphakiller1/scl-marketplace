@@ -724,10 +724,6 @@ export function awardsForCapper(
   return awards.filter((award) => award.winner.id === capperId);
 }
 
-export function honorResultValue(award: HonorAward): number {
-  return award.metric === "units" ? award.winner.units : award.winner.roi;
-}
-
 export type HonorCriteriaRow = {
   sport: string;
   label: string;

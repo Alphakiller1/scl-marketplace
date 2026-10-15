@@ -347,7 +347,9 @@ test("Honors art follows the design spec: no gold, pink conviction marks", async
   const { readFileSync } = await import("node:fs");
   const files = [
     "src/components/scl/honor-icons.tsx",
-    "src/components/scl/honor-trophy-card.tsx",
+    "src/components/scl/honor-accolade.tsx",
+    "src/components/scl/honors-spotlight.tsx",
+    "src/components/scl/trophy-case.tsx",
     "src/components/scl/honor-card.tsx",
     "src/components/scl/honors-showcase.tsx",
     "src/components/scl/leaderboard-ranking-rail.tsx",

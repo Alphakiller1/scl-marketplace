@@ -4,7 +4,10 @@ import { notFound } from "next/navigation";
 import { Download } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { HONOR_OG_VERSION } from "@/lib/og/honor-og-card";
+import {
+  honorGraphicAlt,
+  honorGraphicSrc,
+} from "@/components/scl/honor-accolade";
 import { getHonorAwardById } from "@/lib/queries/honors";
 
 type PageProps = { params: Promise<{ id: string }> };
@@ -19,7 +22,7 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
   const award = await loadAward(params);
   if (!award) return { title: "SCL Honors" };
-  const image = `/api/og/honor/${award.id}?v=${HONOR_OG_VERSION}`;
+  const image = honorGraphicSrc(award);
   const title = `${award.name} — @${award.winner.handle}`;
   return {
     title,
@@ -36,7 +39,7 @@ export async function generateMetadata({
 export default async function ShareableHonorPage({ params }: PageProps) {
   const award = await loadAward(params);
   if (!award) notFound();
-  const image = `/api/og/honor/${award.id}?v=${HONOR_OG_VERSION}`;
+  const image = honorGraphicSrc(award);
   return (
     <main className="mx-auto flex max-w-xl flex-col items-center gap-4 px-4 py-8">
       <h1 className="sr-only">{award.name}</h1>
@@ -46,7 +49,7 @@ export default async function ShareableHonorPage({ params }: PageProps) {
         src={image}
         width={1080}
         height={1350}
-        alt={`${award.name}, awarded to @${award.winner.handle}`}
+        alt={honorGraphicAlt(award)}
         className="border-border aspect-[4/5] h-auto w-full rounded-2xl border shadow-xl"
       />
       <div className="flex flex-wrap justify-center gap-2">
