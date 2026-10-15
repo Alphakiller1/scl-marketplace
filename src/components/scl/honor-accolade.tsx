@@ -1,9 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 
 import { formatRecord, formatRoi, formatUnits } from "@/lib/format";
 import type { HonorAward } from "@/lib/honors";
-import { HONOR_OG_VERSION } from "@/lib/og/honor-og-card";
+import { HONOR_GRAPHIC_WIDTHS, HONOR_OG_VERSION } from "@/lib/og/honor-og-card";
 import { OG } from "@/lib/og/tokens";
 import { cn } from "@/lib/utils";
 
@@ -12,11 +11,20 @@ import { cn } from "@/lib/utils";
  *
  * The owner signed off on this graphic as the way an award looks, so the site
  * shows the same server render people download and post rather than a second
- * drawing of it that could drift. `HONOR_OG_VERSION` busts the CDN and the
- * image optimizer together whenever the art changes.
+ * drawing of it that could drift. `HONOR_OG_VERSION` busts the CDN whenever
+ * the art changes.
  */
 export function honorGraphicSrc(award: Pick<HonorAward, "id">): string {
   return `/api/og/honor/${encodeURIComponent(award.id)}?v=${HONOR_OG_VERSION}`;
+}
+
+/**
+ * Display-sized copies for `srcSet`. The route resizes them itself; next/image
+ * cannot be used here (see `displayWidth` in the route).
+ */
+function honorGraphicSrcSet(award: Pick<HonorAward, "id">): string {
+  const src = honorGraphicSrc(award);
+  return HONOR_GRAPHIC_WIDTHS.map((w) => `${src}&w=${w} ${w}w`).join(", ");
 }
 
 /** Everything the graphic says, for readers who cannot see it. */
@@ -33,8 +41,8 @@ export function honorGraphicAlt(award: HonorAward): string {
 /**
  * One award, rendered as its share graphic and linked.
  *
- * `sizes` must match the width the layout gives the card, so the optimizer
- * serves a sharp rendition without shipping the full 1080×1350 PNG. The dark
+ * `sizes` must match the width the layout gives the card, so the browser picks
+ * a sharp copy without shipping the full 1080×1350 PNG. The dark
  * fill is the graphic's own background: it shows while the image loads, in
  * either site theme, instead of a light flash.
  */
@@ -62,15 +70,19 @@ export function HonorAccolade({
       )}
       style={{ backgroundColor: OG.bg }}
     >
-      <Image
-        src={honorGraphicSrc(award)}
-        alt={honorGraphicAlt(award)}
-        fill
+      {/* Plain img: the route serves its own sized copies (see srcSet). */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={`${honorGraphicSrc(award)}&w=${HONOR_GRAPHIC_WIDTHS[1]}`}
+        srcSet={honorGraphicSrcSet(award)}
         sizes={sizes}
-        quality={90}
+        alt={honorGraphicAlt(award)}
+        width={1080}
+        height={1350}
         loading={eager ? "eager" : "lazy"}
+        decoding="async"
         fetchPriority={eager ? "high" : undefined}
-        className="object-cover transition-transform duration-300 motion-safe:group-hover:scale-[1.015]"
+        className="absolute inset-0 size-full object-cover transition-transform duration-300 motion-safe:group-hover:scale-[1.015]"
       />
     </Link>
   );

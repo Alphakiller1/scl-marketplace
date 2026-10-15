@@ -78,15 +78,6 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
-    // Next 16 refuses a local image with a query string unless a pattern
-    // allows it. The first entry keeps every plain local asset working; the
-    // second lets the Honors graphics carry their `?v=` cache-busting version.
-    localPatterns: [
-      { pathname: "/**", search: "" },
-      { pathname: "/api/og/honor/**" },
-    ],
-    // 90 keeps the small type on the Honors graphics crisp when downscaled.
-    qualities: [75, 90],
     remotePatterns: [
       ...(supabaseImagePatterns() ?? []),
       {
