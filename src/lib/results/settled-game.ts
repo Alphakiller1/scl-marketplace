@@ -105,6 +105,23 @@ const EASTERN_DAY = new Intl.DateTimeFormat("en-CA", {
 });
 
 /**
+ * A club name reduced to the letters every feed agrees on.
+ *
+ * Accents are folded before anything is stripped. ESPN writes "Montreal
+ * Canadiens" and SportsPuff "Montréal Canadiens"; dropping the "é" outright
+ * keyed one "montral" and the other "montreal", so the two copies never
+ * merged. findGame then saw two candidates for every Canadiens game, refused
+ * both, and each play waited for a manual grade.
+ */
+function teamKey(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+/**
  * Keys for one feed's rows: clubs + Eastern calendar day + game number.
  *
  * The Eastern day, not the UTC one: an 8:05pm ET first pitch is 00:05Z the
@@ -123,12 +140,11 @@ const EASTERN_DAY = new Intl.DateTimeFormat("en-CA", {
  * Scores stand in for the day when a provider omits the start time.
  */
 function fixtureKeys(games: readonly SettledGame[]): string[] {
-  const team = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, "");
   const base = games.map((g) =>
     [
       g.sport.toLowerCase(),
-      team(g.home),
-      team(g.away),
+      teamKey(g.home),
+      teamKey(g.away),
       g.startsAt
         ? EASTERN_DAY.format(g.startsAt)
         : `${g.homeScore}-${g.awayScore}`,
@@ -167,8 +183,7 @@ export function espnIdOf(game: SettledGame): string | null {
 
 /** Clubs only — the fixture without the clock the two providers can disagree on. */
 function clubsKey(g: SettledGame): string {
-  const team = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, "");
-  return [g.sport.toLowerCase(), team(g.home), team(g.away)].join("|");
+  return [g.sport.toLowerCase(), teamKey(g.home), teamKey(g.away)].join("|");
 }
 
 const SAME_GAME_HOURS = 12;

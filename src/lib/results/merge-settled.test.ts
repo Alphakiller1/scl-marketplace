@@ -350,3 +350,47 @@ test("two tour cards carrying the same match collapse to one row", () => {
   assert.equal(merged[0]!.eventId, "espn:182660");
   assert.equal(merged[0]!.regulationPeriods, 5);
 });
+
+test("an accented club name merges with its unaccented copy", () => {
+  // ESPN writes "Montreal Canadiens", SportsPuff "Montréal Canadiens". The key
+  // used to strip the "é" and keep the rest ("montral" ≠ "montreal"), so every
+  // Canadiens game sat in the pool twice and findGame refused both copies.
+  // That is why each Canadiens play waited for a manual grade.
+  const at = new Date("2026-10-14T23:30:00Z");
+  const espn = game({
+    sport: "NHL",
+    home: "Washington Capitals",
+    away: "Montreal Canadiens",
+    homeScore: 4,
+    awayScore: 5,
+    eventId: "espn:401892504",
+    startsAt: at,
+  });
+  const sportsPuff = game({
+    sport: "NHL",
+    home: "Washington Capitals",
+    away: "Montréal Canadiens",
+    homeScore: 4,
+    awayScore: 5,
+    eventId: "sportspuff:2026020106",
+    startsAt: at,
+  });
+
+  const merged = mergeSettledGames([espn], [sportsPuff]);
+  assert.equal(merged.length, 1);
+
+  const play: GradablePlay = {
+    id: "p1",
+    sport: "NHL",
+    market: "Moneyline",
+    selection: "Montréal Canadiens",
+    oddsAmerican: 120,
+    units: 1,
+    eventId: "b9b2f0a3c1d24e5f8a7b6c5d4e3f2a1b",
+    eventLabel: "Montréal Canadiens @ Washington Capitals",
+    homeTeam: "Washington Capitals",
+    awayTeam: "Montréal Canadiens",
+    eventStartsAt: new Date("2026-10-14T23:40:00Z"),
+  };
+  assert.equal(findGame(play, merged)?.eventId, "espn:401892504");
+});
