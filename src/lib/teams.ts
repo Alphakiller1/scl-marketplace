@@ -406,7 +406,10 @@ function indexKey(sport: string, value: string): string {
 }
 
 function normalize(value: string): string {
+  // Accents fold first: "Montréal Canadiens" must key like "Montreal".
   return value
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
     .toLowerCase()
     .replace(/&/g, "and")
     .replace(/\bst\.\b/g, "saint")

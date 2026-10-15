@@ -101,3 +101,14 @@ test("readableTextColor chooses a contrasting text color", () => {
   assert.equal(readableTextColor("#ffffff"), "#0b0f19");
   assert.equal(readableTextColor("#000000"), "#ffffff");
 });
+
+test("accents never split a club from its plain spelling", () => {
+  // The registry stores "San José State Spartans"; feeds also write it plain.
+  // The key used to strip the é outright, so the two spellings never met.
+  const accented = resolveKnownTeam("San José State Spartans", "NCAAF");
+  assert.ok(accented);
+  assert.equal(
+    resolveKnownTeam("San Jose State Spartans", "NCAAF")?.key,
+    accented.key,
+  );
+});

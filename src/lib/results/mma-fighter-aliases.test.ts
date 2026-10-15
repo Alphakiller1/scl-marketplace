@@ -17,3 +17,7 @@ test("unknown fighters pass through", () => {
   assert.equal(canonicalMmaFighterName("Vitor Petrino"), "Vitor Petrino");
   assert.deepEqual(mmaFighterAliases("Vitor Petrino"), ["Vitor Petrino"]);
 });
+
+test("accents do not split a fighter from his alias group", () => {
+  assert.ok(mmaFighterAliases("Serghéi Spivac").includes("Sergey Spivak"));
+});

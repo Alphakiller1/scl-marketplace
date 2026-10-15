@@ -12,7 +12,10 @@ const MMA_FIGHTER_NAME_GROUPS: readonly (readonly string[])[] = [
 ];
 
 function fighterKey(name: string): string {
+  // Accents fold first, so "José" and "Jose" are one fighter.
   return name
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "")
     .trim();
