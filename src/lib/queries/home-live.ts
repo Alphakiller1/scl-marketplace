@@ -4,7 +4,7 @@ import type { Outcome } from "@prisma/client";
 
 import { UNIT_MIN } from "@/lib/constants";
 import { etDayBounds } from "@/lib/et-day";
-import { stakeFromStored } from "@/lib/extreme-stake";
+import { EXTREME_STAKE_UNITS, stakeFromStored } from "@/lib/extreme-stake";
 import { prisma } from "@/lib/prisma";
 import { hasQaNoteMarker } from "@/lib/public-eligibility";
 import { prismaExcludeTestHandlesLive } from "@/lib/public-eligibility-prisma";
@@ -156,64 +156,104 @@ export async function getTodaysGradedMoves(
   }
 }
 
-/** Most recent graded straight play for Featured Proof Receipt — null when none. */
-export async function getFeaturedGradedPlay(): Promise<{
+/** How far back the Featured Bet Slip looks for its biggest win. */
+export const FEATURED_WIN_WINDOW_HOURS = 24;
+
+/**
+ * Which play the Featured Bet Slip shows:
+ * - `biggest-win`: the largest unit win graded in the last 24 hours;
+ * - `latest`: no win was graded in that window, so the most recent graded
+ *   pick stands in, and the header says so rather than calling it the biggest.
+ */
+export type FeaturedPlayBasis = "biggest-win" | "latest";
+
+/**
+ * The Featured Bet Slip: the straight play with the most units won among wins
+ * graded in the last 24 hours, else the most recent graded straight play.
+ * `play` is null when nothing qualifies.
+ */
+export async function getFeaturedGradedPlay(now: Date = new Date()): Promise<{
   play: FeaturedGradedPlay | null;
+  basis: FeaturedPlayBasis;
   failed: boolean;
 }> {
   try {
     const clvReady = await hasClvColumns();
     const notesPublicReady = await hasNotesPublicColumn();
     const excludeTest = await prismaExcludeTestHandlesLive();
-    const rows = await prisma.play.findMany({
-      where: {
-        parlayId: null,
-        outcome: { in: GRADED },
-        units: { gte: UNIT_MIN },
-        gradedAt: { not: null },
-        verificationTier: { in: [...BOARD_VERIFIED_TIERS] },
-        capper: {
-          user: {
-            accountStatus: "ACTIVE",
-            username: { not: null },
-            ...excludeTest,
-          },
+    const eligible = {
+      parlayId: null,
+      units: { gte: UNIT_MIN },
+      gradedAt: { not: null },
+      verificationTier: { in: [...BOARD_VERIFIED_TIERS] },
+      capper: {
+        user: {
+          accountStatus: "ACTIVE" as const,
+          username: { not: null },
+          ...excludeTest,
         },
       },
-      orderBy: { gradedAt: "desc" },
-      // Over-fetch so a QA-noted play can't claim the Featured slot.
-      take: 8,
-      select: {
-        id: true,
-        sport: true,
-        league: true,
-        market: true,
-        selection: true,
-        oddsAmerican: true,
-        units: true,
-        outcome: true,
-        profitUnits: true,
-        createdAt: true,
-        verificationTier: true,
-        side: true,
-        eventLabel: true,
-        homeTeam: true,
-        awayTeam: true,
-        eventStartsAt: true,
-        book: true,
-        notes: true,
-        ...(notesPublicReady ? { notesPublic: true } : {}),
-        ...(clvReady ? { closingOddsAmerican: true, clvPts: true } : {}),
-        capper: {
-          select: { user: { select: { username: true } } },
-        },
+    };
+    const select = {
+      id: true,
+      sport: true,
+      league: true,
+      market: true,
+      selection: true,
+      oddsAmerican: true,
+      units: true,
+      outcome: true,
+      profitUnits: true,
+      createdAt: true,
+      verificationTier: true,
+      side: true,
+      eventLabel: true,
+      homeTeam: true,
+      awayTeam: true,
+      eventStartsAt: true,
+      book: true,
+      notes: true,
+      ...(notesPublicReady ? { notesPublic: true } : {}),
+      ...(clvReady ? { closingOddsAmerican: true, clvPts: true } : {}),
+      capper: {
+        select: { user: { select: { username: true } } },
       },
-    });
-
-    const row = rows.find(
-      (r) => r.capper.user.username && !hasQaNoteMarker(r.notes),
+    };
+    const since = new Date(
+      now.getTime() - FEATURED_WIN_WINDOW_HOURS * 60 * 60_000,
     );
-    if (!row?.capper.user.username) return { play: null, failed: false };
+    // Over-fetch so a QA-noted play can't claim the Featured slot.
+    const biggestWins = await prisma.play.findMany({
+      where: {
+        ...eligible,
+        outcome: "WIN",
+        profitUnits: { not: null },
+        gradedAt: { gte: since, lte: now },
+        // A sentinel stake (the 999u import ticket) would top any sort on
+        // units won; its real payout is the capped one shown on the slip.
+        units: { gte: UNIT_MIN, lt: EXTREME_STAKE_UNITS },
+      },
+      orderBy: [{ profitUnits: "desc" }, { gradedAt: "desc" }],
+      take: 8,
+      select,
+    });
+    const isPublic = (r: (typeof biggestWins)[number]) =>
+      Boolean(r.capper.user.username) && !hasQaNoteMarker(r.notes);
+    let basis: FeaturedPlayBasis = "biggest-win";
+    let row = biggestWins.find(isPublic);
+    if (!row) {
+      basis = "latest";
+      const latest = await prisma.play.findMany({
+        where: { ...eligible, outcome: { in: GRADED } },
+        orderBy: { gradedAt: "desc" },
+        take: 8,
+        select,
+      });
+      row = latest.find(isPublic);
+    }
+    if (!row?.capper.user.username) {
+      return { play: null, basis, failed: false };
+    }
 
     const stake = stakeFromStored(row.units, row.profitUnits);
     const play: FeaturedGradedPlay = {
@@ -245,9 +285,9 @@ export async function getFeaturedGradedPlay(): Promise<{
       handle: row.capper.user.username,
     };
 
-    return { play, failed: false };
+    return { play, basis, failed: false };
   } catch (err) {
     console.error("[getFeaturedGradedPlay]", err);
-    return { play: null, failed: true };
+    return { play: null, basis: "latest", failed: true };
   }
 }
