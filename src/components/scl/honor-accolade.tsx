@@ -35,7 +35,7 @@ export function honorGraphicAlt(award: HonorAward): string {
     winner.record.l,
     winner.record.p,
   );
-  return `${award.name}, ${award.periodLabel}: @${winner.handle}. ${formatUnits(winner.units)}, ${record} record, ${formatRoi(winner.roi)} ROI.`;
+  return `${award.name}: @${winner.handle}. ${formatUnits(winner.units)}, ${record} record, ${formatRoi(winner.roi)} ROI.`;
 }
 
 /**
