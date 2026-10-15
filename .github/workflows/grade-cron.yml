@@ -1,7 +1,10 @@
 name: Grade pending picks
 
-# Vercel Hobby only allows one daily cron. This workflow restores the intended
-# ~30m cadence by calling production /api/cron/grade with CRON_SECRET.
+# Grading is DRIVEN by the Vercel cron in vercel.json (every 15 minutes). This
+# workflow is the independent backup and health alarm: GitHub throttles its
+# schedule to roughly one run every few hours (median gap 5h over Oct 2026),
+# which is why it can no longer be the only scheduler. A 409 means the Vercel
+# run is grading right now, so it passes.
 # Secrets: CRON_SECRET, CRON_GRADE_URL (default https://scl-marketplace.vercel.app/api/cron/grade)
 
 on:
@@ -68,6 +71,10 @@ jobs:
           echo '```json' >> "$GITHUB_STEP_SUMMARY"
           cat /tmp/grade.json >> "$GITHUB_STEP_SUMMARY" || true
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$code" = "409" ]; then
+            echo "Another grading run (the Vercel cron) holds the lock; nothing to check."
+            exit 0
+          fi
           test "$code" = "200"
           # HTTP 200 alone hid total grading failure (#133). Fail the job when
           # health is UNHEALTHY or every skip is permanent aged_out with zero grades.
