@@ -1,12 +1,12 @@
 import type { HonorAward } from "@/lib/honors";
 import { HonorScroller } from "@/components/scl/honor-scroller";
-import { HonorTrophyCard } from "@/components/scl/honor-trophy-card";
+import { HonorAccolade } from "@/components/scl/honor-accolade";
 
 /**
  * Every award the capper has won. Annual awards lead — they are the most
  * prestigious — then the rest newest first, so a capper with a long shelf
- * still shows this month's win without scrolling. Each opens the award's
- * 4:5 social graphic.
+ * still shows this month's win without scrolling. Each award is its 4:5 share
+ * graphic and opens the award page, where it can be downloaded.
  */
 export function TrophyCase({ awards }: { awards: HonorAward[] }) {
   if (!awards.length) return null;
@@ -35,11 +35,12 @@ export function TrophyCase({ awards }: { awards: HonorAward[] }) {
       </div>
       <HonorScroller label={`Trophy Case, ${awards.length} awards`}>
         {ordered.map((award) => (
-          <HonorTrophyCard
+          <HonorAccolade
             key={award.id}
             award={award}
-            size="sm"
             href={`/honors/${award.id}`}
+            sizes="(min-width: 640px) 240px, 216px"
+            className="w-[13.5rem] sm:w-60"
           />
         ))}
       </HonorScroller>
