@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { CompetitionHero } from "@/components/scl/competition-hero";
-import { FeaturedProofReceipt } from "@/components/scl/featured-proof-receipt";
+import { FeaturedBetSlip } from "@/components/scl/featured-bet-slip";
 import { HomeVerificationRail } from "@/components/scl/home-verification-rail";
 import { PlatformClvSummary } from "@/components/scl/platform-clv-summary";
 import { SectionHeader } from "@/components/scl/section";
@@ -151,7 +151,11 @@ async function HomeTopBoard() {
           />
         </div>
         <div className="min-w-0 space-y-5 px-3 py-4 sm:space-y-7 sm:px-5 sm:py-6 lg:pl-6">
-          <FeaturedProofReceipt play={featured.play} failed={featured.failed} />
+          <FeaturedBetSlip
+            play={featured.play}
+            basis={featured.basis}
+            failed={featured.failed}
+          />
           <HomeVerificationRail />
         </div>
       </div>

@@ -12,21 +12,34 @@ import {
   pickEventDate,
 } from "@/lib/pick-identity";
 import { deriveProofReceiptState } from "@/lib/proof-receipt";
-import type { FeaturedGradedPlay } from "@/lib/queries/home-live";
+import {
+  FEATURED_WIN_WINDOW_HOURS,
+  type FeaturedGradedPlay,
+  type FeaturedPlayBasis,
+} from "@/lib/queries/home-live";
 import { isVerifiedTier } from "@/lib/verification";
 import { cn } from "@/lib/utils";
 
+const SUBTITLE: Record<FeaturedPlayBasis, string> = {
+  "biggest-win": `The Biggest Unit Win Graded In The Last ${FEATURED_WIN_WINDOW_HOURS} Hours.`,
+  latest: `No Win Graded In The Last ${FEATURED_WIN_WINDOW_HOURS} Hours — The Most Recent Graded Pick.`,
+};
+
 /**
- * Homepage Featured Proof Receipt — warm expanded-paper artifact.
- * Pink verification stamp stays dominant over settlement result.
+ * Homepage Featured Bet Slip — warm expanded-paper artifact showing the
+ * biggest unit win of the last 24 hours. Pink verification stamp stays
+ * dominant over settlement result.
  */
-export function FeaturedProofReceipt({
+export function FeaturedBetSlip({
   play,
+  basis,
   failed = false,
   hideHeader = false,
   className,
 }: {
   play: FeaturedGradedPlay | null;
+  /** Why this play was chosen; the subtitle never overclaims. */
+  basis: FeaturedPlayBasis;
   failed?: boolean;
   /** When true, hide the section header (legacy collage prop — unused on home). */
   hideHeader?: boolean;
@@ -35,16 +48,16 @@ export function FeaturedProofReceipt({
   return (
     <section
       className={cn("space-y-3 sm:space-y-5", className)}
-      aria-label="Featured Proof Receipt"
+      aria-label="Featured Bet Slip"
     >
       {hideHeader ? null : (
         <div className="flex flex-wrap items-end justify-between gap-2.5 sm:gap-4">
           <div className="scl-section-mark min-w-0">
             <h2 className="scl-display text-[1.25rem] leading-7 font-semibold tracking-[0.02em] normal-case sm:text-[1.375rem]">
-              Featured Proof Receipt
+              Featured Bet Slip
             </h2>
             <p className="text-muted-foreground mt-1 text-xs leading-snug sm:mt-1.5 sm:text-sm sm:leading-relaxed">
-              An Inspectable Receipt For A Recent Graded Pick.
+              {SUBTITLE[basis]}
             </p>
           </div>
           {play ? (
@@ -65,23 +78,25 @@ export function FeaturedProofReceipt({
             className="rounded-[var(--scl-radius-receipt)] border-0 bg-transparent py-5 shadow-none sm:py-6"
             icon={Receipt}
             title={
-              failed ? "Couldn't Load Featured Proof" : "No Graded Receipts Yet"
+              failed
+                ? "Couldn't Load Featured Bet Slip"
+                : "No Graded Bet Slips Yet"
             }
             description={
               failed
                 ? "Try Again Shortly."
-                : "A Proof Receipt Appears Here After An Odds-Verified Pick Is Graded."
+                : "A Bet Slip Appears Here After An Odds-Verified Pick Is Graded."
             }
           />
         </div>
       ) : (
-        <FeaturedReceiptBody play={play} />
+        <FeaturedBetSlipBody play={play} />
       )}
     </section>
   );
 }
 
-function FeaturedReceiptBody({ play }: { play: FeaturedGradedPlay }) {
+function FeaturedBetSlipBody({ play }: { play: FeaturedGradedPlay }) {
   const state = deriveProofReceiptState({
     outcome: play.outcome,
     eventStartsAt: play.eventStartsAt,

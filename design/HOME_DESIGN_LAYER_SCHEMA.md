@@ -39,7 +39,7 @@ Otherwise render `WhatChangedToday` (including its empty open line).
 
 ```
 ┌───────────────────────────────┬────────────────────────────┐
-│ Top Cappers (RankBoardTable   │ Featured Proof Receipt     │
+│ Top Cappers (RankBoardTable   │ Featured Bet Slip          │
 │   density=live)               │ Warm paper artifact        │
 │ sort: verified share → units  │ + verification context     │
 │ window chips → /leaderboard   │                            │
@@ -50,12 +50,12 @@ Otherwise render `WhatChangedToday` (including its empty open line).
 
 ## Density models (do not cross)
 
-| Surface          | Model                                  | Component                                      | Forbidden                                         |
-| ---------------- | -------------------------------------- | ---------------------------------------------- | ------------------------------------------------- |
-| Hero Live board  | Rank-schema table, snapshot density    | `RankBoardTable` via `LiveBoardShell`          | CompactCapperRow / soft cards / overlapping proof |
-| Under-hero strip | Horizontal ticker chips (`h-8`/`px-2`) | `LiveActivityTicker` → else `WhatChangedToday` | Dual strips / tall headed list / second board     |
-| Top Cappers      | Rank-schema table, live density        | `RankBoardTable` via `TopCappersLive`          | Soft avatar list / private table dialect          |
-| Featured Proof   | Ticket paper receipt                   | `FeaturedProofReceipt`                         | Soft empty card wall without paper shell          |
+| Surface           | Model                                  | Component                                      | Forbidden                                         |
+| ----------------- | -------------------------------------- | ---------------------------------------------- | ------------------------------------------------- |
+| Hero Live board   | Rank-schema table, snapshot density    | `RankBoardTable` via `LiveBoardShell`          | CompactCapperRow / soft cards / overlapping proof |
+| Under-hero strip  | Horizontal ticker chips (`h-8`/`px-2`) | `LiveActivityTicker` → else `WhatChangedToday` | Dual strips / tall headed list / second board     |
+| Top Cappers       | Rank-schema table, live density        | `RankBoardTable` via `TopCappersLive`          | Soft avatar list / private table dialect          |
+| Featured Bet Slip | Ticket paper receipt: biggest 24h win  | `FeaturedBetSlip`                              | Soft empty card wall without paper shell          |
 
 **One Rank body.** Hero snapshot and Top Cappers share `RankBoardTable` — do not fork column markup.
 
