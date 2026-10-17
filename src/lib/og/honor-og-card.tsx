@@ -6,20 +6,17 @@ import {
 } from "@/components/scl/honor-icons";
 import { formatRecord, formatRoi, formatUnits } from "@/lib/format";
 import { ALL_SPORTS, SUPERMAX, type HonorAward } from "@/lib/honors";
-import { HonorNeonStage, NeonTrophy } from "@/lib/og/honor-neon-trophy";
 import { OG } from "@/lib/og/tokens";
 import { CROSS_SPORTS } from "@/lib/parlay-sport";
 
 export const HONOR_OG_SIZE = { width: 1080, height: 1350 } as const;
-export const HONOR_OG_VERSION = "20260930b";
+export const HONOR_OG_VERSION = "20261017a";
 /** Display widths `/api/og/honor/[id]?w=` serves for on-site cards. */
 export const HONOR_GRAPHIC_WIDTHS = [360, 540, 720] as const;
 
 const PINK = "#D000A0";
 const PINK_BRIGHT = "#FF65CB";
 const PINK_INK = "#FFF3FC";
-const BLUE = "#1688FF";
-const PURPLE = "#7B2BFF";
 const EMBLEM_BG = "#111A2A";
 
 function titleLines(award: HonorAward): [string, string] {
@@ -179,9 +176,12 @@ function handleSize(handle: string): number {
 export function HonorOgCard({
   award,
   host,
+  plate,
 }: {
   award: HonorAward;
   host: string;
+  /** Background artwork as a data URL — see `loadHonorPlate`. */
+  plate: string;
 }) {
   const [line1, line2] = titleLines(award);
   const { winner } = award;
@@ -195,7 +195,7 @@ export function HonorOgCard({
         flexDirection: "column",
         alignItems: "center",
         overflow: "hidden",
-        padding: "48px 64px 38px",
+        padding: "80px 64px 38px",
         color: OG.text,
         fontFamily: "Barlow Condensed",
         backgroundColor: OG.bg,
@@ -204,33 +204,16 @@ export function HonorOgCard({
         borderTop: `10px solid ${PINK}`,
       }}
     >
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "flex",
-        }}
-      >
-        <HonorNeonStage />
-      </div>
-
-      <div
-        style={{
-          position: "absolute",
-          top: 358,
-          left: 70,
-          display: "flex",
-        }}
-      >
-        <NeonTrophy
-          width={940}
-          height={590}
-          blue={BLUE}
-          purple={PURPLE}
-          pink={PINK_BRIGHT}
-          core={PINK_INK}
-        />
-      </div>
+      {/* The owner's neon trophy and stage artwork (text removed), laid out
+          so the emblem sits in the cup and the stats sit above the stage. */}
+      {/* eslint-disable-next-line @next/next/no-img-element -- next/og renders plain img */}
+      <img
+        src={plate}
+        alt=""
+        width={HONOR_OG_SIZE.width}
+        height={HONOR_OG_SIZE.height - 10}
+        style={{ position: "absolute", top: 0, left: 0 }}
+      />
 
       <div
         style={{
@@ -308,7 +291,7 @@ export function HonorOgCard({
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          marginTop: 34,
+          marginTop: 30,
         }}
       >
         <Emblem award={award} />
@@ -334,7 +317,7 @@ export function HonorOgCard({
 
       <span
         style={{
-          marginTop: 30,
+          marginTop: 20,
           maxWidth: 950,
           overflow: "hidden",
           padding: "5px 22px 8px",
