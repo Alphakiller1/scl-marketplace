@@ -1,3 +1,6 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+
 import { ImageResponse } from "next/og";
 import sharp from "sharp";
 
@@ -23,6 +26,16 @@ async function font(url: string) {
   return res.arrayBuffer();
 }
 
+// The owner's neon trophy artwork with its text removed, 1080×1340 (the card
+// minus its 10px top border). Traced into this function in next.config.ts.
+let plate: Promise<string> | null = null;
+function loadHonorPlate(): Promise<string> {
+  plate ??= readFile(
+    join(process.cwd(), "data", "og", "honor-neon-plate.jpg"),
+  ).then((buf) => `data:image/jpeg;base64,${buf.toString("base64")}`);
+  return plate;
+}
+
 type RouteParams = { params: Promise<{ id: string }> };
 
 /**
@@ -43,17 +56,18 @@ function displayWidth(params: URLSearchParams): number | null {
 /** 1080×1350 (4:5) share graphic for one SCL Honors award. */
 export async function GET(req: Request, { params }: RouteParams) {
   const { id } = await params;
-  const [award, barlow, inter] = await Promise.all([
+  const [award, barlow, inter, background] = await Promise.all([
     getHonorAwardById(decodeURIComponent(id)),
     font(FONT_BARLOW),
     font(FONT_INTER),
+    loadHonorPlate(),
   ]);
   if (!award) return new Response("Award not found", { status: 404 });
 
   const search = new URL(req.url).searchParams;
   const download = search.has("download");
   const image = new ImageResponse(
-    <HonorOgCard award={award} host={SCL_PUBLIC_DOMAIN} />,
+    <HonorOgCard award={award} host={SCL_PUBLIC_DOMAIN} plate={background} />,
     {
       ...HONOR_OG_SIZE,
       emoji: "twemoji",
@@ -78,8 +92,16 @@ export async function GET(req: Request, { params }: RouteParams) {
   );
 
   const width = download ? null : displayWidth(search);
-  if (width == null) return image;
   const png = Buffer.from(await image.arrayBuffer());
+  if (width == null) {
+    // Still a PNG (the download and the award page's img), but quantized:
+    // the photographic neon plate makes Satori's PNG ~1.9 MB, and a dithered
+    // 256-colour copy is ~440 KB with no visible banding (PSNR ~40 dB).
+    const small = await sharp(png)
+      .png({ palette: true, quality: 100, dither: 1, effort: 8 })
+      .toBuffer();
+    return new Response(new Uint8Array(small), { headers: image.headers });
+  }
   const webp = await sharp(png)
     .resize({ width, kernel: "lanczos3" })
     .webp({ quality: 88, smartSubsample: true })
