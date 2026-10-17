@@ -10,7 +10,7 @@ import { OG } from "@/lib/og/tokens";
 import { CROSS_SPORTS } from "@/lib/parlay-sport";
 
 export const HONOR_OG_SIZE = { width: 1080, height: 1350 } as const;
-export const HONOR_OG_VERSION = "20261017b";
+export const HONOR_OG_VERSION = "20261017c";
 /** Display widths `/api/og/honor/[id]?w=` serves for on-site cards. */
 export const HONOR_GRAPHIC_WIDTHS = [360, 540, 720] as const;
 
@@ -78,10 +78,34 @@ function ribbon(award: HonorAward): string {
   return `${award.sport === CROSS_SPORTS ? "Cross-Sports" : award.sportLabel} · ${award.periodLabel}`;
 }
 
+/**
+ * Lucide Link, pink like the annual marks. The 🔗 emoji is mid-grey and all
+ * but vanished on the dark emblem.
+ */
+function CrossSportsMark({ size }: { size: number }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      fill="none"
+      stroke={PINK_BRIGHT}
+      strokeWidth={2.25}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+  );
+}
+
 function Emblem({ award }: { award: HonorAward }) {
   const glyph =
     award.sport === ALL_SPORTS ? (
       <AnnualMark metric={award.metric} size={160} color={PINK_BRIGHT} />
+    ) : award.sport === CROSS_SPORTS ? (
+      <CrossSportsMark size={156} />
     ) : award.sport === "NCAAF" ? (
       <HelmetIcon size={164} />
     ) : award.sport === "NCAAB" ? (
