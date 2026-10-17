@@ -92,8 +92,16 @@ export async function GET(req: Request, { params }: RouteParams) {
   );
 
   const width = download ? null : displayWidth(search);
-  if (width == null) return image;
   const png = Buffer.from(await image.arrayBuffer());
+  if (width == null) {
+    // Still a PNG (the download and the award page's img), but quantized:
+    // the photographic neon plate makes Satori's PNG ~1.9 MB, and a dithered
+    // 256-colour copy is ~440 KB with no visible banding (PSNR ~40 dB).
+    const small = await sharp(png)
+      .png({ palette: true, quality: 100, dither: 1, effort: 8 })
+      .toBuffer();
+    return new Response(new Uint8Array(small), { headers: image.headers });
+  }
   const webp = await sharp(png)
     .resize({ width, kernel: "lanczos3" })
     .webp({ quality: 88, smartSubsample: true })
