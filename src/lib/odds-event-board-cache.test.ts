@@ -33,6 +33,7 @@ test("accepts a populated last-good event board for the exact event", () => {
     ...snapshot,
     buys: [],
     topUps: [],
+    propTopUps: [],
   });
 });
 

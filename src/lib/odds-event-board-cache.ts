@@ -58,6 +58,8 @@ export type CachedEventBoard = {
   buysToday: number;
   /** Team-total top-up attempts logged for this event (see `nextTopUpAt`). */
   topUps: number[];
+  /** Late player-prop top-ups logged for this event (see `latePropTopUpAt`). */
+  propTopUps: number[];
 };
 
 const inFlight = new Map<string, Promise<LoadedEventBoard>>();
@@ -99,7 +101,11 @@ async function writeSnapshot(
   eventId: string,
   selections: OddsSelection[],
   buys: readonly number[] = [],
-  options: { savedAt?: number; topUps?: readonly number[] } = {},
+  options: {
+    savedAt?: number;
+    topUps?: readonly number[];
+    propTopUps?: readonly number[];
+  } = {},
 ): Promise<EventBoardSnapshot> {
   const snapshot: EventBoardSnapshot = {
     version: 1,
@@ -109,6 +115,7 @@ async function writeSnapshot(
     savedAt: options.savedAt ?? Date.now(),
     buys: [...buys],
     topUps: [...(options.topUps ?? [])],
+    propTopUps: [...(options.propTopUps ?? [])],
   };
   await writeDurableOddsSnapshot(
     cacheKey(sport, eventId),
@@ -173,6 +180,7 @@ export async function loadCachedEventBoard(
       buysRemaining: resolveEventBuyLimit(dailyBuyLimit),
       buysToday: 0,
       topUps: [],
+      propTopUps: [],
     };
   }
   const stale = Date.now() - cached.savedAt > ODDS_EVENT_FRESH_SECONDS * 1_000;
@@ -184,6 +192,7 @@ export async function loadCachedEventBoard(
     buysRemaining: remainingEventBuys(cached.buys, Date.now(), dailyBuyLimit),
     buysToday: buysInBuyDay(cached.buys, Date.now()).length,
     topUps: cached.topUps ?? [],
+    propTopUps: cached.propTopUps ?? [],
   };
 }
 
@@ -224,7 +233,10 @@ async function refreshEventBoard(
       eventId,
       merged,
       recordEventBuy(cached?.buys, boughtAt),
-      { topUps: cached?.topUps ?? [] },
+      {
+        topUps: cached?.topUps ?? [],
+        propTopUps: cached?.propTopUps ?? [],
+      },
     );
     return {
       selections: merged,
@@ -388,7 +400,16 @@ export type EventBoardTopUp = {
 export async function topUpEventBoard(
   sport: string,
   eventId: string,
-  options: { league?: string | null; markets: readonly string[] },
+  options: {
+    league?: string | null;
+    markets: readonly string[];
+    /**
+     * Which attempt log this ask is charged to. Ladder asks (the default) space
+     * and cap against `topUps`; a late prop ask is logged in `propTopUps`. A
+     * combined ask logs both.
+     */
+    log?: { ladder?: boolean; props?: boolean };
+  },
 ): Promise<EventBoardTopUp> {
   const normalizedSport = sport.toUpperCase();
   const cached = await readSnapshot(normalizedSport, eventId);
@@ -425,9 +446,16 @@ export async function topUpEventBoard(
     (bookSlots(selections) - bookSlots(cached.selections));
   // Written even when nothing was added: the attempt is what spaces and caps
   // the next one.
+  const logLadder = options.log?.ladder ?? true;
+  const logProps = options.log?.props ?? false;
   await writeSnapshot(normalizedSport, eventId, selections, cached.buys ?? [], {
     savedAt: cached.savedAt + 1,
-    topUps: recordTopUp(cached.topUps, attemptedAt),
+    topUps: logLadder
+      ? recordTopUp(cached.topUps, attemptedAt)
+      : (cached.topUps ?? []),
+    propTopUps: logProps
+      ? recordTopUp(cached.propTopUps, attemptedAt)
+      : (cached.propTopUps ?? []),
   });
   return {
     added,
