@@ -25,6 +25,12 @@ export type EventBoardSnapshot = {
    * pitch. Optional for the same reason `buys` is.
    */
   topUps?: number[];
+  /**
+   * Epoch millis of each late player-prop top-up (see `latePropTopUpAt`).
+   * Kept apart from `topUps` so the prop ask neither spends nor is starved by
+   * the ladder's last-call allowance.
+   */
+  propTopUps?: number[];
 };
 
 function selectionIdentity(selection: OddsSelection): string {
@@ -147,6 +153,7 @@ export function parseEventBoardSnapshot(
     ...snapshot,
     buys: finiteTimes(row.buys),
     topUps: finiteTimes(row.topUps),
+    propTopUps: finiteTimes(row.propTopUps),
   };
 }
 

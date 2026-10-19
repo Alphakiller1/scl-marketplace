@@ -228,3 +228,40 @@ export function recordTopUp(
 ): number[] {
   return [...buysInBuyDay(topUps, now), now];
 }
+
+/**
+ * Sports whose player-prop card is re-asked once before kickoff.
+ *
+ * A football board is bought once, hours before a night kickoff, and books
+ * fill the card in late: on 2026-10-19 the MNF board was bought at 11:30 ET
+ * with Receptions for eight receivers, and Austin Ekeler's receptions line —
+ * posted that afternoon — never reached the board. Market coverage cannot see
+ * that gap: Receptions was already "covered", just not for him. So the gap is
+ * closed by asking for the prop keys once more inside the last-call window and
+ * adding whatever players and books arrived, without repricing a line the
+ * board already holds.
+ *
+ * Football only: one ask is ~19 credits a game, which an NFL slate absorbs.
+ * MLB's prop card is twice as wide across three times the games, so it is not
+ * opted in here.
+ */
+export const LATE_PROP_TOP_UP_SPORTS: ReadonlySet<string> = new Set(["NFL"]);
+
+/**
+ * When this game's late prop top-up is due: the moment the last-call window
+ * opens, now if it is already open and unasked, or null once it has been asked
+ * inside the window, the game has started, or the kickoff is unknown.
+ */
+export function latePropTopUpAt(
+  propTopUps: readonly number[] | undefined,
+  now: number = Date.now(),
+  commenceTime?: string | null,
+): number | null {
+  const kickoff = commenceTime ? Date.parse(commenceTime) : Number.NaN;
+  if (!Number.isFinite(kickoff) || now >= kickoff) return null;
+  const windowStart = kickoff - TOPUP_LAST_CALL_HOURS * 3_600_000;
+  if ((propTopUps ?? []).some((at) => at >= windowStart && at < kickoff)) {
+    return null;
+  }
+  return Math.max(now, windowStart);
+}

@@ -63,6 +63,8 @@ import {
 import { loadLeagueBuyLimits } from "@/lib/odds-league-buy-limits";
 import {
   HARD_MAX_EVENT_BUYS_PER_DAY,
+  LATE_PROP_TOP_UP_SPORTS,
+  latePropTopUpAt,
   nextTopUpAt,
 } from "@/lib/odds-event-buy-budget";
 import { ALTERNATE_TEAM_TOTAL_MARKET_KEY } from "@/lib/team-total-markets";
@@ -73,7 +75,10 @@ const LADDER_TOP_UP_MARKETS = [
   "alternate_spreads",
   "alternate_totals",
 ] as const;
-import { withFeaturedGameLineCompanions } from "@/lib/odds-verify";
+import {
+  propMarketLabel,
+  withFeaturedGameLineCompanions,
+} from "@/lib/odds-verify";
 
 export const maxDuration = 300;
 
@@ -442,6 +447,60 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
         });
         const boardCapped =
           !ignoreBuyCap && !bypassBuyCap && cached.buysRemaining <= 0;
+        // Player props posted after the day's buy. Coverage is per market, so a
+        // late line for a player on a market the board already carries is
+        // invisible to it — Ekeler's receptions on the 2026-10-19 MNF board.
+        // A board that will not be rebought this pass gets the prop keys asked
+        // once more in the last-call window; anything new is added, nothing on
+        // the board is repriced. A ladder ask that is also due rides along.
+        const latePropMarkets =
+          !teamTotalTopUpOnly &&
+          cached.savedAt != null &&
+          LATE_PROP_TOP_UP_SPORTS.has(sport)
+            ? sportMarkets.filter((key) => propMarketLabel(key) !== undefined)
+            : [];
+        const propDueAt = latePropMarkets.length
+          ? latePropTopUpAt(cached.propTopUps, Date.now(), event.commenceTime)
+          : null;
+        const wontRebuy =
+          boardCapped ||
+          (skipPopulated &&
+            canSkipExpandedEvent(
+              coverage.fullyCovered,
+              cached.savedAt,
+              expandedMaxAgeMinutes,
+            ));
+        if (propDueAt != null && propDueAt <= Date.now() && wontRebuy) {
+          const ladderDueAt = topUpMarkets?.length
+            ? nextTopUpAt(cached.topUps, Date.now(), event.commenceTime)
+            : null;
+          const ladderDue = ladderDueAt != null && ladderDueAt <= Date.now();
+          const markets = [
+            ...latePropMarkets,
+            ...(ladderDue ? (topUpMarkets ?? []) : []),
+          ];
+          if (
+            shouldHoldCreditsForLater(
+              getLastOddsApiRemaining(),
+              markets.length,
+              laterCredits,
+              MIN_CIRCUIT_BREAK_RESERVE,
+            )
+          ) {
+            held += 1;
+            continue;
+          }
+          const topUp = await topUpEventBoard(sport, event.id, {
+            league: event.league,
+            markets,
+            log: { ladder: ladderDue, props: true },
+          });
+          topUpAttempts += 1;
+          if (topUp.added > 0) toppedUp += 1;
+          populated += 1;
+          selections += topUp.selections;
+          continue;
+        }
         // A capped board is included deliberately: it cannot be rebought today,
         // so a top-up is the only thing that can still fill it — and without an
         // attempt logged, the catch-up scheduler would wake a pass every half
@@ -661,6 +720,27 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
           ladderRetryAt == null ? retryAt : Math.min(ladderRetryAt, retryAt);
       }
     }
+    // Boards still owed their late prop ask, so a managed schedule wakes a
+    // pass inside the last-call window instead of waiting for the next slot.
+    let propRetryAt: number | null = null;
+    if (
+      LATE_PROP_TOP_UP_SPORTS.has(sport) &&
+      sportMarkets.some((key) => propMarketLabel(key) !== undefined)
+    ) {
+      const missingIds = new Set(missing);
+      for (const event of slate) {
+        if (missingIds.has(event.id)) continue;
+        const cached = await loadCachedEventBoard(sport, event.id);
+        if (cached.savedAt == null) continue;
+        const at = latePropTopUpAt(
+          cached.propTopUps,
+          Date.now(),
+          event.commenceTime,
+        );
+        if (at == null) continue;
+        propRetryAt = propRetryAt == null ? at : Math.min(propRetryAt, at);
+      }
+    }
     if (ladderGaps > 0) teamTotalLadderGaps[sport] = ladderGaps;
     if (draftKingsGaps > 0) draftKingsLadderGaps[sport] = draftKingsGaps;
 
@@ -679,14 +759,29 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
     if (missingInWindow.length > 0) {
       const at = await scheduleExpandedCatchUp(sport, missingInWindow.length);
       if (at) catchUp[sport] = at.toISOString();
-    } else if (ladderRetryAt != null) {
-      // Wakes when the soonest thin game is due another top-up, and only where
-      // the owner still has the ladder switched on.
-      const at = await scheduleExpandedCatchUp(sport, ladderGaps, new Date(), {
-        notBefore: new Date(ladderRetryAt),
-        requireMarkets: LADDER_TOP_UP_MARKETS,
-      });
-      if (at) catchUp[sport] = at.toISOString();
+    } else {
+      if (ladderRetryAt != null) {
+        // Wakes when the soonest thin game is due another top-up, and only
+        // where the owner still has the ladder switched on.
+        const at = await scheduleExpandedCatchUp(
+          sport,
+          ladderGaps,
+          new Date(),
+          {
+            notBefore: new Date(ladderRetryAt),
+            requireMarkets: LADDER_TOP_UP_MARKETS,
+          },
+        );
+        if (at) catchUp[sport] = at.toISOString();
+      }
+      if (propRetryAt != null) {
+        const at = await scheduleExpandedCatchUp(sport, 1, new Date(), {
+          notBefore: new Date(propRetryAt),
+        });
+        if (at && (!catchUp[sport] || at.toISOString() < catchUp[sport])) {
+          catchUp[sport] = at.toISOString();
+        }
+      }
     }
   }
 
