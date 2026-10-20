@@ -105,6 +105,20 @@ export const MLB_BATTER_PROP_MARKETS = [
   "batter_stolen_bases",
 ] as const;
 
+const BASKETBALL_PROP_MARKETS = [
+  "player_points",
+  "player_rebounds",
+  "player_assists",
+  "player_threes",
+  "player_blocks",
+  "player_steals",
+  "player_turnovers",
+  "player_points_rebounds_assists",
+  "player_points_rebounds",
+  "player_points_assists",
+  "player_rebounds_assists",
+] as const;
+
 export const PROP_MARKETS_BY_SPORT: Record<string, readonly string[]> = {
   // The pitching card first, then the hitting card — the order a book lists
   // them, and the order the board renders them in.
@@ -116,20 +130,10 @@ export const PROP_MARKETS_BY_SPORT: Record<string, readonly string[]> = {
   // STATS_BY_GROUP — a pitcher graded on his batting strikeouts would read 0 in
   // every AL game.
   MLB: [...MLB_PITCHER_PROP_MARKETS, ...MLB_BATTER_PROP_MARKETS],
-  NBA: ["player_points", "player_rebounds", "player_assists", "player_threes"],
-  WNBA: [
-    "player_points",
-    "player_rebounds",
-    "player_assists",
-    "player_threes",
-    "player_blocks",
-    "player_steals",
-    "player_turnovers",
-    "player_points_rebounds_assists",
-    "player_points_rebounds",
-    "player_points_assists",
-    "player_rebounds_assists",
-  ],
+  // NBA and WNBA share one basketball card: the stats provider grades both off
+  // the same ESPN box-score columns, combos included.
+  NBA: BASKETBALL_PROP_MARKETS,
+  WNBA: BASKETBALL_PROP_MARKETS,
   NCAAB: ["player_points"],
   // The card the owners asked for, in the order a book lists it: the passer,
   // then the runner, then the receiver, then the kicker and scoring markets.
@@ -223,6 +227,13 @@ export const NFL_OPT_IN_GAME_LADDER_MARKETS = [
  * already arrive on the shared slate, so rebilling them here wastes three
  * credits per event without adding a selectable line.
  */
+/**
+ * Sports whose per-event board buys the whole matrix: alt ladders, team totals,
+ * periods and the player card. Every key here must already grade — basketball
+ * halves settle off ESPN quarter line-scores and props off the box score.
+ */
+const FULL_MATRIX_SPORTS: ReadonlySet<string> = new Set(["MLB", "NBA", "WNBA"]);
+
 export function expandedBoardMarkets(sclSport: string): string[] {
   // Tennis surface boards already request the featured spread and total, but
   // books often expose their useful game ladders only from the per-event
@@ -258,7 +269,7 @@ export function expandedBoardMarkets(sclSport: string): string[] {
   if (sclSport === "NCAAF") {
     return ["alternate_spreads", "alternate_totals"];
   }
-  if (sclSport !== "MLB" && sclSport !== "WNBA") return [];
+  if (!FULL_MATRIX_SPORTS.has(sclSport)) return [];
   const props = PROP_MARKETS_BY_SPORT[sclSport] ?? [];
   return [
     "alternate_spreads",

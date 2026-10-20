@@ -34,8 +34,8 @@
  * BUDGET_FLOOR=<n>   stop spending once remaining hits this (default 0)
  * EXPANDED=<n>       max events to expand per sport (default 99)
  * EXPANDED_DAYS=<csv> ET slate days to expand: today,tomorrow (default tomorrow)
- * SPORTS=MLB,WNBA…   restrict the surface pass (default all)
- * EXPANDED_ORDER=<csv> expanded spend priority (default MLB,WNBA,TENNIS,SOCCER)
+ * SPORTS=MLB,NBA…    restrict the surface pass (default all)
+ * EXPANDED_ORDER=<csv> expanded spend priority (default DEFAULT_EXPANDED_SPORT_ORDER)
  * REST_RESERVE=<n>   credits held back for the soccer/NFL surface pass
  */
 import { mkdirSync, writeFileSync } from "node:fs";

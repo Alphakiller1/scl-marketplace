@@ -17,7 +17,7 @@ import {
   fetchNflParticipation,
 } from "@/lib/results/stats-provider";
 import { halfBox } from "@/lib/results/prop-resolve";
-import { PROP_MARKET_LABEL } from "@/lib/odds-verify";
+import { PROP_MARKET_LABEL, PROP_MARKETS_BY_SPORT } from "@/lib/odds-verify";
 
 test("legacy player props inspect only nearby settled ESPN events", () => {
   const startsAt = new Date("2026-08-10T23:00:00Z");
@@ -1003,4 +1003,67 @@ test("the second half includes overtime; NCAAB halves are single periods", () =>
     halfBox({ homePeriods: [7, 3], awayPeriods: [0, 3] }, "NFL", true),
     null,
   );
+});
+
+test("every NBA prop the expanded board buys has a grader", () => {
+  // The board must never cache a market the deployed grader cannot settle:
+  // an unknown label falls through to the full-game resolver.
+  const nbaBox: PlayerBoxScore = {
+    players: [
+      {
+        name: "Jalen Brunson",
+        team: "New York Knicks",
+        played: true,
+        stats: {
+          points: 31,
+          rebounds: 4,
+          assists: 8,
+          threes: 3,
+          blocks: 0,
+          steals: 2,
+          turnovers: 3,
+        },
+      },
+    ],
+  };
+  for (const key of PROP_MARKETS_BY_SPORT.NBA ?? []) {
+    const outcome = resolvePlayerProp(
+      {
+        market: PROP_MARKET_LABEL[key] ?? key,
+        selection: "Jalen Brunson Over 0.5",
+        side: "Over",
+        line: 0.5,
+      },
+      nbaBox,
+    );
+    assert.ok(outcome, `${key} should grade, got ${outcome}`);
+  }
+  // Pts+Reb+Ast = 43 against 42.5.
+  assert.equal(
+    resolvePlayerProp(
+      {
+        market: PROP_MARKET_LABEL.player_points_rebounds_assists,
+        selection: "Jalen Brunson Over 42.5",
+        side: "Over",
+        line: 42.5,
+      },
+      nbaBox,
+    ),
+    "WIN",
+  );
+});
+
+test("NBA halves split four quarters two and two, overtime in the second", () => {
+  const box = {
+    homePeriods: [28, 30, 25, 22, 9],
+    awayPeriods: [31, 24, 27, 23, 6],
+  };
+  assert.deepEqual(halfBox(box, "NBA", false), {
+    homePeriods: [28, 30],
+    awayPeriods: [31, 24],
+  });
+  assert.deepEqual(halfBox(box, "NBA", true), {
+    homePeriods: [25, 22, 9],
+    awayPeriods: [27, 23, 6],
+  });
 });
