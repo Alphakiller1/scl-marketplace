@@ -24,6 +24,7 @@ export async function getCachedOddsCoverageReport() {
   ).filter(
     (event) =>
       event.sport === "MLB" ||
+      event.sport === "NBA" ||
       event.sport === "WNBA" ||
       event.sport === "TENNIS",
   );

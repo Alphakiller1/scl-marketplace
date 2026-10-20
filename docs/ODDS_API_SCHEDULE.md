@@ -129,6 +129,7 @@ Owner decision, and the shape of the credit bill. Depth is set in
 | Sport           | Expanded markets | What a capper can log                                                                                       |
 | --------------- | ---------------- | ----------------------------------------------------------------------------------------------------------- |
 | MLB             | 58               | Full pitcher and hitter cards with milestone ladders, alternate spreads/totals, team totals, F1/F3/F5/F7    |
+| NBA             | 36               | Same basketball card as WNBA: the full player card with combos, halves, team totals, alt ladders            |
 | WNBA            | 36               | Points/rebounds/assists/threes, blocks/steals/turnovers, the combo card, halves, team totals, alt ladders   |
 | NFL             | 33               | Halves and player props by default; alt spreads, alt totals and team totals are owner toggles               |
 | Tennis          | 4                | Game spread and total plus their alternate ladders. Set markets stay out until set-score grading is trusted |
@@ -144,7 +145,7 @@ posts. Two things stop that:
 
 - **Catalog first.** `/events/{id}/markets` costs one credit and names the keys
   a covered book is actually pricing; only those are requested. Used where the
-  request list is long enough to pay for itself (MLB, WNBA) and skipped where it
+  request list is long enough to pay for itself (MLB, NBA, WNBA) and skipped where it
   is not (tennis's four keys, NCAAF's two, soccer's one) — see
   `CATALOG_WORTH_READING_MARKETS`.
 - **Unpriced competitions are dropped mid-run.** Books post non-surface markets
@@ -160,7 +161,7 @@ cannot learn to skip it. That is why the miss limit exists.
 Opening a matchup still fetches that event's markets on demand when the cached
 board is missing or stale, which is how a capper logs a verified price between
 scheduled runs. Props are no longer lazy-only, though: the expanded runs above
-warm the full MLB and WNBA cards on a schedule.
+warm the full MLB, NBA and WNBA cards on a schedule.
 
 Tennis surface calls request the featured game spread and total. The per-event
 call additionally fetches the full-match alternate spread and total ladders.

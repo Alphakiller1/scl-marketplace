@@ -424,6 +424,28 @@ test("expanded MLB and WNBA boards request the complete owner-required matrix", 
   }
 });
 
+test("NBA expanded boards buy the same basketball matrix as WNBA", () => {
+  const nba = expandedBoardMarkets("NBA");
+  // Same card, same order: both leagues grade off one ESPN box-score map.
+  assert.deepEqual(nba, expandedBoardMarkets("WNBA"));
+  for (const market of [
+    "alternate_spreads",
+    "alternate_totals",
+    "team_totals",
+    "h2h_h1",
+    "spreads_h1",
+    "totals_h2",
+    "player_points",
+    "player_points_alternate",
+    "player_points_rebounds_assists",
+    "player_points_rebounds_assists_alternate",
+  ]) {
+    assert.ok(nba.includes(market), `NBA should request ${market}`);
+  }
+  assert.ok(!nba.some((market) => market.includes("_innings")));
+  assert.deepEqual(defaultExpandedBoardMarkets("NBA"), nba);
+});
+
 test("marketKeysForMarket bundles both team-total keys", () => {
   // A pick taken off the alternate ladder is priced only in the alternate key,
   // so verifying against the featured key alone could not find its line.

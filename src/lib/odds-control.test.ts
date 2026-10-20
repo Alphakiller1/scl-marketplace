@@ -45,6 +45,7 @@ test("default managed footprint cannot silently add paid sports", () => {
   }
   assert.deepEqual([...LEGACY_SCHEDULED_SPORTS].sort(), [
     "MLB",
+    "NBA",
     "NFL",
     "SOCCER",
     "TENNIS",

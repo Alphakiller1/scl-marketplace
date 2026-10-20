@@ -33,6 +33,7 @@ export const DEFAULT_EXPANDED_SPORT_ORDER = [
   "MLB",
   "NFL",
   "NCAAF",
+  "NBA",
   "WNBA",
   "TENNIS",
   "SOCCER",

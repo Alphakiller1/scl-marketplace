@@ -138,7 +138,7 @@ test("leagues without expanded support say so rather than showing an empty tier"
 test("the registry counts leagues that are actually on, and sorts them first", () => {
   const registry = activeConfiguration(config, defaults);
   assert.equal(registry.counts.leaguesTotal, ODDS_CONTROL_SPORTS.length);
-  assert.equal(registry.counts.leaguesEnabled, 5);
+  assert.equal(registry.counts.leaguesEnabled, 6);
 
   const enabled = registry.leagues.filter((league) => league.enabled);
   assert.deepEqual(

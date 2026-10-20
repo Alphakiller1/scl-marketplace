@@ -677,7 +677,8 @@ export function EventDetail({
         ]
       : []),
   ];
-  const expandedSport = event.sport === "MLB" || event.sport === "WNBA";
+  const expandedSport =
+    event.sport === "MLB" || event.sport === "NBA" || event.sport === "WNBA";
   const defaultTab =
     expandedSport && detail?.status === "ready" && propSelections.length
       ? "props"

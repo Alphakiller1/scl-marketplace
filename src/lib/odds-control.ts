@@ -34,6 +34,7 @@ export type OddsControlTier = "surface" | "expanded";
  */
 export const LEGACY_SCHEDULED_SPORTS: ReadonlySet<OddsControlSport> = new Set([
   "MLB",
+  "NBA",
   "WNBA",
   "TENNIS",
   "SOCCER",

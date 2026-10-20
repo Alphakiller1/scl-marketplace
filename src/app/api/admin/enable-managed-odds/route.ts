@@ -42,6 +42,7 @@ const STAGGER: Record<string, { surface: number; expanded: number }> = {
   MMA: { surface: 12, expanded: 0 },
   CFL: { surface: 14, expanded: 0 },
   WNBA: { surface: 16, expanded: 60 },
+  NBA: { surface: 18, expanded: 70 },
 };
 
 type SportPatch = {
@@ -82,7 +83,92 @@ function sportUpdates(): Record<string, SportPatch> {
     // sports for nothing.
     MLB: { expandedCadenceMinutes: 720, maxEventsPerRun: 15 },
     WNBA: { expandedCadenceMinutes: 720, maxEventsPerRun: 12 },
+    NBA: NBA_PATCH,
   };
+}
+
+/**
+ * NBA joined the legacy leagues after the handover above had already run in
+ * production, and that handover is guarded by its own audit row — so the NBA
+ * row it would have patched stayed `enabled: false` and the managed scheduler
+ * never bought a single NBA price. This is the same one-shot handover for that
+ * one league, with its own audit row as its own guard: it fires once with the
+ * deploy that ships it and leaves the owners' later dashboard edits alone.
+ *
+ * Fifteen events is a full regular-season night. Twelve hours between expanded
+ * buys matches WNBA, the other basketball card.
+ */
+const NBA_AUDIT_ACTION = "league.enable.NBA";
+
+const NBA_PATCH: SportPatch = {
+  enabled: true,
+  surfaceEnabled: true,
+  expandedEnabled: true,
+  expandedMarkets: defaultExpandedBoardMarkets("NBA"),
+  expandedCadenceMinutes: 720,
+  maxEventsPerRun: 15,
+};
+
+async function enableNbaLeague(now: Date, dryRun: boolean) {
+  const applied = await prisma.oddsControlAuditEvent.findFirst({
+    where: { action: NBA_AUDIT_ACTION },
+    orderBy: { createdAt: "desc" },
+  });
+  if (applied) {
+    return {
+      skipped: "already-applied" as const,
+      appliedAt: applied.createdAt,
+    };
+  }
+
+  const before = await prisma.oddsSportControl.findUnique({
+    where: { sport: "NBA" },
+  });
+  if (dryRun) {
+    return {
+      dryRun: true as const,
+      wouldApply: NBA_PATCH,
+      before: before
+        ? {
+            enabled: before.enabled,
+            surfaceEnabled: before.surfaceEnabled,
+            expandedEnabled: before.expandedEnabled,
+            expandedMarkets: before.expandedMarkets.length,
+          }
+        : null,
+    };
+  }
+
+  const stagger = STAGGER.NBA;
+  const stamps = {
+    nextSurfaceRunAt: new Date(now.getTime() + stagger.surface * 60_000),
+    nextExpandedRunAt: new Date(now.getTime() + stagger.expanded * 60_000),
+  };
+  await prisma.oddsSportControl.upsert({
+    where: { sport: "NBA" },
+    update: { ...NBA_PATCH, ...stamps },
+    create: { sport: "NBA", ...NBA_PATCH, ...stamps },
+  });
+  await prisma.oddsControlAuditEvent.create({
+    data: {
+      action: NBA_AUDIT_ACTION,
+      target: "NBA",
+      ...(before
+        ? {
+            before: {
+              enabled: before.enabled,
+              surfaceEnabled: before.surfaceEnabled,
+              expandedEnabled: before.expandedEnabled,
+              expandedMarkets: before.expandedMarkets,
+              expandedCadenceMinutes: before.expandedCadenceMinutes,
+              maxEventsPerRun: before.maxEventsPerRun,
+            },
+          }
+        : {}),
+      after: { ...NBA_PATCH },
+    },
+  });
+  return { applied: true as const };
 }
 
 /**
@@ -115,10 +201,12 @@ export async function POST(req: NextRequest) {
     orderBy: { createdAt: "desc" },
   });
   if (applied && !force) {
+    const nba = await enableNbaLeague(now, dryRun);
     return NextResponse.json({
       ok: true,
       skipped: "already-applied",
       appliedAt: applied.createdAt,
+      nba,
     });
   }
 
@@ -215,6 +303,18 @@ export async function POST(req: NextRequest) {
       },
     },
   });
+
+  // The full handover just set NBA too, so its own one-shot must not fire on
+  // the next call and overwrite whatever the owners change in between.
+  if (touched.includes("NBA")) {
+    await prisma.oddsControlAuditEvent.create({
+      data: {
+        action: NBA_AUDIT_ACTION,
+        target: "NBA",
+        after: { ...NBA_PATCH, via: AUDIT_ACTION },
+      },
+    });
+  }
 
   return NextResponse.json({
     ok: true,
