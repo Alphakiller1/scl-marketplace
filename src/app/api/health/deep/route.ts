@@ -97,6 +97,7 @@ export async function GET(request: NextRequest) {
     oddsExpandedBoards: oddsCoverage.games.every(
       (game) =>
         game.sport === "MLB" ||
+        game.sport === "NBA" ||
         game.sport === "WNBA" ||
         game.sport === "TENNIS",
     ),
