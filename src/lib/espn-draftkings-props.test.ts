@@ -133,6 +133,29 @@ test("a suffix spelled differently is still the same player", () => {
   assert.equal(rowsForPlayersMissingFromBoard(board, rows).length, 0);
 });
 
+test("initials and short first names are the same player", () => {
+  // The four duplicates the first live pass wrote on 2026-10-21.
+  const pairs: [string, string][] = [
+    ["A.J. Green", "AJ Green"],
+    ["C.J. McCollum", "CJ McCollum"],
+    ["R.J. Barrett", "RJ Barrett"],
+    ["Herb Jones", "Herbert Jones"],
+  ];
+  for (const [provider, espn] of pairs) {
+    const board = [{ player: provider, market: "Points" } as OddsSelection];
+    const rows = [{ player: espn, market: "Points" } as OddsSelection];
+    assert.equal(
+      rowsForPlayersMissingFromBoard(board, rows).length,
+      0,
+      `${espn} duplicated ${provider}`,
+    );
+  }
+  // A genuinely absent player is still filled.
+  const board = [{ player: "Kevin Durant", market: "Points" } as OddsSelection];
+  const smart = [{ player: "Marcus Smart", market: "Points" } as OddsSelection];
+  assert.equal(rowsForPlayersMissingFromBoard(board, smart).length, 1);
+});
+
 test("provider team names match ESPN nicknames", () => {
   assert.ok(teamNameMatches("Los Angeles Clippers", "Clippers"));
   assert.ok(teamNameMatches("Portland Trail Blazers", "Trail Blazers"));
