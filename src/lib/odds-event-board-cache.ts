@@ -143,6 +143,33 @@ async function writeSnapshot(
   return snapshot;
 }
 
+/**
+ * Add rows from a source other than the Odds API to a board already bought.
+ *
+ * The top-up contract: nothing on the board is repriced, the buy and top-up
+ * logs are untouched, and `savedAt` moves by a millisecond so this write wins
+ * over the older layer without making the board look freshly bought.
+ * Returns how many rows were added.
+ */
+export async function addEventBoardRows(
+  sport: string,
+  eventId: string,
+  rows: readonly OddsSelection[],
+): Promise<number> {
+  const normalizedSport = sport.toUpperCase();
+  const cached = await readSnapshot(normalizedSport, eventId);
+  if (!cached || rows.length === 0) return 0;
+  const selections = addMissingEventBoardSelections(cached.selections, rows);
+  const added = selections.length - cached.selections.length;
+  if (added === 0) return 0;
+  await writeSnapshot(normalizedSport, eventId, selections, cached.buys ?? [], {
+    savedAt: cached.savedAt + 1,
+    topUps: cached.topUps ?? [],
+    propTopUps: cached.propTopUps ?? [],
+  });
+  return added;
+}
+
 /** Read one expanded event board without refreshing or spending provider credits. */
 /**
  * Which of these fixtures has never had an expanded board bought.

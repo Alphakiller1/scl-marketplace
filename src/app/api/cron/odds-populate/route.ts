@@ -79,6 +79,11 @@ import {
   propMarketLabel,
   withFeaturedGameLineCompanions,
 } from "@/lib/odds-verify";
+import { ESPN_PROP_FILL_LEAGUES } from "@/lib/espn-draftkings-props";
+import {
+  fillMissingPlayersFromEspn,
+  type EspnPropFillReport,
+} from "@/lib/espn-prop-fill";
 
 export const maxDuration = 300;
 
@@ -296,6 +301,7 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
   const restSports = sports.filter((sport) => !expandedOrder.includes(sport));
   const surface: Record<string, SurfaceRow> = {};
   const expanded: Record<string, ExpandedRow> = {};
+  const espnPropFill: Record<string, EspnPropFillReport> = {};
   const boardEvents = new Map<
     string,
     Awaited<ReturnType<typeof fetchUpcomingOdds>>
@@ -602,6 +608,12 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
         selections += board.selections.length;
         if (board.stale) stale += 1;
       }
+      // Players the provider never carried, from ESPN's DraftKings feed. Free,
+      // and it only adds players with no row on the board — see
+      // `espn-draftkings-props.ts` for Marcus Smart on 2026-10-21.
+      if (ESPN_PROP_FILL_LEAGUES[sport] && !teamTotalTopUpOnly) {
+        espnPropFill[sport] = await fillMissingPlayersFromEspn(sport, events);
+      }
       expanded[sport] = {
         events: events.length,
         populated,
@@ -834,6 +846,7 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
     creditsUsed: getLastOddsApiRunCost(),
     surface,
     expanded,
+    espnPropFill,
     uncovered,
     teamTotalLadderGaps,
     draftKingsLadderGaps,
