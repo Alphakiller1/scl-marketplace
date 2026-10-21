@@ -182,6 +182,28 @@ lead) is:
 | `0 0 * * *`  | 20:00    |
 | `0 3 * * *`  | 23:00    |
 
+## NBA and WNBA: one buy on game day, then a late prop ask
+
+Inside the 20-hour basketball window, a 19:00 ET tip's deep board used to be
+bought between 00:30 and 05:00 ET. That is **the previous buy day**, so the
+16:55 ET run found a fresh allowance and a stale board and bought the whole
+card again. On 2026-10-20/21 every NBA game paid for two full boards (~31
+credits each), and the first one was thin: the Mavericks–Rockets board bought at
+00:50 ET carried fourteen players and no Marcus Smart, whose lines DraftKings
+posted later that day.
+
+- `SAME_BUY_DAY_WINDOW_SPORTS` (NBA, WNBA): the window never opens before
+  08:00 ET on the game's own buy day, so the one buy lands after the morning
+  card is up and counts against the right day.
+- `LATE_PROP_TOP_UP_SPORTS` now includes NBA and WNBA. Inside the 3-hour last
+  call, each board's prop keys are asked once more. New players and books are
+  added, existing lines are not repriced, and the buy allowance is untouched.
+  The ask costs at most 22 credits a game (the eleven-key card plus
+  alternates), and trimming NBA prop keys in the dashboard trims it too.
+
+Net: ~53 credits a game (one buy plus one late ask) instead of ~62 for two
+buys, and the card includes role players whose lines follow the injury report.
+
 Cadence is not the credit lever — **what each run warms** is (expanded MLB is
 the expensive path). `src/lib/strategic-odds-cadence.test.ts` fails if those
 times and the lead window drift.

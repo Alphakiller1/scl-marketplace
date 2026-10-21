@@ -3,7 +3,10 @@ import {
   SURFACE_BOARD_EVENT_LIMIT,
   type OddsEvent,
 } from "@/lib/odds-board";
-import { HARD_MAX_EVENT_BUYS_PER_DAY } from "@/lib/odds-event-buy-budget";
+import {
+  buyDayStartAt,
+  HARD_MAX_EVENT_BUYS_PER_DAY,
+} from "@/lib/odds-event-buy-budget";
 import {
   expandedBoardMarkets,
   withFeaturedGameLineCompanions,
@@ -167,6 +170,25 @@ export function hoursToKickoff(commenceTime: string, now: number): number {
   return (Date.parse(commenceTime) - now) / 3_600_000;
 }
 
+/**
+ * Sports whose window never opens before the game's own buy day (08:00 ET).
+ *
+ * A twenty-hour window puts a 19:00 ET tip's opening at 23:00 the night
+ * before, and an overnight buy lands in the PREVIOUS buy day's allowance. The
+ * afternoon run then finds a fresh allowance and a stale board and buys the
+ * whole card again. Measured on NBA 2026-10-20/21: every game was bought at
+ * 00:30–04:55 ET and again at ~16:40 ET — two full boards a game, the first
+ * one thin because role-player props were not posted yet.
+ *
+ * Holding the window to the game's buy day spends the one allowance after the
+ * books have filled in the card; the late prop top-up catches what posts after
+ * that.
+ */
+export const SAME_BUY_DAY_WINDOW_SPORTS: ReadonlySet<string> = new Set([
+  "NBA",
+  "WNBA",
+]);
+
 /** Is this event inside the window where its deep board is worth a look? */
 export function withinExpandedBuyWindow(
   commenceTime: string,
@@ -175,7 +197,14 @@ export function withinExpandedBuyWindow(
 ): boolean {
   const hours = hoursToKickoff(commenceTime, now);
   if (!Number.isFinite(hours) || hours <= 0) return false;
-  return hours <= expandedWindowOpenHours(sport);
+  if (hours > expandedWindowOpenHours(sport)) return false;
+  if (
+    SAME_BUY_DAY_WINDOW_SPORTS.has(sport.trim().toUpperCase()) &&
+    now < buyDayStartAt(Date.parse(commenceTime))
+  ) {
+    return false;
+  }
+  return true;
 }
 
 /**

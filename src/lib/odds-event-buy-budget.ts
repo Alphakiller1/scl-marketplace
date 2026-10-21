@@ -109,6 +109,21 @@ export function buyDayKey(at: number): string {
   return previous.toISOString().slice(0, 10);
 }
 
+/**
+ * The moment the buy day containing `at` began: 08:00 ET on {@link buyDayKey}.
+ *
+ * 08:00 Eastern is 12:00Z in daylight time and 13:00Z in standard time, and no
+ * DST transition falls near 08:00, so trying the daylight answer first and
+ * checking it is exact.
+ */
+export function buyDayStartAt(at: number): number {
+  const day = buyDayKey(at);
+  const daylight = Date.parse(`${day}T12:00:00.000Z`);
+  return easternParts(daylight).hour === EVENT_BUY_DAY_START_HOUR_ET
+    ? daylight
+    : daylight + 3_600_000;
+}
+
 /** The buys on this event that count against the current day's allowance. */
 export function buysInBuyDay(
   buys: readonly number[] | undefined,
@@ -241,11 +256,21 @@ export function recordTopUp(
  * adding whatever players and books arrived, without repricing a line the
  * board already holds.
  *
- * Football only: one ask is ~19 credits a game, which an NFL slate absorbs.
- * MLB's prop card is twice as wide across three times the games, so it is not
- * opted in here.
+ * Basketball has the same shape: on 2026-10-21 the Mavericks–Rockets board
+ * was bought at 00:50 ET with fourteen players, and Marcus Smart's points,
+ * assists, combo and milestone lines — priced at DraftKings by that afternoon —
+ * never reached it. Role-player lines follow the injury report, so they post
+ * after any morning buy can see them.
+ *
+ * One ask is ~19 credits an NFL game and at most 22 (the eleven-key card plus
+ * alternates) an NBA game. MLB's prop card is wider still across more games,
+ * so it is not opted in here.
  */
-export const LATE_PROP_TOP_UP_SPORTS: ReadonlySet<string> = new Set(["NFL"]);
+export const LATE_PROP_TOP_UP_SPORTS: ReadonlySet<string> = new Set([
+  "NFL",
+  "NBA",
+  "WNBA",
+]);
 
 /**
  * When this game's late prop top-up is due: the moment the last-call window
