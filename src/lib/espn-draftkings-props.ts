@@ -193,10 +193,29 @@ export function espnDraftKingsPropRows(
 }
 
 /**
+ * The keys a player is recognised by: the name with every space dropped, and
+ * first initial plus surname.
+ *
+ * Grading's normalisation alone is not enough here. On the first live pass
+ * (2026-10-21) it added "AJ Green", "CJ McCollum" and "RJ Barrett" beside the
+ * provider's "A.J. Green", "C.J. McCollum" and "R.J. Barrett" — punctuation
+ * becomes a space, so "a j green" is not "aj green" — and "Herbert Jones"
+ * beside "Herb Jones". The compact key catches the first kind, the
+ * initial-and-surname key the second.
+ */
+function playerKeys(name: string): string[] {
+  const words = normalizeName(name).split(" ").filter(Boolean);
+  if (words.length === 0) return [];
+  return [words.join(""), `${words[0]![0]}|${words.at(-1)}`];
+}
+
+/**
  * Only the rows for players the board has no row for at all.
  *
- * Names are compared the way grading compares them, so "Jabari Smith Jr."
- * from ESPN and "Jabari Smith Jr" from the Odds API are one player.
+ * A player matching any board player on either {@link playerKeys} key counts
+ * as on the board. The loose key can only ever hold a player back — two
+ * clubmates sharing an initial and surname leaves the second unfilled — and a
+ * missing row is the safe failure here, where a duplicate player is not.
  */
 export function rowsForPlayersMissingFromBoard(
   board: readonly OddsSelection[],
@@ -206,11 +225,12 @@ export function rowsForPlayersMissingFromBoard(
     board
       .map((selection) => selection.player)
       .filter((player): player is string => Boolean(player))
-      .map(normalizeName),
+      .flatMap(playerKeys),
   );
   return rows.filter(
     (selection) =>
-      selection.player != null && !onBoard.has(normalizeName(selection.player)),
+      selection.player != null &&
+      !playerKeys(selection.player).some((key) => onBoard.has(key)),
   );
 }
 
