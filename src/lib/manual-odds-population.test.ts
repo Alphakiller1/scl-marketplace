@@ -5,6 +5,7 @@ import type { OddsEvent } from "@/lib/odds-board";
 import { expandedBoardMarkets } from "@/lib/odds-verify";
 import { ODDS_CONTROL_SPORTS } from "@/lib/odds-control";
 import {
+  buyDayStartAt,
   DEFAULT_EVENT_BUYS_PER_DAY,
   HARD_MAX_EVENT_BUYS_PER_DAY,
 } from "@/lib/odds-event-buy-budget";
@@ -479,6 +480,41 @@ test("the deep board is only looked at once the book has plausibly opened it", (
   assert.equal(withinExpandedBuyWindow(inHours(6), "MLB", now), true);
   // A game already under way is never worth a buy.
   assert.equal(withinExpandedBuyWindow(inHours(-1), "NFL", now), false);
+});
+
+test("basketball's window never opens before the game's own buy day", () => {
+  // 2026-10-21 Mavericks at Rockets, 20:40 ET. Bought at 00:50 ET, which is
+  // the previous buy day, so the 16:55 ET run bought the whole card again.
+  const tip = "2026-10-22T00:40:00Z";
+  const overnight = Date.parse("2026-10-21T04:50:00Z");
+  const beforeDawn = Date.parse("2026-10-21T08:55:00Z");
+  const buyDayOpens = Date.parse("2026-10-21T12:00:00Z"); // 08:00 EDT
+  assert.equal(buyDayStartAt(Date.parse(tip)), buyDayOpens);
+
+  assert.equal(withinExpandedBuyWindow(tip, "NBA", overnight), false);
+  assert.equal(withinExpandedBuyWindow(tip, "NBA", beforeDawn), false);
+  assert.equal(withinExpandedBuyWindow(tip, "NBA", buyDayOpens - 1), false);
+  assert.equal(withinExpandedBuyWindow(tip, "NBA", buyDayOpens), true);
+  assert.equal(withinExpandedBuyWindow(tip, "WNBA", beforeDawn), false);
+  // Baseball keeps its twenty-hour window.
+  assert.equal(withinExpandedBuyWindow(tip, "MLB", beforeDawn), true);
+});
+
+test("the basketball buy day opens at 08:00 ET in standard time too", () => {
+  // 2026-12-01 is EST, so 08:00 ET is 13:00Z.
+  const tip = "2026-12-02T00:30:00Z";
+  assert.equal(
+    buyDayStartAt(Date.parse(tip)),
+    Date.parse("2026-12-01T13:00:00Z"),
+  );
+  assert.equal(
+    withinExpandedBuyWindow(tip, "NBA", Date.parse("2026-12-01T12:30:00Z")),
+    false,
+  );
+  assert.equal(
+    withinExpandedBuyWindow(tip, "NBA", Date.parse("2026-12-01T13:00:00Z")),
+    true,
+  );
 });
 
 test("the one buy waits for the card to open, but never past last call", () => {

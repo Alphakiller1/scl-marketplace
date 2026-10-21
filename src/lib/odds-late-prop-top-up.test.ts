@@ -8,15 +8,31 @@ import {
 } from "@/lib/odds-event-buy-budget";
 import type { OddsSelection } from "@/lib/odds-board";
 import { addMissingEventBoardSelections } from "@/lib/odds-event-board-contract";
+import { expandedBoardMarkets, propMarketLabel } from "@/lib/odds-verify";
 
 // 2026-10-19 MNF: 8:15 PM ET kickoff.
 const KICKOFF = "2026-10-20T00:15:00Z";
 const kickoffMs = Date.parse(KICKOFF);
 const windowStart = kickoffMs - TOPUP_LAST_CALL_HOURS * 3_600_000;
 
-test("NFL is opted into the late prop top-up", () => {
+test("NFL and basketball are opted into the late prop top-up", () => {
   assert.ok(LATE_PROP_TOP_UP_SPORTS.has("NFL"));
+  assert.ok(LATE_PROP_TOP_UP_SPORTS.has("NBA"));
+  assert.ok(LATE_PROP_TOP_UP_SPORTS.has("WNBA"));
   assert.ok(!LATE_PROP_TOP_UP_SPORTS.has("MLB"));
+});
+
+test("the late basketball ask asks for the whole prop card", () => {
+  // The route keeps every expanded key with a prop label: the eleven-key card
+  // and each alternate, and none of the game ladders.
+  const props = expandedBoardMarkets("NBA").filter(
+    (key) => propMarketLabel(key) !== undefined,
+  );
+  assert.equal(props.length, 22);
+  assert.ok(props.includes("player_points"));
+  assert.ok(props.includes("player_points_assists_alternate"));
+  assert.ok(!props.includes("alternate_spreads"));
+  assert.ok(!props.includes("h2h_h1"));
 });
 
 test("late prop top-up waits for the last-call window", () => {
