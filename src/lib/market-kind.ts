@@ -1,6 +1,8 @@
 import { isPeriodMarket, PERIOD_MARKET_LABEL } from "@/lib/period-markets";
 import {
+  BTTS_LABEL,
   DOUBLE_CHANCE_LABEL,
+  isBttsMarket,
   isDoubleChanceMarket,
 } from "@/lib/soccer-markets";
 import { isTeamTotalMarket, TEAM_TOTAL_LABEL } from "@/lib/team-total-markets";
@@ -43,7 +45,8 @@ export function isGameLineMarket(market: string): boolean {
     (CORE_GAME_MARKETS as readonly string[]).includes(m) ||
     isPeriodMarket(m) ||
     isTeamTotalMarket(m) ||
-    isDoubleChanceMarket(m)
+    isDoubleChanceMarket(m) ||
+    isBttsMarket(m)
   );
 }
 
@@ -58,5 +61,6 @@ export function allGameLineLabels(): string[] {
     ...new Set(Object.values(PERIOD_MARKET_LABEL)),
     TEAM_TOTAL_LABEL,
     DOUBLE_CHANCE_LABEL,
+    BTTS_LABEL,
   ];
 }

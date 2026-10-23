@@ -10,9 +10,13 @@ import {
 } from "@/lib/odds-verify";
 import { resolveOutcome } from "@/lib/results/match";
 import {
+  BTTS_LABEL,
+  BTTS_MARKET_KEY,
   DOUBLE_CHANCE_LABEL,
   DOUBLE_CHANCE_MARKET_KEY,
+  isBttsMarket,
   isDoubleChanceMarket,
+  parseBttsSelection,
   parseDoubleChanceSelection,
 } from "@/lib/soccer-markets";
 
@@ -59,9 +63,10 @@ describe("double chance registration", () => {
     ]);
   });
 
-  it("is the only market soccer's per-event call adds", () => {
+  it("rides soccer's per-event call alongside BTTS, and nothing else", () => {
     assert.deepEqual(expandedBoardMarkets("SOCCER"), [
       DOUBLE_CHANCE_MARKET_KEY,
+      BTTS_MARKET_KEY,
     ]);
   });
 });
@@ -162,5 +167,95 @@ describe("double chance grading", () => {
 
   it("defers rather than guessing when the selection is not a known shape", () => {
     assert.equal(resolveOutcome(play("Palace DC"), [game]), null);
+  });
+});
+
+describe("both teams to score", () => {
+  it("reads the stored form and the bare provider outcome, nothing looser", () => {
+    assert.equal(parseBttsSelection("BTTS Yes"), "Yes");
+    assert.equal(parseBttsSelection("Both Teams To Score: No"), "No");
+    assert.equal(parseBttsSelection("yes"), "Yes");
+    assert.equal(parseBttsSelection("BTTS"), null);
+    assert.equal(parseBttsSelection("Yes and Over 2.5"), null);
+  });
+
+  it("is a game line priced against its own key", () => {
+    assert.equal(isGameLineMarket(BTTS_LABEL), true);
+    assert.equal(isBttsMarket(BTTS_LABEL), true);
+    assert.equal(isBttsMarket("Both Teams To Score 1st Half"), false);
+    assert.deepEqual(marketKeysForMarket(BTTS_LABEL), [BTTS_MARKET_KEY]);
+  });
+
+  it("lands on the board as two lineless rows that name the market", () => {
+    const selections = normalizeEventBoard(
+      {
+        id: "evt",
+        bookmakers: [
+          {
+            key: "fanduel",
+            last_update: "2026-10-23T14:00:00Z",
+            markets: [
+              {
+                key: BTTS_MARKET_KEY,
+                outcomes: [
+                  { name: "Yes", price: -150 },
+                  { name: "No", price: 120 },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      { sport: "SOCCER" },
+    );
+    assert.deepEqual(
+      selections
+        .map((s) => [s.market, s.side, s.selection, s.line])
+        .sort((a, b) => String(a[1]).localeCompare(String(b[1]))),
+      [
+        [BTTS_LABEL, "No", "BTTS No", undefined],
+        [BTTS_LABEL, "Yes", "BTTS Yes", undefined],
+      ],
+    );
+  });
+
+  const game = {
+    sport: "SOCCER",
+    home: "Arsenal",
+    away: "Chelsea",
+    homeScore: 2,
+    awayScore: 1,
+    completed: true,
+    startsAt: new Date("2026-10-24T14:00:00Z"),
+  };
+  const play = (side: "Yes" | "No") => ({
+    id: "p1",
+    sport: "SOCCER",
+    market: BTTS_LABEL,
+    selection: `BTTS ${side}`,
+    side,
+    oddsAmerican: -150,
+    units: 1,
+    homeTeam: "Arsenal",
+    awayTeam: "Chelsea",
+  });
+
+  it("settles on whether both sides scored", () => {
+    assert.equal(resolveOutcome(play("Yes"), [game]), "WIN");
+    assert.equal(resolveOutcome(play("No"), [game]), "LOSS");
+    const cleanSheet = { ...game, awayScore: 0 };
+    assert.equal(resolveOutcome(play("Yes"), [cleanSheet]), "LOSS");
+    assert.equal(resolveOutcome(play("No"), [cleanSheet]), "WIN");
+  });
+
+  it("waits for manual grading when the match went to extra time", () => {
+    const extraTime = {
+      ...game,
+      homePeriods: [0, 0, 1, 0],
+      awayPeriods: [0, 0, 1, 0],
+      homeScore: 1,
+      awayScore: 1,
+    };
+    assert.equal(resolveOutcome(play("No"), [extraTime]), null);
   });
 });

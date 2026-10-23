@@ -175,9 +175,11 @@ export function summarizeEventMarketCoverage(
       missing.push("totals");
     }
   } else if (sport === "SOCCER") {
-    // Soccer's expanded call asks for Double Chance and nothing else, so an
-    // alternate-ladder rule here would mark every fixture incomplete forever
-    // and make `skipPopulated` re-bill the whole slate on every run.
+    // Soccer's expanded call asks for Double Chance and BTTS and nothing else,
+    // so an alternate-ladder rule here would mark every fixture incomplete
+    // forever and make `skipPopulated` re-bill the whole slate on every run.
+    // BTTS is not required either: books skip it on smaller competitions, and
+    // demanding it would re-buy those fixtures every run for nothing.
     if (doubleChance === 0) missing.push("double chance");
   } else {
     // Only demand markets this sport's expanded board actually fetches.

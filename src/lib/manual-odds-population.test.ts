@@ -220,13 +220,14 @@ test("the reserve prices an expanded event with its catalog call included", () =
   // Still an order of magnitude under MLB's even with the opt-in game ladder
   // on the catalog: that was the point of leaving those keys off by default.
   assert.ok(nflCost < expandedEventCreditCost("MLB"));
-  assert.equal(expandedEventCreditCost("SOCCER"), 1);
+  // Double Chance + Both Teams To Score.
+  assert.equal(expandedEventCreditCost("SOCCER"), 2);
 });
 
 test("the catalog is read for the sports whose request list can waste credits", () => {
   // MLB asks for 58 markets and WNBA 36: most of a prop card goes unpriced on
   // any given fixture, so one credit spent learning which keys are live saves
-  // many. Tennis asks for four and soccer for one, where the catalog can cost
+  // many. Tennis asks for four and soccer for two, where the catalog can cost
   // more than the markets it would skip.
   assert.ok(expandedBoardMarkets("MLB").length > CATALOG_WORTH_READING_MARKETS);
   assert.ok(

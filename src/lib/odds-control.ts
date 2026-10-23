@@ -131,6 +131,12 @@ export function expandedMarketGroups(sport: string): OddsMarketGroup[] {
       description: "Home/draw, away/draw, and home/away soccer combinations.",
       markets: take(markets, (key) => key === "double_chance"),
     },
+    {
+      id: "btts",
+      label: "Both teams to score",
+      description: "Yes/No on whether both soccer sides score.",
+      markets: take(markets, (key) => key === "btts"),
+    },
   ];
 
   const used = new Set(groups.flatMap((group) => group.markets));
@@ -166,6 +172,7 @@ export function expandedMarketLabel(marketKey: string): string {
     team_totals: "Team totals",
     alternate_team_totals: "Team totals — alternate",
     double_chance: "Double chance",
+    btts: "Both teams to score",
   };
   return (
     labels[marketKey] ??
