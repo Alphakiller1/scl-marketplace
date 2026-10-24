@@ -1,5 +1,6 @@
 /**
- * Soccer markets beyond the surface three — currently Double Chance.
+ * Soccer markets beyond the surface three — Double Chance and Both Teams To
+ * Score.
  *
  * One source of truth shared by the board (what a capper can log), verification
  * (which Odds API key prices it) and grading (how it settles). They MUST agree,
@@ -52,4 +53,39 @@ export function parseDoubleChanceSelection(
   if (secondIsDraw) return { kind: "team-or-draw", team: first };
   if (firstIsDraw) return { kind: "team-or-draw", team: second };
   return { kind: "either-team", teams: [first, second] };
+}
+
+/**
+ * Both Teams To Score. Two outcomes, "Yes" and "No", no line.
+ *
+ * The provider's outcome names carry no hint of the market, so the stored
+ * selection says it outright: a record row reading just "Yes" means nothing to
+ * anyone who only sees the selection.
+ */
+export const BTTS_MARKET_KEY = "btts";
+
+export const BTTS_LABEL = "Both Teams To Score";
+
+export function isBttsMarket(market: string): boolean {
+  return market.trim().toLowerCase() === BTTS_LABEL.toLowerCase();
+}
+
+export type BttsSide = "Yes" | "No";
+
+/** Canonical selection text the board stores, e.g. "BTTS Yes". */
+export function bttsSelectionText(side: BttsSide): string {
+  return `BTTS ${side}`;
+}
+
+/**
+ * Which side a Both Teams To Score pick took, or null when it is not one of
+ * the two the board writes. Accepts the stored "BTTS Yes" form and the bare
+ * provider outcome; anything looser stays deferred.
+ */
+export function parseBttsSelection(selection: string): BttsSide | null {
+  const match = /^(?:(?:btts|both teams to score)[:\s-]*)?(yes|no)$/i.exec(
+    selection.trim(),
+  );
+  if (!match) return null;
+  return match[1]!.toLowerCase() === "yes" ? "Yes" : "No";
 }

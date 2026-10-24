@@ -21,7 +21,9 @@ import {
   periodMarketKeysForSport,
 } from "@/lib/period-markets";
 import {
+  BTTS_MARKET_KEY,
   DOUBLE_CHANCE_MARKET_KEY,
+  isBttsMarket,
   isDoubleChanceMarket,
 } from "@/lib/soccer-markets";
 import {
@@ -195,16 +197,18 @@ export function verificationMarkets(sclSport: string): string[] {
 }
 
 /**
- * Soccer's one non-surface market: Double Chance.
+ * Soccer's non-surface markets: Double Chance and Both Teams To Score.
  *
  * Deliberately narrow. Soccer is a wide, cheap-to-browse board — ten leagues,
  * eighty fixtures — so every market key added here is eighty credits a refresh.
- * Double Chance earns its slot because it is the one soccer bet cappers post
- * that the three surface markets cannot express.
+ * Each earns its slot because it is a soccer bet cappers post that the three
+ * surface markets cannot express.
  */
+const SOCCER_EXTRA_MARKETS = [DOUBLE_CHANCE_MARKET_KEY, BTTS_MARKET_KEY];
+
 function soccerExtraMarkets(sclSport: string): string[] {
   return sclSport.trim().toUpperCase() === "SOCCER"
-    ? [DOUBLE_CHANCE_MARKET_KEY]
+    ? [...SOCCER_EXTRA_MARKETS]
     : [];
 }
 
@@ -246,8 +250,9 @@ export function expandedBoardMarkets(sclSport: string): string[] {
     return ["spreads", "totals", "alternate_spreads", "alternate_totals"];
   }
   // Surface h2h/spreads/totals already carry soccer's game lines; the per-event
-  // call adds only Double Chance, which the bulk endpoint does not serve.
-  if (sclSport === "SOCCER") return [DOUBLE_CHANCE_MARKET_KEY];
+  // call adds only Double Chance and BTTS, which the bulk endpoint does not
+  // serve.
+  if (sclSport === "SOCCER") return [...SOCCER_EXTRA_MARKETS];
   // NFL's catalog is halves and player props plus the owner-toggled game
   // ladder (alt spreads/totals and team totals). Halves already grade off
   // ESPN quarter line-scores; the ladder keys are billed only when an owner
@@ -431,6 +436,7 @@ export function marketKeysForMarket(market: string): string[] {
   // Also a game line. Double Chance has no alternate ladder — the three
   // combinations are the whole market.
   if (isDoubleChanceMarket(m)) return [DOUBLE_CHANCE_MARKET_KEY];
+  if (isBttsMarket(m)) return [BTTS_MARKET_KEY];
   // A pick logged at a milestone line (6+ strikeouts) lives in the alternate
   // market, so verification has to look in both or it would fail to price it.
   const propKey = PROP_LABEL_TO_KEY[m];

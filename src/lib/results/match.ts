@@ -3,7 +3,9 @@ import { PROP_MARKET_LABEL } from "@/lib/odds-verify";
 import { isPeriodMarket } from "@/lib/period-markets";
 import { resolveKnownTeam } from "@/lib/teams";
 import {
+  isBttsMarket,
   isDoubleChanceMarket,
+  parseBttsSelection,
   parseDoubleChanceSelection,
 } from "@/lib/soccer-markets";
 import {
@@ -693,6 +695,25 @@ export function resolveOutcome(
   // not report them — never graded on an assumption about the unit.
   if (isAutoGradeBlocked(play)) {
     return resolveTennisGamesMarket(play, game, games);
+  }
+
+  // ---- soccer both teams to score ("BTTS Yes") ----
+  //
+  // Ahead of the generic branches: "BTTS Yes" names no club and no number, so
+  // nothing below can settle it correctly. The market settles on 90 minutes;
+  // when the feed shows extra-time periods, the final score may include goals
+  // the bet does not count, so it waits for manual grading.
+  if (isBttsMarket(play.market)) {
+    const side =
+      parseBttsSelection(play.side ?? "") ?? parseBttsSelection(play.selection);
+    if (!side) return null;
+    const periods = Math.max(
+      game.homePeriods?.length ?? 0,
+      game.awayPeriods?.length ?? 0,
+    );
+    if (periods > 2) return null;
+    const bothScored = game.homeScore > 0 && game.awayScore > 0;
+    return (side === "Yes") === bothScored ? "WIN" : "LOSS";
   }
 
   // ---- soccer double chance ("Palace or Draw") ----
