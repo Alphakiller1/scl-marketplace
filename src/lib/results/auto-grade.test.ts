@@ -269,9 +269,10 @@ test("both grading loops resolve through the same function", () => {
   );
   assert.equal(
     count(/await resolvePendingPlay\(/g),
-    2,
-    "Straight plays and parlay legs must each resolve through " +
-      "resolvePendingPlay, so neither can drift from the other.",
+    3,
+    "Straight plays, parlay legs and the reconcile re-check of box-score " +
+      "markets must each resolve through resolvePendingPlay, so none can " +
+      "drift from the others.",
   );
   assert.equal(
     count(/resolveOutcome\(boundPlay, games\)/g),
