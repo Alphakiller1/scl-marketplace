@@ -78,6 +78,61 @@ test("legacy player props inspect only nearby settled ESPN events", () => {
 });
 
 /**
+ * Production, 2026-10-25: Rockets @ Hawks (00:30Z) was in the fourth quarter
+ * when Wizards @ Bulls (00:00Z) went final. The Rockets game had no settled
+ * copy yet, so "Jabari Smith Jr Over 4.5" rebounds fell to the neighbour
+ * search, found Jalen Smith (3 REB) as the only "J. Smith" in a finished box
+ * score, and published a LOSS. Jabari finished with 5.
+ */
+test("a prop that names its clubs never borrows a neighbouring game's box score", () => {
+  const eventStartsAt = new Date("2026-10-25T00:40:00Z");
+  const games = [
+    {
+      sport: "NBA",
+      home: "Chicago Bulls",
+      away: "Washington Wizards",
+      homeScore: 118,
+      awayScore: 110,
+      completed: true,
+      espnEventId: "401909857",
+      startsAt: new Date("2026-10-25T00:00:00Z"),
+    },
+  ];
+  assert.deepEqual(
+    playerPropCandidateEventIds(
+      {
+        sport: "NBA",
+        eventStartsAt,
+        homeTeam: "Atlanta Hawks",
+        awayTeam: "Houston Rockets",
+      },
+      games,
+    ),
+    [],
+  );
+  // The same play with no clubs on it (the legacy picker rows this search
+  // exists for) still sees the neighbour, and the box-score name check
+  // decides from there.
+  assert.deepEqual(
+    playerPropCandidateEventIds({ sport: "NBA", eventStartsAt }, games),
+    ["401909857"],
+  );
+  const bulls: PlayerBoxScore = {
+    players: [
+      {
+        name: "Jalen Smith",
+        team: "Chicago Bulls",
+        played: true,
+        stats: { rebounds: 3 },
+      },
+    ],
+  };
+  // Why the borrowed box score was dangerous: the surname-and-initial
+  // fallback accepts Jalen for Jabari.
+  assert.equal(findPlayer(bulls, "Jabari Smith Jr"), bulls.players[0]);
+});
+
+/**
  * These cases are the real plays that sat PENDING in production on 2026-08-06
  * because player props had no resolver at all. The numbers are the actual ESPN
  * box-score values, so a regression here means a capper gets mis-graded.
