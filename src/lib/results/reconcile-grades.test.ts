@@ -6,6 +6,8 @@ import * as grading from "@/lib/grading";
 import * as odds from "@/lib/odds";
 import * as periods from "@/lib/period-markets";
 import * as match from "@/lib/results/match";
+import * as playerProps from "@/lib/results/player-props";
+import * as propResolve from "@/lib/results/prop-resolve";
 import * as gate from "@/lib/results/publication-gate";
 import * as settled from "@/lib/results/settled-game";
 import * as skip from "@/lib/results/skip-reason";
@@ -169,4 +171,116 @@ test("the reconcile pass corrects a wrong published grade and nothing else", asy
   assert.equal(result.reconciled?.checked, 3, "the override is never checked");
   assert.equal(result.reconciled?.corrected, 1);
   assert.equal(result.reconciled?.needsHuman, 1);
+});
+
+/**
+ * The ticket that prompted box-score reconciliation (2026-10-25): Jabari Smith
+ * Jr Over 4.5 rebounds was published as a LOSS off another game's box score
+ * while Rockets @ Hawks was still in the fourth quarter. Once his own game is
+ * final the next run must put it right without anyone filing a ticket.
+ */
+test("the reconcile pass re-checks a prop against its own final box score", async () => {
+  const now = Date.now();
+  const tip = new Date(now - 4 * 60 * 60 * 1_000);
+  const prop = {
+    id: "jabari",
+    sport: "NBA",
+    market: "Rebounds",
+    selection: "Jabari Smith Jr Over 4.5",
+    side: "Over",
+    line: 4.5,
+    oddsAmerican: -295,
+    units: 1,
+    eventId: "66849d2333774f4256873260f8e48c6c",
+    eventLabel: "Houston Rockets @ Atlanta Hawks",
+    homeTeam: "Atlanta Hawks",
+    awayTeam: "Houston Rockets",
+    eventStartsAt: tip,
+    createdAt: new Date(tip.getTime() - 2 * 60 * 60 * 1_000),
+    league: null,
+    parlayId: null,
+    outcome: "LOSS",
+    profitUnits: -1,
+    gradedAt: new Date(now - 60 * 60 * 1_000),
+    audits: [autoGraded],
+  };
+  const hawksFinal = {
+    sport: "NBA",
+    home: "Atlanta Hawks",
+    away: "Houston Rockets",
+    homeScore: 114,
+    awayScore: 121,
+    completed: true,
+    eventId: "espn:401909856",
+    espnEventId: "401909856",
+    startsAt: tip,
+  };
+  const boxFetches: string[] = [];
+  const updates: { id: string; outcome: string }[] = [];
+  const file = "src/lib/results/auto-grade.ts";
+  const auto = loadTestModule<typeof Auto>(file, {
+    ...importsFor(file),
+    "server-only": {},
+    "@/lib/grading": grading,
+    "@/lib/odds": odds,
+    "@/lib/period-markets": periods,
+    "@/lib/results/match": match,
+    "@/lib/results/skip-reason": skip,
+    "@/lib/results/publication-gate": gate,
+    "@/lib/results/settled-game": settled,
+    "@/lib/results/player-props": playerProps,
+    "@/lib/results/prop-resolve": propResolve,
+    "@/lib/results/stats-provider": {
+      fetchPlayerBoxScore: async (_sport: string, espnId: string) => {
+        boxFetches.push(espnId);
+        return {
+          players: [
+            {
+              name: "Jabari Smith Jr.",
+              team: "Houston Rockets",
+              played: true,
+              stats: { rebounds: 5 },
+            },
+          ],
+        };
+      },
+    },
+    "@/lib/results/provider": { ODDS_SCORES_ONLY_SPORTS: ["SOCCER"] },
+    "@/lib/results/schema-features": { hasClvColumns: async () => false },
+    "@/lib/prisma": {
+      prisma: {
+        play: {
+          findMany: async ({ where }: { where: { gradedAt?: unknown } }) =>
+            where.gradedAt ? [prop] : [],
+        },
+        parlay: { findMany: async () => [] },
+        $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+          fn({
+            play: {
+              updateMany: async ({
+                where,
+                data,
+              }: {
+                where: { id: string };
+                data: { outcome: string };
+              }) => {
+                updates.push({ id: where.id, outcome: data.outcome });
+                return { count: 1 };
+              },
+            },
+            gradingAudit: { create: async () => undefined },
+          }),
+      },
+    },
+  });
+
+  const result = await auto.autoGradePending({
+    name: "fixture",
+    fetchSettled: async () => [],
+    fetchSettledForSports: async () => [hawksFinal],
+  });
+
+  assert.deepEqual(boxFetches, ["401909856"], "its own game's box score");
+  assert.deepEqual(updates, [{ id: "jabari", outcome: "WIN" }]);
+  assert.equal(result.reconciled?.corrected, 1);
 });
