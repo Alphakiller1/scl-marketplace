@@ -355,6 +355,7 @@ async function resolvePlayerPropPlay(
   // Legacy picker rows can carry the Odds API id and scheduled start but no
   // club metadata. Inspect only nearby settled games, then require the named
   // athlete to occur in exactly one box score. Ambiguous/missing stays pending.
+  // A play that names its clubs gets no candidates: it waits for its own game.
   const playerName = playerNameFromSelection(play.selection);
   if (!playerName) return null;
   const candidateIds = playerPropCandidateEventIds(play, games);

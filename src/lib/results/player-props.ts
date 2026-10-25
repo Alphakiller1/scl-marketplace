@@ -40,11 +40,22 @@ const PLAYER_PROP_FIXTURE_WINDOW_MS = 90 * 60 * 1_000;
  * is never enough to grade one; the caller must additionally find the named
  * athlete in exactly one candidate box score. This helper only narrows the
  * safe candidate pool and de-duplicates provider copies of the same fixture.
+ *
+ * A play that names its clubs is never a candidate search: its own game is
+ * known, so if that game has not settled the prop waits for it. Searching the
+ * neighbours instead graded "Jabari Smith Jr Over 4.5 rebounds" (Rockets @
+ * Hawks, still in the fourth quarter) on Jalen Smith's 3 rebounds in Wizards
+ * @ Bulls, which had just finished: the surname-and-initial match found one
+ * "J. Smith" among the finished games and published a LOSS. Jabari had 5.
  */
 export function playerPropCandidateEventIds(
-  play: Pick<GradablePlayerProp, "sport" | "eventStartsAt">,
+  play: Pick<
+    GradablePlayerProp,
+    "sport" | "eventStartsAt" | "homeTeam" | "awayTeam"
+  >,
   games: readonly SettledGame[],
 ): string[] {
+  if (play.homeTeam?.trim() || play.awayTeam?.trim()) return [];
   const startsAt = play.eventStartsAt;
   if (!startsAt) return [];
 
@@ -68,6 +79,8 @@ export function playerPropCandidateEventIds(
 type GradablePlayerProp = {
   sport: string;
   eventStartsAt?: Date | null;
+  homeTeam?: string | null;
+  awayTeam?: string | null;
 };
 
 /**
