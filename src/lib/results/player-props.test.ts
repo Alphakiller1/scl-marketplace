@@ -7,6 +7,7 @@ import {
   playerNameFromSelection,
   playerPropCandidateEventIds,
   resolvePlayerProp,
+  sameGivenName,
   statKeyForMarket,
   type PlayerBoxScore,
   resolveAbsentPlayerProp,
@@ -74,6 +75,137 @@ test("legacy player props inspect only nearby settled ESPN events", () => {
   assert.deepEqual(
     playerPropCandidateEventIds({ sport: "MLB", eventStartsAt: null }, games),
     [],
+  );
+});
+
+/**
+ * Production, 2026-10-25: Rockets @ Hawks (00:30Z) was in the fourth quarter
+ * when Wizards @ Bulls (00:00Z) went final. The Rockets game had no settled
+ * copy yet, so "Jabari Smith Jr Over 4.5" rebounds fell to the neighbour
+ * search, found Jalen Smith (3 REB) as the only "J. Smith" in a finished box
+ * score, and published a LOSS. Jabari finished with 5.
+ */
+test("a prop that names its clubs never borrows a neighbouring game's box score", () => {
+  const eventStartsAt = new Date("2026-10-25T00:40:00Z");
+  const games = [
+    {
+      sport: "NBA",
+      home: "Chicago Bulls",
+      away: "Washington Wizards",
+      homeScore: 118,
+      awayScore: 110,
+      completed: true,
+      espnEventId: "401909857",
+      startsAt: new Date("2026-10-25T00:00:00Z"),
+    },
+  ];
+  assert.deepEqual(
+    playerPropCandidateEventIds(
+      {
+        sport: "NBA",
+        eventStartsAt,
+        homeTeam: "Atlanta Hawks",
+        awayTeam: "Houston Rockets",
+      },
+      games,
+    ),
+    [],
+  );
+  // The same play with no clubs on it (the legacy picker rows this search
+  // exists for) still sees the neighbour, and the box-score name check
+  // decides from there.
+  assert.deepEqual(
+    playerPropCandidateEventIds({ sport: "NBA", eventStartsAt }, games),
+    ["401909857"],
+  );
+});
+
+const jabariOver = {
+  market: "Rebounds",
+  selection: "Jabari Smith Jr Over 4.5",
+  side: "Over",
+  line: 4.5,
+};
+
+test("a shared surname and initial is not the same player", () => {
+  const bulls: PlayerBoxScore = {
+    players: [
+      {
+        name: "Jalen Smith",
+        team: "Chicago Bulls",
+        played: true,
+        stats: { rebounds: 3 },
+      },
+    ],
+  };
+  assert.equal(findPlayer(bulls, "Jabari Smith Jr"), null);
+  assert.equal(resolvePlayerProp(jabariOver, bulls), null);
+});
+
+test("given names match on shortenings, initials and known nicknames only", () => {
+  for (const [a, b] of [
+    ["josh", "joshua"],
+    ["cam", "cameron"],
+    ["dj", "dj"],
+    ["j", "jabari"],
+    ["mike", "michael"],
+    ["jake", "jacob"],
+    ["michaela", "michael"], // a middle initial on one side
+  ]) {
+    assert.equal(sameGivenName(a!, b!), true, `${a} / ${b}`);
+  }
+  for (const [a, b] of [
+    ["jabari", "jalen"],
+    ["joshua", "trey"],
+    ["tyler", "trevor"],
+  ]) {
+    assert.equal(sameGivenName(a!, b!), false, `${a} / ${b}`);
+  }
+});
+
+test("a prop settles only on a player from one of the play's clubs", () => {
+  const clubs = ["Atlanta Hawks", "Houston Rockets"];
+  const elsewhere: PlayerBoxScore = {
+    players: [
+      {
+        name: "Jabari Smith Jr.",
+        team: "Chicago Bulls",
+        played: true,
+        stats: { rebounds: 3 },
+      },
+    ],
+  };
+  // However a neighbouring game's box score is reached, it cannot settle.
+  assert.equal(resolvePlayerProp({ ...jabariOver, clubs }, elsewhere), null);
+
+  const own: PlayerBoxScore = {
+    players: [
+      {
+        name: "Jabari Smith Jr.",
+        team: "Houston Rockets",
+        played: true,
+        stats: { rebounds: 5 },
+      },
+    ],
+  };
+  assert.equal(resolvePlayerProp({ ...jabariOver, clubs }, own), "WIN");
+  // ESPN writes "LA Clippers"; the Odds API writes "Los Angeles Clippers".
+  assert.equal(
+    resolvePlayerProp(
+      { ...jabariOver, clubs: ["Los Angeles Clippers", "Houston Rockets"] },
+      {
+        players: [{ ...own.players[0]!, team: "LA Clippers" }],
+      },
+    ),
+    "WIN",
+  );
+  // An abbreviation alone is not evidence of the wrong game.
+  assert.equal(
+    resolvePlayerProp(
+      { ...jabariOver, clubs },
+      { players: [{ ...own.players[0]!, team: "HOU" }] },
+    ),
+    "WIN",
   );
 });
 

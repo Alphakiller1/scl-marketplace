@@ -40,11 +40,22 @@ const PLAYER_PROP_FIXTURE_WINDOW_MS = 90 * 60 * 1_000;
  * is never enough to grade one; the caller must additionally find the named
  * athlete in exactly one candidate box score. This helper only narrows the
  * safe candidate pool and de-duplicates provider copies of the same fixture.
+ *
+ * A play that names its clubs is never a candidate search: its own game is
+ * known, so if that game has not settled the prop waits for it. Searching the
+ * neighbours instead graded "Jabari Smith Jr Over 4.5 rebounds" (Rockets @
+ * Hawks, still in the fourth quarter) on Jalen Smith's 3 rebounds in Wizards
+ * @ Bulls, which had just finished: the surname-and-initial match found one
+ * "J. Smith" among the finished games and published a LOSS. Jabari had 5.
  */
 export function playerPropCandidateEventIds(
-  play: Pick<GradablePlayerProp, "sport" | "eventStartsAt">,
+  play: Pick<
+    GradablePlayerProp,
+    "sport" | "eventStartsAt" | "homeTeam" | "awayTeam"
+  >,
   games: readonly SettledGame[],
 ): string[] {
+  if (play.homeTeam?.trim() || play.awayTeam?.trim()) return [];
   const startsAt = play.eventStartsAt;
   if (!startsAt) return [];
 
@@ -68,6 +79,8 @@ export function playerPropCandidateEventIds(
 type GradablePlayerProp = {
   sport: string;
   eventStartsAt?: Date | null;
+  homeTeam?: string | null;
+  awayTeam?: string | null;
 };
 
 /**
@@ -253,23 +266,96 @@ export function findPlayer(
   if (exact.length > 1) return "AMBIGUOUS";
 
   // Fall back to surname, which is how books and cappers usually shorten it
-  // ("Josh" for "Joshua", "D.J." for "DJ") - but only when the first initial
-  // agrees. A surname alone graded "Joshua Palmer", who played without a touch
-  // and so is absent from the box score, on whichever other Palmer caught a
-  // pass. A different first initial is a different player: defer.
+  // ("Josh" for "Joshua", "D.J." for "DJ") - but only when the first names
+  // could be the same person. A surname alone graded "Joshua Palmer", who
+  // played without a touch and so is absent from the box score, on whichever
+  // other Palmer caught a pass; a shared initial alone took Jalen Smith's
+  // rebounds for Jabari Smith Jr's. A first name that is neither a shortening
+  // nor a known nickname of the other is a different player: defer.
   const tokens = target.split(" ");
   const surname = tokens.slice(-1)[0];
   // A bare surname carries no first name to check against.
-  const initial = tokens.length > 1 ? target[0] : null;
+  const given = tokens.length > 1 ? tokens.slice(0, -1).join("") : null;
   const bySurname = box.players.filter((p) => {
-    const candidate = normalizeName(p.name);
+    const candidate = normalizeName(p.name).split(" ");
     return (
-      candidate.split(" ").slice(-1)[0] === surname &&
-      (initial == null || candidate[0] === initial)
+      candidate.slice(-1)[0] === surname &&
+      (given == null || sameGivenName(given, candidate.slice(0, -1).join("")))
     );
   });
   if (bySurname.length === 1) return bySurname[0];
   return bySurname.length > 1 ? "AMBIGUOUS" : null;
+}
+
+/**
+ * Common given-name forms that are not a shortening of the full name, so the
+ * prefix rule below cannot see them. Missing an entry costs a manual grade;
+ * a wrong one costs a wrong public result, so only unambiguous pairs belong.
+ */
+const GIVEN_NAME_FORMS: Record<string, string> = {
+  mike: "michael",
+  jake: "jacob",
+  tony: "anthony",
+  dave: "david",
+  bob: "robert",
+  bobby: "robert",
+  rob: "robert",
+  robbie: "robert",
+  bill: "william",
+  billy: "william",
+  jim: "james",
+  jimmy: "james",
+  joe: "joseph",
+  joey: "joseph",
+  andy: "andrew",
+  drew: "andrew",
+  danny: "daniel",
+  kenny: "kenneth",
+  rick: "richard",
+  ricky: "richard",
+  tom: "thomas",
+  tommy: "thomas",
+  nate: "nathan",
+  gabe: "gabriel",
+  hank: "henry",
+  ted: "theodore",
+  teddy: "theodore",
+};
+
+/**
+ * Could these two given names (normalised, spaces removed) be one person?
+ * True for the same name, an initial ("J" / "Jabari"), a shortening ("Josh" /
+ * "Joshua", "Cam" / "Cameron") or a listed nickname ("Mike" / "Michael").
+ */
+export function sameGivenName(a: string, b: string): boolean {
+  if (!a || !b) return false;
+  if (a.length === 1 || b.length === 1) return a[0] === b[0];
+  const formal = (n: string) => GIVEN_NAME_FORMS[n] ?? n;
+  const x = formal(a);
+  const y = formal(b);
+  return x.startsWith(y) || y.startsWith(x);
+}
+
+/** A club's last word ("Rockets", "Clippers"), accent-folded. */
+function clubNickname(club: string): string {
+  return normalizeName(club).split(" ").slice(-1)[0] ?? "";
+}
+
+/**
+ * Does this stat line belong to one of the play's clubs?
+ *
+ * Only a full club name can be checked: a line with no team, or a bare
+ * abbreviation ("HOU"), is not evidence either way and passes.
+ */
+function onPlayClub(
+  line: PlayerStatLine,
+  clubs: readonly (string | null | undefined)[],
+): boolean {
+  const named = clubs.map((c) => c?.trim()).filter((c): c is string => !!c);
+  const team = line.team.trim();
+  if (named.length === 0 || !team.includes(" ")) return true;
+  const nickname = clubNickname(team);
+  return named.some((club) => clubNickname(club) === nickname);
 }
 
 /** Game-day participation of a player the box score does not list. */
@@ -323,6 +409,8 @@ export type PlayerPropPlay = {
   selection: string;
   side?: string | null;
   line?: number | null;
+  /** The play's stored clubs; the settling stat line must be on one. */
+  clubs?: readonly (string | null | undefined)[];
 };
 
 function sideFromSelection(selection: string): "over" | "under" | null {
@@ -367,6 +455,9 @@ export function resolvePlayerProp(
 
   const found = findPlayer(box, name);
   if (found === "AMBIGUOUS" || !found) return null;
+  // A player on neither of the play's clubs means the box score is another
+  // game's, however it was reached: never settle on it.
+  if (play.clubs && !onPlayClub(found, play.clubs)) return null;
   if (!found.played) return "VOID";
 
   const actual = statValue(found.stats, statKey);

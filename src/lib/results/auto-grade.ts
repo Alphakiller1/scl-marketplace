@@ -324,6 +324,7 @@ async function resolvePlayerPropPlay(
           selection: play.selection,
           side: play.side,
           line: play.line ?? null,
+          clubs: [play.homeTeam, play.awayTeam],
         },
         box,
       );
@@ -345,6 +346,7 @@ async function resolvePlayerPropPlay(
           selection: play.selection,
           side: play.side,
           line: play.line ?? null,
+          clubs: [play.homeTeam, play.awayTeam],
         },
         box,
       );
@@ -355,6 +357,7 @@ async function resolvePlayerPropPlay(
   // Legacy picker rows can carry the Odds API id and scheduled start but no
   // club metadata. Inspect only nearby settled games, then require the named
   // athlete to occur in exactly one box score. Ambiguous/missing stays pending.
+  // A play that names its clubs gets no candidates: it waits for its own game.
   const playerName = playerNameFromSelection(play.selection);
   if (!playerName) return null;
   const candidateIds = playerPropCandidateEventIds(play, games);
@@ -376,6 +379,7 @@ async function resolvePlayerPropPlay(
       selection: play.selection,
       side: play.side,
       line: play.line ?? null,
+      clubs: [play.homeTeam, play.awayTeam],
     },
     box,
   );
@@ -926,7 +930,12 @@ export async function autoGradePending(
     });
   }
 
-  const reconciled = await reconcileRecentGrades(provider, now);
+  const reconciled = await reconcileRecentGrades(
+    provider,
+    now,
+    boxCache,
+    fixtureCache,
+  );
 
   const skipped = Object.values(skippedByReason).reduce((a, b) => a + b, 0);
   return {
@@ -941,6 +950,12 @@ export async function autoGradePending(
 
 /** How far back published auto-grades are re-checked against fresh finals. */
 const RECONCILE_WINDOW_MS = 48 * 60 * 60 * 1_000;
+/**
+ * Box-score grades are re-checked over a shorter window: each one costs an
+ * ESPN summary fetch, and the failure they guard against (a grade published
+ * before the game was over) shows up on the first run after the real final.
+ */
+const BOX_SCORE_RECONCILE_WINDOW_MS = 12 * 60 * 60 * 1_000;
 /** A play the grader has already reversed this often is left to a human. */
 const MAX_AUTO_CORRECTIONS = 1;
 const AUTO_CORRECTION_PREFIX = "Auto-corrected";
@@ -965,12 +980,19 @@ export type ReconcileResult = {
  *
  * Never touches a play a human has graded or overridden, and gives up on a
  * play it has already reversed once — flip-flopping is a feed problem a human
- * should look at, not something to keep publishing. Straight markets only:
- * props and period markets settle from box scores this pass does not refetch.
+ * should look at, not something to keep publishing.
+ *
+ * Props and period markets are re-checked too, by resolving them again from
+ * the box score through the same path that graded them. They used to be
+ * skipped, so "Jabari Smith Jr Over 4.5" rebounds, published as a LOSS off
+ * another game's box score while his own was in the fourth quarter, stayed
+ * wrong until the capper filed a ticket.
  */
 async function reconcileRecentGrades(
   provider: ResultsProvider,
   now: Date,
+  boxCache: PlayerBoxCache,
+  fixtureCache: FixtureCache,
 ): Promise<ReconcileResult> {
   const result: ReconcileResult = { checked: 0, corrected: 0, needsHuman: 0 };
   const recent = await prisma.play.findMany({
@@ -997,6 +1019,7 @@ async function reconcileRecentGrades(
       outcome: true,
       profitUnits: true,
       parlayId: true,
+      gradedAt: true,
       audits: {
         select: { source: true, reason: true },
         orderBy: { createdAt: "asc" },
@@ -1004,6 +1027,7 @@ async function reconcileRecentGrades(
     },
     take: GRADE_BATCH_SIZE,
   });
+  const boxScoreSince = now.getTime() - BOX_SCORE_RECONCILE_WINDOW_MS;
 
   // Odds API scores cost credits on every call; those sports are re-checked
   // only when an admin runs "Grade completed", never on the cron cadence.
@@ -1014,12 +1038,14 @@ async function reconcileRecentGrades(
       units: Number(p.units),
       line: p.line == null ? null : Number(p.line),
     }))
+    .map((p) => ({ ...p, fromBoxScore: settlesFromBoxScore(p) }))
     .filter(
       (p) =>
         !paidSports.has(p.sport.toUpperCase()) &&
         p.audits.length > 0 &&
         p.audits.at(-1)!.source === "AUTO" &&
-        !settlesFromBoxScore(p),
+        (!p.fromBoxScore ||
+          (p.gradedAt != null && p.gradedAt.getTime() >= boxScoreSince)),
     );
   if (candidates.length === 0) return result;
 
@@ -1041,7 +1067,10 @@ async function reconcileRecentGrades(
     if (!publicationVerdict(play, game, now).ok) continue;
     const confirmed: Outcome | null = game.voided
       ? "VOID"
-      : resolveOutcome(play, games);
+      : play.fromBoxScore
+        ? (await resolvePendingPlay(play, games, now, boxCache, fixtureCache))
+            .outcome
+        : resolveOutcome(play, games);
     if (!confirmed || confirmed === play.outcome) continue;
 
     const corrections = play.audits.filter((a) =>
