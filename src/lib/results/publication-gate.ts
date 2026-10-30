@@ -97,6 +97,27 @@ function pastKickoff(
   return now.getTime() >= Math.max(...starts) + minutes * 60_000;
 }
 
+type ScorePair = { homeScore: number; awayScore: number };
+
+/**
+ * Do two feeds report the same result?
+ *
+ * Tennis feeds count different things: The Odds API reports SETS (2-1) while
+ * ESPN's tennis card reports a winner flag (1-0). Compared exactly, every
+ * tennis final read as a disagreement and was held forever: the whole Vienna
+ * and Basel week, moneylines included, sat PENDING with both feeds naming the
+ * same winner. For tennis the corroboration that matters is the winner; games
+ * markets settle from ESPN's per-set line scores, not from this pair.
+ */
+function scoresAgree(sport: string): (a: ScorePair, b: ScorePair) => boolean {
+  if (sport.trim().toUpperCase() === "TENNIS") {
+    return (a, b) =>
+      Math.sign(a.homeScore - a.awayScore) ===
+      Math.sign(b.homeScore - b.awayScore);
+  }
+  return (a, b) => a.homeScore === b.homeScore && a.awayScore === b.awayScore;
+}
+
 export function publicationVerdict(
   play: Pick<GradablePlay, "sport" | "eventStartsAt">,
   game: SettledGame,
@@ -126,11 +147,11 @@ export function publicationVerdict(
   );
   const compared = backstopMayVeto || primary.length === 0 ? reports : primary;
   const first = compared[0]!;
+  const sameResult = scoresAgree(play.sport);
   const disagreement = compared.find(
     (r) =>
       Boolean(r.voided) !== Boolean(first.voided) ||
-      (!r.voided &&
-        (r.homeScore !== first.homeScore || r.awayScore !== first.awayScore)),
+      (!r.voided && !sameResult(r, first)),
   );
   if (disagreement) {
     return {

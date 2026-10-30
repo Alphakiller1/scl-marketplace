@@ -174,3 +174,39 @@ test("MMA has no floor: a fight can end in seconds", () => {
   assert.ok(minGameMinutes("NCAAF") >= 150);
   assert.ok(minGameMinutes("MLB") <= 90, "rain-shortened games still settle");
 });
+
+test("tennis feeds that count sets and winner flags agree on the same winner", () => {
+  // Vienna, 2026-10-29: The Odds API reported Medvedev–Norrie as sets (2-1),
+  // ESPN as a winner flag (1-0). Compared exactly, every tennis final held.
+  const game: SettledGame = {
+    sport: "TENNIS",
+    home: "Cameron Norrie",
+    away: "Daniil Medvedev",
+    homeScore: 0,
+    awayScore: 1,
+    completed: true,
+    startsAt: at("2026-10-29T12:40:00Z"),
+    reports: [
+      { source: "odds-api", homeScore: 1, awayScore: 2 },
+      { source: "espn", homeScore: 0, awayScore: 1 },
+    ],
+  };
+  const now = at("2026-10-29T20:00:00Z");
+  assert.deepEqual(
+    publicationVerdict(play("TENNIS", "2026-10-29T12:30:00Z"), game, now),
+    { ok: true },
+  );
+  const flipped = {
+    ...game,
+    reports: [
+      { source: "odds-api", homeScore: 2, awayScore: 1 },
+      { source: "espn", homeScore: 0, awayScore: 1 },
+    ],
+  };
+  const verdict = publicationVerdict(
+    play("TENNIS", "2026-10-29T12:30:00Z"),
+    flipped,
+    now,
+  );
+  assert.equal(verdict.ok, false);
+});

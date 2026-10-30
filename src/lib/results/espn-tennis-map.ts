@@ -15,6 +15,8 @@ import type { SettledGame } from "@/lib/results/settled-game";
  * the 7-hour window.
  */
 type TennisNode = {
+  /** Tournament name, on the top-level event ("Erste Bank Open"). */
+  name?: string;
   grouping?: { slug?: string };
   competitions?: (NonNullable<
     NonNullable<EspnScoreboardPayload["events"]>[number]["competitions"]
@@ -35,6 +37,13 @@ function collectCompetitions(
     })),
     ...(node.groupings ?? []).flatMap((child) => collectCompetitions(child)),
   ];
+}
+
+const GRAND_SLAM =
+  /\b(australian open|roland[\s-]garros|french open|wimbledon|us open)\b/i;
+
+function isGrandSlam(tournamentName: string): boolean {
+  return GRAND_SLAM.test(tournamentName);
 }
 
 export function flattenEspnTennisScoreboard(
@@ -59,10 +68,15 @@ export function flattenEspnTennisScoreboard(
         draw !== (tour === "atp" ? "mens-singles" : "womens-singles")
       )
         continue;
+      // Men play best-of-five only in a Grand Slam main draw. ESPN's ATP card
+      // stamps 5 on every tour event, so Vienna and Basel 2-0 wins read as
+      // unfinished and every games spread/total stayed PENDING. A card with no
+      // tournament name keeps the feed's value: deferring beats guessing.
       const bestOfThree =
         draw === "womens-singles" ||
         (draw === "mens-singles" &&
-          /^Qualifying\b/i.test(competition.round?.displayName ?? ""));
+          (/^Qualifying\b/i.test(competition.round?.displayName ?? "") ||
+            (tournament.name != null && !isGrandSlam(tournament.name))));
       const normalized = bestOfThree
         ? { ...competition, format: { regulation: { periods: 3 } } }
         : competition;
