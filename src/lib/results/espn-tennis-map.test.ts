@@ -101,3 +101,73 @@ test("Arthur Fils Cincinnati ML matches ESPN across providers", () => {
     "espn:181987",
   );
 });
+
+function atpCard(name: string, round = "Round 1") {
+  return {
+    events: [
+      {
+        id: "t",
+        name,
+        groupings: [
+          {
+            grouping: { slug: "mens-singles" },
+            competitions: [
+              {
+                id: "m1",
+                date: "2026-10-28T18:15Z",
+                round: { displayName: round },
+                format: { regulation: { periods: 5 } },
+                status: { type: { completed: true, name: "STATUS_FINAL" } },
+                competitors: [
+                  {
+                    homeAway: "away",
+                    winner: false,
+                    athlete: { displayName: "Rinky Hijikata" },
+                    linescores: [{ value: 4 }, { value: 6 }],
+                  },
+                  {
+                    homeAway: "home",
+                    winner: true,
+                    athlete: { displayName: "Taylor Fritz" },
+                    linescores: [{ value: 6 }, { value: 7 }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+}
+
+test("men's tour events are best-of-three even when ESPN stamps five", () => {
+  const [game] = mapEspnTennisScoreboard(
+    atpCard("Erste Bank Open") as never,
+    "atp",
+  );
+  assert.equal(game?.regulationPeriods, 3);
+  const outcome = resolveOutcome(
+    {
+      id: "p",
+      sport: "TENNIS",
+      market: "Spread",
+      selection: "Taylor Fritz -4",
+      side: "Taylor Fritz",
+      line: -4,
+      oddsAmerican: -110,
+      units: 1,
+      homeTeam: "Taylor Fritz",
+      awayTeam: "Rinky Hijikata",
+      eventStartsAt: new Date("2026-10-28T17:00:00Z"),
+    } as GradablePlay,
+    [game!],
+  );
+  // 13 games to 10: Fritz by three, so -4 loses.
+  assert.equal(outcome, "LOSS");
+});
+
+test("a Grand Slam men's main draw keeps the feed's best-of-five", () => {
+  const [game] = mapEspnTennisScoreboard(atpCard("US Open") as never, "atp");
+  assert.equal(game?.regulationPeriods, 5);
+});
