@@ -13,7 +13,10 @@ test("historical one-survivor parlays are repaired without touching overrides", 
   assert.match(migration, /NOT IN \('WIN', 'PUSH', 'VOID'\)/);
   assert.match(migration, /audit\."source" = 'AUTO'/);
   assert.match(migration, /"outcome" = 'WIN'/);
-  assert.match(migration, /"combinedOddsAmerican" = repair\."effectiveOddsAmerican"/);
+  assert.match(
+    migration,
+    /"combinedOddsAmerican" = repair\."effectiveOddsAmerican"/,
+  );
   assert.match(migration, /"profitUnits" = repair\."newProfitUnits"/);
   assert.match(migration, /INSERT INTO scl\."ParlayGradingAudit"/);
 });
