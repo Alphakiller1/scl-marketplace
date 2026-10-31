@@ -310,13 +310,17 @@ test("NCAAF games are not one unpriced competition", () => {
   );
 });
 
-test("NCAAF expanded runs cover the Saturday card, not twenty games", () => {
+test("college expanded runs cover their full slates, not twenty games", () => {
   assert.equal(resolveExpandedEventLimit("NCAAF", 20), 200);
   assert.equal(resolveExpandedEventLimit("NCAAF", 1), 200);
+  assert.equal(resolveExpandedEventLimit("NCAAB", 20), 200);
+  assert.equal(resolveExpandedEventLimit("NCAAB", 1), 200);
   assert.equal(resolveExpandedEventLimit("MLB", 20), 20);
   assert.equal(resolveExpandedEventLimit("NFL", 20), 20);
   assert.equal(resolveExpandedEventLimit("NCAAF", 0), 0);
+  assert.equal(resolveExpandedEventLimit("NCAAB", 0), 0);
   assert.equal(expandedEventCreditCost("NCAAF"), 4);
+  assert.equal(expandedEventCreditCost("NCAAB"), 2);
 });
 
 test("an expanded NCAAF pass refreshes the cached surface board", () => {

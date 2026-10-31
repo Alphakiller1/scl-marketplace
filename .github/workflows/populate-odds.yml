@@ -38,10 +38,10 @@ on:
       sports:
         description: "Comma-separated SCL sports, or blank for all"
         required: false
-        default: "MLB,NBA,WNBA,TENNIS,SOCCER,NFL"
+        default: "MLB,NBA,NCAAB,WNBA,TENNIS,SOCCER,NFL"
         type: string
       expanded:
-        description: "Max events to expand per MLB/WNBA/Tennis sport"
+        description: "Max events to expand per supported sport"
         required: false
         default: "99"
         type: string
@@ -111,7 +111,7 @@ jobs:
           curl --fail --silent --show-error \
             --header "Authorization: Bearer $CRON_SECRET" \
             --request POST \
-            "https://sportscappersleaderboard.com/api/cron/odds-populate?sports=MLB,NBA,WNBA,TENNIS,SOCCER,NFL,NCAAF&expanded=0&surface=0" \
+            "https://sportscappersleaderboard.com/api/cron/odds-populate?sports=MLB,NBA,NCAAB,WNBA,TENNIS,SOCCER,NFL,NCAAF&expanded=0&surface=0" \
             --output /tmp/audit.json
           jq . /tmp/audit.json
 
@@ -267,13 +267,13 @@ jobs:
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           ODDS_KEY: ${{ secrets.ODDS_API_KEY_TEMP }}
-          SPORTS: ${{ github.event.client_payload.sports || github.event.inputs.sports || 'MLB,NBA,WNBA,TENNIS,SOCCER,NFL' }}
+          SPORTS: ${{ github.event.client_payload.sports || github.event.inputs.sports || 'MLB,NBA,NCAAB,WNBA,TENNIS,SOCCER,NFL' }}
           EXPANDED: ${{ github.event.client_payload.expanded || github.event.inputs.expanded || '99' }}
           EXPANDED_DAYS: ${{ github.event.client_payload.expanded_days || github.event.inputs.expanded_days || 'today' }}
           EXPANDED_MARKETS: ${{ github.event.client_payload.expanded_markets || github.event.inputs.expanded_markets || '' }}
           SURFACE: ${{ github.event.client_payload.surface || '1' }}
           SKIP_POPULATED: ${{ github.event.client_payload.skipPopulated || '1' }}
-          EXPANDED_ORDER: ${{ github.event.client_payload.expandedOrder || 'MLB,NBA,WNBA,TENNIS,SOCCER' }}
+          EXPANDED_ORDER: ${{ github.event.client_payload.expandedOrder || 'MLB,NFL,NCAAF,NBA,NCAAB,WNBA,TENNIS,SOCCER' }}
         run: |
           if [ -z "$CRON_SECRET" ]; then
             echo "::error::CRON_SECRET is not configured. No odds credits were spent."
@@ -332,7 +332,7 @@ jobs:
       - name: Populate through the signed production route
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          SPORTS: ${{ inputs.sports || 'MLB,NBA,WNBA,TENNIS,SOCCER,NFL' }}
+          SPORTS: ${{ inputs.sports || 'MLB,NBA,NCAAB,WNBA,TENNIS,SOCCER,NFL' }}
           EXPANDED: ${{ inputs.expanded }}
           EXPANDED_DAYS: ${{ inputs.expanded_days || 'tomorrow' }}
           EXPANDED_MARKETS: ${{ inputs.expanded_markets || '' }}

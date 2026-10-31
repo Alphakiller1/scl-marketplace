@@ -419,7 +419,11 @@ export default async function AdminOddsPage() {
                     data.summary.remaining == null
                       ? "Unknown"
                       : credits(data.summary.remaining),
-                  sub: marketLabel(data.summary.provider.state),
+                  sub: `${marketLabel(data.summary.provider.state)}${
+                    data.summary.provider.capacity != null
+                      ? ` · ${credits(data.summary.provider.capacity)} observed capacity`
+                      : ""
+                  }`,
                 },
                 {
                   label: "Provider checked",

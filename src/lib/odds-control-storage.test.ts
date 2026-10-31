@@ -11,6 +11,10 @@ const completionMigration = readFileSync(
   "prisma/migrations/20260829230000_complete_odds_credit_dashboard/migration.sql",
   "utf8",
 );
+const ncaabLaunchMigration = readFileSync(
+  "prisma/migrations/20261031170000_enable_ncaab_odds_population/migration.sql",
+  "utf8",
+);
 const migration = `${rolloutMigration}\n${completionMigration}`;
 const oddsApi = readFileSync("src/lib/odds-api.ts", "utf8");
 
@@ -35,4 +39,17 @@ test("market telemetry attributes the provider response cost without guessing", 
   assert.match(oddsApi, /persistOddsMarketUsageDaily/);
   assert.match(oddsApi, /date_purpose_sport_market/);
   assert.match(oddsApi, /"market_catalog"/);
+});
+
+test("the NCAAB launch updates an already-persisted disabled control row", () => {
+  assert.match(ncaabLaunchMigration, /ON CONFLICT \("sport"\) DO UPDATE/);
+  assert.match(ncaabLaunchMigration, /"sport",[\s\S]*'NCAAB'/);
+  assert.match(ncaabLaunchMigration, /"enabled" = true/);
+  assert.match(ncaabLaunchMigration, /"surfaceEnabled" = true/);
+  assert.match(ncaabLaunchMigration, /"expandedEnabled" = true/);
+  assert.match(
+    ncaabLaunchMigration,
+    /ARRAY\['alternate_spreads', 'alternate_totals'\]::TEXT\[\]/,
+  );
+  assert.match(ncaabLaunchMigration, /"maxEventsPerRun" = 200/);
 });

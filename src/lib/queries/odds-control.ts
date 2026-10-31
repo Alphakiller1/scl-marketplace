@@ -1,7 +1,6 @@
 import "server-only";
 
 import {
-  adjustedOddsRemaining,
   accountRemainingCredits,
   clampToPlanStart,
   CREDIT_WINDOW_DAYS,
@@ -384,11 +383,11 @@ export async function getOddsCreditDashboard() {
   // NOT the last row: every cold isolate probes the head of the rollover list
   // first, so a spent key there writes a near-zero reading more recently than
   // the key actually serving traffic. See `accountRemainingCredits`.
-  const storedRemaining = adjustedOddsRemaining(accountRemainingCredits(usage));
+  const storedRemaining = accountRemainingCredits(usage);
   const hasLiveBalance =
     liveProviderBalance.complete && liveProviderBalance.remaining != null;
   const latestRemaining = hasLiveBalance
-    ? adjustedOddsRemaining(liveProviderBalance.remaining)
+    ? liveProviderBalance.remaining
     : storedRemaining;
 
   const sportCredits = new Map<string, number>();
@@ -469,7 +468,7 @@ export async function getOddsCreditDashboard() {
         state: providerState,
         source: hasLiveBalance ? ("live" as const) : ("stored" as const),
         capacity: hasLiveBalance
-          ? adjustedOddsRemaining(liveProviderBalance.capacity)
+          ? liveProviderBalance.capacity
           : (latestProviderUsage?.capacity ?? null),
         updatedAt: hasLiveBalance
           ? liveProviderBalance.checkedAt

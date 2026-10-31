@@ -39,6 +39,7 @@ export const LEGACY_SCHEDULED_SPORTS: ReadonlySet<OddsControlSport> = new Set([
   "TENNIS",
   "SOCCER",
   "NFL",
+  "NCAAB",
 ]);
 
 export const SURFACE_MARKETS = [
@@ -212,7 +213,12 @@ export function defaultSportControl(sport: OddsControlSport) {
     leagues: [] as string[],
     surfaceCadenceMinutes: 240,
     expandedCadenceMinutes: 360,
-    maxEventsPerRun: sport === "SOCCER" ? 80 : sport === "NCAAF" ? 200 : 20,
+    maxEventsPerRun:
+      sport === "SOCCER"
+        ? 80
+        : sport === "NCAAF" || sport === "NCAAB"
+          ? 200
+          : 20,
     dailyVerificationLimit: DEFAULT_EVENT_BUYS_PER_DAY,
     nextSurfaceRunAt: null as string | null,
     nextExpandedRunAt: null as string | null,
@@ -301,21 +307,6 @@ export function clampToPlanStart(start: Date): Date {
 }
 
 /**
- * Credits the provider does not report on the key that served a response.
- *
- * `x-requests-remaining` describes ONE key. Credits bought as a top-up, or
- * sitting on another key in the `ODDS_API_KEYS` rollover list, are real and
- * spendable but never appear in it, so the screen would under-report what is
- * available and the runway would look shorter than it is.
- *
- * Retained at the owners' instruction. `accountRemainingCredits` reconstructs
- * the per-key balances from observed usage and this rides on top of that, so
- * the two compose: raising the figure by a known top-up the readings cannot
- * see. Set to 0 only when the owners confirm the top-up is spent.
- */
-export const ODDS_CREDIT_BALANCE_ADJUSTMENT = 10_000;
-
-/**
  * The account's spendable balance across every rollover key.
  *
  * `x-requests-remaining` describes ONE key, and the usage table records no key
@@ -383,14 +374,6 @@ export function accountRemainingCredits(
   }
 
   return keys.reduce((total, key) => total + key.current.remaining, 0);
-}
-
-/** The account's spendable balance: the observed key figure plus any top-up. */
-export function adjustedOddsRemaining(
-  keyRemaining: number | null | undefined,
-): number | null {
-  if (keyRemaining == null) return null;
-  return keyRemaining + ODDS_CREDIT_BALANCE_ADJUSTMENT;
 }
 
 export const DEFAULT_ODDS_CONTROL_CONFIG = {
