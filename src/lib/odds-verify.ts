@@ -274,6 +274,13 @@ export function expandedBoardMarkets(sclSport: string): string[] {
   if (sclSport === "NCAAF") {
     return ["alternate_spreads", "alternate_totals"];
   }
+  // College basketball has a much wider daily slate than the pro leagues, so
+  // keep the scheduled card focused on the two owner-requested game ladders.
+  // Player points remain available to on-demand verification, but are not
+  // pre-bought for every NCAAB fixture.
+  if (sclSport === "NCAAB") {
+    return ["alternate_spreads", "alternate_totals"];
+  }
   if (!FULL_MATRIX_SPORTS.has(sclSport)) return [];
   const props = PROP_MARKETS_BY_SPORT[sclSport] ?? [];
   return [

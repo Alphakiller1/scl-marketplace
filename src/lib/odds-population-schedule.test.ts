@@ -111,7 +111,7 @@ test("manual temp-key population takes the key from a secret, never an input", (
   // unbettable.
   assert.match(
     workflow,
-    /client_payload\.expandedOrder \|\| 'MLB,NBA,WNBA,TENNIS,SOCCER'/,
+    /client_payload\.expandedOrder \|\| 'MLB,NFL,NCAAF,NBA,NCAAB,WNBA,TENNIS,SOCCER'/,
   );
   assert.match(
     workflow,
@@ -260,11 +260,11 @@ test("Vercel runs the paid cadence through the day, expanded boards included", (
 
   // Every sport rides the same runs, so no league can drift onto its own cadence.
   for (const cron of expandedRuns) {
-    assert.match(cron.path, /sports=MLB,NBA,WNBA,TENNIS,SOCCER,NFL/);
+    assert.match(cron.path, /sports=MLB,NBA,NCAAB,WNBA,TENNIS,SOCCER,NFL/);
   }
 
   for (const cron of crons) {
-    assert.match(cron.path, /sports=MLB,NBA,WNBA,TENNIS,SOCCER,NFL/);
+    assert.match(cron.path, /sports=MLB,NBA,NCAAB,WNBA,TENNIS,SOCCER,NFL/);
     assert.match(cron.schedule, /^\S+ \S+ \* \* \*$/);
     // Every expanded run tops up what is missing rather than re-billing a card
     // already on the board.

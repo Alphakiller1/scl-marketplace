@@ -29,7 +29,7 @@ test("any losing leg loses the whole parlay", () => {
   assert.equal(s.profitUnits, -2);
 });
 
-test("push/void legs: one survivor on a multi-leg parlay voids the ticket", () => {
+test("push/void legs: one survivor pays as the reduced straight bet", () => {
   const s = settleParlay(
     [
       { outcome: "WIN", oddsAmerican: 100 },
@@ -37,21 +37,25 @@ test("push/void legs: one survivor on a multi-leg parlay voids the ticket", () =
     ],
     1,
   );
-  assert.equal(s.outcome, "VOID");
-  assert.equal(s.profitUnits, 0);
+  assert.equal(s.outcome, "WIN");
+  assert.equal(s.effectiveOddsAmerican, 100);
+  assert.equal(s.profitUnits, 1);
   assert.equal(s.activeLegs, 1);
 });
 
-test("void leg on multi-leg parlay voids when fewer than two winners remain", () => {
+test("two scratched legs reduce a three-leg parlay to the surviving price", () => {
   const s = settleParlay(
     [
-      { outcome: "WIN", oddsAmerican: 100 },
-      { outcome: "VOID", oddsAmerican: -110 },
+      { outcome: "VOID", oddsAmerican: -481 },
+      { outcome: "VOID", oddsAmerican: -557 },
+      { outcome: "WIN", oddsAmerican: -471 },
     ],
-    1,
+    3.45,
   );
-  assert.equal(s.outcome, "VOID");
-  assert.equal(s.profitUnits, 0);
+  assert.equal(s.outcome, "WIN");
+  assert.equal(s.effectiveOddsAmerican, -471);
+  assert.equal(s.profitUnits, 0.73);
+  assert.equal(s.activeLegs, 1);
 });
 
 test("two winning legs still pay on recombined odds", () => {

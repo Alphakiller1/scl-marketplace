@@ -54,6 +54,11 @@ renewal or top-up should appear on the next page load. The timestamp says
 the dashboard keeps the last stored provider balance rather than showing an
 incomplete account total.
 
+The displayed capacity is also read from the provider (`remaining + used`); it
+is not a hand-maintained adjustment. An upgrade on the same Odds API key is
+therefore automatic. If a purchase issues a different key, add that key to
+`ODDS_API_KEYS` first—SCL cannot discover a credential it has not been given.
+
 **Usage & budget** measures what that configuration actually spent: used today,
 last 7 days and last 30 days, the projected 30-day total, the 30-day chart, and
 credits by league, by purpose and by market.
@@ -110,6 +115,11 @@ the saved expanded cadence to run. That expanded pass also refreshes the
 featured NCAAF board (so DraftKings moneyline/spread/total prices land) and
 looks a week ahead — Saturday's card is buyable on Thursday, not only Friday
 afternoon.
+
+**NCAAB is enabled by default** for both Standard and Expanded coverage.
+Expanded NCAAB requests only **Alternate spreads** and **Alternate totals**, and
+the 200-event cap covers a full college-basketball slate instead of silently
+stopping after the first twenty games.
 
 For **NFL Anytime Touchdown**, enable NFL, enable **Expanded** coverage, open
 **Player props**, and turn on **Anytime Touchdown**. The group-level **select

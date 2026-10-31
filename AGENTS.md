@@ -148,7 +148,7 @@ already in the repo.
 - **Odds population is two steps, and they need different things.** Fetching needs Odds API
   credits (`/api/cron/odds-populate`, and `scripts/populate-odds-today.ts` for a local run;
   both read each event's market catalog first so they only pay for markets a covered book is
-  pricing, and spend in the order MLB → NFL → NCAAF → NBA → WNBA → TENNIS → SOCCER with a reserve for the sports
+  pricing, and spend in the order MLB → NFL → NCAAF → NBA → NCAAB → WNBA → TENNIS → SOCCER with a reserve for the sports
   after each). Writing needs the production database (`scripts/write-odds-snapshots.ts`, zero
   credits, replays a slate from `data/odds-snapshots/`). Run the write half with the
   **Populate odds** workflow's `snapshot_file` input.

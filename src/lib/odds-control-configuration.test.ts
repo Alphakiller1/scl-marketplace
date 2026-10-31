@@ -10,14 +10,12 @@ import {
   universalConfigEntries,
 } from "@/lib/odds-control-configuration";
 import {
-  adjustedOddsRemaining,
   CREDIT_WINDOW_DAYS,
   creditWindowStart,
   DEFAULT_ODDS_CONTROL_CONFIG,
   defaultSportControl,
   clampToPlanStart,
   ODDS_CONTROL_SPORTS,
-  ODDS_CREDIT_BALANCE_ADJUSTMENT,
   accountRemainingCredits,
   oddsPlanStart,
   utcDayStart,
@@ -138,7 +136,7 @@ test("leagues without expanded support say so rather than showing an empty tier"
 test("the registry counts leagues that are actually on, and sorts them first", () => {
   const registry = activeConfiguration(config, defaults);
   assert.equal(registry.counts.leaguesTotal, ODDS_CONTROL_SPORTS.length);
-  assert.equal(registry.counts.leaguesEnabled, 6);
+  assert.equal(registry.counts.leaguesEnabled, 7);
 
   const enabled = registry.leagues.filter((league) => league.enabled);
   assert.deepEqual(
@@ -257,20 +255,6 @@ test("usage windows never reach behind the current provider plan", () => {
     clampToPlanStart(laterWindow).toISOString(),
     laterWindow.toISOString(),
   );
-});
-
-test("the reported balance includes purchased credits the active key cannot see", () => {
-  // `x-requests-remaining` is one key's figure. Credits bought as a top-up, or
-  // held on another key in the rollover list, are spendable but absent from it,
-  // so the adjustment is carried on top of the reconstructed per-key balance.
-  // Retained at the owners' instruction; drop it only when the top-up is spent.
-  assert.equal(ODDS_CREDIT_BALANCE_ADJUSTMENT, 10_000);
-  assert.equal(adjustedOddsRemaining(69_796), 79_796);
-  assert.equal(adjustedOddsRemaining(0), 10_000);
-
-  // An unknown balance stays unknown — the adjustment must not invent one.
-  assert.equal(adjustedOddsRemaining(null), null);
-  assert.equal(adjustedOddsRemaining(undefined), null);
 });
 
 test("the balance ignores a spent key at the head of the rollover list", () => {

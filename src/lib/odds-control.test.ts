@@ -46,6 +46,7 @@ test("default managed footprint cannot silently add paid sports", () => {
   assert.deepEqual([...LEGACY_SCHEDULED_SPORTS].sort(), [
     "MLB",
     "NBA",
+    "NCAAB",
     "NFL",
     "SOCCER",
     "TENNIS",
@@ -74,6 +75,27 @@ test("NCAAF dashboard exposes only the requested alternate spreads and totals", 
 
   const defaults = defaultSportControl("NCAAF");
   assert.equal(defaults.expandedEnabled, false);
+  assert.equal(defaults.maxEventsPerRun, 200);
+  assert.deepEqual(defaults.expandedMarkets, [
+    "alternate_spreads",
+    "alternate_totals",
+  ]);
+});
+
+test("NCAAB launches with standard lines and the two expanded ladders", () => {
+  assert.deepEqual(expandedMarketGroups("NCAAB"), [
+    {
+      id: "alternate-game-lines",
+      label: "Alternate game lines",
+      description: "Alternate spreads and totals for the full game.",
+      markets: ["alternate_spreads", "alternate_totals"],
+    },
+  ]);
+
+  const defaults = defaultSportControl("NCAAB");
+  assert.equal(defaults.enabled, true);
+  assert.equal(defaults.surfaceEnabled, true);
+  assert.equal(defaults.expandedEnabled, true);
   assert.equal(defaults.maxEventsPerRun, 200);
   assert.deepEqual(defaults.expandedMarkets, [
     "alternate_spreads",
@@ -174,6 +196,16 @@ test("cost preview is a conservative upper bound for surface and expanded runs",
       maxEventsPerRun: 20,
     }),
     800,
+  );
+  assert.equal(
+    estimatedRunCredits({
+      sport: "NCAAB",
+      tier: "expanded",
+      markets: ["alternate_spreads", "alternate_totals"],
+      leagues: [],
+      maxEventsPerRun: 20,
+    }),
+    400,
   );
 });
 

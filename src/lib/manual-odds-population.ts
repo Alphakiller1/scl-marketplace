@@ -37,6 +37,7 @@ export const DEFAULT_EXPANDED_SPORT_ORDER = [
   "NFL",
   "NCAAF",
   "NBA",
+  "NCAAB",
   "WNBA",
   "TENNIS",
   "SOCCER",
@@ -59,9 +60,9 @@ function etDay(date: Date): string {
  * How many fixtures an expanded pass may buy.
  *
  * The dashboard default of 20 is right for MLB (dozens of markets a game).
- * NCAAF asks for two alternate ladders and plays 60–80 games on a Saturday;
- * slicing that card to 20 left night kickoffs — Purdue vs UCLA — as
- * surface-only after a "successful" expanded run.
+ * NCAAF and NCAAB ask for two alternate ladders and can each carry a very wide
+ * slate; slicing either card to 20 leaves later games surface-only after a
+ * "successful" expanded run.
  */
 export function resolveExpandedEventLimit(
   sport: string,
@@ -69,7 +70,7 @@ export function resolveExpandedEventLimit(
 ): number {
   if (!Number.isFinite(requested) || requested <= 0) return 0;
   const n = Math.floor(requested);
-  if (sport.trim().toUpperCase() === "NCAAF") {
+  if (["NCAAF", "NCAAB"].includes(sport.trim().toUpperCase())) {
     return SURFACE_BOARD_EVENT_LIMIT;
   }
   return Math.min(n, SURFACE_BOARD_EVENT_LIMIT);
