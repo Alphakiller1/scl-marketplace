@@ -1,3 +1,5 @@
+import { canonicalNcaabTeamName } from "@/lib/results/ncaab-team-names";
+
 /** Settled final-score row from a results provider (pure type, no I/O). */
 export type SettledGame = {
   sport: string;
@@ -113,7 +115,8 @@ const EASTERN_DAY = new Intl.DateTimeFormat("en-CA", {
  * merged. findGame then saw two candidates for every Canadiens game, refused
  * both, and each play waited for a manual grade.
  */
-function teamKey(name: string): string {
+function teamKey(name: string, sport?: string): string {
+  if (sport === "NCAAB") name = canonicalNcaabTeamName(name);
   return (
     name
       .normalize("NFD")
@@ -147,8 +150,8 @@ function fixtureKeys(games: readonly SettledGame[]): string[] {
   const base = games.map((g) =>
     [
       g.sport.toLowerCase(),
-      teamKey(g.home),
-      teamKey(g.away),
+      teamKey(g.home, g.sport),
+      teamKey(g.away, g.sport),
       g.startsAt
         ? EASTERN_DAY.format(g.startsAt)
         : `${g.homeScore}-${g.awayScore}`,
@@ -187,7 +190,11 @@ export function espnIdOf(game: SettledGame): string | null {
 
 /** Clubs only — the fixture without the clock the two providers can disagree on. */
 function clubsKey(g: SettledGame): string {
-  return [g.sport.toLowerCase(), teamKey(g.home), teamKey(g.away)].join("|");
+  return [
+    g.sport.toLowerCase(),
+    teamKey(g.home, g.sport),
+    teamKey(g.away, g.sport),
+  ].join("|");
 }
 
 const SAME_GAME_HOURS = 12;

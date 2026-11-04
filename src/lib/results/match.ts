@@ -2,6 +2,7 @@ import { isMoneylineMarket } from "@/lib/market-kind";
 import { PROP_MARKET_LABEL } from "@/lib/odds-verify";
 import { isPeriodMarket } from "@/lib/period-markets";
 import { resolveKnownTeam } from "@/lib/teams";
+import { canonicalNcaabTeamName } from "@/lib/results/ncaab-team-names";
 import {
   isBttsMarket,
   isDoubleChanceMarket,
@@ -153,6 +154,9 @@ function mentionsName(text: string, team: string, sport?: string): boolean {
     );
     const named = resolveKnownTeam(school, "NCAAF");
     if (target && named) return target.key === named.key;
+    if (sport === "NCAAB") {
+      return canonicalNcaabTeamName(school) === canonicalNcaabTeamName(team);
+    }
     return ` ${t} `.includes(` ${tn} `);
   }
   if (t.includes(tn) || (tn.includes(t) && t.length >= 4)) return true;

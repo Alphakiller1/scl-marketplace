@@ -174,9 +174,11 @@ test("production route accepts a one-shot key, expands supported sports, and ret
   assert.match(route, /skipPopulated/);
   assert.match(route, /loadEventBoard/);
   assert.match(route, /forceRefresh: true/);
-  assert.match(
-    route,
-    /DEFAULT_SPORTS = \["MLB", "NBA", "WNBA", "TENNIS", "SOCCER", "NFL"\]/,
+  const defaults = route.match(/const DEFAULT_SPORTS = \[([\s\S]*?)\]/)?.[1];
+  assert.ok(defaults);
+  assert.deepEqual(
+    defaults.match(/"[A-Z]+"/g)?.map((sport) => JSON.parse(sport)),
+    ["MLB", "NBA", "NCAAB", "NHL", "WNBA", "TENNIS", "SOCCER", "NFL"],
   );
   assert.match(route, /DEFAULT_SPORTS\.every\(surfaceReady\)/);
   assert.match(route, /expandedPassLookedAtSlate/);

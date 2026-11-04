@@ -1,32 +1,35 @@
-# Grade cron cadence — options (Task C)
+# Automatic grading runs in the cloud
 
-## Observed reality
+Vercel runs `/api/cron/grade` every 15 minutes at minutes 3, 18, 33, and 48.
+The enabled production cron definitions and request logs confirmed this cadence
+on November 4, 2026. It does not depend on a PC, browser tab, or local dev server.
 
-`.github/workflows/grade-cron.yml` requests `*/30 * * * *`, but GitHub Actions
-**throttles** scheduled workflows on free/standard plans. Recent production
-pings clustered every **~1.5–2.5 hours**, not 30 minutes.
+`.github/workflows/grade-cron.yml` is an independent backup and health alarm.
+Its requested schedule is minutes 7 and 37. Observed GitHub starts can be hours
+apart, so it is not the primary clock. Both call the production grading route,
+which authenticates requests and prevents overlapping runs.
 
-`vercel.json` already has a Hobby-safe daily fallback: `0 8 * * *` →
-`/api/cron/grade`.
+## Diagnose a red run
 
-**Conclusion:** a “graded within 60 minutes of final” acceptance criterion is
-**not achievable** on the current GH Actions + Vercel Hobby setup without an
-external pinger or a paid Vercel plan.
+- No Vercel requests: inspect the production project's enabled cron definitions,
+  deployed commit, and authentication configuration.
+- HTTP 401: check the scheduler's configured secret against production.
+- HTTP 409: another grading run holds the lock; the backup treats this as a no-op.
+- HTTP 500: inspect the recorded exception and provider/database failures.
+- HTTP 503: the endpoint ran, but grading health reports overdue eligible plays.
+  Inspect `skippedByReason` and delayed-play diagnostics before changing schedules.
 
-## Options (owner chooses)
+The November 4 failures were HTTP 503, with 99 straight plays and 9 parlay legs
+past expected final. Replaying 74 pending NCAAB plays from production diagnostics
+against the complete Division I scoreboard plus school aliases recovered all 74.
+The ranked-only card and differences such as Murray St / Murray State had
+prevented those fixture joins.
 
-| Option                   | Cadence                                                                                                     | Cost / ops | Tradeoff                                        |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------- | ---------- | ----------------------------------------------- |
-| **(a) Accept ~2h**       | Rewrite SLA to “usually within 3h of final, best-effort”                                                    | $0         | Honest; cliff risk higher if outages >2 days    |
-| **(b) External pinger**  | Upstash QStash / cron-job.org → `GET /api/cron/grade` with `Authorization: Bearer CRON_SECRET` every 15–30m | Low $      | Restores near-30m without Vercel Pro            |
-| **(c) Vercel Pro crons** | Real `*/30` (or tighter) in `vercel.json`                                                                   | Pro plan   | Simplest ops; removes GH Actions grade workflow |
+Production must receive the merged code before the next automatic run can use
+these changes. A preview deployment alone leaves the production grader unchanged.
+Never use a preview grading mutation as a test: previews can share the production
+database. Use pure fixture replay and mocked I/O for pre-deploy validation.
 
-## Cliff early-warning (shipped with diagnostics)
-
-Any PENDING play with `eventStartsAt` older than
-`(RESULTS_LOOKBACK_DAYS - 1)` = **2 days** increments `health.cliffRisk` on
-the cron JSON. That is the guardrail that would have flagged the July 13
-backlog before the 3-day Odds API scores window made it permanently
-`aged_out`.
-
-Do **not** unilaterally enable historical scores (paid) — see Task B.
+After deployment, inspect the new production cron logs and the grading workflow.
+Two manual-only tennis markets may remain pending for human review; they are
+reported separately from automatically eligible overdue plays.
