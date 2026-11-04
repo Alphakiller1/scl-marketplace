@@ -21,6 +21,13 @@ export function canonicalNcaabTeamName(name: string): string {
     "loyola md greyhounds": "loyola maryland greyhounds",
     "connecticut huskies": "uconn huskies",
     "seattle u redhawks": "seattle redhawks",
+    "fort wayne mastodons": "purdue fort wayne mastodons",
+    "ipfw mastodons": "purdue fort wayne mastodons",
+    "new orleans privateers": "lsu new orleans privateers",
+    "cal baptist lancers": "california baptist lancers",
+    "cs fullerton titans": "cal st fullerton titans",
+    "csu fullerton titans": "cal st fullerton titans",
+    "california st fullerton titans": "cal st fullerton titans",
   };
   return aliases[normalized] ?? normalized;
 }
