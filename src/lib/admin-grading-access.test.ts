@@ -16,7 +16,12 @@ test("stale tennis parlay legs open their parent; straight plays retain their ro
     "/admin/plays/straight/single",
   );
   const queue = readFileSync("src/app/(admin)/admin/grading/page.tsx", "utf8");
-  assert.equal(queue.match(/href=\{adminGradingHref\(p\)\}/g)?.length, 2);
+  const searchableQueue = readFileSync(
+    "src/components/scl/grading-work-queue.tsx",
+    "utf8",
+  );
+  assert.match(queue, /href=\{adminGradingHref\(p\)\}/);
+  assert.match(searchableQueue, /href=\{adminGradingHref\(play\)\}/);
   assert.doesNotMatch(queue, /href=\{`\/admin\/plays\/straight/);
 });
 

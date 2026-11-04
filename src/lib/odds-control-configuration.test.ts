@@ -120,8 +120,8 @@ test("every league entry is scoped to its league and carries the value it replac
 });
 
 test("leagues without expanded support say so rather than showing an empty tier", () => {
-  const nhl = defaults.find((sport) => sport.sport === "NHL")!;
-  const entries = leagueConfigEntries(nhl);
+  const mma = defaults.find((sport) => sport.sport === "MMA")!;
+  const entries = leagueConfigEntries(mma);
   const expanded = entries.find(
     (entry) => entry.id === "expanded-unsupported",
   )!;
@@ -136,7 +136,7 @@ test("leagues without expanded support say so rather than showing an empty tier"
 test("the registry counts leagues that are actually on, and sorts them first", () => {
   const registry = activeConfiguration(config, defaults);
   assert.equal(registry.counts.leaguesTotal, ODDS_CONTROL_SPORTS.length);
-  assert.equal(registry.counts.leaguesEnabled, 7);
+  assert.equal(registry.counts.leaguesEnabled, 8);
 
   const enabled = registry.leagues.filter((league) => league.enabled);
   assert.deepEqual(

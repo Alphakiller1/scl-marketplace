@@ -76,6 +76,9 @@ async function fetchEspnScoreboardDay(
     query.push("groups=80");
     if (fbsLimit != null) query.push(`limit=${fbsLimit}`);
   }
+  // The default college basketball card is ranked games only (18 of 182
+  // opening-night finals). Division I and an explicit in-cap limit are needed.
+  if (sclSport === "NCAAB") query.push("groups=50", "limit=300");
   const url =
     `https://site.web.api.espn.com/apis/site/v2/sports/${path.sport}/${path.league}/scoreboard` +
     `?${query.join("&")}`;

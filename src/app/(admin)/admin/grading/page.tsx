@@ -8,6 +8,7 @@ import {
   Zap,
 } from "lucide-react";
 
+import { GradingWorkQueue } from "@/components/scl/grading-work-queue";
 import { GradingAuditList } from "@/components/scl/grading-audit-list";
 import { AutoGradeButton } from "@/components/scl/auto-grade-button";
 import { SportTag } from "@/components/scl/badges";
@@ -44,7 +45,7 @@ export default async function AdminGradingPage() {
       getRecentGradingAudits(),
       getGradingHealthReport(),
       getSchemaStatusReport(),
-      listAgedOutPendingPlays(),
+      listAgedOutPendingPlays(new Date(), Number.POSITIVE_INFINITY),
       listGradingWorkQueue(),
       getRecentCronRuns(),
       countPendingPlays(),
@@ -115,47 +116,7 @@ export default async function AdminGradingPage() {
             </dd>
           </div>
         </dl>
-        {manualQueue.length ? (
-          <div className="mb-3 rounded-lg border border-[color:var(--scl-pink)]/40 bg-[color:var(--scl-pink)]/5 p-3">
-            <p className="scl-eyebrow text-[color:var(--scl-pink)]">
-              Needs grading — {manualQueue.length}
-            </p>
-            <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-              Every play past its expected final, whether auto-grading gave up
-              on it or is still retrying. Parlay legs open their full ticket so
-              you can review every leg before saving.
-            </p>
-            <ul className="divide-border border-border mt-2 max-h-64 divide-y overflow-auto rounded-lg border bg-[color:var(--scl-ink-800)] text-sm">
-              {manualQueue.map((p) => (
-                <li key={p.id}>
-                  <Link
-                    href={adminGradingHref(p)}
-                    className="hover:bg-surface-2/60 focus-visible:ring-ring flex flex-col gap-1 px-3 py-2 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
-                  >
-                    <p className="flex flex-wrap items-center gap-2 font-medium break-words">
-                      <SportTag sport={p.sport} markOnly />
-                      <span>
-                        {p.selection}{" "}
-                        <span className="text-muted-foreground font-normal">
-                          · {p.market} · {p.sport}
-                        </span>
-                      </span>
-                      <span className="scl-link ml-auto inline-flex items-center gap-1 text-xs">
-                        <LifeBuoy className="size-3.5" aria-hidden />
-                        {p.manualOnly ? "Grade by hand →" : "Settle now →"}
-                      </span>
-                    </p>
-                    <p className="text-muted-foreground text-xs">{p.reason}</p>
-                    <p className="text-muted-foreground scl-data text-xs tabular-nums">
-                      @{p.handle ?? "?"} · {p.oddsAmerican} · {p.units}U · start{" "}
-                      {p.eventStartsAt ?? "null"} · {p.id}
-                    </p>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
+        {manualQueue.length ? <GradingWorkQueue plays={manualQueue} /> : null}
         {stuck.length ? (
           <ul className="divide-border border-border max-h-64 divide-y overflow-auto rounded-lg border text-sm">
             {stuck.map((p) => (

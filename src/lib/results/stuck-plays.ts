@@ -1,5 +1,7 @@
 import "server-only";
 
+import { buildGradingWorkQueue } from "@/lib/results/grading-work-queue";
+
 import { UNIT_MIN } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { isAgedOut } from "@/lib/results/skip-reason";
@@ -47,7 +49,6 @@ export async function listAgedOutPendingPlays(
       },
     },
     orderBy: { eventStartsAt: "asc" },
-    take: 200,
   });
 
   return (
@@ -115,7 +116,6 @@ export async function listOverduePendingPlays(
       capper: { select: { user: { select: { username: true } } } },
     },
     orderBy: { eventStartsAt: "asc" },
-    take: 1_000,
   });
   return rows
     .filter(
@@ -178,7 +178,6 @@ export async function listOverduePendingParlayLegs(
       capper: { select: { user: { select: { username: true } } } },
     },
     orderBy: { eventStartsAt: "asc" },
-    take: 1_000,
   });
 
   return rows
@@ -252,7 +251,6 @@ export async function listManualGradingQueue(
       capper: { select: { user: { select: { username: true } } } },
     },
     orderBy: { eventStartsAt: "asc" },
-    take: 1_000,
   });
 
   return rows
@@ -285,29 +283,12 @@ export async function listManualGradingQueue(
  */
 export async function listGradingWorkQueue(
   now = new Date(),
-  take = 50,
+  take = Number.POSITIVE_INFINITY,
 ): Promise<(StuckPlayRow & { reason: string; manualOnly: boolean })[]> {
   const [manual, overdue, overdueParlayLegs] = await Promise.all([
     listManualGradingQueue(now, take),
     listOverduePendingPlays(now, take),
     listOverduePendingParlayLegs(now, take),
   ]);
-  const seen = new Set(manual.map((play) => play.id));
-  return [
-    ...manual.map((play) => ({ ...play, manualOnly: true })),
-    ...overdue
-      .filter((play) => !seen.has(play.id))
-      .map((play) => ({
-        ...play,
-        manualOnly: false,
-        reason: `${play.market} is past its expected final for ${play.sport} — automatic retries continue`,
-      })),
-    ...overdueParlayLegs
-      .filter((play) => !seen.has(play.id))
-      .map((play) => ({
-        ...play,
-        manualOnly: false,
-        reason: `${play.market} parlay leg is past its expected final for ${play.sport} — automatic retries continue`,
-      })),
-  ].slice(0, take);
+  return buildGradingWorkQueue(manual, overdue, overdueParlayLegs, take);
 }
