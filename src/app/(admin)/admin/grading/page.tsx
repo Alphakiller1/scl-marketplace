@@ -154,7 +154,7 @@ export default async function AdminGradingPage() {
         <SectionHeader
           icon={Zap}
           title="Automated cron runs"
-          subtitle="Every 15 min via GitHub Actions — results graded without human input"
+          subtitle="Every 30 minutes in the cloud via Vercel"
         />
         {cronRuns.length === 0 ? (
           <div className="border-border bg-card flex items-center gap-3 rounded-xl border p-5 text-sm">

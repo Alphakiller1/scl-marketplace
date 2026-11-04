@@ -1,17 +1,12 @@
 name: Grade pending picks
 
-# Grading is DRIVEN by the Vercel cron in vercel.json (every 15 minutes). This
-# workflow is the independent backup and health alarm: GitHub throttles its
-# schedule to roughly one run every few hours (median gap 5h over Oct 2026),
-# which is why it can no longer be the only scheduler. A 409 means the Vercel
-# run is grading right now, so it passes.
+# Vercel is the only automatic grading scheduler (every 30 minutes).
+# This workflow is manual recovery and verification only. An independent
+# scheduled ping would add off-cadence runs between Vercel's half-hour slots.
+# A 409 means another run is grading right now, so it passes.
 # Secrets: CRON_SECRET, CRON_GRADE_URL (default https://scl-marketplace.vercel.app/api/cron/grade)
 
 on:
-  schedule:
-    # Every 30 minutes — automatic grading must not wait hours after final.
-    # Mainstream sports use free scoreboards; MMA/TENNIS use Odds API scores only.
-    - cron: "7,37 * * * *"
   repository_dispatch:
     types: [grade-pending]
   workflow_dispatch:

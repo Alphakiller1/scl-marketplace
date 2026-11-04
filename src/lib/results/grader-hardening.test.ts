@@ -76,8 +76,9 @@ test("grader has independent Plan C, key rollover, stale-lock recovery and hard 
   assert.match(stuck, /units: \{ gte: UNIT_MIN \}/);
   assert.match(stuck, /listOverduePendingParlayLegs/);
   assert.match(stuck, /parlayId: \{ not: null \}/);
-  // Every 30 minutes — pinned so automatic grading cannot drift to a slower cadence.
-  assert.match(workflow, /- cron: "7,37 \* \* \* \*"/);
+  // Vercel owns the half-hour clock; the workflow is manual recovery only.
+  assert.doesNotMatch(workflow, /^\s+schedule:/m);
+  assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /types: \[grade-pending\]/);
   assert.match(workflow, /--retry 3/);
   assert.match(workflow, /overduePending/);
@@ -166,21 +167,31 @@ test("the grade route serves an external scheduler safely", () => {
   );
 });
 
-test("grading runs on the Vercel cron, not only GitHub's throttled schedule", () => {
-  // GitHub fired the 30-minute grade workflow about every five hours, so
-  // finished games sat ungraded for hours. Vercel's scheduler is reliable.
+test("Vercel grades exactly every 30 minutes with no second automatic scheduler", () => {
   const vercel = JSON.parse(
     fs.readFileSync(path.join(root, "vercel.json"), "utf8"),
   ) as { crons: { path: string; schedule: string }[] };
-  const grade = vercel.crons.find((c) => c.path.startsWith("/api/cron/grade"));
-  assert.ok(grade, "vercel.json must schedule /api/cron/grade");
-  const minutes = grade.schedule.split(" ")[0]!.split(",");
-  assert.ok(minutes.length >= 2, "grade at least twice an hour");
+  const gradingCrons = vercel.crons.filter((c) =>
+    c.path.startsWith("/api/cron/grade"),
+  );
+  assert.equal(
+    gradingCrons.length,
+    1,
+    "there must be only one automatic grading clock",
+  );
+  assert.equal(
+    gradingCrons[0].schedule,
+    "3,33 * * * *",
+    "grade at :03 and :33 only",
+  );
 
   // The backup workflow must not fail when the Vercel run holds the lock.
   const workflow = fs.readFileSync(
     path.join(root, ".github/workflows/grade-cron.yml"),
     "utf8",
   );
+  assert.doesNotMatch(workflow, /^\s+schedule:/m);
+  assert.doesNotMatch(workflow, /^\s+- cron:/m);
+  assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /"\$code" = "409"/);
 });
