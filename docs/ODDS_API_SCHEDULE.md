@@ -131,6 +131,7 @@ Owner decision, and the shape of the credit bill. Depth is set in
 | MLB             | 58               | Full pitcher and hitter cards with milestone ladders, alternate spreads/totals, team totals, F1/F3/F5/F7    |
 | NBA             | 36               | Same basketball card as WNBA: the full player card with combos, halves, team totals, alt ladders            |
 | NCAAB           | 2                | Full-game alternate spread and total ladders across the full daily college slate                            |
+| NHL             | 18               | Eight supported skater/goalie props with alternates, plus alternate spreads and totals                      |
 | WNBA            | 36               | Points/rebounds/assists/threes, blocks/steals/turnovers, the combo card, halves, team totals, alt ladders   |
 | NFL             | 33               | Halves and player props by default; alt spreads, alt totals and team totals are owner toggles               |
 | Tennis          | 4                | Game spread and total plus their alternate ladders. Set markets stay out until set-score grading is trusted |
@@ -248,3 +249,11 @@ runs included. The platform log carries the same timestamps:
 sport, so a pass over an empty slate is no longer silent. `last*RunAt` on
 `OddsSportControl` now moves only when a run actually starts, not when it is
 blocked on credits.
+
+## NHL expanded coverage (November 4, 2026)
+
+NHL participates in surface and expanded population, including persisted owner controls. The expanded catalog adds alternate spreads/totals plus shots on goal, goals, points, assists, goalie saves, blocked shots, power play points, and faceoffs won, with alternate player lines. Faceoffs depend on DFS bookmaker coverage. Provider market catalogs still filter unavailable keys before buying, and the existing global credit budgets remain in force.
+
+Hockey stats use ESPN skater/goalie groups: `S` is shots on goal; `SOG` is shootout goals. Points are goals plus assists. Power play points require a complete goal log whose scorer/assist counts reconcile with the box score; incomplete feeds defer. Goals allowed and hits are absent from the Odds API market catalog, so they are not offered. Source: https://the-odds-api.com/sports-odds-data/betting-markets.html#nhl-player-props-api
+
+NCAAB grading requests the complete Division I scoreboard (`groups=50&limit=300`), rather than the ranked-only default card. College fixture matching requires school identity; a shared mascot is insufficient. NBA provider copies normalize LA/Los Angeles so Clippers finals merge; late finishes are matched on scheduled start, across midnight. Admin grading lists all overdue plays and supports capper/team search.

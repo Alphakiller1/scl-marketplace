@@ -152,7 +152,16 @@ export const PROP_MARKETS_BY_SPORT: Record<string, readonly string[]> = {
     "player_anytime_td",
   ],
   NCAAF: ["player_pass_yds", "player_rush_yds"],
-  NHL: ["player_points", "player_shots_on_goal"],
+  NHL: [
+    "player_shots_on_goal",
+    "player_goals",
+    "player_points",
+    "player_assists",
+    "player_total_saves",
+    "player_blocked_shots",
+    "player_power_play_points",
+    "player_faceoffs_won",
+  ],
 };
 
 /** Yes/No props that have a player description but no numeric `point`. */
@@ -281,6 +290,13 @@ export function expandedBoardMarkets(sclSport: string): string[] {
   if (sclSport === "NCAAB") {
     return ["alternate_spreads", "alternate_totals"];
   }
+  if (sclSport === "NHL") {
+    return [
+      "alternate_spreads",
+      "alternate_totals",
+      ...PROP_MARKETS_BY_SPORT.NHL.flatMap(propMarketKeysWithAlternates),
+    ];
+  }
   if (!FULL_MATRIX_SPORTS.has(sclSport)) return [];
   const props = PROP_MARKETS_BY_SPORT[sclSport] ?? [];
   return [
@@ -389,6 +405,11 @@ export const PROP_MARKET_LABEL: Record<string, string> = {
   player_field_goals: "FG Made",
   player_anytime_td: "Anytime Touchdown",
   player_shots_on_goal: "Shots On Goal",
+  player_goals: "Goals",
+  player_total_saves: "Saves",
+  player_blocked_shots: "Blocked Shots",
+  player_power_play_points: "Power Play Points",
+  player_faceoffs_won: "Faceoffs Won",
 };
 
 /**

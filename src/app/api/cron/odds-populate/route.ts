@@ -87,7 +87,16 @@ import {
 
 export const maxDuration = 300;
 
-const DEFAULT_SPORTS = ["MLB", "NBA", "WNBA", "TENNIS", "SOCCER", "NFL"];
+const DEFAULT_SPORTS = [
+  "MLB",
+  "NBA",
+  "NCAAB",
+  "NHL",
+  "WNBA",
+  "TENNIS",
+  "SOCCER",
+  "NFL",
+];
 
 function authorized(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET?.trim();

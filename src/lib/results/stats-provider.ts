@@ -255,6 +255,30 @@ const STATS_BY_GROUP: Record<string, Record<string, string>> = {
   // and must not reach the basketball map, which would file it as a points
   // line for a player who never took a shot.
   kicking: {},
+  // ESPN's hockey "S" is shots on goal. "SOG" is SHOOTOUT goals,
+  // a separate column that must never overwrite the regulation shot count.
+  forwards: {
+    G: "goals",
+    A: "assists",
+    S: "shotsOnGoal",
+    BS: "blockedShots",
+    FW: "faceoffsWon",
+  },
+  defenses: {
+    G: "goals",
+    A: "assists",
+    S: "shotsOnGoal",
+    BS: "blockedShots",
+    FW: "faceoffsWon",
+  },
+  skaters: {
+    G: "goals",
+    A: "assists",
+    S: "shotsOnGoal",
+    BS: "blockedShots",
+    FW: "faceoffsWon",
+  },
+  goalies: { GA: "goalsAllowed", SV: "saves" },
   // Fumbles labels its recoveries "REC". Falling through to the default map
   // would overwrite a receiver's catches with the number of fumbles he fell on.
   fumbles: {},
@@ -353,6 +377,12 @@ export function mapSummaryToPlayerBox(data: unknown): PlayerBoxScore | null {
             : {}),
         };
         entry.played = entry.played || played;
+        if (["forwards", "defenses", "skaters", "goalies"].includes(groupKey)) {
+          const toi = raw[labels.indexOf("TOI")];
+          if (toi != null)
+            entry.played =
+              /^\d+:\d+$/.test(String(toi)) && /[1-9]/.test(String(toi));
+        }
 
         labels.forEach((label, i) => {
           const value = raw[i];
@@ -396,6 +426,9 @@ export function mapSummaryToPlayerBox(data: unknown): PlayerBoxScore | null {
 
   for (const entry of byName.values()) {
     const { stats } = entry;
+    if (stats.goals != null && stats.assists != null) {
+      stats.points = stats.goals + stats.assists;
+    }
     // Anytime TD is a yes/no market and excludes a quarterback merely
     // throwing the score. ESPN can list the same return touchdown in both a
     // defensive group and its specific return group, so use the maximum rather
@@ -440,6 +473,7 @@ export function mapSummaryToPlayerBox(data: unknown): PlayerBoxScore | null {
   }
 
   if (byName.size === 0) return null;
+  addHockeyPowerPlayPoints(data, [...byName.values()]);
   const espnTeamIds = teams
     .map((team) => team.team?.id)
     .filter((id): id is string | number => id != null)
@@ -448,6 +482,69 @@ export function mapSummaryToPlayerBox(data: unknown): PlayerBoxScore | null {
     players: [...byName.values()],
     ...(espnTeamIds.length === 2 ? { espnTeamIds } : {}),
   };
+}
+
+type HockeyGoal = {
+  id?: string;
+  type?: { text?: string };
+  scoringPlay?: boolean;
+  strength?: { abbreviation?: string };
+  participants?: { type?: string; athlete?: { id?: string | number } }[];
+};
+
+/** A complete, attributed goal log is required before a missing PP point means zero. */
+function addHockeyPowerPlayPoints(data: unknown, players: PlayerStatLine[]) {
+  const skaters = players.filter((p) => p.stats.goals != null);
+  if (!skaters.length) return;
+  const plays = (data as { plays?: HockeyGoal[] }).plays;
+  if (!Array.isArray(plays) || plays.length === 0) return;
+  const goals = [
+    ...new Map(
+      plays
+        .filter((p) => p.scoringPlay && p.type?.text === "Goal")
+        .map((p, i) => [p.id ?? String(i), p]),
+    ).values(),
+  ];
+  if (goals.length !== skaters.reduce((n, p) => n + p.stats.goals, 0)) return;
+  const byId = new Map(
+    skaters.filter((p) => p.espnId).map((p) => [p.espnId!, p]),
+  );
+  const totals = new Map(skaters.map((p) => [p, 0]));
+  const scored = new Map(skaters.map((p) => [p, 0]));
+  const assisted = new Map(skaters.map((p) => [p, 0]));
+  for (const goal of goals) {
+    if (
+      ![
+        "even",
+        "even-strength",
+        "power-play",
+        "short-handed",
+        "shortHanded",
+      ].includes(goal.strength?.abbreviation ?? "")
+    )
+      return;
+    const participants = goal.participants ?? [];
+    if (participants.filter((p) => p.type === "scorer").length !== 1) return;
+    for (const participant of participants) {
+      if (!["scorer", "assister"].includes(participant.type ?? "")) continue;
+      const player = byId.get(String(participant.athlete?.id));
+      if (!player) return;
+      const counts = participant.type === "scorer" ? scored : assisted;
+      counts.set(player, counts.get(player)! + 1);
+      if (goal.strength?.abbreviation === "power-play") {
+        totals.set(player, totals.get(player)! + 1);
+      }
+    }
+  }
+  // An abbreviated play log can omit assists even when it lists every goal.
+  if (
+    skaters.some(
+      (p) =>
+        scored.get(p) !== p.stats.goals || assisted.get(p) !== p.stats.assists,
+    )
+  )
+    return;
+  for (const [player, points] of totals) player.stats.powerPlayPoints = points;
 }
 
 type EspnRosterEntry = {

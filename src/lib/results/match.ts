@@ -143,6 +143,18 @@ function mentionsName(text: string, team: string, sport?: string): boolean {
   const t = norm(text);
   const tn = norm(team);
   if (!t || !tn) return false;
+  if (sport === "NCAAB" || sport === "NCAAF") {
+    // College mascots are shared by dozens of schools. A fixture must name
+    // the school; "Bulldogs" alone is never sufficient identity evidence.
+    const target = resolveKnownTeam(team, "NCAAF");
+    const school = text.replace(
+      /\s+(?:[+-]\d|(?:ML|moneyline|over|under)\b).*$/i,
+      "",
+    );
+    const named = resolveKnownTeam(school, "NCAAF");
+    if (target && named) return target.key === named.key;
+    return ` ${t} `.includes(` ${tn} `);
+  }
   if (t.includes(tn) || (tn.includes(t) && t.length >= 4)) return true;
   const parts = tn
     .split(" ")

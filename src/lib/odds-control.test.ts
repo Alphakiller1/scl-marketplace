@@ -48,6 +48,7 @@ test("default managed footprint cannot silently add paid sports", () => {
     "NBA",
     "NCAAB",
     "NFL",
+    "NHL",
     "SOCCER",
     "TENNIS",
     "WNBA",

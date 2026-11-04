@@ -47,7 +47,7 @@ test("the workflow schedules the free audit and no paid population", () => {
   // route answers without calling the provider.
   assert.match(workflow, /audit:\n\s+if: github\.event_name == 'schedule'/);
   assert.match(workflow, /expanded=0&surface=0/);
-  assert.match(workflow, /NFL,NCAAF&expanded=0&surface=0/);
+  assert.match(workflow, /NFL,NHL,NCAAF&expanded=0&surface=0/);
   // Nothing else may run on a schedule — that is what double-billed.
   for (const job of ["populate", "populate-temp-key", "write-snapshots"]) {
     const start = workflow.indexOf(`\n  ${job}:`);
@@ -111,7 +111,7 @@ test("manual temp-key population takes the key from a secret, never an input", (
   // unbettable.
   assert.match(
     workflow,
-    /client_payload\.expandedOrder \|\| 'MLB,NFL,NCAAF,NBA,NCAAB,WNBA,TENNIS,SOCCER'/,
+    /client_payload\.expandedOrder \|\| 'MLB,NFL,NCAAF,NBA,NCAAB,NHL,WNBA,TENNIS,SOCCER'/,
   );
   assert.match(
     workflow,
@@ -260,11 +260,11 @@ test("Vercel runs the paid cadence through the day, expanded boards included", (
 
   // Every sport rides the same runs, so no league can drift onto its own cadence.
   for (const cron of expandedRuns) {
-    assert.match(cron.path, /sports=MLB,NBA,NCAAB,WNBA,TENNIS,SOCCER,NFL/);
+    assert.match(cron.path, /sports=MLB,NBA,NCAAB,WNBA,TENNIS,SOCCER,NFL,NHL/);
   }
 
   for (const cron of crons) {
-    assert.match(cron.path, /sports=MLB,NBA,NCAAB,WNBA,TENNIS,SOCCER,NFL/);
+    assert.match(cron.path, /sports=MLB,NBA,NCAAB,WNBA,TENNIS,SOCCER,NFL,NHL/);
     assert.match(cron.schedule, /^\S+ \S+ \* \* \*$/);
     // Every expanded run tops up what is missing rather than re-billing a card
     // already on the board.

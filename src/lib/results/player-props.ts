@@ -133,6 +133,11 @@ const MARKET_STAT_KEY: Record<string, string> = {
   // Hockey, mapped for the same reason and already parsed out of the box score
   // as `shotsOnGoal`.
   "shots on goal": "shotsOnGoal",
+  goals: "goals",
+  saves: "saves",
+  "blocked shots": "blockedShots",
+  "power play points": "powerPlayPoints",
+  "faceoffs won": "faceoffsWon",
 };
 
 /**

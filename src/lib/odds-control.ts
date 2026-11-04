@@ -40,6 +40,7 @@ export const LEGACY_SCHEDULED_SPORTS: ReadonlySet<OddsControlSport> = new Set([
   "SOCCER",
   "NFL",
   "NCAAB",
+  "NHL",
 ]);
 
 export const SURFACE_MARKETS = [
@@ -107,7 +108,9 @@ export function expandedMarketGroups(sport: string): OddsMarketGroup[] {
       description:
         normalizedSport === "NFL"
           ? "Passing, rushing, receiving, kicking, and touchdown markets."
-          : "Supported basketball player markets and alternates.",
+          : normalizedSport === "NHL"
+            ? "Skater and goalie statistics with alternate ladders."
+            : "Supported basketball player markets and alternates.",
       markets: take(markets, (key) => key.startsWith("player_")),
     },
     {

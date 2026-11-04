@@ -114,11 +114,15 @@ const EASTERN_DAY = new Intl.DateTimeFormat("en-CA", {
  * both, and each play waited for a manual grade.
  */
 function teamKey(name: string): string {
-  return name
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
+  return (
+    name
+      .normalize("NFD")
+      .replace(/\p{M}/gu, "")
+      .toLowerCase()
+      // ESPN uses LA Clippers; the other feeds spell out Los Angeles.
+      .replace(/^la\s+(clippers|lakers)$/, "los angeles $1")
+      .replace(/[^a-z0-9]/g, "")
+  );
 }
 
 /**
