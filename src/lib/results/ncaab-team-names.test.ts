@@ -24,7 +24,77 @@ const aliases = [
   ["Boston Univ. Terriers", "Boston University Terriers"],
   ["Wright St Raiders", "Wright State Raiders"],
   ["Indiana St Sycamores", "Indiana State Sycamores"],
+  ["Fort Wayne Mastodons", "Purdue Fort Wayne Mastodons"],
+  ["IPFW Mastodons", "Purdue Fort Wayne Mastodons"],
+  ["New Orleans Privateers", "LSU New Orleans Privateers"],
+  ["Cal Baptist Lancers", "California Baptist Lancers"],
+  ["CS Fullerton Titans", "Cal State Fullerton Titans"],
+  ["CSU Fullerton Titans", "Cal State Fullerton Titans"],
+  ["California State Fullerton Titans", "Cal State Fullerton Titans"],
 ];
+
+test("the final four overdue college fixtures resolve with both opponents bound", () => {
+  for (const [away, home, espnAway, espnHome] of [
+    [
+      "Fort Wayne Mastodons",
+      "Duquesne Dukes",
+      "Purdue Fort Wayne Mastodons",
+      "Duquesne Dukes",
+    ],
+    [
+      "New Orleans Privateers",
+      "LSU Tigers",
+      "LSU New Orleans Privateers",
+      "LSU Tigers",
+    ],
+    [
+      "North Florida Ospreys",
+      "Cal Baptist Lancers",
+      "North Florida Ospreys",
+      "California Baptist Lancers",
+    ],
+    [
+      "CS Fullerton Titans",
+      "San Diego St Aztecs",
+      "Cal State Fullerton Titans",
+      "San Diego State Aztecs",
+    ],
+  ]) {
+    const startsAt = new Date("2026-11-04T01:00:00Z");
+    const final: SettledGame = {
+      sport: "NCAAB",
+      home: espnHome,
+      away: espnAway,
+      homeScore: 91,
+      awayScore: 62,
+      completed: true,
+      startsAt,
+      eventId: "espn:final",
+    };
+    const pick: GradablePlay = {
+      id: "pending",
+      sport: "NCAAB",
+      market: "Spread",
+      selection: `${home} -12.5`,
+      eventLabel: `${away} @ ${home}`,
+      eventStartsAt: startsAt,
+      eventId: "odds:fixture",
+      oddsAmerican: -110,
+      units: 1,
+    };
+    assert.equal(resolveOutcome(pick, [final]), "WIN", pick.eventLabel ?? "");
+    assert.equal(
+      resolveOutcome({ ...pick, selection: "Under 160", market: "Total" }, [
+        final,
+      ]),
+      "WIN",
+    );
+    assert.equal(
+      findGame(pick, [{ ...final, away: "Unrelated Eagles" }]),
+      null,
+    );
+  }
+});
 
 test("production college school aliases keep the full school and mascot identity", () => {
   for (const [oddsName, espnName] of aliases) {

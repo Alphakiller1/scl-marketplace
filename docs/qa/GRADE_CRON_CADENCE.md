@@ -25,6 +25,12 @@ against the complete Division I scoreboard plus school aliases recovered all 74.
 The ranked-only card and differences such as Murray St / Murray State had
 prevented those fixture joins.
 
+After the first production recovery, seven straight plays and two parlay legs
+remained across four fixtures. The follow-up aliases cover Fort Wayne / Purdue
+Fort Wayne, New Orleans / LSU New Orleans, Cal Baptist / California Baptist,
+and CS Fullerton / Cal State Fullerton. Both opponents and scheduled start remain
+required for cross-provider joins; no mascot-only or time-only fallback is added.
+
 Production must receive the merged code before the next automatic run can use
 these changes. A preview deployment alone leaves the production grader unchanged.
 Never use a preview grading mutation as a test: previews can share the production
