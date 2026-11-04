@@ -1,12 +1,12 @@
 # Automatic grading runs in the cloud
 
-Vercel runs `/api/cron/grade` every 15 minutes at minutes 3, 18, 33, and 48.
-The enabled production cron definitions and request logs confirmed this cadence
-on November 4, 2026. It does not depend on a PC, browser tab, or local dev server.
+Vercel runs `/api/cron/grade` every 30 minutes at minutes 3 and 33.
+The owner requested this cadence on November 4, 2026. It does not depend on a
+PC, browser tab, or local dev server.
 
-`.github/workflows/grade-cron.yml` is an independent backup and health alarm.
-Its requested schedule is minutes 7 and 37. Observed GitHub starts can be hours
-apart, so it is not the primary clock. Both call the production grading route,
+`.github/workflows/grade-cron.yml` is manual recovery and verification only;
+it has no scheduled trigger. This prevents extra automatic grading between
+Vercel's half-hour slots. Both entry points call the production grading route,
 which authenticates requests and prevents overlapping runs.
 
 ## Diagnose a red run
