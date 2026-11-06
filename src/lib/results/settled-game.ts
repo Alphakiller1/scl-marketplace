@@ -1,4 +1,5 @@
 import { canonicalNcaabTeamName } from "@/lib/results/ncaab-team-names";
+import { resolveKnownTeam } from "@/lib/teams";
 
 /** Settled final-score row from a results provider (pure type, no I/O). */
 export type SettledGame = {
@@ -117,6 +118,7 @@ const EASTERN_DAY = new Intl.DateTimeFormat("en-CA", {
  */
 function teamKey(name: string, sport?: string): string {
   if (sport === "NCAAB") name = canonicalNcaabTeamName(name);
+  if (sport === "NCAAF") name = resolveKnownTeam(name, sport)?.fullName ?? name;
   return (
     name
       .normalize("NFD")

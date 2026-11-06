@@ -7,12 +7,17 @@ import { getGradingHealthReport } from "@/lib/grading-health";
 import { pinOddsApiKey } from "@/lib/odds-config";
 import { resetOddsKeyPreference } from "@/lib/odds-key-rollover";
 import { autoGradePending } from "@/lib/results/auto-grade";
-import { getGradingResultsProvider } from "@/lib/results/provider";
+import {
+  getGradingResultsProvider,
+  getResultsProvider,
+} from "@/lib/results/provider";
+import { isOvernightGradingRecovery } from "@/lib/results/daily-deadline";
 import {
   listAgedOutPendingPlays,
   listManualGradingQueue,
   listOverduePendingParlayLegs,
   listOverduePendingPlays,
+  listPriorSlatePendingPlays,
 } from "@/lib/results/stuck-plays";
 
 export const maxDuration = 300;
@@ -123,7 +128,13 @@ async function runGrade(req: NextRequest) {
   });
 
   try {
-    const result = await autoGradePending(getGradingResultsProvider());
+    // 3–7 a.m. Eastern: ask every available scores provider, including the
+    // full Odds API scores fallback. This is still the same half-hour run;
+    // it never fetches prices or changes results without a verified final.
+    const recovery = isOvernightGradingRecovery(new Date());
+    const result = await autoGradePending(
+      recovery ? getResultsProvider() : getGradingResultsProvider(),
+    );
     const health = await getGradingHealthReport();
 
     const stuckPlays =
@@ -132,14 +143,11 @@ async function runGrade(req: NextRequest) {
         : [];
     const overduePending = await listOverduePendingPlays();
     const overdueParlayLegs = await listOverduePendingParlayLegs();
-    // Plays auto-grading has permanently given up on, and a human must
-    // settle. Reported apart from overduePending on purpose: these never
-    // resolve on their own, so folding them into the health signal would
-    // pin the pipeline at UNHEALTHY forever. That is exactly why they were
-    // excluded from it -- and with nothing else naming them, a tennis games
-    // spread sat PENDING for five days. The count belongs in the output a
-    // human reads, not only on a page nobody opens.
+    // Manual-only exceptions remain visible separately, and now also fail
+    // daily-deadline health after 5 a.m. Eastern. They must be reviewed before
+    // 7 a.m.; a successful provider run cannot hide an unfinished slate.
     const manualQueue = await listManualGradingQueue();
+    const priorSlatePending = await listPriorSlatePendingPlays();
     const gradeOk =
       health.status !== "UNHEALTHY" &&
       overduePending.length === 0 &&
@@ -157,12 +165,13 @@ async function runGrade(req: NextRequest) {
         skippedByReason: result.skippedByReason ?? {},
         error: gradeOk
           ? null
-          : `${overduePending.length} straight play(s) and ${overdueParlayLegs.length} parlay leg(s) remain pending past expected final time`,
+          : `${overduePending.length} straight play(s) and ${overdueParlayLegs.length} parlay leg(s) remain pending past expected final time; daily deadline ${health.dailyDeadline.status}: ${health.dailyDeadline.pending} prior-slate play(s) pending (5 a.m. target / 7 a.m. Eastern deadline)`,
         meta: {
           health,
           overduePending: overduePending.length,
           overdueParlayLegs: overdueParlayLegs.length,
           needsManualGrading: manualQueue.length,
+          recovery,
           reconciled: result.reconciled ?? null,
         },
       },
@@ -209,6 +218,7 @@ async function runGrade(req: NextRequest) {
         overduePending,
         overdueParlayLegs,
         needsManualGrading: manualQueue,
+        priorSlatePending,
         stuckPlays,
       },
       { status: gradeOk ? 200 : 503 },

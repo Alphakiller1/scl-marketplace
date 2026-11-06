@@ -181,8 +181,8 @@ test("Vercel grades exactly every 30 minutes with no second automatic scheduler"
   );
   assert.equal(
     gradingCrons[0].schedule,
-    "3,33 * * * *",
-    "grade at :03 and :33 only",
+    "25,55 * * * *",
+    "grade at :25 and :55 only, allowing five minutes before the daily deadlines",
   );
 
   // The backup workflow must not fail when the Vercel run holds the lock.

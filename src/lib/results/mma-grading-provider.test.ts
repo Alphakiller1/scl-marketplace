@@ -26,10 +26,10 @@ test("production grader fetches Odds API scores for sports without complete free
     /scoresProviderForSports\(\s*oddsApiResultsProvider\(\),\s*ODDS_SCORES_ONLY_SPORTS/,
   );
   assert.match(cron, /getGradingResultsProvider\(\)/);
-  assert.doesNotMatch(
+  assert.match(
     cron,
-    /getResultsProvider\(\)/,
-    "cron must stay on the credit-saving MMA scores layer, not the full odds stack",
+    /recovery \? getResultsProvider\(\) : getGradingResultsProvider\(\)/,
+    "the full scores fallback is limited to overnight recovery",
   );
 });
 
@@ -65,10 +65,11 @@ test("CFL scores come from Odds API and the CFL.ca schedule backstop", () => {
   assert.match(espn, /CFL: \{ sport: "football", league: "cfl" \}/);
 });
 
-test("cron health does not treat never-gradable tennis markets as an outage", () => {
+test("manual tennis markets stay in daily-deadline health alongside expected-final diagnostics", () => {
   const health = read("src/lib/grading-health.ts");
   const stuck = read("src/lib/results/stuck-plays.ts");
   assert.match(health, /isAutoGradeBlocked/);
+  assert.match(health, /dailyDeadline.pastTarget > 0/);
   assert.match(stuck, /isAutoGradeBlocked/);
   assert.match(match, /export function isAutoGradeBlocked/);
 });

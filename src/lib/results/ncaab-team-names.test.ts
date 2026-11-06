@@ -31,6 +31,9 @@ const aliases = [
   ["CS Fullerton Titans", "Cal State Fullerton Titans"],
   ["CSU Fullerton Titans", "Cal State Fullerton Titans"],
   ["California State Fullerton Titans", "Cal State Fullerton Titans"],
+  ["CSU Northridge Matadors", "Cal State Northridge Matadors"],
+  ["LIU Sharks", "Long Island University Sharks"],
+  ["Albany Great Danes", "UAlbany Great Danes"],
 ];
 
 test("the final four overdue college fixtures resolve with both opponents bound", () => {

@@ -28,6 +28,10 @@ export function canonicalNcaabTeamName(name: string): string {
     "cs fullerton titans": "cal st fullerton titans",
     "csu fullerton titans": "cal st fullerton titans",
     "california st fullerton titans": "cal st fullerton titans",
+    "csu northridge matadors": "cal st northridge matadors",
+    "cs northridge matadors": "cal st northridge matadors",
+    "liu sharks": "long island sharks",
+    "albany great danes": "ualbany great danes",
   };
   return aliases[normalized] ?? normalized;
 }

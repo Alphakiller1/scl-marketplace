@@ -32,6 +32,7 @@ export const maxDuration = 300;
 const dateTime = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
   timeStyle: "short",
+  timeZone: "America/New_York",
 });
 
 function durationSecs(start: Date | null, end: Date | null): string {
@@ -116,6 +117,27 @@ export default async function AdminGradingPage() {
             </dd>
           </div>
         </dl>
+        <div
+          className="border-border bg-surface-2 rounded-lg border p-3"
+          role="status"
+        >
+          <p className="text-sm font-semibold">
+            Overnight deadline: {health.dailyDeadline.status}
+          </p>
+          <p className="text-muted-foreground mt-1 text-sm">
+            {health.dailyDeadline.straightPlays} straight plays /{" "}
+            {health.dailyDeadline.parlayLegs} parlay legs from previous Eastern
+            calendar days remain ungraded, including manual review. Target: 5
+            a.m. Eastern. Exception deadline: 7 a.m. Eastern.
+          </p>
+          {health.dailyDeadline.pastTarget > 0 ? (
+            <p className="text-neg mt-2 text-sm font-medium">
+              {health.dailyDeadline.pastDeadline > 0
+                ? `${health.dailyDeadline.pastDeadline} play(s) missed the 7 a.m. deadline — urgent grading required.`
+                : `${health.dailyDeadline.pastTarget} play(s) missed the 5 a.m. target — resolve before 7 a.m.`}
+            </p>
+          ) : null}
+        </div>
         {manualQueue.length ? <GradingWorkQueue plays={manualQueue} /> : null}
         {stuck.length ? (
           <ul className="divide-border border-border max-h-64 divide-y overflow-auto rounded-lg border text-sm">
@@ -154,7 +176,7 @@ export default async function AdminGradingPage() {
         <SectionHeader
           icon={Zap}
           title="Automated cron runs"
-          subtitle="Every 30 minutes in the cloud via Vercel"
+          subtitle="Every 30 minutes in the cloud at :25 and :55; run times shown in Eastern Time"
         />
         {cronRuns.length === 0 ? (
           <div className="border-border bg-card flex items-center gap-3 rounded-xl border p-5 text-sm">
