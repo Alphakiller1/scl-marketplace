@@ -71,6 +71,10 @@ these changes. A preview deployment alone leaves the production grader unchanged
 Never use a preview grading mutation as a test: previews can share the production
 database. Use pure fixture replay and mocked I/O for pre-deploy validation.
 
+The build script explicitly uses Webpack. The November 6 Turbopack preview
+failed resolving `@vercel/turbopack-next/internal/font/google/font` ("queries
+have exactly one entry"); the same code passes the production Webpack build.
+
 After deployment, inspect the new production cron logs and the grading workflow.
 Manual-only markets are reported separately from automatically eligible overdue
 plays and also count against the daily deadline. They cannot hide a late slate
