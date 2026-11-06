@@ -816,7 +816,13 @@ function mergeSkipCounts(
 
 async function gradePendingParlays(): Promise<number> {
   const parlays = await prisma.parlay.findMany({
-    where: { outcome: "PENDING" },
+    where: {
+      outcome: "PENDING",
+      legs: {
+        some: {},
+        every: { status: "COMMITTED", outcome: { not: "PENDING" } },
+      },
+    },
     select: {
       id: true,
       units: true,

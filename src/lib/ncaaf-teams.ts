@@ -2997,7 +2997,7 @@ export const NCAAF_TEAM_ROWS: readonly {
     fullName: "Massachusetts Minutemen",
     primaryColor: "#881c1c",
     espnId: "113",
-    aliases: ["Massachusetts"],
+    aliases: ["Massachusetts", "UMass Minutemen"],
   },
   {
     abbr: "MYSU",
@@ -4597,7 +4597,7 @@ export const NCAAF_TEAM_ROWS: readonly {
     fullName: "Southern Miss Golden Eagles",
     primaryColor: "#ffc72c",
     espnId: "2572",
-    aliases: [],
+    aliases: ["Southern Mississippi", "Southern Mississippi Golden Eagles"],
   },
   {
     abbr: "SNU",

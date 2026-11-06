@@ -4,6 +4,7 @@ import { loadTestModule } from "@/lib/test-support/load-module";
 import * as scoreboard from "@/lib/results/espn-scoreboard-map";
 import * as settled from "@/lib/results/settled-game";
 import * as queueBuilder from "@/lib/results/grading-work-queue";
+import * as dailyDeadline from "@/lib/results/daily-deadline";
 import type * as EspnProvider from "@/lib/results/espn-scores";
 import type * as StuckPlays from "@/lib/results/stuck-plays";
 
@@ -89,6 +90,7 @@ test("the real admin work queue fetches and exposes plays beyond 50 and 1000", a
     units: 1,
     eventId: "event",
     eventStartsAt: new Date("2026-11-02T23:00:00Z"),
+    createdAt: new Date("2026-11-02T20:00:00Z"),
     parlayId: null,
   }));
   const queries = loadTestModule<typeof StuckPlays>(
@@ -96,6 +98,7 @@ test("the real admin work queue fetches and exposes plays beyond 50 and 1000", a
     {
       "server-only": {},
       "@/lib/results/grading-work-queue": queueBuilder,
+      "@/lib/results/daily-deadline": dailyDeadline,
       "@/lib/constants": { UNIT_MIN: 0.1 },
       "@/lib/prisma": {
         prisma: {

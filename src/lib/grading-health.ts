@@ -10,6 +10,10 @@ import {
 } from "@/lib/results/lookback";
 import { expectedFinalAt } from "@/lib/results/grading-window";
 import { isAutoGradeBlocked } from "@/lib/results/match";
+import {
+  dailyDeadlineState,
+  type DailyGradingDeadline,
+} from "@/lib/results/daily-deadline";
 
 /** Pending past this lag → pipeline UNHEALTHY (Task A). */
 const UNHEALTHY_PENDING_HOURS = 24;
@@ -35,6 +39,7 @@ export type GradingHealthReport = {
   cliffRisk: number;
   lookbackDays: number;
   cliffWarningDays: number;
+  dailyDeadline: DailyGradingDeadline;
 };
 
 async function publicPendingCapperFilter() {
@@ -49,7 +54,8 @@ async function publicPendingCapperFilter() {
 
 /**
  * Grading pipeline health for public honesty copy + cron diagnostics.
- * UNHEALTHY when any public-eligible PENDING play is 24h+ past event start.
+ * UNHEALTHY for overdue automatic grading or any previous-slate play that
+ * missed its 5 a.m. Eastern target, including manual-only plays and legs.
  */
 export async function getGradingHealthReport(
   now = new Date(),
@@ -100,7 +106,6 @@ export async function getGradingHealthReport(
         where: baseWhere,
         select: { sport: true, market: true, eventStartsAt: true },
         orderBy: { eventStartsAt: "asc" as const },
-        take: 1_000,
       }),
     { label: "grading health expected-final inventory" },
   );
@@ -128,7 +133,6 @@ export async function getGradingHealthReport(
           parlayId: true,
         },
         orderBy: { eventStartsAt: "asc" as const },
-        take: 1_000,
       }),
     { label: "grading health overdue parlay-leg inventory" },
   );
@@ -145,8 +149,28 @@ export async function getGradingHealthReport(
     ),
   ).size;
 
+  const dailyCandidates = await withTransientDatabaseRetry(
+    () =>
+      prisma.play.findMany({
+        where: {
+          outcome: "PENDING",
+          status: "COMMITTED",
+          capper: publicCapper,
+          OR: [{ parlayId: { not: null } }, { units: { gte: UNIT_MIN } }],
+        },
+        select: { eventStartsAt: true, createdAt: true, parlayId: true },
+      }),
+    { label: "grading health daily-deadline inventory" },
+  );
+  // Unlike expected-final diagnostics, this includes manual-only markets and
+  // missing schedule metadata. No unfinished prior slate can report healthy
+  // after 5 a.m.; 7 a.m. is the hard exception deadline, not another exclusion.
+  const { summary: dailyDeadline } = dailyDeadlineState(dailyCandidates, now);
+
   const status: GradingHealthStatus =
-    pendingPastExpectedFinal > 0 || pendingParlayLegsPastExpectedFinal > 0
+    pendingPastExpectedFinal > 0 ||
+    pendingParlayLegsPastExpectedFinal > 0 ||
+    dailyDeadline.pastTarget > 0
       ? "UNHEALTHY"
       : "HEALTHY";
 
@@ -160,6 +184,7 @@ export async function getGradingHealthReport(
     cliffRisk,
     lookbackDays: RESULTS_LOOKBACK_DAYS,
     cliffWarningDays: RESULTS_CLIFF_WARNING_DAYS,
+    dailyDeadline,
   };
 }
 

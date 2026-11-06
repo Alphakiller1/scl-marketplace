@@ -18,7 +18,7 @@ export function GradingWorkQueue({
   const terms = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
   const visible = plays.filter((play) => {
     const text =
-      `@${play.handle ?? ""} ${play.selection} ${play.sport} ${play.market} ${play.id}`.toLowerCase();
+      `@${play.handle ?? ""} ${play.selection} ${play.eventLabel ?? ""} ${play.sport} ${play.market} ${play.id}`.toLowerCase();
     return terms.every((term) => text.includes(term));
   });
 
@@ -28,8 +28,9 @@ export function GradingWorkQueue({
         Needs grading — {plays.length}
       </p>
       <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-        All plays past their expected final, including parlay legs. Open a play
-        to review and grade it. Automatic retries continue where supported.
+        Previous-slate and overdue plays, including manual review and parlay
+        legs. Grade by 5 a.m. Eastern; resolve exceptions by 7 a.m. Automatic
+        retries continue where supported.
       </p>
       <label
         htmlFor="grading-queue-search"
@@ -74,6 +75,12 @@ export function GradingWorkQueue({
                   </span>
                 </p>
                 <p className="text-muted-foreground text-xs">{play.reason}</p>
+                {play.eventLabel ? (
+                  <p className="text-muted-foreground text-xs [overflow-wrap:anywhere]">
+                    {play.eventLabel}
+                    {play.book ? ` · ${play.book}` : ""}
+                  </p>
+                ) : null}
                 <p className="text-muted-foreground scl-data text-xs [overflow-wrap:anywhere] tabular-nums">
                   @{play.handle ?? "?"} · {play.oddsAmerican} · {play.units}U ·
                   start {play.eventStartsAt ?? "unknown"} · {play.id}

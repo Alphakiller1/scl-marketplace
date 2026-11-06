@@ -55,9 +55,11 @@ export function flattenEspnTennisScoreboard(
   const events: NonNullable<EspnScoreboardPayload["events"]> = [];
   for (const tournament of payload.events ?? []) {
     for (const competition of collectCompetitions(tournament)) {
-      // A retired/walkover winner flag is not a book-specific settlement.
+      // Retirements require book-specific review. A confirmed walkover with
+      // no point played is different: match markets are no action, not a win.
       const status = competition.status?.type?.name;
-      if (status && status !== "STATUS_FINAL") continue;
+      if (status && status !== "STATUS_FINAL" && status !== "STATUS_WALKOVER")
+        continue;
       const draw = competition.type?.slug;
       // Combined cards include both tours, but stamp the requested tour's
       // format onto EVERY match (US Open: ATP=5, WTA=3). Read each singles

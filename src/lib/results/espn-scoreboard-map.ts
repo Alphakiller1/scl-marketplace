@@ -134,8 +134,22 @@ const VOID_STATUS = /STATUS_(?:POSTPONED|CANCELLED|CANCELED|NO_CONTEST)/i;
 function competitionVoided(
   event: EspnEvent,
   comp: NonNullable<EspnEvent["competitions"]>[number] | undefined,
+  sport: string,
 ): boolean {
   const competitionStatus = comp?.status?.type?.name;
+  if (sport === "TENNIS" && competitionStatus === "STATUS_WALKOVER") {
+    return (
+      comp?.status?.type?.completed === true &&
+      comp.competitors?.length === 2 &&
+      comp.competitors.every(
+        (player) =>
+          !player.linescores?.length &&
+          (player.score == null ||
+            String(player.score).trim() === "" ||
+            Number(player.score) === 0),
+      )
+    );
+  }
   if (competitionStatus) return VOID_STATUS.test(competitionStatus);
   return VOID_STATUS.test(event.status?.type?.name ?? "");
 }
@@ -153,7 +167,15 @@ export function mapEspnScoreboard(
         ? event.competitions
         : [undefined];
     for (const comp of competitions) {
-      const voided = competitionVoided(event, comp);
+      const voided = competitionVoided(event, comp, sclSport);
+      // A contradictory walkover carrying actual play must never fall through
+      // to the winner flags and publish an invented normal result.
+      if (
+        sclSport === "TENNIS" &&
+        comp?.status?.type?.name === "STATUS_WALKOVER" &&
+        !voided
+      )
+        continue;
       if (!voided && !competitionCompleted(event, comp)) continue;
 
       const teams = comp?.competitors ?? [];

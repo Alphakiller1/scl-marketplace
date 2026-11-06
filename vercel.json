@@ -24,7 +24,7 @@
     },
     {
       "path": "/api/cron/grade",
-      "schedule": "3,33 * * * *"
+      "schedule": "25,55 * * * *"
     },
     {
       "path": "/api/cron/odds-dispatch",

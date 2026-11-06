@@ -1,6 +1,7 @@
 import "server-only";
 
 import { buildGradingWorkQueue } from "@/lib/results/grading-work-queue";
+import { dailyDeadlineState } from "@/lib/results/daily-deadline";
 
 import { UNIT_MIN } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
@@ -24,6 +25,8 @@ export type StuckPlayRow = {
   eventId: string | null;
   eventStartsAt: string | null;
   parlayId: string | null;
+  eventLabel?: string | null;
+  book?: string | null;
 };
 
 /** Read-only inventory of PENDING plays past the scores lookback (Task B). */
@@ -285,10 +288,78 @@ export async function listGradingWorkQueue(
   now = new Date(),
   take = Number.POSITIVE_INFINITY,
 ): Promise<(StuckPlayRow & { reason: string; manualOnly: boolean })[]> {
-  const [manual, overdue, overdueParlayLegs] = await Promise.all([
+  const [manual, overdue, overdueParlayLegs, daily] = await Promise.all([
     listManualGradingQueue(now, take),
     listOverduePendingPlays(now, take),
     listOverduePendingParlayLegs(now, take),
+    listPriorSlatePendingPlays(now),
   ]);
-  return buildGradingWorkQueue(manual, overdue, overdueParlayLegs, take);
+  const dailyRows = daily.map((play) => ({
+    ...play,
+    reason:
+      "Previous slate: grade by 5 a.m. Eastern; resolve exceptions by 7 a.m. Eastern",
+    manualOnly: play.eventStartsAt === null,
+  }));
+  const existing = buildGradingWorkQueue(manual, overdue, overdueParlayLegs);
+  const byId = new Map(existing.map((play) => [play.id, play]));
+  const dailyIds = new Set(dailyRows.map((play) => play.id));
+  return [
+    ...dailyRows.map((play) => ({
+      ...play,
+      manualOnly: byId.get(play.id)?.manualOnly ?? play.manualOnly,
+      reason: `${play.reason}${byId.has(play.id) ? ` — ${byId.get(play.id)!.reason}` : ""}`,
+    })),
+    ...existing.filter((play) => !dailyIds.has(play.id)),
+  ].slice(0, take);
+}
+
+/** Uncapped previous-slate inventory, including manual-only markets and legs. */
+export async function listPriorSlatePendingPlays(
+  now = new Date(),
+): Promise<StuckPlayRow[]> {
+  const excludedUsers = await prismaExcludeTestHandlesLive();
+  const rows = await prisma.play.findMany({
+    where: {
+      outcome: "PENDING",
+      status: "COMMITTED",
+      OR: [{ parlayId: { not: null } }, { units: { gte: UNIT_MIN } }],
+      capper: {
+        user: {
+          accountStatus: "ACTIVE",
+          username: { not: null },
+          ...excludedUsers,
+        },
+      },
+    },
+    select: {
+      id: true,
+      sport: true,
+      market: true,
+      selection: true,
+      oddsAmerican: true,
+      units: true,
+      eventId: true,
+      eventStartsAt: true,
+      createdAt: true,
+      parlayId: true,
+      eventLabel: true,
+      book: true,
+      capper: { select: { user: { select: { username: true } } } },
+    },
+    orderBy: [{ eventStartsAt: "asc" }, { createdAt: "asc" }],
+  });
+  return dailyDeadlineState(rows, now).previousSlate.map((play) => ({
+    id: play.id,
+    sport: play.sport,
+    market: play.market,
+    selection: play.selection,
+    oddsAmerican: play.oddsAmerican,
+    units: Number(play.units),
+    eventId: play.eventId,
+    eventStartsAt: play.eventStartsAt?.toISOString() ?? null,
+    parlayId: play.parlayId,
+    eventLabel: play.eventLabel,
+    book: play.book,
+    handle: play.capper.user.username,
+  }));
 }
