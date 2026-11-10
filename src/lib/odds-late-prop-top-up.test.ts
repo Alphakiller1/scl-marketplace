@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { expandedCatchUpRunAt } from "@/lib/manual-odds-population";
 import {
   LATE_PROP_TOP_UP_SPORTS,
   latePropTopUpAt,
@@ -15,11 +16,28 @@ const KICKOFF = "2026-10-20T00:15:00Z";
 const kickoffMs = Date.parse(KICKOFF);
 const windowStart = kickoffMs - TOPUP_LAST_CALL_HOURS * 3_600_000;
 
-test("NFL and basketball are opted into the late prop top-up", () => {
+test("NFL, basketball, and NHL are opted into the late prop top-up", () => {
   assert.ok(LATE_PROP_TOP_UP_SPORTS.has("NFL"));
   assert.ok(LATE_PROP_TOP_UP_SPORTS.has("NBA"));
   assert.ok(LATE_PROP_TOP_UP_SPORTS.has("WNBA"));
+  assert.ok(LATE_PROP_TOP_UP_SPORTS.has("NHL"));
   assert.ok(!LATE_PROP_TOP_UP_SPORTS.has("MLB"));
+});
+
+test("NHL prop catch-up runs before puck drop when the regular pass is later", () => {
+  const lastRunAt = new Date("2026-11-09T21:55:00Z");
+  const puckDrop = "2026-11-10T01:10:00Z";
+  const dueAt = latePropTopUpAt([], lastRunAt.getTime(), puckDrop);
+  assert.equal(dueAt, Date.parse("2026-11-09T22:10:00Z"));
+
+  const catchUp = expandedCatchUpRunAt({
+    uncovered: 1,
+    lastRunAt,
+    scheduledAt: new Date("2026-11-10T03:55:00Z"),
+    notBefore: new Date(dueAt!),
+    now: lastRunAt,
+  });
+  assert.equal(catchUp?.toISOString(), "2026-11-09T22:25:00.000Z");
 });
 
 test("the late basketball ask asks for the whole prop card", () => {
