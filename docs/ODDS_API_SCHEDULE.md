@@ -254,6 +254,8 @@ blocked on credits.
 
 NHL participates in surface and expanded population, including persisted owner controls. The expanded catalog adds alternate spreads/totals plus shots on goal, goals, points, assists, goalie saves, blocked shots, power play points, and faceoffs won, with alternate player lines. Faceoffs depend on DFS bookmaker coverage. Provider market catalogs still filter unavailable keys before buying, and the existing global credit budgets remain in force.
 
+Under owner-managed scheduling, NHL can bring its next expanded pass forward into the final three hours before puck drop to pick up late-posted props. An eligible cached board that would otherwise be skipped gets a props-only check in that window.
+
 Hockey stats use ESPN skater/goalie groups: `S` is shots on goal; `SOG` is shootout goals. Points are goals plus assists. Power play points require a complete goal log whose scorer/assist counts reconcile with the box score; incomplete feeds defer. Goals allowed and hits are absent from the Odds API market catalog, so they are not offered. Source: https://the-odds-api.com/sports-odds-data/betting-markets.html#nhl-player-props-api
 
 NCAAB grading requests the complete Division I scoreboard (`groups=50&limit=300`), rather than the ranked-only default card. College fixture matching requires school identity; a shared mascot is insufficient. NBA provider copies normalize LA/Los Angeles so Clippers finals merge; late finishes are matched on scheduled start, across midnight. Admin grading lists all overdue plays and supports capper/team search.

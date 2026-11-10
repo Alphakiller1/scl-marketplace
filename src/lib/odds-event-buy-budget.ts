@@ -262,6 +262,9 @@ export function recordTopUp(
  * never reached it. Role-player lines follow the injury report, so they post
  * after any morning buy can see them.
  *
+ * NHL boards can have alternate game lines hours before player props post.
+ * The pregame follow-up checks for those props once books have had more time.
+ *
  * One ask is ~19 credits an NFL game and at most 22 (the eleven-key card plus
  * alternates) an NBA game. MLB's prop card is wider still across more games,
  * so it is not opted in here.
@@ -270,6 +273,7 @@ export const LATE_PROP_TOP_UP_SPORTS: ReadonlySet<string> = new Set([
   "NFL",
   "NBA",
   "WNBA",
+  "NHL",
 ]);
 
 /**
