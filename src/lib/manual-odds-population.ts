@@ -304,9 +304,13 @@ export function shouldSpendExpandedBuy(input: {
  * with them. On 2026-10-07 Bengals @ Dolphins was the one NFL game of fifteen
  * with no expanded board, four days out, while books priced its alt lines.
  *
- * So when the full buy is held and an alternate game ladder is priced, the game
- * lines alone are bought. Props still wait for the coverage rule; the merge on
- * the next buy keeps these rows.
+ * So when the full buy is held and an alternate game ladder is priced, the buy
+ * goes ahead — and it takes EVERY priced market, props included. That partial
+ * buy records the event's buy for the day, so props held back from it were not
+ * waiting for a fuller card, they were lost until a later buy. On 2026-11-11
+ * books priced part of the NHL prop card (shots, goals, points, assists) but
+ * not the full eight families, so every pass bought alt lines only and all six
+ * NHL boards showed zero props while the provider had them.
  */
 export function marketsToBuyNow(input: {
   priced: readonly string[];
@@ -316,7 +320,7 @@ export function marketsToBuyNow(input: {
 }): string[] {
   if (shouldSpendExpandedBuy(input)) return [...input.priced];
   const gameLines = input.priced.filter((key) => !key.startsWith("player_"));
-  return gameLines.some(isAlternate) ? gameLines : [];
+  return gameLines.some(isAlternate) ? [...input.priced] : [];
 }
 
 /** The Odds API spells alternate ladders both ways depending on the market family. */
