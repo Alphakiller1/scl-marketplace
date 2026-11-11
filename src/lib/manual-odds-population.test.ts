@@ -814,3 +814,33 @@ test("pulled props do not hold a game's alternate ladders", () => {
     wanted,
   );
 });
+
+test("a partial NHL buy takes the priced props, not alt lines alone", () => {
+  // 2026-11-11: four of eight NHL prop families priced at 09:40 ET.
+  const now = Date.parse("2026-11-11T14:40:00Z");
+  const commenceTime = "2026-11-12T00:10:00Z";
+  const wanted = [
+    "alternate_spreads",
+    "alternate_totals",
+    "player_shots_on_goal",
+    "player_goals",
+    "player_points",
+    "player_assists",
+    "player_total_saves",
+    "player_blocked_shots",
+    "player_power_play_points",
+    "player_faceoffs_won",
+  ];
+  const priced = [
+    "alternate_spreads",
+    "alternate_totals",
+    "player_shots_on_goal",
+    "player_goals",
+    "player_points",
+    "player_assists",
+  ];
+  assert.deepEqual(
+    marketsToBuyNow({ priced, wanted, commenceTime, now }),
+    priced,
+  );
+});
