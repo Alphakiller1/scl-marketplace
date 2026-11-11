@@ -5,6 +5,8 @@ import { expandedCatchUpRunAt } from "@/lib/manual-odds-population";
 import {
   LATE_PROP_TOP_UP_SPORTS,
   latePropTopUpAt,
+  PROPLESS_PROP_RETRY_HORIZON_HOURS,
+  propTopUpDueAt,
   TOPUP_LAST_CALL_HOURS,
 } from "@/lib/odds-event-buy-budget";
 import type { OddsSelection } from "@/lib/odds-board";
@@ -108,4 +110,43 @@ test("a late prop ask adds the missing player without repricing the board", () =
   assert.equal(rows.length, 2);
   assert.equal(rows[0]!.oddsAmerican, -120);
   assert.equal(rows[1]!.player, "Austin Ekeler");
+});
+
+test("a prop-less NHL board is re-asked hourly on game day, not once", () => {
+  const puckDrop = "2026-11-12T00:10:00Z";
+  // 10:30 ET: the morning buy saved alt lines only and spent the allowance.
+  const morning = Date.parse("2026-11-11T15:30:00Z");
+  assert.equal(
+    propTopUpDueAt("NHL", [], false, morning, puckDrop),
+    morning,
+    "due immediately, not at the 3h last-call window",
+  );
+  // One hour after an empty ask, it is due again.
+  assert.equal(
+    propTopUpDueAt("NHL", [morning], false, morning + 10 * 60_000, puckDrop),
+    morning + 60 * 60_000,
+  );
+  // Once props are on the board it falls back to the single late ask.
+  assert.equal(
+    propTopUpDueAt("NHL", [morning], true, morning + 10 * 60_000, puckDrop),
+    Date.parse(puckDrop) - TOPUP_LAST_CALL_HOURS * 3_600_000,
+  );
+});
+
+test("prop-less hourly retry stays NHL-only and inside the game-day horizon", () => {
+  const puckDrop = "2026-11-12T00:10:00Z";
+  const morning = Date.parse("2026-11-11T15:30:00Z");
+  const lastCall = Date.parse(puckDrop) - TOPUP_LAST_CALL_HOURS * 3_600_000;
+  assert.equal(propTopUpDueAt("NBA", [], false, morning, puckDrop), lastCall);
+  // Two days out: wait for the horizon, do not ask hourly.
+  const early = Date.parse("2026-11-10T12:00:00Z");
+  assert.equal(
+    propTopUpDueAt("NHL", [], false, early, puckDrop),
+    Date.parse(puckDrop) - PROPLESS_PROP_RETRY_HORIZON_HOURS * 3_600_000,
+  );
+  // After puck drop nothing is due.
+  assert.equal(
+    propTopUpDueAt("NHL", [], false, Date.parse(puckDrop) + 1, puckDrop),
+    null,
+  );
 });
