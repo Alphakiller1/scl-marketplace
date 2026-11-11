@@ -64,8 +64,8 @@ import { loadLeagueBuyLimits } from "@/lib/odds-league-buy-limits";
 import {
   HARD_MAX_EVENT_BUYS_PER_DAY,
   LATE_PROP_TOP_UP_SPORTS,
-  latePropTopUpAt,
   nextTopUpAt,
+  propTopUpDueAt,
 } from "@/lib/odds-event-buy-budget";
 import { ALTERNATE_TEAM_TOTAL_MARKET_KEY } from "@/lib/team-total-markets";
 
@@ -475,7 +475,13 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
             ? sportMarkets.filter((key) => propMarketLabel(key) !== undefined)
             : [];
         const propDueAt = latePropMarkets.length
-          ? latePropTopUpAt(cached.propTopUps, Date.now(), event.commenceTime)
+          ? propTopUpDueAt(
+              sport,
+              cached.propTopUps,
+              coverage.props > 0,
+              Date.now(),
+              event.commenceTime,
+            )
           : null;
         const wontRebuy =
           boardCapped ||
@@ -753,8 +759,18 @@ async function runPopulate(req: NextRequest, managedScheduling: boolean) {
         if (missingIds.has(event.id)) continue;
         const cached = await loadCachedEventBoard(sport, event.id);
         if (cached.savedAt == null) continue;
-        const at = latePropTopUpAt(
+        const hasProps =
+          summarizeEventMarketCoverage(
+            event,
+            cached.selections,
+            cached.source,
+            cached.stale,
+            sportMarkets,
+          ).props > 0;
+        const at = propTopUpDueAt(
+          sport,
           cached.propTopUps,
+          hasProps,
           Date.now(),
           event.commenceTime,
         );

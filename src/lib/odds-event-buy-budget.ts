@@ -294,3 +294,52 @@ export function latePropTopUpAt(
   }
   return Math.max(now, windowStart);
 }
+
+/**
+ * Sports whose prop-less boards are re-asked for props hourly, not once.
+ *
+ * NHL books hang alternate puck lines and totals overnight, hours before any
+ * player prop. On 2026-11-11 every expanded pass (01:15 and 05:30 ET) bought
+ * all six of that night's boards with alt lines only — zero props — and each
+ * of those buys spent the game's daily allowance. Coverage saw "player props"
+ * missing, but a capped board cannot be rebought, and the single late-prop
+ * ask did not open until three hours before puck drop. So the prop card sat
+ * empty from the morning through the afternoon on every NHL slate.
+ */
+export const PROPLESS_PROP_RETRY_SPORTS: ReadonlySet<string> = new Set(["NHL"]);
+
+/**
+ * How far ahead of puck drop a prop-less board is chased hourly. Tomorrow's
+ * slate is left to the regular cadence: its card has not opened anywhere.
+ */
+export const PROPLESS_PROP_RETRY_HORIZON_HOURS = 18;
+
+/**
+ * When this game's next player-prop ask is due.
+ *
+ * A board that already carries props gets the single last-call ask from
+ * {@link latePropTopUpAt}. A board with NO props, in a sport listed in
+ * {@link PROPLESS_PROP_RETRY_SPORTS} and inside the retry horizon, is asked on
+ * the hourly top-up spacing (see {@link nextTopUpAt}) until props land — each
+ * ask reads the market catalog first, so an unopened card costs one credit.
+ */
+export function propTopUpDueAt(
+  sport: string,
+  propTopUps: readonly number[] | undefined,
+  hasProps: boolean,
+  now: number = Date.now(),
+  commenceTime?: string | null,
+): number | null {
+  const late = latePropTopUpAt(propTopUps, now, commenceTime);
+  if (hasProps || !PROPLESS_PROP_RETRY_SPORTS.has(sport.trim().toUpperCase())) {
+    return late;
+  }
+  const kickoff = commenceTime ? Date.parse(commenceTime) : Number.NaN;
+  if (!Number.isFinite(kickoff) || now >= kickoff) return null;
+  const horizonStart = kickoff - PROPLESS_PROP_RETRY_HORIZON_HOURS * 3_600_000;
+  if (now < horizonStart)
+    return late == null ? null : Math.min(late, horizonStart);
+  const hourly = nextTopUpAt(propTopUps, now, commenceTime);
+  if (hourly == null) return late;
+  return late == null ? hourly : Math.min(hourly, late);
+}
