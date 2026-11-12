@@ -1,7 +1,12 @@
 import { ClipboardList } from "lucide-react";
 import Link from "next/link";
 
+import { gradeRequestPickKey } from "@/lib/grade-requests";
 import { getCurrentUser } from "@/lib/session";
+import {
+  getOpenGradeRequestsForCapper,
+  type OpenGradeRequestsByPick,
+} from "@/lib/queries/grade-requests";
 import {
   getCapperParlays,
   getCapperPlays,
@@ -56,9 +61,13 @@ export default async function MyPicksPage({
     ? (requested as PickSort)
     : "recent";
   const user = await getCurrentUser();
-  const [plays, parlays] = user
-    ? await Promise.all([getCapperPlays(user.id), getCapperParlays(user.id)])
-    : [[], []];
+  const [plays, parlays, openRequests] = user
+    ? await Promise.all([
+        getCapperPlays(user.id),
+        getCapperParlays(user.id),
+        getOpenGradeRequestsForCapper(user.id),
+      ])
+    : [[], [], {} as OpenGradeRequestsByPick];
   const entries = sortEntries(mergeRecordEntries(plays, parlays), sort);
 
   return (
@@ -96,9 +105,23 @@ export default async function MyPicksPage({
           <div className="space-y-2">
             {entries.map((e) =>
               e.kind === "parlay" ? (
-                <ParlayListItem key={`parlay-${e.id}`} parlay={e} />
+                <ParlayListItem
+                  key={`parlay-${e.id}`}
+                  parlay={e}
+                  dashboard
+                  openRequests={
+                    openRequests[gradeRequestPickKey("parlay", e.id)]
+                  }
+                />
               ) : (
-                <PlayListItem key={`play-${e.id}`} play={e} dashboard />
+                <PlayListItem
+                  key={`play-${e.id}`}
+                  play={e}
+                  dashboard
+                  openRequests={
+                    openRequests[gradeRequestPickKey("straight", e.id)]
+                  }
+                />
               ),
             )}
           </div>

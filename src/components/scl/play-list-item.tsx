@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import type { GradeRequestType } from "@prisma/client";
 import { ChevronDown } from "lucide-react";
 
 import { SportTag, StatusBadge } from "@/components/scl/badges";
 import { BookMark } from "@/components/scl/book-mark";
+import { GradeRequestButtons } from "@/components/scl/grade-request-buttons";
 import { PlayerHeadshot } from "@/components/scl/player-headshot";
 import { StatValue } from "@/components/scl/stat-value";
 import { VerifiedBadge } from "@/components/scl/verified-badge";
@@ -60,10 +62,16 @@ function receiptState(
 export function PlayListItem({
   play,
   dashboard = false,
+  openRequests,
 }: {
   play: PlayView;
-  /** Capper dashboard — always show notes; surface invalid-stake badge. */
+  /**
+   * Capper dashboard — always show notes; surface invalid-stake badge; offer
+   * Request Regrade / Request Injury Protection on graded picks.
+   */
   dashboard?: boolean;
+  /** Request types still open on this pick (dashboard only). */
+  openRequests?: readonly GradeRequestType[];
 }) {
   const [open, setOpen] = useState(false);
   const hasResult = play.profitUnits != null;
@@ -183,6 +191,15 @@ export function PlayListItem({
           {showNotes}
         </p>
       ) : null}
+      {dashboard ? (
+        <GradeRequestButtons
+          kind="straight"
+          id={play.id}
+          outcome={play.outcome}
+          openRequests={openRequests}
+          pickLabel={play.selection}
+        />
+      ) : null}
       {open ? (
         <div
           id={`owner-receipt-${play.id}`}
@@ -260,7 +277,17 @@ function legTitle(leg: ParlayView["legs"][number]): string {
   return matchup ? `${selection} (${matchup})` : selection;
 }
 
-export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
+export function ParlayListItem({
+  parlay,
+  dashboard = false,
+  openRequests,
+}: {
+  parlay: ParlayView;
+  /** Capper dashboard — offer Request Regrade / Injury Protection when graded. */
+  dashboard?: boolean;
+  /** Request types still open on this ticket (dashboard only). */
+  openRequests?: readonly GradeRequestType[];
+}) {
   const [open, setOpen] = useState(false);
   const hasResult = parlay.profitUnits != null;
   // A parlay is dated by its earliest leg, which is what ParlayView carries.
@@ -384,6 +411,15 @@ export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
           </StatValue>
         ) : null}
       </div>
+      {dashboard ? (
+        <GradeRequestButtons
+          kind="parlay"
+          id={parlay.id}
+          outcome={parlay.outcome}
+          openRequests={openRequests}
+          pickLabel={`${parlay.legs.length}-leg parlay`}
+        />
+      ) : null}
       {open ? (
         <div
           id={`owner-receipt-${parlay.id}`}

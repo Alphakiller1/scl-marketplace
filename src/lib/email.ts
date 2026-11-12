@@ -7,6 +7,10 @@ import { renderEmailBodyHtml } from "@/lib/email-image";
 import { emailImageUrlResolver } from "@/lib/email-image-url";
 import { renderEmailTemplate } from "@/lib/email-template-render";
 import type { EmailTemplateSlug } from "@/lib/email-templates";
+import {
+  renderGradeRequestEmail,
+  type GradeRequestEmailInput,
+} from "@/lib/grade-request-email";
 import { PASSWORD_POLICY_SUMMARY } from "@/lib/password-policy";
 import { providerLabel, SCL_AFFILIATE_EMAIL } from "@/lib/store-connection";
 import {
@@ -678,6 +682,57 @@ export async function sendSupportEmail(input: {
   } catch (error) {
     console.error("[email] support send threw:", error);
     return { delivered: false as const };
+  }
+}
+
+/**
+ * Notify SCL support of a capper's regrade / injury-protection request.
+ *
+ * Same inbox as the support form. Reply-To is the capper (when the address can
+ * receive mail), so answering the email answers them. Never throws: the request
+ * row is already saved and listed on the Grading tab, so a mail failure is
+ * reported back for the row, not surfaced as a failed request.
+ */
+export async function sendGradeRequestEmail(
+  input: GradeRequestEmailInput,
+): Promise<{ delivered: true } | { delivered: false; error: string }> {
+  const supportTo = process.env.SUPPORT_EMAIL_TO ?? "support@scl.com";
+  const message = renderGradeRequestEmail(input, appUrl());
+  const replyTo = hasDeliverableEmail(input.capper.email)
+    ? input.capper.email
+    : undefined;
+
+  if (!resend) {
+    console.info("[email:dev] grade request", {
+      to: supportTo,
+      subject: message.subject,
+      correctionUrl: message.correctionUrl,
+    });
+    return { delivered: false, error: "mailer not configured" };
+  }
+
+  try {
+    const { error } = await resend.emails.send({
+      from,
+      to: supportTo,
+      ...(replyTo ? { replyTo } : {}),
+      subject: message.subject,
+      html: message.html,
+      text: message.text,
+    });
+    if (error) {
+      console.error(
+        `[email] grade request ${input.requestId} send failed: ${error.message}`,
+      );
+      return { delivered: false, error: error.message };
+    }
+    return { delivered: true };
+  } catch (error) {
+    console.error(`[email] grade request ${input.requestId} threw:`, error);
+    return {
+      delivered: false,
+      error: error instanceof Error ? error.message : "send threw",
+    };
   }
 }
 

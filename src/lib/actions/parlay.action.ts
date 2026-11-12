@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
+import { resolveGradeRequestsForPicks } from "@/lib/grade-request-resolution";
+import { outcomeLabel } from "@/lib/grade-requests";
 import { settleParlay } from "@/lib/grading";
 import { profitUnitsEqual } from "@/lib/grading-correction";
 import { isBookKey } from "@/lib/books";
@@ -458,7 +460,19 @@ export async function gradeParlayAction(
     };
   }
 
+  // Open capper requests on this ticket (or on a leg that changed) are
+  // answered by this correction. Best-effort, after the settlement committed.
+  if (changedLegs.length) {
+    await resolveGradeRequestsForPicks({
+      playIds: changedLegs.map((leg) => leg.id),
+      parlayIds: [parlay.id],
+      adminId: admin.id,
+      note: `Ticket re-settled as ${outcomeLabel(settlement.outcome)}: ${auditReason}`,
+    });
+  }
+
   revalidatePath("/admin/grading");
+  revalidatePath("/admin/grading/requests");
   revalidatePath("/admin/plays");
   revalidatePath(`/admin/plays/parlay/${parlay.id}`);
   revalidatePath("/dashboard");
