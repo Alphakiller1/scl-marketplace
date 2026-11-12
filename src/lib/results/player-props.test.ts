@@ -210,6 +210,109 @@ test("a prop settles only on a player from one of the play's clubs", () => {
 });
 
 /**
+ * Production, 2026-11-10: "Davion Mitchell Over 21.5" Pts+Ast (Heat @ Jazz,
+ * 02:00Z) was published VOID. Celtics @ 76ers tipped at 01:00Z and went final
+ * first; the Heat game had no settled copy yet, so the neighbour search read
+ * the Celtics box score, where Dillon Mitchell was a DNP with an empty stat
+ * row. Surname plus first initial took him for Davion, and a DNP voids.
+ * Davion started, 38 minutes, 19 points and 8 assists: 27, a WIN.
+ *
+ * The ESPN rows below are the real ones from both summaries (trimmed to the
+ * columns a Pts+Ast line reads), mapped through the production parser.
+ */
+function espnBox(
+  team: string,
+  athletes: { name: string; stats: string[] }[],
+): unknown {
+  return {
+    boxscore: {
+      players: [
+        {
+          team: { displayName: team },
+          statistics: [
+            {
+              labels: ["MIN", "PTS", "REB", "AST"],
+              athletes: athletes.map((a) => ({
+                athlete: { displayName: a.name },
+                stats: a.stats,
+              })),
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+const davionOver = {
+  market: PROP_MARKET_LABEL.player_points_assists,
+  selection: "Davion Mitchell Over 21.5",
+  side: "Over",
+  line: 21.5,
+};
+
+test("a DNP namesake in a neighbouring game never voids a prop", () => {
+  const celtics = mapSummaryToPlayerBox(
+    espnBox("Boston Celtics", [
+      { name: "Mitchell Robinson", stats: ["17", "2", "6", "2"] },
+      // didNotPlay: true — ESPN sends the row with no stats at all.
+      { name: "Dillon Mitchell", stats: [] },
+    ]),
+  )!;
+  assert.equal(
+    celtics.players.find((p) => p.name === "Dillon Mitchell")?.played,
+    false,
+  );
+
+  // Not the same player, so no outcome at all — least of all VOID.
+  assert.equal(findPlayer(celtics, "Davion Mitchell"), null);
+  assert.equal(resolvePlayerProp(davionOver, celtics), null);
+
+  // Even reached directly, a Celtics row cannot settle a Heat @ Jazz play.
+  const clubs = ["Utah Jazz", "Miami Heat"];
+  assert.equal(
+    resolvePlayerProp(
+      { ...davionOver, selection: "Dillon Mitchell Over 21.5", clubs },
+      celtics,
+    ),
+    null,
+  );
+
+  // And the play, which names its clubs, never searches the neighbours.
+  assert.deepEqual(
+    playerPropCandidateEventIds(
+      {
+        sport: "NBA",
+        eventStartsAt: new Date("2026-11-11T02:00:00Z"),
+        homeTeam: "Utah Jazz",
+        awayTeam: "Miami Heat",
+      },
+      [
+        {
+          sport: "NBA",
+          home: "Philadelphia 76ers",
+          away: "Boston Celtics",
+          homeScore: 101,
+          awayScore: 123,
+          completed: true,
+          espnEventId: "401909961",
+          startsAt: new Date("2026-11-11T01:00:00Z"),
+        },
+      ],
+    ),
+    [],
+  );
+
+  // Its own box score grades it correctly.
+  const heat = mapSummaryToPlayerBox(
+    espnBox("Miami Heat", [
+      { name: "Davion Mitchell", stats: ["38", "19", "5", "8"] },
+    ]),
+  )!;
+  assert.equal(resolvePlayerProp({ ...davionOver, clubs }, heat), "WIN");
+});
+
+/**
  * These cases are the real plays that sat PENDING in production on 2026-08-06
  * because player props had no resolver at all. The numbers are the actual ESPN
  * box-score values, so a regression here means a capper gets mis-graded.
