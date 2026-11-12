@@ -197,7 +197,7 @@ export function PlayListItem({
           id={play.id}
           outcome={play.outcome}
           openRequests={openRequests}
-          pickLabel={play.selection}
+          pickLabel={selectionWithMarket(play)}
         />
       ) : null}
       {open ? (

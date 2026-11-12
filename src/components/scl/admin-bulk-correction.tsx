@@ -17,7 +17,11 @@ import {
   type Settlement,
 } from "@/lib/bulk-correction";
 import { formatOdds, formatUnits } from "@/lib/format";
-import { matchupLabel } from "@/lib/pick-identity";
+import {
+  matchupLabel,
+  propMarketDisplayLabel,
+  selectionWithMarket,
+} from "@/lib/pick-identity";
 import {
   CORRECTION_REASON_MIN,
   GRADEABLE_OUTCOMES,
@@ -136,10 +140,12 @@ function CandidateRow({
         </span>
         {showSelection ? (
           <span className="mt-0.5 block font-medium break-words">
-            {play.selection}{" "}
-            <span className="text-muted-foreground font-normal">
-              · {play.market}
-            </span>
+            {selectionWithMarket(play)}
+            {propMarketDisplayLabel(play.market) ? null : (
+              <span className="text-muted-foreground font-normal">
+                {` · ${play.market}`}
+              </span>
+            )}
           </span>
         ) : null}
         <span className="text-muted-foreground scl-data mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tabular-nums">
@@ -341,7 +347,9 @@ export function AdminBulkCorrection({
       ) : null}
 
       <div className="border-border bg-surface-2 rounded-lg border p-3 text-sm">
-        <p className="font-semibold break-words">{sourcePlay.selection}</p>
+        <p className="font-semibold break-words">
+          {selectionWithMarket(sourcePlay)}
+        </p>
         <p className="text-muted-foreground mt-0.5 text-xs break-words">
           {[sourcePlay.market, sourcePlay.sport, matchupLabel(sourcePlay)]
             .filter(Boolean)

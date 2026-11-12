@@ -7,6 +7,7 @@ import type { GradeRequestType } from "@prisma/client";
 
 import { adminGradingHref } from "@/lib/admin-grading-link";
 import { escapeHtml } from "@/lib/email-escape";
+import { selectionWithMarket } from "@/lib/pick-identity";
 import {
   clipForSubject,
   formatRequestDateTime,
@@ -69,7 +70,7 @@ export function renderGradeRequestEmail(
   const legNumber = leg ? details.legs.indexOf(leg) + 1 : null;
   const gameDate = formatRequestGameDate(details.eventStartsAt);
   const subjectPick = leg
-    ? `${details.title} — ${leg.selection}`
+    ? `${details.title} — ${selectionWithMarket(leg)}`
     : details.title;
   const subject = `${subjectLine} — ${who} — ${clipForSubject(subjectPick, 70)}${gameDate ? ` (${gameDate})` : ""}`;
 

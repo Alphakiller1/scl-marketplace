@@ -81,7 +81,7 @@ const adminRequestSelect = {
     },
   },
   play: {
-    select: { selection: true, outcome: true, profitUnits: true },
+    select: { outcome: true, profitUnits: true },
   },
   parlay: {
     select: {
@@ -106,7 +106,6 @@ export type AdminGradeRequest = {
   /** Parlay requests that named a leg. */
   legId: string | null;
   legNumber: number | null;
-  legSelection: string | null;
   capperLabel: string;
   capperHandle: string | null;
   capperEmail: string;
@@ -149,7 +148,6 @@ function toAdminRequest(row: AdminRequestRow): AdminGradeRequest {
     pickId,
     legId,
     legNumber: legIndex >= 0 ? legIndex + 1 : null,
-    legSelection: legId ? (row.play?.selection ?? null) : null,
     capperLabel: accountLabel(row.capper.user, "Unknown capper"),
     capperHandle: row.capper.user.username?.replace(/^@/, "") ?? null,
     capperEmail: row.capper.user.email,

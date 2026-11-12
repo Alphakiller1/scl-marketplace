@@ -13,7 +13,11 @@ import type {
 
 import { bookLabel } from "@/lib/books";
 import { formatOdds, formatUnits } from "@/lib/format";
-import { matchupLabel } from "@/lib/pick-identity";
+import {
+  matchupLabel,
+  propMarketDisplayLabel,
+  selectionWithMarket,
+} from "@/lib/pick-identity";
 
 export const GRADE_REQUEST_TYPES = ["REGRADE", "INJURY_PROTECTION"] as const;
 
@@ -213,7 +217,9 @@ export function straightPickDetails(play: {
   return {
     kind: "straight",
     id: play.id,
-    title: play.selection,
+    // "Davion Mitchell Over 21.5 Points + Assists", never a bare "Over 21.5":
+    // a prop's stat lives only in `market` (see `selectionWithMarket`).
+    title: selectionWithMarket(play),
     sport: play.sport,
     league: play.league,
     market: play.market,
@@ -277,7 +283,7 @@ export function parlayPickDetails(parlay: {
 /** A leg as one line: "Over 8.5 (Mets @ Braves) +105". */
 export function legLine(leg: GradeRequestLeg): string {
   const matchup = matchupLabel(leg);
-  return `${leg.selection}${matchup ? ` (${matchup})` : ""} ${formatOdds(leg.oddsAmerican)}`;
+  return `${selectionWithMarket(leg)}${matchup ? ` (${matchup})` : ""} ${formatOdds(leg.oddsAmerican)}`;
 }
 
 /**
@@ -298,7 +304,8 @@ export function pickSummaryLine(
   }
   const parts = [
     details.title,
-    details.market,
+    // A prop's title already ends with its stat; repeating it reads twice.
+    propMarketDisplayLabel(details.market) ? null : details.market,
     details.matchup,
     `${details.odds} · ${details.stake}`,
   ].filter((part): part is string => Boolean(part));

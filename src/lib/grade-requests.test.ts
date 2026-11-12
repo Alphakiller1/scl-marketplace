@@ -102,16 +102,44 @@ test("subjects are exactly the owners' wording, and slugs round-trip", () => {
   assert.equal(gradeRequestTypeFromSlug(undefined), null);
 });
 
+test("a prop names its stat once; a game line keeps its market", () => {
+  // #744: "Over 21.5" alone never says 21.5 of what.
+  assert.equal(straight.title, "Jabari Smith Jr Over 4.5 Rebounds");
+  const total = straightPickDetails({
+    id: "play_2",
+    sport: "NBA",
+    league: "NBA",
+    market: "Total",
+    selection: "Over 221.5",
+    oddsAmerican: -110,
+    units: 1,
+    book: "fanduel",
+    outcome: "LOSS",
+    profitUnits: -1,
+    eventLabel: "Houston Rockets @ Atlanta Hawks",
+    homeTeam: null,
+    awayTeam: null,
+    eventStartsAt: null,
+    createdAt: new Date("2026-11-11T18:00:00Z"),
+  });
+  assert.equal(total.title, "Over 221.5");
+  assert.equal(
+    pickSummaryLine(total),
+    "Over 221.5 · Total · Houston Rockets @ Atlanta Hawks · -110 · 1U",
+  );
+  assert.equal(total.book, "FanDuel");
+});
+
 test("a parlay is dated by its last game and summarised with the leg in question", () => {
   assert.equal(parlay.eventStartsAt?.toISOString(), "2026-11-09T01:20:00.000Z");
   assert.equal(
     pickSummaryLine(parlay, "leg_b"),
-    "2-Leg Parlay +264 · 1U — Leg 2: George Pickens Over 59.5 (Philadelphia Eagles @ Dallas Cowboys) -110",
+    "2-Leg Parlay +264 · 1U — Leg 2: George Pickens Over 59.5 Receiving Yards (Philadelphia Eagles @ Dallas Cowboys) -110",
   );
   assert.equal(pickSummaryLine(parlay, null), "2-Leg Parlay +264 · 1U");
   assert.equal(
     pickSummaryLine(straight),
-    "Jabari Smith Jr Over 4.5 · Rebounds · Houston Rockets @ Atlanta Hawks · -115 · 1.50U",
+    "Jabari Smith Jr Over 4.5 Rebounds · Houston Rockets @ Atlanta Hawks · -115 · 1.50U",
   );
 });
 
@@ -139,7 +167,7 @@ test("the email carries every pre-populated field and both admin links", () => {
   const mail = renderGradeRequestEmail(emailInput(), "https://scl.example");
   assert.equal(
     mail.subject,
-    "Regrade Request — @petespicks — Jabari Smith Jr Over 4.5 (Wed, Nov 11, 2026)",
+    "Regrade Request — @petespicks — Jabari Smith Jr Over 4.5 Rebounds (Wed, Nov 11, 2026)",
   );
   assert.equal(
     mail.correctionUrl,
@@ -188,7 +216,11 @@ test("a parlay email names the leg in question and links to the ticket", () => {
     emailInput({ details: parlay, legId: "leg_b" }),
     "https://scl.example",
   );
-  assert.ok(mail.subject.includes("2-Leg Parlay — George Pickens Over 59.5"));
+  assert.ok(
+    mail.subject.includes(
+      "2-Leg Parlay — George Pickens Over 59.5 Receiving Yards",
+    ),
+  );
   assert.ok(mail.html.includes("Leg 2: George Pickens Over 59.5"));
   assert.ok(mail.text.includes("<-- in question"));
   assert.equal(

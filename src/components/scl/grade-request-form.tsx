@@ -20,6 +20,7 @@ import {
   outcomeLabel,
   type GradeRequestPickDetails,
 } from "@/lib/grade-requests";
+import { selectionWithMarket } from "@/lib/pick-identity";
 import { cn } from "@/lib/utils";
 
 const OUTCOME_TO_STATUS = {
@@ -289,7 +290,7 @@ export function GradeRequestForm({
             <option value="">The whole ticket / not sure</option>
             {details.legs.map((leg, index) => (
               <option key={leg.id} value={leg.id}>
-                Leg {index + 1}: {leg.selection}
+                {`Leg ${index + 1}: ${selectionWithMarket(leg)}`}
               </option>
             ))}
           </select>

@@ -179,7 +179,7 @@ test("a request is saved from the stored pick, then SCL support is emailed", asy
   assert.equal(row.commentary, regrade.commentary);
   assert.equal(
     row.pickSummary,
-    "Jabari Smith Jr Over 4.5 · Rebounds · Houston Rockets @ Atlanta Hawks · -115 · 1U",
+    "Jabari Smith Jr Over 4.5 Rebounds · Houston Rockets @ Atlanta Hawks · -115 · 1U",
   );
   assert.equal(world.emails.length, 1);
   assert.equal(world.emails[0]!.requestId, "req_1");
