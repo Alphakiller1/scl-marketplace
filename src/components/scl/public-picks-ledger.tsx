@@ -22,6 +22,7 @@ import { SPORTS } from "@/lib/constants";
 import { formatOdds, formatUnits } from "@/lib/format";
 import type { TodayPick } from "@/lib/mock";
 import { profitUnitsForOutcome } from "@/lib/odds";
+import { selectionWithMarket } from "@/lib/pick-identity";
 import {
   DEFAULT_PUBLIC_PICKS_FILTERS,
   isPublicPickGraded,
@@ -371,7 +372,7 @@ function DesktopLedgerRows({
         </td>
         <td className="min-w-0 px-3 py-3">
           <p className="text-foreground truncate text-sm font-semibold">
-            {pick.selection}
+            {selectionWithMarket(pick)}
           </p>
           <p className="text-muted-foreground mt-0.5 truncate text-xs">
             {pick.isEmbargoed ? embargoMessage(pick) : pick.event}
@@ -395,7 +396,7 @@ function DesktopLedgerRows({
             className="focus-visible:ring-ring hover:bg-surface-3 inline-flex size-11 items-center justify-center rounded-lg outline-none focus-visible:ring-2"
             aria-expanded={open}
             aria-controls={panelId}
-            aria-label={`${open ? "Close" : "Inspect"} receipt for ${pick.selection}`}
+            aria-label={`${open ? "Close" : "Inspect"} receipt for ${selectionWithMarket(pick)}`}
             onClick={onToggle}
           >
             <ChevronDown
@@ -457,7 +458,7 @@ function MobileLedgerRow({
           <span className="flex min-w-0 items-center gap-2">
             <SportTag sport={pick.sport} markOnly />
             <span className="text-foreground truncate text-sm font-semibold">
-              {pick.selection}
+              {selectionWithMarket(pick)}
             </span>
           </span>
           <span className="mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
@@ -573,7 +574,7 @@ function ExpandedEvidence({
       </div>
 
       <ProofReceipt
-        selectionTitle={pick.selection}
+        selectionTitle={selectionWithMarket(pick)}
         leadingMark={
           <TeamRef name={pick.side} sport={pick.sport} size="md" knownOnly />
         }

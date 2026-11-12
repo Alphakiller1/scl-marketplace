@@ -1,3 +1,4 @@
+import { PROP_MARKET_LABEL } from "@/lib/odds-verify";
 import { resolveKnownTeam, type TeamIdentity } from "@/lib/teams";
 
 /** Sides that are market directions, never team names. */
@@ -96,4 +97,64 @@ export function pickContextLabel(opts: {
 
 function normalizeLabel(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+/** Every player-prop label the board writes to `Play.market`. */
+const PLAYER_PROP_LABELS = new Set(Object.values(PROP_MARKET_LABEL));
+
+/**
+ * Spelled-out names for the compressed labels the board stores. The short
+ * forms fit a chip on the board; on a receipt "Pts+Ast" is jargon, and the
+ * person reading it was not there when the pick was made.
+ */
+const READABLE_PROP_MARKET: Record<string, string> = {
+  "Pts+Reb+Ast": "Points + Rebounds + Assists",
+  "Pts+Reb": "Points + Rebounds",
+  "Pts+Ast": "Points + Assists",
+  "Reb+Ast": "Rebounds + Assists",
+  "Hits+Runs+RBIs": "Hits + Runs + RBIs",
+  "Passing Yds": "Passing Yards",
+  "Rushing Yds": "Rushing Yards",
+  "Receiving Yds": "Receiving Yards",
+  "Rush+Rec Yds": "Rushing + Receiving Yards",
+  "FG Made": "Field Goals Made",
+};
+
+/**
+ * The stat a player prop settles on, written for a reader ("Points +
+ * Assists"), or null when the market is not a board player prop.
+ */
+export function propMarketDisplayLabel(
+  market: string | null | undefined,
+): string | null {
+  const label = market?.trim();
+  if (!label || !PLAYER_PROP_LABELS.has(label)) return null;
+  return READABLE_PROP_MARKET[label] ?? label;
+}
+
+function namesPhrase(text: string, phrase: string): boolean {
+  const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^a-z0-9])${escaped}($|[^a-z0-9])`, "i").test(text);
+}
+
+/**
+ * The pick as a reader needs to see it: "Davion Mitchell Over 21.5 Points +
+ * Assists".
+ *
+ * A board prop's selection is "<player> <side> <line>" — the stat lives only
+ * in `market`, so the ticket and the pick history both read "Over 21.5" with
+ * nothing to say 21.5 of what. Game lines and legacy free-text picks are
+ * returned unchanged, as is any selection that already names its stat
+ * ("Josh Allen Anytime Touchdown").
+ */
+export function selectionWithMarket(pick: {
+  selection: string;
+  market?: string | null;
+}): string {
+  const stat = propMarketDisplayLabel(pick.market);
+  if (!stat) return pick.selection;
+  const stored = pick.market!.trim();
+  if (namesPhrase(pick.selection, stat) || namesPhrase(pick.selection, stored))
+    return pick.selection;
+  return `${pick.selection.trim()} ${stat}`;
 }

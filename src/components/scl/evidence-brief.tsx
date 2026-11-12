@@ -47,6 +47,8 @@ import {
   matchupLabel,
   pickContextLabel,
   pickEventDate,
+  propMarketDisplayLabel,
+  selectionWithMarket,
 } from "@/lib/pick-identity";
 import { perfScale, perfToneClass } from "@/lib/perf-scale";
 import { toHeadshotLeague } from "@/lib/player-headshots";
@@ -132,7 +134,7 @@ function playToProofReceipt(
   const receipt = (
     <ProofReceipt
       key={`${play.id}-${density}`}
-      selectionTitle={play.selection}
+      selectionTitle={selectionWithMarket(play)}
       leadingMark={
         isParlay ? (
           <Layers className="size-5 text-[color:var(--scl-blue)]" aria-hidden />
@@ -188,7 +190,7 @@ function playToProofReceipt(
                 {index + 1}.
               </span>
               <span className="text-foreground font-medium">
-                {leg.selection}
+                {selectionWithMarket(leg)}
               </span>
               {/*
                 The market alone ("Total") does not say which game. A public
@@ -196,7 +198,13 @@ function playToProofReceipt(
                 pick was made, so the fixture rides with every leg.
               */}
               <span className="text-muted-foreground mt-0.5 block text-[0.65rem]">
-                {[leg.market, matchupLabel(leg)].filter(Boolean).join(" · ")}
+                {[
+                  // A prop leg already names its stat in the line above.
+                  propMarketDisplayLabel(leg.market) ? null : leg.market,
+                  matchupLabel(leg),
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
               </span>
             </span>
             <span className="scl-data text-muted-foreground shrink-0 tabular-nums">
@@ -588,7 +596,14 @@ function ProofHistoryLedger({
       data-profile-history-ledger
       className="border-border mt-3 overflow-hidden border-y"
     >
-      <table className="w-full table-fixed text-left text-xs">
+      {/*
+        Fixed layout only once every column shows (md+). Below that the hidden
+        columns drop out of the grid, and an open ticket's colSpan re-adds them
+        as empty auto columns that split the spare width with Pick — every pick
+        in the history shrank to ~26px on a phone the moment a ticket opened.
+        Auto layout gives empty columns nothing, so Pick keeps the room.
+      */}
+      <table className="w-full table-auto text-left text-xs md:table-fixed">
         <caption className="sr-only">
           Full proof history. Select Ticket to open one canonical proof receipt.
         </caption>
@@ -633,7 +648,7 @@ function ProofHistoryLedger({
                       className="border-border bg-surface-2 text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex min-h-10 items-center gap-1 rounded-full border px-2 text-[0.65rem] font-semibold hover:border-[color:var(--scl-blue)] focus-visible:ring-2 focus-visible:outline-none"
                       aria-expanded={expanded}
                       aria-controls={`proof-history-${play.id}`}
-                      aria-label={`${expanded ? "Close" : "Open"} ticket for ${play.selection}`}
+                      aria-label={`${expanded ? "Close" : "Open"} ticket for ${selectionWithMarket(play)}`}
                       onClick={() => setExpandedId(expanded ? null : play.id)}
                     >
                       <ReceiptText className="size-3" aria-hidden />
@@ -666,9 +681,17 @@ function ProofHistoryLedger({
                         />
                       ) : null}
                       <span className="min-w-0">
-                        <span className="block truncate">{play.selection}</span>
+                        {/*
+                          Wraps on narrow screens: the stat is the end of the
+                          string ("… Over 21.5 Points + Assists"), so a
+                          truncated phone row would cut off exactly the part
+                          that says what the line is.
+                        */}
+                        <span className="block [overflow-wrap:anywhere] md:truncate">
+                          {selectionWithMarket(play)}
+                        </span>
                         {game ? (
-                          <span className="text-muted-foreground mt-0.5 block truncate text-[0.65rem] font-normal md:hidden">
+                          <span className="text-muted-foreground mt-0.5 block text-[0.65rem] font-normal [overflow-wrap:anywhere] md:hidden">
                             {game}
                           </span>
                         ) : null}

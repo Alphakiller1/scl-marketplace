@@ -21,6 +21,7 @@ import {
   matchupLabel,
   pickContextLabel,
   pickEventDate,
+  selectionWithMarket,
   teamIdentityFromSide,
 } from "@/lib/pick-identity";
 import type { ProofReceiptState } from "@/lib/proof-receipt";
@@ -115,7 +116,7 @@ export function PlayListItem({
             className="focus-visible:ring-ring hover:bg-surface-2 inline-flex size-10 items-center justify-center rounded-lg focus-visible:ring-2 focus-visible:outline-none"
             aria-expanded={open}
             aria-controls={`owner-receipt-${play.id}`}
-            aria-label={`${open ? "Close" : "View"} bet slip for ${play.selection}`}
+            aria-label={`${open ? "Close" : "View"} bet slip for ${selectionWithMarket(play)}`}
             onClick={() => setOpen((value) => !value)}
           >
             <ChevronDown
@@ -140,7 +141,9 @@ export function PlayListItem({
           <TeamMark team={team} size="sm" className="mt-0.5" />
         ) : null}
         <div className="min-w-0 flex-1">
-          <p className="font-semibold break-words">{play.selection}</p>
+          <p className="font-semibold break-words">
+            {selectionWithMarket(play)}
+          </p>
           {/*
             The selection alone is not the pick. "Over 8.5" and a player prop
             name no game, so a record row has to carry the fixture or it cannot
@@ -190,7 +193,7 @@ export function PlayListItem({
             share your verified record.
           </p>
           <ProofReceipt
-            selectionTitle={play.selection}
+            selectionTitle={selectionWithMarket(play)}
             leadingMark={
               <TeamRef
                 name={play.side}
@@ -251,9 +254,10 @@ export function PlayListItem({
  * repeat what the selection already says.
  */
 function legTitle(leg: ParlayView["legs"][number]): string {
-  if (teamIdentityFromSide(leg.side, leg.sport)) return leg.selection;
+  const selection = selectionWithMarket(leg);
+  if (teamIdentityFromSide(leg.side, leg.sport)) return selection;
   const matchup = matchupLabel(leg);
-  return matchup ? `${leg.selection} (${matchup})` : leg.selection;
+  return matchup ? `${selection} (${matchup})` : selection;
 }
 
 export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
@@ -334,7 +338,7 @@ export function ParlayListItem({ parlay }: { parlay: ParlayView }) {
               ) : null}
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium break-words">
-                  {leg.selection}
+                  {selectionWithMarket(leg)}
                   <StatValue tone="data" className="ml-1.5">
                     {formatOdds(leg.oddsAmerican)}
                   </StatValue>
