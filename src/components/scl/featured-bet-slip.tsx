@@ -10,6 +10,7 @@ import {
   matchupLabel,
   pickContextLabel,
   pickEventDate,
+  selectionWithMarket,
 } from "@/lib/pick-identity";
 import { deriveProofReceiptState } from "@/lib/proof-receipt";
 import {
@@ -124,7 +125,7 @@ function FeaturedBetSlipBody({ play }: { play: FeaturedGradedPlay }) {
 
   return (
     <ProofReceipt
-      selectionTitle={play.selection}
+      selectionTitle={selectionWithMarket(play)}
       leadingMark={
         <TeamRef name={play.side} sport={play.sport} size="md" knownOnly />
       }

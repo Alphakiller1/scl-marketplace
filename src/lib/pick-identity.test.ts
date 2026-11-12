@@ -5,6 +5,8 @@ import {
   matchupLabel,
   pickContextLabel,
   pickEventDate,
+  propMarketDisplayLabel,
+  selectionWithMarket,
   teamIdentityFromSide,
 } from "@/lib/pick-identity";
 
@@ -120,4 +122,69 @@ test("pickContextLabel renders nothing when market is only the sport or league",
     pickContextLabel({ sport: "WNBA", league: null, market: "WNBA" }),
     "",
   );
+});
+
+/**
+ * Owner report, 2026-11-11: the ticket and the pick history both read
+ * "Davion Mitchell Over 21.5" — nothing said 21.5 of what. The stat was only
+ * in `market` ("Pts+Ast").
+ */
+test("a player prop names the stat it settles on", () => {
+  assert.equal(
+    selectionWithMarket({
+      selection: "Davion Mitchell Over 21.5",
+      market: "Pts+Ast",
+    }),
+    "Davion Mitchell Over 21.5 Points + Assists",
+  );
+  assert.equal(
+    selectionWithMarket({
+      selection: "Michael Wacha Over 15.5",
+      market: "Outs",
+    }),
+    "Michael Wacha Over 15.5 Outs",
+  );
+  assert.equal(
+    selectionWithMarket({
+      selection: "Josh Allen Under 245.5",
+      market: "Passing Yds",
+    }),
+    "Josh Allen Under 245.5 Passing Yards",
+  );
+});
+
+test("selections that already say what they are stay as written", () => {
+  // Lineless props carry the market in the selection already.
+  assert.equal(
+    selectionWithMarket({
+      selection: "Josh Allen Anytime Touchdown",
+      market: "Anytime Touchdown",
+    }),
+    "Josh Allen Anytime Touchdown",
+  );
+  // Game lines, team totals and legacy free-text picks are untouched.
+  for (const [selection, market] of [
+    ["Lakers -4.5", "Spread"],
+    ["Over 220.5", "Total"],
+    ["Nationals TT O4.5", "Team Total"],
+    ["Davion Mitchell Over 21.5 Pts + Ast", "Player Prop"],
+    ["Yankees", "Moneyline"],
+  ] as const) {
+    assert.equal(selectionWithMarket({ selection, market }), selection);
+  }
+  assert.equal(
+    selectionWithMarket({ selection: "Celtics ML", market: null }),
+    "Celtics ML",
+  );
+});
+
+test("only board player-prop labels read as a prop stat", () => {
+  assert.equal(
+    propMarketDisplayLabel("Pts+Reb+Ast"),
+    "Points + Rebounds + Assists",
+  );
+  assert.equal(propMarketDisplayLabel("Rebounds"), "Rebounds");
+  assert.equal(propMarketDisplayLabel("Total"), null);
+  assert.equal(propMarketDisplayLabel("Player Prop"), null);
+  assert.equal(propMarketDisplayLabel(undefined), null);
 });
