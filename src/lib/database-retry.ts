@@ -37,6 +37,23 @@ function markRetryExhausted(error: unknown): void {
   }
 }
 
+/**
+ * Postgres answers SCL's reads in milliseconds (pg_stat_statements, 2026-11-13),
+ * yet public pages were timing out after 300s with nothing logged. A read this
+ * slow is waiting on the app side — a starved instance, the pool, a dead
+ * socket — and saying so, with its label, is how the next one gets found.
+ */
+export const SLOW_DATABASE_READ_MS = 5_000;
+
+function warnIfSlow(label: string, startedAt: number, attempt: number) {
+  const elapsed = Date.now() - startedAt;
+  if (elapsed >= SLOW_DATABASE_READ_MS) {
+    console.warn(
+      `[database] slow: ${label} took ${elapsed}ms (attempt ${attempt})`,
+    );
+  }
+}
+
 export async function withTransientDatabaseRetry<T>(
   operation: () => Promise<T>,
   options: {
@@ -48,11 +65,15 @@ export async function withTransientDatabaseRetry<T>(
 ): Promise<T> {
   const maxAttempts = Math.max(1, options.maxAttempts ?? 3);
   const retryDelayMs = Math.max(0, options.retryDelayMs ?? 100);
+  const startedAt = Date.now();
 
   for (let attempt = 1; ; attempt += 1) {
     try {
-      return await operation();
+      const result = await operation();
+      warnIfSlow(options.label, startedAt, attempt);
+      return result;
     } catch (error) {
+      warnIfSlow(options.label, startedAt, attempt);
       if (
         !isTransientDatabaseError(error) ||
         wasRetryExhausted(error) ||
