@@ -84,6 +84,7 @@ model User {
   oddsControlAudits         OddsControlAuditEvent[]    @relation("OddsControlAuditActor")
   oddsRunsTriggered         OddsApiRun[]               @relation("OddsApiRunTriggeredBy")
   oddsVerificationSchedules OddsVerificationSchedule[] @relation("OddsVerificationScheduleUpdatedBy")
+  gradeRequestsResolved     GradeRequest[]             @relation("GradeRequestResolvedBy")
 
   @@unique([email, username])
 }
@@ -470,6 +471,7 @@ model CapperProfile {
   legacyRecords    LegacyRecord[]
   packageAudits    PackageAuditEvent[]
   honorAwardGrants HonorAwardGrant[]
+  gradeRequests    GradeRequest[]
 
   @@index([providerType])
 }
@@ -771,8 +773,9 @@ model Play {
 
   capper       CapperProfile  @relation(fields: [capperId], references: [id], onDelete: Cascade)
   parlay       Parlay?        @relation(fields: [parlayId], references: [id], onDelete: SetNull)
-  audits       GradingAudit[]
-  packageLinks PlayPackage[]
+  audits        GradingAudit[]
+  packageLinks  PlayPackage[]
+  gradeRequests GradeRequest[]
 
   @@unique([capperId, supermaxDay])
   @@index([capperId])
@@ -798,8 +801,9 @@ model Parlay {
 
   capper       CapperProfile        @relation(fields: [capperId], references: [id], onDelete: Cascade)
   legs         Play[]
-  audits       ParlayGradingAudit[]
-  packageLinks ParlayPackage[]
+  audits        ParlayGradingAudit[]
+  packageLinks  ParlayPackage[]
+  gradeRequests GradeRequest[]
 
   @@unique([capperId, supermaxDay])
   @@index([capperId])
@@ -997,6 +1001,69 @@ model OddsCacheSnapshot {
   updatedAt DateTime @updatedAt
 
   @@index([expiresAt])
+}
+
+// ---------- Capper grading requests ----------
+
+/// What a capper is asking SCL to review on a graded pick.
+enum GradeRequestType {
+  /// The published result is wrong (box score, stat correction, wrong game).
+  REGRADE
+  /// The capper asks for the pick to be voided under SCL injury protection.
+  INJURY_PROTECTION
+}
+
+enum GradeRequestStatus {
+  OPEN
+  /// An admin reviewed it and applied a correction (or confirmed one already applied).
+  RESOLVED
+  /// An admin reviewed it and kept the published result.
+  DECLINED
+}
+
+/// A capper's request, sent from My Picks, for SCL to regrade a pick or apply
+/// injury protection. The Grading tab lists the OPEN rows as the review queue.
+///
+/// The pick fields are a snapshot of what the capper saw when they asked, so the
+/// email and the queue still read correctly after the play is corrected. The
+/// live result always comes from the Play/Parlay itself.
+model GradeRequest {
+  id                   String             @id @default(cuid())
+  type                 GradeRequestType
+  status               GradeRequestStatus @default(OPEN)
+  /// CapperProfile.id of the capper who owns the pick (and asked).
+  capperId             String
+  /// The straight play, or the parlay leg the capper named. Null for a whole ticket.
+  playId               String?
+  /// The parent ticket when the request is about a parlay.
+  parlayId             String?
+  /// The capper's explanation. Required.
+  commentary           String
+  /// Result on record when the capper asked.
+  outcomeAtRequest     Outcome
+  profitUnitsAtRequest Decimal?           @db.Decimal(16, 2)
+  /// One-line description of the pick, frozen at submit time.
+  pickSummary          String
+  /// Game time of the pick (latest leg for a parlay); null when unknown.
+  eventStartsAt        DateTime?
+  /// Set when the notification email to SCL support was accepted by the mailer.
+  emailSentAt          DateTime?
+  emailError           String?
+  resolvedAt           DateTime?
+  resolvedById         String?
+  resolutionNote       String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  capper     CapperProfile @relation(fields: [capperId], references: [id], onDelete: Cascade)
+  play       Play?         @relation(fields: [playId], references: [id], onDelete: Cascade)
+  parlay     Parlay?       @relation(fields: [parlayId], references: [id], onDelete: Cascade)
+  resolvedBy User?         @relation("GradeRequestResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([capperId, status])
+  @@index([playId])
+  @@index([parlayId])
 }
 
 model GradingAudit {

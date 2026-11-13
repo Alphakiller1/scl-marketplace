@@ -5,6 +5,7 @@ import { loadTestModule } from "@/lib/test-support/load-module";
 import * as grading from "@/lib/grading";
 import * as odds from "@/lib/odds";
 import * as correction from "@/lib/grading-correction";
+import * as gradeRequests from "@/lib/grade-requests";
 import * as schema from "@/lib/schemas/grading.schema";
 import * as parlaySchema from "@/lib/schemas/parlay.schema";
 import * as match from "@/lib/results/match";
@@ -140,10 +141,25 @@ test("manual straight saves derive profit, audit the admin, and reject concurren
     const audits: {
       data: { source: string; gradedById: string; newProfitUnits: number };
     }[] = [];
+    const resolved: {
+      playIds: string[];
+      parlayIds: string[];
+      adminId: string;
+      note: string;
+    }[] = [];
     const file = "src/lib/actions/grading.action.ts";
     const action = loadTestModule<typeof Manual>(file, {
       ...importsFor(file),
       "next/cache": { revalidatePath: () => {} },
+      "@/lib/grade-requests": gradeRequests,
+      "@/lib/grade-request-resolution": {
+        resolveGradeRequestsForPicks: async (
+          input: (typeof resolved)[number],
+        ) => {
+          resolved.push(input);
+          return 1;
+        },
+      },
       "@/lib/grading-correction": correction,
       "@/lib/odds": odds,
       "@/lib/schemas/grading.schema": schema,
@@ -188,6 +204,21 @@ test("manual straight saves derive profit, audit the admin, and reject concurren
     });
     assert.equal(result.ok, winsWrite);
     assert.equal(audits.length, winsWrite ? 1 : 0);
+    // A capper's open request on this play closes only when the grade landed.
+    // Arrays built inside the VM context have a foreign prototype.
+    assert.deepEqual(
+      JSON.parse(JSON.stringify(resolved)),
+      winsWrite
+        ? [
+            {
+              playIds: ["single"],
+              parlayIds: [],
+              adminId: "owner-admin",
+              note: "Win applied: Verified final score",
+            },
+          ]
+        : [],
+    );
     if (winsWrite) {
       assert.equal(audits[0]!.data.source, "MANUAL");
       assert.equal(audits[0]!.data.gradedById, "owner-admin");
@@ -217,9 +248,20 @@ test("manual stale parlay settlement locks the ticket and recomputes parent prof
     let locked = false;
     let parentAudit = 0;
     let legAudit = 0;
+    const resolved: { playIds: string[]; parlayIds: string[] }[] = [];
     const action = loadTestModule<typeof Parlay>(file, {
       ...importsFor(file),
       "next/cache": { revalidatePath: () => {} },
+      "@/lib/grade-requests": gradeRequests,
+      "@/lib/grade-request-resolution": {
+        resolveGradeRequestsForPicks: async (input: {
+          playIds: string[];
+          parlayIds: string[];
+        }) => {
+          resolved.push({ playIds: input.playIds, parlayIds: input.parlayIds });
+          return 0;
+        },
+      },
       "@/lib/grading": grading,
       "@/lib/grading-correction": correction,
       "@/lib/schemas/parlay.schema": parlaySchema,
@@ -291,5 +333,8 @@ test("manual stale parlay settlement locks the ticket and recomputes parent prof
     assert.equal(result.ok, true);
     assert.equal(legAudit, 1);
     assert.equal(parentAudit, 1);
+    assert.deepEqual(JSON.parse(JSON.stringify(resolved)), [
+      { playIds: ["leg"], parlayIds: ["ticket"] },
+    ]);
   }
 });

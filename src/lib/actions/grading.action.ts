@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
+import { resolveGradeRequestsForPicks } from "@/lib/grade-request-resolution";
+import { outcomeLabel } from "@/lib/grade-requests";
 import { profitUnitsEqual } from "@/lib/grading-correction";
 import { profitUnitsForOutcome } from "@/lib/odds";
 import { prisma } from "@/lib/prisma";
@@ -167,9 +169,19 @@ export async function gradePlayAction(
     };
   }
 
+  // A capper's open regrade / injury-protection request on this play is
+  // answered by this correction. Best-effort, after the grade has committed.
+  await resolveGradeRequestsForPicks({
+    playIds: [play.id],
+    parlayIds: [],
+    adminId: admin.id,
+    note: `${outcomeLabel(outcome)} applied: ${reason}`,
+  });
+
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/picks");
   revalidatePath("/admin/grading");
+  revalidatePath("/admin/grading/requests");
   revalidatePath("/admin/plays");
   revalidatePath(`/admin/plays/straight/${play.id}`);
   revalidatePath("/picks");

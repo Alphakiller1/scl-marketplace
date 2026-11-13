@@ -1,8 +1,21 @@
 import Link from "next/link";
-import { History, Layers, LifeBuoy, ListChecks, Zap } from "lucide-react";
+import {
+  History,
+  Inbox,
+  Layers,
+  LifeBuoy,
+  ListChecks,
+  Users,
+  Zap,
+} from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 
+import {
+  AdminBulkCorrection,
+  type BulkCorrectionSource,
+} from "@/components/scl/admin-bulk-correction";
 import { AdminGradeCorrection } from "@/components/scl/admin-grade-correction";
+import { AdminGradeRequestReview } from "@/components/scl/admin-grade-request-review";
 import { AdminSettlementAudit } from "@/components/scl/admin-settlement-audit";
 import { PickTierBadge, SportTag, StatusBadge } from "@/components/scl/badges";
 import { SectionHeader } from "@/components/scl/section";
@@ -14,6 +27,8 @@ import {
   getAdminParlayCorrectionRecord,
   getAdminStraightCorrectionRecord,
 } from "@/lib/queries/admin-play-correction";
+import { loadCorrectionCandidates } from "@/lib/queries/bulk-correction";
+import { listGradeRequestsForPick } from "@/lib/queries/grade-requests";
 
 export const metadata = { title: "Settlement review" };
 
@@ -32,8 +47,10 @@ const OUTCOME_TO_STATUS = {
 
 export default async function AdminPlayCorrectionPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ kind: string; id: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { kind, id } = await params;
   if (kind !== "straight" && kind !== "parlay") notFound();
@@ -54,6 +71,47 @@ export default async function AdminPlayCorrectionPage({
       ? await getAdminStraightCorrectionRecord(id)
       : await getAdminParlayCorrectionRecord(id);
   if (!record) notFound();
+
+  const query = searchParams ? await searchParams : {};
+  const requestParam = Array.isArray(query.request)
+    ? query.request[0]
+    : query.request;
+  const sourceIds =
+    record.kind === "straight" ? [record.id] : record.legs.map((leg) => leg.id);
+  const [requests, candidates] = await Promise.all([
+    listGradeRequestsForPick({ kind: record.kind, id: record.id }),
+    loadCorrectionCandidates(sourceIds),
+  ]);
+  // The request the admin arrived from (email link), else the oldest open one.
+  const focusRequest =
+    requests.find((request) => request.id === requestParam) ??
+    requests.find((request) => request.status === "OPEN") ??
+    null;
+  const bulkSources: BulkCorrectionSource[] = sourceIds.flatMap(
+    (sourceId, index) => {
+      const found = candidates.get(sourceId);
+      if (!found) return [];
+      const leg =
+        record.kind === "parlay"
+          ? record.legs.find((candidate) => candidate.id === sourceId)
+          : null;
+      return [
+        {
+          sourceId,
+          label: leg
+            ? `Leg ${index + 1}: ${leg.selection} (${leg.market})`
+            : record.kind === "straight"
+              ? record.selection
+              : sourceId,
+          ...found,
+        },
+      ];
+    },
+  );
+  const initialSourceId =
+    focusRequest?.status === "OPEN" && focusRequest.legId
+      ? focusRequest.legId
+      : (sourceIds[0] ?? "");
 
   const recordLabel =
     record.kind === "straight"
@@ -201,22 +259,56 @@ export default async function AdminPlayCorrectionPage({
         </section>
       ) : null}
 
-      <section className="space-y-4">
-        <SectionHeader
-          icon={LifeBuoy}
-          title="Admin override — backup only"
-          subtitle="Use this to settle a stale play or correct a mis-grade. Review the result before saving; every change is logged with a required reason."
-        />
-        {record.kind === "straight" ? (
-          <AdminGradeCorrection
-            kind="straight"
-            id={record.id}
-            outcome={record.outcome}
-            profitUnits={record.profitUnits}
-            oddsAmerican={record.oddsAmerican}
-            units={record.units}
+      {requests.length ? (
+        <section id="capper-requests" className="scroll-mt-24 space-y-4">
+          <SectionHeader
+            icon={Inbox}
+            title="Capper Requests"
+            subtitle="What the capper asked for and why. Applying a correction below resolves the requests it answers."
+            href="/admin/grading/requests"
+            hrefLabel="All open requests"
           />
-        ) : (
+          <div className="space-y-3">
+            {requests.map((request) => (
+              <AdminGradeRequestReview
+                key={request.id}
+                request={request}
+                highlighted={request.id === focusRequest?.id}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {bulkSources.length ? (
+        <section id="correct" className="scroll-mt-24 space-y-4">
+          <SectionHeader
+            icon={Users}
+            title="Correct this pick"
+            subtitle="Settle a stale play or fix a mis-grade — for this capper only, or for every capper who logged the same pick. Every change is logged with a required reason."
+          />
+          <AdminBulkCorrection
+            key={`${record.kind}-${record.id}`}
+            kind={record.kind}
+            sources={bulkSources}
+            initialSourceId={initialSourceId}
+            initialOutcome={
+              focusRequest?.status === "OPEN" &&
+              focusRequest.type === "INJURY_PROTECTION"
+                ? "VOID"
+                : undefined
+            }
+          />
+        </section>
+      ) : null}
+
+      {record.kind === "parlay" ? (
+        <section className="space-y-4">
+          <SectionHeader
+            icon={LifeBuoy}
+            title="Edit several legs on this ticket"
+            subtitle="Set each leg's result on this ticket only, in one save. Review the result before saving; every change is logged with a required reason."
+          />
           <AdminGradeCorrection
             kind="parlay"
             id={record.id}
@@ -231,8 +323,8 @@ export default async function AdminPlayCorrectionPage({
               outcome: leg.outcome,
             }))}
           />
-        )}
-      </section>
+        </section>
+      ) : null}
 
       <section className="space-y-4">
         <SectionHeader

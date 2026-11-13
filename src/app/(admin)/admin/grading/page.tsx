@@ -3,11 +3,13 @@ import {
   CheckCircle2,
   Clock,
   History,
+  Inbox,
   LifeBuoy,
   XCircle,
   Zap,
 } from "lucide-react";
 
+import { AdminGradeRequestList } from "@/components/scl/admin-grade-request-list";
 import { GradingWorkQueue } from "@/components/scl/grading-work-queue";
 import { GradingAuditList } from "@/components/scl/grading-audit-list";
 import { AutoGradeButton } from "@/components/scl/auto-grade-button";
@@ -19,6 +21,10 @@ import {
   getRecentCronRuns,
   getRecentGradingAudits,
 } from "@/lib/queries/grading";
+import {
+  listGradeRequests,
+  type AdminGradeRequest,
+} from "@/lib/queries/grade-requests";
 import { getSchemaStatusReport } from "@/lib/results/schema-status";
 import {
   countPendingPlays,
@@ -40,20 +46,63 @@ function durationSecs(start: Date | null, end: Date | null): string {
   return `${((end.getTime() - start.getTime()) / 1000).toFixed(1)}s`;
 }
 
+/** The request queue must never take the grading diagnostics down with it. */
+async function openRequestsOrNull(): Promise<AdminGradeRequest[] | null> {
+  try {
+    return await listGradeRequests("OPEN");
+  } catch (error) {
+    console.error("[admin/grading] capper request queue failed", error);
+    return null;
+  }
+}
+
 export default async function AdminGradingPage() {
-  const [audits, health, schema, stuck, manualQueue, cronRuns, pendingTotal] =
-    await Promise.all([
-      getRecentGradingAudits(),
-      getGradingHealthReport(),
-      getSchemaStatusReport(),
-      listAgedOutPendingPlays(new Date(), Number.POSITIVE_INFINITY),
-      listGradingWorkQueue(),
-      getRecentCronRuns(),
-      countPendingPlays(),
-    ]);
+  const [
+    audits,
+    health,
+    schema,
+    stuck,
+    manualQueue,
+    cronRuns,
+    pendingTotal,
+    openRequests,
+  ] = await Promise.all([
+    getRecentGradingAudits(),
+    getGradingHealthReport(),
+    getSchemaStatusReport(),
+    listAgedOutPendingPlays(new Date(), Number.POSITIVE_INFINITY),
+    listGradingWorkQueue(),
+    getRecentCronRuns(),
+    countPendingPlays(),
+    openRequestsOrNull(),
+  ]);
 
   return (
     <div className="space-y-8">
+      <section id="capper-requests" className="space-y-4">
+        <SectionHeader
+          icon={Inbox}
+          title={`Capper Requests${openRequests?.length ? ` (${openRequests.length})` : ""}`}
+          subtitle="Unresolved regrade and injury-protection requests, oldest first. Open one to correct the pick for that capper or for every capper who logged it."
+          href="/admin/grading/requests?status=all"
+          hrefLabel="All requests"
+        />
+        {openRequests ? (
+          <AdminGradeRequestList
+            requests={openRequests}
+            empty="No unresolved requests. When a capper taps Request Regrade or Request Injury Protection on a graded pick, it appears here and SCL support is emailed."
+          />
+        ) : (
+          <p className="border-border bg-card text-muted-foreground rounded-xl border p-5 text-sm">
+            The request queue could not be loaded. Refresh, or open{" "}
+            <Link href="/admin/grading/requests" className="scl-link">
+              all requests
+            </Link>
+            .
+          </p>
+        )}
+      </section>
+
       <section className="border-border bg-card space-y-3 rounded-xl border p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <SectionHeader

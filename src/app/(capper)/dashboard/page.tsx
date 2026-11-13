@@ -1,6 +1,11 @@
 import { ClipboardList, MailWarning } from "lucide-react";
 
+import { gradeRequestPickKey } from "@/lib/grade-requests";
 import { getCurrentAccount } from "@/lib/session";
+import {
+  getOpenGradeRequestsForCapper,
+  type OpenGradeRequestsByPick,
+} from "@/lib/queries/grade-requests";
 import {
   getCapperLegacyRecords,
   getCapperParlays,
@@ -29,13 +34,19 @@ export default async function DashboardPage() {
   // so this costs nothing beyond a fresh handle for the greeting.
   const user = await getCurrentAccount();
   const verified = Boolean(user?.emailVerified);
-  const [plays, parlays, legacy] = user
+  const [plays, parlays, legacy, openRequests] = user
     ? await Promise.all([
         getCapperPlays(user.id),
         getCapperParlays(user.id),
         getCapperLegacyRecords(user.id),
+        getOpenGradeRequestsForCapper(user.id),
       ])
-    : [[], [], { baseline: null, bySport: [], capturedAt: null }];
+    : [
+        [],
+        [],
+        { baseline: null, bySport: [], capturedAt: null },
+        {} as OpenGradeRequestsByPick,
+      ];
   // The carried-over legacy total is part of the capper's record on every
   // public surface, so it is part of it here too. Without it the dashboard
   // reported a different career than the profile it links to.
@@ -154,9 +165,23 @@ export default async function DashboardPage() {
           <div className="space-y-2">
             {recent.map((e) =>
               e.kind === "parlay" ? (
-                <ParlayListItem key={`parlay-${e.id}`} parlay={e} />
+                <ParlayListItem
+                  key={`parlay-${e.id}`}
+                  parlay={e}
+                  dashboard
+                  openRequests={
+                    openRequests[gradeRequestPickKey("parlay", e.id)]
+                  }
+                />
               ) : (
-                <PlayListItem key={e.id} play={e} dashboard />
+                <PlayListItem
+                  key={e.id}
+                  play={e}
+                  dashboard
+                  openRequests={
+                    openRequests[gradeRequestPickKey("straight", e.id)]
+                  }
+                />
               ),
             )}
           </div>
