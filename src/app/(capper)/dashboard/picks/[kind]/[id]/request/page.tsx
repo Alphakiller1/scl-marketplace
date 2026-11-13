@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Clock3, LifeBuoy } from "lucide-react";
 
 import { GradeRequestForm } from "@/components/scl/grade-request-form";
@@ -54,7 +54,9 @@ export default async function GradeRequestPage({
   const [{ kind, id }, query] = await Promise.all([params, searchParams]);
   if (kind !== "straight" && kind !== "parlay") notFound();
   const type = gradeRequestTypeFromSlug(first(query.type));
-  if (!type) notFound();
+  // A link that lost its type (an old bookmark, a stripped redirect) goes back
+  // to the pick list, where both buttons are one tap away - never a 404.
+  if (!type) redirect("/dashboard/picks");
 
   const account = await requireCapperAccess();
   const capper = await loadRequestingCapper(account.id);

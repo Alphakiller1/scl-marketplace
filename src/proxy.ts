@@ -35,10 +35,13 @@ export default auth((req) => {
   const isCapperArea = nextUrl.pathname.startsWith("/dashboard");
   const isAdminArea = nextUrl.pathname.startsWith("/admin");
 
-  // Not signed in → send to login with a return path.
+  // Not signed in → send to login with a return path. The query string is
+  // part of the destination: the grading-request email links an admin to
+  // `/admin/plays/...?request=<id>`, and a capper's request screen is
+  // `...?type=regrade`. `getSafeCallbackPath` keeps only same-origin paths.
   if ((isCapperArea || isAdminArea) && !session) {
     const url = new URL("/login", nextUrl);
-    url.searchParams.set("callbackUrl", nextUrl.pathname);
+    url.searchParams.set("callbackUrl", `${nextUrl.pathname}${nextUrl.search}`);
     return NextResponse.redirect(url);
   }
 
