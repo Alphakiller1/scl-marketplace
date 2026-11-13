@@ -3,6 +3,7 @@ import "server-only";
 import type { Outcome } from "@prisma/client";
 
 import { settleParlay } from "@/lib/grading";
+import { MMA_WINNING_METHOD } from "@/lib/mma-winning-method";
 import { profitUnitsForOutcome } from "@/lib/odds";
 import { loadCachedEventBoard } from "@/lib/odds-event-board-cache";
 import { loadOddsEventIdentity } from "@/lib/odds-event-identity-cache";
@@ -108,7 +109,10 @@ type FixtureCache = Map<string, Promise<RecoveredFixture | null>>;
 function resultsQueryScopeFor(
   plays: readonly {
     sport: string;
+    market?: string;
     league?: string | null;
+    homeTeam?: string | null;
+    awayTeam?: string | null;
     eventStartsAt?: Date | null;
     createdAt?: Date;
   }[],
@@ -122,6 +126,21 @@ function resultsQueryScopeFor(
     ),
   ];
   return {
+    mmaWinningMethodBouts: plays.flatMap((play) =>
+      play.sport === "MMA" &&
+      play.market === MMA_WINNING_METHOD &&
+      play.homeTeam &&
+      play.awayTeam &&
+      play.eventStartsAt
+        ? [
+            {
+              home: play.homeTeam,
+              away: play.awayTeam,
+              startsAt: play.eventStartsAt.getTime(),
+            },
+          ]
+        : [],
+    ),
     soccerLeagues: tagsFor("SOCCER"),
     tennisTours: tagsFor("TENNIS"),
     tennisEventDates: [
@@ -1205,7 +1224,15 @@ async function autoGradePendingRound(
       outcome: "PENDING",
       OR: [{ eventStartsAt: null }, { eventStartsAt: { lte: now } }],
     },
-    select: { sport: true, league: true, eventStartsAt: true, createdAt: true },
+    select: {
+      sport: true,
+      market: true,
+      league: true,
+      eventStartsAt: true,
+      createdAt: true,
+      homeTeam: true,
+      awayTeam: true,
+    },
     take: GRADE_BATCH_SIZE * 2,
   });
   const sports = [...new Set(targets.map((play) => play.sport))];

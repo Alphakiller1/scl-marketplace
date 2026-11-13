@@ -1,3 +1,4 @@
+import type { MmaFinish } from "@/lib/mma-winning-method";
 import { canonicalMmaFighterName } from "@/lib/results/mma-fighter-aliases";
 import { canonicalSoccerClubName } from "@/lib/results/soccer-club-aliases";
 import type { SettledGame } from "@/lib/results/settled-game";
@@ -36,6 +37,7 @@ type EspnEvent = {
     competitors?: EspnCompetitor[];
     date?: string;
     status?: { type?: { completed?: boolean; name?: string } };
+    mmaFinish?: MmaFinish;
     /** Tennis reports the best-of here; the games markets need it. */
     format?: { regulation?: { periods?: number } };
   }>;
@@ -66,7 +68,7 @@ export function yyyymmddUtc(d: Date): string {
   return `${y}${m}${day}`;
 }
 
-function competitorName(
+export function competitorName(
   competitor: EspnCompetitor | undefined,
 ): string | undefined {
   const raw =
@@ -137,6 +139,7 @@ function competitionVoided(
   sport: string,
 ): boolean {
   const competitionStatus = comp?.status?.type?.name;
+  if (sport === "MMA" && comp?.mmaFinish === "noContest") return true;
   if (sport === "TENNIS" && competitionStatus === "STATUS_WALKOVER") {
     return (
       comp?.status?.type?.completed === true &&
@@ -187,6 +190,7 @@ export function mapEspnScoreboard(
       // A no-contest / no winner is 0-0 from the winner flags. That would PUSH
       // every moneyline. Skip rather than invent a result.
       const decided =
+        (sclSport === "MMA" && comp?.mmaFinish === "draw") ||
         home?.winner === true ||
         away?.winner === true ||
         (home?.score != null && String(home.score).trim() !== "") ||
@@ -209,6 +213,9 @@ export function mapEspnScoreboard(
         homeScore,
         awayScore,
         completed: true,
+        ...(sclSport === "MMA" && comp?.mmaFinish
+          ? { mmaFinish: comp.mmaFinish }
+          : {}),
         ...(voided ? { voided: true } : {}),
         eventId: providerId ? `espn:${providerId}` : undefined,
         // The bare id box-score grading needs, kept where the merge can carry it

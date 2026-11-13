@@ -1,6 +1,7 @@
 import "server-only";
 
 import { computeClvPts } from "@/lib/clv";
+import { MMA_WINNING_METHOD } from "@/lib/mma-winning-method";
 import { liveLineAmerican, marketKeysForMarket } from "@/lib/odds-verify";
 import { fetchEventOddsForVerification } from "@/lib/odds-api";
 import { prisma } from "@/lib/prisma";
@@ -36,7 +37,13 @@ export type ClosingPlayRef = {
 export async function resolveClosingAmerican(
   play: ClosingPlayRef,
 ): Promise<number | null> {
-  if (!play.eventId || !play.side?.trim()) return null;
+  if (
+    !play.eventId ||
+    !play.side?.trim() ||
+    play.market === MMA_WINNING_METHOD
+  ) {
+    return null;
+  }
 
   const marketKeys = marketKeysForMarket(play.market);
   if (!marketKeys.length) return null;
@@ -86,6 +93,7 @@ export async function snapshotClosingOdds(
   const plays = await prisma.play.findMany({
     where: {
       outcome: "PENDING",
+      market: { not: MMA_WINNING_METHOD },
       closingOddsAmerican: null,
       eventId: { not: null },
       side: { not: null },

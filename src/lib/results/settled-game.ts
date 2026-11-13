@@ -1,4 +1,5 @@
 import { canonicalNcaabTeamName } from "@/lib/results/ncaab-team-names";
+import type { MmaFinish } from "@/lib/mma-winning-method";
 import { resolveKnownTeam } from "@/lib/teams";
 
 /** Settled final-score row from a results provider (pure type, no I/O). */
@@ -11,6 +12,8 @@ export type SettledGame = {
   completed: boolean;
   /** Provider confirmed the fixture will not be played; every market is VOID. */
   voided?: boolean;
+  /** Official MMA finish method, when confirmed by ESPN's final bout status. */
+  mmaFinish?: MmaFinish;
   /** Odds API event id when available — preferred join key for grading. */
   eventId?: string;
   /**
@@ -352,6 +355,7 @@ export function mergeSettledGames(
     const awayPeriods = g.awayPeriods ?? secondaryCopy?.awayPeriods;
     const regulationPeriods =
       g.regulationPeriods ?? secondaryCopy?.regulationPeriods;
+    const mmaFinish = g.mmaFinish ?? secondaryCopy?.mmaFinish;
     const reports = secondaryCopy
       ? [...reportsOf(secondaryCopy), ...reportsOf(g)]
       : g.reports;
@@ -365,6 +369,7 @@ export function mergeSettledGames(
       ...(homePeriods ? { homePeriods } : {}),
       ...(awayPeriods ? { awayPeriods } : {}),
       ...(regulationPeriods ? { regulationPeriods } : {}),
+      ...(mmaFinish ? { mmaFinish } : {}),
     });
   });
   return [...byKey.values()];

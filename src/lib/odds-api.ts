@@ -2,6 +2,7 @@ import "server-only";
 
 import { afterResponse } from "@/lib/after-response";
 import { bookmakersQueryParam, isBookKey } from "@/lib/books";
+import { addEspnMmaWinningMethods } from "@/lib/espn-mma-odds";
 import {
   CATALOG_WORTH_READING_MARKETS,
   eventMarketCatalogKeys,
@@ -956,11 +957,15 @@ export async function fetchUpcomingOdds(
     const events = (await res.json()) as Parameters<
       typeof normalizeUpcomingEvent
     >[1][];
-    return dedupeOddsEvents(
+    const board = dedupeOddsEvents(
       events
         .map((e) => normalizeUpcomingEvent(sclSport, e, preferred))
         .filter((e) => e.selections.length > 0),
     ).slice(0, SURFACE_BOARD_EVENT_LIMIT);
+    return sclSport === "MMA" &&
+      (!opts?.markets?.length || opts.markets.includes("h2h"))
+      ? addEspnMmaWinningMethods(board)
+      : board;
   };
 
   try {

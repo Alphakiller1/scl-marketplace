@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { MMA_WINNING_METHOD } from "@/lib/mma-winning-method";
 
 import {
   fetchUpcomingOdds,
@@ -128,7 +129,12 @@ function selectedValues(req: NextRequest, header: string): string[] {
   ];
 }
 
-type SurfaceRow = { events: number; source: string; stale: boolean };
+type SurfaceRow = {
+  events: number;
+  source: string;
+  stale: boolean;
+  winningMethodSelections?: number;
+};
 type ExpandedRow = {
   events: number;
   populated: number;
@@ -194,10 +200,21 @@ async function loadSurface(
   }
   const board = await updateOddsBoardSegment(sport, undefined, fresh);
   boardEvents.set(sport, board.events);
+  const winningMethodSelections =
+    sport === "MMA"
+      ? fresh.reduce(
+          (count, event) =>
+            count +
+            event.selections.filter((row) => row.market === MMA_WINNING_METHOD)
+              .length,
+          0,
+        )
+      : undefined;
   surface[sport] = {
     events: board.events.length,
     source: board.source,
     stale: board.stale,
+    winningMethodSelections,
   };
 }
 

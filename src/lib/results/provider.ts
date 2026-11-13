@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { MmaBoutIdentity } from "@/lib/mma-winning-method";
+
 import { SPORT_KEYS } from "@/lib/constants";
 import {
   logOddsUsage,
@@ -29,6 +31,7 @@ export { RESULTS_LOOKBACK_DAYS };
 
 /** League context needed when one SCL sport fans out across provider leagues. */
 export type ResultsQueryScope = {
+  mmaWinningMethodBouts?: readonly MmaBoutIdentity[];
   soccerLeagues?: readonly string[];
   /**
    * Tennis tour keys (ATP_CINCINNATI_OPEN, …) carried by the pending plays.

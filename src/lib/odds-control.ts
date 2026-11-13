@@ -1,4 +1,5 @@
 import { resolveExpandedEventLimit } from "@/lib/manual-odds-population";
+import { MMA_WINNING_METHOD } from "@/lib/mma-winning-method";
 import { DEFAULT_EVENT_BUYS_PER_DAY } from "@/lib/odds-event-buy-budget";
 import {
   defaultExpandedBoardMarkets,
@@ -589,6 +590,7 @@ export function selectionAllowedForMarkets(
   markets: readonly string[],
 ): boolean {
   const allowed = new Set(markets);
+  if (selection.market === MMA_WINNING_METHOD) return allowed.has("h2h");
   if (selection.market === "Spread") {
     return selection.featured === false
       ? allowed.has("alternate_spreads")

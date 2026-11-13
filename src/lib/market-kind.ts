@@ -1,4 +1,5 @@
 import { isPeriodMarket, PERIOD_MARKET_LABEL } from "@/lib/period-markets";
+import { MMA_WINNING_METHOD } from "@/lib/mma-winning-method";
 import {
   BTTS_LABEL,
   DOUBLE_CHANCE_LABEL,
@@ -46,7 +47,8 @@ export function isGameLineMarket(market: string): boolean {
     isPeriodMarket(m) ||
     isTeamTotalMarket(m) ||
     isDoubleChanceMarket(m) ||
-    isBttsMarket(m)
+    isBttsMarket(m) ||
+    m === MMA_WINNING_METHOD
   );
 }
 
@@ -62,5 +64,6 @@ export function allGameLineLabels(): string[] {
     TEAM_TOTAL_LABEL,
     DOUBLE_CHANCE_LABEL,
     BTTS_LABEL,
+    MMA_WINNING_METHOD,
   ];
 }

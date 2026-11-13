@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { loadTestModule } from "@/lib/test-support/load-module";
+import * as espnMma from "@/lib/espn-mma-odds";
+import * as mmaMethods from "@/lib/mma-winning-method";
 import * as scoreboard from "@/lib/results/espn-scoreboard-map";
 import * as settled from "@/lib/results/settled-game";
 import * as queueBuilder from "@/lib/results/grading-work-queue";
@@ -14,6 +16,8 @@ test("the real ESPN provider fetches unranked NCAAB finals and yesterday's late 
     "src/lib/results/espn-scores.ts",
     {
       "server-only": {},
+      "@/lib/espn-mma-odds": espnMma,
+      "@/lib/mma-winning-method": mmaMethods,
       "@/lib/results/espn-scoreboard-map": scoreboard,
       "@/lib/results/espn-soccer-leagues": { espnSoccerLeagueSlug: () => null },
       "@/lib/results/espn-tennis-map": { mapEspnTennisScoreboard: () => [] },
