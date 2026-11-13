@@ -3,6 +3,7 @@
  * Pure functions so React state / context can own the slip array.
  */
 
+import { MMA_WINNING_METHOD } from "@/lib/mma-winning-method";
 import {
   isTeamTotalMarket,
   parseTeamTotalSelection,
@@ -48,6 +49,7 @@ export type SlipConflictKind =
   | "spread"
   | "total"
   | "team_total"
+  | "mma_winning_method"
   | "player_prop"
   | "same_team_ml_spread";
 
@@ -173,9 +175,22 @@ function isSameTeamMlSpread(
   return teamA !== "" && teamA === b.side.trim().toLowerCase();
 }
 
+const MMA_WINNING_METHOD_PARLAY_MESSAGE =
+  "A Winning Method pick can't be combined with another leg from the same fight.";
+
+function isSameFightWinningMethod(a: SlipPick, b: SlipPick): boolean {
+  return (
+    a.eventId === b.eventId &&
+    (a.market === MMA_WINNING_METHOD || b.market === MMA_WINNING_METHOD)
+  );
+}
+
 function conflictKindFor(
   market: string,
-): Exclude<SlipConflictKind, "duplicate" | "same_team_ml_spread"> {
+): Exclude<
+  SlipConflictKind,
+  "duplicate" | "same_team_ml_spread" | "mma_winning_method"
+> {
   if (market === "Moneyline") return "moneyline";
   if (market === "Spread") return "spread";
   if (market === "Total") return "total";
@@ -184,7 +199,7 @@ function conflictKindFor(
 }
 
 function conflictMessage(
-  kind: Exclude<SlipConflictKind, "duplicate" | "same_team_ml_spread">,
+  kind: ReturnType<typeof conflictKindFor>,
   market: string,
 ): string {
   switch (kind) {
@@ -227,6 +242,13 @@ export function findConflict(
   for (let i = 0; i < existingLegs.length; i++) {
     const leg = existingLegs[i];
     if (!leg) continue;
+    if (isSameFightWinningMethod(leg, pick)) {
+      return {
+        kind: "mma_winning_method",
+        index: i,
+        message: MMA_WINNING_METHOD_PARLAY_MESSAGE,
+      };
+    }
     if (conflictKey(leg) === nextConflictKey) {
       const kind = conflictKindFor(pick.market);
       return {
@@ -330,6 +352,10 @@ export function findInternalParlayConflicts(
       const a = selections[i]!;
       const b = selections[j]!;
       if (pickKey(a) === pickKey(b)) continue;
+      if (isSameFightWinningMethod(a, b)) {
+        out.push({ a: i, b: j, message: MMA_WINNING_METHOD_PARLAY_MESSAGE });
+        continue;
+      }
       if (isSameTeamMlSpread(a, b)) {
         out.push({ a: i, b: j, message: SAME_TEAM_ML_SPREAD_MESSAGE });
         continue;

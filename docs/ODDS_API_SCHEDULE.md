@@ -250,6 +250,10 @@ sport, so a pass over an empty slate is no longer silent. `last*RunAt` on
 `OddsSportControl` now moves only when a run actually starts, not when it is
 blocked on credits.
 
+## MMA winning methods
+
+When the MMA moneyline is enabled, its scheduled surface refresh also reads DraftKings winning-method prices from ESPN for matching UFC bouts. The board offers KO/TKO/DQ, submission, and decision for each fighter with a published price. ESPN's final bout status supplies the method for automatic grading. The closing-line job skips these selections because The Odds API does not provide this market.
+
 ## NHL expanded coverage (November 4, 2026)
 
 NHL participates in surface and expanded population, including persisted owner controls. The expanded catalog adds alternate spreads/totals plus shots on goal, goals, points, assists, goalie saves, blocked shots, power play points, and faceoffs won, with alternate player lines. Faceoffs depend on DFS bookmaker coverage. Provider market catalogs still filter unavailable keys before buying, and the existing global credit budgets remain in force.

@@ -4,6 +4,7 @@
  */
 
 import { etYmd } from "@/lib/et-day";
+import { MMA_WINNING_METHOD } from "@/lib/mma-winning-method";
 import { resolveKnownTeam } from "@/lib/teams";
 import {
   isBookKey,
@@ -211,6 +212,12 @@ export function matchesBoardSelection(
   if (!sameOptionalText(selection.side, claim.side)) return false;
   if (!sameOptionalText(selection.player, claim.player)) return false;
   if ((selection.line ?? null) !== (claim.line ?? null)) return false;
+  if (
+    selection.market === MMA_WINNING_METHOD &&
+    (claim.selection !== selection.selection || claim.book !== selection.book)
+  ) {
+    return false;
+  }
   if (!sameTeamTotalClub(selection, claim)) return false;
 
   return boardPriceIsPlausible({

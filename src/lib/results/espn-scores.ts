@@ -1,7 +1,11 @@
 import "server-only";
 
+import { espnMmaBoutUrl } from "@/lib/espn-mma-odds";
+import { espnMmaFinish, sameMmaBout } from "@/lib/mma-winning-method";
 import {
+  competitorName,
   mapEspnScoreboard,
+  type EspnScoreboardPayload,
   yyyymmddUtc,
 } from "@/lib/results/espn-scoreboard-map";
 import { espnSoccerLeagueSlug } from "@/lib/results/espn-soccer-leagues";
@@ -53,11 +57,58 @@ const ESPN_TENNIS_TOURS = ["atp", "wta"] as const;
  */
 const NCAAF_FBS_LIMITS: readonly (number | null)[] = [300, null];
 
+async function loadMmaFinishMethods(
+  scoreboard: EspnScoreboardPayload,
+  bouts: NonNullable<ResultsQueryScope["mmaWinningMethodBouts"]>,
+) {
+  for (const card of scoreboard.events ?? []) {
+    const cardId = card.id;
+    if (!cardId) continue;
+    const matches = (card.competitions ?? []).filter((bout) => {
+      if (!bout.id || !bout.status?.type?.completed) return false;
+      const [first, second] = bout.competitors ?? [];
+      const home = competitorName(first);
+      const away = competitorName(second);
+      const startsAt = Date.parse(bout.date ?? card.date ?? "");
+      return (
+        home &&
+        away &&
+        bouts.some((pick) => sameMmaBout(pick, { home, away, startsAt }))
+      );
+    });
+    for (let index = 0; index < matches.length; index += 6) {
+      await Promise.all(
+        matches.slice(index, index + 6).map(async (bout) => {
+          try {
+            const response = await fetch(
+              espnMmaBoutUrl(cardId, bout.id!, "status"),
+              {
+                next: { revalidate: 300 },
+                signal: AbortSignal.timeout(4_000),
+              },
+            );
+            if (!response.ok) return;
+            const status = (await response.json()) as {
+              type?: { completed?: boolean };
+              result?: { name?: string };
+            };
+            if (status.type?.completed)
+              bout.mmaFinish = espnMmaFinish(status.result?.name);
+          } catch {
+            // Leave the method pending when ESPN cannot confirm it.
+          }
+        }),
+      );
+    }
+  }
+}
+
 async function fetchEspnScoreboardDay(
   sclSport: string,
   yyyymmdd: string,
   soccerLeague?: string,
   fbsLimit: number | null = null,
+  mmaWinningMethodBouts?: ResultsQueryScope["mmaWinningMethodBouts"],
 ): Promise<SettledGame[]> {
   const soccerSlug =
     sclSport === "SOCCER" ? espnSoccerLeagueSlug(soccerLeague) : null;
@@ -94,11 +145,11 @@ async function fetchEspnScoreboardDay(
       );
       return [];
     }
-    const json = (await res.json()) as { events?: unknown[] };
-    return mapEspnScoreboard(
-      sclSport,
-      json as Parameters<typeof mapEspnScoreboard>[1],
-    );
+    const json = (await res.json()) as EspnScoreboardPayload;
+    if (sclSport === "MMA" && mmaWinningMethodBouts?.length) {
+      await loadMmaFinishMethods(json, mmaWinningMethodBouts);
+    }
+    return mapEspnScoreboard(sclSport, json);
   } catch (err) {
     console.error(`[results] espn scoreboard ${sclSport} ${yyyymmdd}:`, err);
     return [];
@@ -177,7 +228,15 @@ export function espnHistoricalResultsProvider(
               ? NCAAF_FBS_LIMITS.map((limit) =>
                   fetchEspnScoreboardDay(sport, day, undefined, limit),
                 )
-              : [fetchEspnScoreboardDay(sport, day)],
+              : [
+                  fetchEspnScoreboardDay(
+                    sport,
+                    day,
+                    undefined,
+                    null,
+                    scope?.mmaWinningMethodBouts,
+                  ),
+                ],
           ),
         ),
         ...(distinct.includes("SOCCER")

@@ -1,4 +1,10 @@
 import { isMoneylineMarket } from "@/lib/market-kind";
+import {
+  MMA_WINNING_METHOD,
+  mmaFighterKey,
+  parseMmaWinningMethod,
+  sameMmaBout,
+} from "@/lib/mma-winning-method";
 import { PROP_MARKET_LABEL } from "@/lib/odds-verify";
 import { isPeriodMarket } from "@/lib/period-markets";
 import { resolveKnownTeam } from "@/lib/teams";
@@ -71,6 +77,7 @@ const PROP_MARKET_LABELS = new Set(
 
 /** Player props / partial-game markets defer until a dedicated stats provider exists. */
 export function isDeferredProp(play: GradablePlay): boolean {
+  if (play.sport === "MMA" && play.market === MMA_WINNING_METHOD) return false;
   const market = norm(play.market);
   const selection = norm(play.selection);
   if (PROP_MARKET_LABELS.has(market)) return true;
@@ -685,6 +692,55 @@ function resolveTennisGamesMarket(
   );
 }
 
+function resolveMmaWinningMethod(
+  play: GradablePlay,
+  game: SettledGame,
+  games: readonly SettledGame[],
+): "WIN" | "LOSS" | "VOID" | null {
+  const pick = parseMmaWinningMethod(play.selection);
+  if (!pick || !game.completed) return null;
+  const fighter = mmaFighterKey(pick.fighter);
+  const home = fighter === mmaFighterKey(game.home);
+  const away = fighter === mmaFighterKey(game.away);
+  if (!fighter || home === away) return null;
+
+  // The odds provider can reverse the corners or date the bout after midnight.
+  // Its copy then retains the exact event ID but has no official finish method.
+  const official = game.mmaFinish
+    ? game
+    : sole(
+        games.filter(
+          (candidate) =>
+            candidate.sport === "MMA" &&
+            candidate.completed &&
+            candidate.mmaFinish &&
+            sameMmaBout(
+              {
+                ...game,
+                startsAt:
+                  (game.startsAt ?? play.eventStartsAt)?.getTime() ?? NaN,
+              },
+              { ...candidate, startsAt: candidate.startsAt?.getTime() ?? NaN },
+            ),
+        ),
+      );
+  if (!official?.mmaFinish) return null;
+  if (official.mmaFinish === "noContest") return "VOID";
+  if (official.mmaFinish === "draw") {
+    return game.homeScore === game.awayScore ? "LOSS" : null;
+  }
+
+  const winner = (bout: SettledGame) =>
+    bout.homeScore === bout.awayScore
+      ? null
+      : mmaFighterKey(bout.homeScore > bout.awayScore ? bout.home : bout.away);
+  const winningFighter = winner(official);
+  if (!winningFighter || winningFighter !== winner(game)) return null;
+  return fighter === winningFighter && pick.method === official.mmaFinish
+    ? "WIN"
+    : "LOSS";
+}
+
 export function resolveOutcome(
   play: GradablePlay,
   games: SettledGame[],
@@ -692,6 +748,9 @@ export function resolveOutcome(
   const game = findGame(play, games);
   if (!game) return null;
   if (game.voided) return "VOID";
+  if (play.sport === "MMA" && play.market === MMA_WINNING_METHOD) {
+    return resolveMmaWinningMethod(play, game, games);
+  }
   if (isDeferredProp(play)) return null;
 
   const market = norm(play.market);

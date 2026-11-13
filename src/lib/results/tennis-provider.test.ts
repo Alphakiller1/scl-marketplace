@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { loadTestModule } from "@/lib/test-support/load-module";
+import * as espnMma from "@/lib/espn-mma-odds";
+import * as mmaMethods from "@/lib/mma-winning-method";
 import * as scoreboard from "@/lib/results/espn-scoreboard-map";
 import * as soccer from "@/lib/results/espn-soccer-leagues";
 import * as tennis from "@/lib/results/espn-tennis-map";
@@ -103,6 +105,8 @@ test("historical pending tennis fixtures survive tournament rollover and duplica
     "src/lib/results/espn-scores.ts",
     {
       "server-only": {},
+      "@/lib/espn-mma-odds": espnMma,
+      "@/lib/mma-winning-method": mmaMethods,
       "@/lib/results/espn-scoreboard-map": scoreboard,
       "@/lib/results/espn-soccer-leagues": soccer,
       "@/lib/results/espn-tennis-map": tennis,
@@ -175,6 +179,8 @@ test("a failed current card does not prevent historical recovery", async () => {
     "src/lib/results/espn-scores.ts",
     {
       "server-only": {},
+      "@/lib/espn-mma-odds": espnMma,
+      "@/lib/mma-winning-method": mmaMethods,
       "@/lib/results/espn-scoreboard-map": scoreboard,
       "@/lib/results/espn-soccer-leagues": soccer,
       "@/lib/results/espn-tennis-map": tennis,
