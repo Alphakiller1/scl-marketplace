@@ -194,10 +194,12 @@ export async function submitGradeRequestAction(
     console.error("[grade-request] could not record email outcome", error);
   }
 
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/picks");
-  revalidatePath("/admin/grading");
-  revalidatePath("/admin/grading/requests");
+  // No revalidatePath here, on purpose. A server action that revalidates makes
+  // the client re-render the page it was called from, and this page, re-rendered,
+  // finds the open request it just created and swaps the capper's confirmation
+  // for "You already sent a request" — which reads like a duplicate error. Every
+  // page that shows requests (My Picks, the dashboard, the admin queue) renders
+  // per request and is never served from a cache, so nothing goes stale.
   return { ok: true, requestId: request.id, requestType: type };
 }
 

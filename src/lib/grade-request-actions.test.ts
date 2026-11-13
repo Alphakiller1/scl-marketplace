@@ -84,10 +84,15 @@ function submitHarness(world: SubmitWorld = {}) {
   const updated: Record<string, unknown>[] = [];
   const emails: Record<string, unknown>[] = [];
   const pickLookups: unknown[][] = [];
+  const revalidated: string[] = [];
   const action = loadTestModule<typeof RequestAction>(
     "src/lib/actions/grade-request.action.ts",
     {
-      "next/cache": { revalidatePath: () => {} },
+      "next/cache": {
+        revalidatePath: (path: string) => {
+          revalidated.push(path);
+        },
+      },
       "@/lib/email": {
         sendGradeRequestEmail: async (input: Record<string, unknown>) => {
           emails.push(input);
@@ -146,7 +151,7 @@ function submitHarness(world: SubmitWorld = {}) {
       },
     },
   );
-  return { action, created, updated, emails, pickLookups };
+  return { action, created, updated, emails, pickLookups, revalidated };
 }
 
 const regrade: requestSchema.SubmitGradeRequestInput = {
@@ -184,6 +189,9 @@ test("a request is saved from the stored pick, then SCL support is emailed", asy
   assert.equal(world.emails.length, 1);
   assert.equal(world.emails[0]!.requestId, "req_1");
   assert.ok(world.updated[0]!.emailSentAt instanceof Date);
+  // Revalidating would re-render the request screen, which then finds this
+  // request and replaces the capper's confirmation with "already sent".
+  assert.deepEqual(world.revalidated, []);
 });
 
 test("a mail failure keeps the request (the queue has it) and records why", async () => {
