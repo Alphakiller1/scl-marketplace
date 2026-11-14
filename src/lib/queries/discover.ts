@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cachedQuery } from "@/lib/cached-query";
+import { LEADERBOARD_CACHE_SECONDS } from "@/lib/queries/leaderboard";
 import { prisma } from "@/lib/prisma";
 import { UNIT_MIN } from "@/lib/constants";
 import { stakeFromStored } from "@/lib/extreme-stake";
@@ -319,5 +320,9 @@ async function loadDiscoverLanes(): Promise<{
 const getCachedDiscoverLanes = cachedQuery(
   loadDiscoverLanes,
   ["discover-lanes"],
-  { revalidate: 60, tags: ["leaderboard", "discover"] },
+  {
+    revalidate: LEADERBOARD_CACHE_SECONDS,
+    tags: ["leaderboard", "discover"],
+    isFailure: (result) => result.failed,
+  },
 );

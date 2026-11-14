@@ -147,10 +147,16 @@ test("manual straight saves derive profit, audit the admin, and reject concurren
       adminId: string;
       note: string;
     }[] = [];
+    const expiredTags: string[] = [];
     const file = "src/lib/actions/grading.action.ts";
     const action = loadTestModule<typeof Manual>(file, {
       ...importsFor(file),
-      "next/cache": { revalidatePath: () => {} },
+      "next/cache": {
+        revalidatePath: () => {},
+        revalidateTag: (tag: string) => {
+          expiredTags.push(tag);
+        },
+      },
       "@/lib/grade-requests": gradeRequests,
       "@/lib/grade-request-resolution": {
         resolveGradeRequestsForPicks: async (
@@ -223,12 +229,15 @@ test("manual straight saves derive profit, audit the admin, and reject concurren
       assert.equal(audits[0]!.data.source, "MANUAL");
       assert.equal(audits[0]!.data.gradedById, "owner-admin");
       assert.equal(audits[0]!.data.newProfitUnits, 1);
+      // Public caches now hold for minutes; a correction must expire them.
+      assert.deepEqual(expiredTags, ["leaderboard"]);
     }
   }
 });
 
 test("manual stale parlay settlement locks the ticket and recomputes parent profit and odds", async () => {
   for (const unfinished of [false, true]) {
+    const expiredTags: string[] = [];
     const file = "src/lib/actions/parlay.action.ts";
     const ticket = {
       id: "ticket",
@@ -251,7 +260,12 @@ test("manual stale parlay settlement locks the ticket and recomputes parent prof
     const resolved: { playIds: string[]; parlayIds: string[] }[] = [];
     const action = loadTestModule<typeof Parlay>(file, {
       ...importsFor(file),
-      "next/cache": { revalidatePath: () => {} },
+      "next/cache": {
+        revalidatePath: () => {},
+        revalidateTag: (tag: string) => {
+          expiredTags.push(tag);
+        },
+      },
       "@/lib/grade-requests": gradeRequests,
       "@/lib/grade-request-resolution": {
         resolveGradeRequestsForPicks: async (input: {
@@ -333,6 +347,7 @@ test("manual stale parlay settlement locks the ticket and recomputes parent prof
     assert.equal(result.ok, true);
     assert.equal(legAudit, 1);
     assert.equal(parentAudit, 1);
+    assert.deepEqual(expiredTags, ["leaderboard"]);
     assert.deepEqual(JSON.parse(JSON.stringify(resolved)), [
       { playIds: ["leg"], parlayIds: ["ticket"] },
     ]);
