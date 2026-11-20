@@ -343,16 +343,147 @@ test("1D scopes parlays to the last bound leg's slate day", () => {
   );
 });
 
-test("longer and all-time leaderboard position filters keep their existing semantics", () => {
+test("longer leaderboard windows roll on game time, not log time", () => {
   const now = new Date("2026-08-17T16:00:00Z");
+  const start = new Date("2026-08-10T16:00:00.000Z");
   assert.deepEqual(leaderboardPlayDateFilter("7d", now), {
-    createdAt: { gte: new Date("2026-08-10T16:00:00.000Z") },
+    OR: [
+      { eventStartsAt: { gte: start } },
+      { eventStartsAt: null, createdAt: { gte: start } },
+    ],
   });
   assert.deepEqual(leaderboardParlayDateFilter("7d", now), {
-    createdAt: { gte: new Date("2026-08-10T16:00:00.000Z") },
+    OR: [
+      { legs: { some: { eventStartsAt: { gte: start } } } },
+      {
+        AND: [
+          { legs: { none: { eventStartsAt: { not: null } } } },
+          { createdAt: { gte: start } },
+        ],
+      },
+    ],
   });
   assert.equal(leaderboardPlayDateFilter("all", now), undefined);
   assert.equal(leaderboardParlayDateFilter("all", now), undefined);
+});
+
+type DateBound = { gte?: Date; lt?: Date; not?: null };
+
+function inBound(value: Date | null, bound: DateBound | null): boolean {
+  if (bound === null) return value === null;
+  if ("not" in bound) return value !== null;
+  if (value === null) return false;
+  if (bound.gte && value.getTime() < bound.gte.getTime()) return false;
+  if (bound.lt && value.getTime() >= bound.lt.getTime()) return false;
+  return true;
+}
+
+/** Evaluates the straight-pick filter the way Postgres would. */
+function playMatches(
+  filter: ReturnType<typeof leaderboardPlayDateFilter>,
+  play: { eventStartsAt: Date | null; createdAt: Date },
+): boolean {
+  if (!filter) return true;
+  return filter.OR.some((clause) => {
+    const { eventStartsAt, createdAt } = clause as {
+      eventStartsAt: DateBound | null;
+      createdAt?: DateBound;
+    };
+    return (
+      inBound(play.eventStartsAt, eventStartsAt) &&
+      (!createdAt || inBound(play.createdAt, createdAt))
+    );
+  });
+}
+
+/** Evaluates the parlay filter: `some` / `none` over the legs. */
+function parlayMatches(
+  filter: ReturnType<typeof leaderboardParlayDateFilter>,
+  parlay: { createdAt: Date; legs: { eventStartsAt: Date | null }[] },
+): boolean {
+  if (!filter) return true;
+  type LegClause = {
+    legs: {
+      some?: { eventStartsAt: DateBound };
+      none?: { eventStartsAt: DateBound };
+    };
+  };
+  type Clause = LegClause | { createdAt: DateBound } | { AND: Clause[] };
+  const holds = (clause: Clause): boolean => {
+    if ("AND" in clause) return clause.AND.every(holds);
+    if ("createdAt" in clause)
+      return inBound(parlay.createdAt, clause.createdAt);
+    const { some, none } = clause.legs;
+    if (some)
+      return parlay.legs.some((l) =>
+        inBound(l.eventStartsAt, some.eventStartsAt),
+      );
+    return !parlay.legs.some((l) =>
+      inBound(l.eventStartsAt, none!.eventStartsAt),
+    );
+  };
+  return (filter.OR as Clause[]).some(holds);
+}
+
+test("the board and the profile place every pick in the same windows", () => {
+  const now = new Date("2026-11-20T17:00:00Z");
+  const day = 86_400_000;
+  const at = (daysAgo: number) => new Date(now.getTime() - daysAgo * day);
+
+  // The case that split the two surfaces: logged the night before the 30-day
+  // window opened, for a game inside it.
+  const plays = [
+    { eventStartsAt: at(29.8), createdAt: at(30.2) },
+    { eventStartsAt: at(6.9), createdAt: at(7.4) },
+    { eventStartsAt: at(13.5), createdAt: at(13.6) },
+    { eventStartsAt: null, createdAt: at(29.5) }, // unbound: log time
+    { eventStartsAt: null, createdAt: at(31) },
+    { eventStartsAt: at(45), createdAt: at(46) },
+    { eventStartsAt: at(0.5), createdAt: at(1.5) },
+  ];
+  const parlays = [
+    // First leg before the window, last leg inside it: the ticket belongs to
+    // the day it could settle.
+    {
+      createdAt: at(31),
+      legs: [{ eventStartsAt: at(30.5) }, { eventStartsAt: at(29.9) }],
+    },
+    {
+      createdAt: at(8),
+      legs: [{ eventStartsAt: at(7.5) }, { eventStartsAt: at(7.2) }],
+    },
+    {
+      createdAt: at(10),
+      legs: [{ eventStartsAt: null }, { eventStartsAt: null }],
+    },
+    {
+      createdAt: at(40),
+      legs: [{ eventStartsAt: null }, { eventStartsAt: at(39) }],
+    },
+  ];
+
+  for (const window of ["1d", "7d", "14d", "30d", "90d"] as const) {
+    const playFilter = leaderboardPlayDateFilter(window, now);
+    const parlayFilter = leaderboardParlayDateFilter(window, now);
+    for (const play of plays) {
+      assert.equal(
+        playMatches(playFilter, play),
+        isInLeaderboardWindow(leaderboardSlateInstant(play), window, now),
+        `${window} straight ${JSON.stringify(play)}`,
+      );
+    }
+    for (const parlay of parlays) {
+      assert.equal(
+        parlayMatches(parlayFilter, parlay),
+        isInLeaderboardWindow(
+          parlayLeaderboardSlateInstant(parlay),
+          window,
+          now,
+        ),
+        `${window} parlay ${JSON.stringify(parlay)}`,
+      );
+    }
+  }
 });
 
 test("performance trend is cumulative and excludes unsettled plays", () => {
