@@ -146,7 +146,9 @@ export function leaderboardWindowStart(
 /**
  * Database bounds for a leaderboard scope. The 1D board is the last completed
  * Eastern slate day (the calendar day the game belonged to) and is bounded on
- * both sides; longer scopes remain rolling windows through the current instant.
+ * both sides; longer scopes are rolling windows through the current instant.
+ * Every scope places a pick by when its game was played, not when it was
+ * logged - see `leaderboardPlayDateFilter`.
  */
 export function leaderboardWindowBounds(
   window: LeaderboardWindow,
@@ -210,7 +212,12 @@ export type LeaderboardPlayDateFilter =
         { eventStartsAt: null; createdAt: { gte: Date; lt: Date } },
       ];
     }
-  | { createdAt: { gte: Date } };
+  | {
+      OR: [
+        { eventStartsAt: { gte: Date } },
+        { eventStartsAt: null; createdAt: { gte: Date } },
+      ];
+    };
 
 export type LeaderboardParlayDateFilter =
   | {
@@ -230,13 +237,28 @@ export type LeaderboardParlayDateFilter =
         },
       ];
     }
-  | { createdAt: { gte: Date } };
+  | {
+      OR: [
+        { legs: { some: { eventStartsAt: { gte: Date } } } },
+        {
+          AND: [
+            { legs: { none: { eventStartsAt: { not: null } } } },
+            { createdAt: { gte: Date } },
+          ];
+        },
+      ];
+    };
 
 /**
- * Date predicate for straight picks. 1D is yesterday's Eastern slate
- * (event start, else log time) so the full previous day of games is included
- * even when settlement lands after midnight ET. Longer windows stay rolling
- * pick-entry-time scopes.
+ * Date predicate for straight picks: event start, else log time
+ * (`leaderboardSlateInstant`). 1D is yesterday's Eastern slate so the full
+ * previous day of games is included even when settlement lands after midnight
+ * ET. Longer windows are rolling from the same instant.
+ *
+ * The longer windows used to roll on log time while the capper profile scoped
+ * the same "Last 30 Days" by game time, so a pick logged the night before the
+ * window opened counted on one surface and not the other. A single 10u result
+ * on that edge was enough for the board and the profile to disagree by 10u.
  */
 export function leaderboardPlayDateFilter(
   window: LeaderboardWindow,
@@ -252,13 +274,21 @@ export function leaderboardPlayDateFilter(
       ],
     };
   }
-  return start ? { createdAt: { gte: start } } : undefined;
+  if (!start) return undefined;
+  return {
+    OR: [
+      { eventStartsAt: { gte: start } },
+      { eventStartsAt: null, createdAt: { gte: start } },
+    ],
+  };
 }
 
 /**
- * Date predicate for parlays. 1D uses the last bound leg's event start so a
- * ticket belongs to the day its final game was played. Unbound parlays use
- * log time. Longer windows stay rolling pick-entry-time scopes.
+ * Date predicate for parlays: the last bound leg's event start, else log time
+ * (`parlayLeaderboardSlateInstant`), so a ticket belongs to the day its final
+ * game was played. 1D bounds that day on both sides; longer windows roll from
+ * the same instant. A ticket whose last leg is in the window has at least one
+ * leg in it, which is all the rolling form needs to ask.
  */
 export function leaderboardParlayDateFilter(
   window: LeaderboardWindow,
@@ -284,7 +314,18 @@ export function leaderboardParlayDateFilter(
       ],
     };
   }
-  return start ? { createdAt: { gte: start } } : undefined;
+  if (!start) return undefined;
+  return {
+    OR: [
+      { legs: { some: { eventStartsAt: { gte: start } } } },
+      {
+        AND: [
+          { legs: { none: { eventStartsAt: { not: null } } } },
+          { createdAt: { gte: start } },
+        ],
+      },
+    ],
+  };
 }
 
 export function buildPerformanceTrend(
