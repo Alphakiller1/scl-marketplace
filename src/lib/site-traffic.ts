@@ -2,6 +2,7 @@ import { etYmd } from "@/lib/et-day";
 
 export const SITE_VISIT_COOKIE = "scl-visit";
 export const SITE_VISIT_SECONDS = 30 * 60;
+export const SITE_TRAFFIC_REFRESH_MS = 60_000;
 
 /** Track rendered website pages, excluding operational and redirect routes. */
 export function isSiteVisitPath(path: string): boolean {
@@ -51,6 +52,7 @@ export function siteTrafficReport(
     yesterday: days.at(-2)?.visits ?? null,
     last7Days: days.slice(-7).reduce((sum, day) => sum + (day.visits ?? 0), 0),
     firstDay,
+    checkedAt: now.toISOString(),
   };
 }
 

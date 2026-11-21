@@ -8,6 +8,7 @@ import * as etDay from "@/lib/et-day";
 import * as traffic from "@/lib/site-traffic";
 import { loadTestModule } from "@/lib/test-support/load-module";
 import type * as VisitRoute from "@/app/api/site-visits/route";
+import type * as TrafficRoute from "@/app/api/admin/site-traffic/route";
 
 function visitServer() {
   const rows = new Set<string>();
@@ -101,6 +102,75 @@ test("admin pages, prefetches, known bots, and cross-origin requests cannot add 
     403,
   );
   assert.equal(rows.size, 0);
+});
+
+test("retrying a first visit without its lost response cookie does not count twice", async () => {
+  const { POST, rows } = visitServer();
+  const requestId = crypto.randomUUID();
+  const retry = () =>
+    new NextRequest("https://scl.example/api/site-visits", {
+      method: "POST",
+      headers: {
+        Origin: "https://scl.example",
+        "User-Agent": "Mozilla/5.0 Chrome/140.0",
+      },
+      body: JSON.stringify({ path: "/", requestId }),
+    });
+  const first = await POST(retry());
+  const repeated = await POST(retry());
+  assert.equal(first.cookies.get(traffic.SITE_VISIT_COOKIE)?.value, requestId);
+  assert.equal(
+    repeated.cookies.get(traffic.SITE_VISIT_COOKIE)?.value,
+    requestId,
+  );
+  assert.equal(rows.size, 1);
+});
+
+test("live traffic polling checks current admin access before querying any counts", async () => {
+  let reads = 0;
+  let account: {
+    role: string;
+    accountStatus: string;
+    legalAcceptance: object | null;
+    emailVerified: Date | null;
+  } | null = null;
+  const { GET } = loadTestModule<typeof TrafficRoute>(
+    "src/app/api/admin/site-traffic/route.ts",
+    {
+      "next/server": { NextResponse },
+      "@/lib/email-verification-policy": {
+        emailVerificationEnforced: () => true,
+      },
+      "@/lib/session": { getCurrentAccount: async () => account },
+      "@/lib/queries/site-traffic": {
+        getAdminSiteTraffic: async () => {
+          reads++;
+          return traffic.siteTrafficReport([], null);
+        },
+      },
+    },
+  );
+  assert.equal((await GET()).status, 401);
+  account = {
+    role: "CAPPER",
+    accountStatus: "ACTIVE",
+    legalAcceptance: {},
+    emailVerified: new Date(),
+  };
+  assert.equal((await GET()).status, 403);
+  account.role = "ADMIN";
+  account.accountStatus = "SUSPENDED";
+  assert.equal((await GET()).status, 403);
+  account.accountStatus = "ACTIVE";
+  account.emailVerified = null;
+  assert.equal((await GET()).status, 403);
+  assert.equal(reads, 0);
+  account.emailVerified = new Date();
+  const response = await GET();
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("cache-control"), "private, no-store");
+  assert.equal(reads, 1);
+  assert.match((await response.json()).checkedAt, /^\d{4}-\d{2}-\d{2}T/);
 });
 
 test("daily reports use Eastern dates over midnight and daylight-saving boundaries", () => {

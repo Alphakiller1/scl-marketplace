@@ -31,7 +31,9 @@ write it.
   A first-party cookie expires after 30 minutes without a page navigation. Sessions
   are deduplicated per Eastern day with a day-specific hash. Admin pages, previews,
   known automated clients, and prefetches are excluded. Counts start with the first
-  recorded visit and the report caches for one minute. No IP, account identity,
+  recorded visit. The visible admin panel fetches fresh totals every minute and
+  when the tab regains focus, with a timestamp and a delayed-update warning on failure.
+  Initial visit requests reuse their identity on network retries. No IP, account identity,
   page path, query string, or referrer is stored in this table.
 - **GradingAudit** — append-only: `previousOutcome`, `newOutcome`, `source`
   (AUTO/ADMIN_OVERRIDE/MANUAL), `gradedById`, `reason`, timestamp.
