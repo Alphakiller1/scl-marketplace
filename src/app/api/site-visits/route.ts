@@ -15,6 +15,7 @@ import {
 
 const visitSchema = z.object({
   path: z.string().max(512).refine(isSiteVisitPath),
+  requestId: z.uuid().optional(),
 });
 const sessionSchema = z.uuid();
 
@@ -38,8 +39,9 @@ export async function POST(request: NextRequest) {
   }
   const body = await request.text();
   if (body.length > 1024) return new NextResponse(null, { status: 413 });
+  let visit: z.infer<typeof visitSchema>;
   try {
-    visitSchema.parse(JSON.parse(body));
+    visit = visitSchema.parse(JSON.parse(body));
   } catch {
     return new NextResponse(null, { status: 400 });
   }
@@ -55,7 +57,9 @@ export async function POST(request: NextRequest) {
     const existing = sessionSchema.safeParse(
       request.cookies.get(SITE_VISIT_COOKIE)?.value,
     );
-    const session = existing.success ? existing.data : randomUUID();
+    const session = existing.success
+      ? existing.data
+      : (visit.requestId ?? randomUUID());
     const now = new Date();
     const day = etYmd(now);
     const sessionHash = createHash("sha256")

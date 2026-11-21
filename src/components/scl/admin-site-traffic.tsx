@@ -1,9 +1,15 @@
+"use client";
+
 import { Globe } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { Card } from "@/components/ui/card";
 import { SectionHeader } from "@/components/scl/section";
 import { StatBlock } from "@/components/scl/stat";
-import type { SiteTrafficReport } from "@/lib/site-traffic";
+import {
+  SITE_TRAFFIC_REFRESH_MS,
+  type SiteTrafficReport,
+} from "@/lib/site-traffic";
 
 const dateLabel = (date: string) =>
   new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", {
@@ -12,7 +18,53 @@ const dateLabel = (date: string) =>
     day: "numeric",
   });
 
-export function AdminSiteTraffic({ data }: { data: SiteTrafficReport | null }) {
+export function AdminSiteTraffic({
+  data: initialData,
+}: {
+  data: SiteTrafficReport | null;
+}) {
+  const [latest, setLatest] = useState(initialData);
+  const [updateFailed, setUpdateFailed] = useState(false);
+  const data =
+    latest && (!initialData || latest.checkedAt >= initialData.checkedAt)
+      ? latest
+      : initialData;
+
+  useEffect(() => {
+    let cancelled = false;
+    let inFlight = false;
+    const refresh = async () => {
+      if (document.visibilityState !== "visible" || inFlight) return;
+      inFlight = true;
+      try {
+        const response = await fetch("/api/admin/site-traffic", {
+          cache: "no-store",
+          signal: AbortSignal.timeout(15_000),
+        });
+        if (!response.ok) throw new Error("Traffic report unavailable");
+        const report = (await response.json()) as SiteTrafficReport;
+        if (!cancelled) {
+          setLatest(report);
+          setUpdateFailed(false);
+        }
+      } catch {
+        if (!cancelled) setUpdateFailed(true);
+      } finally {
+        inFlight = false;
+      }
+    };
+    void refresh();
+    const interval = setInterval(() => void refresh(), SITE_TRAFFIC_REFRESH_MS);
+    const resume = () => void refresh();
+    document.addEventListener("visibilitychange", resume);
+    window.addEventListener("focus", resume);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", resume);
+      window.removeEventListener("focus", resume);
+    };
+  }, []);
   const peak = Math.max(1, ...(data?.days.map((day) => day.visits ?? 0) ?? []));
   return (
     <section className="space-y-3" aria-label="Website visits">
@@ -41,8 +93,23 @@ export function AdminSiteTraffic({ data }: { data: SiteTrafficReport | null }) {
             </div>
             <p className="text-muted-foreground text-xs leading-relaxed">
               Each browser session counts once per Eastern day. Sessions expire
-              after 30 minutes without a page navigation. Updates appear within
-              a minute.
+              after 30 minutes without a page navigation.
+            </p>
+            <p
+              className="text-muted-foreground text-xs"
+              role="status"
+              aria-live="polite"
+            >
+              {updateFailed
+                ? "Update delayed. Last successful count"
+                : "Updated"}{" "}
+              {new Intl.DateTimeFormat("en-US", {
+                timeZone: "America/New_York",
+                hour: "numeric",
+                minute: "2-digit",
+                second: "2-digit",
+              }).format(new Date(data.checkedAt))}{" "}
+              ET. Refreshes every minute.
             </p>
             {data.firstDay ? (
               <>
@@ -97,7 +164,8 @@ export function AdminSiteTraffic({ data }: { data: SiteTrafficReport | null }) {
           </>
         ) : (
           <p className="text-muted-foreground text-sm" role="status">
-            Visit counts are temporarily unavailable. Refresh to try again.
+            Visit counts are temporarily unavailable. Retrying automatically
+            every minute.
           </p>
         )}
       </Card>
