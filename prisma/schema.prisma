@@ -177,6 +177,16 @@ model RequestThrottle {
   updatedAt       DateTime @updatedAt
 }
 
+/// Anonymous browser visits, deduplicated within each Eastern calendar day.
+model SiteVisit {
+  day         String   @db.VarChar(10)
+  sessionHash String   @db.VarChar(64)
+  createdAt   DateTime @default(now())
+
+  @@id([day, sessionHash])
+  @@index([createdAt])
+}
+
 // ---------- Admin-managed policy documents ----------
 
 enum PolicySlug {
