@@ -17,10 +17,12 @@ import {
 
 import { Card } from "@/components/ui/card";
 import { AdminOperationsOverview } from "@/components/scl/admin-operations-overview";
+import { AdminSiteTraffic } from "@/components/scl/admin-site-traffic";
 import { AdminReleaseReadiness } from "@/components/scl/admin-release-readiness";
 import { SectionHeader } from "@/components/scl/section";
 import { getAdminOperationalOverview } from "@/lib/queries/admin-operations";
 import { getReleaseReadinessReport } from "@/lib/queries/release-readiness";
+import { getAdminSiteTraffic } from "@/lib/queries/site-traffic";
 
 export const metadata = { title: "Admin" };
 
@@ -148,7 +150,7 @@ const OWNER_CAPABILITIES = [
 ] as const;
 
 export default async function AdminOverviewPage() {
-  const [operations, releaseReadiness] = await Promise.all([
+  const [operations, releaseReadiness, siteTraffic] = await Promise.all([
     // The overview is informational; a failed query must not take down the
     // admin home and the tools linked from it.
     getAdminOperationalOverview().catch((error) => {
@@ -156,6 +158,7 @@ export default async function AdminOverviewPage() {
       return null;
     }),
     getReleaseReadinessReport(),
+    getAdminSiteTraffic(),
   ]);
 
   return (
@@ -165,6 +168,7 @@ export default async function AdminOverviewPage() {
         title="Admin Overview"
         subtitle="Operations across the SCL marketplace"
       />
+      <AdminSiteTraffic data={siteTraffic} />
       {operations ? (
         <AdminOperationsOverview data={operations} />
       ) : (

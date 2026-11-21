@@ -27,6 +27,12 @@ write it.
 - **Package** — `title`, `priceCents`, `billingPeriod`, external `checkoutUrl`, offering model
   (`providerType` in the current schema). Storefront provider is a separate Phase 1 concept.
 - **TrackingUrl** / **ClickEvent** — package tracking + click capture.
+- **SiteVisit** — anonymous browser sessions shown as daily visits on the admin overview.
+  A first-party cookie expires after 30 minutes without a page navigation. Sessions
+  are deduplicated per Eastern day with a day-specific hash. Admin pages, previews,
+  known automated clients, and prefetches are excluded. Counts start with the first
+  recorded visit and the report caches for one minute. No IP, account identity,
+  page path, query string, or referrer is stored in this table.
 - **GradingAudit** — append-only: `previousOutcome`, `newOutcome`, `source`
   (AUTO/ADMIN_OVERRIDE/MANUAL), `gradedById`, `reason`, timestamp.
 - **PasswordResetToken** — hashed, single-use, one-hour recovery token keyed to a user.

@@ -3,6 +3,7 @@ import { Barlow, Barlow_Condensed, Inter } from "next/font/google";
 import "./globals.css";
 
 import { MetaPixel } from "@/components/providers/meta-pixel";
+import { SiteVisitTracker } from "@/components/providers/site-visit-tracker";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { appUrl } from "@/lib/app-url";
@@ -50,6 +51,7 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col">
         <MetaPixel />
+        <SiteVisitTracker enabled={process.env.VERCEL_ENV !== "preview"} />
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
