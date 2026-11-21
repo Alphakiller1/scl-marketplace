@@ -3,6 +3,7 @@ import { parsePeriodMarket } from "@/lib/period-markets";
 import {
   expandedBoardMarkets,
   PRIMARY_MLB_PROP_MARKETS,
+  PRIMARY_NFL_PROP_MARKETS,
   PROP_MARKET_LABEL,
   propMarketLabel,
 } from "@/lib/odds-verify";
@@ -227,6 +228,21 @@ export function summarizeEventMarketCoverage(
       [...propMarkets].map((market) => market.trim().toLowerCase()),
     );
     for (const key of PRIMARY_MLB_PROP_MARKETS) {
+      const label = propMarketLabel(key);
+      if (label && !normalizedPresent.has(label.toLowerCase())) {
+        missing.push(`${label} props`);
+      }
+    }
+  }
+  // Same gap on a football board, where Anytime Touchdown posts hours before
+  // the yardage card. Only the families the owner's list asks for are
+  // demanded, so unticking one cannot leave a board incomplete forever.
+  if (sport === "NFL" && props > 0) {
+    const normalizedPresent = new Set(
+      [...propMarkets].map((market) => market.trim().toLowerCase()),
+    );
+    for (const key of PRIMARY_NFL_PROP_MARKETS) {
+      if (!wanted.includes(key)) continue;
       const label = propMarketLabel(key);
       if (label && !normalizedPresent.has(label.toLowerCase())) {
         missing.push(`${label} props`);

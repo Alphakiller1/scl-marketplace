@@ -500,6 +500,63 @@ test("DraftKings companion coverage passes once its -1 rung is present", () => {
   );
 });
 
+// 2026-11-21: five Sunday boards bought at 01:45 ET held Anytime Touchdown and
+// nothing else, were called complete, and were skipped by every later pass.
+test("an NFL board with only Anytime Touchdown is not covered", () => {
+  const nflEvent = { ...event, id: "nfl-atd", sport: "NFL" };
+  const wanted = [
+    "player_pass_yds",
+    "player_rush_yds",
+    "player_receptions",
+    "player_reception_yds",
+    "player_anytime_td",
+  ];
+  const touchdownsOnly = summarizeEventMarketCoverage(
+    nflEvent,
+    [
+      selection("Anytime Touchdown", { player: "Rome Odunze", side: "Yes" }),
+      selection("Anytime Touchdown", { player: "Alvin Kamara", side: "Yes" }),
+    ],
+    "runtime_cache",
+    false,
+    wanted,
+  );
+  assert.equal(touchdownsOnly.fullyCovered, false);
+  assert.deepEqual(touchdownsOnly.missing, [
+    "Passing Yds props",
+    "Rushing Yds props",
+    "Receiving Yds props",
+    "Receptions props",
+  ]);
+  // A missing prop family is a rebuy, never a ladder-only top-up.
+  assert.equal(onlyTopUpGaps(touchdownsOnly.missing), false);
+
+  const fullCard = summarizeEventMarketCoverage(
+    nflEvent,
+    [
+      selection("Anytime Touchdown", { player: "Rome Odunze", side: "Yes" }),
+      selection("Passing Yds", { player: "Caleb Williams", line: 224.5 }),
+      selection("Rushing Yds", { player: "D'Andre Swift", line: 59.5 }),
+      selection("Receiving Yds", { player: "Rome Odunze", line: 54.5 }),
+      selection("Receptions", { player: "Rome Odunze", line: 4.5 }),
+    ],
+    "runtime_cache",
+    false,
+    wanted,
+  );
+  assert.equal(fullCard.fullyCovered, true);
+
+  // Only the families the owner asked for are demanded.
+  const yardsOff = summarizeEventMarketCoverage(
+    nflEvent,
+    [selection("Anytime Touchdown", { player: "Rome Odunze", side: "Yes" })],
+    "runtime_cache",
+    false,
+    ["player_anytime_td"],
+  );
+  assert.equal(yardsOff.fullyCovered, true);
+});
+
 test("NFL coverage does not demand the game ladder unless those keys were requested", () => {
   const nflEvent = { ...event, id: "nfl-1", sport: "NFL" };
   const ladderOff = summarizeEventMarketCoverage(

@@ -66,6 +66,22 @@ export const PRIMARY_MLB_PROP_MARKETS = [
 ] as const;
 
 /**
+ * The NFL prop families a board must carry before it counts as covered.
+ *
+ * Anytime Touchdown posts first. On 2026-11-21 the 01:45 ET pass bought five
+ * Sunday boards while the books were pricing scorers and nothing else, and
+ * "has props" called them complete: every later pass skipped them, so the
+ * passing, rushing and receiving cards stayed off SCL all day while DraftKings
+ * had them up by the afternoon.
+ */
+export const PRIMARY_NFL_PROP_MARKETS = [
+  "player_pass_yds",
+  "player_rush_yds",
+  "player_reception_yds",
+  "player_receptions",
+] as const;
+
+/**
  * Every pitcher prop line SCL offers.
  *
  * The board carries the full pitching card rather than a curated three, because
