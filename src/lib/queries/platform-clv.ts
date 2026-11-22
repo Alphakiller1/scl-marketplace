@@ -2,6 +2,7 @@ import "server-only";
 
 import type { VerificationTier } from "@prisma/client";
 import { cachedQuery } from "@/lib/cached-query";
+import { LEADERBOARD_CACHE_SECONDS } from "@/lib/queries/leaderboard";
 import { summarizeClvTracker, type ClvTrackerSummary } from "@/lib/clv-tracker";
 import { UNIT_MIN } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
@@ -55,7 +56,11 @@ async function loadPlatformClvSummary(): Promise<PlatformClvResult> {
 const getCachedPlatformClvSummary = cachedQuery(
   loadPlatformClvSummary,
   ["platform-clv-summary"],
-  { revalidate: 60, tags: ["leaderboard", "platform-clv"] },
+  {
+    revalidate: LEADERBOARD_CACHE_SECONDS,
+    tags: ["leaderboard", "platform-clv"],
+    isFailure: (result) => result.failed,
+  },
 );
 
 /**

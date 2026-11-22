@@ -60,6 +60,16 @@ const DEFAULT_FILTERS: LeaderboardFilters = {
   limit: DEFAULT_LEADERBOARD_LIMIT,
 };
 
+/**
+ * How long the all-capper aggregates stay cached. Every write that changes a
+ * public record — grading (cron, Grade completed, single and bulk corrections),
+ * profile edits, account status — expires the `leaderboard` tag at once, so
+ * this only bounds how long a rolling window or a newly posted pick can lag.
+ * It was 60s; each miss re-reads every capper's full history, and at 60s that
+ * was ~1,170 full-table reads a day (2026-11-13, pg_stat_statements).
+ */
+export const LEADERBOARD_CACHE_SECONDS = 300;
+
 async function fetchRankableProfiles(
   filters: LeaderboardFilters,
   clvReady: boolean,
@@ -481,16 +491,42 @@ export async function getLeaderboard(
  * the leaderboard's public predicates and summary math without scanning every
  * active account or assigning marketplace ranks.
  */
-export async function getPublicCapperEvidenceByIds(
-  requestedIds: string[],
-): Promise<{
+type PublicCapperEvidence = {
   cappers: CapperSummary[];
   failed: boolean;
   sclBySportByCapperId?: Record<string, SportStats[]>;
-}> {
-  const capperIds = [...new Set(requestedIds.filter(Boolean))];
-  if (capperIds.length === 0) return { cappers: [], failed: false };
+};
 
+/**
+ * All-time evidence for specific cappers (the /packages register, a profile).
+ *
+ * Cached like the leaderboard, under the same tag, so a grade or profile edit
+ * refreshes it at once. Uncached, /packages re-read every listed capper's whole
+ * history (about 16,000 rows for 77 cappers) on every regeneration — the
+ * largest single contributor to the 22M play rows a day the app was pulling.
+ */
+export async function getPublicCapperEvidenceByIds(
+  requestedIds: string[],
+): Promise<PublicCapperEvidence> {
+  const capperIds = [...new Set(requestedIds.filter(Boolean))].sort();
+  if (capperIds.length === 0) return { cappers: [], failed: false };
+  return getCachedPublicCapperEvidence(JSON.stringify(capperIds));
+}
+
+const getCachedPublicCapperEvidence = cachedQuery(
+  async (idsKey: string) =>
+    loadPublicCapperEvidence(JSON.parse(idsKey) as string[]),
+  ["public-capper-evidence-v1"],
+  {
+    revalidate: LEADERBOARD_CACHE_SECONDS,
+    tags: ["leaderboard"],
+    isFailure: (result) => result.failed,
+  },
+);
+
+async function loadPublicCapperEvidence(
+  capperIds: string[],
+): Promise<PublicCapperEvidence> {
   try {
     const profiles = await withTransientDatabaseRetry(
       async () => {
@@ -594,7 +630,11 @@ const getCachedLeaderboardResult = cachedQuery(
     return loadLeaderboardResult(filters);
   },
   ["leaderboard-result-v2"],
-  { revalidate: 60, tags: ["leaderboard"] },
+  {
+    revalidate: LEADERBOARD_CACHE_SECONDS,
+    tags: ["leaderboard"],
+    isFailure: (result) => result.failed,
+  },
 );
 
 export const getLeaderboardResult = cache(async function getLeaderboardResult(

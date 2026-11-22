@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { revalidateCommerceSurfaces } from "@/lib/revalidate-commerce";
+import { whopPushDue } from "@/lib/whop-push-policy";
 import { pushPackageToWhop, syncWhopStorefront } from "@/lib/whop-sync";
 
 export const runtime = "nodejs";
@@ -10,6 +11,8 @@ export const maxDuration = 300;
 
 const WHOP_SYNC_BATCH_SIZE = 5;
 const WHOP_PUSH_BATCH_SIZE = 25;
+/** Enough rows that pushes waiting out a daily retry never starve new ones. */
+const WHOP_PUSH_SCAN_SIZE = 200;
 
 function authorized(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET?.trim();
@@ -46,8 +49,10 @@ export async function GET(req: NextRequest) {
 
   // SCL owns an explicit admin edit until Whop acknowledges it. Retry those
   // durable revisions before any inbound pull so a failed push cannot be
-  // silently overwritten by the older Whop value.
-  const pendingPushes = await prisma.package.findMany({
+  // silently overwritten by the older Whop value. A push Whop has refused as
+  // invalid is retried daily, not every pass (see whopPushDue).
+  const now = new Date();
+  const pendingCandidates = await prisma.package.findMany({
     where: {
       whopPushPendingAt: { not: null },
       externalProductId: { not: null },
@@ -55,10 +60,20 @@ export async function GET(req: NextRequest) {
         is: { provider: "WHOP", status: { not: "DISABLED" } },
       },
     },
-    select: { id: true, externalProductId: true, whopPushAttempts: true },
+    select: {
+      id: true,
+      externalProductId: true,
+      whopPushAttempts: true,
+      whopPushLastError: true,
+      updatedAt: true,
+    },
     orderBy: { whopPushPendingAt: "asc" },
-    take: WHOP_PUSH_BATCH_SIZE,
+    take: WHOP_PUSH_SCAN_SIZE,
   });
+  const pendingPushes = pendingCandidates
+    .filter((pending) => whopPushDue(pending, now))
+    .slice(0, WHOP_PUSH_BATCH_SIZE);
+  const deferredPushes = pendingCandidates.length - pendingPushes.length;
   const pushResults = await Promise.all(
     pendingPushes.map(async (pending) => {
       try {
@@ -185,7 +200,7 @@ export async function GET(req: NextRequest) {
   );
 
   console.info(
-    `[cron/whop-sync] pushes=${pushResults.length} pushFailed=${failedPushes.length} checked=${results.length} imported=${imported} updated=${updated} syncFailed=${failedSyncs.length}`,
+    `[cron/whop-sync] pushes=${pushResults.length} pushFailed=${failedPushes.length} pushDeferred=${deferredPushes} checked=${results.length} imported=${imported} updated=${updated} syncFailed=${failedSyncs.length}`,
   );
 
   return NextResponse.json({
@@ -194,6 +209,8 @@ export async function GET(req: NextRequest) {
       checked: pushResults.length,
       pushed: pushResults.filter((result) => result.pushed).length,
       failed: failedPushes.length,
+      // Refused by Whop as invalid; waiting for their daily retry.
+      deferred: deferredPushes,
       results: pushResults,
     },
     checked: results.length,

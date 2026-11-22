@@ -20,8 +20,41 @@ import { reviveCachedDates } from "@/lib/cache-dates";
 export function cachedQuery<Args extends unknown[], T>(
   loader: (...args: Args) => Promise<T>,
   keyParts: string[],
-  options: { revalidate?: number | false; tags?: string[] },
+  options: {
+    revalidate?: number | false;
+    tags?: string[];
+    /**
+     * A result that must not be cached, e.g. `{ failed: true }` after a
+     * database hiccup. It is still returned to this caller, but the next
+     * request tries again instead of serving the failure for the whole
+     * revalidate window.
+     */
+    isFailure?: (value: T) => boolean;
+  },
 ): (...args: Args) => Promise<T> {
-  const cached = unstable_cache(loader, keyParts, options);
-  return async (...args: Args) => reviveCachedDates(await cached(...args));
+  const { isFailure, ...cacheOptions } = options;
+  const guarded = isFailure
+    ? async (...args: Args) => {
+        const value = await loader(...args);
+        // unstable_cache stores only resolved values; throwing skips the write.
+        if (isFailure(value)) throw new UncachedResult(value);
+        return value;
+      }
+    : loader;
+  const cached = unstable_cache(guarded, keyParts, cacheOptions);
+  return async (...args: Args) => {
+    try {
+      return reviveCachedDates(await cached(...args));
+    } catch (error) {
+      if (error instanceof UncachedResult) return error.value as T;
+      throw error;
+    }
+  };
+}
+
+/** Carries a result out of the cache wrapper without it being stored. */
+class UncachedResult extends Error {
+  constructor(readonly value: unknown) {
+    super("result not cached");
+  }
 }

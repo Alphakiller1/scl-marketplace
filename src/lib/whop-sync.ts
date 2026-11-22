@@ -22,6 +22,7 @@ import {
 import { makeTrackingSlug } from "@/lib/store-connection";
 import { resolveStorefrontPackageReadiness } from "@/lib/storefront-review";
 import { resolveWhopProductPlanPrice } from "@/lib/whop-plan-sync";
+import { whopHeadline } from "@/lib/whop-push-policy";
 
 export type WhopSyncResult =
   | {
@@ -756,8 +757,9 @@ export async function pushPackageToWhop(
       title: pkg.title,
       description: pkg.description,
       // Keep the prominent product-page headline aligned for products that
-      // previously used it as their only summary.
-      headline: pkg.description,
+      // previously used it as their only summary — clipped to Whop's 80
+      // characters, or Whop rejects the whole update (HTTP 400).
+      headline: whopHeadline(pkg.description),
       visibility: pkg.isActive ? "visible" : "hidden",
     },
   });

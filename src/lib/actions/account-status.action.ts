@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/session";
@@ -85,6 +85,9 @@ export async function updateAccountStatusAction(
   revalidatePath("/cappers");
   revalidatePath("/discover");
   revalidatePath("/leaderboard");
+  // The leaderboard, Discover, profile and package caches share this tag and
+  // hold for minutes; expire them now so the change shows on the next view.
+  revalidateTag("leaderboard", { expire: 0 });
   revalidatePath("/picks");
   if (result.username) {
     revalidatePath(`/cappers/${result.username.replace(/^@/, "")}`);

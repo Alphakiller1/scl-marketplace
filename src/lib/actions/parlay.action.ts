@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 import { resolveGradeRequestsForPicks } from "@/lib/grade-request-resolution";
 import { outcomeLabel } from "@/lib/grade-requests";
@@ -479,6 +479,9 @@ export async function gradeParlayAction(
   revalidatePath("/dashboard/picks");
   revalidatePath("/picks");
   revalidatePath("/leaderboard");
+  // The leaderboard, Discover, profile and package caches share this tag and
+  // hold for minutes; expire them now so the change shows on the next view.
+  revalidateTag("leaderboard", { expire: 0 });
   revalidatePath("/discover");
   revalidatePath("/");
   const username = parlay.capper.user.username?.replace(/^@/, "");
