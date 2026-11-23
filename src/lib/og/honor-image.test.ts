@@ -38,8 +38,10 @@ const award: HonorAward = {
 
 function persistentCache() {
   const entries = new Map<string, string>();
+  const reads: string[] = [];
   return {
     entries,
+    reads,
     cachedQuery: <Args extends unknown[], T>(
       loader: (...args: Args) => Promise<T>,
       parts: string[],
@@ -48,6 +50,7 @@ function persistentCache() {
       assert.equal(options.revalidate, 86_400);
       assert.ok(options.tags.includes("honors"));
       return async (...args: Args): Promise<T> => {
+        reads.push(parts[0]);
         const key = JSON.stringify([parts, args]);
         const cached = entries.get(key);
         if (cached) return JSON.parse(cached) as T;
@@ -152,7 +155,13 @@ test("responsive honor images share one render and survive a JSON cache hit in a
     "the shared source preserves every original pixel",
   );
   const restarted = worker();
+  const beforeNewWidth = cache.reads.length;
   const larger = await restarted.getHonorImage(award, 720);
+  assert.equal(
+    cache.reads.length - beforeNewWidth,
+    1,
+    "another width reads only the small display bundle, not the lossless source",
+  );
   assert.equal(
     (await sharp(Buffer.from(larger.data, "base64")).metadata()).width,
     720,

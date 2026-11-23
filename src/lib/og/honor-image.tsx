@@ -9,6 +9,7 @@ import { SCL_PUBLIC_DOMAIN } from "@/lib/brand";
 import { cachedQuery } from "@/lib/cached-query";
 import type { HonorAward } from "@/lib/honors";
 import {
+  HONOR_GRAPHIC_WIDTHS,
   HONOR_OG_SIZE,
   HONOR_OG_VERSION,
   HonorOgCard,
@@ -83,24 +84,53 @@ function sourceFor(award: HonorAward) {
   return pending;
 }
 
-/** Cached responsive WebP or downloadable PNG, keyed by the full award content. */
-export const getHonorImage = cachedQuery(
-  async (award: HonorAward, width: number | null) => {
+// Keep the three small display copies together. A new device width then reads
+// this small bundle, rather than downloading the much larger lossless source.
+const cachedDisplay = cachedQuery(
+  async (award: HonorAward) => {
     const source = Buffer.from(await sourceFor(award), "base64");
-    const output =
-      width == null
-        ? await sharp(source)
-            .png({ palette: true, quality: 100, dither: 1, effort: 8 })
-            .toBuffer()
-        : await sharp(source)
-            .resize({ width, kernel: "lanczos3" })
-            .webp({ quality: 88, smartSubsample: true })
-            .toBuffer();
-    return {
-      data: output.toString("base64"),
-      contentType: width == null ? "image/png" : "image/webp",
-    };
+    const copies = await Promise.all(
+      HONOR_GRAPHIC_WIDTHS.map(async (width) => {
+        const output = await sharp(source)
+          .resize({ width, kernel: "lanczos3" })
+          .webp({ quality: 88, smartSubsample: true })
+          .toBuffer();
+        return [width, output.toString("base64")] as const;
+      }),
+    );
+    return Object.fromEntries(copies);
   },
-  ["honor-image-variant-v1", HONOR_OG_VERSION],
+  ["honor-image-display-bundle-v1", HONOR_OG_VERSION],
   { revalidate: 86_400, tags: ["honors"] },
 );
+
+const cachedDownload = cachedQuery(
+  async (award: HonorAward) => {
+    const source = Buffer.from(await sourceFor(award), "base64");
+    return (
+      await sharp(source)
+        .png({ palette: true, quality: 100, dither: 1, effort: 8 })
+        .toBuffer()
+    ).toString("base64");
+  },
+  ["honor-image-download-v1", HONOR_OG_VERSION],
+  { revalidate: 86_400, tags: ["honors"] },
+);
+
+const pendingDisplay = new Map<string, ReturnType<typeof cachedDisplay>>();
+
+/** Responsive WebP or downloadable PNG, cached by the full award content. */
+export async function getHonorImage(award: HonorAward, width: number | null) {
+  if (width == null)
+    return { data: await cachedDownload(award), contentType: "image/png" };
+  if (!(HONOR_GRAPHIC_WIDTHS as readonly number[]).includes(width)) {
+    throw new RangeError("Unsupported honor image width");
+  }
+  const key = JSON.stringify(award);
+  let pending = pendingDisplay.get(key);
+  if (!pending) {
+    pending = cachedDisplay(award).finally(() => pendingDisplay.delete(key));
+    pendingDisplay.set(key, pending);
+  }
+  return { data: (await pending)[width], contentType: "image/webp" };
+}

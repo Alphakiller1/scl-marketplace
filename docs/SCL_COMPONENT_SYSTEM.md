@@ -102,7 +102,7 @@ Numbers are the product. These render performance consistently everywhere.
 `ProfilePerformanceChart` (Recharts), `GameCard`, `MobileBottomNav`, `DesktopSidebar`,
 `AdminGradePanel`, `ShareableProfileCard`, `ShareablePickCard`, `TrophyCase`.
 
-Honors cards retain the approved share artwork. `src/lib/og/honor-image.tsx` caches a lossless rendered source and the responsive WebP/PNG copies by award content and artwork version, so requesting another size does not rerender the full graphic. Fonts are bundled under `data/og/fonts` with their licenses. The homepage eagerly loads its first three potentially visible cards; remaining cards stay lazy.
+Honors cards retain the approved share artwork. `src/lib/og/honor-image.tsx` caches a lossless rendered source and the responsive WebP/PNG copies by award content and artwork version. The three display sizes are cached together, so another device width reads that small bundle instead of loading or rendering the full source. Fonts are bundled under `data/og/fonts` with their licenses. The homepage eagerly loads its first three potentially visible cards; remaining cards stay lazy.
 
 ## Authoring rules
 
