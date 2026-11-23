@@ -9,6 +9,7 @@
  */
 
 import { teamMarkSrc } from "@/lib/mark-manifest";
+import { ncaabSchoolName } from "@/lib/ncaab-school-names";
 import { NCAAF_TEAM_ROWS } from "@/lib/ncaaf-teams";
 
 export type TeamIdentity = {
@@ -435,7 +436,10 @@ function fallbackTeam(name: string, sport?: string): TeamIdentity {
   return {
     key: `fallback-${normalize(name)}`,
     abbr,
-    shortName: words.at(-1) ?? name,
+    shortName:
+      sport?.trim().toUpperCase() === "NCAAB"
+        ? ncaabSchoolName(name)
+        : (words.at(-1) ?? name),
     fullName: name,
     primaryColor: FALLBACK_COLOR,
     logoUrl,

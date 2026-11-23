@@ -97,6 +97,53 @@ test("resolveKnownTeam returns null for unknown names", () => {
   assert.equal(resolveKnownTeam("Los Angeles Dodgers", "WNBA"), null);
 });
 
+test("NCAAB board labels use schools instead of mascots without changing the team identity", () => {
+  for (const [name, school] of [
+    ["Duke Blue Devils", "Duke"],
+    ["North Carolina Tar Heels", "North Carolina"],
+    ["Kentucky Wildcats", "Kentucky"],
+    ["Gonzaga Bulldogs", "Gonzaga"],
+    ["Georgia Bulldogs", "Georgia"],
+    ["UConn Huskies", "UConn"],
+    ["Washington Huskies", "Washington"],
+    ["Miami Hurricanes", "Miami"],
+    ["Miami (OH) RedHawks", "Miami (OH)"],
+    ["Loyola Maryland Greyhounds", "Loyola Maryland"],
+    ["Loyola Marymount Lions", "Loyola Marymount"],
+    ["Boston University Terriers", "Boston University"],
+  ]) {
+    const identity = getTeamIdentity(name, "NCAAB");
+    assert.equal(identity.shortName, school, name);
+    assert.equal(
+      identity.fullName,
+      name,
+      "the stored team identity remains unchanged",
+    );
+  }
+});
+
+test("college school labels accept feed aliases and ranks while unknown names stay whole", () => {
+  for (const [name, school] of [
+    ["#8 Duke Blue Devils", "Duke"],
+    ["18. North Carolina Tar Heels", "North Carolina"],
+    ["Connecticut Huskies", "UConn"],
+    ["Appalachian St Mountaineers", "App State"],
+    ["San Jose St Spartans", "San José State"],
+    ["Fort Wayne Mastodons", "Purdue Fort Wayne"],
+    ["Cal Baptist Lancers", "California Baptist"],
+    ["Central Connecticut St Blue Devils", "Central Connecticut"],
+    ["Duke", "Duke"],
+    ["Unknown University Panthers", "Unknown University Panthers"],
+  ]) {
+    assert.equal(getTeamIdentity(name, " ncaab ").shortName, school, name);
+  }
+  assert.equal(resolveKnownTeam("Bulldogs", "NCAAB"), null);
+  assert.equal(
+    getTeamIdentity("Mystery City Meteors", "NBA").shortName,
+    "Meteors",
+  );
+});
+
 test("readableTextColor chooses a contrasting text color", () => {
   assert.equal(readableTextColor("#ffffff"), "#0b0f19");
   assert.equal(readableTextColor("#000000"), "#ffffff");
