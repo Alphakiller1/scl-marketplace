@@ -8,7 +8,7 @@ import { HonorAccolade } from "@/components/scl/honor-accolade";
 /**
  * SCL Leaderboard Honors — the award winners currently on display, as a
  * scrolling row of their share graphics. Each links to the winner's profile.
- * The first two sit in the first viewport, so they load eagerly.
+ * The first three can be visible together, so they load eagerly.
  */
 export function HonorsShowcase({ awards }: { awards: HonorAward[] }) {
   return (
@@ -43,7 +43,7 @@ export function HonorsShowcase({ awards }: { awards: HonorAward[] }) {
               award={award}
               href={`/cappers/${award.winner.handle}`}
               sizes="(min-width: 640px) 240px, 216px"
-              eager={index < 2}
+              eager={index < 3}
               className="w-[13.5rem] sm:w-60"
             />
           ))}

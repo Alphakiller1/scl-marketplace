@@ -10,7 +10,7 @@ import { OG } from "@/lib/og/tokens";
 import { CROSS_SPORTS } from "@/lib/parlay-sport";
 
 export const HONOR_OG_SIZE = { width: 1080, height: 1350 } as const;
-export const HONOR_OG_VERSION = "20261017c";
+export const HONOR_OG_VERSION = "20261123a";
 /** Display widths `/api/og/honor/[id]?w=` serves for on-site cards. */
 export const HONOR_GRAPHIC_WIDTHS = [360, 540, 720] as const;
 

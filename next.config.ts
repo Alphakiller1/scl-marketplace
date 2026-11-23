@@ -57,7 +57,10 @@ const nextConfig: NextConfig = {
     "/admin/messages": ["./node_modules/@img/**/*"],
     "/admin/emails": ["./node_modules/@img/**/*"],
     "/api/*": ["./node_modules/@img/**/*"],
-    "/api/og/honor/**": ["./data/og/honor-neon-plate.jpg"],
+    "/api/og/honor/**": [
+      "./data/og/honor-neon-plate.jpg",
+      "./data/og/fonts/*.ttf",
+    ],
     "/api/cron/odds-replay": [
       "./data/odds-snapshots/2026-08-25T15-08Z.json.gz",
     ],
