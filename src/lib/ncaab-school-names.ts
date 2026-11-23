@@ -378,7 +378,14 @@ const SCHOOL_NAMES: readonly (readonly [
 ];
 
 const schoolByTeam = new Map(
-  SCHOOL_NAMES.map(([teamName, schoolName]) => [
+  [
+    ...SCHOOL_NAMES,
+    // Older/shorter provider names observed on the live basketball slate.
+    ["IUPUI Jaguars", "IU Indianapolis"],
+    ["Tenn-Martin Skyhawks", "UT Martin"],
+    ["Texas A&M-CC Islanders", "Texas A&M-Corpus Christi"],
+    ["Loyola (Chi) Ramblers", "Loyola Chicago"],
+  ].map(([teamName, schoolName]) => [
     canonicalNcaabTeamName(teamName),
     schoolName,
   ]),

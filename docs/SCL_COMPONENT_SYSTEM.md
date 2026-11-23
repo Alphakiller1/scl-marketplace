@@ -19,7 +19,7 @@ Numbers are the product. These render performance consistently everywhere.
 - `TrophyBadge` — legacy component name; public rank treatment follows the v2 pink role.
 - `SportTag` — uppercase sport label from the canonical taxonomy (optional `LeagueMark`).
 - `TeamMark` (`team-mark.tsx`) — self-hosted mark when listed in `mark-manifest`; color+abbr fallback otherwise.
-- NCAAB game-picker and odds-board labels show school names (for example, Duke and North Carolina), using the ESPN school labels in `src/lib/ncaab-school-names.ts`. Unknown teams retain their full names. Provider team names, selections, and grading identities are preserved.
+- NCAAB game-picker and odds-board labels show school names (for example, Duke and North Carolina), using the ESPN school labels and older provider-name aliases in `src/lib/ncaab-school-names.ts`. Unknown teams retain their full names. Provider team names, selections, and grading identities are preserved.
 - `LeagueMark` (`league-mark.tsx`) — self-hosted mark when listed in `mark-manifest`; color+initials fallback otherwise.
 - `StatusBadge` — pick status (`pending|live|win|loss|push|void`); `live` animates a ping dot.
 - `Ticket` (`ticket.tsx`) — post-submit and verified-pick receipt (tear line, stamp, mono capture).

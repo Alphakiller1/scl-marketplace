@@ -132,6 +132,10 @@ test("college school labels accept feed aliases and ranks while unknown names st
     ["Fort Wayne Mastodons", "Purdue Fort Wayne"],
     ["Cal Baptist Lancers", "California Baptist"],
     ["Central Connecticut St Blue Devils", "Central Connecticut"],
+    ["IUPUI Jaguars", "IU Indianapolis"],
+    ["Tenn-Martin Skyhawks", "UT Martin"],
+    ["Texas A&M-CC Islanders", "Texas A&M-Corpus Christi"],
+    ["Loyola (Chi) Ramblers", "Loyola Chicago"],
     ["Duke", "Duke"],
     ["Unknown University Panthers", "Unknown University Panthers"],
   ]) {
