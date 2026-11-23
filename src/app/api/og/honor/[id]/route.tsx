@@ -1,112 +1,36 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
-
-import { ImageResponse } from "next/og";
-import sharp from "sharp";
-
-import { SCL_PUBLIC_DOMAIN } from "@/lib/brand";
-import {
-  HONOR_GRAPHIC_WIDTHS,
-  HONOR_OG_SIZE,
-  HonorOgCard,
-} from "@/lib/og/honor-og-card";
+import { HONOR_GRAPHIC_WIDTHS } from "@/lib/og/honor-og-card";
+import { getHonorImage } from "@/lib/og/honor-image";
 import { getHonorAwardById } from "@/lib/queries/honors";
 
-const FONT_BARLOW =
-  "https://cdn.jsdelivr.net/fontsource/fonts/barlow-condensed@5.2.5/latin-700-normal.ttf";
-const FONT_INTER =
-  "https://cdn.jsdelivr.net/fontsource/fonts/inter@5.2.5/latin-500-normal.ttf";
-
-// Awards for completed periods never change, so the image can cache long.
-const CACHE = "public, s-maxage=86400, stale-while-revalidate=604800";
-
-async function font(url: string) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Honor OG font fetch failed: ${res.status}`);
-  return res.arrayBuffer();
-}
-
-// The owner's neon trophy artwork with its text removed, 1080×1340 (the card
-// minus its 10px top border). Traced into this function in next.config.ts.
-let plate: Promise<string> | null = null;
-function loadHonorPlate(): Promise<string> {
-  plate ??= readFile(
-    join(process.cwd(), "data", "og", "honor-neon-plate.jpg"),
-  ).then((buf) => `data:image/jpeg;base64,${buf.toString("base64")}`);
-  return plate;
-}
-
+const CACHE =
+  "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800";
 type RouteParams = { params: Promise<{ id: string }> };
 
-/**
- * A smaller copy of the graphic for on-site display, or null for the full
- * PNG. Only the listed widths are served, so the cache holds a fixed set.
- *
- * The site shows these instead of routing the PNG through next/image: Vercel's
- * optimizer mis-routes a dynamic-route source like this one (the request lands
- * on `/_next/image?nxtPid=<id>` and fails), which left cards blank. Satori
- * cannot scale the card either — a transformed root renders clipped — so the
- * full render is resized here.
- */
+/** Only fixed display sizes are allowed; the full PNG remains available to download. */
 function displayWidth(params: URLSearchParams): number | null {
   const w = Number(params.get("w"));
   return (HONOR_GRAPHIC_WIDTHS as readonly number[]).includes(w) ? w : null;
 }
 
-/** 1080×1350 (4:5) share graphic for one SCL Honors award. */
 export async function GET(req: Request, { params }: RouteParams) {
   const { id } = await params;
-  const [award, barlow, inter, background] = await Promise.all([
-    getHonorAwardById(decodeURIComponent(id)),
-    font(FONT_BARLOW),
-    font(FONT_INTER),
-    loadHonorPlate(),
-  ]);
+  const award = await getHonorAwardById(decodeURIComponent(id));
   if (!award) return new Response("Award not found", { status: 404 });
-
   const search = new URL(req.url).searchParams;
   const download = search.has("download");
-  const image = new ImageResponse(
-    <HonorOgCard award={award} host={SCL_PUBLIC_DOMAIN} plate={background} />,
-    {
-      ...HONOR_OG_SIZE,
-      emoji: "twemoji",
-      fonts: [
-        {
-          name: "Barlow Condensed",
-          data: barlow,
-          style: "normal",
-          weight: 700,
-        },
-        { name: "Inter", data: inter, style: "normal", weight: 500 },
-      ],
-      headers: {
-        "Cache-Control": CACHE,
-        ...(download
-          ? {
-              "Content-Disposition": `attachment; filename="scl-honors-${award.id}.png"`,
-            }
-          : {}),
-      },
-    },
+  const image = await getHonorImage(
+    award,
+    download ? null : displayWidth(search),
   );
-
-  const width = download ? null : displayWidth(search);
-  const png = Buffer.from(await image.arrayBuffer());
-  if (width == null) {
-    // Still a PNG (the download and the award page's img), but quantized:
-    // the photographic neon plate makes Satori's PNG ~1.9 MB, and a dithered
-    // 256-colour copy is ~440 KB with no visible banding (PSNR ~40 dB).
-    const small = await sharp(png)
-      .png({ palette: true, quality: 100, dither: 1, effort: 8 })
-      .toBuffer();
-    return new Response(new Uint8Array(small), { headers: image.headers });
-  }
-  const webp = await sharp(png)
-    .resize({ width, kernel: "lanczos3" })
-    .webp({ quality: 88, smartSubsample: true })
-    .toBuffer();
-  return new Response(new Uint8Array(webp), {
-    headers: { "Content-Type": "image/webp", "Cache-Control": CACHE },
+  return new Response(new Uint8Array(Buffer.from(image.data, "base64")), {
+    headers: {
+      "Content-Type": image.contentType,
+      "Cache-Control": CACHE,
+      ...(download
+        ? {
+            "Content-Disposition": `attachment; filename="scl-honors-${award.id}.png"`,
+          }
+        : {}),
+    },
   });
 }
