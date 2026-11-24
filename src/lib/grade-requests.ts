@@ -312,6 +312,40 @@ export function pickSummaryLine(
   return parts.join(" · ");
 }
 
+/** The owner-editable email a capper receives when their request is accepted. */
+export const GRADE_REQUEST_ACCEPTED_TEMPLATE = {
+  REGRADE: "REGRADE_ACCEPTED",
+  INJURY_PROTECTION: "INJURY_PROTECTION_ACCEPTED",
+} as const satisfies Record<GradeRequestType, string>;
+
+/**
+ * Substitutions for the "request accepted" email.
+ *
+ * The result shown is the one on record NOW: the ticket's for a parlay (that is
+ * what counts on the capper's record, whichever leg they named), the play's for
+ * a straight pick. The admin's resolution note is deliberately absent — it is
+ * written for the team (auto-closed requests carry the correction's audit
+ * reason), not for the capper.
+ */
+export function gradeRequestAcceptedVariables(input: {
+  username: string | null;
+  pickSummary: string;
+  outcomeAtRequest: Outcome;
+  profitUnitsAtRequest: number | null;
+  outcome: Outcome;
+  profitUnits: number | null;
+}): Record<string, string> {
+  return {
+    "{{account}}": input.username ? `Account: @${input.username}` : "",
+    "{{pick}}": input.pickSummary,
+    "{{previous_result}}": resultLabel(
+      input.outcomeAtRequest,
+      input.profitUnitsAtRequest,
+    ),
+    "{{result}}": resultLabel(input.outcome, input.profitUnits),
+  };
+}
+
 /** Truncate for an email subject without cutting mid-word where avoidable. */
 export function clipForSubject(value: string, max = 90): string {
   if (value.length <= max) return value;

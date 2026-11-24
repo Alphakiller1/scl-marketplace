@@ -77,6 +77,10 @@ type SubmitWorld = {
   open?: { id: string; createdAt: Date } | null;
   allowed?: boolean;
   delivered?: boolean;
+  /** Review: null when the request id does not exist. */
+  reviewed?: null;
+  /** Review: another admin closed it first. */
+  alreadyClosed?: boolean;
 };
 
 function submitHarness(world: SubmitWorld = {}) {
@@ -85,6 +89,7 @@ function submitHarness(world: SubmitWorld = {}) {
   const emails: Record<string, unknown>[] = [];
   const pickLookups: unknown[][] = [];
   const revalidated: string[] = [];
+  const accepted: string[] = [];
   const action = loadTestModule<typeof RequestAction>(
     "src/lib/actions/grade-request.action.ts",
     {
@@ -103,6 +108,11 @@ function submitHarness(world: SubmitWorld = {}) {
       },
       "@/lib/email-verification-policy": {
         emailVerificationEnforced: () => true,
+      },
+      "@/lib/grade-request-resolution": {
+        emailCappersAboutAcceptedRequests: (ids: string[]) => {
+          accepted.push(...ids);
+        },
       },
       "@/lib/grade-requests": gradeRequests,
       "@/lib/schemas/grade-request.schema": requestSchema,
@@ -146,12 +156,28 @@ function submitHarness(world: SubmitWorld = {}) {
             update: async ({ data }: { data: Record<string, unknown> }) => {
               updated.push(data);
             },
+            findUnique: async () =>
+              world.reviewed === null
+                ? null
+                : { playId: "play_1", parlayId: null },
+            updateMany: async ({ data }: { data: Record<string, unknown> }) => {
+              updated.push(data);
+              return { count: world.alreadyClosed ? 0 : 1 };
+            },
           },
         },
       },
     },
   );
-  return { action, created, updated, emails, pickLookups, revalidated };
+  return {
+    action,
+    created,
+    updated,
+    emails,
+    pickLookups,
+    revalidated,
+    accepted,
+  };
 }
 
 const regrade: requestSchema.SubmitGradeRequestInput = {
@@ -632,4 +658,42 @@ test("nothing to change is a no-op, not a write", async () => {
   assert.equal(noop.ok, true);
   assert.equal((noop as { changedPlays: number }).changedPlays, 0);
   assert.equal(same.transactions(), 0);
+});
+
+// ---------------------------------------------------------------------------
+// Admin: resolve or decline — the capper hears only about an acceptance
+// ---------------------------------------------------------------------------
+
+test("resolving a request emails the capper; declining does not", async () => {
+  const resolved = submitHarness();
+  assert.deepEqual(
+    plain(
+      await resolved.action.reviewGradeRequestAction({
+        requestId: "req_1",
+        decision: "RESOLVED",
+      }),
+    ),
+    { ok: true },
+  );
+  assert.deepEqual(resolved.accepted, ["req_1"]);
+
+  const declined = submitHarness();
+  await declined.action.reviewGradeRequestAction({
+    requestId: "req_1",
+    decision: "DECLINED",
+    note: "Box score confirms the under; the result stands.",
+  });
+  assert.deepEqual(declined.accepted, []);
+});
+
+test("a request another admin already closed is not emailed again", async () => {
+  const { action, accepted } = submitHarness({ alreadyClosed: true });
+  const result = plain(
+    await action.reviewGradeRequestAction({
+      requestId: "req_1",
+      decision: "RESOLVED",
+    }),
+  );
+  assert.equal(result.ok, false);
+  assert.deepEqual(accepted, []);
 });
