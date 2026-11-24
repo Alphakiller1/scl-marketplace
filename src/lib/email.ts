@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-import type { StoreProvider } from "@prisma/client";
+import type { GradeRequestType, StoreProvider } from "@prisma/client";
 
 import { hasDeliverableEmail } from "@/lib/account-claim";
 import { escapeHtml } from "@/lib/email-escape";
@@ -11,6 +11,7 @@ import {
   renderGradeRequestEmail,
   type GradeRequestEmailInput,
 } from "@/lib/grade-request-email";
+import { GRADE_REQUEST_ACCEPTED_TEMPLATE } from "@/lib/grade-requests";
 import { PASSWORD_POLICY_SUMMARY } from "@/lib/password-policy";
 import { providerLabel, SCL_AFFILIATE_EMAIL } from "@/lib/store-connection";
 import {
@@ -734,6 +735,33 @@ export async function sendGradeRequestEmail(
       error: error instanceof Error ? error.message : "send threw",
     };
   }
+}
+
+/**
+ * Tell a capper an admin accepted their regrade or injury-protection request.
+ *
+ * Owner-editable copy, like every other capper email. The key is stable for one
+ * acceptance, so a retried send cannot mail twice; a request reopened and
+ * accepted again carries a new `resolvedAt` and is told again.
+ */
+export async function sendGradeRequestAcceptedEmail(input: {
+  requestId: string;
+  type: GradeRequestType;
+  resolvedAt: Date;
+  to: string;
+  username: string | null;
+  variables: Record<string, string>;
+}): Promise<{ delivered: boolean }> {
+  const { delivered } = await sendTemplatedEmail({
+    slug: GRADE_REQUEST_ACCEPTED_TEMPLATE[input.type],
+    to: input.to,
+    actionUrl: `${appUrl()}/dashboard/picks`,
+    variables: input.variables,
+    recipientUsername: input.username,
+    devLabel: "grade request accepted",
+    idempotencyKey: `grade-request-accepted/${input.requestId}/${input.resolvedAt.getTime()}`,
+  });
+  return { delivered };
 }
 
 /**

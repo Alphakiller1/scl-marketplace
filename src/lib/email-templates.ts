@@ -20,7 +20,9 @@ export type EmailTemplateSlug =
   | "VERIFICATION"
   | "PASSWORD_RESET"
   | "ACCOUNT_CLAIM"
-  | "PASSWORD_UPDATE_REQUIRED";
+  | "PASSWORD_UPDATE_REQUIRED"
+  | "REGRADE_ACCEPTED"
+  | "INJURY_PROTECTION_ACCEPTED";
 
 export const EMAIL_TEMPLATE_SLUGS: readonly EmailTemplateSlug[] = [
   "WELCOME",
@@ -30,6 +32,8 @@ export const EMAIL_TEMPLATE_SLUGS: readonly EmailTemplateSlug[] = [
   "PASSWORD_RESET",
   "ACCOUNT_CLAIM",
   "PASSWORD_UPDATE_REQUIRED",
+  "REGRADE_ACCEPTED",
+  "INJURY_PROTECTION_ACCEPTED",
 ] as const;
 
 export function isEmailTemplateSlug(value: string): value is EmailTemplateSlug {
@@ -52,6 +56,24 @@ export type EmailTemplateMeta = EmailTemplateContent & {
 };
 
 const BUTTON_TOKEN = "{{button}}";
+
+/** The pick facts both "request accepted" emails can place. */
+const GRADE_REQUEST_ACCEPTED_VARIABLES = [
+  { token: "{{account}}", describes: "the capper's @handle, when known" },
+  {
+    token: "{{pick}}",
+    describes:
+      "the pick as it was when the capper asked, e.g. Jabari Smith Jr Over 4.5 Rebounds · Houston Rockets @ Atlanta Hawks · -115 · 1U",
+  },
+  {
+    token: "{{previous_result}}",
+    describes: "the result when the capper asked, e.g. Loss · -1U",
+  },
+  {
+    token: "{{result}}",
+    describes: "the result on record now, e.g. Win · +0.34U",
+  },
+] as const;
 
 export const EMAIL_TEMPLATES: Record<EmailTemplateSlug, EmailTemplateMeta> = {
   WELCOME: {
@@ -213,6 +235,50 @@ You can keep signing in with your existing password in the meantime — nothing 
 {{button}}`,
     footnote:
       "If you didn't just sign in to SCL, change your password immediately.",
+  },
+
+  REGRADE_ACCEPTED: {
+    label: "Regrade accepted",
+    description:
+      "Sent when an admin accepts a capper's regrade request — by correcting the pick, or by marking the request resolved.",
+    variables: GRADE_REQUEST_ACCEPTED_VARIABLES,
+    subject: "Your SCL regrade request was accepted",
+    actionLabel: "View my picks",
+    body: `# Your regrade request was accepted
+
+{{account}}
+
+We reviewed your regrade request and updated the result on your record.
+
+Pick: {{pick}}
+Before: {{previous_result}}
+Now: {{result}}
+
+{{button}}`,
+    footnote:
+      "Your profile and the leaderboard pick up the change within a few minutes. Reply to this email if anything still looks wrong.",
+  },
+
+  INJURY_PROTECTION_ACCEPTED: {
+    label: "Injury protection accepted",
+    description:
+      "Sent when an admin accepts a capper's injury protection request — by voiding the pick, or by marking the request resolved.",
+    variables: GRADE_REQUEST_ACCEPTED_VARIABLES,
+    subject: "Your SCL injury protection request was accepted",
+    actionLabel: "View my picks",
+    body: `# Your injury protection request was accepted
+
+{{account}}
+
+We reviewed your injury protection request and updated this pick on your record.
+
+Pick: {{pick}}
+Before: {{previous_result}}
+Now: {{result}}
+
+{{button}}`,
+    footnote:
+      "Your profile and the leaderboard pick up the change within a few minutes. Reply to this email if anything still looks wrong.",
   },
 };
 

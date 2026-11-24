@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { sendGradeRequestEmail } from "@/lib/email";
 import { emailVerificationEnforced } from "@/lib/email-verification-policy";
+import { emailCappersAboutAcceptedRequests } from "@/lib/grade-request-resolution";
 import {
   formatRequestGameDate,
   GRADE_REQUEST_SUBJECT,
@@ -217,7 +218,10 @@ function revalidateAdminRequestViews(pick: {
   revalidatePath("/dashboard");
 }
 
-/** Admin closes a request: resolved (handled) or declined (result stands). */
+/**
+ * Admin closes a request: resolved (handled) or declined (result stands).
+ * Resolving accepts it, and the capper is emailed; a decline sends nothing.
+ */
 export async function reviewGradeRequestAction(
   input: ReviewGradeRequestInput,
 ): Promise<AdminResult> {
@@ -251,6 +255,7 @@ export async function reviewGradeRequestAction(
       error: "This request was already closed. Refresh to see its status.",
     };
   }
+  if (decision === "RESOLVED") emailCappersAboutAcceptedRequests([requestId]);
   revalidateAdminRequestViews(request);
   return { ok: true };
 }

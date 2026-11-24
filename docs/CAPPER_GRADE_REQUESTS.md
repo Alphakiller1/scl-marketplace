@@ -76,6 +76,28 @@ does.
   do the same.
 - Leaderboard, profile and Discover caches are refreshed immediately.
 
+## What the capper receives
+
+When a request is **accepted** the capper is emailed. That happens either way a
+request is accepted:
+
+- a correction on the pick closes it (any of the correction tools above), or
+- an admin clicks _Mark resolved_.
+
+A **decline** sends nothing. Each acceptance sends one email, to the capper's
+account address. A request that is reopened and accepted again is emailed again.
+
+- **Copy:** owner-editable templates _Regrade accepted_ and _Injury protection
+  accepted_ in **Admin → Emails**. Variables: `{{account}}`, `{{pick}}` (the pick
+  as the capper sent it), `{{previous_result}}` (the result when they asked) and
+  `{{result}}` (the result on record now; for a parlay, the ticket's result).
+  The button opens My Picks.
+- **Not included:** the admin's resolution note. It is written for the team, and
+  auto-closed requests carry the correction's audit reason.
+- **Delivery:** the email is sent after the admin's save returns (`after()`), so
+  the save never waits on the mailer. Every send is logged in the admin email
+  activity log. Legacy placeholder addresses are skipped.
+
 ## Code map
 
 | Concern                                     | File                                                     |
@@ -84,6 +106,7 @@ does.
 | Notification email (pure renderer)          | `src/lib/grade-request-email.ts`                         |
 | Matching + settlement planning (pure)       | `src/lib/bulk-correction.ts`                             |
 | Capper submit, admin decline/resolve/reopen | `src/lib/actions/grade-request.action.ts`                |
+| Auto-close + "request accepted" emails      | `src/lib/grade-request-resolution.ts`                    |
 | Apply a correction to one or many plays     | `src/lib/actions/bulk-correction.action.ts`              |
 | Candidate plays on the same game            | `src/lib/queries/bulk-correction.ts`                     |
 | Queue / open-request queries                | `src/lib/queries/grade-requests.ts`                      |
